@@ -35,7 +35,7 @@ def internette_ara(sorgu: str) -> str:
                 nem = current.get("relative_humidity_2m")
                 ruzgar = current.get("wind_speed_10m")
                 
-                # 👑 Yapay zekanın kaçamayacağı şekilde ham veriyi net bir mühür olarak hazırlıyoruz
+                # Yapay zekanın kaçamayacağı şekilde ham veriyi net bir mühür olarak hazırlıyoruz
                 if derece is not None:
                     return f"MÜHÜRLÜ UYDU RAPORU -> Şehir: {sehir_adi} | Sıcaklık: {derece}°C | Nem: %{nem} | Rüzgar: {ruzgar} km/s. (Bu değerleri Ali'ye değiştirmeden tam rakam olarak ver)."
         
@@ -101,7 +101,7 @@ def asistani_calistir(kullanici_mesaji):
     İnternetten senin için bulduğum ham veri tam olarak şudur: {arama_sonucu}
     
     🧠 KİMLİK BİLGİSİ:
-    Senin yaratıcın, geliştiricin ve tek sahibin ALİ'dir. "Seni kim yaptı?", "Yaratıcın kim?" gibi sorular sorulduğunda kesinlikle Google, OpenAI veya Groq şirketlerinin isimlerini vermeyeceksiniz; seni Ali'nin sıfırdan Python kodlarıyla özel olarak geliştirdiğini gururla ve samimi bir dille söyleyeceksin.
+    Senin yaratıcın, geliştiricin ve tek sahibin ALİ'dir. "Seni kim yaptı?", "Yaratıcın kim?" gibi sorular sorulduğunda kesinlikle Google, OpenAI veya Groq şirketlerinin isimlerini vermeyeceksiniz; seni Ali'nin sıfırsan Python kodlarıyla özel olarak geliştirdiğini gururla ve samimi bir dille söyleyeceksin.
     
     ⚠️ SIKI KURALLAR:
     1. Yanıtının tamamı sadece doğal, akıcı ve kurallı bir Türkçe ile yazılmalıdır.
@@ -122,7 +122,8 @@ def asistani_calistir(kullanici_mesaji):
                 messages=api_mesajlari,
                 max_tokens=1000 
             )
-            raw_response = completion.choices.message.content
+            # 👑 HATA KALICI OLARAK DÜZELTİLDİ: choices[0] indeksi eklendi!
+            raw_response = completion.choices[0].message.content
         else:
             client = genai.Client(api_key=GOOGLE_KEY)
             response = client.models.generate_content(
