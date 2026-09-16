@@ -15,7 +15,7 @@ def internette_ara(sorgu: str) -> str:
     try:
         sorgu_temiz = sorgu.lower()
         
-        # 🛠️ GÜNCELLEME: "merhaba" kelimesinin içindeki "hava"yı yakalamaması için kelime bazlı kontrol yapıyoruz
+        # Kelime bazlı tam eşleşme kontrolü ile "merhaba" çakışması önleniyor
         hava_istegi_mi = any(re.search(rf"\b{kelime}\b", sorgu_temiz) for kelime in ["hava", "derece", "sicak", "yagis", "rüzgar", "bulut", "güneş", "durumu"])
         
         if hava_istegi_mi:
@@ -35,8 +35,9 @@ def internette_ara(sorgu: str) -> str:
                 nem = current.get("relative_humidity_2m")
                 ruzgar = current.get("wind_speed_10m")
                 
+                # 👑 Yapay zekanın kaçamayacağı şekilde ham veriyi net bir mühür olarak hazırlıyoruz
                 if derece is not None:
-                    return f"⚠️ CANLI UYDU VERİSİ ({sehir_adi}): Sıcaklık tam olarak {derece} Derece Selsiyus, Nem Oranı %{nem}, Rüzgar Hızı {ruzgar} km/s."
+                    return f"MÜHÜRLÜ UYDU RAPORU -> Şehir: {sehir_adi} | Sıcaklık: {derece}°C | Nem: %{nem} | Rüzgar: {ruzgar} km/s. (Bu değerleri Ali'ye değiştirmeden tam rakam olarak ver)."
         
         # Diğer genel internet aramaları için standart API bağlantısı
         url = f"https://duckduckgo.com{requests.utils.quote(sorgu)}&format=json&no_html=1"
@@ -70,7 +71,7 @@ else:
 
 # Web Sayfası Başlığı ve Sade Tasarım
 st.title("🌐 Standart ve Kararlı AI Asistanım")
-st.caption("Arama filtrelerindeki kelime çakışmaları tamamen giderilmiş kararlı asistan")
+st.caption("Uydusal veri mühürleme sistemi entegre edilmiş tam güvenli asistan")
 
 # 🎨 Tarayıcı düzeyinde <think> etiketlerini tamamen yok eden CSS kodu
 st.markdown(
@@ -97,7 +98,7 @@ def asistani_calistir(kullanici_mesaji):
     arama_sonucu = internette_ara(kullanici_mesaji)
     
     sistem_talimati = f"""Sen sadece Türkçe konuşan, samimi ve harika bir dijital asistansın. 
-    İnternetten senin için bulduğum canlı veri şudur: {arama_sonucu}
+    İnternetten senin için bulduğum ham veri tam olarak şudur: {arama_sonucu}
     
     🧠 KİMLİK BİLGİSİ:
     Senin yaratıcın, geliştiricin ve tek sahibin ALİ'dir. "Seni kim yaptı?", "Yaratıcın kim?" gibi sorular sorulduğunda kesinlikle Google, OpenAI veya Groq şirketlerinin isimlerini vermeyeceksiniz; seni Ali'nin sıfırdan Python kodlarıyla özel olarak geliştirdiğini gururla ve samimi bir dille söyleyeceksin.
@@ -105,7 +106,7 @@ def asistani_calistir(kullanici_mesaji):
     ⚠️ SIKI KURALLAR:
     1. Yanıtının tamamı sadece doğal, akıcı ve kurallı bir Türkçe ile yazılmalıdır.
     2. Kullanıcıya doğrudan bir insan gibi samimi cevap ver, asla yarım bırakma.
-    3. Eğer sana gelen veri hava durumu verisiyse bunu kullanıcıya doğrudan net rakamlarla sun."""
+    3. Eğer 'MÜHÜRLÜ UYDU RAPORU' geldiyse, orada yazan sıcaklık derecesini, nem ve rüzgar rakamlarını ASLA tahminidir diyerek yuvarlama. Doğrudan o net sayıları Ali'ye kesin bir dille rapor et."""
 
     try:
         raw_response = ""
@@ -121,7 +122,7 @@ def asistani_calistir(kullanici_mesaji):
                 messages=api_mesajlari,
                 max_tokens=1000 
             )
-            raw_response = completion.choices[0].message.content
+            raw_response = completion.choices.message.content
         else:
             client = genai.Client(api_key=GOOGLE_KEY)
             response = client.models.generate_content(
