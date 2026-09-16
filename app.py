@@ -12,37 +12,37 @@ GROQ_KEY = st.secrets["GROQ_API_KEY"]
 
 # 🌐 ENGELSİZ VE %100 GERÇEK ZAMANLI METEOROLOJİ MOTORU
 def internette_ara(sorgu: str) -> str:
-    try:
-        sorgu_temiz = sorgu.lower()
-        
-        # Kelime bazlı tam eşleşme kontrolü ile "merhaba" çakışması önleniyor
-        hava_istegi_mi = any(re.search(rf"\b{kelime}\b", sorgu_temiz) for kelime in ["hava", "derece", "sicak", "yagis", "rüzgar", "bulut", "güneş", "durumu"])
-        
-        if hava_istegi_mi:
-            # Şehir belirleme
+    sorgu_temiz = sorgu.lower()
+    
+    # Kelime bazlı tam eslesme kontrolü ile "merhaba" cakismasi önleniyor
+    hava_istegi_mi = any(re.search(rf"\b{kelime}\b", sorgu_temiz) for kelime in ["hava", "derece", "sicak", "yagis", "rüzgar", "bulut", "güneş", "durumu"])
+    
+    if hava_istegi_mi:
+        try:
             sehir = "Izmir"
             sehir_adi = "İzmir"
             if "odemis" in sorgu_temiz or "ödemiş" in sorgu_temiz:
                 sehir = "Odemis"
                 sehir_adi = "Ödemiş"
                 
-            # 👑 %100 AKTİF VE ENGELSİZ METEOROLOJİ BAĞLANTI AYARI (wttr.in formatlı veri çekme)
-            headers = {"Accept-Language": "tr", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            headers = {"Accept-Language": "tr", "User-Agent": "Mozilla/5.0"}
             url = f"https://wttr.in{sehir}?format=%C+%t+%h+%w"
             response = requests.get(url, headers=headers, timeout=6)
             
             if response.status_code == 200 and "error" not in response.text.lower():
                 ham_veri = response.text.strip().split()
                 if len(ham_veri) >= 3:
-                    # Gelen veriyi yapay zekanın beynine kazımak için net parametrelere ayırıyoruz
                     durum = ham_veri[0]
                     sicaklik = ham_veri[1]
                     nem = ham_veri[2]
                     ruzgar = ham_veri[3] if len(ham_veri) > 3 else "Hafif"
-                    
-                    return f"MÜHÜRLÜ UYDU RAPORU -> Şehir: {sehir_adi} | Durum: {durum} | Sıcaklık: {sicaklik} | Nem: {nem} | Rüzgar: {ruzgar}. (Bu sayısal değerleri Ali'ye değiştirmeden tam rapor olarak sun)."
-                    
-        # Diğer genel internet aramaları için standart API bağlantısı
+                    return f"MÜHÜRLÜ UYDU RAPORU -> Şehir: {sehir_adi} | Durum: {durum} | Sıcaklık: {sicaklik} | Nem: {nem} | Rüzgar: {ruzgar}."
+            return "Hava durumu servisinde gecikme var, genel iklim bilgisiyle yanıtla."
+        except:
+            return "Hava durumu uydusuna su an ulasilamadi."
+            
+    # Hava durumu disindaki normal sohbet ve genel aramalar
+    try:
         url = f"https://duckduckgo.com{requests.utils.quote(sorgu)}&format=json&no_html=1"
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers, timeout=6)
@@ -50,10 +50,9 @@ def internette_ara(sorgu: str) -> str:
             data = response.json()
             if data.get("AbstractText"):
                 return str(data["AbstractText"])
-                
-        return "Canlı internet bağlantısı başarılı. Selamlaşma veya genel sohbet modu."
-    except Exception as e:
-        return "⚠️ ACİL METEOROLOJİ VERİSİ (İzmir): Sıcaklık şu an 26°C, Nem %60, Gökyüzü Açık ve Güneşli."
+        return "Sohbet modu aktif."
+    except:
+        return "Normal sohbet akisi devam ediyor."
 
 # 🎛️ SIDEBAR (YAN MENÜ) AYARLARI
 st.sidebar.title("🤖 Asistan Kontrol Paneli")
@@ -72,9 +71,8 @@ else:
     aktif_llm_adi = "gemini-3.6-flash" 
     st.sidebar.success("Aktif Beyin: Google Gemini 🌟")
 
-# Web Sayfası Başlığı ve Sade Tasarım
 st.title("🌐 Standart ve Kararlı AI Asistanım")
-st.caption("Uydusal veri mühürleme ve engelsiz veri çekme sistemi entegre edilmiş tam güvenli asistan")
+st.caption("Arama motoru ve tetikleyici çakışmaları tamamen arındırılmış kusursuz asistan")
 
 # 🎨 Tarayıcı düzeyinde <think> etiketlerini tamamen yok eden CSS kodu
 st.markdown(
@@ -92,7 +90,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 💬 SOHBET GEÇMİŞİ HAFIZASI (Session State)
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -101,7 +98,7 @@ def asistani_calistir(kullanici_mesaji):
     arama_sonucu = internette_ara(kullanici_mesaji)
     
     sistem_talimati = f"""Sen sadece Türkçe konuşan, samimi ve harika bir dijital asistansın. 
-    İnternetten senin için bulduğum canlı kesin veri şudur: {arama_sonucu}
+    İnternetten senin için gelen veri tam olarak şudur: {arama_sonucu}
     
     🧠 KİMLİK BİLGİSİ:
     Senin yaratıcın, geliştiricin ve tek sahibin ALİ'dir. "Seni kim yaptı?", "Yaratıcın kim?" gibi sorular sorulduğunda kesinlikle Google, OpenAI veya Groq şirketlerinin isimlerini vermeyeceksiniz; seni Ali'nin sıfırdan Python kodlarıyla özel olarak geliştirdiğini gururla ve samimi bir dille söyleyeceksin.
@@ -109,7 +106,8 @@ def asistani_calistir(kullanici_mesaji):
     ⚠️ SIKI KURALLAR:
     1. Yanıtının tamamı sadece doğal, akıcı ve kurallı bir Türkçe ile yazılmalıdır.
     2. Kullanıcıya doğrudan bir insan gibi samimi cevap ver, asla yarım bırakma.
-    3. Sana yukarıda iletilen 'MÜHÜRLÜ UYDU RAPORU' veya 'ACİL METEOROLOJİ VERİSİ' içindeki kesin sıcaklık derecesini, durumunu, nem ve rüzgar rakamlarını ASLA tahminidir diyerek yuvarlama veya gizleme. Doğrudan o net sayıları Ali'ye kesin bir dille rapor et."""
+    3. Eğer veri kutusunda 'Sohbet modu aktif' veya 'Normal sohbet akisi' yazıyorsa, hava durumundan ASLA bahsetme, sadece kullanıcının selamına veya sorusuna normal bir insan gibi cevap ver.
+    4. Sadece 'MÜHÜRLÜ UYDU RAPORU' geldiyse sayısal hava durumunu Ali'ye net rakamlarla sun."""
 
     try:
         raw_response = ""
@@ -144,7 +142,7 @@ def asistani_calistir(kullanici_mesaji):
     except Exception as e:
         return f"Sistem yanıt verirken bir sorun oluştu. Hata: {str(e)}"
 
-# 🔄 SOHBET AKIŞINI EKRANA BASMA (Temiz Hafıza Akışı)
+# 🔄 SOHBET AKIŞINI EKRANA BASMA
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
@@ -159,5 +157,4 @@ if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
         with st.spinner("Asistanınız yanıt hazırlıyor..."):
             ajan_cevabi = asistani_calistir(prompt)
             st.markdown(ajan_cevabi)
-            
             st.session_state.messages.append({"role": "assistant", "content": ajan_cevabi})
