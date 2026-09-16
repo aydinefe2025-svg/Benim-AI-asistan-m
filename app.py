@@ -50,8 +50,6 @@ def internette_ara(sorgu: str) -> str:
                 
         return "Normal genel sohbet modu aktif. İnternet verisi aramaya gerek yok."
     except Exception as e:
-        # 👑 🛠️ KRİTİK DÜZELTME: Buradaki gizli hava durumu mühürünü kaldırdık! 
-        # Böylece internet bağlantısı yavaşlasa bile asistan her mesajda zorla hava durumu anlatmayacak.
         return "Sistem normal sohbet akışında kararlı durumda çalışıyor."
 
 # 🎛️ SIDEBAR (YAN MENÜ) AYARLARI
@@ -73,7 +71,7 @@ else:
 
 # Web Sayfası Başlığı ve Sade Tasarım
 st.title("🌐 Standart ve Kararlı AI Asistanım")
-st.caption("Her mesajda hava durumuna atlama sorunu tamamen arındırılmış kararlı asistan")
+st.caption("Her mesajda hava durumuna atlama sorunu ve liste indeksi hatası düzeltilmiş kararlı asistan")
 
 # 🎨 Tarayıcı düzeyinde <think> etiketlerini tamamen yok eden CSS kodu
 st.markdown(
@@ -124,7 +122,8 @@ def asistani_calistir(kullanici_mesaji):
                 messages=api_mesajlari,
                 max_tokens=1000 
             )
-            raw_response = completion.choices.message.content
+            # 👑 HATA DÜZELTİLDİ: choices listesinin ilk elemanına [0] ile erişildi!
+            raw_response = completion.choices[0].message.content
         else:
             client = genai.Client(api_key=GOOGLE_KEY)
             response = client.models.generate_content(
