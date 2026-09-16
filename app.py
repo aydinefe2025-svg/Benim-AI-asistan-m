@@ -14,15 +14,17 @@ GROQ_KEY = st.secrets["GROQ_API_KEY"]
 def internette_ara(sorgu: str) -> str:
     try:
         sorgu_temiz = sorgu.lower()
-        hava_kelimeleri = ["hava", "derece", "sicak", "yağ", "rüzgar", "bulut", "güneş", "durum"]
         
-        if any(kelime in sorgu_temiz for kelime in hava_kelimeleri):
+        # 🛠️ GÜNCELLEME: "merhaba" kelimesinin içindeki "hava"yı yakalamaması için kelime bazlı kontrol yapıyoruz
+        hava_istegi_mi = any(re.search(rf"\b{kelime}\b", sorgu_temiz) for kelime in ["hava", "derece", "sicak", "yagis", "rüzgar", "bulut", "güneş", "durumu"])
+        
+        if hava_istegi_mi:
             # Koordinat belirleme (Varsayılan İzmir Merkez)
             lat, lon, sehir_adi = "38.4127", "27.1384", "İzmir Merkez"
             if "odemis" in sorgu_temiz or "ödemiş" in sorgu_temiz:
                 lat, lon, sehir_adi = "38.2319", "27.9702", "Ödemiş"
                 
-            # Resmi ve Kesintisiz Open-Meteo Uydusundan Canlı Sayısal Dereceleri Çekiyoruz
+            # Resmi Open-Meteo Uydusundan Canlı Sayısal Dereceleri Çekiyoruz
             url = f"https://open-meteo.com{lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m"
             response = requests.get(url, timeout=6)
             
@@ -45,7 +47,7 @@ def internette_ara(sorgu: str) -> str:
             if data.get("AbstractText"):
                 return str(data["AbstractText"])
                 
-        return "Canlı internet bağlantısı başarılı. Veriler güncel."
+        return "Canlı internet bağlantısı başarılı. Selamlaşma veya genel sohbet modu."
     except Exception as e:
         return "İnternet bağlantı uyarısı: Hava şu an açık ve mevsim normallerinde."
 
@@ -68,7 +70,7 @@ else:
 
 # Web Sayfası Başlığı ve Sade Tasarım
 st.title("🌐 Standart ve Kararlı AI Asistanım")
-st.caption("Arama motoru ve canlı uydu derecelendirme sistemi tamir edilmiş kesin sonuçlu asistan")
+st.caption("Arama filtrelerindeki kelime çakışmaları tamamen giderilmiş kararlı asistan")
 
 # 🎨 Tarayıcı düzeyinde <think> etiketlerini tamamen yok eden CSS kodu
 st.markdown(
@@ -95,15 +97,15 @@ def asistani_calistir(kullanici_mesaji):
     arama_sonucu = internette_ara(kullanici_mesaji)
     
     sistem_talimati = f"""Sen sadece Türkçe konuşan, samimi ve harika bir dijital asistansın. 
-    İnternetten senin için bulduğum canlı, kesin, sayısal meteoroloji verisi tam olarak şudur: {arama_sonucu}
+    İnternetten senin için bulduğum canlı veri şudur: {arama_sonucu}
     
     🧠 KİMLİK BİLGİSİ:
     Senin yaratıcın, geliştiricin ve tek sahibin ALİ'dir. "Seni kim yaptı?", "Yaratıcın kim?" gibi sorular sorulduğunda kesinlikle Google, OpenAI veya Groq şirketlerinin isimlerini vermeyeceksiniz; seni Ali'nin sıfırdan Python kodlarıyla özel olarak geliştirdiğini gururla ve samimi bir dille söyleyeceksin.
     
     ⚠️ SIKI KURALLAR:
-    1. Yanıtının tamamı sadece doğal, akıcı dairy ve kurallı bir Türkçe ile yazılmalıdır.
+    1. Yanıtının tamamı sadece doğal, akıcı ve kurallı bir Türkçe ile yazılmalıdır.
     2. Kullanıcıya doğrudan bir insan gibi samimi cevap ver, asla yarım bırakma.
-    3. Sana yukarıda iletilen CANLI UYDU VERİSİ içindeki kesin sıcaklık derecesini, nem ve rüzgar rakamlarını ASLA gizleme, yuvarlama yapma, doğrudan o net sayıları kullanarak Ali'ye tam bir rapor sun."""
+    3. Eğer sana gelen veri hava durumu verisiyse bunu kullanıcıya doğrudan net rakamlarla sun."""
 
     try:
         raw_response = ""
@@ -119,7 +121,6 @@ def asistani_calistir(kullanici_mesaji):
                 messages=api_mesajlari,
                 max_tokens=1000 
             )
-            # 👑 HATA DÜZELTİLDİ: choices[0] indeksi doğru şekilde eklendi!
             raw_response = completion.choices[0].message.content
         else:
             client = genai.Client(api_key=GOOGLE_KEY)
