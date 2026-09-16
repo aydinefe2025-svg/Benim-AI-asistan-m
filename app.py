@@ -25,7 +25,7 @@ def internette_ara(sorgu: str) -> str:
             if response.status_code == 200:
                 return f"Canlı Meteoroloji Verisi: {response.text.strip()}"
         
-        # 👑 🛠️ ADRES DÜZELTİLDİ: .com'dan sonraki unutulan '/' işareti eklenerek adres yapısı tamir edildi!
+        # Diğer genel aramalar için DuckDuckGo'nun tamir edilmiş adresi
         url = f"https://duckduckgo.com{requests.utils.quote(sorgu)}&format=json&no_html=1"
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
         response = requests.get(url, headers=headers, timeout=6)
@@ -87,11 +87,11 @@ def asistani_calistir(kullanici_mesaji):
     İnternetten senin için bulduğum güncel canlı bilgi şudur: {arama_sonucu}
     
     🧠 KİMLİK BİLGİSİ:
-    Senin yaratıcın, geliştiricin ve tek sahibin ALİ'dir. "Seni kim yaptı?", "Yaratıcın kim?" gibi sorular sorulduğunda kesinlikle Google, OpenAI veya Groq şirketlerinin isimlerini vermeyeceksiniz; seni Ali'nin sıfırdan Python kodlarıyla özel olarak geliştirdiğini gururla ve samimi bir dille söyleyeceksin.
+    Senin yaratıcın, geliştiricin ve tek sahibin ALİ'dir. "Seni kim yaptı?", "Yaratıcın kim?" gibi sorular sorulduğunda kesinlikle Google, OpenAI veya Groq şirketlerinin isimlerini vermeyeceksin; seni Ali'nin sıfırdan Python kodlarıyla özel olarak geliştirdiğini gururla ve samimi bir dille söyleyeceksin.
     
     ⚠️ SIKI KURALLAR:
     1. Yanıtının tamamı sadece doğal, akıcı ve kurallı bir Türkçe ile yazılmalıdır.
-    2. Kullanıcıya doğrudan bir human gibi samimi cevap ver, asla yarım bırakma.
+    2. Kullanıcıya doğrudan bir insan gibi samimi cevap ver, asla yarım bırakma.
     3. Yanıtında kesinlikle hiçbir İngilizce teknik log, düşünme süreci veya reddetme ibaresi barındırma. Sana verilen internet verisini kendi bilgin gibi kullanıp doğrudan cevap ver."""
 
     try:
@@ -108,7 +108,8 @@ def asistani_calistir(kullanici_mesaji):
                 messages=api_mesajlari,
                 max_tokens=1000 
             )
-            raw_response = completion.choices.message.content
+            # 👑 HATA DÜZELTİLDİ: choices listesinin ilk elemanına [0] ile erişildi!
+            raw_response = completion.choices[0].message.content
         else:
             client = genai.Client(api_key=GOOGLE_KEY)
             response = client.models.generate_content(
