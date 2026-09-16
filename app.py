@@ -22,7 +22,7 @@ def internette_ara(sorgu: str) -> str:
             if "odemis" in sorgu_temiz or "ödemiş" in sorgu_temiz:
                 lat, lon, sehir_adi = "38.2319", "27.9702", "Ödemiş"
                 
-            # 👑 Resmi ve Kesintisiz Open-Meteo Uydusundan Canlı Sayısal Dereceleri Çekiyoruz
+            # Resmi ve Kesintisiz Open-Meteo Uydusundan Canlı Sayısal Dereceleri Çekiyoruz
             url = f"https://open-meteo.com{lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m"
             response = requests.get(url, timeout=6)
             
@@ -33,7 +33,6 @@ def internette_ara(sorgu: str) -> str:
                 nem = current.get("relative_humidity_2m")
                 ruzgar = current.get("wind_speed_10m")
                 
-                # Rakamları yapay zekanın beynine kazımak için metne döküyoruz
                 if derece is not None:
                     return f"⚠️ CANLI UYDU VERİSİ ({sehir_adi}): Sıcaklık tam olarak {derece} Derece Selsiyus, Nem Oranı %{nem}, Rüzgar Hızı {ruzgar} km/s."
         
@@ -99,10 +98,10 @@ def asistani_calistir(kullanici_mesaji):
     İnternetten senin için bulduğum canlı, kesin, sayısal meteoroloji verisi tam olarak şudur: {arama_sonucu}
     
     🧠 KİMLİK BİLGİSİ:
-    Senin yaratıcın, geliştiricin ve tek sahibin ALİ'dir. "Seni kim yaptı?", "Yaratıcın kim?" gibi sorular sorulduğunda kesinlikle Google, OpenAI veya Groq şirketlerinin isimlerini vermeyeceksin; seni Ali'nin sıfırdan Python kodlarıyla özel olarak geliştirdiğini gururla ve samimi bir dille söyleyeceksin.
+    Senin yaratıcın, geliştiricin ve tek sahibin ALİ'dir. "Seni kim yaptı?", "Yaratıcın kim?" gibi sorular sorulduğunda kesinlikle Google, OpenAI veya Groq şirketlerinin isimlerini vermeyeceksiniz; seni Ali'nin sıfırdan Python kodlarıyla özel olarak geliştirdiğini gururla ve samimi bir dille söyleyeceksin.
     
     ⚠️ SIKI KURALLAR:
-    1. Yanıtının tamamı sadece doğal, akıcı ve kurallı bir Türkçe ile yazılmalıdır.
+    1. Yanıtının tamamı sadece doğal, akıcı dairy ve kurallı bir Türkçe ile yazılmalıdır.
     2. Kullanıcıya doğrudan bir insan gibi samimi cevap ver, asla yarım bırakma.
     3. Sana yukarıda iletilen CANLI UYDU VERİSİ içindeki kesin sıcaklık derecesini, nem ve rüzgar rakamlarını ASLA gizleme, yuvarlama yapma, doğrudan o net sayıları kullanarak Ali'ye tam bir rapor sun."""
 
@@ -120,7 +119,8 @@ def asistani_calistir(kullanici_mesaji):
                 messages=api_mesajlari,
                 max_tokens=1000 
             )
-            raw_response = completion.choices.message.content
+            # 👑 HATA DÜZELTİLDİ: choices[0] indeksi doğru şekilde eklendi!
+            raw_response = completion.choices[0].message.content
         else:
             client = genai.Client(api_key=GOOGLE_KEY)
             response = client.models.generate_content(
