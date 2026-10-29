@@ -10,6 +10,8 @@ from pathlib import Path
 import streamlit as st
 
 from core.knowledge_store import KnowledgeStore
+from core.ollama_client import OllamaClient, OllamaError
+from core.research_orchestrator import ResearchOrchestrator
 from core.task_store import TaskStore
 
 st.set_page_config(page_title="Büyük Sistem | Araştırma Merkezi", layout="wide")
@@ -21,7 +23,7 @@ Path(db_path).parent.mkdir(parents=True, exist_ok=True)
 tasks = TaskStore(db_path)
 knowledge = KnowledgeStore(db_path)
 
-tab_tasks, tab_sources, tab_claims = st.tabs(["Görev Merkezi", "Kaynak Kasası", "İddia ve Kanıtlar"])
+tab_tasks, tab_sources, tab_claims, tab_research = st.tabs(["Görev Merkezi", "Kaynak Kasası", "İddia ve Kanıtlar", "Yerel AI Araştırması"])
 
 with tab_tasks:
     st.subheader("Yeni görev")
@@ -144,3 +146,36 @@ with tab_claims:
             details = knowledge.get_claim(claim["id"])
             for source in details["sources"]:
                 st.write(f"- [{source['title']}]({source['url']}) — {source['relationship']}")
+
+
+with tab_research:
+    st.subheader("Yerel Ollama ile araştırma taslağı")
+    st.caption("Bu akış planlayıcı → şüpheci denetçi → sentezleyici rollerini çalıştırır. Web araması yapmaz; aynı model üç rolde kullanılırsa bağımsız çoklu-model doğrulaması değildir.")
+    with st.form("local_research", clear_on_submit=False):
+        question = st.text_area("Araştırma sorusu", placeholder="Örn. Cezerî'nin mekanizmalarında hangi kontrol ilkeleri belgelenmiştir?")
+        ollama_url = st.text_input("Ollama adresi", value=os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434"))
+        model = st.text_input("Model adı", value=os.environ.get("OLLAMA_MODEL", "qwen3:8b"))
+        run_research = st.form_submit_button("Araştırmayı çalıştır")
+    if run_research:
+        try:
+            client = OllamaClient(ollama_url, timeout=180)
+            available_models = client.list_models()
+            if model not in available_models:
+                st.error("Model Ollama'da görünmüyor. Kurulu modeller: " + (", ".join(available_models) or "(model bulunamadı)"))
+            else:
+                with st.spinner("Planlama, şüpheci denetim ve sentez çalışıyor..."):
+                    result = ResearchOrchestrator(
+                        client, task_store=tasks, output_dir="reports"
+                    ).run(question, research_model=model)
+                st.session_state["last_research_report"] = result["report"]
+                st.session_state["last_research_path"] = result["report_path"]
+                st.session_state["last_research_task"] = result["task_id"]
+                st.success("Taslak rapor üretildi ve görev kaydına bağlandı.")
+        except (ValueError, KeyError, OSError, RuntimeError, OllamaError) as exc:
+            st.error(f"Yerel araştırma çalışmadı: {exc}")
+    if st.session_state.get("last_research_report"):
+        st.caption(
+            f"Görev: {st.session_state.get('last_research_task')} · "
+            f"Rapor dosyası: {st.session_state.get('last_research_path')}"
+        )
+        st.markdown(st.session_state["last_research_report"])
