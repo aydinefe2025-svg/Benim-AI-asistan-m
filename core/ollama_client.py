@@ -27,11 +27,11 @@ class OllamaClient:
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 decoded = json.loads(response.read().decode("utf-8"))
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-            raise OllamaError(f"Ollama request failed at {path}: {exc}") from exc
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
             raise OllamaError(f"Ollama HTTP {exc.code} at {path}: {body}") from exc
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            raise OllamaError(f"Ollama request failed at {path}: {exc}") from exc
         if not isinstance(decoded, dict):
             raise OllamaError(f"Ollama returned an unexpected response for {path}")
         return decoded
