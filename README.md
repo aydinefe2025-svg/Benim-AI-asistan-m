@@ -28,10 +28,10 @@ Varsayılan SQLite veri dosyası `data/research_system.sqlite3` konumunda oluşt
 Ollama'nın açık olması ve `qwen3:8b` modelinin kurulu olması gerekir:
 
 ```powershell
-python -m core.cli --db data/research.sqlite3 research-run "Cezeri mekanizmalarının tarihsel etkisi"
+python -m core.cli --db data/research.sqlite3 research-run "Cezeri mekanizmalarının tarihsel etkisi" --web-search
 ```
 
-Bu üç rolün tamamı aynı modeli kullanıyorsa bağımsız çoklu-model doğrulaması değildir. Akış web araması yapmaz; kaynakları ve sonuçları dışarıdan doğrulama görevi ayrıca yapılmalıdır. Rapor `reports/` altına yazılır, görev kaydı SQLite'a eklenir.
+`--web-search` eklenirse DuckDuckGo arama sonuçlarından yalnızca başlık/URL/snippet alınır; kaynak sayfaları indirilmez. Sorgu dış arama servisine gönderilir. Bu üç rolün tamamı aynı modeli kullanıyorsa bağımsız çoklu-model doğrulaması değildir; kaynakları ve sonuçları ayrıca doğrulamak gerekir. Rapor `reports/` altına yazılır, görev kaydı SQLite'a eklenir.
 
 ## Kaynak/iddia kayıtları
 
