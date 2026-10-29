@@ -155,6 +155,7 @@ with tab_research:
         question = st.text_area("Araştırma sorusu", placeholder="Örn. Cezerî'nin mekanizmalarında hangi kontrol ilkeleri belgelenmiştir?")
         ollama_url = st.text_input("Ollama adresi", value=os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434"))
         model = st.text_input("Model adı", value=os.environ.get("OLLAMA_MODEL", "qwen3:8b"))
+        web_search = st.checkbox("DuckDuckGo web araması yap (sorgu dış servise gönderilir; yalnızca snippet alınır)", value=False)
         run_research = st.form_submit_button("Araştırmayı çalıştır")
     if run_research:
         try:
@@ -165,8 +166,8 @@ with tab_research:
             else:
                 with st.spinner("Planlama, şüpheci denetim ve sentez çalışıyor..."):
                     result = ResearchOrchestrator(
-                        client, task_store=tasks, output_dir="reports"
-                    ).run(question, research_model=model)
+                        client, task_store=tasks, output_dir="reports", knowledge_store=knowledge
+                    ).run(question, research_model=model, web_search=web_search)
                 st.session_state["last_research_report"] = result["report"]
                 st.session_state["last_research_path"] = result["report_path"]
                 st.session_state["last_research_task"] = result["task_id"]
