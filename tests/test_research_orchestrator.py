@@ -42,7 +42,7 @@ class ResearchOrchestratorTests(unittest.TestCase):
         result = self.orchestrator.run("Cezeri mekanizmalarının tarihsel etkisi")
         self.assertEqual(len(self.client.calls), 3)
         self.assertEqual(result["same_model_all_roles"], "true")
-        self.assertIn("web araması yapmadı", result["report"])
+        self.assertIn("Web search was not requested.", result["report"])
         self.assertTrue(Path(result["report_path"]).exists())
         task = self.store.get(result["task_id"])
         self.assertEqual(task["status"], "done")
