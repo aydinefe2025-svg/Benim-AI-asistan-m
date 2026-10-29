@@ -3,22 +3,25 @@
 ## Niyet
 Araştırma, üretim ve doğrulamayı tek görev akışında toplamak. Sistem hiçbir görevi sadece metin yazıldığı için tamamlandı saymaz. Doğrulama durumu, somut kanıt gerektirir.
 
-## İlk modül
-`core/task_store.py` standart Python kitaplığıyla SQLite tabanlı görev kaydı sağlar:
-- görev oluşturma, listeleme ve durum geçişleri
-- her durum değişimi için olay geçmişi
-- kaynak/test çıktısı olarak kanıt listesi
-- engel kaydı
-- kanıt olmadan `verified` durumuna geçişi engelleme
+## İlk modüller
+- `core/task_store.py`: SQLite görev defteri, durum geçmişi ve kanıt zorunluluğu.
+- `core/knowledge_store.py`: kaynak kayıtları, SHA-256 özeti ve kaynak bağlantılı iddialar.
+- `core/cli.py`: görev ve araştırma kayıtları için yerel komut satırı arayüzü.
+- `research_dashboard.py`: görev, kaynak ve iddiaları görüntülemek/yönetmek için yerel Streamlit arayüzü.
+- `tests/`: görev, kaynak, iddia ve CLI testleri.
 
-## Planlanan katmanlar
-1. Görev yöneticisi: hedefi alt görevlere ayırma ve durum takibi.
-2. Kaynak toplayıcılar: web, GitHub, Notion ve yerel dosyalar için ayrı adaptörler.
-3. Bilgi kasası: kaynak kimliği, URL, tarih, dosya hash'i, etiket ve konu bağlantıları.
-4. Hesaplama: yerel Python/VS Code/Ollama; gerektiğinde ayrı bulut hesaplama.
-5. Bağımsız denetçi: kaynak/iddia eşlemesi, yeniden hesaplama, testler ve belirsizlik raporu.
-6. Arayüz: mevcut Streamlit uygulamasına görev panosu ve kanıt görünümü.
-7. Otomasyon: yalnızca küçük testlerle doğrulanmış akışlar.
+## Yerelde çalıştırma
+Proje kökünde PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-dashboard.txt
+python -m unittest discover -s tests -v
+streamlit run research_dashboard.py
+```
+
+Varsayılan SQLite dosyası `data/research_system.sqlite3` olur. Farklı bir yol için `BUYUK_SISTEM_DB` ortam değişkeni verilebilir. Dashboard yerel bilgisayarda çalışır; internetten kaynak çekme veya yerel bilgisayara uzaktan erişim bu ilk sürümde otomatik değildir.
 
 ## Durum sözlüğü
 - `planned`: planlandı, çalıştırıldığı iddia edilmez.
@@ -29,15 +32,15 @@ Araştırma, üretim ve doğrulamayı tek görev akışında toplamak. Sistem hi
 
 ## Güvenlik ve dürüstlük
 - API anahtarları repoya yazılmaz; yerel secrets veya ortam değişkenleri kullanılır.
-- Mevcut `app.py` ilk adımda değiştirilmez; yeni modül izole olarak eklenir.
+- Mevcut `app.py` ilk adımda değiştirilmez; yeni modüller izole olarak eklenir.
 - Harici servisler, kota ve ağ erişimi olmadan çalışıyor kabul edilmez.
 - Araştırma sonuçları, kaynağı ve yöntem sınırları belirtilmeden kesin bilgi diye yayımlanmaz.
+- Kaynak kaydı, kaynağın doğrulandığı anlamına gelmez; iddiaların bağımsız incelemesi ayrı aşamadır.
 
-## Yerelde çalıştırma
-Proje kökünde:
-
-```powershell
-python -m unittest discover -s tests -v
-```
-
-İlk testler SQLite görev kaydı ve kanıt zorunluluğunu kontrol eder. Testleri bu GitHub çalışma ortamında değil, kullanıcının bilgisayarında gerçekten çalıştırmak ayrıca gereklidir.
+## Planlanan sonraki katmanlar
+1. Kaynak adaptörleri (web, GitHub, Notion, yerel dosyalar).
+2. Araştırma planlayıcısı ve görev bağımlılıkları.
+3. Bağımsız denetim ajanı ve tekrar üretilebilir hesaplama.
+4. Yerel Ollama adaptörü ve kontrollü kod çalıştırma.
+5. Mevcut asistan arayüzüyle güvenli entegrasyon.
+6. Gerçek araştırma vakasında uçtan uca doğrulama.
