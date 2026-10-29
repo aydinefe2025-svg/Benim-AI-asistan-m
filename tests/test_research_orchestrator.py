@@ -63,7 +63,7 @@ class ResearchOrchestratorTests(unittest.TestCase):
         )
         result = orchestrator.run("A research question", web_search=True)
         self.assertEqual(result["search_count"], "1")
-        self.assertIn("source page was not fetched", result["report"])
+        self.assertIn("source pages not fetched", result["report"])
         self.assertIn("A discovery snippet.", result["report"])
         sources = self.knowledge.list_sources()
         self.assertEqual(len(sources), 1)
