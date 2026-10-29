@@ -63,6 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     research.add_argument("--synthesis-model", default=os.getenv("RUflo_SYNTHESIS_MODEL", ""))
     research.add_argument("--ollama-url", default=os.getenv("OLLAMA_URL", "http://127.0.0.1:11434"))
     research.add_argument("--out", default="reports")
+    research.add_argument("--web-search", action="store_true", help="Search DuckDuckGo for discovery snippets; source pages are not fetched")
     return parser
 
 
@@ -101,12 +102,14 @@ def run(args: argparse.Namespace) -> object:
         if model not in available:
             raise ValueError(f"Model '{model}' is not listed by Ollama. Installed models: {', '.join(available) or '(none)'}")
         result = ResearchOrchestrator(
-            client, task_store=tasks, output_dir=args.out
+            client, task_store=tasks, output_dir=args.out,
+            knowledge_store=knowledge,
         ).run(
             args.question,
             research_model=model,
             skeptic_model=args.skeptic_model or args.model,
             synthesis_model=args.synthesis_model or args.model,
+            web_search=args.web_search,
         )
         result.pop("report", None)
         return result
