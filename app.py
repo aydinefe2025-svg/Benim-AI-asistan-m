@@ -8,21 +8,16 @@ import streamlit as st
 st.set_page_config(layout="wide")
 
 # 🔒 Her sağlayıcı bağımsız yapılandırılır. Değerleri hiçbir zaman ekranda gösterme.
-from core.provider_config import available_providers
+from core.provider_config import available_providers, configured_credentials
 
-available_models = available_providers(st.secrets)
+_credentials = configured_credentials(st.secrets, os.environ)
+available_models = available_providers(_credentials)
 if not available_models:
-    st.error("Model bağlantısı için en az bir anahtar gerekli: GROQ_API_KEY veya GOOGLE_API_KEY. Secrets ayarlarını kontrol edin.")
+    st.error("Model bağlantısı için GROQ_API_KEY veya GOOGLE_API_KEY gerekli. Render ortam değişkenlerini veya Streamlit Secrets ayarlarını kontrol edin.")
     st.stop()
 
-def _configured_secret(name):
-    try:
-        return st.secrets[name]
-    except (KeyError, FileNotFoundError):
-        return None
-
-GOOGLE_KEY = _configured_secret("GOOGLE_API_KEY")
-GROQ_KEY = _configured_secret("GROQ_API_KEY")
+GOOGLE_KEY = _credentials.get("GOOGLE_API_KEY")
+GROQ_KEY = _credentials.get("GROQ_API_KEY")
 
 # 🌐 ENGELSİZ CANLI İNTERNET VE METEOROLOJİ MOTORU
 def internette_ara(sorgu: str) -> str:
