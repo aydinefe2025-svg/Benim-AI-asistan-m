@@ -126,6 +126,10 @@ class KnowledgeStore:
             raise ValueError("Claim cannot be empty")
         if status not in {"unreviewed", "supported", "contested", "rejected"}:
             raise ValueError(f"Invalid claim status: {status}")
+        # Fail closed until an independently authenticated, auditable review
+        # workflow exists. Source URLs/hashes are provenance, not proof.
+        if status == "supported":
+            raise ValueError("Supported status requires an independent review workflow; not available yet")
         if not 0 <= confidence <= 1:
             raise ValueError("Confidence must be between 0 and 1")
         if not source_ids:
