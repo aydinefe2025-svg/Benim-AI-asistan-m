@@ -6,6 +6,7 @@ a local responder; two equal passes only prove repeatability in those passes.
 import unittest
 
 from core.benchmark_harness import BenchmarkCase, benchmark_sha256, run_benchmark
+from core.agent_evolution import AgentEvaluator
 
 
 class BenchmarkHarnessTests(unittest.TestCase):
@@ -46,6 +47,23 @@ class BenchmarkHarnessTests(unittest.TestCase):
                                source_refs=("local",), safety_pass=True)
         self.assertEqual(result.passed, 1)
         self.assertFalse(result.reproducible)
+
+    def test_measured_baseline_and_candidate_produce_proposal_not_auto_upgrade(self):
+        def baseline(prompt):
+            return "4" if prompt == "2 + 2?" else "wrong"
+        def improved(prompt):
+            return "4" if prompt == "2 + 2?" else "merhaba"
+        old = run_benchmark("stable", self.cases, baseline,
+                            source_refs=("unit:baseline",), safety_pass=True)
+        new = run_benchmark("candidate", self.cases, improved,
+                            source_refs=("unit:candidate",), safety_pass=True)
+        gate = AgentEvaluator(baseline=old, min_tests=2)
+        decision = gate.evaluate(new)
+        self.assertEqual(decision["status"], "proposal")
+        self.assertEqual(decision["delta"], 0.5)
+        self.assertEqual(gate.active.name, "stable")
+        self.assertEqual(gate.audit_log[-1]["benchmark_sha256"],
+                         benchmark_sha256(self.cases))
 
     def test_duplicate_case_ids_and_bad_dataset_rejected_before_running(self):
         calls = []
