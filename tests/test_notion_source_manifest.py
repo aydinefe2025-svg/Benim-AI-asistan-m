@@ -149,6 +149,33 @@ class NotionSourceManifestTests(unittest.TestCase):
         self.assertEqual(len(self.store.list_sources()), 34)
         self.assertEqual(self.store.list_claims(), [])
 
+    def test_v3_manifest_keeps_all_36_research_links_and_no_auto_approval(self):
+        folder = Path(__file__).resolve().parents[1] / "data"
+        v2 = json.loads((folder / "notion_discovery_sources_20261031_v2.json").read_text(encoding="utf-8"))
+        v3 = json.loads((folder / "notion_discovery_sources_20261031_v3.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(v2), 34)
+        self.assertEqual(len(v3), 36)
+        self.assertEqual(v3[:34], v2)
+        self.assertEqual([x["research_id"] for x in v3],
+                         [f"D2026-{i:03d}" for i in range(1, 37)])
+        self.assertEqual(len({x["url"] for x in v3}), 36)
+        self.assertTrue(all(x["notion_page_id"] for x in v3))
+        result = import_source_manifest(self.store, v3)
+        self.assertEqual(result["imported"], 36)
+        self.assertEqual(import_source_manifest(self.store, v3)["imported"], 0)
+        self.assertEqual(len(self.store.list_sources()), 36)
+        self.assertEqual(self.store.list_claims(), [])
+        self.assertTrue(all(x["content_sha256"] == "" for x in self.store.list_sources()))
+
+    def test_v2_to_v3_adds_only_two_without_overwriting_known_metadata(self):
+        folder = Path(__file__).resolve().parents[1] / "data"
+        v2 = json.loads((folder / "notion_discovery_sources_20261031_v2.json").read_text(encoding="utf-8"))
+        v3 = json.loads((folder / "notion_discovery_sources_20261031_v3.json").read_text(encoding="utf-8"))
+        self.assertEqual(import_source_manifest(self.store, v2)["imported"], 34)
+        self.assertEqual(import_source_manifest(self.store, v3)["imported"], 2)
+        self.assertEqual(len(self.store.list_sources()), 36)
+        self.assertEqual(self.store.list_claims(), [])
+
     def test_same_url_conflicting_titles_in_single_batch_rejected(self):
         with self.assertRaises(ValueError):
             import_source_manifest(self.store, [
