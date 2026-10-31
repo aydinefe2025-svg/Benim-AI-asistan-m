@@ -62,6 +62,17 @@ class KnowledgeStore:
                     recorded_at TEXT NOT NULL,
                     UNIQUE(source_id, content_sha256)
                 );
+                CREATE TABLE IF NOT EXISTS review_notes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    claim_id INTEGER NOT NULL REFERENCES claims(id) ON DELETE CASCADE,
+                    source_id INTEGER NOT NULL REFERENCES sources(id),
+                    source_sha256 TEXT NOT NULL DEFAULT '',
+                    reviewer_label TEXT NOT NULL,
+                    assessment TEXT NOT NULL CHECK(assessment IN ('supports','disputed','needs_more_evidence')),
+                    rationale TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_review_notes_claim ON review_notes(claim_id,id);
                 CREATE INDEX IF NOT EXISTS idx_source_sha ON sources(content_sha256);
             """)
             # Preserve each existing source's latest known fingerprint on migration.
@@ -176,6 +187,51 @@ class KnowledgeStore:
         result = dict(row)
         result["sources"] = [dict(item) for item in links]
         return result
+
+    def add_review_note(
+        self, claim_id: int, source_id: int, *, reviewer_label: str,
+        assessment: str, rationale: str,
+    ) -> dict[str, Any]:
+        """Record a claimed review observation, never grant approval rights.
+
+        reviewer_label is caller-provided and NOT an authenticated reviewer ID.
+        Notes are append-only through this API, but SQLite is not tamper-proof.
+        """
+        reviewer_label = reviewer_label.strip()
+        rationale = rationale.strip()
+        if not reviewer_label or not rationale:
+            raise ValueError("Review notes require a reviewer label and rationale")
+        if assessment not in {"supports", "disputed", "needs_more_evidence"}:
+            raise ValueError("Invalid review assessment")
+        with self._connect() as conn:
+            link = conn.execute(
+                """SELECT s.content_sha256 FROM claim_sources cs
+                   JOIN sources s ON s.id=cs.source_id
+                   WHERE cs.claim_id=? AND cs.source_id=?""",
+                (claim_id, source_id),
+            ).fetchone()
+            if link is None:
+                raise ValueError("Review source must be linked to the claim")
+            cur = conn.execute(
+                """INSERT INTO review_notes
+                   (claim_id,source_id,source_sha256,reviewer_label,assessment,rationale,recorded_at)
+                   VALUES(?,?,?,?,?,?,?)""",
+                (claim_id, source_id, link["content_sha256"], reviewer_label,
+                 assessment, rationale, _now()),
+            )
+            row = conn.execute("SELECT * FROM review_notes WHERE id=?", (cur.lastrowid,)).fetchone()
+        return dict(row)
+
+    def list_review_notes(self, claim_id: int) -> list[dict[str, Any]]:
+        """List recorded review notes; no note implies claim verification."""
+        with self._connect() as conn:
+            if conn.execute("SELECT id FROM claims WHERE id=?", (claim_id,)).fetchone() is None:
+                raise KeyError(f"Unknown claim: {claim_id}")
+            rows = conn.execute(
+                "SELECT * FROM review_notes WHERE claim_id=? ORDER BY id",
+                (claim_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def list_revisions(self, source_id: int) -> list[dict[str, Any]]:
         """List recorded content fingerprints; these are not full snapshots."""
