@@ -170,6 +170,47 @@ class KnowledgeStoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "review"):
             self.store.add_claim("Unverified result", [source["id"]], status="supported")
 
+    def test_audit_flags_source_without_fingerprint_and_missing_review(self):
+        source = self.store.add_source("https://example.org/unread", "URL only")
+        claim = self.store.add_claim("Pending", [source["id"]])
+        audit = self.store.audit_claim_evidence(claim["id"])
+        self.assertEqual(audit["claim_id"], claim["id"])
+        self.assertEqual(audit["status"], "unreviewed")
+        self.assertIn("source_without_content_hash", audit["flags"])
+        self.assertIn("no_review_notes", audit["flags"])
+
+    def test_audit_flags_review_based_on_obsolete_source_digest(self):
+        source = self.store.add_source("https://example.org/data", "Data", content="v1")
+        claim = self.store.add_claim("Old evaluation", [source["id"]])
+        self.store.add_review_note(claim["id"], source["id"],
+            reviewer_label="not-authenticated", assessment="supports", rationale="Preliminary")
+        self.store.add_source("https://example.org/data", "Data", content="v2")
+        audit = self.store.audit_claim_evidence(claim["id"])
+        self.assertIn("review_source_digest_outdated", audit["flags"])
+        self.assertIn("reviewer_identity_unverified", audit["flags"])
+
+    def test_audit_flags_legacy_supported_and_contradictory_source(self):
+        source = self.store.add_source("https://example.org/against", "Against", content="objection")
+        claim = self.store.add_claim("Disputed", [source["id"]], status="contested",
+            relationships={source["id"]: "contradicts"})
+        with self.store._connect() as conn:
+            conn.execute("UPDATE claims SET status='supported' WHERE id=?", (claim["id"],))
+        audit = self.store.audit_claim_evidence(claim["id"])
+        self.assertIn("legacy_supported_unverified", audit["flags"])
+        self.assertIn("contradictory_source_link", audit["flags"])
+        self.assertEqual(self.store.get_claim(claim["id"])["status"], "supported")
+
+    def test_audit_retains_good_fingerprint_but_never_claims_independent_approval(self):
+        source = self.store.add_source("https://example.org/stable", "Stable", content="unchanged")
+        claim = self.store.add_claim("Hypothesis", [source["id"]])
+        self.store.add_review_note(claim["id"], source["id"], reviewer_label="claimed-reviewer",
+            assessment="needs_more_evidence", rationale="Need replication")
+        flags = self.store.audit_claim_evidence(claim["id"])["flags"]
+        self.assertNotIn("source_without_content_hash", flags)
+        self.assertNotIn("review_source_digest_outdated", flags)
+        self.assertNotIn("no_review_notes", flags)
+        self.assertIn("reviewer_identity_unverified", flags)
+
     def test_rejects_non_http_url_and_bad_confidence(self):
         with self.assertRaises(ValueError):
             self.store.add_source("file:///etc/passwd", "Bad")
