@@ -55,8 +55,22 @@ class KnowledgeStore:
                     PRIMARY KEY (claim_id, source_id, relationship)
                 );
                 CREATE INDEX IF NOT EXISTS idx_claim_status ON claims(status);
+                CREATE TABLE IF NOT EXISTS source_revisions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+                    content_sha256 TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    UNIQUE(source_id, content_sha256)
+                );
                 CREATE INDEX IF NOT EXISTS idx_source_sha ON sources(content_sha256);
             """)
+            # Preserve each existing source's latest known fingerprint on migration.
+            # Older fingerprints overwritten before migration cannot be reconstructed.
+            conn.execute(
+                """INSERT OR IGNORE INTO source_revisions(source_id,content_sha256,recorded_at)
+                   SELECT id,content_sha256,accessed_at FROM sources
+                   WHERE content_sha256 != ''"""
+            )
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
@@ -86,13 +100,21 @@ class KnowledgeStore:
                 """INSERT INTO sources(url,title,publisher,published_at,accessed_at,content_sha256,notes)
                    VALUES(?,?,?,?,?,?,?)
                    ON CONFLICT(url) DO UPDATE SET
-                     title=excluded.title, publisher=excluded.publisher,
-                     published_at=excluded.published_at, accessed_at=excluded.accessed_at,
+                     title=excluded.title,
+                     publisher=CASE WHEN excluded.publisher != '' THEN excluded.publisher ELSE sources.publisher END,
+                     published_at=CASE WHEN excluded.published_at != '' THEN excluded.published_at ELSE sources.published_at END,
+                     accessed_at=excluded.accessed_at,
                      content_sha256=CASE WHEN excluded.content_sha256 != '' THEN excluded.content_sha256 ELSE sources.content_sha256 END,
-                     notes=excluded.notes""",
+                     notes=CASE WHEN excluded.notes != '' THEN excluded.notes ELSE sources.notes END""",
                 (url, title, publisher.strip(), published_at.strip(), _now(), digest, notes.strip()),
             )
             row = conn.execute("SELECT * FROM sources WHERE url=?", (url,)).fetchone()
+            if digest:
+                conn.execute(
+                    """INSERT OR IGNORE INTO source_revisions
+                       (source_id,content_sha256,recorded_at) VALUES(?,?,?)""",
+                    (row["id"], digest, _now()),
+                )
         return dict(row)
 
     def add_claim(
@@ -104,6 +126,10 @@ class KnowledgeStore:
             raise ValueError("Claim cannot be empty")
         if status not in {"unreviewed", "supported", "contested", "rejected"}:
             raise ValueError(f"Invalid claim status: {status}")
+        # Fail closed until an independently authenticated, auditable review
+        # workflow exists. Source URLs/hashes are provenance, not proof.
+        if status == "supported":
+            raise ValueError("Supported status requires an independent review workflow; not available yet")
         if not 0 <= confidence <= 1:
             raise ValueError("Confidence must be between 0 and 1")
         if not source_ids:
@@ -150,6 +176,19 @@ class KnowledgeStore:
         result = dict(row)
         result["sources"] = [dict(item) for item in links]
         return result
+
+    def list_revisions(self, source_id: int) -> list[dict[str, Any]]:
+        """List recorded content fingerprints; these are not full snapshots."""
+        with self._connect() as conn:
+            source = conn.execute("SELECT id FROM sources WHERE id=?", (source_id,)).fetchone()
+            if source is None:
+                raise KeyError(f"Unknown source: {source_id}")
+            rows = conn.execute(
+                """SELECT id,source_id,content_sha256,recorded_at
+                   FROM source_revisions WHERE source_id=? ORDER BY id""",
+                (source_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def list_sources(self) -> list[dict[str, Any]]:
         with self._connect() as conn:
