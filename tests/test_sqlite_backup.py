@@ -195,6 +195,40 @@ class SQLiteBackupTests(unittest.TestCase):
             recovery_drill(backup, receipt, target)
         self.assertFalse(target.exists())
 
+    def test_v4_41_research_links_survive_independent_receipt_recovery(self):
+        folder = Path(__file__).resolve().parents[1] / "data"
+        manifest = json.loads((folder / "notion_discovery_sources_20261031_v4.json").read_text(encoding="utf-8"))
+        imported = import_source_manifest(self.store, manifest)
+        self.assertEqual(imported["imported"], 41)
+        backup = self.root / "backups" / "knowledge.sqlite3"
+        receipt = self.root / "separate-receipts" / "knowledge.json"
+        created = backup_with_receipt(self.source_path, backup, receipt)
+        meta = json.loads(receipt.read_text(encoding="utf-8"))
+        self.assertEqual(meta["notion_link_count"], 41)
+        self.assertEqual(created["notion_link_count"], 41)
+        recovered = self.root / "new" / "knowledge.sqlite3"
+        result = recovery_drill(backup, receipt, recovered)
+        self.assertTrue(result["verified"])
+        self.assertEqual(result["notion_link_count"], 41)
+        self.assertEqual(KnowledgeStore(recovered).list_source_manifest_links(),
+                         self.store.list_source_manifest_links())
+        self.assertEqual(KnowledgeStore(recovered).list_claims(), [])
+
+    def test_recovery_rejects_incorrect_link_count_before_creating_target(self):
+        folder = Path(__file__).resolve().parents[1] / "data"
+        manifest = json.loads((folder / "notion_discovery_sources_20261031_v4.json").read_text(encoding="utf-8"))
+        import_source_manifest(self.store, manifest)
+        backup = self.root / "backups" / "knowledge.sqlite3"
+        receipt = self.root / "separate-receipts" / "knowledge.json"
+        backup_with_receipt(self.source_path, backup, receipt)
+        meta = json.loads(receipt.read_text(encoding="utf-8"))
+        meta["notion_link_count"] = 0
+        receipt.write_text(json.dumps(meta), encoding="utf-8")
+        target = self.root / "new" / "should-not-exist.sqlite3"
+        with self.assertRaisesRegex(ValueError, "record counts"):
+            recovery_drill(backup, receipt, target)
+        self.assertFalse(target.exists())
+
     def test_backup_never_overwrites_existing_file(self):
         self._seed()
         backup_path = self.root / "existing.backup"
