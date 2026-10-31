@@ -2,7 +2,7 @@ name: Core tests
 
 on:
   push:
-    branches: ["main", "feature/buyuk-sistem-core"]
+    branches: ["main", "feature/buyuk-sistem-core", "fix/knowledge-provenance-20261031"]
   pull_request:
     branches: ["main", "feature/buyuk-sistem-core"]
 
