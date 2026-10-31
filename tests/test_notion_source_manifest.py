@@ -71,6 +71,53 @@ class NotionSourceManifestTests(unittest.TestCase):
         self.assertEqual(self.store.list_claims(), [])
         self.assertTrue(all(not row["content_sha256"] for row in self.store.list_sources()))
 
+    def test_database_failure_rolls_back_entire_manifest(self):
+        with self.store._connect() as conn:
+            conn.execute("""
+                CREATE TRIGGER reject_second_source
+                BEFORE INSERT ON sources
+                WHEN NEW.url = 'https://example.org/boom'
+                BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END
+            """)
+        entries = [
+            {"url": "https://example.org/first", "title": "First",
+             "notion_page_id": "notion-page-1"},
+            {"url": "https://example.org/boom", "title": "Fails",
+             "notion_page_id": "notion-page-2"},
+        ]
+        import sqlite3
+        with self.assertRaises(sqlite3.IntegrityError):
+            import_source_manifest(self.store, entries)
+        self.assertEqual(self.store.list_sources(), [])
+        self.assertEqual(self.store.list_claims(), [])
+
+    def test_database_failure_leaves_existing_source_unmodified(self):
+        original = self.store.add_source(
+            "https://example.org/existing", "Original",
+            publisher="Publisher", notes="Original provenance", content="body",
+        )
+        with self.store._connect() as conn:
+            conn.execute("""
+                CREATE TRIGGER block_late_record
+                BEFORE INSERT ON sources
+                WHEN NEW.url = 'https://example.org/boom'
+                BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END
+            """)
+        entries = [
+            {"url": "https://example.org/existing", "title": "New title",
+             "notion_page_id": "new-page"},
+            {"url": "https://example.org/boom", "title": "Fails",
+             "notion_page_id": "page"},
+        ]
+        import sqlite3
+        with self.assertRaises(sqlite3.IntegrityError):
+            import_source_manifest(self.store, entries)
+        current = self.store.list_sources()
+        self.assertEqual(len(current), 1)
+        self.assertEqual(current[0]["title"], original["title"])
+        self.assertEqual(current[0]["notes"], original["notes"])
+        self.assertEqual(current[0]["content_sha256"], original["content_sha256"])
+
     def test_same_url_conflicting_titles_in_single_batch_rejected(self):
         with self.assertRaises(ValueError):
             import_source_manifest(self.store, [
