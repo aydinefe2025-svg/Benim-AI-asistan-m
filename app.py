@@ -24,12 +24,26 @@ def internette_ara(sorgu: str) -> str:
         hava_istegi_mi = any(re.search(rf"\b{kelime}\b", sorgu_temiz) for kelime in ["hava", "derece", "sicak", "yagis", "rüzgar", "bulut", "güneş", "durumu"])
         
         if hava_istegi_mi:
-            sehir = "Izmir"
-            sehir_adi = "İzmir"
-            if "odemis" in sorgu_temiz or "ödemiş" in sorgu_temiz:
-                sehir = "Odemis"
-                sehir_adi = "Ödemiş"
-                
+            # Never silently assume a city: that would supply incorrect weather
+            # for questions about another city (or with no city at all).
+            city_pattern = r"([A-Za-zÇĞİÖŞÜçğıöşü]+)(?:['’](?:da|de|ta|te))?\\s+hava\\b"
+            city_match = re.search(city_pattern, sorgu, flags=re.IGNORECASE)
+            if city_match is None:
+                city_match = re.search(
+                    r"\\bhava(?:\\s+durumu)?\\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)",
+                    sorgu, flags=re.IGNORECASE,
+                )
+            city_name = city_match.group(1) if city_match else ""
+            non_cities = {"bugün", "yarın", "şimdi", "dışarıda", "burada",
+                          "nasıl", "kaç", "ne", "bizim", "bu"}
+            if not city_name or city_name.casefold() in non_cities:
+                return "Hava durumu için şehir belirtin; konum tahmin edilmiyor."
+            sehir_adi = city_name.capitalize()
+            sehir = city_name.translate(str.maketrans({
+                "İ": "I", "ı": "i", "Ş": "S", "ş": "s", "Ç": "C", "ç": "c",
+                "Ğ": "G", "ğ": "g", "Ö": "O", "ö": "o", "Ü": "U", "ü": "u",
+            }))
+            
             headers = {"Accept-Language": "tr", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
             url = f"https://wttr.in/{sehir}?format=%C+%t+%h+%w"
             response = requests.get(url, headers=headers, timeout=6)
