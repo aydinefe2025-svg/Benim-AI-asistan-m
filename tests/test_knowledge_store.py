@@ -211,6 +211,47 @@ class KnowledgeStoreTests(unittest.TestCase):
         self.assertNotIn("no_review_notes", flags)
         self.assertIn("reviewer_identity_unverified", flags)
 
+    def test_bulk_audit_reports_ordered_claims_and_flag_counts(self):
+        a = self.store.add_source("https://example.org/a", "A")
+        b = self.store.add_source("https://example.org/b", "B", content="document")
+        one = self.store.add_claim("First", [a["id"]])
+        two = self.store.add_claim("Second", [b["id"]])
+        result = self.store.audit_all_claims()
+        self.assertEqual(result["total"], 2)
+        self.assertEqual([r["claim_id"] for r in result["records"]], [one["id"], two["id"]])
+        self.assertEqual(result["flag_counts"]["source_without_content_hash"], 1)
+        self.assertEqual(result["flag_counts"]["no_review_notes"], 2)
+        self.assertEqual(result["page_count"], 2)
+        self.assertEqual(result["limit"], 100)
+        self.assertEqual(result["offset"], 0)
+
+    def test_bulk_audit_paginates_without_losing_global_total(self):
+        source = self.store.add_source("https://example.org/a", "A")
+        ids = [self.store.add_claim(f"Claim {i}", [source["id"]])["id"] for i in range(4)]
+        first = self.store.audit_all_claims(limit=2, offset=0)
+        second = self.store.audit_all_claims(limit=2, offset=2)
+        self.assertEqual(first["total"], 4)
+        self.assertEqual(second["total"], 4)
+        self.assertEqual([x["claim_id"] for x in first["records"]], ids[:2])
+        self.assertEqual([x["claim_id"] for x in second["records"]], ids[2:])
+        self.assertEqual(first["flag_counts"]["no_review_notes"], 2)
+
+    def test_bulk_audit_filters_unreviewed_and_legacy_supported(self):
+        src = self.store.add_source("https://example.org/evidence", "Evidence")
+        self.store.add_claim("Unreviewed", [src["id"]])
+        with self.store._connect() as conn:
+            conn.execute("INSERT INTO claims(claim,status,confidence,created_at) VALUES(?,?,?,?)",
+                ("Old supported", "supported", 0.8, "2026-01-01T00:00:00+00:00"))
+        found = self.store.audit_all_claims(status="supported")
+        self.assertEqual(found["total"], 1)
+        self.assertIn("legacy_supported_unverified", found["records"][0]["flags"])
+
+    def test_bulk_audit_rejects_invalid_limits_and_status(self):
+        for kwargs in ({"limit": 0}, {"limit": 501}, {"offset": -1},
+                       {"limit": True}, {"offset": 1.5}, {"status": "verified"}):
+            with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
+                self.store.audit_all_claims(**kwargs)
+
     def test_rejects_non_http_url_and_bad_confidence(self):
         with self.assertRaises(ValueError):
             self.store.add_source("file:///etc/passwd", "Bad")
