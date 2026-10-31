@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import requests
@@ -8,9 +9,19 @@ import streamlit as st
 st.set_page_config(layout="wide")
 
 # 🔒 Her sağlayıcı bağımsız yapılandırılır. Değerleri hiçbir zaman ekranda gösterme.
-from core.provider_config import available_providers, configured_credentials
+from core.provider_config import (
+    available_providers,
+    configured_credentials,
+    credential_presence,
+)
 
 _credentials = configured_credentials(st.secrets, os.environ)
+_credential_presence = credential_presence(_credentials)
+logging.getLogger(__name__).info(
+    "Provider credential presence: GROQ_API_KEY=%s GOOGLE_API_KEY=%s",
+    _credential_presence["GROQ_API_KEY"],
+    _credential_presence["GOOGLE_API_KEY"],
+)
 available_models = available_providers(_credentials)
 if not available_models:
     st.error("Model bağlantısı için GROQ_API_KEY veya GOOGLE_API_KEY gerekli. Render ortam değişkenlerini veya Streamlit Secrets ayarlarını kontrol edin.")
