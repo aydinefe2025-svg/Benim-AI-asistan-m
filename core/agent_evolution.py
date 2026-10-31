@@ -6,6 +6,7 @@ approval for activation. Preserve the last version for local rollback.
 """
 from __future__ import annotations
 from dataclasses import dataclass
+import re
 
 
 @dataclass(frozen=True)
@@ -16,6 +17,7 @@ class CandidateResult:
     source_refs: tuple[str, ...]
     reproducible: bool
     safety_pass: bool
+    benchmark_sha256: str
 
     def __post_init__(self) -> None:
         if (not isinstance(self.name, str) or not self.name.strip()
@@ -26,7 +28,9 @@ class CandidateResult:
                 or not isinstance(self.source_refs, tuple)
                 or any(not isinstance(x, str) or not x.strip() for x in self.source_refs)
                 or type(self.reproducible) is not bool
-                or type(self.safety_pass) is not bool):
+                or type(self.safety_pass) is not bool
+                or not isinstance(self.benchmark_sha256, str)
+                or re.fullmatch(r'[0-9a-fA-F]{64}', self.benchmark_sha256) is None):
             raise ValueError("Invalid candidate test or evidence record")
 
     @property
@@ -55,24 +59,31 @@ class AgentEvaluator:
             and candidate.safety_pass
             and bool(candidate.source_refs)
             and delta > 0
+            and candidate.benchmark_sha256.lower() == baseline.benchmark_sha256.lower()
         )
         proposal_id: str | None = None
         if passed:
             proposal_id = f"proposal-{len(self.audit_log) + 1}"
             self._pending[proposal_id] = candidate
         status = "proposal" if passed else "rejected"
+        reason = ("benchmark_mismatch" if candidate.benchmark_sha256.lower() != baseline.benchmark_sha256.lower()
+                  else "insufficient_evidence_or_improvement" if not passed else "improvement_proposed")
         self.audit_log.append({
             "action": "evaluate",
             "candidate": candidate.name,
             "baseline": baseline.name,
             "status": status,
             "delta": delta,
+            "benchmark_sha256": candidate.benchmark_sha256.lower(),
+            "reason": reason,
         })
         return {
             "status": status,
             "candidate": candidate.name,
             "active": baseline.name,
             "delta": delta,
+            "reason": reason,
+            "benchmark_sha256": candidate.benchmark_sha256.lower(),
             "proposal_id": proposal_id,
         }
 
