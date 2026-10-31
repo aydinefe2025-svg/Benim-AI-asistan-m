@@ -1,6 +1,7 @@
 import os
 import re
 import requests
+from urllib.parse import urlencode
 import streamlit as st
 
 # 📺 Rahat bir okuma için standart geniş ekran düzeni aktif ediliyor
@@ -30,7 +31,7 @@ def internette_ara(sorgu: str) -> str:
                 sehir_adi = "Ödemiş"
                 
             headers = {"Accept-Language": "tr", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-            url = f"https://wttr.in{sehir}?format=%C+%t+%h+%w"
+            url = f"https://wttr.in/{sehir}?format=%C+%t+%h+%w"
             response = requests.get(url, headers=headers, timeout=6)
             
             if response.status_code == 200 and "error" not in response.text.lower():
@@ -40,21 +41,21 @@ def internette_ara(sorgu: str) -> str:
                     sicaklik = ham_veri[1]
                     nem = ham_veri[2]
                     ruzgar = ham_veri[3] if len(ham_veri) > 3 else "Hafif"
-                    return f"MÜHÜRLÜ UYDU RAPORU -> Şehir: {sehir_adi} | Durum: {durum} | Sıcaklık: {sicaklik} | Nem: {nem} | Rüzgar: {ruzgar}."
-            return "Hava durumu uydusu şu an veri yeniliyor, genel iklim bilgisiyle Ali'ye yanıt ver."
+                    return f"HAVA SERVİSİ BİLGİSİ -> Şehir: {sehir_adi} | Durum: {durum} | Sıcaklık: {sicaklik} | Nem: {nem} | Rüzgar: {ruzgar}."
+            return "Hava servisi şu anda güvenilir bilgi sunamıyor; güncel hava durumu doğrulanamadı."
                     
         # Diğer genel internet aramaları için standart API bağlantısı
-        url = f"https://duckduckgo.com{requests.utils.quote(sorgu)}&format=json&no_html=1"
+        url = "https://api.duckduckgo.com/?" + urlencode({"q": sorgu, "format": "json", "no_html": 1})
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers, timeout=6)
         if response.status_code == 200:
             data = response.json()
             if data.get("AbstractText"):
-                return str(data["AbstractText"])
+                return "DuckDuckGo anlık yanıt: " + str(data["AbstractText"])
                 
-        return "Normal genel sohbet modu aktif. İnternet verisi aramaya gerek yok."
-    except Exception as e:
-        return "Sistem normal sohbet akışında kararlı durumda çalışıyor."
+        return "DuckDuckGo anlık yanıtında sonuç bulunamadı; bu tam web araması değildir."
+    except Exception:
+        return "İnternet veri kaynağına erişilemedi; güncel bilgi doğrulanamadı."
 
 # 🎛️ SIDEBAR (YAN MENÜ) AYARLARI
 st.sidebar.title("🤖 Asistan Kontrol Paneli")
@@ -105,12 +106,12 @@ def asistani_calistir(kullanici_mesaji):
     İnternetten senin için gelen veri kutusu şudur: {arama_sonucu}
     
     🧠 KİMLİK BİLGİSİ:
-    Senin yaratıcın, geliştiricin ve tek sahibin ALİ'dir. "Seni kim yaptı?", "Yaratıcın kim?" gibi sorular sorulduğunda kesinlikle Google, OpenAI veya Groq şirketlerinin isimlerini vermeyeceksiniz; seni Ali'nin sıfırdan Python kodlarıyla özel olarak geliştirdiğini gururla ve samimi bir dille söyleyeceksin.
+    Bu, Python ve Streamlit ile geliştirilen bir asistan arayüzüdür. Yanıtlar seçilen harici Groq veya Google modeliyle üretilir. Kullanıcı sorarsa sağlayıcıyı doğru tanıt; yapımcı veya model kökeni hakkında doğrulanmamış iddialarda bulunma.
     
     ⚠️ SIKI KURALLAR:
     1. Yanıtının tamamı sadece doğal, akıcı ve kurallı bir Türkçe ile yazılmalıdır.
     2. Kullanıcıya doğrudan bir insan gibi samimi cevap ver, asla yarım bırakma.
-    3. Eğer yukarıdaki veri kutusunda 'MÜHÜRLÜ UYDU RAPORU' yazmıyorsa, hava durumundan KESİNLİKLE bahsetme. Kullanıcı sana ne sorduysa sadece ona odaklan ve normal bir şekilde sohbet et. Hava durumunu sadece kullanıcı açıkça sorduğunda ver."""
+    3. Eğer yukarıdaki veri kutusunda 'HAVA SERVİSİ BİLGİSİ' yazmıyorsa, hava durumundan KESİNLİKLE bahsetme. Kullanıcı sana ne sorduysa sadece ona odaklan ve normal bir şekilde sohbet et. Hava durumunu sadece kullanıcı açıkça sorduğunda ver."""
 
     try:
         raw_response = ""
@@ -144,7 +145,7 @@ def asistani_calistir(kullanici_mesaji):
         return temiz_cevap.strip()
 
     except Exception as e:
-        return f"Sistem yanıt verirken bir sorun oluştu. Hata: {str(e)}"
+        return "Model hizmetiyle bağlantı kurulamadı. Gizli yapılandırmayı kontrol edin."
 
 # 🔄 SOHBET AKIŞINI EKRANA BASMA (Temiz Hafıza Akışı)
 for message in st.session_state.messages:
