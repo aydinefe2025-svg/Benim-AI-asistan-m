@@ -190,6 +190,24 @@ class NotionSourceManifestTests(unittest.TestCase):
         self.assertEqual(import_source_manifest(self.store, v3)["imported"], 0)
         self.assertEqual(self.store.list_source_manifest_links(), links)
 
+    def test_v4_extends_live_notion_discoveries_to_41_without_approval(self):
+        folder = Path(__file__).resolve().parents[1] / "data"
+        v3 = json.loads((folder / "notion_discovery_sources_20261031_v3.json").read_text(encoding="utf-8"))
+        v4 = json.loads((folder / "notion_discovery_sources_20261031_v4.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(v4), 41)
+        self.assertEqual(v4[:36], v3)
+        self.assertEqual([r["research_id"] for r in v4],
+                         [f"D2026-{i:03d}" for i in range(1, 42)])
+        self.assertEqual(len({r["url"] for r in v4}), 41)
+        self.assertEqual({r["notion_page_id"] for r in v4},
+                         {"40a2bd61-682a-8126-a2b9-d6ebbb5fbb8b"})
+        self.assertEqual(import_source_manifest(self.store, v3)["imported"], 36)
+        self.assertEqual(import_source_manifest(self.store, v4)["imported"], 5)
+        self.assertEqual(len(self.store.list_sources()), 41)
+        self.assertEqual(len(self.store.list_source_manifest_links()), 41)
+        self.assertEqual(self.store.list_claims(), [])
+        self.assertEqual(import_source_manifest(self.store, v4)["imported"], 0)
+
     def test_research_id_reassigned_to_another_url_is_rejected_and_rolled_back(self):
         a = [{"research_id": "D2026-001", "url": "https://example.org/a",
               "title": "A", "notion_page_id": "page"}]
