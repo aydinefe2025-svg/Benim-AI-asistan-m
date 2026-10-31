@@ -15,11 +15,12 @@ Official deployment reference: https://docs.streamlit.io/deploy/streamlit-commun
 6. Add the following variable **names** under **Advanced settings > Secrets** and enter the real values privately in the host UI (not GitHub, Notion, logs, or chat):
 
    ```toml
-   GOOGLE_API_KEY = "<set-in-host-settings>"
-   GROQ_API_KEY = "<set-in-host-settings>"
+   # Configure one or both, only in the hosting platform's Secrets UI:
+   # GOOGLE_API_KEY = "<configured-privately>"
+   # GROQ_API_KEY = "<configured-privately>"
    ```
 
-   The current app explicitly expects **both** keys before loading the sidebar, even if you select one provider. Acquire and configure only the keys you are permitted to use. Never commit a `secrets.toml` file.
+   The updated app requires **at least one** key, not both. It offers only the configured provider(s) in the sidebar. Without either key, it stops with a safe configuration message. This behavior is tested in [GitHub Actions run #41196912982](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/41196912982), 86/86 unit tests. Acquire and configure only the keys you are permitted to use. Never commit a `secrets.toml` file.
 7. Deploy, open the resulting actual `streamlit.app` URL, verify sidebar and chat input work, and try a controlled Groq/Google request. Keep any API error details and personal keys private.
 8. Confirm that an ordinary prompt gives the right model response; then check a location-specific weather request and a named-entity instant-answer query. The DuckDuckGo *Instant Answer API* is not a full web search engine.
 9. Record only a **verified** working URL and deployment status in GitHub issue #7. Until then, deployment remains *unverified*.
