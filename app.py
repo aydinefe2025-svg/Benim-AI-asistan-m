@@ -7,13 +7,22 @@ import streamlit as st
 # 📺 Rahat bir okuma için standart geniş ekran düzeni aktif ediliyor
 st.set_page_config(layout="wide")
 
-# 🔒 Şifreleri .streamlit/secrets.toml dosyasından güvenle çekiyoruz
-try:
-    GOOGLE_KEY = st.secrets["GOOGLE_API_KEY"]
-    GROQ_KEY = st.secrets["GROQ_API_KEY"]
-except (KeyError, FileNotFoundError):
-    st.error("Uygulama başlatılamadı: secrets ayarlarında GOOGLE_API_KEY ve GROQ_API_KEY gerekli. Lütfen dağıtım platformunda gizli anahtarları yapılandırın.")
+# 🔒 Her sağlayıcı bağımsız yapılandırılır. Değerleri hiçbir zaman ekranda gösterme.
+from core.provider_config import available_providers
+
+available_models = available_providers(st.secrets)
+if not available_models:
+    st.error("Model bağlantısı için en az bir anahtar gerekli: GROQ_API_KEY veya GOOGLE_API_KEY. Secrets ayarlarını kontrol edin.")
     st.stop()
+
+def _configured_secret(name):
+    try:
+        return st.secrets[name]
+    except (KeyError, FileNotFoundError):
+        return None
+
+GOOGLE_KEY = _configured_secret("GOOGLE_API_KEY")
+GROQ_KEY = _configured_secret("GROQ_API_KEY")
 
 # 🌐 ENGELSİZ CANLI İNTERNET VE METEOROLOJİ MOTORU
 def internette_ara(sorgu: str) -> str:
@@ -75,7 +84,7 @@ def internette_ara(sorgu: str) -> str:
 st.sidebar.title("🤖 Asistan Kontrol Paneli")
 secilen_model = st.sidebar.selectbox(
     "Kullanılacak Yapay Zeka Beyni:",
-    ("Groq GPT-OSS (Hızlı / Kesintisiz)", "Google Gemini (Gelişmiş Mod)")
+    available_models
 )
 
 if "Groq" in secilen_model:
