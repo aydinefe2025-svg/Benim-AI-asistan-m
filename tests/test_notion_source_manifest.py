@@ -1,4 +1,5 @@
 """Regression tests for conservative, deterministic Notion source ingestion."""
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -54,6 +55,21 @@ class NotionSourceManifestTests(unittest.TestCase):
         ])
         self.assertEqual(result["imported"], 1)
         self.assertEqual(self.store.list_sources()[0]["content_sha256"], "")
+
+    def test_real_notion_discovery_manifest_imports_28_distinct_sources(self):
+        path = Path(__file__).resolve().parents[1] / "data" / "notion_discovery_sources_20261031.json"
+        entries = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(len(entries), 28)
+        self.assertEqual([x["research_id"] for x in entries],
+                         [f"D2026-{n:03d}" for n in range(1, 29)])
+        self.assertEqual(len({x["url"] for x in entries}), 28)
+        first = import_source_manifest(self.store, entries)
+        second = import_source_manifest(self.store, entries)
+        self.assertEqual(first["imported"], 28)
+        self.assertEqual(second["imported"], 0)
+        self.assertEqual(len(self.store.list_sources()), 28)
+        self.assertEqual(self.store.list_claims(), [])
+        self.assertTrue(all(not row["content_sha256"] for row in self.store.list_sources()))
 
     def test_same_url_conflicting_titles_in_single_batch_rejected(self):
         with self.assertRaises(ValueError):
