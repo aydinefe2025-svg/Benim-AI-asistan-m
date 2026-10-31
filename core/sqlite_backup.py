@@ -112,19 +112,29 @@ def backup_with_receipt(
         raise ValueError("Backup and receipt paths must differ")
     if dest.exists() or receipt.exists():
         raise FileExistsError("Backup or receipt path already exists")
-    # Create only the requested new backup path.
+    # backup_research_db creates dest exclusively, so once it returns the
+    # backup belongs to this call. Never remove a pre-existing destination.
     result = backup_research_db(source, dest)
-    receipt.parent.mkdir(parents=True, exist_ok=True)
-    record = {
-        "schema_version": 1,
-        "sha256": result["sha256"],
-        "source_count": result["source_count"],
-        "claim_count": result["claim_count"],
-    }
-    with receipt.open("x", encoding="utf-8") as stream:
-        json.dump(record, stream, sort_keys=True, indent=2)
-        stream.write("\n")
-    return result
+    receipt_created = False
+    try:
+        receipt.parent.mkdir(parents=True, exist_ok=True)
+        record = {
+            "schema_version": 1,
+            "sha256": result["sha256"],
+            "source_count": result["source_count"],
+            "claim_count": result["claim_count"],
+        }
+        with receipt.open("x", encoding="utf-8") as stream:
+            receipt_created = True
+            json.dump(record, stream, sort_keys=True, indent=2)
+            stream.write("\n")
+        return result
+    except OSError:
+        # Clean only paths exclusively created by this operation.
+        if receipt_created:
+            receipt.unlink(missing_ok=True)
+        dest.unlink(missing_ok=True)
+        raise
 
 
 def recovery_drill(
