@@ -73,6 +73,13 @@ class KnowledgeStore:
                     recorded_at TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_review_notes_claim ON review_notes(claim_id,id);
+                CREATE TABLE IF NOT EXISTS notion_source_links (
+                    research_id TEXT PRIMARY KEY,
+                    source_id INTEGER NOT NULL REFERENCES sources(id),
+                    notion_page_id TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_notion_source_links_source
+                    ON notion_source_links(source_id);
                 CREATE INDEX IF NOT EXISTS idx_source_sha ON sources(content_sha256);
             """)
             # Preserve each existing source's latest known fingerprint on migration.
@@ -333,6 +340,17 @@ class KnowledgeStore:
                 """SELECT id,source_id,content_sha256,recorded_at
                    FROM source_revisions WHERE source_id=? ORDER BY id""",
                 (source_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def list_source_manifest_links(self) -> list[dict[str, Any]]:
+        """List source provenance IDs; these are identifiers, not validation."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT l.research_id,l.notion_page_id,l.source_id,s.url,s.title
+                   FROM notion_source_links l
+                   JOIN sources s ON s.id=l.source_id
+                   ORDER BY l.research_id"""
             ).fetchall()
         return [dict(row) for row in rows]
 
