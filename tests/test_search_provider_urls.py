@@ -4,7 +4,7 @@ import re
 import types
 import unittest
 from pathlib import Path
-from urllib.parse import urlsplit, parse_qs
+from urllib.parse import urlsplit, parse_qs, urlencode
 from unittest.mock import Mock
 
 
@@ -17,7 +17,7 @@ def load_search_function():
     helper = next(n for n in source.body
                   if isinstance(n, ast.FunctionDef) and n.name == "internette_ara")
     mocked_requests = types.SimpleNamespace(get=Mock())
-    namespace = {"re": re, "requests": mocked_requests}
+    namespace = {"re": re, "requests": mocked_requests, "urlencode": urlencode}
     exec(compile(ast.Module(body=[helper], type_ignores=[]), str(APP), "exec"), namespace)
     return namespace["internette_ara"], mocked_requests
 
