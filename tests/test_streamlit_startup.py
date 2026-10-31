@@ -49,7 +49,12 @@ class MissingSecretsTests(unittest.TestCase):
         streamlit.caption = lambda *a, **kw: None
         streamlit.markdown = lambda *a, **kw: None
         streamlit.chat_input = lambda *a, **kw: None
-        streamlit.session_state = types.SimpleNamespace(messages=[])
+        class FakeSessionState(dict):
+            def __getattr__(self, name):
+                return self[name]
+            def __setattr__(self, name, value):
+                self[name] = value
+        streamlit.session_state = FakeSessionState(messages=[])
         streamlit.sidebar = types.SimpleNamespace(
             title=lambda *a: None,
             selectbox=lambda label, options: options[0],
