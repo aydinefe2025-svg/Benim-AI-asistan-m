@@ -282,6 +282,47 @@ class KnowledgeStore:
             "independently_verified": False,
         }
 
+    def audit_all_claims(
+        self, *, status: str | None = None, limit: int = 100,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """Summarize a bounded page of evidence risks, never certify claims.
+
+        flag_counts only counts the returned page, not the entire database.
+        """
+        allowed = {"unreviewed", "supported", "contested", "rejected"}
+        if status is not None and status not in allowed:
+            raise ValueError("Invalid claim status filter")
+        if type(limit) is not int or not 1 <= limit <= 500:
+            raise ValueError("Audit limit must be an integer from 1 to 500")
+        if type(offset) is not int or offset < 0:
+            raise ValueError("Audit offset must be a nonnegative integer")
+        where = "WHERE status=?" if status is not None else ""
+        params = (status,) if status is not None else ()
+        with self._connect() as conn:
+            total = conn.execute(
+                f"SELECT COUNT(*) FROM claims {where}", params
+            ).fetchone()[0]
+            ids = conn.execute(
+                f"SELECT id FROM claims {where} ORDER BY id LIMIT ? OFFSET ?",
+                (*params, limit, offset),
+            ).fetchall()
+        records = [self.audit_claim_evidence(row["id"]) for row in ids]
+        counts: dict[str, int] = {}
+        for record in records:
+            for flag in record["flags"]:
+                counts[flag] = counts.get(flag, 0) + 1
+        return {
+            "total": total,
+            "page_count": len(records),
+            "limit": limit,
+            "offset": offset,
+            "status_filter": status,
+            "flag_counts": counts,
+            "records": records,
+            "independently_verified": False,
+        }
+
     def list_revisions(self, source_id: int) -> list[dict[str, Any]]:
         """List recorded content fingerprints; these are not full snapshots."""
         with self._connect() as conn:
