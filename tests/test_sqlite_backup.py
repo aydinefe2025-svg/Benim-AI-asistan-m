@@ -3,6 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from core.knowledge_store import KnowledgeStore
 from core.notion_source_manifest import import_source_manifest
@@ -139,6 +140,29 @@ class SQLiteBackupTests(unittest.TestCase):
             backup_with_receipt(self.source_path, backup, receipt)
         self.assertFalse(backup.exists())
         self.assertEqual(receipt.read_text(encoding="utf-8"), "unrelated")
+
+    def test_receipt_write_failure_removes_only_new_backup_and_receipt(self):
+        self._seed()
+        before = self.store.list_sources()
+        backup = self.root / "snapshots" / "new.sqlite3"
+        receipt = self.root / "receipts" / "new.json"
+        with patch("core.sqlite_backup.json.dump", side_effect=OSError("disk full")):
+            with self.assertRaisesRegex(OSError, "disk full"):
+                backup_with_receipt(self.source_path, backup, receipt)
+        self.assertFalse(backup.exists())
+        self.assertFalse(receipt.exists())
+        self.assertEqual(self.store.list_sources(), before)
+
+    def test_unwritable_receipt_parent_leaves_no_orphan_backup(self):
+        self._seed()
+        marker = self.root / "not-a-directory"
+        marker.write_text("untouched", encoding="utf-8")
+        backup = self.root / "snapshots" / "new.sqlite3"
+        receipt = marker / "new.json"
+        with self.assertRaises(OSError):
+            backup_with_receipt(self.source_path, backup, receipt)
+        self.assertFalse(backup.exists())
+        self.assertEqual(marker.read_text(encoding="utf-8"), "untouched")
 
     def test_backup_never_overwrites_existing_file(self):
         self._seed()
