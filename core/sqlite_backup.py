@@ -1,0 +1,182 @@
+"""Non-destructive, one-file SQLite snapshot backup and restore.
+
+Exports create new files only; no in-place replacement or scheduled automation.
+Uses SQLite's online backup API, not raw file copying, to support WAL databases.
+"""
+from __future__ import annotations
+
+import hashlib
+import hmac
+import json
+import re
+import sqlite3
+from pathlib import Path
+
+
+def _sha256_file(path: Path) -> str:
+    """Hash actual on-disk bytes; callers must retain the digest separately."""
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _source_checked(path: str | Path) -> Path:
+    src = Path(path).expanduser()
+    if not src.is_file():
+        raise FileNotFoundError(f"Database file does not exist: {src}")
+    try:
+        with sqlite3.connect(src.as_uri() if src.is_absolute() else src.resolve().as_uri(), uri=True) as conn:
+            result = conn.execute("PRAGMA integrity_check").fetchone()
+            if result is None or result[0] != "ok":
+                raise ValueError("SQLite integrity check failed")
+            # Avoid treating an arbitrary valid SQLite database as our research archive.
+            tables = {
+                row[0] for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            }
+            expected = {"sources", "claims", "source_revisions", "review_notes", "notion_source_links"}
+            if not expected.issubset(tables):
+                raise ValueError("Not a supported research database schema")
+    except sqlite3.DatabaseError as exc:
+        raise ValueError("Invalid SQLite backup") from exc
+    return src
+
+
+def _copy_database(source: Path, destination: str | Path) -> dict[str, int | str]:
+    dest = Path(destination).expanduser()
+    if source.resolve() == dest.resolve():
+        raise FileExistsError("Cannot overwrite the source database")
+    if dest.exists():
+        raise FileExistsError(f"Destination already exists: {dest}")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    # Reserve the path exclusively. This is not cross-host/object-store atomicity.
+    with dest.open("xb"):
+        pass
+    try:
+        with sqlite3.connect(source.resolve().as_uri() + "?mode=ro", uri=True) as src:
+            with sqlite3.connect(dest) as dst:
+                src.backup(dst)
+                check = dst.execute("PRAGMA integrity_check").fetchone()[0]
+                if check != "ok":
+                    raise ValueError("Backup destination failed integrity check")
+                counts = {
+                    "source_count": dst.execute("SELECT COUNT(*) FROM sources").fetchone()[0],
+                    "claim_count": dst.execute("SELECT COUNT(*) FROM claims").fetchone()[0],
+                    "notion_link_count": dst.execute("SELECT COUNT(*) FROM notion_source_links").fetchone()[0],
+                }
+        return {"integrity_check": "ok", "sha256": _sha256_file(dest), **counts}
+    except BaseException:
+        dest.unlink(missing_ok=True)
+        raise
+
+
+def backup_research_db(source: str | Path, destination: str | Path) -> dict[str, int | str]:
+    """Make a new consistent SQLite snapshot; never overwrite the destination."""
+    src = _source_checked(source)
+    return _copy_database(src, destination)
+
+
+def restore_research_db(
+    backup: str | Path, destination: str | Path, *,
+    expected_sha256: str | None = None,
+) -> dict[str, int | str]:
+    """Restore to a new path; optionally verify a separately recorded digest.
+
+    SHA-256 detects changes only if the expectation comes from a trusted,
+    independently retained record. It does not authenticate its creator.
+    """
+    src = _source_checked(backup)
+    if expected_sha256 is not None:
+        if not isinstance(expected_sha256, str) or re.fullmatch(
+            r"[0-9a-fA-F]{64}", expected_sha256
+        ) is None:
+            raise ValueError("Expected SHA-256 must be 64 hex characters")
+        actual = _sha256_file(src)
+        if not hmac.compare_digest(actual, expected_sha256.lower()):
+            raise ValueError("Backup SHA-256 does not match expected digest")
+    return _copy_database(src, destination)
+
+
+def backup_with_receipt(
+    source: str | Path, destination: str | Path, receipt_path: str | Path,
+) -> dict[str, int | str]:
+    """Make a backup plus a distinct, new metadata receipt file.
+
+    The receipt should be copied to a trusted location separately.
+    """
+    dest = Path(destination).expanduser()
+    receipt = Path(receipt_path).expanduser()
+    if dest.resolve() == receipt.resolve():
+        raise ValueError("Backup and receipt paths must differ")
+    if dest.exists() or receipt.exists():
+        raise FileExistsError("Backup or receipt path already exists")
+    # backup_research_db creates dest exclusively, so once it returns the
+    # backup belongs to this call. Never remove a pre-existing destination.
+    result = backup_research_db(source, dest)
+    receipt_created = False
+    try:
+        receipt.parent.mkdir(parents=True, exist_ok=True)
+        record = {
+            "schema_version": 1,
+            "sha256": result["sha256"],
+            "source_count": result["source_count"],
+            "claim_count": result["claim_count"],
+            "notion_link_count": result["notion_link_count"],
+        }
+        with receipt.open("x", encoding="utf-8") as stream:
+            receipt_created = True
+            json.dump(record, stream, sort_keys=True, indent=2)
+            stream.write("\n")
+        return result
+    except OSError:
+        # Clean only paths exclusively created by this operation.
+        if receipt_created:
+            receipt.unlink(missing_ok=True)
+        dest.unlink(missing_ok=True)
+        raise
+
+
+def recovery_drill(
+    backup: str | Path, receipt_path: str | Path, destination: str | Path,
+) -> dict[str, int | str | bool]:
+    """Restore into a new path after validating a separate receipt."""
+    try:
+        receipt = json.loads(Path(receipt_path).read_text(encoding="utf-8"))
+        if not isinstance(receipt, dict) or receipt.get("schema_version") != 1:
+            raise ValueError("Invalid receipt schema")
+        sha = receipt["sha256"]
+        sources = receipt["source_count"]
+        claims = receipt["claim_count"]
+        notion_links = receipt.get("notion_link_count")
+        if (type(sources) is not int or sources < 0 or
+                type(claims) is not int or claims < 0 or
+                type(notion_links) is not int or notion_links < 0):
+            raise ValueError("Invalid receipt counts")
+    except (OSError, UnicodeError, json.JSONDecodeError, KeyError) as exc:
+        raise ValueError("Invalid receipt") from exc
+    # Fail closed before creating the new recovery destination. Structural
+    # integrity does not check referential integrity or receipt counts.
+    src = _source_checked(backup)
+    if not isinstance(sha, str) or re.fullmatch(r"[0-9a-fA-F]{64}", sha) is None:
+        raise ValueError("Invalid receipt SHA-256")
+    if not hmac.compare_digest(_sha256_file(src), sha.lower()):
+        raise ValueError("Backup SHA-256 does not match receipt")
+    with sqlite3.connect(src.resolve().as_uri() + "?mode=ro", uri=True) as conn:
+        actual_sources = conn.execute("SELECT COUNT(*) FROM sources").fetchone()[0]
+        actual_claims = conn.execute("SELECT COUNT(*) FROM claims").fetchone()[0]
+        actual_links = conn.execute("SELECT COUNT(*) FROM notion_source_links").fetchone()[0]
+        if conn.execute("PRAGMA foreign_key_check").fetchone() is not None:
+            raise ValueError("Backup foreign key relationships are invalid")
+    if (actual_sources != sources or actual_claims != claims or
+            actual_links != notion_links):
+        raise ValueError("Recovery receipt record counts did not match")
+    # Recheck the digest at restore entry as well, before opening new target.
+    result = restore_research_db(backup, destination, expected_sha256=sha)
+    if (result["source_count"] != sources or
+            result["claim_count"] != claims or
+            result["notion_link_count"] != notion_links):
+        raise ValueError("Recovered record counts differ from receipt")
+    return {"verified": True, **result}
