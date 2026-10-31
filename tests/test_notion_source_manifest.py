@@ -176,6 +176,44 @@ class NotionSourceManifestTests(unittest.TestCase):
         self.assertEqual(len(self.store.list_sources()), 36)
         self.assertEqual(self.store.list_claims(), [])
 
+    def test_research_id_links_preserved_in_database_and_resolvable(self):
+        path = Path(__file__).resolve().parents[1] / "data" / "notion_discovery_sources_20261031_v3.json"
+        v3 = json.loads(path.read_text(encoding="utf-8"))
+        import_source_manifest(self.store, v3)
+        links = self.store.list_source_manifest_links()
+        self.assertEqual(len(links), 36)
+        self.assertEqual([x["research_id"] for x in links],
+                         [f"D2026-{i:03d}" for i in range(1, 37)])
+        self.assertEqual(links[34]["url"], v3[34]["url"])
+        self.assertEqual(links[35]["notion_page_id"], v3[35]["notion_page_id"])
+        self.assertEqual(len({x["source_id"] for x in links}), 36)
+        self.assertEqual(import_source_manifest(self.store, v3)["imported"], 0)
+        self.assertEqual(self.store.list_source_manifest_links(), links)
+
+    def test_research_id_reassigned_to_another_url_is_rejected_and_rolled_back(self):
+        a = [{"research_id": "D2026-001", "url": "https://example.org/a",
+              "title": "A", "notion_page_id": "page"}]
+        import_source_manifest(self.store, a)
+        with self.assertRaises(ValueError):
+            import_source_manifest(self.store, [
+                {"research_id": "D2026-002", "url": "https://example.org/new",
+                 "title": "New", "notion_page_id": "page"},
+                {"research_id": "D2026-001", "url": "https://example.org/b",
+                 "title": "Conflict", "notion_page_id": "page"},
+            ])
+        self.assertEqual([x["url"] for x in self.store.list_sources()], ["https://example.org/a"])
+        self.assertEqual(len(self.store.list_source_manifest_links()), 1)
+
+    def test_research_id_collision_within_batch_is_rejected_before_writes(self):
+        with self.assertRaises(ValueError):
+            import_source_manifest(self.store, [
+                {"research_id": "D2026-001", "url": "https://example.org/a",
+                 "title": "A", "notion_page_id": "page"},
+                {"research_id": "D2026-001", "url": "https://example.org/b",
+                 "title": "B", "notion_page_id": "page"},
+            ])
+        self.assertEqual(self.store.list_sources(), [])
+
     def test_same_url_conflicting_titles_in_single_batch_rejected(self):
         with self.assertRaises(ValueError):
             import_source_manifest(self.store, [
