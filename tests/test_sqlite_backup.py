@@ -58,6 +58,42 @@ class SQLiteBackupTests(unittest.TestCase):
         self.assertEqual(restored.list_source_manifest_links(),
                          self.store.list_source_manifest_links())
 
+    def test_backup_exposes_digest_for_out_of_band_verification(self):
+        import hashlib
+        self._seed()
+        backup = self.root / "verified.sqlite3"
+        result = backup_research_db(self.source_path, backup)
+        actual = hashlib.sha256(backup.read_bytes()).hexdigest()
+        self.assertEqual(result["sha256"], actual)
+        self.assertEqual(len(actual), 64)
+        restored = restore_research_db(
+            backup, self.root / "verified-restore.sqlite3",
+            expected_sha256=result["sha256"],
+        )
+        self.assertEqual(restored["sha256"], actual)
+
+    def test_digest_mismatch_detects_modified_but_valid_sqlite(self):
+        self._seed()
+        backup = self.root / "snapshot.sqlite3"
+        recorded = backup_research_db(self.source_path, backup)["sha256"]
+        import sqlite3
+        with sqlite3.connect(backup) as conn:
+            conn.execute("UPDATE sources SET title='Tampered' WHERE id=1")
+        self.assertEqual(sqlite3.connect(backup).execute("PRAGMA integrity_check").fetchone()[0], "ok")
+        destination = self.root / "must-not-be-created.sqlite3"
+        with self.assertRaisesRegex(ValueError, "SHA-256"):
+            restore_research_db(backup, destination, expected_sha256=recorded)
+        self.assertFalse(destination.exists())
+
+    def test_malformed_digest_rejected_before_create(self):
+        self._seed()
+        backup = self.root / "snapshot.sqlite3"
+        backup_research_db(self.source_path, backup)
+        target = self.root / "uncreated.sqlite3"
+        with self.assertRaises(ValueError):
+            restore_research_db(backup, target, expected_sha256="bad")
+        self.assertFalse(target.exists())
+
     def test_backup_never_overwrites_existing_file(self):
         self._seed()
         backup_path = self.root / "existing.backup"
