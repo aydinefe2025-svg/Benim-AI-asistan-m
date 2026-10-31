@@ -97,12 +97,14 @@ def import_source_manifest(
                 "SELECT id FROM sources WHERE url=?", (url,)
             ).fetchone()
             stored = conn.execute(
-                """SELECT l.source_id,s.url
+                """SELECT l.source_id,l.notion_page_id,s.url
                    FROM notion_source_links l JOIN sources s ON s.id=l.source_id
                    WHERE l.research_id=?""", (research_id,)
             ).fetchone()
             if stored is not None and stored["url"] != url:
                 raise ValueError("Research ID already assigned to another source URL")
+            if stored is not None and stored["notion_page_id"] != page_id:
+                raise ValueError("Research ID already assigned to another Notion page")
             if stored is None:
                 conn.execute(
                     """INSERT INTO notion_source_links
