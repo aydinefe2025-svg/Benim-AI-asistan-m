@@ -26,11 +26,11 @@ def internette_ara(sorgu: str) -> str:
         if hava_istegi_mi:
             # Never silently assume a city: that would supply incorrect weather
             # for questions about another city (or with no city at all).
-            city_pattern = r"([A-Za-zÇĞİÖŞÜçğıöşü]+)(?:['’](?:da|de|ta|te))?\\s+hava\\b"
+            city_pattern = r"([A-Za-zÇĞİÖŞÜçğıöşü]+)(?:['’](?:da|de|ta|te))?\s+hava\b"
             city_match = re.search(city_pattern, sorgu, flags=re.IGNORECASE)
             if city_match is None:
                 city_match = re.search(
-                    r"\\bhava(?:\\s+durumu)?\\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)",
+                    r"\bhava(?:\s+durumu)?\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)",
                     sorgu, flags=re.IGNORECASE,
                 )
             city_name = city_match.group(1) if city_match else ""
