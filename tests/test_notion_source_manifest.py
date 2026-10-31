@@ -118,6 +118,37 @@ class NotionSourceManifestTests(unittest.TestCase):
         self.assertEqual(current[0]["notes"], original["notes"])
         self.assertEqual(current[0]["content_sha256"], original["content_sha256"])
 
+    def test_expanded_real_notion_manifest_keeps_all_34_sources_and_first_28(self):
+        folder = Path(__file__).resolve().parents[1] / "data"
+        original = json.loads((folder / "notion_discovery_sources_20261031.json").read_text(encoding="utf-8"))
+        updated = json.loads((folder / "notion_discovery_sources_20261031_v2.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(original), 28)
+        self.assertEqual(len(updated), 34)
+        self.assertEqual(updated[:28], original)
+        self.assertEqual(
+            [x["research_id"] for x in updated],
+            [f"D2026-{i:03d}" for i in range(1, 35)],
+        )
+        self.assertEqual(len({x["url"] for x in updated}), 34)
+        result = import_source_manifest(self.store, updated)
+        self.assertEqual(result["imported"], 34)
+        self.assertEqual(len(self.store.list_sources()), 34)
+        self.assertEqual(import_source_manifest(self.store, updated)["imported"], 0)
+        self.assertEqual(self.store.list_claims(), [])
+        self.assertTrue(all(not x["content_sha256"] for x in self.store.list_sources()))
+
+    def test_expanded_manifest_incremental_import_only_adds_six(self):
+        folder = Path(__file__).resolve().parents[1] / "data"
+        original = json.loads((folder / "notion_discovery_sources_20261031.json").read_text(encoding="utf-8"))
+        updated = json.loads((folder / "notion_discovery_sources_20261031_v2.json").read_text(encoding="utf-8"))
+        first = import_source_manifest(self.store, original)
+        self.assertEqual(first["imported"], 28)
+        second = import_source_manifest(self.store, updated)
+        self.assertEqual(second["imported"], 6)
+        self.assertEqual(second["processed_unique"], 34)
+        self.assertEqual(len(self.store.list_sources()), 34)
+        self.assertEqual(self.store.list_claims(), [])
+
     def test_same_url_conflicting_titles_in_single_batch_rejected(self):
         with self.assertRaises(ValueError):
             import_source_manifest(self.store, [
