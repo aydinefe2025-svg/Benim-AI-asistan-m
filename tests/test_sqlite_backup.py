@@ -164,6 +164,37 @@ class SQLiteBackupTests(unittest.TestCase):
         self.assertFalse(backup.exists())
         self.assertEqual(marker.read_text(encoding="utf-8"), "untouched")
 
+    def test_receipt_count_mismatch_rejected_before_recovery_file_is_written(self):
+        self._seed()
+        backup = self.root / "separate" / "snapshot.sqlite3"
+        receipt = self.root / "receipts" / "snapshot.json"
+        backup_with_receipt(self.source_path, backup, receipt)
+        data = json.loads(receipt.read_text(encoding="utf-8"))
+        data["source_count"] += 1
+        receipt.write_text(json.dumps(data), encoding="utf-8")
+        target = self.root / "restored" / "no-output.sqlite3"
+        with self.assertRaisesRegex(ValueError, "record counts"):
+            recovery_drill(backup, receipt, target)
+        self.assertFalse(target.exists())
+
+    def test_recovery_drill_rejects_foreign_key_broken_backup_before_creating_target(self):
+        self._seed()
+        backup = self.root / "separate" / "snapshot.sqlite3"
+        receipt = self.root / "receipts" / "snapshot.json"
+        backup_with_receipt(self.source_path, backup, receipt)
+        import sqlite3
+        with sqlite3.connect(backup) as conn:
+            conn.execute("PRAGMA foreign_keys=OFF")
+            conn.execute("INSERT INTO claim_sources(claim_id,source_id,relationship) VALUES(99999,99999,'supports')")
+        import hashlib
+        data = json.loads(receipt.read_text(encoding="utf-8"))
+        data["sha256"] = hashlib.sha256(backup.read_bytes()).hexdigest()
+        receipt.write_text(json.dumps(data), encoding="utf-8")
+        target = self.root / "restored" / "should-not-exist.sqlite3"
+        with self.assertRaisesRegex(ValueError, "foreign key"):
+            recovery_drill(backup, receipt, target)
+        self.assertFalse(target.exists())
+
     def test_backup_never_overwrites_existing_file(self):
         self._seed()
         backup_path = self.root / "existing.backup"
