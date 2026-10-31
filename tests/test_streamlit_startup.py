@@ -32,11 +32,36 @@ class MissingSecretsTests(unittest.TestCase):
                 runpy.run_path(str(APP), run_name="__main__")
         return errors
 
-    def test_missing_one_key_explains_configuration_and_stops(self):
-        errors = self._launch_without_credentials({"GOOGLE_API_KEY": "do-not-leak-this-secret"})
+    def test_missing_both_keys_explains_configuration_and_stops(self):
+        errors = self._launch_without_credentials({})
         self.assertEqual(len(errors), 1)
         self.assertIn("GROQ_API_KEY", errors[0])
-        self.assertNotIn("do-not-leak-this-secret", errors[0])
+        self.assertIn("GOOGLE_API_KEY", errors[0])
+
+    def test_single_groq_key_loads_streamlit_ui_without_google_key(self):
+        errors = []
+        streamlit = types.ModuleType("streamlit")
+        streamlit.secrets = {"GROQ_API_KEY": "private-value"}
+        streamlit.set_page_config = lambda **kw: None
+        streamlit.error = lambda msg: errors.append(str(msg))
+        streamlit.stop = lambda: (_ for _ in ()).throw(StopRequested())
+        streamlit.title = lambda *a, **kw: None
+        streamlit.caption = lambda *a, **kw: None
+        streamlit.markdown = lambda *a, **kw: None
+        streamlit.chat_input = lambda *a, **kw: None
+        streamlit.session_state = types.SimpleNamespace(messages=[])
+        streamlit.sidebar = types.SimpleNamespace(
+            title=lambda *a: None,
+            selectbox=lambda label, options: options[0],
+            success=lambda *a: None,
+        )
+        requests = types.ModuleType("requests")
+        groq = types.ModuleType("groq")
+        groq.Groq = type("Groq", (), {})
+        with patch.dict(sys.modules, {"streamlit": streamlit, "requests": requests, "groq": groq}):
+            runpy.run_path(str(APP), run_name="__main__")
+        self.assertEqual(errors, [])
+        self.assertEqual(streamlit.sidebar.selectbox("options", ("Groq",)), "Groq")
 
     def test_missing_secrets_file_explains_configuration_and_stops(self):
         class NoFile:
