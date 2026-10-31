@@ -65,6 +65,7 @@ def _copy_database(source: Path, destination: str | Path) -> dict[str, int | str
                 counts = {
                     "source_count": dst.execute("SELECT COUNT(*) FROM sources").fetchone()[0],
                     "claim_count": dst.execute("SELECT COUNT(*) FROM claims").fetchone()[0],
+                    "notion_link_count": dst.execute("SELECT COUNT(*) FROM notion_source_links").fetchone()[0],
                 }
         return {"integrity_check": "ok", "sha256": _sha256_file(dest), **counts}
     except BaseException:
@@ -123,6 +124,7 @@ def backup_with_receipt(
             "sha256": result["sha256"],
             "source_count": result["source_count"],
             "claim_count": result["claim_count"],
+            "notion_link_count": result["notion_link_count"],
         }
         with receipt.open("x", encoding="utf-8") as stream:
             receipt_created = True
@@ -148,8 +150,10 @@ def recovery_drill(
         sha = receipt["sha256"]
         sources = receipt["source_count"]
         claims = receipt["claim_count"]
+        notion_links = receipt.get("notion_link_count")
         if (type(sources) is not int or sources < 0 or
-                type(claims) is not int or claims < 0):
+                type(claims) is not int or claims < 0 or
+                type(notion_links) is not int or notion_links < 0):
             raise ValueError("Invalid receipt counts")
     except (OSError, UnicodeError, json.JSONDecodeError, KeyError) as exc:
         raise ValueError("Invalid receipt") from exc
@@ -163,13 +167,16 @@ def recovery_drill(
     with sqlite3.connect(src.resolve().as_uri() + "?mode=ro", uri=True) as conn:
         actual_sources = conn.execute("SELECT COUNT(*) FROM sources").fetchone()[0]
         actual_claims = conn.execute("SELECT COUNT(*) FROM claims").fetchone()[0]
+        actual_links = conn.execute("SELECT COUNT(*) FROM notion_source_links").fetchone()[0]
         if conn.execute("PRAGMA foreign_key_check").fetchone() is not None:
             raise ValueError("Backup foreign key relationships are invalid")
-    if actual_sources != sources or actual_claims != claims:
+    if (actual_sources != sources or actual_claims != claims or
+            actual_links != notion_links):
         raise ValueError("Recovery receipt record counts did not match")
     # Recheck the digest at restore entry as well, before opening new target.
     result = restore_research_db(backup, destination, expected_sha256=sha)
     if (result["source_count"] != sources or
-            result["claim_count"] != claims):
+            result["claim_count"] != claims or
+            result["notion_link_count"] != notion_links):
         raise ValueError("Recovered record counts differ from receipt")
     return {"verified": True, **result}
