@@ -5,8 +5,20 @@ Uses SQLite's online backup API, not raw file copying, to support WAL databases.
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
+import re
 import sqlite3
 from pathlib import Path
+
+
+def _sha256_file(path: Path) -> str:
+    """Hash actual on-disk bytes; callers must retain the digest separately."""
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _source_checked(path: str | Path) -> Path:
@@ -53,7 +65,7 @@ def _copy_database(source: Path, destination: str | Path) -> dict[str, int | str
                     "source_count": dst.execute("SELECT COUNT(*) FROM sources").fetchone()[0],
                     "claim_count": dst.execute("SELECT COUNT(*) FROM claims").fetchone()[0],
                 }
-        return {"integrity_check": "ok", **counts}
+        return {"integrity_check": "ok", "sha256": _sha256_file(dest), **counts}
     except BaseException:
         dest.unlink(missing_ok=True)
         raise
@@ -65,7 +77,22 @@ def backup_research_db(source: str | Path, destination: str | Path) -> dict[str,
     return _copy_database(src, destination)
 
 
-def restore_research_db(backup: str | Path, destination: str | Path) -> dict[str, int | str]:
-    """Restore a validated snapshot to a *new* path only; never replace live DB."""
+def restore_research_db(
+    backup: str | Path, destination: str | Path, *,
+    expected_sha256: str | None = None,
+) -> dict[str, int | str]:
+    """Restore to a new path; optionally verify a separately recorded digest.
+
+    SHA-256 detects changes only if the expectation comes from a trusted,
+    independently retained record. It does not authenticate its creator.
+    """
     src = _source_checked(backup)
+    if expected_sha256 is not None:
+        if not isinstance(expected_sha256, str) or re.fullmatch(
+            r"[0-9a-fA-F]{64}", expected_sha256
+        ) is None:
+            raise ValueError("Expected SHA-256 must be 64 hex characters")
+        actual = _sha256_file(src)
+        if not hmac.compare_digest(actual, expected_sha256.lower()):
+            raise ValueError("Backup SHA-256 does not match expected digest")
     return _copy_database(src, destination)
