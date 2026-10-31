@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import re
 import sqlite3
 from pathlib import Path
@@ -96,3 +97,55 @@ def restore_research_db(
         if not hmac.compare_digest(actual, expected_sha256.lower()):
             raise ValueError("Backup SHA-256 does not match expected digest")
     return _copy_database(src, destination)
+
+
+def backup_with_receipt(
+    source: str | Path, destination: str | Path, receipt_path: str | Path,
+) -> dict[str, int | str]:
+    """Make a backup plus a distinct, new metadata receipt file.
+
+    The receipt should be copied to a trusted location separately.
+    """
+    dest = Path(destination).expanduser()
+    receipt = Path(receipt_path).expanduser()
+    if dest.resolve() == receipt.resolve():
+        raise ValueError("Backup and receipt paths must differ")
+    if dest.exists() or receipt.exists():
+        raise FileExistsError("Backup or receipt path already exists")
+    # Create only the requested new backup path.
+    result = backup_research_db(source, dest)
+    receipt.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "schema_version": 1,
+        "sha256": result["sha256"],
+        "source_count": result["source_count"],
+        "claim_count": result["claim_count"],
+    }
+    with receipt.open("x", encoding="utf-8") as stream:
+        json.dump(record, stream, sort_keys=True, indent=2)
+        stream.write("\n")
+    return result
+
+
+def recovery_drill(
+    backup: str | Path, receipt_path: str | Path, destination: str | Path,
+) -> dict[str, int | str | bool]:
+    """Restore into a new path after validating a separate receipt."""
+    try:
+        receipt = json.loads(Path(receipt_path).read_text(encoding="utf-8"))
+        if not isinstance(receipt, dict) or receipt.get("schema_version") != 1:
+            raise ValueError("Invalid receipt schema")
+        sha = receipt["sha256"]
+        sources = receipt["source_count"]
+        claims = receipt["claim_count"]
+        if (type(sources) is not int or sources < 0 or
+                type(claims) is not int or claims < 0):
+            raise ValueError("Invalid receipt counts")
+    except (OSError, UnicodeError, json.JSONDecodeError, KeyError) as exc:
+        raise ValueError("Invalid receipt") from exc
+    # The original backup API refuses to overwrite any destination.
+    result = restore_research_db(backup, destination, expected_sha256=sha)
+    if (result["source_count"] != sources or
+            result["claim_count"] != claims):
+        raise ValueError("Recovered record counts differ from receipt")
+    return {"verified": True, **result}
