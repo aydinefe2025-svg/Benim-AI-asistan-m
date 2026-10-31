@@ -44,6 +44,46 @@ class KnowledgeStoreTests(unittest.TestCase):
             {"supports", "contradicts"},
         )
 
+    def test_supported_rejected_for_url_only_source(self):
+        source = self.store.add_source("https://example.org/unchecked", "Not independently checked")
+        with self.assertRaisesRegex(ValueError, "review"):
+            self.store.add_claim("Not yet proven", [source["id"]], status="supported", confidence=1.0)
+        self.assertEqual(self.store.list_claims(), [])
+
+    def test_supported_rejected_even_when_source_text_is_hashed(self):
+        source = self.store.add_source("https://example.org/checked", "Article", content="Full text")
+        self.assertTrue(source["content_sha256"])
+        with self.assertRaisesRegex(ValueError, "review"):
+            self.store.add_claim("Claim not independently reviewed", [source["id"]], status="supported")
+        self.assertEqual(self.store.list_claims(), [])
+
+    def test_supported_rejected_with_contradictory_source(self):
+        one = self.store.add_source("https://example.org/a", "A", content="One interpretation")
+        two = self.store.add_source("https://example.org/b", "B", content="Contrary interpretation")
+        with self.assertRaisesRegex(ValueError, "review"):
+            self.store.add_claim("Contested proposition", [one["id"], two["id"]],
+                                 status="supported", relationships={two["id"]: "contradicts"})
+        self.assertEqual(self.store.list_claims(), [])
+
+    def test_unreviewed_claim_remains_usable(self):
+        source = self.store.add_source("https://example.org/u", "Unreviewed")
+        claim = self.store.add_claim("Pending claim", [source["id"]])
+        self.assertEqual(claim["status"], "unreviewed")
+        self.assertEqual(self.store.get_claim(claim["id"])["status"], "unreviewed")
+
+    def test_legacy_supported_rows_remain_without_automatic_promotion(self):
+        source = self.store.add_source("https://example.org/old", "Legacy source")
+        with self.store._connect() as conn:
+            conn.execute(
+                "INSERT INTO claims(claim,status,confidence,created_at) VALUES(?,?,?,?)",
+                ("Old supported status", "supported", 0.6, "2026-01-01T00:00:00+00:00"),
+            )
+            claim_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+            conn.execute("INSERT INTO claim_sources(claim_id,source_id,relationship) VALUES(?,?,'supports')",
+                         (claim_id, source["id"]))
+        self.assertEqual(self.store.get_claim(claim_id)["status"], "supported")
+        self.assertEqual(len(self.store.list_claims(status="supported")), 1)
+
     def test_rejects_non_http_url_and_bad_confidence(self):
         with self.assertRaises(ValueError):
             self.store.add_source("file:///etc/passwd", "Bad")
