@@ -2,13 +2,13 @@
 
 This module does not fetch external URLs, authenticate sources or reviewers,
 create scientific claims, or independently verify any research assertions.
-All entries are validated before applying any changes; this is not a
-cross-process database transaction guarantee.
+All entries are validated before applying any changes. The write batch
+uses a single SQLite transaction and rolls back on database errors.
 """
 from __future__ import annotations
 
 from typing import Any
-from core.knowledge_store import KnowledgeStore
+from core.knowledge_store import KnowledgeStore, _now
 
 
 def import_source_manifest(
@@ -52,18 +52,34 @@ def import_source_manifest(
             continue
         normalized[url] = candidate
 
-    existing = {x["url"]: x["id"] for x in store.list_sources()}
+    # A single transaction protects the *entire* batch from partial commits.
+    # Do not call store.add_source here: it opens and commits its own
+    # connection for each source, defeating the batch rollback contract.
     inserted = 0
-    for item in normalized.values():
-        url = item["url"]
-        # This is provenance metadata, not the content of the URL.
-        source_note = "Notion page reference: " + item["notion_page_id"]
-        store.add_source(
-            url, item["title"], publisher=item["publisher"],
-            notes=source_note,
-        )
-        if url not in existing:
-            inserted += 1
+    with store._connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        for item in normalized.values():
+            url = item["url"]
+            existed = conn.execute(
+                "SELECT id FROM sources WHERE url=?", (url,)
+            ).fetchone() is not None
+            # The source note is metadata; it does not certify the article.
+            source_note = "Notion page reference: " + item["notion_page_id"]
+            conn.execute(
+                """INSERT INTO sources
+                   (url,title,publisher,published_at,accessed_at,content_sha256,notes)
+                   VALUES(?,?,?,?,?,?,?)
+                   ON CONFLICT(url) DO UPDATE SET
+                     title=excluded.title,
+                     publisher=CASE WHEN excluded.publisher != ''
+                         THEN excluded.publisher ELSE sources.publisher END,
+                     accessed_at=excluded.accessed_at,
+                     notes=CASE WHEN sources.notes = ''
+                         THEN excluded.notes ELSE sources.notes END""",
+                (url, item["title"], item["publisher"], "", _now(), "", source_note),
+            )
+            if not existed:
+                inserted += 1
     return {
         "imported": inserted,
         "duplicates_skipped": duplicates,
