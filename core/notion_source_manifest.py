@@ -26,6 +26,7 @@ def import_source_manifest(
     if len(entries) > 500:
         raise ValueError("Source manifest exceeds 500 entries")
     normalized: dict[str, dict[str, str]] = {}
+    research_links: dict[str, tuple[str, str]] = {}
     duplicates = 0
     for entry in entries:
         if not isinstance(entry, dict):
@@ -41,6 +42,15 @@ def import_source_manifest(
         publisher = entry.get("publisher", "")
         if not isinstance(publisher, str):
             raise ValueError("Source publisher must be a string")
+        research_id = entry.get("research_id")
+        if research_id is not None:
+            if not isinstance(research_id, str) or not research_id.strip():
+                raise ValueError("research_id must be a non-empty string")
+            research_id = research_id.strip()
+            previous = research_links.get(research_id)
+            if previous is not None and previous != (url, page_id):
+                raise ValueError("Research ID cannot reference multiple URLs/pages")
+            research_links[research_id] = (url, page_id)
         candidate = {
             "url": url, "title": title, "notion_page_id": page_id,
             "publisher": publisher.strip(),
@@ -80,6 +90,25 @@ def import_source_manifest(
             )
             if not existed:
                 inserted += 1
+        # Verify identity assignments and write links inside the same
+        # transaction as source changes so any conflict rolls everything back.
+        for research_id, (url, page_id) in research_links.items():
+            source = conn.execute(
+                "SELECT id FROM sources WHERE url=?", (url,)
+            ).fetchone()
+            stored = conn.execute(
+                """SELECT l.source_id,s.url
+                   FROM notion_source_links l JOIN sources s ON s.id=l.source_id
+                   WHERE l.research_id=?""", (research_id,)
+            ).fetchone()
+            if stored is not None and stored["url"] != url:
+                raise ValueError("Research ID already assigned to another source URL")
+            if stored is None:
+                conn.execute(
+                    """INSERT INTO notion_source_links
+                       (research_id,source_id,notion_page_id) VALUES(?,?,?)""",
+                    (research_id, source["id"], page_id),
+                )
     return {
         "imported": inserted,
         "duplicates_skipped": duplicates,
