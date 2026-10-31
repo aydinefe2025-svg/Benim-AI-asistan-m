@@ -214,6 +214,39 @@ class NotionSourceManifestTests(unittest.TestCase):
             ])
         self.assertEqual(self.store.list_sources(), [])
 
+    def test_same_research_id_cannot_silently_move_to_different_notion_page(self):
+        original = [{"research_id": "D2026-001", "url": "https://example.org/source",
+                     "title": "Source", "notion_page_id": "original-page"}]
+        import_source_manifest(self.store, original)
+        before = self.store.list_source_manifest_links()
+        with self.assertRaisesRegex(ValueError, "Notion page"):
+            import_source_manifest(self.store, [
+                {"research_id": "D2026-002", "url": "https://example.org/temporary",
+                 "title": "Temporary", "notion_page_id": "another-page"},
+                {"research_id": "D2026-001", "url": "https://example.org/source",
+                 "title": "Changed title", "notion_page_id": "different-page"},
+            ])
+        self.assertEqual(self.store.list_source_manifest_links(), before)
+        self.assertEqual(len(self.store.list_sources()), 1)
+        self.assertEqual(self.store.list_sources()[0]["title"], "Source")
+
+    def test_same_source_url_can_support_two_research_records(self):
+        items = [
+            {"research_id": "D2026-001", "url": "https://example.org/shared",
+             "title": "Shared paper", "notion_page_id": "page-a"},
+            {"research_id": "D2026-002", "url": "https://example.org/shared",
+             "title": "Shared paper", "notion_page_id": "page-b"},
+        ]
+        result = import_source_manifest(self.store, items)
+        self.assertEqual(result["imported"], 1)
+        self.assertEqual(len(self.store.list_sources()), 1)
+        links = self.store.list_source_manifest_links()
+        self.assertEqual(len(links), 2)
+        self.assertEqual({x["notion_page_id"] for x in links}, {"page-a", "page-b"})
+        self.assertEqual(links[0]["source_id"], links[1]["source_id"])
+        import_source_manifest(self.store, items)
+        self.assertEqual(self.store.list_source_manifest_links(), links)
+
     def test_same_url_conflicting_titles_in_single_batch_rejected(self):
         with self.assertRaises(ValueError):
             import_source_manifest(self.store, [
