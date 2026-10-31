@@ -1,6 +1,6 @@
 """Determine which AI model providers have configured credentials.
 
-Never log or return the credential values themselves.
+Never log or return credential values through diagnostics.
 """
 
 
@@ -20,15 +20,25 @@ def available_providers(secrets):
 
 
 def configured_credentials(secrets, environ):
-    """Read credentials from Streamlit secrets or host environment, without logging values."""
+    """Read credentials from Streamlit secrets or host environment."""
     credentials = {}
     for name in ("GROQ_API_KEY", "GOOGLE_API_KEY"):
         try:
             value = secrets[name]
-        except (KeyError, FileNotFoundError):
+        except Exception:
+            # Streamlit raises StreamlitSecretNotFoundError when no secrets
+            # file/configuration exists; still allow host environment fallback.
             value = None
         if not isinstance(value, str) or not value.strip():
             value = environ.get(name)
         if isinstance(value, str) and value.strip():
             credentials[name] = value.strip()
     return credentials
+
+
+def credential_presence(credentials):
+    """Return only booleans for safe diagnostics; never return key contents."""
+    return {
+        name: bool(isinstance(credentials.get(name), str) and credentials[name].strip())
+        for name in ("GROQ_API_KEY", "GOOGLE_API_KEY")
+    }
