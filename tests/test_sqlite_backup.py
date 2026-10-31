@@ -6,7 +6,7 @@ from pathlib import Path
 
 from core.knowledge_store import KnowledgeStore
 from core.notion_source_manifest import import_source_manifest
-from core.sqlite_backup import backup_research_db, restore_research_db
+from core.sqlite_backup import backup_research_db, restore_research_db, backup_with_receipt, recovery_drill
 
 
 class SQLiteBackupTests(unittest.TestCase):
@@ -93,6 +93,52 @@ class SQLiteBackupTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             restore_research_db(backup, target, expected_sha256="bad")
         self.assertFalse(target.exists())
+
+    def test_recovery_drill_uses_separate_receipt_and_compares_restored_archive(self):
+        first, claim = self._seed()
+        backup = self.root / "backups" / "snapshot.sqlite3"
+        receipt = self.root / "receipts" / "snapshot.json"
+        result = backup_with_receipt(self.source_path, backup, receipt)
+        self.assertEqual(result["source_count"], 1)
+        self.assertTrue(backup.is_file())
+        self.assertTrue(receipt.is_file())
+        self.assertNotEqual(backup.parent, receipt.parent)
+        expected = json.loads(receipt.read_text(encoding="utf-8"))
+        self.assertEqual(expected["sha256"], result["sha256"])
+        target = self.root / "recovered" / "rehearsal.sqlite3"
+        verified = recovery_drill(backup, receipt, target)
+        self.assertTrue(verified["verified"])
+        self.assertEqual(verified["source_count"], 1)
+        self.assertEqual(verified["claim_count"], 1)
+        self.assertEqual(KnowledgeStore(target).list_source_manifest_links(),
+                         self.store.list_source_manifest_links())
+        self.assertEqual(KnowledgeStore(target).list_review_notes(claim["id"]),
+                         self.store.list_review_notes(claim["id"]))
+
+    def test_recovery_drill_rejects_tampered_valid_sqlite_before_destination(self):
+        self._seed()
+        backup = self.root / "backups" / "snapshot.sqlite3"
+        receipt = self.root / "receipts" / "snapshot.json"
+        backup_with_receipt(self.source_path, backup, receipt)
+        import sqlite3
+        with sqlite3.connect(backup) as conn:
+            conn.execute("UPDATE sources SET title='Changed after backup'")
+        self.assertEqual(sqlite3.connect(backup).execute("PRAGMA integrity_check").fetchone()[0], "ok")
+        target = self.root / "recovered" / "should-not-exist.sqlite3"
+        with self.assertRaisesRegex(ValueError, "SHA-256"):
+            recovery_drill(backup, receipt, target)
+        self.assertFalse(target.exists())
+
+    def test_backup_with_receipt_rejects_preexisting_receipt_without_creating_backup(self):
+        self._seed()
+        backup = self.root / "backups" / "snapshot.sqlite3"
+        receipt = self.root / "receipts" / "existing.json"
+        receipt.parent.mkdir()
+        receipt.write_text("unrelated", encoding="utf-8")
+        with self.assertRaises(FileExistsError):
+            backup_with_receipt(self.source_path, backup, receipt)
+        self.assertFalse(backup.exists())
+        self.assertEqual(receipt.read_text(encoding="utf-8"), "unrelated")
 
     def test_backup_never_overwrites_existing_file(self):
         self._seed()
