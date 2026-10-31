@@ -153,7 +153,21 @@ def recovery_drill(
             raise ValueError("Invalid receipt counts")
     except (OSError, UnicodeError, json.JSONDecodeError, KeyError) as exc:
         raise ValueError("Invalid receipt") from exc
-    # The original backup API refuses to overwrite any destination.
+    # Fail closed before creating the new recovery destination. Structural
+    # integrity does not check referential integrity or receipt counts.
+    src = _source_checked(backup)
+    if not isinstance(sha, str) or re.fullmatch(r"[0-9a-fA-F]{64}", sha) is None:
+        raise ValueError("Invalid receipt SHA-256")
+    if not hmac.compare_digest(_sha256_file(src), sha.lower()):
+        raise ValueError("Backup SHA-256 does not match receipt")
+    with sqlite3.connect(src.resolve().as_uri() + "?mode=ro", uri=True) as conn:
+        actual_sources = conn.execute("SELECT COUNT(*) FROM sources").fetchone()[0]
+        actual_claims = conn.execute("SELECT COUNT(*) FROM claims").fetchone()[0]
+        if conn.execute("PRAGMA foreign_key_check").fetchone() is not None:
+            raise ValueError("Backup foreign key relationships are invalid")
+    if actual_sources != sources or actual_claims != claims:
+        raise ValueError("Recovery receipt record counts did not match")
+    # Recheck the digest at restore entry as well, before opening new target.
     result = restore_research_db(backup, destination, expected_sha256=sha)
     if (result["source_count"] != sources or
             result["claim_count"] != claims):
