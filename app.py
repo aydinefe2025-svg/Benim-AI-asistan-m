@@ -142,7 +142,11 @@ def asistani_calistir(kullanici_mesaji):
             api_mesajlari = [{"role": "system", "content": sistem_talimati}]
             for msg in st.session_state.messages:
                 api_mesajlari.append({"role": msg["role"], "content": msg["content"]})
-            api_mesajlari.append({"role": "user", "content": kullanici_mesaji})
+            # Chat UI already adds the current turn before invoking this
+            # function. Append only for callers that have not done so.
+            if not (api_mesajlari[-1]["role"] == "user" and
+                    api_mesajlari[-1]["content"] == kullanici_mesaji):
+                api_mesajlari.append({"role": "user", "content": kullanici_mesaji})
 
             client = Groq(api_key=GROQ_KEY)
             completion = client.chat.completions.create(
