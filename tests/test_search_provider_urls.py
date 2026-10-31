@@ -34,6 +34,22 @@ class SearchProviderTests(unittest.TestCase):
         self.assertIn("format", parse_qs(urlsplit(url).query))
         self.assertIn("İzmir", answer)
 
+    def test_explicit_city_is_not_replaced_with_izmir(self):
+        search, requests = load_search_function()
+        requests.get.return_value = types.SimpleNamespace(
+            status_code=200, text="Sunny +20C 40% 5km/h")
+        answer = search("Ankara hava durumu")
+        url = requests.get.call_args.args[0]
+        self.assertEqual(urlsplit(url).path, "/Ankara")
+        self.assertIn("Ankara", answer)
+        self.assertNotIn("İzmir", answer)
+
+    def test_no_city_given_does_not_invent_izmir_weather(self):
+        search, requests = load_search_function()
+        answer = search("Bugün hava durumu nasıl?")
+        requests.get.assert_not_called()
+        self.assertIn("şehir", answer.lower())
+
     def test_general_lookup_uses_instant_answer_endpoint_and_encoded_query(self):
         search, requests = load_search_function()
         requests.get.return_value = types.SimpleNamespace(
