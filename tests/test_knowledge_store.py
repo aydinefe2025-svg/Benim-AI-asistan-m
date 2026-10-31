@@ -124,6 +124,52 @@ class KnowledgeStoreTests(unittest.TestCase):
         self.assertEqual(self.store.get_claim(claim_id)["status"], "supported")
         self.assertEqual(len(self.store.list_claims(status="supported")), 1)
 
+    def test_review_note_records_claim_source_hash_at_review_time(self):
+        source = self.store.add_source("https://example.org/study", "Study", content="v1")
+        claim = self.store.add_claim("Review this", [source["id"]])
+        event = self.store.add_review_note(
+            claim["id"], source["id"], reviewer_label="editor-a",
+            assessment="needs_more_evidence", rationale="Missing control sample",
+        )
+        self.assertEqual(event["source_sha256"], sha256_text("v1"))
+        self.assertEqual(event["assessment"], "needs_more_evidence")
+        self.assertEqual(event["reviewer_label"], "editor-a")
+        self.store.add_source("https://example.org/study", "Study", content="v2")
+        history = self.store.list_review_notes(claim["id"])
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["source_sha256"], sha256_text("v1"))
+        self.assertEqual(self.store.get_claim(claim["id"])["status"], "unreviewed")
+
+    def test_review_note_rejects_sources_not_linked_to_claim(self):
+        one = self.store.add_source("https://example.org/one", "One")
+        two = self.store.add_source("https://example.org/two", "Two")
+        claim = self.store.add_claim("Linked only to one", [one["id"]])
+        with self.assertRaises(ValueError):
+            self.store.add_review_note(claim["id"], two["id"],
+                reviewer_label="editor-b", assessment="disputed", rationale="No link")
+        self.assertEqual(self.store.list_review_notes(claim["id"]), [])
+
+    def test_review_note_validates_label_assessment_and_rationale(self):
+        source = self.store.add_source("https://example.org/source", "Source")
+        claim = self.store.add_claim("Claim", [source["id"]])
+        for kwargs in [
+            {"reviewer_label": "", "assessment": "disputed", "rationale": "reason"},
+            {"reviewer_label": "bob", "assessment": "approved", "rationale": "reason"},
+            {"reviewer_label": "bob", "assessment": "disputed", "rationale": ""},
+        ]:
+            with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
+                self.store.add_review_note(claim["id"], source["id"], **kwargs)
+        self.assertEqual(self.store.list_review_notes(claim["id"]), [])
+
+    def test_review_notes_do_not_authorize_supported_claim(self):
+        source = self.store.add_source("https://example.org/credible", "Credible", content="article")
+        claim = self.store.add_claim("Proposal", [source["id"]])
+        self.store.add_review_note(claim["id"], source["id"],
+            reviewer_label="untrusted-claimed-expert",
+            assessment="supports", rationale="I think this supports it")
+        with self.assertRaisesRegex(ValueError, "review"):
+            self.store.add_claim("Unverified result", [source["id"]], status="supported")
+
     def test_rejects_non_http_url_and_bad_confidence(self):
         with self.assertRaises(ValueError):
             self.store.add_source("file:///etc/passwd", "Bad")
