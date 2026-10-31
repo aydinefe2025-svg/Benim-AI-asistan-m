@@ -50,6 +50,30 @@ class AgentEvolutionTests(unittest.TestCase):
             self.evaluator.rollback(approved=False)
         self.assertEqual(self.evaluator.active.name,"stable")
 
+    def test_different_benchmarks_are_not_comparable_even_with_higher_score(self):
+        result = self.evaluator.evaluate(CandidateResult(
+            "different-easy-exam", 10, 10, ("evidence",), True, True,
+            benchmark_sha256="b" * 64))
+        self.assertEqual(result["status"], "rejected")
+        self.assertEqual(result["reason"], "benchmark_mismatch")
+        self.assertIsNone(result["proposal_id"])
+        self.assertEqual(self.evaluator.active.name, "stable")
+
+    def test_missing_benchmark_fingerprint_is_not_valid_evidence(self):
+        with self.assertRaises(ValueError):
+            CandidateResult("missing", 10, 10, ("proof",), True, True,
+                            benchmark_sha256="")
+        with self.assertRaises(ValueError):
+            CandidateResult("malformed", 10, 10, ("proof",), True, True,
+                            benchmark_sha256="not-a-sha")
+
+    def test_matching_benchmark_and_improvement_can_be_proposed(self):
+        result = self.evaluator.evaluate(CandidateResult(
+            "same-exam", 9, 10, ("evidence",), True, True,
+            benchmark_sha256="a" * 64))
+        self.assertEqual(result["status"], "proposal")
+        self.assertEqual(result["benchmark_sha256"], "a" * 64)
+
     def test_invalid_scores_cannot_become_candidates(self):
         for passed,total in ((11,10),(-1,10),(0,0),(True,10)):
             with self.subTest(passed=passed,total=total):
