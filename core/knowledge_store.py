@@ -233,6 +233,55 @@ class KnowledgeStore:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def audit_claim_evidence(self, claim_id: int) -> dict[str, Any]:
+        """Report unresolved evidence risks without changing claim statuses.
+
+        This is a local data consistency check, not independent source
+        authentication, reviewer authorization, or scientific verification.
+        """
+        with self._connect() as conn:
+            claim = conn.execute(
+                "SELECT id,status FROM claims WHERE id=?", (claim_id,)
+            ).fetchone()
+            if claim is None:
+                raise KeyError(f"Unknown claim: {claim_id}")
+            links = conn.execute(
+                """SELECT s.id,s.content_sha256,cs.relationship FROM claim_sources cs
+                   JOIN sources s ON s.id=cs.source_id
+                   WHERE cs.claim_id=? ORDER BY s.id""",
+                (claim_id,),
+            ).fetchall()
+            notes = conn.execute(
+                "SELECT source_id,source_sha256 FROM review_notes WHERE claim_id=? ORDER BY id",
+                (claim_id,),
+            ).fetchall()
+        source_hashes = {x["id"]: x["content_sha256"] for x in links}
+        flags = set()
+        if claim["status"] == "supported":
+            flags.add("legacy_supported_unverified")
+        if not links or any(not item["content_sha256"] for item in links):
+            flags.add("source_without_content_hash")
+        if any(item["relationship"] == "contradicts" for item in links):
+            flags.add("contradictory_source_link")
+        if not notes:
+            flags.add("no_review_notes")
+        else:
+            # A caller-supplied reviewer label is never verified identity.
+            flags.add("reviewer_identity_unverified")
+            if any(
+                note["source_sha256"] != source_hashes.get(note["source_id"])
+                for note in notes
+            ):
+                flags.add("review_source_digest_outdated")
+        return {
+            "claim_id": claim_id,
+            "status": claim["status"],
+            "flags": sorted(flags),
+            "source_count": len(links),
+            "review_note_count": len(notes),
+            "independently_verified": False,
+        }
+
     def list_revisions(self, source_id: int) -> list[dict[str, Any]]:
         """List recorded content fingerprints; these are not full snapshots."""
         with self._connect() as conn:
