@@ -29,7 +29,7 @@ if st.button("Simülasyonu çalıştır", type="primary"):
     st.subheader("Kaynakların adımlara göre değişimi")
     if result["history"]:
         st.line_chart(result["history"], x="tick", y=["energy_left", "materials_left"])
-        st.dataframe(result["history"], use_container_width=True)
+        st.dataframe(result["history"], width="stretch")
     else:
         st.info("Sıfır adım seçildi; işlem yapılmadı.")
     st.download_button("JSON raporunu indir", data=__import__("json").dumps(result, ensure_ascii=False, indent=2), file_name="organism_lab_report.json", mime="application/json")
