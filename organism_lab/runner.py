@@ -7,7 +7,7 @@ from .lineage import run_lineage, evaluate_improvement
 from .shared_world import run_shared_world
 
 def report(*, seed=0, steps=20, energy=40, materials=12, resources=10):
-    if not isinstance(steps, int) or not 0 <= steps <= 10000:
+    if type(steps) is not int or not 0 <= steps <= 10000:
         raise ValueError("Invalid steps")
     evolution = run_experiment(seed=seed, steps=steps, resources=resources)
     lineage = run_lineage(seed=seed, steps=steps, resources=resources)
