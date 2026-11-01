@@ -1,0 +1,25 @@
+name: Research safety checks
+on:
+  push:
+    branches: [main, 'safety/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+      - name: Compile all Python sources
+        run: python -m compileall -q .
+      - name: Run discovered unit tests
+        run: python -m unittest discover -v
