@@ -5,6 +5,7 @@ No networking, subprocesses, external actions or autonomous background work.
 from dataclasses import dataclass, field
 from .core import Colony, ROLES
 from .coordination import execute_task, grow_on_demand
+from .audit_store import append_audit
 
 @dataclass
 class Supervisor:
@@ -12,7 +13,7 @@ class Supervisor:
     max_tasks: int = 100
     max_retries: int = 1
 
-    def run(self, tasks, handlers, verifiers, *, allow_growth=False):
+    def run(self, tasks, handlers, verifiers, *, allow_growth=False, audit_path=None):
         if type(self.max_tasks) is not int or not 1 <= self.max_tasks <= 1000:
             raise ValueError("Invalid task limit")
         if type(self.max_retries) is not int or not 0 <= self.max_retries <= 3:
@@ -39,9 +40,12 @@ class Supervisor:
                 result = execute_task(self.colony, role, task, handlers[role], verifiers[role])
                 if result.status == "verified":
                     break
-            results.append({"role": role, "task": task, "status": result.status,
-                            "agent": result.agent, "evidence": result.evidence,
-                            "attempts": attempt + 1})
+            record = {"role": role, "task": task, "status": result.status,
+                      "agent": result.agent, "evidence": result.evidence,
+                      "attempts": attempt + 1}
+            if audit_path is not None:
+                append_audit(audit_path, record)
+            results.append(record)
         return {"results": results, "verified": sum(x["status"] == "verified" for x in results),
                 "failed": sum(x["status"] == "failed" for x in results),
                 "agents": len(self.colony.agents)}
