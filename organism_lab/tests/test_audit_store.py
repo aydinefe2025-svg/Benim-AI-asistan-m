@@ -25,7 +25,7 @@ class AuditStoreTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             path = Path(temp) / "audit.jsonl"
             append_audit(path, {"task": "scan", "status": "verified"})
-            path.write_bytes(path.read_bytes().rstrip(b"\\n"))
+            path.write_bytes(path.read_bytes().rstrip(b"\n"))
             with self.assertRaisesRegex(ValueError, "Incomplete"):
                 read_audit(path)
             with self.assertRaises(ValueError):
