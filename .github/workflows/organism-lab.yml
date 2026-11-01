@@ -17,5 +17,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Run offline tests
+      - name: Install Streamlit for UI interaction tests
+        run: python -m pip install 'streamlit>=1.40,<2'
+      - name: Run offline and dashboard tests
         run: python -m unittest discover -s organism_lab/tests -v
