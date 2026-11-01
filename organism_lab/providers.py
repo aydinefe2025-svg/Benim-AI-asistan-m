@@ -1,0 +1,44 @@
+"""Explicit provider selection with safe offline fallback; no implicit network calls."""
+import json
+import os
+from urllib.request import Request, urlopen
+from urllib.error import URLError, HTTPError
+
+class ProviderError(RuntimeError):
+    pass
+
+def generate(prompt, provider="offline", *, transport=None):
+    if not isinstance(prompt, str) or not prompt.strip():
+        raise ValueError("Prompt required")
+    if provider == "offline":
+        return {"provider": "offline", "status": "unavailable", "text": "", "reason": "No model called"}
+    config = {
+        "ollama": ("OLLAMA_URL", "http://localhost:11434/api/generate", "OLLAMA_MODEL", "qwen3:8b"),
+        "groq": ("GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions", "GROQ_MODEL", "openai/gpt-oss-120b"),
+    }
+    if provider not in config:
+        raise ValueError("Unsupported provider")
+    env_url, default_url, env_model, default_model = config[provider]
+    url = os.getenv(env_url, default_url)
+    model = os.getenv(env_model, default_model)
+    if provider == "groq":
+        key = os.getenv("GROQ_API_KEY")
+        if not key:
+            raise ProviderError("GROQ_API_KEY is missing")
+        payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": 512}
+        headers = {"Authorization": "Bearer " + key}
+    else:
+        payload = {"model": model, "prompt": prompt, "stream": False}
+        headers = {}
+    headers["Content-Type"] = "application/json"
+    request = Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+    sender = transport or urlopen
+    try:
+        with sender(request, timeout=12) as response:
+            body = json.loads(response.read().decode("utf-8"))
+        answer = body.get("response") if provider == "ollama" else body["choices"][0]["message"]["content"]
+        if not isinstance(answer, str) or not answer.strip():
+            raise ProviderError("Provider returned an empty response")
+        return {"provider": provider, "status": "ok", "text": answer.strip()}
+    except (HTTPError, URLError, OSError, ValueError, KeyError, IndexError, TypeError) as exc:
+        raise ProviderError("Provider request failed: " + type(exc).__name__) from exc
