@@ -15,6 +15,15 @@ class DashboardAppTests(unittest.TestCase):
         self.assertEqual(len(app.metric), 3)
         self.assertEqual(len(app.get("download_button")), 1)
 
+    def test_results_survive_rerun(self):
+        app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
+        app.button[0].click().run()
+        self.assertEqual(len(app.metric), 3)
+        app.run()
+        self.assertFalse(app.exception)
+        self.assertEqual(len(app.metric), 3)
+        self.assertEqual(len(app.get("download_button")), 1)
+
     def test_zero_steps(self):
         app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
         app.slider[0].set_value(0).run()
