@@ -109,6 +109,10 @@ class KnowledgeStore:
         if not source_ids:
             raise ValueError("At least one source is required for a stored claim")
         relationships = relationships or {}
+        if any(relationships.get(source_id, "supports") not in {"supports", "contradicts", "context"} for source_id in set(source_ids)):
+            raise ValueError("Invalid source relationship")
+        if status == "supported" and not any(relationships.get(source_id, "supports") == "supports" for source_id in set(source_ids)):
+            raise ValueError("Supported claim requires at least one supporting source")
         with self._connect() as conn:
             placeholders = ",".join("?" for _ in set(source_ids))
             existing = conn.execute(
