@@ -20,7 +20,7 @@ class DashboardAppTests(unittest.TestCase):
         app.slider[0].set_value(0).run()
         app.button[0].click().run()
         self.assertFalse(app.exception)
-        self.assertTrue(any("Sıfır adım" in item.message for item in app.info))
+        self.assertTrue(any("Sıfır adım" in item.value for item in app.info))
 
 if __name__ == "__main__":
     unittest.main()
