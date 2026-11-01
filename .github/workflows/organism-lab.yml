@@ -1,0 +1,21 @@
+name: Organism Lab tests
+on:
+  push:
+    branches:
+      - feature/organism-lab-20261101
+  pull_request:
+    paths:
+      - 'organism_lab/**'
+      - '.github/workflows/organism-lab.yml'
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline tests
+        run: python -m unittest discover -s organism_lab/tests -v
