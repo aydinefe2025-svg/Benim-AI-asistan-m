@@ -16,6 +16,9 @@ def read_audit(path):
     file = Path(path)
     if not file.exists():
         return []
+    raw = file.read_bytes()
+    if raw and not raw.endswith(b"\n"):
+        raise ValueError("Incomplete final audit record")
     records = []
     previous = "0" * 64
     for line in file.read_text(encoding="utf-8").splitlines():
