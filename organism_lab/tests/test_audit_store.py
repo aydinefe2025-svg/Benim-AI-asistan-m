@@ -21,6 +21,16 @@ class AuditStoreTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 read_audit(path)
 
+    def test_rejects_truncated_last_line(self):
+        with TemporaryDirectory() as temp:
+            path = Path(temp) / "audit.jsonl"
+            append_audit(path, {"task": "scan", "status": "verified"})
+            path.write_bytes(path.read_bytes().rstrip(b"\\n"))
+            with self.assertRaisesRegex(ValueError, "Incomplete"):
+                read_audit(path)
+            with self.assertRaises(ValueError):
+                append_audit(path, {"task": "next", "status": "verified"})
+
     def test_rejects_unverified_status(self):
         with TemporaryDirectory() as temp:
             path = Path(temp) / "audit.jsonl"
