@@ -31,6 +31,16 @@ class SupervisorTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             Supervisor().run([("research", "task")], {}, {})
 
+    def test_malformed_tasks_rejected_without_side_effects(self):
+        calls = []
+        supervisor = Supervisor()
+        for bad in (["research"], [("research",)], [("research", "ok"), ("code",)], [(1, "task")]):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                supervisor.run(bad, {"research": lambda task: calls.append(task) or "ok"},
+                               {"research": lambda task, output: "checked"})
+        self.assertEqual(calls, [])
+        self.assertEqual(supervisor.colony.audit, [])
+
     def test_queue_limit_enforced(self):
         with self.assertRaises(ValueError):
             Supervisor(max_tasks=1).run([("research", "one"), ("research", "two")], {}, {})
