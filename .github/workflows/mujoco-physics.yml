@@ -1,0 +1,36 @@
+name: MuJoCo physics validation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "research_ci/**"
+      - ".github/workflows/mujoco-physics.yml"
+jobs:
+  physics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pinned engine
+        run: python -m pip install --disable-pip-version-check mujoco==3.17.0
+      - name: Run real physics validation
+        run: python research_ci/mujoco_smoke.py
+      - name: Preserve result and digest
+        if: always()
+        shell: bash
+        run: |
+          if [ -f mujoco_result.json ]; then sha256sum mujoco_result.json > mujoco_result.sha256; fi
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mujoco-physics-evidence
+          path: |
+            mujoco_result.json
+            mujoco_result.sha256
+          if-no-files-found: warn
