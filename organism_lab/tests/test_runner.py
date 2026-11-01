@@ -18,6 +18,14 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(main(["--steps", "3", "--output", str(path)]), 0)
             data = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(data["parameters"]["steps"], 3)
+    def test_csv_export(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            csv_path = Path(tmp) / "series.csv"
+            self.assertEqual(main(["--steps", "3", "--csv", str(csv_path),
+                                   "--output", str(Path(tmp) / "report.json")]), 0)
+            rows = csv_path.read_text(encoding="utf-8").strip().splitlines()
+            self.assertEqual(len(rows), 5)
+            self.assertIn("population", rows[0])
     def test_invalid_steps(self):
         with self.assertRaises(ValueError):
             report(steps=-1)
