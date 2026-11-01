@@ -10,10 +10,10 @@ class Budget:
     energy: int
     materials: int
     def __post_init__(self):
-        if not isinstance(self.energy, int) or not isinstance(self.materials, int) or min(self.energy, self.materials) < 0:
+        if type(self.energy) is not int or type(self.materials) is not int or min(self.energy, self.materials) < 0:
             raise ValueError("Budget must contain nonnegative integer resources")
     def spend(self, *, energy=0, materials=0):
-        if any(not isinstance(x, int) or x < 0 for x in (energy, materials)):
+        if any(type(x) is not int or x < 0 for x in (energy, materials)):
             raise ValueError("Costs must be nonnegative integers")
         if energy > self.energy or materials > self.materials:
             return False
@@ -22,9 +22,9 @@ class Budget:
         return True
 
 def run_shared_world(*, steps=10, energy=40, materials=12, width=5, height=5):
-    if not isinstance(steps, int) or not 0 <= steps <= 10000:
+    if type(steps) is not int or not 0 <= steps <= 10000:
         raise ValueError("Invalid step count")
-    if width < 1 or height < 1:
+    if type(width) is not int or type(height) is not int or width < 1 or height < 1:
         raise ValueError("Invalid grid")
     budget = Budget(energy=energy, materials=materials)
     robots = 0
