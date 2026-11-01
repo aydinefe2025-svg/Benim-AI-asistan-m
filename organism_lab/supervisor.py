@@ -23,8 +23,11 @@ class Supervisor:
             raise ValueError("Task queue exceeds limit")
         if not isinstance(handlers, dict) or not isinstance(verifiers, dict):
             raise TypeError("Handlers and verifiers must be mappings")
-        for role, task in tasks:
-            if role not in ROLES or not isinstance(task, str) or not task.strip():
+        for item in tasks:
+            if not isinstance(item, (tuple, list)) or len(item) != 2:
+                raise ValueError("Tasks must be role/task pairs")
+            role, task = item
+            if not isinstance(role, str) or role not in ROLES or not isinstance(task, str) or not task.strip():
                 raise ValueError("Invalid task")
             if not callable(handlers.get(role)) or not callable(verifiers.get(role)):
                 raise ValueError("Approved handler and verifier required")
