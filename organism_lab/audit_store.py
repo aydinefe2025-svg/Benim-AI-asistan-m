@@ -76,4 +76,3 @@ def append_audit(path, result):
             stream.flush()
             os.fsync(stream.fileno())
         return record
-    
