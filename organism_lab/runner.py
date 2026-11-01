@@ -28,10 +28,14 @@ def main(argv=None):
     parser.add_argument("--materials", type=int, default=12)
     parser.add_argument("--resources", type=int, default=10)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--csv", type=Path, help="Export evolution time series as CSV")
     args = parser.parse_args(argv)
     result = report(seed=args.seed, steps=args.steps, energy=args.energy,
                     materials=args.materials, resources=args.resources)
     payload = json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True)
+    if args.csv:
+        args.csv.parent.mkdir(parents=True, exist_ok=True)
+        args.csv.write_text(to_csv(result["evolution"]), encoding="utf-8")
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(payload + "\n", encoding="utf-8")
