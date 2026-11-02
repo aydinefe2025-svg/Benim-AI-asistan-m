@@ -11,8 +11,9 @@ class FakeResponse:
         return self
     def __exit__(self, *args):
         return False
-    def read(self):
-        return json.dumps(self.payload).encode()
+    def read(self, size=-1):
+        data = json.dumps(self.payload).encode()
+        return data if size < 0 else data[:size]
 
 class ProviderTests(unittest.TestCase):
     def test_offline_never_calls_network(self):
@@ -34,6 +35,29 @@ class ProviderTests(unittest.TestCase):
         with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
             result = generate("hello", "groq", transport=lambda req, timeout: FakeResponse({"choices": [{"message": {"content": "OK"}}]}))
         self.assertEqual(result["text"], "OK")
+    def test_groq_rejects_untrusted_endpoint_before_sending_key(self):
+        sender_called = False
+        def sender(*args, **kwargs):
+            nonlocal sender_called
+            sender_called = True
+            raise AssertionError("untrusted endpoint must not be contacted")
+        with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder",
+                                     "GROQ_API_URL": "https://attacker.example/collect"}):
+            with self.assertRaisesRegex(ProviderError, "trusted HTTPS"):
+                generate("hello", "groq", transport=sender)
+        self.assertFalse(sender_called)
+    def test_groq_rejects_malformed_endpoint_without_leaking_key(self):
+        for endpoint in ("", "https://api.groq.com:99999/openai/v1/chat/completions"):
+            with self.subTest(endpoint=endpoint), patch.dict(
+                    os.environ, {"GROQ_API_KEY": "test-placeholder", "GROQ_API_URL": endpoint}):
+                with self.assertRaisesRegex(ProviderError, "trusted HTTPS"):
+                    generate("hello", "groq", transport=lambda *args, **kwargs: self.fail("sent"))
+    def test_provider_response_size_is_bounded(self):
+        class LargeResponse(FakeResponse):
+            def read(self, size=-1):
+                return b"x" * (size + 1)
+        with self.assertRaisesRegex(ProviderError, "size limit"):
+            generate("hello", "ollama", transport=lambda req, timeout: LargeResponse({}))
     def test_empty_model_response(self):
         with self.assertRaises(ProviderError):
             generate("hello", "ollama", transport=lambda req, timeout: FakeResponse({"response": ""}))
