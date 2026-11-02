@@ -16,6 +16,7 @@ from core.provider_config import (
 )
 from core.groq_diagnostics import check_groq_connection
 from core.user_memory import export_library, import_library, memory_context, new_memory
+from core.task_panel import render_task_panel
 
 _credentials = configured_credentials(st.secrets, os.environ)
 _credential_presence = credential_presence(_credentials)
@@ -195,6 +196,9 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
                     if saved["id"] != item["id"]
                 ]
                 st.rerun()
+
+# User-controlled research task ledger; no automatic execution.
+render_task_panel(st)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
