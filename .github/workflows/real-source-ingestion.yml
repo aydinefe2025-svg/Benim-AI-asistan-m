@@ -1,0 +1,55 @@
+name: Real-source ingestion smoke test
+
+on:
+  pull_request:
+    branches: [feature/buyuk-sistem-core]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ingest-real-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Ingest six archived source references into isolated SQLite
+        run: |
+          python research_ingest.py data/seed_research_library.json --db "$RUNNER_TEMP/research-ingest.sqlite3"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from core.knowledge_store import KnowledgeStore
+          db = Path(os.environ["RUNNER_TEMP"]) / "research-ingest.sqlite3"
+          store = KnowledgeStore(db)
+          sources = store.list_sources()
+          claims = store.list_claims()
+          assert len(sources) == 6, len(sources)
+          assert len(claims) == 6, len(claims)
+          assert all(c["status"] == "unreviewed" for c in claims)
+          assert all(store.get_claim(c["id"])["sources"][0]["relationship"] == "context" for c in claims)
+          assert all(s["url"].startswith("https://") for s in sources)
+          print(json.dumps({"sources":len(sources),"unreviewed_claims":len(claims),"verified_scientific_claims":0}))
+          PY
+      - name: Verify second ingestion is idempotent
+        run: |
+          python research_ingest.py data/seed_research_library.json --db "$RUNNER_TEMP/research-ingest.sqlite3" | tee "$RUNNER_TEMP/second-ingest.json"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report=json.loads((Path(os.environ["RUNNER_TEMP"])/"second-ingest.json").read_text())
+          assert report["records"] == 6
+          assert report["new_unreviewed_claims"] == 0
+          PY
+      - name: Summarize evidence boundaries
+        if: always()
+        run: |
+          echo "### Real source ingestion" >> "$GITHUB_STEP_SUMMARY"
+          echo "Source references: 6; scientific claims independently verified: 0." >> "$GITHUB_STEP_SUMMARY"
+          echo "SQLite is isolated to this runner; no production or Notion database was modified." >> "$GITHUB_STEP_SUMMARY"
