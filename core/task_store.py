@@ -118,11 +118,19 @@ class TaskStore:
             raise ValueError(f"Invalid status: {status}")
         if status == "verified" and not evidence:
             raise ValueError("A task cannot be verified without evidence")
-        task = self.get(task_id)
         now = _now()
-        new_evidence = task["evidence"] + (evidence or [])
-        new_blockers = blockers if blockers is not None else task["blockers"]
+        # A single write transaction protects status, evidence and history
+        # against concurrent workers reading stale task state.
         with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+            if row is None:
+                raise KeyError(f"Unknown task: {task_id}")
+            task = dict(row)
+            previous_evidence = json.loads(task["evidence"])
+            previous_blockers = json.loads(task["blockers"])
+            new_evidence = previous_evidence + (evidence or [])
+            new_blockers = blockers if blockers is not None else previous_blockers
             conn.execute(
                 "UPDATE tasks SET status=?,evidence=?,blockers=?,updated_at=? WHERE id=?",
                 (status, json.dumps(new_evidence, ensure_ascii=False),
