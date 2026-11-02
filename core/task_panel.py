@@ -1,4 +1,4 @@
-"""Human-controlled task ledger UI; records work but never runs a model."""
+"""Human-triggered task ledger and bounded research draft UI."""
 from __future__ import annotations
 
 import os
@@ -8,14 +8,16 @@ from pathlib import Path
 from core.task_store import ALLOWED_TRANSITIONS, TaskStore
 from core.research_import import import_research_archive
 from core.research_export import export_research_archive
+from core.research_drafts import save_draft, load_draft
+from core.agent_executor import run_research_task
 
 
-def render_task_panel(st) -> None:
+def render_task_panel(st, answer=None) -> None:
     with st.sidebar.expander("📋 Araştırma görevleri", expanded=False):
         st.caption(
             "Görevler bu sunucudaki SQLite dosyasına yerel/geçici olarak kaydedilir. "
             "Render ücretsiz diskinde yeniden dağıtım veya sunucu değişiminde kaybolabilir. "
-            "Bu panel görevleri otomatik çalıştırmaz."
+            "Araştırma yalnızca kullanıcı düğmeye bastığında çalışır; sonuç doğrulanmamış taslaktır."
         )
         db_path = os.environ.get("AGENT_TASK_DB_PATH", "data/agent_tasks.sqlite3")
         try:
@@ -69,6 +71,20 @@ def render_task_panel(st) -> None:
                 st.text("Engel: " + "; ".join(task["blockers"]))
             if task["evidence"]:
                 st.text("Kanıt notları: " + "; ".join(task["evidence"]))
+
+            draft = load_draft(store.db_path, task["id"])
+            if draft:
+                st.text_area("Doğrulanmamış araştırma taslağı", value=draft,
+                             height=160, disabled=True, key="draft_" + task["id"])
+            if answer is not None and task["status"] in {"planned", "blocked"}:
+                if st.button("Araştırmayı çalıştır", key="run_" + task["id"]):
+                    result = run_research_task(store, task["id"], answer)
+                    if result["status"] == "done":
+                        save_draft(store.db_path, task["id"], result["draft"])
+                        st.success("Taslak kaydedildi; kaynak doğrulaması gerekiyor.")
+                    else:
+                        st.warning("Araştırma sağlayıcısı başarısız oldu; görev engellendi.")
+                    st.rerun()
 
             next_statuses = sorted(ALLOWED_TRANSITIONS[task["status"]])
             if not next_statuses:
