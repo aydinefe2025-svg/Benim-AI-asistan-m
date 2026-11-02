@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -104,7 +105,7 @@ class KnowledgeStore:
             raise ValueError("Claim cannot be empty")
         if status not in {"unreviewed", "supported", "contested", "rejected"}:
             raise ValueError(f"Invalid claim status: {status}")
-        if not 0 <= confidence <= 1:
+        if not isinstance(confidence, (int, float)) or not math.isfinite(confidence) or not 0 <= confidence <= 1:
             raise ValueError("Confidence must be between 0 and 1")
         if not source_ids:
             raise ValueError("At least one source is required for a stored claim")

@@ -77,6 +77,17 @@ class KnowledgeStoreTests(unittest.TestCase):
             )
         self.assertEqual(self.store.list_claims(), [])
 
+    def test_rejects_nonfinite_confidence(self):
+        source = self.store.add_source("https://example.org/numbers", "Numbers")
+        for confidence in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(confidence=confidence):
+                with self.assertRaises(ValueError):
+                    self.store.add_claim(
+                        "Unreliable confidence", [source["id"]],
+                        confidence=confidence,
+                    )
+        self.assertEqual(self.store.list_claims(), [])
+
     def test_rejects_non_http_url_and_bad_confidence(self):
         with self.assertRaises(ValueError):
             self.store.add_source("file:///etc/passwd", "Bad")
