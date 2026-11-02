@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 from organism_lab.shared_world import run_shared_world
-from organism_lab.reproduction_study import run_study, save_study, summarize_with_local_model
+from organism_lab.reproduction_study import run_study, save_study
 
 st.set_page_config(page_title="Organizma Laboratuvarı", layout="wide")
 st.title("Organizma Laboratuvarı")
@@ -42,30 +42,24 @@ if "organism_result" in st.session_state:
 st.divider()
 st.header("Genom çoğaltma araştırması")
 st.caption("30 eşlenmiş tohum × 100 adım × 5 kaynak düzeyi. COPY_REST ve DIVIDE komutlarını yürüten genom, aynı genomun bölünmesi kapalı kontrolüyle karşılaştırılır; yavru genomlarda %2 komut mutasyonu uygulanır. Ölçümler yalnızca bu dijital simülasyona aittir.")
-if st.button("Araştırma kampanyasını çalıştır", key="run_reproduction_study", type="primary"):
-    with st.spinner("Sanal genomları çalıştıran eşlenmiş deneyler yürütülüyor; sonuçlar ve yerel model kontrolü kaydediliyor…"):
+if st.button("Araştırma kampanyasını çalıştır", key="run_genome_study_v2", type="primary"):
+    with st.spinner("Sanal genomları çalıştıran eşlenmiş deneyler yürütülüyor ve kaydediliyor…"):
         campaign = run_study(seeds=tuple(range(30)), steps=100,
                              resource_levels=(0, 2, 5, 10, 20))
-        commentary = summarize_with_local_model(campaign)
+        commentary = {"status": "not_requested", "text": ""}
         saved = save_study(campaign, Path.cwd() / "organism_lab_output",
                            model_commentary=commentary)
-    st.session_state["reproduction_campaign"] = campaign
-    st.session_state["reproduction_commentary"] = commentary
-    st.session_state["reproduction_saved"] = saved
+    st.session_state["genome_campaign_v2"] = campaign
+    st.session_state["genome_commentary_v2"] = commentary
+    st.session_state["genome_saved_v2"] = saved
 
-if "reproduction_campaign" in st.session_state:
-    campaign = st.session_state["reproduction_campaign"]
+if "genome_campaign_v2" in st.session_state:
+    campaign = st.session_state["genome_campaign_v2"]
     st.dataframe(campaign["results"], width="stretch")
-    commentary = st.session_state["reproduction_commentary"]
-    if commentary["status"] == "metric_consistent":
-        st.info("Yerel Qwen'in yapılandırılmış ölçüm kontrolü hesaplanan değerlerle eşleşti. Sonuç tablosu doğrudan simülasyon hesaplamalarından gelir.")
-    elif commentary["status"] == "rejected_inconsistent":
-        st.warning("Yerel modelin kontrolü hesaplanan ölçümlerle eşleşmedi ve kullanılmadı. Deney tablosu simülasyondan hesaplandı ve kaydedildi; sonuçları model yorumu değil, tablodaki ölçümler temsil eder.")
-    else:
-        st.info("Yerel model yorumu alınamadı; hesaplanan deney sonuçları yine de kaydedildi.")
-    saved = st.session_state["reproduction_saved"]
+    st.info("Deney ölçümleri doğrudan simülasyondan hesaplandı. Bu kampanyada yerel model kontrolü kullanılmadı.")
+    saved = st.session_state["genome_saved_v2"]
     st.success(f"Kayıt tamamlandı · çalışma {saved['study_id']} · JSON, CSV ve SQLite")
     st.download_button("Deney verisini JSON indir",
-                       data=json.dumps({**campaign, "model_commentary": commentary}, ensure_ascii=False, indent=2),
+                       data=json.dumps({**campaign, "model_commentary": st.session_state["genome_commentary_v2"]}, ensure_ascii=False, indent=2),
                        file_name="reproduction-study.json", mime="application/json",
                        key="download_reproduction_json")

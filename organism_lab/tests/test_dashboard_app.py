@@ -33,29 +33,18 @@ class DashboardAppTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertTrue(any("Sıfır adım" in item.value for item in app.info))
 
-    def test_research_campaign_persists_without_calling_a_model_in_ui_test(self):
+    def test_research_campaign_does_not_call_a_model_and_persists(self):
         with tempfile.TemporaryDirectory() as tmp, \
                 patch("pathlib.Path.cwd", return_value=Path(tmp)), \
                 patch("organism_lab.reproduction_study.summarize_with_local_model",
-                      return_value={"status": "metric_consistent", "text": "test"}):
+                      side_effect=AssertionError("UI campaign must not call a model")):
             app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
             self.assertEqual(len(app.button), 2)
             app.button[1].click().run()
             self.assertFalse(app.exception)
             self.assertTrue(any("Kayıt tamamlandı" in item.value for item in app.success))
+            self.assertTrue(any("model kontrolü kullanılmadı" in item.value for item in app.info))
             self.assertTrue((Path(tmp) / "organism_lab_output" / "research_studies.sqlite3").exists())
-
-    def test_inconsistent_model_review_is_a_warning_not_a_failed_study(self):
-        rejected = {"status": "rejected_inconsistent", "text": "ignored"}
-        with tempfile.TemporaryDirectory() as tmp, \
-                patch("pathlib.Path.cwd", return_value=Path(tmp)), \
-                patch("organism_lab.reproduction_study.summarize_with_local_model", return_value=rejected):
-            app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
-            app.button[1].click().run()
-            self.assertFalse(app.exception)
-            self.assertTrue(any("kullanılmadı" in item.value for item in app.warning))
-            self.assertTrue(any("Kayıt tamamlandı" in item.value for item in app.success))
-            self.assertEqual(len(app.error), 0)
 
 if __name__ == "__main__":
     unittest.main()
