@@ -15,6 +15,7 @@ class FakeStreamlit:
         self.selections = selections or {}
         self.sidebar = self
         self.messages = []
+        self.select_options = {}
 
     def expander(self, *args, **kwargs):
         return nullcontext()
@@ -29,6 +30,7 @@ class FakeStreamlit:
         return self.inputs.get(key or label, "")
 
     def selectbox(self, label, options, key=None, **kwargs):
+        self.select_options[key] = list(options)
         return self.selections.get(key, options[0])
 
     def form_submit_button(self, label, **kwargs):
@@ -75,6 +77,7 @@ class TaskPanelTests(unittest.TestCase):
             tasks = TaskStore(path).list()
             self.assertEqual(len(tasks), 1)
             self.assertEqual(tasks[0]["status"], "planned")
+            self.assertNotIn("verified", st.select_options["task_status_" + tasks[0]["id"]])
             self.assertIn("yalnızca kullanıcı düğmeye bastığında çalışır", " ".join(st.messages))
 
     def test_transition_ui_records_human_note_and_evidence_without_model_call(self):
