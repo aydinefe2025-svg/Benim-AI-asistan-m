@@ -23,7 +23,7 @@ jobs:
       - name: Create bounded research report
         run: python -m scripts.daily_research
       - name: Validate generated archive
-        run: python -m scripts.validate_research_archive
+        run: python -m scripts.validate_research_archive "research_reports/$(date -u +%F).json"
       - name: Save report to research branch
         run: |
           git config user.name "github-actions[bot]"
