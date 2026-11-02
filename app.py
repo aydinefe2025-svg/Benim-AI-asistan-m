@@ -15,6 +15,7 @@ from core.provider_config import (
     credential_presence,
 )
 from core.groq_diagnostics import check_groq_connection
+from core.public_research import research_sources
 from core.user_memory import export_library, import_library, memory_context, new_memory
 from core.task_panel import render_task_panel
 
@@ -76,16 +77,19 @@ def internette_ara(sorgu: str) -> str:
                     return f"HAVA SERVİSİ BİLGİSİ -> Şehir: {sehir_adi} | Durum: {durum} | Sıcaklık: {sicaklik} | Nem: {nem} | Rüzgar: {ruzgar}."
             return "Hava servisi şu anda güvenilir bilgi sunamıyor; güncel hava durumu doğrulanamadı."
                     
-        # Diğer genel internet aramaları için standart API bağlantısı
+        # Instant Answer API is not a full search engine. Return explicit source metadata.
         url = "https://api.duckduckgo.com/?" + urlencode({"q": sorgu, "format": "json", "no_html": 1})
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=6)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("AbstractText"):
-                return "DuckDuckGo anlık yanıt: " + str(data["AbstractText"])
-                
-        return "DuckDuckGo anlık yanıtında sonuç bulunamadı; bu tam web araması değildir."
+        response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=6)
+        if response.status_code >= 400:
+            return "DuckDuckGo servisi hata döndürdü; güncel bilgi doğrulanamadı."
+        data = response.json()
+        abstract = data.get("AbstractText")
+        source_url = data.get("AbstractURL")
+        if isinstance(abstract, str) and abstract.strip():
+            if isinstance(source_url, str) and source_url.startswith(("https://", "http://")):
+                return "DuckDuckGo anlık yanıt (kaynak: " + source_url + "): " + abstract[:2500]
+            return "DuckDuckGo anlık yanıt (kaynak URL'si verilmedi): " + abstract[:2500]
+        return "DuckDuckGo anlık yanıtında kaynaklı sonuç bulunamadı; tam web araması yapılamadı."
     except Exception:
         return "İnternet veri kaynağına erişilemedi; güncel bilgi doğrulanamadı."
 
@@ -198,6 +202,16 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
                 st.rerun()
 
 # User-controlled research task ledger; no automatic execution.
+def _research_leads(goal: str) -> str:
+    try:
+        leads = research_sources(goal)
+    except Exception:
+        return "Source lookup failed; independent verification pending."
+    if not leads:
+        return "No sources retrieved; independent verification pending."
+    return "; ".join(item["title"] + ": " + item["url"] for item in leads)
+
+
 def _research_answer(goal: str) -> str:
     if not GROQ_KEY:
         raise RuntimeError("Groq key unavailable")
@@ -207,7 +221,7 @@ def _research_answer(goal: str) -> str:
         model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": "You are a research drafting assistant. Clearly distinguish uncertain claims. Do not invent citations, claim web browsing, or claim independent verification. Answer in Turkish."},
-            {"role": "user", "content": goal[:1200]},
+            {"role": "user", "content": goal[:1200] + " | Sources: " + _research_leads(goal)},
         ],
         max_tokens=1200,
         temperature=0.2,
@@ -219,13 +233,41 @@ render_task_panel(st, answer=_research_answer if GROQ_KEY else None)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
-    arama_sonucu = internette_ara(kullanici_mesaji)
+    # Avoid unrequested external lookups and leaking casual chat to third parties.
+    arama_istegi = any(k in kullanici_mesaji.casefold() for k in (
+        "araştır", "internette", "internetten", "webde", "web'de",
+        "güncel", "kaynak", "haber", "hava", "sıcaklık", "yağış",
+    ))
+    arama_sonucu = internette_ara(kullanici_mesaji) if arama_istegi else (
+        "Bu mesaj için harici kaynak sorgulanmadı; güncel veri doğrulanmadı."
+    )
     
+    # Public source lookup only on explicit research requests; source URLs are
+    # evidence pointers, not proof that model claims were independently verified.
+    if arama_istegi:
+        try:
+            public_sources = research_sources(kullanici_mesaji)
+            if public_sources:
+                arama_sonucu += "\nAçık ansiklopedi kaynakları (bağımsız doğrulanmadı):\n" + "\n".join(
+                    item["title"] + ": " + item["url"] for item in public_sources
+                )
+        except (OSError, ValueError, KeyError, TypeError):
+            arama_sonucu += "\nAçık kaynak araması başarısız; sonuç doğrulanamadı."
     saved_context = memory_context(st.session_state.saved_memories, kullanici_mesaji)
     sistem_talimati = f"""Sen sadece Türkçe konuşan, samimi ve harika bir dijital asistansın.
     İnternetten senin için gelen veri kutusu şudur: {arama_sonucu}
     {saved_context}
     
+    🧰 GERÇEK YETENEKLER VE SINIRLAR:
+    - Bu uygulama, yapılandırılmış Groq veya Google modeliyle yanıt üretir.
+    - internette_ara() DuckDuckGo anlık yanıtını ve şehir belirtilirse wttr.in hava servisini sorgular. Ayrıca açık ansiklopedi arama bağlantıları toplanabilir; bunlar bağımsız doğrulama değildir. Tam web tarayıcısı değildir.
+    - Araştırma/görev paneli kullanıcı denetimli taslak ve kayıt işlevi sunar; görevleri arka planda kendiliğinden yürütmez.
+    - Hafıza notları oturumda tutulur; kalıcılık için kullanıcı JSON dışa aktarma/içe aktarma yapabilir.
+    - Kod geliştirme mümkündür ancak bu sohbet arayüzünde doğrudan GitHub, Render, Notion, dosya sistemi veya kod çalıştırma aracı bağlı değildir.
+    - Kullanıcı senden geliştirme, araştırma, hata giderme veya ajan koordinasyonu istediğinde kategorik olarak "imkansız" deme. Mevcut işlevleri dürüstçe anlat, uygulanabilir teknik çözüm ve kod taslağı sun, eksik bağlantıyı açıkça belirt.
+    - Gerçekte çağrılmayan araçları çağırmış, kaydedilmemiş dosyaları kaydetmiş, doğrulanmamış kaynakları doğrulamış gibi gösterme.
+    - Yalnızca uygulamaya gerçekten verilen güncel veri varsa bunu güncel olarak sun; veri yoksa güncelliği doğrulayamadığını söyle.
+
     🧠 KİMLİK BİLGİSİ:
     Bu, Python ve Streamlit ile geliştirilen bir asistan arayüzüdür. Yanıtlar seçilen harici Groq veya Google modeliyle üretilir. Kullanıcı sorarsa sağlayıcıyı doğru tanıt; yapımcı veya model kökeni hakkında doğrulanmamış iddialarda bulunma.
     
