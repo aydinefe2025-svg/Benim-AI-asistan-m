@@ -14,6 +14,7 @@ from core.provider_config import (
     configured_credentials,
     credential_presence,
 )
+from core.groq_diagnostics import check_groq_connection
 
 _credentials = configured_credentials(st.secrets, os.environ)
 _credential_presence = credential_presence(_credentials)
@@ -102,6 +103,16 @@ else:
     from google.genai import types
     aktif_llm_adi = "gemini-3.6-flash" 
     st.sidebar.success("Aktif Beyin: Google Gemini 🌟")
+
+# Explicit, read-only provider check. This lists models and never generates text.
+if "Groq" in secilen_model and GROQ_KEY and st.sidebar.button("Groq bağlantısını doğrula"):
+    check = check_groq_connection(GROQ_KEY, aktif_llm_adi)
+    if check["reachable"] and check["model_available"]:
+        st.sidebar.success("Groq bağlantısı ve seçili modele erişim doğrulandı; metin üretilmedi.")
+    elif check["reachable"]:
+        st.sidebar.warning("Groq API anahtarı kabul edildi, ancak seçili model listede görünmüyor.")
+    else:
+        st.sidebar.error("Groq bağlantısı doğrulanamadı. Ayrıntılar güvenlik için gizlendi.")
 
 # Web Sayfası Başlığı ve Sade Tasarım
 st.title("🌐 Standart ve Kararlı AI Asistanım")
