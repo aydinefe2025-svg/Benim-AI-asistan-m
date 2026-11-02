@@ -6,7 +6,17 @@ from urllib.error import URLError, HTTPError
 from urllib.parse import urlsplit
 
 MAX_RESPONSE_BYTES = 1_000_000
-GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
+
+def _trusted_groq_endpoint(url):
+    try:
+        parsed_url = urlsplit(url)
+        port = parsed_url.port
+    except (TypeError, ValueError):
+        return False
+    return (parsed_url.scheme == "https" and parsed_url.hostname == "api.groq.com"
+            and parsed_url.path == "/openai/v1/chat/completions"
+            and not parsed_url.username and not parsed_url.password
+            and port in (None, 443) and not parsed_url.query and not parsed_url.fragment)
 
 class ProviderError(RuntimeError):
     pass
@@ -26,12 +36,7 @@ def generate(prompt, provider="offline", *, transport=None):
     url = os.getenv(env_url, default_url)
     model = os.getenv(env_model, default_model)
     if provider == "groq":
-        parsed_url = urlsplit(url)
-        if (parsed_url.scheme != "https" or parsed_url.hostname != "api.groq.com"
-                or parsed_url.path != "/openai/v1/chat/completions"
-                or parsed_url.username or parsed_url.password
-                or parsed_url.port not in (None, 443)
-                or parsed_url.query or parsed_url.fragment):
+        if not _trusted_groq_endpoint(url):
             raise ProviderError("Groq endpoint must be the trusted HTTPS API endpoint")
         key = os.getenv("GROQ_API_KEY")
         if not key:
