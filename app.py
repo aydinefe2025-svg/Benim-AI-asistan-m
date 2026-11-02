@@ -15,6 +15,7 @@ from core.provider_config import (
     credential_presence,
 )
 from core.groq_diagnostics import check_groq_connection
+from core.user_memory import export_library, import_library, memory_context, new_memory
 
 _credentials = configured_credentials(st.secrets, os.environ)
 _credential_presence = credential_presence(_credentials)
@@ -134,16 +135,75 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 💬 SOHBET GEÇMİŞİ HAFIZASI (Session State)
+# 💬 SOHBET GEÇMİŞİ VE KULLANICI DENETİMLİ HAFIZA
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "saved_memories" not in st.session_state:
+    st.session_state.saved_memories = []
+
+with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
+    st.caption(
+        "Yalnızca açıkça eklediğiniz notlar sonraki yanıtlara bağlam olur. "
+        "Bu, modelin eğitildiği anlamına gelmez. Notlar oturumda tutulur; "
+        "kalıcı saklamak için JSON olarak indirin ve sonraki oturumda içe aktarın. "
+        "Gizli anahtar veya hassas kişisel bilgi kaydetmeyin."
+    )
+    memory_upload = st.file_uploader(
+        "Kitaplık dosyasını seçin", type=["json"], key="memory_library_upload"
+    )
+    if st.button("Kitaplığı içe aktar", key="import_memory_library"):
+        if memory_upload is None:
+            st.warning("Önce JSON kitaplık dosyasını seçin.")
+        else:
+            try:
+                st.session_state.saved_memories = import_library(memory_upload.getvalue())
+                st.success(f"{len(st.session_state.saved_memories)} not içe aktarıldı.")
+            except (ValueError, UnicodeError):
+                st.error("Kitaplık dosyası geçersiz veya desteklenmiyor; içerik okunmadı.")
+
+    st.download_button(
+        "Hafıza kitaplığını indir",
+        data=export_library(st.session_state.saved_memories),
+        file_name="asistan-hafiza-kitapligi.json",
+        mime="application/json",
+        key="download_memory_library",
+    )
+    memory_text = st.text_area(
+        "Açıkça saklamak istediğiniz not", max_chars=2000, key="memory_text_input"
+    )
+    memory_tags = st.text_input("Etiketler (virgülle ayırın)", key="memory_tags_input")
+    if st.button("Notu hafızaya ekle", key="add_memory"):
+        try:
+            item = new_memory(
+                memory_text, [tag.strip() for tag in memory_tags.split(",") if tag.strip()]
+            )
+            if len(st.session_state.saved_memories) >= 200:
+                st.warning("Kitaplık en fazla 200 not tutabilir.")
+            else:
+                st.session_state.saved_memories.append(item)
+                st.success("Not bu oturumun kitaplığına eklendi.")
+        except ValueError:
+            st.warning("Kaydetmek için 1–2000 karakter arasında bir not yazın.")
+
+    if st.session_state.saved_memories:
+        st.caption(f"Bu oturumda {len(st.session_state.saved_memories)} kayıtlı not var.")
+        for index, item in enumerate(st.session_state.saved_memories):
+            st.markdown(f"**{index + 1}.** {item['text']}")
+            if st.button("Sil", key=f"delete_memory_{item['id']}"):
+                st.session_state.saved_memories = [
+                    saved for saved in st.session_state.saved_memories
+                    if saved["id"] != item["id"]
+                ]
+                st.rerun()
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
     arama_sonucu = internette_ara(kullanici_mesaji)
     
-    sistem_talimati = f"""Sen sadece Türkçe konuşan, samimi ve harika bir dijital asistansın. 
+    saved_context = memory_context(st.session_state.saved_memories, kullanici_mesaji)
+    sistem_talimati = f"""Sen sadece Türkçe konuşan, samimi ve harika bir dijital asistansın.
     İnternetten senin için gelen veri kutusu şudur: {arama_sonucu}
+    {saved_context}
     
     🧠 KİMLİK BİLGİSİ:
     Bu, Python ve Streamlit ile geliştirilen bir asistan arayüzüdür. Yanıtlar seçilen harici Groq veya Google modeliyle üretilir. Kullanıcı sorarsa sağlayıcıyı doğru tanıt; yapımcı veya model kökeni hakkında doğrulanmamış iddialarda bulunma.

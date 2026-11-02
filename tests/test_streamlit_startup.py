@@ -1,5 +1,6 @@
 """Verify that the Streamlit UI reports missing secrets without crashing."""
 import runpy
+from contextlib import nullcontext
 import sys
 import types
 import unittest
@@ -49,6 +50,13 @@ class MissingSecretsTests(unittest.TestCase):
         streamlit.caption = lambda *a, **kw: None
         streamlit.markdown = lambda *a, **kw: None
         streamlit.chat_input = lambda *a, **kw: None
+        streamlit.file_uploader = lambda *a, **kw: None
+        streamlit.download_button = lambda *a, **kw: None
+        streamlit.caption = lambda *a, **kw: None
+        streamlit.text_area = lambda *a, **kw: ""
+        streamlit.text_input = lambda *a, **kw: ""
+        streamlit.button = lambda *a, **kw: False
+        streamlit.rerun = lambda *a, **kw: None
         class FakeSessionState(dict):
             def __getattr__(self, name):
                 return self[name]
@@ -56,6 +64,8 @@ class MissingSecretsTests(unittest.TestCase):
                 self[name] = value
         streamlit.session_state = FakeSessionState(messages=[])
         streamlit.sidebar = types.SimpleNamespace(
+            expander=lambda *a, **kw: nullcontext(),
+            caption=lambda *a, **kw: None,
             title=lambda *a: None,
             selectbox=lambda label, options: options[0],
             success=lambda *a: None,
