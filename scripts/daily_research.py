@@ -17,13 +17,18 @@ def run(fetch=None, output_dir="research_reports"):
     report = {"generated_at": now.isoformat(), "status": "source_leads_only",
               "verified": False, "topics": {}}
     for key, query in TOPICS.items():
-        try:
-            links = research_sources(query, limit=3, fetch=fetch)
-            report["topics"][key] = {"query": query, "sources": links,
-                                     "status": "found" if links else "empty"}
-        except Exception as exc:
-            report["topics"][key] = {"query": query, "sources": [],
-                                     "status": "error", "error_type": type(exc).__name__}
+        for attempt in range(1, 4):
+            try:
+                links = research_sources(query, limit=3, fetch=fetch)
+                if not links:
+                    raise ValueError("No source leads returned")
+                report["topics"][key] = {"query": query, "sources": links,
+                                         "status": "found", "attempts": attempt}
+                break
+            except Exception as exc:
+                report["topics"][key] = {"query": query, "sources": [],
+                                         "status": "error", "error_type": type(exc).__name__,
+                                         "attempts": attempt}
     path = Path(output_dir) / (now.strftime("%Y-%m-%d") + ".json")
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_suffix(".tmp")
