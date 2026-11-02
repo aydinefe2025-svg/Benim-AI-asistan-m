@@ -60,7 +60,7 @@ if "reproduction_campaign" in st.session_state:
     if commentary["status"] == "metric_consistent":
         st.info("Yerel Qwen'in yapılandırılmış ölçüm kontrolü hesaplanan değerlerle eşleşti. Sonuç tablosu doğrudan simülasyon hesaplamalarından gelir.")
     elif commentary["status"] == "rejected_inconsistent":
-        st.error("Yerel modelin ölçüm kontrolü hesaplamalarla çelişti ve gösterilmeden reddedildi. Deney ölçümleri kaydedildi.")
+        st.warning("Yerel modelin kontrolü hesaplanan ölçümlerle eşleşmedi ve kullanılmadı. Deney tablosu simülasyondan hesaplandı ve kaydedildi; sonuçları model yorumu değil, tablodaki ölçümler temsil eder.")
     else:
         st.info("Yerel model yorumu alınamadı; hesaplanan deney sonuçları yine de kaydedildi.")
     saved = st.session_state["reproduction_saved"]
