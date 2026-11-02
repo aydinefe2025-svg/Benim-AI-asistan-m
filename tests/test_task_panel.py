@@ -34,6 +34,12 @@ class FakeStreamlit:
     def form_submit_button(self, label, **kwargs):
         return self.submits.pop(0) if self.submits else False
 
+    def file_uploader(self, *args, **kwargs):
+        return None
+
+    def button(self, *args, **kwargs):
+        return False
+
     def caption(self, value):
         self.messages.append(str(value))
 
