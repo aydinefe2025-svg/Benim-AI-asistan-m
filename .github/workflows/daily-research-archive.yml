@@ -1,0 +1,31 @@
+name: Daily research archive
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 7 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: daily-research-archive
+  cancel-in-progress: false
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/sqlite-backup-restore-20261031
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Create bounded research report
+        run: python -m scripts.daily_research
+      - name: Save report to GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research_reports/
+          if ! git diff --cached --quiet; then
+            git commit -m "archive: daily research source leads"
+            git push
+          fi
