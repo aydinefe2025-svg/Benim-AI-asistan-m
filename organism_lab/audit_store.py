@@ -61,8 +61,8 @@ def read_audit(path):
 
 
 def append_audit(path, result):
-    if not isinstance(result, dict) or result.get("status") not in ("verified", "failed"):
-        raise ValueError("Only explicit verified/failed task records can be stored")
+    if not isinstance(result, dict) or result.get("status") not in ("checked", "failed"):
+        raise ValueError("Only explicit checked/failed task records can be stored")
     file = Path(path)
     file.parent.mkdir(parents=True, exist_ok=True)
     with _exclusive_lock(file):
