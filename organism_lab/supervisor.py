@@ -43,7 +43,7 @@ class Supervisor:
                 grow_on_demand(self.colony, role, queued_tasks=sum(r == role for r, _ in tasks))
             for attempt in range(self.max_retries + 1):
                 result = execute_task(self.colony, role, task, handlers[role], verifiers[role])
-                if result.status == "verified":
+                if result.status == "checked":
                     break
             record = {"role": role, "task": task, "status": result.status,
                       "agent": result.agent, "evidence": result.evidence,
@@ -51,6 +51,6 @@ class Supervisor:
             if audit_path is not None:
                 append_audit(audit_path, record)
             results.append(record)
-        return {"results": results, "verified": sum(x["status"] == "verified" for x in results),
+        return {"results": results, "checked": sum(x["status"] == "checked" for x in results),
                 "failed": sum(x["status"] == "failed" for x in results),
                 "agents": len(self.colony.agents)}
