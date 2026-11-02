@@ -33,6 +33,19 @@ def render_task_panel(st) -> None:
             except ValueError:
                 st.warning("Görev adı boş olamaz.")
 
+        backup_upload = st.file_uploader(
+            "Araştırma yedeğini geri yükle (JSON)",
+            type=["json"], key="research_archive_upload",
+        )
+        if st.button("Yedeği ayrı görevler olarak içe aktar", key="import_research_tasks"):
+            if backup_upload is None:
+                st.warning("Önce JSON yedeğini seçin.")
+            else:
+                try:
+                    imported = import_research_archive(store, backup_upload.getvalue())
+                    st.success(f"{imported} görev içe aktarıldı. Eski kayıtlar korunuyor.")
+                except (ValueError, OSError):
+                    st.error("Yedek geçersiz veya veritabanı erişilemiyor; içe aktarma yapılamadı.")
         tasks = store.list()
         st.caption(f"Yerel kayıt sayısı: {len(tasks)}")
         for task in tasks[-30:]:
