@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .evolution import World
+from .digital_vm import GenomeWorld
 from .providers import ProviderError, generate
 
 
@@ -35,8 +35,10 @@ def _validate(seeds, steps, resource_levels):
         raise ValueError("Resource levels must be distinct")
 
 
-def _run_world(seed, steps, resources, capacity):
-    world = World(seed=seed, capacity=capacity, resources=resources)
+def _run_world(seed, steps, resources, capacity, mutation_rate, allow_replication):
+    world = GenomeWorld(seed=seed, capacity=capacity,
+                        resources_per_tick=resources, mutation_rate=mutation_rate,
+                        allow_replication=allow_replication)
     for _ in range(steps):
         world.step()
     return world.metrics()
@@ -52,11 +54,13 @@ def _mean_ci(values):
 
 
 def run_study(*, seeds=tuple(range(30)), steps=100,
-              resource_levels=DEFAULT_RESOURCES, capacity=64):
-    """Compute paired replicating vs non-replicating outcomes and summaries."""
+              resource_levels=DEFAULT_RESOURCES, capacity=64, mutation_rate=0.02):
+    """Compare an executing self-copying genome with a division-disabled control."""
     _validate(seeds, steps, resource_levels)
     if type(capacity) is not int or not 2 <= capacity <= 256:
         raise ValueError("Capacity must be between 2 and 256")
+    if not isinstance(mutation_rate, (int, float)) or isinstance(mutation_rate, bool) or not 0 <= mutation_rate <= 1:
+        raise ValueError("Mutation rate must be between 0 and 1")
     rows = []
     summaries = []
     for resources in resource_levels:
@@ -66,9 +70,10 @@ def run_study(*, seeds=tuple(range(30)), steps=100,
         generations = []
         survival = []
         control_populations = []
+        unique_genomes = []
         for seed in seeds:
-            experiment = _run_world(seed, steps, resources, capacity)
-            control = _run_world(seed, steps, resources, 1)
+            experiment = _run_world(seed, steps, resources, capacity, mutation_rate, True)
+            control = _run_world(seed, steps, resources, capacity, mutation_rate, False)
             difference = experiment["population"] - control["population"]
             differences.append(difference)
             populations.append(experiment["population"])
@@ -76,13 +81,16 @@ def run_study(*, seeds=tuple(range(30)), steps=100,
             generations.append(experiment["max_generation"])
             survival.append(experiment["population"] > 0)
             control_populations.append(control["population"])
+            unique_genomes.append(experiment["unique_genomes"])
             rows.append({"resource_per_tick": resources, "seed": seed,
                          "replication_population": experiment["population"],
                          "control_population": control["population"],
                          "paired_population_difference": difference,
                          "births": experiment["births"],
                          "deaths": experiment["deaths"],
-                         "max_generation": experiment["max_generation"]})
+                         "max_generation": experiment["max_generation"],
+                         "unique_genomes": experiment["unique_genomes"],
+                         "replicators": experiment["replicators"]})
         difference_stats = _mean_ci(differences)
         summaries.append({
             "resource_per_tick": resources,
@@ -92,14 +100,17 @@ def run_study(*, seeds=tuple(range(30)), steps=100,
             "replication_survival_rate": sum(survival) / len(survival),
             "mean_births": statistics.mean(births),
             "mean_max_generation": statistics.mean(generations),
+            "mean_unique_genomes": statistics.mean(unique_genomes),
             "paired_population_difference": difference_stats,
         })
     return {
-        "schema": "organism-lab-reproduction-study-v1",
+        "schema": "organism-lab-genome-replication-study-v1",
         "design": {"steps": steps, "capacity": capacity, "seeds": list(seeds),
                    "resource_levels_per_tick": list(resource_levels),
-                   "control": "same seed/resources/steps with reproduction disabled by capacity=1",
-                   "primary_metric": "paired final population difference (replication minus control)"},
+                   "mutation_rate": mutation_rate,
+                   "genome": "COPY_REST then DIVIDE; children inherit the instruction sequence with bounded point mutation",
+                   "control": "same genome/resources/capacity/steps/seeds; division disabled",
+                   "primary_metric": "paired final population difference (executing replication minus control)"},
         "results": summaries,
         "observations": rows,
         "interpretation_limits": [
@@ -180,7 +191,7 @@ def save_study(report, output_dir, *, model_commentary=None):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Paired digital-organism resource study")
+    parser = argparse.ArgumentParser(description="Paired digital-genome replication resource study")
     parser.add_argument("--output", type=Path, default=Path("organism_lab_output"))
     parser.add_argument("--seeds", type=int, default=30)
     parser.add_argument("--steps", type=int, default=100)
@@ -200,4 +211,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

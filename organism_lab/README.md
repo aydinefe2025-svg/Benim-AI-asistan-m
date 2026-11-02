@@ -18,7 +18,7 @@ From the repository root:
 python -m organism_lab.reproduction_study --seeds 30 --steps 100 --model-commentary --output organism_lab_output
 ```
 
-This runs paired replication/control simulations at five resource levels, retains every per-seed result, calculates paired intervals, and saves JSON, CSV, and a local SQLite record. The optional Qwen commentary uses local Ollama; its structured checks are compared to the computed metrics and contradictions are discarded. The dashboard has the same **Araştırma kampanyasını çalıştır** action. This is a computational study of the simulator, not a biological experiment or a claim that the model learns.
+This runs paired instruction-executing genome/control simulations at five resource levels. A genome must execute `COPY_REST` then `DIVIDE`; inherited opcodes can mutate, and the control uses the same genome with division disabled. The run retains every per-seed result, calculates paired intervals, and saves JSON, CSV, and a local SQLite record. Optional Qwen checks use local Ollama; its structured checks are compared with computed metrics and contradictions are discarded. Commentary is not evidence or source verification. The dashboard has the same **Araştırma kampanyasını çalıştır** action. This is a computational study of this deliberately small virtual machine, not a biological experiment or a claim that the model learns.
 
 ## Safety and integration
 
@@ -39,5 +39,3 @@ python -m streamlit run organism_lab/dashboard.py
 Open the URL printed by Streamlit (usually http://localhost:8501). Choose steps, energy and materials, then press **Simülasyonu çalıştır**. Results remain available on subsequent Streamlit reruns; JSON export is provided. This runs an **offline deterministic simulation**, not physical hardware.
 
 The GitHub Actions workflow checks offline tests, Streamlit AppTest interactions, result consistency and an actual Streamlit HTTP health endpoint. **CI success does not imply a public deployment or live LLM credentials.** No new public preview has been deployed. The production Render service uses a separate branch and is intentionally unchanged.
-
-

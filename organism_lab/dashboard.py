@@ -40,10 +40,10 @@ if "organism_result" in st.session_state:
     st.download_button("JSON raporunu indir", data=json.dumps(result, ensure_ascii=False, indent=2), file_name="organism_lab_report.json", mime="application/json")
 
 st.divider()
-st.header("Çoğalma kaynak araştırması")
-st.caption("30 eşlenmiş tohum × 100 adım × 5 kaynak düzeyi. Her koşul, aynı tohum ve kaynakta çoğalmayan kontrolle karşılaştırılır. Ölçümler yalnızca bu dijital simülasyona aittir.")
+st.header("Genom çoğaltma araştırması")
+st.caption("30 eşlenmiş tohum × 100 adım × 5 kaynak düzeyi. COPY_REST ve DIVIDE komutlarını yürüten genom, aynı genomun bölünmesi kapalı kontrolüyle karşılaştırılır; yavru genomlarda %2 komut mutasyonu uygulanır. Ölçümler yalnızca bu dijital simülasyona aittir.")
 if st.button("Araştırma kampanyasını çalıştır", key="run_reproduction_study", type="primary"):
-    with st.spinner("Eşlenmiş deneyler çalışıyor; sonuçlar ve yerel model yorumu kaydediliyor…"):
+    with st.spinner("Sanal genomları çalıştıran eşlenmiş deneyler yürütülüyor; sonuçlar ve yerel model kontrolü kaydediliyor…"):
         campaign = run_study(seeds=tuple(range(30)), steps=100,
                              resource_levels=(0, 2, 5, 10, 20))
         commentary = summarize_with_local_model(campaign)
@@ -69,5 +69,3 @@ if "reproduction_campaign" in st.session_state:
                        data=json.dumps({**campaign, "model_commentary": commentary}, ensure_ascii=False, indent=2),
                        file_name="reproduction-study.json", mime="application/json",
                        key="download_reproduction_json")
-
-
