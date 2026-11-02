@@ -12,7 +12,7 @@ class AuditConcurrencyTests(unittest.TestCase):
             path = Path(temp) / "audit.jsonl"
             with ThreadPoolExecutor(max_workers=8) as pool:
                 results = list(pool.map(lambda index: append_audit(path, {
-                    "task": f"task-{index}", "status": "verified"}), range(40)))
+                    "task": f"task-{index}", "status": "checked"}), range(40)))
             stored = read_audit(path)
             self.assertEqual(len(stored), 40)
             self.assertEqual({r["digest"] for r in stored}, {r["digest"] for r in results})
