@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import uuid
 from pathlib import Path
 
 from core.task_store import ALLOWED_TRANSITIONS, TaskStore
@@ -12,16 +13,29 @@ from core.research_drafts import save_draft, load_draft
 from core.agent_executor import run_research_task
 
 
+def _session_database_path(st, configured_path: str) -> Path:
+    """Isolate task drafts by Streamlit session on the public shared app."""
+    session_id = st.session_state.get("agent_task_session_id")
+    if not isinstance(session_id, str) or len(session_id) != 32 or any(
+        char not in "0123456789abcdef" for char in session_id
+    ):
+        session_id = uuid.uuid4().hex
+        st.session_state["agent_task_session_id"] = session_id
+    base = Path(configured_path)
+    suffix = base.suffix or ".sqlite3"
+    return base.with_name(f"{base.stem}.{session_id}{suffix}")
+
+
 def render_task_panel(st, answer=None) -> None:
     with st.sidebar.expander("📋 Araştırma görevleri", expanded=False):
         st.caption(
-            "Görevler bu sunucudaki SQLite dosyasına yerel/geçici olarak kaydedilir. "
+            "Görevler yalnızca bu tarayıcı oturumuna ait SQLite dosyasına yerel/geçici olarak kaydedilir. "
             "Render ücretsiz diskinde yeniden dağıtım veya sunucu değişiminde kaybolabilir. "
             "Araştırma yalnızca kullanıcı düğmeye bastığında çalışır; sonuç doğrulanmamış taslaktır."
         )
         db_path = os.environ.get("AGENT_TASK_DB_PATH", "data/agent_tasks.sqlite3")
         try:
-            store = TaskStore(Path(db_path))
+            store = TaskStore(_session_database_path(st, db_path))
         except (OSError, ValueError, sqlite3.Error):
             st.error("Görev veritabanı açılamadı; kayıt yapılmadı.")
             return
