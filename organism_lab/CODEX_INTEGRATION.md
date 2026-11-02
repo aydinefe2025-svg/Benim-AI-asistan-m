@@ -6,7 +6,9 @@ rewriting the existing Streamlit or Telegram applications.
 - `Colony.initialize()`: creates eight specialist roles.
 - `grow_on_demand(colony, role, queued_tasks=n)`: bounded same-role replication.
 - `execute_task(colony, role, task, executor, verifier)`: executes a task using
-  explicitly injected functions and records verified/failed status.
+  explicitly injected functions and records checked/failed status. A check is
+  not source verification unless the injected verifier independently validates
+  provenance and claim-to-source evidence.
 - `World(seed=..., capacity=..., resources=...)`: simulated digital organism
   reproduction, inheritance and resource competition.
 - `compare_control(...)`: experiment vs non-replicating baseline.
