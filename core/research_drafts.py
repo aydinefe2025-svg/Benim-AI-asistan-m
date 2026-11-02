@@ -4,12 +4,13 @@ This persists across Streamlit sessions, but NOT across Render free-tier
 filesystem replacement. Export/external durable storage is still required.
 """
 import sqlite3
+from contextlib import closing
 
 
 def save_draft(db_path: str, task_id: str, draft: str) -> None:
     if not isinstance(draft, str) or not draft.strip():
         raise ValueError("Draft is empty")
-    with sqlite3.connect(str(db_path), timeout=10) as conn:
+    with closing(sqlite3.connect(str(db_path), timeout=10)) as conn, conn:
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("""CREATE TABLE IF NOT EXISTS research_drafts (
             task_id TEXT PRIMARY KEY REFERENCES tasks(id),
@@ -24,7 +25,7 @@ def save_draft(db_path: str, task_id: str, draft: str) -> None:
 
 
 def load_draft(db_path: str, task_id: str) -> str | None:
-    with sqlite3.connect(str(db_path), timeout=10) as conn:
+    with closing(sqlite3.connect(str(db_path), timeout=10)) as conn, conn:
         try:
             row = conn.execute(
                 "SELECT content FROM research_drafts WHERE task_id=?", (task_id,)
