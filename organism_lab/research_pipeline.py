@@ -57,7 +57,7 @@ def run_pipeline(output_dir):
                               {"robotics": verify_world, "code": verify_path,
                                "research": verify_summary}, audit_path=audit)
     if result["failed"]:
-        raise RuntimeError("Pipeline has unverified tasks")
+        raise RuntimeError("Pipeline has tasks that failed their injected checks")
     report = {"pipeline": "offline-research-v1", "tasks": result,
               "audit_records": len(read_audit(audit))}
     (output_dir / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
