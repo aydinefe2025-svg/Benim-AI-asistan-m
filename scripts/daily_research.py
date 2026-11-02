@@ -4,6 +4,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 from core.public_research import research_sources
+from core.retry_policy import retry_transient
 
 TOPICS = {
     "neutron_star_eos": "neutron star equation of state NICER",
@@ -17,18 +18,22 @@ def run(fetch=None, output_dir="research_reports"):
     report = {"generated_at": now.isoformat(), "status": "source_leads_only",
               "verified": False, "topics": {}}
     for key, query in TOPICS.items():
-        for attempt in range(1, 4):
-            try:
-                links = research_sources(query, limit=3, fetch=fetch)
-                if not links:
-                    raise ValueError("No source leads returned")
-                report["topics"][key] = {"query": query, "sources": links,
-                                         "status": "found", "attempts": attempt}
-                break
-            except Exception as exc:
-                report["topics"][key] = {"query": query, "sources": [],
-                                         "status": "error", "error_type": type(exc).__name__,
-                                         "attempts": attempt}
+        attempts = 0
+        def lookup():
+            nonlocal attempts
+            attempts += 1
+            links = research_sources(query, limit=3, fetch=fetch)
+            if not links:
+                raise ValueError("No source leads returned")
+            return links
+        try:
+            links = retry_transient(lookup)
+            report["topics"][key] = {"query": query, "sources": links,
+                                     "status": "found", "attempts": attempts}
+        except Exception as exc:
+            report["topics"][key] = {"query": query, "sources": [],
+                                     "status": "error", "error_type": type(exc).__name__,
+                                     "attempts": attempts}
     path = Path(output_dir) / (now.strftime("%Y-%m-%d") + ".json")
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_suffix(".tmp")

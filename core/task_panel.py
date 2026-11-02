@@ -79,7 +79,7 @@ def render_task_panel(st, answer=None) -> None:
         except (ValueError, OSError, sqlite3.Error):
             st.warning("Araştırma yedeği oluşturulamadı.")
         for task in tasks[-30:]:
-            st.text(f"{task['title']} — {task['status']}")
+            st.text(f"{task['title']} — {'İnceleme bekliyor' if task['status'] == 'review_pending' else task['status']}")
             if task["goal"]:
                 st.text("Hedef: " + task["goal"])
             if task["blockers"]:
@@ -94,8 +94,7 @@ def render_task_panel(st, answer=None) -> None:
             if answer is not None and task["status"] in {"planned", "blocked"}:
                 if st.button("Araştırmayı çalıştır", key="run_" + task["id"]):
                     result = run_research_task(store, task["id"], answer)
-                    if result["status"] == "done":
-                        save_draft(store.db_path, task["id"], result["draft"])
+                    if result["status"] == "review_pending":
                         st.success("Taslak kaydedildi; kaynak doğrulaması gerekiyor.")
                     else:
                         st.warning("Araştırma sağlayıcısı başarısız oldu; görev engellendi.")

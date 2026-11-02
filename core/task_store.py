@@ -15,12 +15,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
-STATUSES = {"planned", "running", "blocked", "done", "verified", "failed"}
+STATUSES = {"planned", "running", "blocked", "done", "verified", "failed", "review_pending"}
 ALLOWED_TRANSITIONS = {
     "planned": {"running", "blocked"},
-    "running": {"done", "blocked", "failed"},
+    "running": {"done", "review_pending", "blocked", "failed"},
     "blocked": {"planned", "running", "failed"},
-    "done": {"verified", "failed"},
+    "done": {"verified", "failed", "review_pending"},
     "failed": {"planned"},
     "verified": set(),
 }
@@ -60,7 +60,7 @@ class TaskStore:
                     title TEXT NOT NULL,
                     goal TEXT NOT NULL DEFAULT '',
                     status TEXT NOT NULL CHECK(status IN
-                        ('planned','running','blocked','done','verified','failed')),
+                        ('planned','running','blocked','done','verified','failed','review_pending')),
                     evidence TEXT NOT NULL DEFAULT '[]',
                     blockers TEXT NOT NULL DEFAULT '[]',
                     created_at TEXT NOT NULL,
@@ -77,12 +77,12 @@ class TaskStore:
                 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
                 CREATE INDEX IF NOT EXISTS idx_events_task ON task_events(task_id);
             """)
-            # Upgrade databases created before the explicit failed state existed.
+            # Upgrade legacy databases without deleting records or audit history.
             # Keep task history and all task rows while rebuilding the CHECK constraint.
             schema = conn.execute(
                 "SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'"
             ).fetchone()[0]
-            if "'failed'" not in schema:
+            if "'review_pending'" not in schema:
                 conn.execute("PRAGMA foreign_keys = OFF")
                 try:
                     conn.execute("BEGIN IMMEDIATE")
@@ -92,7 +92,7 @@ class TaskStore:
                             title TEXT NOT NULL,
                             goal TEXT NOT NULL DEFAULT '',
                             status TEXT NOT NULL CHECK(status IN
-                                ('planned','running','blocked','done','verified','failed')),
+                                ('planned','running','blocked','done','verified','failed','review_pending')),
                             evidence TEXT NOT NULL DEFAULT '[]',
                             blockers TEXT NOT NULL DEFAULT '[]',
                             created_at TEXT NOT NULL,
@@ -215,3 +215,27 @@ class TaskStore:
             ).fetchall()
         return [dict(row) for row in rows]
 
+
+    def finish_draft(self, task_id: str, draft: str) -> dict[str, Any]:
+        """Persist the draft and review-pending state together, or neither."""
+        if not isinstance(draft, str) or not draft.strip():
+            raise ValueError("Draft is empty")
+        now = _now()
+        with self._connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
+            if row is None:
+                raise KeyError(task_id)
+            if row[0] != "running":
+                raise ValueError("Only a running task can finish a draft")
+            conn.execute("""CREATE TABLE IF NOT EXISTS research_drafts (
+                task_id TEXT PRIMARY KEY REFERENCES tasks(id), content TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
+            conn.execute("""INSERT INTO research_drafts(task_id,content,updated_at) VALUES(?,?,?)
+                ON CONFLICT(task_id) DO UPDATE SET content=excluded.content,updated_at=excluded.updated_at""",
+                (task_id, draft.strip()[:12000], now))
+            conn.execute("UPDATE tasks SET status='review_pending',blockers='[]',updated_at=? WHERE id=?",
+                         (now, task_id))
+            conn.execute("INSERT INTO task_events(task_id,at,old_status,new_status,note) VALUES(?,?,?,?,?)",
+                         (task_id, now, "running", "review_pending", "Draft saved; independent evidence review pending"))
+        return self.get(task_id)

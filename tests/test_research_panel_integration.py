@@ -24,7 +24,7 @@ class ResearchPanelIntegrationTests(unittest.TestCase):
             task = TaskStore(db_path).create("Study", "Find sources")
             with patch.dict("os.environ", {"AGENT_TASK_DB_PATH": path}):
                 render_task_panel(st, answer=lambda goal: "Unverified: " + goal)
-            self.assertEqual(TaskStore(db_path).get(task["id"])["status"], "done")
+            self.assertEqual(TaskStore(db_path).get(task["id"])["status"], "review_pending")
             self.assertEqual(load_draft(db_path, task["id"]), "Unverified: Find sources")
 
     def test_without_provider_does_not_run(self):

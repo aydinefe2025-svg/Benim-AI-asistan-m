@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 from core.task_store import TaskStore
 from core.agent_executor import run_research_task
+from core.research_drafts import load_draft
 
 
 class ResearchExecutorTests(unittest.TestCase):
@@ -15,13 +16,13 @@ class ResearchExecutorTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def test_success_is_done_but_not_verified(self):
+    def test_success_is_review_pending_but_not_verified(self):
         result = run_research_task(self.store, self.task["id"], lambda goal: "Draft: " + goal)
-        self.assertEqual(result["status"], "done")
+        self.assertEqual(result["status"], "review_pending")
         self.assertFalse(result["verified"])
-        self.assertEqual(self.store.get(self.task["id"])["status"], "done")
+        self.assertEqual(self.store.get(self.task["id"])["status"], "review_pending")
         self.assertEqual([event["new_status"] for event in self.store.history(self.task["id"])],
-                         ["planned", "running", "done"])
+                         ["planned", "running", "review_pending"])
 
     def test_provider_failure_is_blocked_and_retryable(self):
         def fail(_):
@@ -30,7 +31,7 @@ class ResearchExecutorTests(unittest.TestCase):
         self.assertEqual(result["status"], "blocked")
         self.assertNotIn("sensitive", str(result))
         self.assertEqual(self.store.get(self.task["id"])["status"], "blocked")
-        self.assertEqual(run_research_task(self.store, self.task["id"], lambda _: "Retry")["status"], "done")
+        self.assertEqual(run_research_task(self.store, self.task["id"], lambda _: "Retry")["status"], "review_pending")
 
     def test_empty_response_is_blocked(self):
         self.assertEqual(run_research_task(self.store, self.task["id"], lambda _: " ")["status"], "blocked")
@@ -39,6 +40,38 @@ class ResearchExecutorTests(unittest.TestCase):
         run_research_task(self.store, self.task["id"], lambda _: "Draft")
         with self.assertRaises(ValueError):
             run_research_task(self.store, self.task["id"], lambda _: "Again")
+
+    def test_transient_outage_has_bounded_exponential_retry(self):
+        calls, delays = [], []
+        def transient(_):
+            calls.append(1)
+            if len(calls) < 3:
+                raise TimeoutError("secret provider details")
+            return "Recovered draft"
+        result = run_research_task(self.store, self.task["id"], transient, sleep=delays.append)
+        self.assertEqual(result["status"], "review_pending")
+        self.assertEqual(delays, [1, 2])
+        self.assertEqual(load_draft(self.store.db_path, self.task["id"]), "Recovered draft")
+
+    def test_draft_write_failure_does_not_mark_task_complete(self):
+        with self.store._connection() as conn:
+            conn.execute("""CREATE TRIGGER reject_draft_event BEFORE INSERT ON task_events
+                WHEN NEW.new_status='review_pending' BEGIN SELECT RAISE(ABORT,'simulated crash'); END""")
+        result = run_research_task(self.store, self.task["id"], lambda _: "Unsaved draft")
+        self.assertEqual(result["status"], "blocked")
+        self.assertIsNone(load_draft(self.store.db_path, self.task["id"]))
+        self.assertNotIn("review_pending", [x["new_status"] for x in self.store.history(self.task["id"])])
+
+    def test_interrupted_task_can_be_explicitly_recovered(self):
+        def interrupt(_):
+            raise KeyboardInterrupt()
+        with self.assertRaises(KeyboardInterrupt):
+            run_research_task(self.store, self.task["id"], interrupt)
+        self.assertEqual(self.store.get(self.task["id"])["status"], "running")
+        self.assertIsNone(load_draft(self.store.db_path, self.task["id"]))
+        self.store.transition(self.task["id"], "blocked", note="User recovered interrupted run")
+        self.assertEqual(run_research_task(self.store, self.task["id"], lambda _: "Recovered")["status"],
+                         "review_pending")
 
 
 if __name__ == "__main__":
