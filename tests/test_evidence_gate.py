@@ -55,7 +55,7 @@ class EvidenceGateTests(unittest.TestCase):
             self.review(accepted=False)
         self.assertEqual(self.store.get(self.task["id"])["status"], "review_pending")
         with self.store._connection() as conn:
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM evidence_reviews").fetchone()[0], 0)
+            self.assertIsNone(conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='evidence_reviews'").fetchone())
 
 
 if __name__ == "__main__":
