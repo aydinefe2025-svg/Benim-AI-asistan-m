@@ -7,12 +7,22 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
-STATUSES = {"planned", "running", "blocked", "done", "verified"}
+STATUSES = {"planned", "running", "blocked", "done", "verified", "failed"}
+ALLOWED_TRANSITIONS = {
+    "planned": {"running", "blocked"},
+    "running": {"done", "blocked", "failed"},
+    "blocked": {"planned", "running", "failed"},
+    "done": {"verified", "failed"},
+    "failed": {"planned"},
+    "verified": set(),
+}
 
 
 def _now() -> str:
@@ -32,15 +42,24 @@ class TaskStore:
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
+    @contextmanager
+    def _connection(self) -> Iterator[sqlite3.Connection]:
+        conn = self._connect()
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
+
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with self._connection() as conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS tasks (
                     id TEXT PRIMARY KEY,
                     title TEXT NOT NULL,
                     goal TEXT NOT NULL DEFAULT '',
                     status TEXT NOT NULL CHECK(status IN
-                        ('planned','running','blocked','done','verified')),
+                        ('planned','running','blocked','done','verified','failed')),
                     evidence TEXT NOT NULL DEFAULT '[]',
                     blockers TEXT NOT NULL DEFAULT '[]',
                     created_at TEXT NOT NULL,
@@ -57,13 +76,48 @@ class TaskStore:
                 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
                 CREATE INDEX IF NOT EXISTS idx_events_task ON task_events(task_id);
             """)
+            # Upgrade databases created before the explicit failed state existed.
+            # Keep task history and all task rows while rebuilding the CHECK constraint.
+            schema = conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'"
+            ).fetchone()[0]
+            if "'failed'" not in schema:
+                conn.execute("PRAGMA foreign_keys = OFF")
+                try:
+                    conn.execute("BEGIN IMMEDIATE")
+                    conn.execute("""
+                        CREATE TABLE tasks_new (
+                            id TEXT PRIMARY KEY,
+                            title TEXT NOT NULL,
+                            goal TEXT NOT NULL DEFAULT '',
+                            status TEXT NOT NULL CHECK(status IN
+                                ('planned','running','blocked','done','verified','failed')),
+                            evidence TEXT NOT NULL DEFAULT '[]',
+                            blockers TEXT NOT NULL DEFAULT '[]',
+                            created_at TEXT NOT NULL,
+                            updated_at TEXT NOT NULL
+                        )
+                    """)
+                    conn.execute("""
+                        INSERT INTO tasks_new(id,title,goal,status,evidence,blockers,created_at,updated_at)
+                        SELECT id,title,goal,status,evidence,blockers,created_at,updated_at FROM tasks
+                    """)
+                    conn.execute("DROP TABLE tasks")
+                    conn.execute("ALTER TABLE tasks_new RENAME TO tasks")
+                    conn.execute("CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.execute("PRAGMA foreign_keys = ON")
 
     def create(self, title: str, goal: str = "") -> dict[str, Any]:
         title = title.strip()
         if not title:
             raise ValueError("Task title cannot be empty")
         task_id, now = str(uuid.uuid4()), _now()
-        with self._connect() as conn:
+        with self._connection() as conn:
             conn.execute(
                 "INSERT INTO tasks(id,title,goal,status,created_at,updated_at) VALUES(?,?,?,?,?,?)",
                 (task_id, title, goal.strip(), "planned", now, now),
@@ -75,7 +129,7 @@ class TaskStore:
         return self.get(task_id)
 
     def get(self, task_id: str) -> dict[str, Any]:
-        with self._connect() as conn:
+        with self._connection() as conn:
             row = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
         if row is None:
             raise KeyError(f"Unknown task: {task_id}")
@@ -87,7 +141,7 @@ class TaskStore:
     def list(self, status: str | None = None) -> list[dict[str, Any]]:
         if status is not None and status not in STATUSES:
             raise ValueError(f"Invalid status: {status}")
-        with self._connect() as conn:
+        with self._connection() as conn:
             if status:
                 rows = conn.execute(
                     "SELECT id,title,goal,status,evidence,blockers,created_at,updated_at FROM tasks WHERE status=? ORDER BY created_at",
@@ -116,21 +170,28 @@ class TaskStore:
     ) -> dict[str, Any]:
         if status not in STATUSES:
             raise ValueError(f"Invalid status: {status}")
-        if status == "verified" and not evidence:
+        if status == "verified" and not any(
+            isinstance(item, str) and item.strip() for item in (evidence or [])
+        ):
             raise ValueError("A task cannot be verified without evidence")
         now = _now()
-        # A single write transaction protects status, evidence and history
-        # against concurrent workers reading stale task state.
-        with self._connect() as conn:
+        with self._connection() as conn:
+            # Serialize writers and keep state validation, update and event append
+            # in one transaction so concurrent workers cannot overwrite each other.
             conn.execute("BEGIN IMMEDIATE")
             row = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
             if row is None:
                 raise KeyError(f"Unknown task: {task_id}")
             task = dict(row)
-            previous_evidence = json.loads(task["evidence"])
-            previous_blockers = json.loads(task["blockers"])
-            new_evidence = previous_evidence + (evidence or [])
-            new_blockers = blockers if blockers is not None else previous_blockers
+            if status not in ALLOWED_TRANSITIONS[task["status"]]:
+                raise ValueError(
+                    f"Invalid task transition: {task['status']} -> {status}"
+                )
+            new_evidence = json.loads(task["evidence"]) + [
+                item.strip() for item in (evidence or [])
+                if isinstance(item, str) and item.strip()
+            ]
+            new_blockers = blockers if blockers is not None else json.loads(task["blockers"])
             conn.execute(
                 "UPDATE tasks SET status=?,evidence=?,blockers=?,updated_at=? WHERE id=?",
                 (status, json.dumps(new_evidence, ensure_ascii=False),
@@ -145,9 +206,10 @@ class TaskStore:
     def history(self, task_id: str) -> list[dict[str, Any]]:
         # get() validates the ID and avoids silently returning an empty history for typos.
         self.get(task_id)
-        with self._connect() as conn:
+        with self._connection() as conn:
             rows = conn.execute(
                 "SELECT event_id,task_id,at,old_status,new_status,note FROM task_events WHERE task_id=? ORDER BY event_id",
                 (task_id,),
             ).fetchall()
         return [dict(row) for row in rows]
+
