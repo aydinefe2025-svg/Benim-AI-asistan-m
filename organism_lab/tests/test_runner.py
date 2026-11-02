@@ -34,5 +34,3 @@ class RunnerTests(unittest.TestCase):
         r = report(steps=10, energy=0, materials=0, resources=0)
         self.assertEqual(r["shared_world"]["robots"], 0)
         self.assertEqual(r["shared_world"]["births"], 0)
-
-
