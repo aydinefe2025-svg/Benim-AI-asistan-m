@@ -25,6 +25,7 @@ class RunnerTests(unittest.TestCase):
                                    "--output", str(Path(tmp) / "report.json")]), 0)
             rows = csv_path.read_text(encoding="utf-8").strip().splitlines()
             self.assertEqual(len(rows), 5)
+            self.assertNotIn(b"\r\r\n", csv_path.read_bytes())
             self.assertIn("population", rows[0])
     def test_invalid_steps(self):
         with self.assertRaises(ValueError):
