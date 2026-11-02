@@ -110,13 +110,26 @@ class TaskStoreTests(unittest.TestCase):
                     old_status TEXT, new_status TEXT NOT NULL, note TEXT NOT NULL DEFAULT ''
                 );
             """)
+            conn.execute(
+                "INSERT INTO tasks VALUES(?,?,?,?,?,?,?,?)",
+                ("legacy-task", "Keep me", "Old record", "planned", "[]", "[]", "2026-01-01", "2026-01-01"),
+            )
+            conn.execute(
+                "INSERT INTO task_events(task_id,at,old_status,new_status,note) VALUES(?,?,?,?,?)",
+                ("legacy-task", "2026-01-01", None, "planned", "Created before migration"),
+            )
+            conn.commit()
             conn.close()
             migrated = TaskStore(path)
-            task = migrated.create("Eski dosya")
-            migrated.transition(task["id"], "running")
-            migrated.transition(task["id"], "failed", note="migration verified")
-            self.assertEqual(migrated.get(task["id"])["status"], "failed")
-            self.assertEqual(len(migrated.history(task["id"])), 3)
+            self.assertEqual(migrated.get("legacy-task")["title"], "Keep me")
+            self.assertEqual(len(migrated.history("legacy-task")), 1)
+            migrated.transition("legacy-task", "running")
+            migrated.transition("legacy-task", "failed", note="migration verified")
+            self.assertEqual(migrated.get("legacy-task")["status"], "failed")
+            self.assertEqual(
+                [event["new_status"] for event in migrated.history("legacy-task")],
+                ["planned", "running", "failed"],
+            )
 
     def test_unknown_status_rejected(self):
         task = self.store.create("Test")
