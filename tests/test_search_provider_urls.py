@@ -11,20 +11,25 @@ from unittest.mock import Mock
 APP = Path(__file__).resolve().parents[1] / "app.py"
 
 
-def load_search_function():
+def load_search_function(path=APP):
     """Compile the real app helper with isolated request/regex dependencies."""
-    source = ast.parse(APP.read_text(encoding="utf-8"))
+    source = ast.parse(path.read_text(encoding="utf-8"))
     helper = next(n for n in source.body
                   if isinstance(n, ast.FunctionDef) and n.name == "internette_ara")
     mocked_requests = types.SimpleNamespace(get=Mock())
     namespace = {"re": re, "requests": mocked_requests, "urlencode": urlencode}
-    exec(compile(ast.Module(body=[helper], type_ignores=[]), str(APP), "exec"), namespace)
+    exec(compile(ast.Module(body=[helper], type_ignores=[]), str(path), "exec"), namespace)
     return namespace["internette_ara"], mocked_requests
 
 
 class SearchProviderTests(unittest.TestCase):
+    source = APP
+
+    def load_search(self):
+        return load_search_function(self.source)
+
     def test_weather_uses_valid_location_path(self):
-        search, requests = load_search_function()
+        search, requests = self.load_search()
         requests.get.return_value = types.SimpleNamespace(
             status_code=200, text="Sunny +20C 40% 5km/h")
         answer = search("İzmir hava durumu")
@@ -35,7 +40,7 @@ class SearchProviderTests(unittest.TestCase):
         self.assertIn("İzmir", answer)
 
     def test_explicit_city_is_not_replaced_with_izmir(self):
-        search, requests = load_search_function()
+        search, requests = self.load_search()
         requests.get.return_value = types.SimpleNamespace(
             status_code=200, text="Sunny +20C 40% 5km/h")
         answer = search("Ankara hava durumu")
@@ -45,13 +50,13 @@ class SearchProviderTests(unittest.TestCase):
         self.assertNotIn("İzmir", answer)
 
     def test_no_city_given_does_not_invent_izmir_weather(self):
-        search, requests = load_search_function()
+        search, requests = self.load_search()
         answer = search("Bugün hava durumu nasıl?")
         requests.get.assert_not_called()
         self.assertIn("şehir", answer.lower())
 
     def test_general_lookup_uses_instant_answer_endpoint_and_encoded_query(self):
-        search, requests = load_search_function()
+        search, requests = self.load_search()
         requests.get.return_value = types.SimpleNamespace(
             status_code=200, json=lambda: {"AbstractText": "Ada Lovelace summary"})
         self.assertIn("Ada Lovelace summary", search("Ada Lovelace matematik"))
@@ -64,11 +69,15 @@ class SearchProviderTests(unittest.TestCase):
         self.assertEqual(parse_qs(parts.query)["format"], ["json"])
 
     def test_empty_instant_answer_does_not_claim_full_web_search(self):
-        search, requests = load_search_function()
+        search, requests = self.load_search()
         requests.get.return_value = types.SimpleNamespace(
             status_code=200, json=lambda: {"AbstractText": ""})
         answer = search("some obscure topic unknown to instant answers")
         self.assertIn("bulunamad", answer.lower())
+
+
+class TelegramSearchTests(SearchProviderTests):
+    source = APP.with_name('bot.py')
 
 
 if __name__ == "__main__":

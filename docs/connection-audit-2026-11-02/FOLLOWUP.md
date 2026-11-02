@@ -32,6 +32,15 @@
   de gerçek açık bağlantıyla test edildi. Her veritabanı kendi içinde tutarlıdır;
   farklı dosyalar için ortak tek transaction garantisi yoktur.
 
+- **Telegram kod kusurları:** uygulamada düzeltilmiş hava/Instant Answer adresleri
+  bot tarafında hâlâ bozuktu; bot da şehir uyduruyordu. Aynı davranış kontratı
+  bot için çalıştırılıp düzeltildi. Sağlayıcı istisnası artık kullanıcıya ham
+  biçimde dönmez; eksik anahtar/token polling'i başlatmaz. Regresyon öncesi
+  8 testte 7 başarısızlık ve 1 hata, düzeltme sonrası hepsi başarılıdır.
+- **Son otomatik sonuç:** Windows/Python 3.15 üzerinde 185/185 unittest,
+  bağımlılık denetimi ve Google düğmesinin sentetik anahtarlı gerçek Streamlit
+  arayüz kontratı geçti. Bu arayüz testi gerçek Google bağlantısı değildir.
+
 ## Yeniden çalıştırma
 
 ```powershell
