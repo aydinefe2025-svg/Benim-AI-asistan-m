@@ -27,6 +27,16 @@ class ProviderTests(unittest.TestCase):
     def test_ollama_mock(self):
         result = generate("hello", "ollama", transport=lambda req, timeout: FakeResponse({"response": "OK"}))
         self.assertEqual(result["text"], "OK")
+    def test_ollama_disables_qwen_thinking_and_allows_model_load_time(self):
+        captured = {}
+        def sender(request, timeout):
+            captured["payload"] = json.loads(request.data.decode("utf-8"))
+            captured["timeout"] = timeout
+            return FakeResponse({"response": "LOCAL_OK"})
+        result = generate("hello", "ollama", transport=sender)
+        self.assertEqual(result["text"], "LOCAL_OK")
+        self.assertFalse(captured["payload"]["think"])
+        self.assertEqual(captured["timeout"], 120)
     def test_groq_missing_key(self):
         with patch.dict(os.environ, {"GROQ_API_KEY": ""}):
             with self.assertRaises(ProviderError):
@@ -61,3 +71,5 @@ class ProviderTests(unittest.TestCase):
     def test_empty_model_response(self):
         with self.assertRaises(ProviderError):
             generate("hello", "ollama", transport=lambda req, timeout: FakeResponse({"response": ""}))
+
+
