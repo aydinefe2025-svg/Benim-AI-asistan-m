@@ -30,8 +30,9 @@ class ResearchPanelIntegrationTests(unittest.TestCase):
     def test_without_provider_does_not_run(self):
         with tempfile.TemporaryDirectory() as folder:
             path = str(Path(folder) / "tasks.sqlite3")
-            task = TaskStore(path).create("Study", "Find sources")
             st = ClickResearchStreamlit(submits=[False, False])
+            db_path = _session_database_path(st, path)
+            task = TaskStore(db_path).create("Study", "Find sources")
             with patch.dict("os.environ", {"AGENT_TASK_DB_PATH": path}):
                 render_task_panel(st)
             self.assertEqual(TaskStore(db_path).get(task["id"])["status"], "planned")
