@@ -4,7 +4,7 @@ from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import patch
 
-from core.task_panel import render_task_panel
+from core.task_panel import render_task_panel, _session_database_path
 from core.task_store import TaskStore
 
 
@@ -15,6 +15,7 @@ class FakeStreamlit:
         self.selections = selections or {}
         self.sidebar = self
         self.messages = []
+        self.session_state = {}
         self.select_options = {}
 
     def expander(self, *args, **kwargs):
@@ -74,7 +75,7 @@ class TaskPanelTests(unittest.TestCase):
             )
             with patch.dict("os.environ", {"AGENT_TASK_DB_PATH": path}):
                 render_task_panel(st)
-            tasks = TaskStore(path).list()
+            tasks = TaskStore(_session_database_path(st, path)).list()
             self.assertEqual(len(tasks), 1)
             self.assertEqual(tasks[0]["status"], "planned")
             self.assertNotIn("verified", st.select_options["task_status_" + tasks[0]["id"]])
@@ -83,7 +84,7 @@ class TaskPanelTests(unittest.TestCase):
     def test_transition_ui_records_human_note_and_evidence_without_model_call(self):
         with tempfile.TemporaryDirectory() as folder:
             path = str(Path(folder) / "tasks.sqlite3")
-            task = TaskStore(path).create("Kaynağı incele")
+            task = TaskStore(_session_database_path(st, path)).create("Kaynağı incele")
             st = FakeStreamlit(
                 inputs={
                     "task_note_" + task["id"]: "Kaynak kontrol edildi",
@@ -94,10 +95,21 @@ class TaskPanelTests(unittest.TestCase):
             )
             with patch.dict("os.environ", {"AGENT_TASK_DB_PATH": path}):
                 render_task_panel(st)
-            updated = TaskStore(path).get(task["id"])
+            updated = TaskStore(_session_database_path(st, path)).get(task["id"])
             self.assertEqual(updated["status"], "running")
             self.assertEqual(updated["evidence"], ["https://example.org/report"])
-            self.assertIn("Kaynak kontrol edildi", TaskStore(path).history(task["id"])[-1]["note"])
+            self.assertIn("Kaynak kontrol edildi", TaskStore(_session_database_path(st, path)).history(task["id"])[-1]["note"])
+
+    def test_each_browser_session_uses_a_distinct_database(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base = str(Path(folder) / "tasks.sqlite3")
+            first = FakeStreamlit()
+            second = FakeStreamlit()
+            first_db = _session_database_path(first, base)
+            second_db = _session_database_path(second, base)
+            self.assertNotEqual(first_db, second_db)
+            TaskStore(first_db).create("Private first session")
+            self.assertEqual(TaskStore(second_db).list(), [])
 
 
 if __name__ == "__main__":
