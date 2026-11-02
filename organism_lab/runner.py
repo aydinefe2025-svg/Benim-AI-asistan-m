@@ -35,7 +35,9 @@ def main(argv=None):
     payload = json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True)
     if args.csv:
         args.csv.parent.mkdir(parents=True, exist_ok=True)
-        args.csv.write_text(to_csv(result["evolution"]), encoding="utf-8")
+        # csv.DictWriter emits CRLF. Disable pathlib's Windows newline
+        # translation so exported rows are not written as CRCRLF.
+        args.csv.write_text(to_csv(result["evolution"]), encoding="utf-8", newline="")
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(payload + "\n", encoding="utf-8")
@@ -45,3 +47,5 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
