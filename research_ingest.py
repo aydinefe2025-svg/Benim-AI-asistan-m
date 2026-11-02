@@ -32,10 +32,10 @@ def ingest_records(records: list[dict], db_path: str | Path) -> dict[str, int]:
     )) for claim in store.list_claims()}
     for url, title, claim in normalized:
         source = store.add_source(url, title)
-        identity = (claim, ((url, "supports"),))
+        identity = (claim, ((url, "context"),))
         if identity in seen:
             continue
-        store.add_claim(claim, [source["id"]], status="unreviewed", confidence=0.5)
+        store.add_claim(claim, [source["id"]], status="unreviewed", confidence=0.5, relationships={source["id"]: "context"})
         seen.add(identity)
         created += 1
     return {"records": len(normalized), "new_unreviewed_claims": created}
