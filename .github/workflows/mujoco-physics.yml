@@ -20,11 +20,15 @@ jobs:
         run: python -m pip install --disable-pip-version-check mujoco==3.17.0
       - name: Run real physics validation
         run: python research_ci/mujoco_smoke.py
-      - name: Preserve result and digest
+      - name: Compare serial and batch physics
+        run: python research_ci/mujoco_batch.py
+      - name: Preserve results and digests
         if: always()
         shell: bash
         run: |
-          if [ -f mujoco_result.json ]; then sha256sum mujoco_result.json > mujoco_result.sha256; fi
+          for f in mujoco_result.json mujoco_batch_result.json; do
+            if [ -f "$f" ]; then sha256sum "$f" > "$f.sha256"; fi
+          done
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -32,5 +36,7 @@ jobs:
           name: mujoco-physics-evidence
           path: |
             mujoco_result.json
-            mujoco_result.sha256
+            mujoco_result.json.sha256
+            mujoco_batch_result.json
+            mujoco_batch_result.json.sha256
           if-no-files-found: warn
