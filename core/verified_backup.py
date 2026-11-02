@@ -31,6 +31,7 @@ def verified_sqlite_backup(source: str | Path, destination: str | Path) -> dict[
         raise FileExistsError(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     temp_name = None
+    created_destination = False
     try:
         with tempfile.NamedTemporaryFile(
             prefix=".sqlite-backup-", suffix=".tmp", dir=destination.parent,
@@ -46,6 +47,7 @@ def verified_sqlite_backup(source: str | Path, destination: str | Path) -> dict[
         # Exclusive creation prevents accidentally replacing an existing backup.
         with open(temp_name, "rb") as original:
             with destination.open("xb") as output:
+                created_destination = True
                 for chunk in iter(lambda: original.read(1024 * 1024), b""):
                     output.write(chunk)
                 output.flush()
@@ -58,7 +60,7 @@ def verified_sqlite_backup(source: str | Path, destination: str | Path) -> dict[
         }
     except BaseException:
         # A failed copy must not leave a misleading partial backup.
-        if destination.exists() and temp_name is not None:
+        if created_destination and destination.exists():
             # Only remove files created by this invocation; existing destinations
             # are rejected before the temporary file is created.
             destination.unlink()
