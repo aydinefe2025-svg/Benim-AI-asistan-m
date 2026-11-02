@@ -25,11 +25,12 @@ class EvidenceGateTests(unittest.TestCase):
         args.update(overrides)
         return record_evidence_review(self.db, self.task["id"], **args)
 
-    def test_accepted_review_verifies_and_preserves_event(self):
-        result = self.review()
-        self.assertEqual(result["status"], "verified")
-        self.assertEqual(self.store.get(self.task["id"])["status"], "verified")
-        self.assertEqual(self.store.history(self.task["id"])[-1]["new_status"], "verified")
+    def test_untrusted_reviewer_cannot_verify(self):
+        with self.assertRaises(PermissionError):
+            self.review()
+        self.assertEqual(self.store.get(self.task["id"])["status"], "review_pending")
+        with self.store._connection() as conn:
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM sqlite_master WHERE name='evidence_reviews'").fetchone()[0], 0)
 
     def test_rejected_review_stays_pending(self):
         self.assertEqual(self.review(accepted=False)["status"], "review_pending")
@@ -40,18 +41,18 @@ class EvidenceGateTests(unittest.TestCase):
             self.review(evidence_note="")
         self.assertEqual(self.store.get(self.task["id"])["status"], "review_pending")
 
-    def test_second_review_cannot_reverify(self):
-        self.review()
-        with self.assertRaises(ValueError):
-            self.review()
+    def test_rejected_review_can_be_recorded_twice_without_verification(self):
+        self.review(accepted=False)
+        self.review(accepted=False)
+        self.assertEqual(self.store.get(self.task["id"])["status"], "review_pending")
 
-    def test_event_failure_rolls_back_review_and_status(self):
+    def test_rejected_review_event_failure_rolls_back_review_and_status(self):
         with self.store._connection() as conn:
             conn.execute("""CREATE TRIGGER reject_review BEFORE INSERT ON task_events
-                WHEN NEW.new_status='verified'
+                WHEN NEW.note='Evidence review rejected; task remains pending'
                 BEGIN SELECT RAISE(ABORT,'simulated crash'); END""")
         with self.assertRaises(Exception):
-            self.review()
+            self.review(accepted=False)
         self.assertEqual(self.store.get(self.task["id"])["status"], "review_pending")
         with self.store._connection() as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM evidence_reviews").fetchone()[0], 0)
