@@ -222,9 +222,9 @@ render_task_panel(st, answer=_research_answer if GROQ_KEY else None)
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
     # Avoid unrequested external lookups and leaking casual chat to third parties.
-    arama_istegi = bool(re.search(
-        r"\\b(araştır|araştırma|internette|internetten|webde|web'de|güncel|kaynak|haber|hava|sıcaklık|yağış)\\b",
-        kullanici_mesaji, flags=re.IGNORECASE,
+    arama_istegi = any(k in kullanici_mesaji.casefold() for k in (
+        "araştır", "internette", "internetten", "webde", "web'de",
+        "güncel", "kaynak", "haber", "hava", "sıcaklık", "yağış",
     ))
     arama_sonucu = internette_ara(kullanici_mesaji) if arama_istegi else (
         "Bu mesaj için harici kaynak sorgulanmadı; güncel veri doğrulanmadı."
