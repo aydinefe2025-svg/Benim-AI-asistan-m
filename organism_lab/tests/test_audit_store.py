@@ -8,7 +8,7 @@ class AuditStoreTests(unittest.TestCase):
     def test_roundtrip_and_chain(self):
         with TemporaryDirectory() as temp:
             path = Path(temp) / "audit.jsonl"
-            first = append_audit(path, {"task": "scan", "status": "verified", "evidence": "ok"})
+            first = append_audit(path, {"task": "scan", "status": "checked", "evidence": "ok"})
             second = append_audit(path, {"task": "scan2", "status": "failed", "evidence": "error"})
             self.assertEqual(len(read_audit(path)), 2)
             self.assertEqual(second["previous"], first["digest"])
@@ -16,7 +16,7 @@ class AuditStoreTests(unittest.TestCase):
     def test_detects_tampering(self):
         with TemporaryDirectory() as temp:
             path = Path(temp) / "audit.jsonl"
-            append_audit(path, {"task": "scan", "status": "verified"})
+            append_audit(path, {"task": "scan", "status": "checked"})
             path.write_text(path.read_text().replace("scan", "fake"), encoding="utf-8")
             with self.assertRaises(ValueError):
                 read_audit(path)
@@ -24,18 +24,25 @@ class AuditStoreTests(unittest.TestCase):
     def test_rejects_truncated_last_line(self):
         with TemporaryDirectory() as temp:
             path = Path(temp) / "audit.jsonl"
-            append_audit(path, {"task": "scan", "status": "verified"})
+            append_audit(path, {"task": "scan", "status": "checked"})
             path.write_bytes(path.read_bytes().rstrip(b"\n"))
             with self.assertRaisesRegex(ValueError, "Incomplete"):
                 read_audit(path)
             with self.assertRaises(ValueError):
-                append_audit(path, {"task": "next", "status": "verified"})
+                append_audit(path, {"task": "next", "status": "checked"})
 
     def test_rejects_unverified_status(self):
         with TemporaryDirectory() as temp:
             path = Path(temp) / "audit.jsonl"
             with self.assertRaises(ValueError):
                 append_audit(path, {"task": "scan", "status": "queued"})
+            self.assertFalse(path.exists())
+
+    def test_rejects_legacy_verified_label(self):
+        with TemporaryDirectory() as temp:
+            path = Path(temp) / "audit.jsonl"
+            with self.assertRaises(ValueError):
+                append_audit(path, {"task": "scan", "status": "verified"})
             self.assertFalse(path.exists())
 
 if __name__ == "__main__":

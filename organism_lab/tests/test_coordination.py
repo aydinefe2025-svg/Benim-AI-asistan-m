@@ -6,7 +6,7 @@ class CoordinationTests(unittest.TestCase):
     def test_verified_task(self):
         colony = Colony.initialize()
         result = execute_task(colony, "research", "summarize", lambda task: "finding", lambda task, output: "checked")
-        self.assertEqual(result.status, "verified")
+        self.assertEqual(result.status, "checked")
         self.assertEqual(colony.audit[-1]["evidence"], "checked")
     def test_missing_evidence_is_failure(self):
         result = execute_task(Colony.initialize(), "code", "test", lambda task: "done", lambda task, output: "")

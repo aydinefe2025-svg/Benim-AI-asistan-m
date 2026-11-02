@@ -6,7 +6,7 @@ class SupervisorTests(unittest.TestCase):
         result = Supervisor().run([("research", "scan")],
                                   {"research": lambda task: "report"},
                                   {"research": lambda task, output: "checked"})
-        self.assertEqual((result["verified"], result["failed"]), (1, 0))
+        self.assertEqual((result["checked"], result["failed"]), (1, 0))
         self.assertEqual(result["results"][0]["attempts"], 1)
 
     def test_retry_after_failure(self):
@@ -17,15 +17,15 @@ class SupervisorTests(unittest.TestCase):
                 raise RuntimeError("temporary")
             return "recovered"
         result = Supervisor().run([("code", "check")],
-                                  {"code": handler}, {"code": lambda task, output: "verified"})
-        self.assertEqual(result["verified"], 1)
+                                  {"code": handler}, {"code": lambda task, output: "checked"})
+        self.assertEqual(result["checked"], 1)
         self.assertEqual(result["results"][0]["attempts"], 2)
 
     def test_permanent_failure_not_misreported(self):
         result = Supervisor().run([("security", "check")],
                                   {"security": lambda task: ""},
                                   {"security": lambda task, output: "ok"})
-        self.assertEqual((result["verified"], result["failed"]), (0, 1))
+        self.assertEqual((result["checked"], result["failed"]), (0, 1))
 
     def test_missing_handler_rejected_before_execution(self):
         with self.assertRaises(ValueError):

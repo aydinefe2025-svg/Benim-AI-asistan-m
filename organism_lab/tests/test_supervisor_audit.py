@@ -14,9 +14,9 @@ class SupervisorAuditTests(unittest.TestCase):
                 {"research": lambda task, output: "checked", "code": lambda task, output: "checked"},
                 audit_path=path,
             )
-            self.assertEqual((result["verified"], result["failed"]), (1, 1))
+            self.assertEqual((result["checked"], result["failed"]), (1, 1))
             saved = read_audit(path)
-            self.assertEqual([record["status"] for record in saved], ["verified", "failed"])
+            self.assertEqual([record["status"] for record in saved], ["checked", "failed"])
             self.assertEqual(saved[1]["result"]["attempts"], 2)
 
     def test_without_audit_path_does_not_write(self):
