@@ -15,6 +15,7 @@ from core.provider_config import (
     credential_presence,
 )
 from core.groq_diagnostics import check_groq_connection
+from core.connection_diagnostics import check_provider
 from core.public_research import research_sources
 from core.user_memory import export_library, import_library, memory_context, new_memory
 from core.task_panel import render_task_panel
@@ -107,7 +108,7 @@ if "Groq" in secilen_model:
 else:
     from google import genai
     from google.genai import types
-    aktif_llm_adi = "gemini-3.6-flash" 
+    aktif_llm_adi = os.environ.get("GOOGLE_MODEL", "gemini-3.6-flash")
     st.sidebar.success("Aktif Beyin: Google Gemini 🌟")
 
 # Explicit, read-only provider check. This lists models and never generates text.
@@ -119,6 +120,15 @@ if "Groq" in secilen_model and GROQ_KEY and st.sidebar.button("Groq bağlantıs�
         st.sidebar.warning("Groq API anahtarı kabul edildi, ancak seçili model listede görünmüyor.")
     else:
         st.sidebar.error("Groq bağlantısı doğrulanamadı. Ayrıntılar güvenlik için gizlendi.")
+
+if "Groq" not in secilen_model and GOOGLE_KEY and st.sidebar.button("Google bağlantısını doğrula"):
+    check = check_provider("google", GOOGLE_KEY, model=aktif_llm_adi)
+    if check["status"] == "verified" and check.get("model_available"):
+        st.sidebar.success("Google bağlantısı ve seçili model listede doğrulandı; metin üretilmedi.")
+    elif check.get("authenticated"):
+        st.sidebar.warning("Google kimliği doğrulandı; seçili model erişimi henüz doğrulanamadı. GOOGLE_MODEL ayarını kontrol edin.")
+    else:
+        st.sidebar.error("Google bağlantısı doğrulanamadı. Ayrıntılar güvenlik için gizlendi.")
 
 # Web Sayfası Başlığı ve Sade Tasarım
 st.title("🌐 Standart ve Kararlı AI Asistanım")

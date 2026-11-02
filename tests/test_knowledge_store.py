@@ -78,7 +78,7 @@ class KnowledgeStoreTests(unittest.TestCase):
     def test_migration_preserves_latest_existing_digest(self):
         source = self.store.add_source("https://example.org/a", "A", content="snapshot")
         # Simulate database produced by an earlier code version without the history table.
-        with self.store._connect() as conn:
+        with self.store._connection() as conn:
             conn.execute("DROP TABLE source_revisions")
         migrated = KnowledgeStore(self.store.db_path)
         fingerprints = [x["content_sha256"] for x in migrated.list_revisions(source["id"])]
@@ -113,7 +113,7 @@ class KnowledgeStoreTests(unittest.TestCase):
 
     def test_legacy_supported_rows_remain_without_automatic_promotion(self):
         source = self.store.add_source("https://example.org/old", "Legacy source")
-        with self.store._connect() as conn:
+        with self.store._connection() as conn:
             conn.execute(
                 "INSERT INTO claims(claim,status,confidence,created_at) VALUES(?,?,?,?)",
                 ("Old supported status", "supported", 0.6, "2026-01-01T00:00:00+00:00"),
@@ -193,7 +193,7 @@ class KnowledgeStoreTests(unittest.TestCase):
         source = self.store.add_source("https://example.org/against", "Against", content="objection")
         claim = self.store.add_claim("Disputed", [source["id"]], status="contested",
             relationships={source["id"]: "contradicts"})
-        with self.store._connect() as conn:
+        with self.store._connection() as conn:
             conn.execute("UPDATE claims SET status='supported' WHERE id=?", (claim["id"],))
         audit = self.store.audit_claim_evidence(claim["id"])
         self.assertIn("legacy_supported_unverified", audit["flags"])
@@ -239,7 +239,7 @@ class KnowledgeStoreTests(unittest.TestCase):
     def test_bulk_audit_filters_unreviewed_and_legacy_supported(self):
         src = self.store.add_source("https://example.org/evidence", "Evidence")
         self.store.add_claim("Unreviewed", [src["id"]])
-        with self.store._connect() as conn:
+        with self.store._connection() as conn:
             conn.execute("INSERT INTO claims(claim,status,confidence,created_at) VALUES(?,?,?,?)",
                 ("Old supported", "supported", 0.8, "2026-01-01T00:00:00+00:00"))
         found = self.store.audit_all_claims(status="supported")

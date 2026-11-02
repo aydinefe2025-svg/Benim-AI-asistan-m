@@ -48,7 +48,9 @@ Kaynak kaydı tek başına içeriğin doğrulandığı anlamına gelmez.
 - [Bağlı sistem envanteri ve bilinen engeller](docs/SYSTEM_INVENTORY_2026-10-29.md)
 
 ## Barındırma durumu
-Vercel projesi şu an hata veriyor: kökteki `app.py` Streamlit betiği ve Vercel Python runtime'ının beklediği `app`/`application`/`handler` nesnesini dışa aktarmıyor. Ayrıca Vercel ortam değişkeni envanteri boş; mevcut uygulamanın model anahtarları orada görünmüyor. Bu yüzden repo şu an test edilmiş bir çekirdek ve yerel arayüz olarak sunulur; çalışan hosted AI servisi olarak sunulmaz.
+Mevcut Streamlit uygulaması [Render üzerinde](https://benim-ai-asistan-streamlit.onrender.com/) erişilebilir. 2 Kasım 2026 denetiminde HTTP sağlık kontrolü ve uygulamadaki Groq model-listesi erişimi doğrulandı; bulut metin üretimi test edilmedi. Render'ın ücretsiz diski geçicidir. Yeni düzeltmeler PR #51'dedir; mevcut canlı verinin güvenli yedeği doğrulanmadan yeniden dağıtım yapılmadı.
+
+[Güncel bağlantı, robotik ve yedekleme raporu](docs/connection-audit-2026-11-02/FOLLOWUP.md) ile [barındırma notları](DEPLOY_STREAMLIT.md) kapsamı ve kalan engelleri açıklar. Önceki Vercel hata kaydı geçmiş denetime aittir; bu görevde Vercel yeniden test edilmedi.
 
 ## Güvenlik
 API anahtarlarını kaynak koda veya raporlara yazma. Harici ücret/kota gerektiren araçları otomatik etkinleştirme. Bir görev ancak test veya açık doğrulama kanıtı varsa `verified` sayılır.

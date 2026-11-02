@@ -1,6 +1,16 @@
 # Deploy the actual Streamlit UI (not Vercel Python Functions)
 
-**Status:** Deployment NOT completed. GitHub unit tests do not verify public availability.
+**Current status (2026-11-02):** An existing Render service is live at
+https://benim-ai-asistan-streamlit.onrender.com/. Its health endpoint and in-app
+Groq authenticated model listing were verified; cloud inference was not run.
+It uses `fix/sqlite-backup-restore-20261031`, auto-deploy off, free plan.
+PR #51 contains additional tested fixes that have not been deployed.
+Do not redeploy until the existing live data has a verified backup: free Render
+services have ephemeral storage, no persistent disk and no SSH access.
+See [current evidence and recovery commands](docs/connection-audit-2026-11-02/FOLLOWUP.md).
+
+The following Community Cloud/Vercel notes are historical alternatives, not the
+current deployment target. GitHub unit tests do not verify public availability.
 The repository's root `app.py` is a **Streamlit** application using `st.sidebar`, `st.chat_input`, and session state. The connected Vercel project has framework `python` and errors with `PYTHON_ENTRYPOINT_NOT_FOUND`. Do not add a dummy ASGI handler to mask the problem.
 
 ## Compatible deployment: Streamlit Community Cloud
