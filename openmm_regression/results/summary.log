@@ -1,0 +1,33 @@
+{
+  "tests": [
+    {
+      "issue": 5532,
+      "baseline": "FAIL",
+      "retest": "PASS"
+    },
+    {
+      "issue": 5521,
+      "baseline": "FAIL",
+      "retest": "PASS"
+    },
+    {
+      "issue": 5515,
+      "baseline": "FAIL",
+      "retest": "FAIL"
+    },
+    {
+      "issue": 5493,
+      "baseline": "FAIL",
+      "retest": "FAIL"
+    },
+    {
+      "issue": 5494,
+      "baseline": "FAIL",
+      "retest": "FAIL"
+    }
+  ],
+  "cuda": "SKIP: platform absent in installed Windows wheel",
+  "scope": "Local OpenMM 8.6.1 mmCIF fixes only; C++ CPU/GPU defects remain unresolved"
+}
+
+STDERR:

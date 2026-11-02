@@ -1,0 +1,55 @@
+--- a/openmm/app/pdbxfile.py
++++ b/openmm/app/pdbxfile.py
+@@ -120,16 +120,18 @@
+         lastResId = None
+         lastInsertionCode = ''
+         atomTable = {}
++        alternateTable = {}
+         atomsInResidue = set()
+         models = []
+         for row in atomData.getRowList():
+             atomKey = ((row[resIdCol], row[chainIdCol], row[atomNameCol]))
++            alternateKey = (row[resIdCol], row[chainIdCol], row[resNumCol], (row[resInsertionCol] if resInsertionCol != -1 else ''), row[atomNameCol])
+             model = ('1' if modelCol == -1 else row[modelCol])
+             if model not in models:
+                 models.append(model)
+                 self._positions.append([])
+             modelIndex = models.index(model)
+-            if row[altIdCol] != '.' and atomKey in atomTable and len(self._positions[modelIndex]) > atomTable[atomKey].index:
++            if row[altIdCol] != '.' and alternateKey in alternateTable and len(self._positions[modelIndex]) > alternateTable[alternateKey].index:
+                 # This row is an alternate position for an existing atom, so ignore it.
+ 
+                 continue
+@@ -174,12 +176,13 @@
+                     atomName = atomReplacements[atomName]
+                 atom = top.addAtom(atomName, element, res, row[atomIdCol])
+                 atomTable[atomKey] = atom
++                alternateTable[alternateKey] = atom
+                 atomsInResidue.add(atomName)
+             else:
+                 # This row defines coordinates for an existing atom in one of the later models.
+ 
+                 try:
+-                    atom = atomTable[atomKey]
++                    atom = alternateTable[alternateKey]
+                 except KeyError:
+                     raise ValueError('Unknown atom %s in residue %s %s for model %s' % (row[atomNameCol], row[resNameCol], row[resNumCol], model))
+                 if atom.index != len(self._positions[modelIndex]):
+@@ -389,7 +392,7 @@
+                     resIds[res] = res.id
+             else:
+                 for (chainIndex, chain) in enumerate(topology.chains()):
+-                    chainIds[chain] = chr(ord('A')+chainIndex%26)
++                    chainIds[chain] = ('C'+str(chainIndex+1))
+                     for (resIndex, res) in enumerate(chain.residues()):
+                         resIds[res] = resIndex+1
+             for i, (atom1, atom2) in enumerate(bonds):
+@@ -470,7 +473,7 @@
+             if keepIds:
+                 chainName = chain.id
+             else:
+-                chainName = chr(ord('A')+chainIndex%26)
++                chainName = ('C'+str(chainIndex+1))
+             residues = list(chain.residues())
+             for (resIndex, res) in enumerate(residues):
+                 if keepIds:

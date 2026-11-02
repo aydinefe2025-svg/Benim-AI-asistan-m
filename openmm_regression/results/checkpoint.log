@@ -1,0 +1,5 @@
+OpenMM b399af4725573963b46d6c1083fdcf7a37615857, OpenCL single, {'Precision': 'single'}, 6591 atoms
+VerletIntegrator: forces differ after loading at 15 of 20 checkpoints (first at step 1, max|dF| 0.000640869 kJ/mol/nm); after 100 more steps max|dx| 0.000100851 nm
+CustomIntegrator (velocity Verlet): forces differ after loading at 15 of 20 checkpoints (first at step 1, max|dF| 0.000854492 kJ/mol/nm); after 100 more steps max|dx| 0.00192261 nm
+
+STDERR:

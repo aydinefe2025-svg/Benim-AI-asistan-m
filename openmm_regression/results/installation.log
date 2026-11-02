@@ -1,0 +1,19 @@
+
+OpenMM Version: 8.6.1
+Git Revision: b399af4725573963b46d6c1083fdcf7a37615857
+
+There are 3 Platforms available:
+
+1 Reference - Successfully computed forces
+2 CPU - Successfully computed forces
+3 OpenCL - Successfully computed forces
+
+Median difference in forces between platforms:
+
+Reference vs. CPU: 6.30025e-06
+Reference vs. OpenCL: 6.74321e-06
+CPU vs. OpenCL: 7.55445e-07
+
+All differences are within tolerance.
+
+STDERR:

@@ -1,0 +1,10 @@
+OpenMM b399af4725573963b46d6c1083fdcf7a37615857, OpenCL single, 6591 atoms
+OpenCL supports CalcPmeReciprocalForce (the CPU PME plugin is loaded): True
+energy kJ/mol: Reference -81064.6602, GPU PME -81064.6644, GPU PME again -81064.6705, UseCpuPme=true -81064.6661
+GPU PME vs GPU PME again:  max|dF| 0.000000e+00
+GPU PME vs UseCpuPme=true: max|dF| 0.000000e+00
+vs Reference, max|dF|/rms: GPU PME 1.396476e-05, UseCpuPme=true 1.396476e-05
+UseCpuPme=true forces are bitwise equal to GPU PME
+
+STDERR:
+1 warning and 2 errors generated.

@@ -1,0 +1,8 @@
+b_x =    0  y0 = L - 1e-05  (float32(y0) == float32(L): False):  pairs missing on CPU for x0 = 0.5, 1.5, 2.5, 3.5, 4.5: [0, 0, 0, 0, 0]
+b_x =    0  y0 = L - 1e-08  (float32(y0) == float32(L): True):  pairs missing on CPU for x0 = 0.5, 1.5, 2.5, 3.5, 4.5: [0, 0, 0, 0, 0]
+b_x =  1.5  y0 = L - 1e-05  (float32(y0) == float32(L): False):  pairs missing on CPU for x0 = 0.5, 1.5, 2.5, 3.5, 4.5: [0, 0, 0, 0, 0]
+b_x =  1.5  y0 = L - 1e-08  (float32(y0) == float32(L): True):  pairs missing on CPU for x0 = 0.5, 1.5, 2.5, 3.5, 4.5: [30, 37, 47, 47, 35]
+b_x = -1.5  y0 = L - 1e-05  (float32(y0) == float32(L): False):  pairs missing on CPU for x0 = 0.5, 1.5, 2.5, 3.5, 4.5: [0, 0, 0, 0, 0]
+b_x = -1.5  y0 = L - 1e-08  (float32(y0) == float32(L): True):  pairs missing on CPU for x0 = 0.5, 1.5, 2.5, 3.5, 4.5: [38, 66, 36, 42, 32]
+
+STDERR:
