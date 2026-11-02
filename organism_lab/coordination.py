@@ -1,4 +1,4 @@
-"""Verified task execution layer for bounded digital agent colonies.
+"""Task execution layer for bounded digital agent colonies.
 
 The colony assigns work, while an injected executor performs it. Nothing runs in
 the background and external actions are never marked complete without evidence.
@@ -15,7 +15,11 @@ class TaskResult:
     evidence: str
 
 def execute_task(colony: Colony, role: str, task: str, executor, verifier):
-    """Run a task and verify it; errors are logged without falsely claiming success."""
+    """Run a task and record that an injected check accepted its output.
+
+    This is not source verification: the caller controls the verifier and must
+    implement any independent provenance checks that the task requires.
+    """
     if not callable(executor) or not callable(verifier):
         raise TypeError("Executor and verifier must be callable")
     assignment = colony.assign(role, task)
@@ -27,7 +31,7 @@ def execute_task(colony: Colony, role: str, task: str, executor, verifier):
         evidence = verifier(task, output)
         if not isinstance(evidence, str) or not evidence.strip():
             raise ValueError("Verification evidence required")
-        result = TaskResult(agent, task, "verified", output, evidence)
+        result = TaskResult(agent, task, "checked", output, evidence)
     except Exception as exc:
         result = TaskResult(agent, task, "failed", "", type(exc).__name__)
     colony.audit.append({"event": "result", "agent": agent, "task": task,
