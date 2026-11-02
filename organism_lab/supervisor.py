@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from .core import Colony, ROLES
 from .coordination import execute_task, grow_on_demand
 from .audit_store import append_audit
+from .audit_recovery import assess_audit
 
 @dataclass
 class Supervisor:
@@ -32,6 +33,10 @@ class Supervisor:
                 raise ValueError("Invalid task")
             if not callable(handlers.get(role)) or not callable(verifiers.get(role)):
                 raise ValueError("Approved handler and verifier required")
+        if audit_path is not None:
+            assessment = assess_audit(audit_path)
+            if assessment["status"] == "damaged":
+                raise ValueError("Damaged audit history: execution blocked")
         results = []
         for role, task in tasks:
             if allow_growth:
