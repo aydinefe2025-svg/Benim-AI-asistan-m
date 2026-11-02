@@ -17,6 +17,8 @@ class ResearchImportTests(unittest.TestCase):
             task = store.create("Study", "Check evidence")
             store.transition(task["id"], "running")
             store.transition(task["id"], "done")
+            store.transition(task["id"], "running", note="Started")
+            store.transition(task["id"], "done", note="Completed")
             store.transition(task["id"], "verified", evidence=["old evidence"])
             save_draft(store.db_path, task["id"], "Draft only")
             raw = export_research_archive(store)
