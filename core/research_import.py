@@ -6,6 +6,7 @@ not proof of verification. All inserts are committed in one SQLite transaction.
 from __future__ import annotations
 import json
 import sqlite3
+from contextlib import closing
 import uuid
 from datetime import datetime, timezone
 from core.task_store import TaskStore
@@ -37,10 +38,13 @@ def import_research_archive(store: TaskStore, raw: bytes) -> int:
             raise ValueError("Invalid goal")
         if draft is not None and (not isinstance(draft, str) or len(draft) > 12000):
             raise ValueError("Invalid draft")
-        validated.append((title.strip(), goal, draft))
+        # Preserve the complete original record as untrusted provenance. Do not
+        # restore its status/evidence into the active verification state.
+        provenance = json.dumps(item, ensure_ascii=False, separators=(",", ":"))
+        validated.append((title.strip(), goal, draft, provenance))
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     # TaskStore ensures the tasks/events schema exists.
-    with sqlite3.connect(store.db_path, timeout=10) as conn:
+    with closing(sqlite3.connect(store.db_path, timeout=10)) as conn, conn:
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("BEGIN IMMEDIATE")
         conn.execute("""CREATE TABLE IF NOT EXISTS research_drafts (
@@ -48,7 +52,7 @@ def import_research_archive(store: TaskStore, raw: bytes) -> int:
             content TEXT NOT NULL,
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )""")
-        for title, goal, draft in validated:
+        for title, goal, draft, provenance in validated:
             task_id = str(uuid.uuid4())
             conn.execute(
                 "INSERT INTO tasks(id,title,goal,status,created_at,updated_at) VALUES(?,?,?,?,?,?)",
@@ -56,7 +60,9 @@ def import_research_archive(store: TaskStore, raw: bytes) -> int:
             )
             conn.execute(
                 "INSERT INTO task_events(task_id,at,old_status,new_status,note) VALUES(?,?,?,?,?)",
-                (task_id, now, None, "planned", "Imported from backup; re-verification required"),
+                (task_id, now, None, "planned",
+                 "Imported from backup; re-verification required. "
+                 "Untrusted original record: " + provenance),
             )
             if draft:
                 conn.execute(
