@@ -26,6 +26,37 @@ class VerifiedBackupTests(unittest.TestCase):
             self.assertEqual(db.execute("SELECT claim FROM evidence").fetchone()[0], "verified sample")
             self.assertEqual(db.execute("PRAGMA integrity_check").fetchone()[0], "ok")
 
+    def test_restore_drill_preserves_records_and_schema(self):
+        """Exercise a full restore into an isolated database, not the live one."""
+        backup = self.root / "snapshot.sqlite3"
+        report = verified_sqlite_backup(self.source, backup)
+        restored = self.root / "restored.sqlite3"
+        with sqlite3.connect(backup) as source_db:
+            with sqlite3.connect(restored) as restored_db:
+                source_db.backup(restored_db)
+                self.assertEqual(
+                    restored_db.execute("PRAGMA integrity_check").fetchone()[0], "ok"
+                )
+                self.assertEqual(
+                    restored_db.execute("SELECT claim FROM evidence").fetchall(),
+                    [("verified sample",)],
+                )
+                self.assertIsNotNone(
+                    restored_db.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='evidence'"
+                    ).fetchone()
+                )
+        self.assertEqual(report["sha256"], sha256_file(backup))
+
+    def test_backup_does_not_modify_source(self):
+        before = self.source.stat().st_size
+        verified_sqlite_backup(self.source, self.root / "snapshot.sqlite3")
+        with sqlite3.connect(self.source) as db:
+            self.assertEqual(
+                db.execute("SELECT COUNT(*) FROM evidence").fetchone()[0], 1
+            )
+        self.assertEqual(self.source.stat().st_size, before)
+
     def test_existing_backup_is_never_overwritten(self):
         destination = self.root / "snapshot.sqlite3"
         destination.write_bytes(b"existing archive")
