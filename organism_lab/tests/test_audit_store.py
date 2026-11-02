@@ -38,5 +38,12 @@ class AuditStoreTests(unittest.TestCase):
                 append_audit(path, {"task": "scan", "status": "queued"})
             self.assertFalse(path.exists())
 
+    def test_rejects_legacy_verified_label(self):
+        with TemporaryDirectory() as temp:
+            path = Path(temp) / "audit.jsonl"
+            with self.assertRaises(ValueError):
+                append_audit(path, {"task": "scan", "status": "verified"})
+            self.assertFalse(path.exists())
+
 if __name__ == "__main__":
     unittest.main()
