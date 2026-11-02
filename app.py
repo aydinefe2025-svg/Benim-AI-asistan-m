@@ -201,6 +201,16 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
                 st.rerun()
 
 # User-controlled research task ledger; no automatic execution.
+def _research_leads(goal: str) -> str:
+    try:
+        leads = research_sources(goal)
+    except Exception:
+        return "Source lookup failed; independent verification pending."
+    if not leads:
+        return "No sources retrieved; independent verification pending."
+    return "; ".join(item["title"] + ": " + item["url"] for item in leads)
+
+
 def _research_answer(goal: str) -> str:
     if not GROQ_KEY:
         raise RuntimeError("Groq key unavailable")
