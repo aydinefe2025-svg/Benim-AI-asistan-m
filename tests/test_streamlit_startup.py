@@ -56,6 +56,8 @@ class MissingSecretsTests(unittest.TestCase):
         streamlit.text_area = lambda *a, **kw: ""
         streamlit.text_input = lambda *a, **kw: ""
         streamlit.button = lambda *a, **kw: False
+        streamlit.form = lambda *a, **kw: nullcontext()
+        streamlit.form_submit_button = lambda *a, **kw: False
         streamlit.rerun = lambda *a, **kw: None
         class FakeSessionState(dict):
             def __getattr__(self, name):

@@ -16,6 +16,7 @@ from core.provider_config import (
 )
 from core.groq_diagnostics import check_groq_connection
 from core.user_memory import export_library, import_library, memory_context, new_memory
+from core.task_panel import render_task_panel
 
 _credentials = configured_credentials(st.secrets, os.environ)
 _credential_presence = credential_presence(_credentials)
@@ -195,6 +196,26 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
                     if saved["id"] != item["id"]
                 ]
                 st.rerun()
+
+# User-controlled research task ledger; no automatic execution.
+def _research_answer(goal: str) -> str:
+    if not GROQ_KEY:
+        raise RuntimeError("Groq key unavailable")
+    from groq import Groq
+    client = Groq(api_key=GROQ_KEY, timeout=25.0, max_retries=0)
+    response = client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=[
+            {"role": "system", "content": "You are a research drafting assistant. Clearly distinguish uncertain claims. Do not invent citations, claim web browsing, or claim independent verification. Answer in Turkish."},
+            {"role": "user", "content": goal[:1200]},
+        ],
+        max_tokens=1200,
+        temperature=0.2,
+    )
+    return response.choices[0].message.content or ""
+
+
+render_task_panel(st, answer=_research_answer if GROQ_KEY else None)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
