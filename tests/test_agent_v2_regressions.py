@@ -37,9 +37,14 @@ class TaskStoreRegressionTests(unittest.TestCase):
     def test_evidence_survives_subsequent_transitions(self):
         store = TaskStore(self.path)
         task = store.create("Audit")
-        store.transition(task["id"], "done", evidence=["Report saved"])
-        verified = store.transition(task["id"], "verified", evidence=["Reviewed report"])
-        self.assertEqual(verified["evidence"], ["Report saved", "Reviewed report"])
+        store.transition(task["id"], "running", note="Started review")
+        completed = store.transition(task["id"], "done", evidence=["Report saved"])
+        self.assertEqual(completed["evidence"], ["Report saved"])
+        # A note alone must never promote a task to verified.
+        with self.assertRaises(ValueError):
+            store.transition(task["id"], "verified", evidence=["Reviewed report"])
+        self.assertEqual(store.get(task["id"])["evidence"], ["Report saved"])
+        self.assertEqual(store.get(task["id"])["status"], "done")
 
     def test_invalid_filter_rejected(self):
         with self.assertRaises(ValueError):
