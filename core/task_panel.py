@@ -6,6 +6,7 @@ import sqlite3
 from pathlib import Path
 
 from core.task_store import ALLOWED_TRANSITIONS, TaskStore
+from core.research_import import import_research_archive
 
 
 def render_task_panel(st) -> None:
