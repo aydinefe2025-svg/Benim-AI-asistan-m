@@ -24,11 +24,13 @@ jobs:
         run: python research_ci/mujoco_batch.py
       - name: Repeated benchmark and state equivalence
         run: python research_ci/mujoco_benchmark.py
+      - name: Validate contact physics
+        run: python research_ci/mujoco_contact.py
       - name: Preserve results and digests
         if: always()
         shell: bash
         run: |
-          for f in mujoco_result.json mujoco_batch_result.json mujoco_benchmark_result.json; do
+          for f in mujoco_result.json mujoco_batch_result.json mujoco_benchmark_result.json mujoco_contact_result.json; do
             if [ -f "$f" ]; then sha256sum "$f" > "$f.sha256"; fi
           done
       - name: Upload evidence
@@ -43,4 +45,6 @@ jobs:
             mujoco_batch_result.json.sha256
             mujoco_benchmark_result.json
             mujoco_benchmark_result.json.sha256
+            mujoco_contact_result.json
+            mujoco_contact_result.json.sha256
           if-no-files-found: warn
