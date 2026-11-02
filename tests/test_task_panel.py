@@ -75,7 +75,7 @@ class TaskPanelTests(unittest.TestCase):
             tasks = TaskStore(path).list()
             self.assertEqual(len(tasks), 1)
             self.assertEqual(tasks[0]["status"], "planned")
-            self.assertIn("otomatik çalıştırmaz", " ".join(st.messages))
+            self.assertIn("yalnızca kullanıcı düğmeye bastığında çalışır", " ".join(st.messages))
 
     def test_transition_ui_records_human_note_and_evidence_without_model_call(self):
         with tempfile.TemporaryDirectory() as folder:
