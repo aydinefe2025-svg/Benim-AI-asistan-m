@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 from organism_lab.shared_world import run_shared_world
+from organism_lab.reproduction_study import run_study, save_study, summarize_with_local_model
 
 st.set_page_config(page_title="Organizma Laboratuvarı", layout="wide")
 st.title("Organizma Laboratuvarı")
@@ -37,3 +38,36 @@ if "organism_result" in st.session_state:
     else:
         st.info("Sıfır adım seçildi; işlem yapılmadı.")
     st.download_button("JSON raporunu indir", data=json.dumps(result, ensure_ascii=False, indent=2), file_name="organism_lab_report.json", mime="application/json")
+
+st.divider()
+st.header("Çoğalma kaynak araştırması")
+st.caption("30 eşlenmiş tohum × 100 adım × 5 kaynak düzeyi. Her koşul, aynı tohum ve kaynakta çoğalmayan kontrolle karşılaştırılır. Ölçümler yalnızca bu dijital simülasyona aittir.")
+if st.button("Araştırma kampanyasını çalıştır", key="run_reproduction_study", type="primary"):
+    with st.spinner("Eşlenmiş deneyler çalışıyor; sonuçlar ve yerel model yorumu kaydediliyor…"):
+        campaign = run_study(seeds=tuple(range(30)), steps=100,
+                             resource_levels=(0, 2, 5, 10, 20))
+        commentary = summarize_with_local_model(campaign)
+        saved = save_study(campaign, Path.cwd() / "organism_lab_output",
+                           model_commentary=commentary)
+    st.session_state["reproduction_campaign"] = campaign
+    st.session_state["reproduction_commentary"] = commentary
+    st.session_state["reproduction_saved"] = saved
+
+if "reproduction_campaign" in st.session_state:
+    campaign = st.session_state["reproduction_campaign"]
+    st.dataframe(campaign["results"], width="stretch")
+    commentary = st.session_state["reproduction_commentary"]
+    if commentary["status"] == "metric_consistent":
+        st.info("Yerel Qwen'in yapılandırılmış ölçüm kontrolü hesaplanan değerlerle eşleşti. Sonuç tablosu doğrudan simülasyon hesaplamalarından gelir.")
+    elif commentary["status"] == "rejected_inconsistent":
+        st.error("Yerel modelin ölçüm kontrolü hesaplamalarla çelişti ve gösterilmeden reddedildi. Deney ölçümleri kaydedildi.")
+    else:
+        st.info("Yerel model yorumu alınamadı; hesaplanan deney sonuçları yine de kaydedildi.")
+    saved = st.session_state["reproduction_saved"]
+    st.success(f"Kayıt tamamlandı · çalışma {saved['study_id']} · JSON, CSV ve SQLite")
+    st.download_button("Deney verisini JSON indir",
+                       data=json.dumps({**campaign, "model_commentary": commentary}, ensure_ascii=False, indent=2),
+                       file_name="reproduction-study.json", mime="application/json",
+                       key="download_reproduction_json")
+
+
