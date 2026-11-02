@@ -84,15 +84,13 @@ class TaskPanelTests(unittest.TestCase):
     def test_transition_ui_records_human_note_and_evidence_without_model_call(self):
         with tempfile.TemporaryDirectory() as folder:
             path = str(Path(folder) / "tasks.sqlite3")
+            st = FakeStreamlit(submits=[False, True])
             task = TaskStore(_session_database_path(st, path)).create("Kaynağı incele")
-            st = FakeStreamlit(
-                inputs={
-                    "task_note_" + task["id"]: "Kaynak kontrol edildi",
-                    "task_evidence_" + task["id"]: "https://example.org/report",
-                },
-                submits=[False, True],
-                selections={"task_status_" + task["id"]: "running"},
-            )
+            st.inputs.update({
+                "task_note_" + task["id"]: "Kaynak kontrol edildi",
+                "task_evidence_" + task["id"]: "https://example.org/report",
+            })
+            st.selections = {"task_status_" + task["id"]: "running"}
             with patch.dict("os.environ", {"AGENT_TASK_DB_PATH": path}):
                 render_task_panel(st)
             updated = TaskStore(_session_database_path(st, path)).get(task["id"])
