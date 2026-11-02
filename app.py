@@ -237,11 +237,11 @@ def asistani_calistir(kullanici_mesaji):
         try:
             public_sources = research_sources(kullanici_mesaji)
             if public_sources:
-                arama_sonucu += "\\nAçık ansiklopedi kaynakları (bağımsız doğrulanmadı):\\n" + "\\n".join(
+                arama_sonucu += "\nAçık ansiklopedi kaynakları (bağımsız doğrulanmadı):\n" + "\n".join(
                     item["title"] + ": " + item["url"] for item in public_sources
                 )
         except (OSError, ValueError, KeyError, TypeError):
-            arama_sonucu += "\\nAçık kaynak araması başarısız; sonuç doğrulanamadı."
+            arama_sonucu += "\nAçık kaynak araması başarısız; sonuç doğrulanamadı."
     saved_context = memory_context(st.session_state.saved_memories, kullanici_mesaji)
     sistem_talimati = f"""Sen sadece Türkçe konuşan, samimi ve harika bir dijital asistansın.
     İnternetten senin için gelen veri kutusu şudur: {arama_sonucu}
