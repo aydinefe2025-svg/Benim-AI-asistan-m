@@ -3,6 +3,10 @@ import json
 import os
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
+from urllib.parse import urlsplit
+
+MAX_RESPONSE_BYTES = 1_000_000
+GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 
 class ProviderError(RuntimeError):
     pass
@@ -22,6 +26,13 @@ def generate(prompt, provider="offline", *, transport=None):
     url = os.getenv(env_url, default_url)
     model = os.getenv(env_model, default_model)
     if provider == "groq":
+        parsed_url = urlsplit(url)
+        if (parsed_url.scheme != "https" or parsed_url.hostname != "api.groq.com"
+                or parsed_url.path != "/openai/v1/chat/completions"
+                or parsed_url.username or parsed_url.password
+                or parsed_url.port not in (None, 443)
+                or parsed_url.query or parsed_url.fragment):
+            raise ProviderError("Groq endpoint must be the trusted HTTPS API endpoint")
         key = os.getenv("GROQ_API_KEY")
         if not key:
             raise ProviderError("GROQ_API_KEY is missing")
@@ -35,7 +46,10 @@ def generate(prompt, provider="offline", *, transport=None):
     sender = transport or urlopen
     try:
         with sender(request, timeout=12) as response:
-            body = json.loads(response.read().decode("utf-8"))
+            raw_body = response.read(MAX_RESPONSE_BYTES + 1)
+            if len(raw_body) > MAX_RESPONSE_BYTES:
+                raise ProviderError("Provider response exceeds size limit")
+            body = json.loads(raw_body.decode("utf-8"))
         answer = body.get("response") if provider == "ollama" else body["choices"][0]["message"]["content"]
         if not isinstance(answer, str) or not answer.strip():
             raise ProviderError("Provider returned an empty response")
