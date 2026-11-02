@@ -2,9 +2,9 @@ name: Core tests
 
 on:
   push:
-    branches: ["main", "feature/buyuk-sistem-core"]
+    branches: ["main", "feature/buyuk-sistem-core", "fix/sqlite-backup-restore-20261031"]
   pull_request:
-    branches: ["main", "feature/buyuk-sistem-core"]
+    branches: ["main", "feature/buyuk-sistem-core", "fix/sqlite-backup-restore-20261031"]
 
 jobs:
   unittest:

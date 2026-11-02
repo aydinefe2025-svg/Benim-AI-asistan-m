@@ -59,6 +59,7 @@ class MissingSecretsTests(unittest.TestCase):
             title=lambda *a: None,
             selectbox=lambda label, options: options[0],
             success=lambda *a: None,
+            button=lambda *a, **kw: False,
         )
         requests = types.ModuleType("requests")
         groq = types.ModuleType("groq")
