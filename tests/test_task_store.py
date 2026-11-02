@@ -24,21 +24,18 @@ class TaskStoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.store.transition(task["id"], "verified")
 
-    def test_verified_task_keeps_evidence_and_history(self):
+    def test_free_text_or_urls_cannot_verify_and_leave_no_audit_mutation(self):
         task = self.store.create("Testi çalıştır")
         self.store.transition(task["id"], "running")
         self.store.transition(task["id"], "done")
-        updated = self.store.transition(
-            task["id"], "verified", note="Unit tests passed",
-            evidence=["unittest output: 3 tests passed"],
-        )
-        self.assertEqual(updated["status"], "verified")
-        self.assertIn("unittest output: 3 tests passed", updated["evidence"])
-        history = self.store.history(task["id"])
-        self.assertEqual(
-            [event["new_status"] for event in history],
-            ["planned", "running", "done", "verified"],
-        )
+        before = self.store.get(task["id"]), self.store.history(task["id"])
+        for evidence in (["unittest output: 3 tests passed"],
+                         ["https://invalid.example/missing"],
+                         ["https://arxiv.org/abs/1234.5678"] * 2,
+                         ["Model says the scientific assertion is supported"]):
+            with self.subTest(evidence=evidence), self.assertRaisesRegex(ValueError, "independent"):
+                self.store.transition(task["id"], "verified", evidence=evidence)
+            self.assertEqual((self.store.get(task["id"]), self.store.history(task["id"])), before)
 
     def test_illegal_transition_and_blank_verification_evidence_rejected(self):
         task = self.store.create("Geçişleri denetle")
@@ -56,8 +53,11 @@ class TaskStoreTests(unittest.TestCase):
         self.store.transition(task["id"], "planned", note="manual retry")
         self.store.transition(task["id"], "running")
         self.store.transition(task["id"], "done")
-        verified = self.store.transition(task["id"], "verified", evidence=["reviewed"])
-        self.assertEqual(verified["status"], "verified")
+        # Simulate an existing record from before the fail-closed gate.
+        with self.store._connection() as conn:
+            conn.execute("UPDATE tasks SET status='verified' WHERE id=?", (task["id"],))
+        reopened = TaskStore(self.store.db_path)
+        self.assertEqual(reopened.get(task["id"])["status"], "verified")
         with self.assertRaises(ValueError):
             self.store.transition(task["id"], "planned")
 

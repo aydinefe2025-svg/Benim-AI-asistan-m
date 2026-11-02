@@ -1,7 +1,8 @@
 """Small, dependency-free task ledger for the personal research system.
 
 This module records work; it does not pretend that recording a task means it ran.
-A task is only marked verified when a caller supplies verification evidence.
+New verified transitions are disabled until independent evidence review exists.
+Legacy verified records remain readable; their status is not a fresh review.
 """
 from __future__ import annotations
 
@@ -170,10 +171,11 @@ class TaskStore:
     ) -> dict[str, Any]:
         if status not in STATUSES:
             raise ValueError(f"Invalid status: {status}")
-        if status == "verified" and not any(
-            isinstance(item, str) and item.strip() for item in (evidence or [])
-        ):
-            raise ValueError("A task cannot be verified without evidence")
+        if status == "verified":
+            # Arbitrary notes, URLs and model output cannot establish that a
+            # primary source supports a claim. Enforce the same fail-closed
+            # rule here as in KnowledgeStore, including non-UI callers.
+            raise ValueError("Verified status requires independent evidence review; not available yet")
         now = _now()
         with self._connection() as conn:
             # Serialize writers and keep state validation, update and event append

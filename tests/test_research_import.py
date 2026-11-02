@@ -17,7 +17,10 @@ class ResearchImportTests(unittest.TestCase):
             task = store.create("Study", "Check evidence")
             store.transition(task["id"], "running", note="Research started")
             store.transition(task["id"], "done", note="Research completed")
-            store.transition(task["id"], "verified", evidence=["old evidence"])
+            # Seed a historical verified row; new verified transitions fail closed.
+            with store._connection() as conn:
+                conn.execute("UPDATE tasks SET status='verified', evidence=? WHERE id=?",
+                             ('["old evidence"]', task["id"]))
             save_draft(store.db_path, task["id"], "Draft only")
             raw = export_research_archive(store)
             self.assertEqual(import_research_archive(store, raw), 1)
