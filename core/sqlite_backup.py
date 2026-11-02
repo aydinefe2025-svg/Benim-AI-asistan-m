@@ -10,6 +10,7 @@ import hmac
 import json
 import re
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 
@@ -27,7 +28,7 @@ def _source_checked(path: str | Path) -> Path:
     if not src.is_file():
         raise FileNotFoundError(f"Database file does not exist: {src}")
     try:
-        with sqlite3.connect(src.as_uri() if src.is_absolute() else src.resolve().as_uri(), uri=True) as conn:
+        with closing(sqlite3.connect(src.resolve().as_uri() + "?mode=ro", uri=True)) as conn:
             result = conn.execute("PRAGMA integrity_check").fetchone()
             if result is None or result[0] != "ok":
                 raise ValueError("SQLite integrity check failed")
@@ -56,8 +57,8 @@ def _copy_database(source: Path, destination: str | Path) -> dict[str, int | str
     with dest.open("xb"):
         pass
     try:
-        with sqlite3.connect(source.resolve().as_uri() + "?mode=ro", uri=True) as src:
-            with sqlite3.connect(dest) as dst:
+        with closing(sqlite3.connect(source.resolve().as_uri() + "?mode=ro", uri=True)) as src:
+            with closing(sqlite3.connect(dest)) as dst:
                 src.backup(dst)
                 check = dst.execute("PRAGMA integrity_check").fetchone()[0]
                 if check != "ok":
@@ -164,7 +165,7 @@ def recovery_drill(
         raise ValueError("Invalid receipt SHA-256")
     if not hmac.compare_digest(_sha256_file(src), sha.lower()):
         raise ValueError("Backup SHA-256 does not match receipt")
-    with sqlite3.connect(src.resolve().as_uri() + "?mode=ro", uri=True) as conn:
+    with closing(sqlite3.connect(src.resolve().as_uri() + "?mode=ro", uri=True)) as conn:
         actual_sources = conn.execute("SELECT COUNT(*) FROM sources").fetchone()[0]
         actual_claims = conn.execute("SELECT COUNT(*) FROM claims").fetchone()[0]
         actual_links = conn.execute("SELECT COUNT(*) FROM notion_source_links").fetchone()[0]

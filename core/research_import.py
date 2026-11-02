@@ -6,6 +6,7 @@ not proof of verification. All inserts are committed in one SQLite transaction.
 from __future__ import annotations
 import json
 import sqlite3
+from contextlib import closing
 import uuid
 from datetime import datetime, timezone
 from core.task_store import TaskStore
@@ -40,7 +41,7 @@ def import_research_archive(store: TaskStore, raw: bytes) -> int:
         validated.append((title.strip(), goal, draft))
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     # TaskStore ensures the tasks/events schema exists.
-    with sqlite3.connect(store.db_path, timeout=10) as conn:
+    with closing(sqlite3.connect(store.db_path, timeout=10)) as conn, conn:
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("BEGIN IMMEDIATE")
         conn.execute("""CREATE TABLE IF NOT EXISTS research_drafts (

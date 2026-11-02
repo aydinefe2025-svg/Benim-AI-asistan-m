@@ -1,5 +1,6 @@
 """Backup/restore tests against real SQLite files and research lineage."""
 import json
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -78,9 +79,10 @@ class SQLiteBackupTests(unittest.TestCase):
         backup = self.root / "snapshot.sqlite3"
         recorded = backup_research_db(self.source_path, backup)["sha256"]
         import sqlite3
-        with sqlite3.connect(backup) as conn:
+        with closing(sqlite3.connect(backup)) as conn, conn:
             conn.execute("UPDATE sources SET title='Tampered' WHERE id=1")
-        self.assertEqual(sqlite3.connect(backup).execute("PRAGMA integrity_check").fetchone()[0], "ok")
+        with closing(sqlite3.connect(backup)) as conn:
+            self.assertEqual(conn.execute("PRAGMA integrity_check").fetchone()[0], "ok")
         destination = self.root / "must-not-be-created.sqlite3"
         with self.assertRaisesRegex(ValueError, "SHA-256"):
             restore_research_db(backup, destination, expected_sha256=recorded)
@@ -122,9 +124,10 @@ class SQLiteBackupTests(unittest.TestCase):
         receipt = self.root / "receipts" / "snapshot.json"
         backup_with_receipt(self.source_path, backup, receipt)
         import sqlite3
-        with sqlite3.connect(backup) as conn:
+        with closing(sqlite3.connect(backup)) as conn, conn:
             conn.execute("UPDATE sources SET title='Changed after backup'")
-        self.assertEqual(sqlite3.connect(backup).execute("PRAGMA integrity_check").fetchone()[0], "ok")
+        with closing(sqlite3.connect(backup)) as conn:
+            self.assertEqual(conn.execute("PRAGMA integrity_check").fetchone()[0], "ok")
         target = self.root / "recovered" / "should-not-exist.sqlite3"
         with self.assertRaisesRegex(ValueError, "SHA-256"):
             recovery_drill(backup, receipt, target)
@@ -183,7 +186,7 @@ class SQLiteBackupTests(unittest.TestCase):
         receipt = self.root / "receipts" / "snapshot.json"
         backup_with_receipt(self.source_path, backup, receipt)
         import sqlite3
-        with sqlite3.connect(backup) as conn:
+        with closing(sqlite3.connect(backup)) as conn, conn:
             conn.execute("PRAGMA foreign_keys=OFF")
             conn.execute("INSERT INTO claim_sources(claim_id,source_id,relationship) VALUES(99999,99999,'supports')")
         import hashlib

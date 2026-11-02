@@ -72,7 +72,7 @@ class NotionSourceManifestTests(unittest.TestCase):
         self.assertTrue(all(not row["content_sha256"] for row in self.store.list_sources()))
 
     def test_database_failure_rolls_back_entire_manifest(self):
-        with self.store._connect() as conn:
+        with self.store._connection() as conn:
             conn.execute("""
                 CREATE TRIGGER reject_second_source
                 BEFORE INSERT ON sources
@@ -96,7 +96,7 @@ class NotionSourceManifestTests(unittest.TestCase):
             "https://example.org/existing", "Original",
             publisher="Publisher", notes="Original provenance", content="body",
         )
-        with self.store._connect() as conn:
+        with self.store._connection() as conn:
             conn.execute("""
                 CREATE TRIGGER block_late_record
                 BEFORE INSERT ON sources
