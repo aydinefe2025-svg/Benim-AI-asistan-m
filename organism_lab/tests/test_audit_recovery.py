@@ -8,14 +8,14 @@ class AuditRecoveryTests(unittest.TestCase):
     def test_intact_file(self):
         with TemporaryDirectory() as temp:
             path = Path(temp) / "audit.jsonl"
-            append_audit(path, {"task": "one", "status": "verified"})
+            append_audit(path, {"task": "one", "status": "checked"})
             report = assess_audit(path)
             self.assertEqual((report["status"], report["valid_records"]), ("intact", 1))
 
     def test_corruption_preserves_valid_prefix_and_original(self):
         with TemporaryDirectory() as temp:
             path = Path(temp) / "audit.jsonl"
-            append_audit(path, {"task": "one", "status": "verified"})
+            append_audit(path, {"task": "one", "status": "checked"})
             append_audit(path, {"task": "two", "status": "failed"})
             original = path.read_bytes().replace(b'"two"', b'"bad"')
             path.write_bytes(original)
@@ -27,7 +27,7 @@ class AuditRecoveryTests(unittest.TestCase):
     def test_truncated_tail(self):
         with TemporaryDirectory() as temp:
             path = Path(temp) / "audit.jsonl"
-            append_audit(path, {"task": "one", "status": "verified"})
+            append_audit(path, {"task": "one", "status": "checked"})
             path.write_bytes(path.read_bytes().rstrip(b"\n"))
             self.assertEqual(assess_audit(path)["reason"], "incomplete_line")
 
