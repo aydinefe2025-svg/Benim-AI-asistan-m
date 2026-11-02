@@ -1,0 +1,79 @@
+{
+  "generated_at": "2026-11-02T13:06:49.511231+00:00",
+  "status": "source_leads_only",
+  "verified": false,
+  "topics": {
+    "neutron_star_eos": {
+      "query": "neutron star equation of state NICER",
+      "sources": [
+        {
+          "title": "List of most massive neutron stars",
+          "url": "https://en.wikipedia.org/wiki/List_of_most_massive_neutron_stars"
+        },
+        {
+          "title": "Neutron star",
+          "url": "https://en.wikipedia.org/wiki/Neutron_star"
+        },
+        {
+          "title": "Pulsar",
+          "url": "https://en.wikipedia.org/wiki/Pulsar"
+        }
+      ],
+      "status": "found"
+    },
+    "history_inventions": {
+      "query": "history of engineering inventions",
+      "sources": [
+        {
+          "title": "History of engineering",
+          "url": "https://en.wikipedia.org/wiki/History_of_engineering"
+        },
+        {
+          "title": "Timeline of Russian innovation",
+          "url": "https://en.wikipedia.org/wiki/Timeline_of_Russian_innovation"
+        },
+        {
+          "title": "Timeline of historic inventions",
+          "url": "https://en.wikipedia.org/wiki/Timeline_of_historic_inventions"
+        }
+      ],
+      "status": "found"
+    },
+    "robotics": {
+      "query": "robotics biomimetics",
+      "sources": [
+        {
+          "title": "Biomimetics",
+          "url": "https://en.wikipedia.org/wiki/Biomimetics"
+        },
+        {
+          "title": "Robot",
+          "url": "https://en.wikipedia.org/wiki/Robot"
+        },
+        {
+          "title": "Robotics",
+          "url": "https://en.wikipedia.org/wiki/Robotics"
+        }
+      ],
+      "status": "found"
+    },
+    "open_source_ai": {
+      "query": "open source artificial intelligence agents",
+      "sources": [
+        {
+          "title": "Distributed artificial intelligence",
+          "url": "https://en.wikipedia.org/wiki/Distributed_artificial_intelligence"
+        },
+        {
+          "title": "Lists of open-source artificial intelligence software",
+          "url": "https://en.wikipedia.org/wiki/Lists_of_open-source_artificial_intelligence_software"
+        },
+        {
+          "title": "Open-source artificial intelligence",
+          "url": "https://en.wikipedia.org/wiki/Open-source_artificial_intelligence"
+        }
+      ],
+      "status": "found"
+    }
+  }
+}
