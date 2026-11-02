@@ -1,0 +1,22 @@
+name: Evidence gate regression
+on:
+  push:
+    branches:
+      - feat/issue-58-evidence-gate
+  pull_request:
+    paths:
+      - 'core/evidence_gate.py'
+      - 'tests/test_evidence_gate.py'
+      - '.github/workflows/evidence-gate.yml'
+jobs:
+  evidence-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check syntax
+        run: python -m compileall -q core tests
+      - name: Run evidence gate and executor tests
+        run: python -m unittest discover -s tests -p 'test_evidence_gate.py' -v && python -m unittest discover -s tests -p 'test_agent_executor.py' -v
