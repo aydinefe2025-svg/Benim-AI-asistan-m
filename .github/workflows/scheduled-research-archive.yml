@@ -25,6 +25,8 @@ jobs:
           python-version: '3.11'
       - name: Run research snapshot
         run: python -m scripts.daily_research
+      - name: Validate report before archive
+        run: python -m scripts.validate_research_archive
       - name: Commit report to production branch
         run: |
           git config user.name "github-actions[bot]"
