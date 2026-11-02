@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-02T13:14:24.644507+00:00",
+  "generated_at": "2026-11-02T15:11:42.694519+00:00",
   "status": "source_leads_only",
   "verified": false,
   "topics": {
@@ -19,7 +19,8 @@
           "url": "https://en.wikipedia.org/wiki/Pulsar"
         }
       ],
-      "status": "found"
+      "status": "found",
+      "attempts": 1
     },
     "history_inventions": {
       "query": "history of engineering inventions",
@@ -37,7 +38,8 @@
           "url": "https://en.wikipedia.org/wiki/Timeline_of_historic_inventions"
         }
       ],
-      "status": "found"
+      "status": "found",
+      "attempts": 1
     },
     "robotics": {
       "query": "robotics biomimetics",
@@ -55,7 +57,8 @@
           "url": "https://en.wikipedia.org/wiki/Robotics"
         }
       ],
-      "status": "found"
+      "status": "found",
+      "attempts": 1
     },
     "open_source_ai": {
       "query": "open source artificial intelligence agents",
@@ -73,7 +76,8 @@
           "url": "https://en.wikipedia.org/wiki/Open-source_artificial_intelligence"
         }
       ],
-      "status": "found"
+      "status": "found",
+      "attempts": 1
     }
   }
 }
