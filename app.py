@@ -76,16 +76,18 @@ def internette_ara(sorgu: str) -> str:
                     return f"HAVA SERVİSİ BİLGİSİ -> Şehir: {sehir_adi} | Durum: {durum} | Sıcaklık: {sicaklik} | Nem: {nem} | Rüzgar: {ruzgar}."
             return "Hava servisi şu anda güvenilir bilgi sunamıyor; güncel hava durumu doğrulanamadı."
                     
-        # Diğer genel internet aramaları için standart API bağlantısı
+        # Instant Answer API is not a full search engine. Return explicit source metadata.
         url = "https://api.duckduckgo.com/?" + urlencode({"q": sorgu, "format": "json", "no_html": 1})
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=6)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("AbstractText"):
-                return "DuckDuckGo anlık yanıt: " + str(data["AbstractText"])
-                
-        return "DuckDuckGo anlık yanıtında sonuç bulunamadı; bu tam web araması değildir."
+        response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=6)
+        response.raise_for_status()
+        data = response.json()
+        abstract = data.get("AbstractText")
+        source_url = data.get("AbstractURL")
+        if isinstance(abstract, str) and abstract.strip():
+            if isinstance(source_url, str) and source_url.startswith(("https://", "http://")):
+                return "DuckDuckGo anlık yanıt (kaynak: " + source_url + "): " + abstract[:2500]
+            return "DuckDuckGo anlık yanıt (kaynak URL'si verilmedi): " + abstract[:2500]
+        return "DuckDuckGo anlık yanıtında kaynaklı sonuç bulunamadı; tam web araması yapılamadı."
     except Exception:
         return "İnternet veri kaynağına erişilemedi; güncel bilgi doğrulanamadı."
 
@@ -219,7 +221,14 @@ render_task_panel(st, answer=_research_answer if GROQ_KEY else None)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
-    arama_sonucu = internette_ara(kullanici_mesaji)
+    # Avoid unrequested external lookups and leaking casual chat to third parties.
+    arama_istegi = bool(re.search(
+        r"\\b(araştır|araştırma|internette|internetten|webde|web'de|güncel|kaynak|haber|hava|sıcaklık|yağış)\\b",
+        kullanici_mesaji, flags=re.IGNORECASE,
+    ))
+    arama_sonucu = internette_ara(kullanici_mesaji) if arama_istegi else (
+        "Bu mesaj için harici kaynak sorgulanmadı; güncel veri doğrulanmadı."
+    )
     
     saved_context = memory_context(st.session_state.saved_memories, kullanici_mesaji)
     sistem_talimati = f"""Sen sadece Türkçe konuşan, samimi ve harika bir dijital asistansın.
