@@ -259,7 +259,7 @@ def asistani_calistir(kullanici_mesaji):
     
     🧰 GERÇEK YETENEKLER VE SINIRLAR:
     - Bu uygulama, yapılandırılmış Groq veya Google modeliyle yanıt üretir.
-    - internette_ara() yalnızca sınırlı DuckDuckGo anlık yanıtı ve şehir belirtilirse wttr.in hava servisini sorgular; tam web tarayıcısı değildir.
+    - internette_ara() DuckDuckGo anlık yanıtını ve şehir belirtilirse wttr.in hava servisini sorgular. Ayrıca açık ansiklopedi arama bağlantıları toplanabilir; bunlar bağımsız doğrulama değildir. Tam web tarayıcısı değildir.
     - Araştırma/görev paneli kullanıcı denetimli taslak ve kayıt işlevi sunar; görevleri arka planda kendiliğinden yürütmez.
     - Hafıza notları oturumda tutulur; kalıcılık için kullanıcı JSON dışa aktarma/içe aktarma yapabilir.
     - Kod geliştirme mümkündür ancak bu sohbet arayüzünde doğrudan GitHub, Render, Notion, dosya sistemi veya kod çalıştırma aracı bağlı değildir.
