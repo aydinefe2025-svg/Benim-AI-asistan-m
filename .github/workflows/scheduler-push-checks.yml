@@ -1,0 +1,20 @@
+name: Scheduler push checks
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/daily-research-archive.yml'
+      - '.github/workflows/scheduler-push-checks.yml'
+      - 'tests/test_scheduler_push.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -p 'test_scheduler_push.py' -v
