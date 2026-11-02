@@ -6,3 +6,5 @@ __pycache__/
 *.sqlite3-shm
 .env
 .streamlit/secrets.toml
+/mujoco*_result.json
+/private-backups/

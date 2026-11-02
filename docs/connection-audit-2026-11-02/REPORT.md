@@ -1,5 +1,8 @@
 # Bağlantı ve sistem doğrulaması — 2 Kasım 2026
 
+Bu belge ilk denetimin tarihsel kaydıdır. Devam görevinin güncel sonuçları:
+[Kalan eksiklerin giderilmesi](FOLLOWUP.md).
+
 ## Kapsam ve kaynak
 
 Açılan çalışma dizini boştu. Mevcut `aydinefe2025-svg/Benim-AI-asistan-m`

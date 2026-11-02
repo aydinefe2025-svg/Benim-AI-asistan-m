@@ -1,0 +1,44 @@
+{
+  "opencode": {
+    "version": "2.2.3",
+    "model": "ollama/qwen3:8b",
+    "expected": "CODEX_LOCAL_OK",
+    "observed": "CODEX_LOCAL_OK",
+    "exit_code": 0,
+    "reported_cost": 0,
+    "tool_calls": 0
+  },
+  "live_groq": {
+    "authenticated_model_listing": "verified",
+    "inference_tested": false
+  },
+  "google": {
+    "local": "not_configured",
+    "live_provider_menu": "absent"
+  },
+  "telegram": {
+    "local": "not_configured",
+    "messages_sent": 0
+  },
+  "storage": {
+    "render_plan": "free",
+    "neon_projects": 0,
+    "supabase_projects": 0,
+    "live_data_backup_verified": false,
+    "deployment_performed": false
+  },
+  "physical_robot": "no_device_or_endpoint_supplied",
+  "unittest": {
+    "command": ".venv/Scripts/python.exe -m unittest discover -s tests -v",
+    "python": "3.15.2",
+    "tests": 177,
+    "seconds": 3.776,
+    "exit_code": 0,
+    "failures": 0,
+    "errors": 0
+  },
+  "pip_check": {
+    "exit_code": 0,
+    "result": "No broken requirements found."
+  }
+}
