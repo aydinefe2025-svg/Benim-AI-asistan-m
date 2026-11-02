@@ -46,6 +46,12 @@ class ProviderTests(unittest.TestCase):
             with self.assertRaisesRegex(ProviderError, "trusted HTTPS"):
                 generate("hello", "groq", transport=sender)
         self.assertFalse(sender_called)
+    def test_groq_rejects_malformed_endpoint_without_leaking_key(self):
+        for endpoint in ("", "https://api.groq.com:99999/openai/v1/chat/completions"):
+            with self.subTest(endpoint=endpoint), patch.dict(
+                    os.environ, {"GROQ_API_KEY": "test-placeholder", "GROQ_API_URL": endpoint}):
+                with self.assertRaisesRegex(ProviderError, "trusted HTTPS"):
+                    generate("hello", "groq", transport=lambda *args, **kwargs: self.fail("sent"))
     def test_provider_response_size_is_bounded(self):
         class LargeResponse(FakeResponse):
             def read(self, size=-1):
