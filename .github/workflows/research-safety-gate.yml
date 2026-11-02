@@ -3,8 +3,8 @@ name: Research safety gate
 on:
   push:
     branches:
+      - main
       - feature/buyuk-sistem-core
-      - ci/research-safety-gate-20261101
   pull_request:
   workflow_dispatch:
 
