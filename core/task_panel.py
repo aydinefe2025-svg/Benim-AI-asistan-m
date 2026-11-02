@@ -4,6 +4,7 @@ from pathlib import Path
 
 from core.task_store import TaskStore
 from core.agent_executor import run_research_task
+from core.research_drafts import save_draft, load_draft
 
 
 def render_task_panel(st, groq_key=None):
@@ -63,12 +64,12 @@ def render_task_panel(st, groq_key=None):
                         return response.choices[0].message.content
                     result = run_research_task(store, task["id"], ask_model)
                     if result["status"] == "done":
-                        st.session_state["research_draft_" + task["id"]] = result["draft"]
+                        save_draft(store.db_path, task["id"], result["draft"])
                         st.success("Taslak üretildi; bağımsız doğrulama bekliyor.")
                     else:
                         st.warning("Görev engellendi; bağlantıyı veya limiti kontrol edin.")
             for task in tasks[-10:]:
-                draft = st.session_state.get("research_draft_" + task["id"])
+                draft = load_draft(store.db_path, task["id"])
                 if draft:
                     st.markdown("**Taslak — " + task["title"] + "**")
                     st.markdown(draft)
