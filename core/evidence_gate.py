@@ -15,7 +15,7 @@ def record_evidence_review(db_path, task_id, *, source_url, evidence_note, revie
         raise ValueError("A source URL is required")
     if type(accepted) is not bool:
         raise ValueError("accepted must be boolean")
-    now = datetime.now(timezone.utc).isoformat()
+    # A caller-supplied reviewer name is not authentication. Until a trusted\n    # identity and independent source-check workflow is integrated, fail closed.\n    if accepted:\n        raise PermissionError("Accepted review requires authenticated independent reviewer")\n    now = datetime.now(timezone.utc).isoformat()
     with sqlite3.connect(str(db_path), timeout=15) as conn:
         conn.execute("BEGIN IMMEDIATE")
         conn.execute("""CREATE TABLE IF NOT EXISTS evidence_reviews (
