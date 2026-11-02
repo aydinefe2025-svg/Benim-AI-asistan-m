@@ -5,6 +5,7 @@ from pathlib import Path
 from core.task_store import TaskStore
 from core.agent_executor import run_research_task
 from core.research_drafts import save_draft, load_draft
+from core.research_export import export_research_archive
 
 
 def render_task_panel(st, groq_key=None):
@@ -34,6 +35,18 @@ def render_task_panel(st, groq_key=None):
 
         tasks = store.list()
         st.caption(f"Yerel kayıt sayısı: {len(tasks)}")
+        try:
+            backup = export_research_archive(store)
+            st.download_button(
+                "📦 Görevleri ve taslakları yedekle (JSON)",
+                data=backup,
+                file_name="arastirma-gorevleri-yedek.json",
+                mime="application/json",
+                key="download_research_tasks",
+            )
+        except (ValueError, OSError):
+            st.warning("Yedek oluşturulamadı; kayıt sayısını veya dosya boyutunu kontrol edin.")
+
         for task in tasks[-30:]:
             st.markdown(f"**{task['title']}** — `{task['status']}`")
             if task["blockers"]:
