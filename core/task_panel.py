@@ -52,6 +52,7 @@ def render_task_panel(st, answer=None) -> None:
                     st.error("Yedek geçersiz veya veritabanı erişilemiyor; içe aktarma yapılamadı.")
         tasks = store.list()
         st.caption(f"Yerel kayıt sayısı: {len(tasks)}")
+        st.caption("Kaynak doğrulama mekanizması eklenene kadar görevler Doğrulandı durumuna alınamaz.")
         try:
             archive = export_research_archive(store)
             st.download_button(
@@ -86,7 +87,9 @@ def render_task_panel(st, answer=None) -> None:
                         st.warning("Araştırma sağlayıcısı başarısız oldu; görev engellendi.")
                     st.rerun()
 
-            next_statuses = sorted(ALLOWED_TRANSITIONS[task["status"]])
+            # Source verification is not implemented yet. Do not let arbitrary
+            # user-entered text promote a task to verified.
+            next_statuses = sorted(ALLOWED_TRANSITIONS[task["status"]] - {"verified"})
             if not next_statuses:
                 continue
             with st.form("agent_task_transition_" + task["id"]):
