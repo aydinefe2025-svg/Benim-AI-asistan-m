@@ -32,11 +32,13 @@ jobs:
         run: python research_ci/mujoco_reversal.py
       - name: Validate two-joint robot control
         run: python research_ci/mujoco_two_joint.py
+      - name: Validate inverse kinematics and end-effector tracking
+        run: python research_ci/mujoco_ik.py
       - name: Preserve results and digests
         if: always()
         shell: bash
         run: |
-          for f in mujoco_result.json mujoco_batch_result.json mujoco_benchmark_result.json mujoco_contact_result.json mujoco_actuator_result.json mujoco_reversal_result.json mujoco_two_joint_result.json; do
+          for f in mujoco_result.json mujoco_batch_result.json mujoco_benchmark_result.json mujoco_contact_result.json mujoco_actuator_result.json mujoco_reversal_result.json mujoco_two_joint_result.json mujoco_ik_result.json; do
             if [ -f "$f" ]; then sha256sum "$f" > "$f.sha256"; fi
           done
       - name: Upload evidence
@@ -59,4 +61,6 @@ jobs:
             mujoco_reversal_result.json.sha256
             mujoco_two_joint_result.json
             mujoco_two_joint_result.json.sha256
+            mujoco_ik_result.json
+            mujoco_ik_result.json.sha256
           if-no-files-found: warn
