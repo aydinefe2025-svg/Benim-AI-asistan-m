@@ -45,7 +45,10 @@ def run_pipeline(output_dir):
 
     def verify_summary(task, output):
         result = json.loads(output)
-        if result != json.loads(summary(task)):
+        expected_world = run_shared_world(steps=20, energy=40, materials=12)
+        expected = {"steps": len(expected_world["history"]), "robots": expected_world["robots"],
+                    "organisms": expected_world["organisms"]}
+        if result != expected:
             raise ValueError("Summary mismatch")
         return "summary-recomputed"
 
