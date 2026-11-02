@@ -80,7 +80,8 @@ def internette_ara(sorgu: str) -> str:
         # Instant Answer API is not a full search engine. Return explicit source metadata.
         url = "https://api.duckduckgo.com/?" + urlencode({"q": sorgu, "format": "json", "no_html": 1})
         response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=6)
-        response.raise_for_status()
+        if response.status_code >= 400:
+            return "DuckDuckGo servisi hata döndürdü; güncel bilgi doğrulanamadı."
         data = response.json()
         abstract = data.get("AbstractText")
         source_url = data.get("AbstractURL")
