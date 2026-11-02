@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: fix/sqlite-backup-restore-20261031
+          fetch-depth: 0
           persist-credentials: true
       - uses: actions/setup-python@v5
         with:
@@ -31,5 +32,21 @@ jobs:
           git add research_reports/
           if ! git diff --cached --quiet; then
             git commit -m "archive: daily research source leads"
-            git push origin HEAD:fix/sqlite-backup-restore-20261031
+            python - <<'PY'
+          import subprocess
+          import sys
+
+          # BEGIN bounded archive push
+          branch = "fix/sqlite-backup-restore-20261031"
+          for attempt in range(3):
+              pushed = subprocess.run(["git", "push", "origin", "HEAD:" + branch])
+              if pushed.returncode == 0:
+                  sys.exit(0)
+              if attempt == 2:
+                  sys.exit("Archive push failed after 3 attempts; no force push used")
+              subprocess.run(["git", "fetch", "origin", branch], check=True)
+              # A same-file conflict fails for review, preserving remote data.
+              subprocess.run(["git", "rebase", "FETCH_HEAD"], check=True)
+          # END bounded archive push
+          PY
           fi
