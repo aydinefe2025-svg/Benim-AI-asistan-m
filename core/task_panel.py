@@ -7,6 +7,7 @@ from pathlib import Path
 
 from core.task_store import ALLOWED_TRANSITIONS, TaskStore
 from core.research_import import import_research_archive
+from core.research_export import export_research_archive
 
 
 def render_task_panel(st) -> None:
@@ -49,6 +50,17 @@ def render_task_panel(st) -> None:
                     st.error("Yedek geçersiz veya veritabanı erişilemiyor; içe aktarma yapılamadı.")
         tasks = store.list()
         st.caption(f"Yerel kayıt sayısı: {len(tasks)}")
+        try:
+            archive = export_research_archive(store)
+            st.download_button(
+                "Görevleri ve taslakları yedekle (JSON)",
+                data=archive,
+                file_name="arastirma-gorevleri-yedek.json",
+                mime="application/json",
+                key="download_research_tasks",
+            )
+        except (ValueError, OSError, sqlite3.Error):
+            st.warning("Araştırma yedeği oluşturulamadı.")
         for task in tasks[-30:]:
             st.text(f"{task['title']} — {task['status']}")
             if task["goal"]:
