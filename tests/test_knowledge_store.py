@@ -44,6 +44,39 @@ class KnowledgeStoreTests(unittest.TestCase):
             {"supports", "contradicts"},
         )
 
+    def test_supported_claim_rejects_context_only_source(self):
+        source = self.store.add_source("https://example.org/context", "Context")
+        with self.assertRaisesRegex(ValueError, "supporting source"):
+            self.store.add_claim(
+                "Not established", [source["id"]], status="supported",
+                relationships={source["id"]: "context"},
+            )
+        self.assertEqual(self.store.list_claims(), [])
+
+    def test_supported_claim_rejects_contradiction_only_source(self):
+        source = self.store.add_source("https://example.org/against", "Against")
+        with self.assertRaisesRegex(ValueError, "supporting source"):
+            self.store.add_claim(
+                "Contradicted", [source["id"]], status="supported",
+                relationships={source["id"]: "contradicts"},
+            )
+
+    def test_supported_claim_accepts_supporting_source(self):
+        source = self.store.add_source("https://example.org/support", "Support")
+        claim = self.store.add_claim(
+            "Claim", [source["id"]], status="supported",
+            relationships={source["id"]: "supports"},
+        )
+        self.assertEqual(self.store.get_claim(claim["id"])["status"], "supported")
+
+    def test_invalid_relationship_does_not_write_claim(self):
+        source = self.store.add_source("https://example.org/invalid", "Invalid")
+        with self.assertRaisesRegex(ValueError, "Invalid source relationship"):
+            self.store.add_claim(
+                "Bad link", [source["id"]], relationships={source["id"]: "invented"},
+            )
+        self.assertEqual(self.store.list_claims(), [])
+
     def test_rejects_non_http_url_and_bad_confidence(self):
         with self.assertRaises(ValueError):
             self.store.add_source("file:///etc/passwd", "Bad")
