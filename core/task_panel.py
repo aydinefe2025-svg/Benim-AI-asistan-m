@@ -12,7 +12,7 @@ def render_task_panel(st):
             "Render ücretsiz diskinde yeniden dağıtım sonrası kaybolabilir. "
             "Görev oluşturmak, otomatik olarak çalıştırmak anlamına gelmez."
         )
-        db_path = os.environ.get("AGENT_TASK_DB_PATH", "data/research_system.sqlite3")
+        db_path = os.environ.get("AGENT_TASK_DB_PATH", "data/agent_tasks.sqlite3")
         try:
             store = TaskStore(Path(db_path))
         except (OSError, ValueError) as exc:
