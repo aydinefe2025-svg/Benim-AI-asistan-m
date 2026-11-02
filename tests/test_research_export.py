@@ -15,13 +15,14 @@ class ResearchExportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             store = TaskStore(Path(folder) / "tasks.sqlite3")
             task = store.create("Study source", "Assess evidence")
+            store.transition(task["id"], "running", note="Research started")
             store.transition(task["id"], "done", note="Draft prepared")
             save_draft(store.db_path, task["id"], "Not independently verified")
             data = json.loads(export_research_archive(store))
             self.assertEqual(data["schema"], "research-task-export-v1")
             self.assertEqual(len(data["tasks"]), 1)
             self.assertEqual(data["tasks"][0]["draft"], "Not independently verified")
-            self.assertEqual(len(data["tasks"][0]["history"]), 2)
+            self.assertEqual(len(data["tasks"][0]["history"]), 3)
             self.assertEqual(data["tasks"][0]["status"], "done")
 
     def test_export_rejects_too_many_tasks(self):
