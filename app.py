@@ -15,6 +15,7 @@ from core.provider_config import (
     credential_presence,
 )
 from core.groq_diagnostics import check_groq_connection
+from core.public_research import research_sources
 from core.user_memory import export_library, import_library, memory_context, new_memory
 from core.task_panel import render_task_panel
 
@@ -230,6 +231,17 @@ def asistani_calistir(kullanici_mesaji):
         "Bu mesaj için harici kaynak sorgulanmadı; güncel veri doğrulanmadı."
     )
     
+    # Public source lookup only on explicit research requests; source URLs are
+    # evidence pointers, not proof that model claims were independently verified.
+    if arama_istegi:
+        try:
+            public_sources = research_sources(kullanici_mesaji)
+            if public_sources:
+                arama_sonucu += "\\nAçık ansiklopedi kaynakları (bağımsız doğrulanmadı):\\n" + "\\n".join(
+                    item["title"] + ": " + item["url"] for item in public_sources
+                )
+        except (OSError, ValueError, KeyError, TypeError):
+            arama_sonucu += "\\nAçık kaynak araması başarısız; sonuç doğrulanamadı."
     saved_context = memory_context(st.session_state.saved_memories, kullanici_mesaji)
     sistem_talimati = f"""Sen sadece Türkçe konuşan, samimi ve harika bir dijital asistansın.
     İnternetten senin için gelen veri kutusu şudur: {arama_sonucu}
