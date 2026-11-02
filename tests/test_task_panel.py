@@ -37,6 +37,9 @@ class FakeStreamlit:
     def file_uploader(self, *args, **kwargs):
         return None
 
+    def download_button(self, *args, **kwargs):
+        return False
+
     def button(self, *args, **kwargs):
         return False
 
