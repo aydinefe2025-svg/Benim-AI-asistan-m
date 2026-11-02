@@ -1,0 +1,36 @@
+name: Scheduled SQLite recovery drill
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sqlite-recovery-drill
+  cancel-in-progress: false
+
+jobs:
+  recovery-drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Exercise SQLite backup and isolated restore
+        run: python -m unittest discover -s tests -p 'test_verified_backup.py' -v
+      - name: Record execution summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### SQLite recovery drill"
+            echo "- Scope: synthetic test database, not production data"
+            echo "- Outcome: ${{ job.status }}"
+            echo "- Schedule: daily at 04:17 UTC"
+            echo "- No research database was uploaded or exported."
+          } >> "$GITHUB_STEP_SUMMARY"
