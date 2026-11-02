@@ -16,7 +16,6 @@ class ResearchExportTests(unittest.TestCase):
             store = TaskStore(Path(folder) / "tasks.sqlite3")
             task = store.create("Study source", "Assess evidence")
             store.transition(task["id"], "running", note="Research started")
-            store.transition(task["id"], "running", note="Started")
             store.transition(task["id"], "done", note="Draft prepared")
             save_draft(store.db_path, task["id"], "Not independently verified")
             data = json.loads(export_research_archive(store))
