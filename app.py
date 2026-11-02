@@ -210,7 +210,7 @@ def _research_answer(goal: str) -> str:
         model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": "You are a research drafting assistant. Clearly distinguish uncertain claims. Do not invent citations, claim web browsing, or claim independent verification. Answer in Turkish."},
-            {"role": "user", "content": goal[:1200]},
+            {"role": "user", "content": goal[:1200] + " | Sources: " + _research_leads(goal)},
         ],
         max_tokens=1200,
         temperature=0.2,
