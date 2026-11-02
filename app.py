@@ -198,7 +198,7 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
                 st.rerun()
 
 # User-controlled research task ledger; no automatic execution.
-render_task_panel(st)
+render_task_panel(st, GROQ_KEY)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
