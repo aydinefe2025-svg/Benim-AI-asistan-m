@@ -44,13 +44,17 @@ def generate(prompt, provider="offline", *, transport=None):
         payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": 512}
         headers = {"Authorization": "Bearer " + key}
     else:
-        payload = {"model": model, "prompt": prompt, "stream": False}
+        # Qwen3 may spend its entire response budget in a hidden reasoning
+        # trace unless thinking is explicitly disabled for this user-facing
+        # text endpoint. Local models can also need longer than the cloud
+        # request timeout while loading, especially on CPU-only machines.
+        payload = {"model": model, "prompt": prompt, "stream": False, "think": False}
         headers = {}
     headers["Content-Type"] = "application/json"
     request = Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
     sender = transport or urlopen
     try:
-        with sender(request, timeout=12) as response:
+        with sender(request, timeout=120 if provider == "ollama" else 12) as response:
             raw_body = response.read(MAX_RESPONSE_BYTES + 1)
             if len(raw_body) > MAX_RESPONSE_BYTES:
                 raise ProviderError("Provider response exceeds size limit")
@@ -61,3 +65,5 @@ def generate(prompt, provider="offline", *, transport=None):
         return {"provider": provider, "status": "ok", "text": answer.strip()}
     except (HTTPError, URLError, OSError, ValueError, KeyError, IndexError, TypeError) as exc:
         raise ProviderError("Provider request failed: " + type(exc).__name__) from exc
+
+
