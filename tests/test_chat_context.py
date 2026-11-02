@@ -25,6 +25,7 @@ class ChatContextTests(unittest.TestCase):
                 assert api_key == "demo"
                 self.chat = types.SimpleNamespace(completions=FakeCompletions())
         fake_st = types.SimpleNamespace(session_state=types.SimpleNamespace(
+            saved_memories=[],
             messages=[
                 {"role": "user", "content": "Önceki soru"},
                 {"role": "assistant", "content": "Önceki yanıt"},
@@ -34,11 +35,12 @@ class ChatContextTests(unittest.TestCase):
         namespace = {
             "st": fake_st, "Groq": FakeGroq, "GROQ_KEY": "demo",
             "secilen_model": "Groq GPT-OSS", "aktif_llm_adi": "openai/gpt-oss-120b",
-            "internette_ara": lambda query: "Test verisi", "re": re,
+            "internette_ara": lambda query: "Test verisi", "memory_context": lambda items, query: "MEMORY_CONTEXT", "re": re,
         }
         exec(compile(ast.Module(body=[func], type_ignores=[]), str(APP), "exec"), namespace)
         result = namespace["asistani_calistir"]("Yeni soru")
         self.assertEqual(result, "Tamam")
+        self.assertIn("MEMORY_CONTEXT", captured[0]["content"])
         users = [m["content"] for m in captured if m["role"] == "user"]
         self.assertEqual(users, ["Önceki soru", "Yeni soru"])
 
