@@ -59,7 +59,7 @@ jobs:
           root = Path("organism_lab_output")
           report = json.loads((root / "report.json").read_text(encoding="utf-8"))
           audit = root / "tasks.jsonl"
-          assert report["tasks"]["verified"] == 3
+          assert report["tasks"]["checked"] == 3
           assert report["tasks"]["failed"] == 0
           assert report["audit_records"] == 3
           assert len(read_audit(audit)) == 3
