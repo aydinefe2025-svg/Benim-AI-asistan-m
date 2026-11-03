@@ -77,6 +77,19 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             except (ValueError, RuntimeError, PermissionError, sqlite3.Error):
                 st.warning("Ajan oluşturulamadı; kota veya alanları kontrol edin.")
 
+        st.caption("Kontrollü büyüme: eksik uzmanlıklar en fazla üçerli eklenir; "
+                   "12 ajan kotası korunur. Bu, arka planda bağımsız çoğalma değildir.")
+        if st.button("Koloniyi kontrollü büyüt (+3 uzman)", key="colony_grow"):
+            try:
+                created = colony.grow_specialists(approved=True, batch_size=3)
+                if created:
+                    st.success(f"{len(created)} yeni uzman kaydedildi.")
+                    st.rerun()
+                else:
+                    st.info("Yeni uzmanlık kalmadı veya ajan kotası doldu.")
+            except (RuntimeError, ValueError, PermissionError, sqlite3.Error):
+                st.error("Kontrollü büyüme tamamlanamadı.")
+
         with st.form("colony_feedback_form"):
             task = st.text_input("Dersin ilişkili olduğu görev", max_chars=300)
             lesson = st.text_area("Öğrenilecek ders", max_chars=1000)
