@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -20,8 +21,14 @@ class ContinuousColony:
         self.max_active = max_active
         self.max_candidates_per_tick = max_candidates_per_tick
 
+    @contextmanager
     def _db(self):
-        return sqlite3.connect(self.path, timeout=10)
+        db = sqlite3.connect(self.path, timeout=10)
+        try:
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def initialize(self):
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
