@@ -51,6 +51,18 @@ class PersistentMissionTests(unittest.TestCase):
             self.assertEqual(client.calls.count("discovery"), 1)
             self.assertEqual(client.calls.count("engineer"), 2)
 
+    def test_manual_recovery_after_worker_termination(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "missions.sqlite3"
+            runner = PersistentSpecialistMissions(path, FakeClient())
+            mission = runner.create("Recover", model="test-model")
+            with runner._connect() as db:
+                db.execute("UPDATE specialist_missions SET status='running' WHERE id=?", (mission,))
+            with self.assertRaises(RuntimeError):
+                runner.run(mission)
+            self.assertEqual(runner.mark_interrupted(mission)["status"], "interrupted")
+            self.assertEqual(runner.run(mission)["status"], "draft_unverified")
+
     def test_reject_invalid_mission(self):
         with tempfile.TemporaryDirectory() as folder:
             runner = PersistentSpecialistMissions(Path(folder) / "db.sqlite3", FakeClient())
