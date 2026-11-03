@@ -7,8 +7,12 @@ import streamlit as st
 st.set_page_config(layout="wide")
 
 # 🔒 Şifreleri .streamlit/secrets.toml dosyasından güvenle çekiyoruz
-GOOGLE_KEY = st.secrets["GOOGLE_API_KEY"]
-GROQ_KEY = st.secrets["GROQ_API_KEY"]
+try:
+    GOOGLE_KEY = st.secrets["GOOGLE_API_KEY"]
+    GROQ_KEY = st.secrets["GROQ_API_KEY"]
+except (KeyError, FileNotFoundError):
+    st.error("Uygulama başlatılamadı: secrets ayarlarında GOOGLE_API_KEY ve GROQ_API_KEY gerekli. Lütfen dağıtım platformunda gizli anahtarları yapılandırın.")
+    st.stop()
 
 # 🌐 ENGELSİZ CANLI İNTERNET VE METEOROLOJİ MOTORU
 def internette_ara(sorgu: str) -> str:
