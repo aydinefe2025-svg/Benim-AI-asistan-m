@@ -20,13 +20,19 @@ def main() -> None:
     with sqlite3.connect(db_path) as db:
         integrity = db.execute("PRAGMA integrity_check").fetchone()[0]
         stored = db.execute("SELECT COUNT(*) FROM colony_tick").fetchone()[0]
-    if integrity != "ok" or stored < 1:
+        row = db.execute(
+            "SELECT active_count,candidates,state FROM colony_tick WHERE tick_id=?",
+            (result["tick_id"],),
+        ).fetchone()
+    if (integrity != "ok" or row is None or row[0] != result["active_count"]
+            or json.loads(row[1]) != result["candidates"] or row[2] != result["state"]):
         raise RuntimeError("Colony audit database failed integrity/readback check")
     record = {
         "github_run_id": os.environ.get("GITHUB_RUN_ID"),
         "github_sha": os.environ.get("GITHUB_SHA"),
         "db_integrity": integrity,
         "stored_ticks": stored,
+        "verified_tick_id": result["tick_id"],
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "cycle": result,
         "mode": "proposal_only",
