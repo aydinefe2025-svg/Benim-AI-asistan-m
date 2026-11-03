@@ -352,7 +352,9 @@ def _research_answer(goal: str) -> str:
 
 
 render_task_panel(st, answer=_research_answer if GROQ_KEY else None)
-render_colony_panel(st, answer=_research_answer if GROQ_KEY else None)
+render_colony_panel(st, answer=_research_answer if GROQ_KEY else None,
+                    owner_key=_OWNER_KEY if _MEMORY_STORE is not None else None,
+                    database_url=os.environ.get("DATABASE_URL") if _MEMORY_STORE is not None else None)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):

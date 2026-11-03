@@ -7,6 +7,7 @@ from pathlib import Path
 
 from core.agent_colony import AgentColony
 from core.agent_review_loop import AgentReviewLoop
+from core.colony_postgres import ColonySnapshotStore
 from core.task_panel import _session_database_path
 
 
@@ -18,7 +19,7 @@ class AnswerAdapter:
         return self.answer(system + "\n\n" + prompt)
 
 
-def render_colony_panel(st, answer=None):
+def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
     with st.sidebar.expander("🧬 Öğrenen uzman ajanlar", expanded=False):
         st.caption(
             "Ajanlar yapılandırılmış uzman örnekleridir; kendi kendine çalışan süreçler "
@@ -120,6 +121,28 @@ def render_colony_panel(st, answer=None):
                 "SELECT * FROM colony_agents ORDER BY created_at,id")],
                     "feedback": [dict(row) for row in db.execute(
                 "SELECT * FROM colony_feedback ORDER BY id")]}
+        with colony._db() as db:
+            data["reviews"] = [dict(row) for row in db.execute(
+                "SELECT * FROM colony_reviews ORDER BY created_at,id")] if db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='colony_reviews'"
+            ).fetchone() else []
+        if owner_key and database_url:
+            st.caption("PostgreSQL yedeği doğrulanmış kullanıcı hesabına bağlıdır.")
+            if st.button("Ajan kayıtlarını kalıcı veritabanına yedekle",
+                         key="colony_postgres_save"):
+                try:
+                    snapshot_store = ColonySnapshotStore(database_url)
+                    snapshot_store.initialize()
+                    snapshot_store.save(owner_key, data)
+                    st.success("Kalıcı PostgreSQL yedeği yazıldı.")
+                except Exception:
+                    st.error("PostgreSQL yedeği yazılamadı; yerel kayıtlar korunuyor.")
+            if st.button("Kalıcı yedeği kontrol et", key="colony_postgres_check"):
+                try:
+                    saved = ColonySnapshotStore(database_url).load(owner_key)
+                    st.info("Kayıt bulundu." if saved else "Kayıt henüz yok.")
+                except Exception:
+                    st.error("Kalıcı yedek okunamadı.")
         import json
         st.download_button("Ajanları ve dersleri JSON yedekle",
                            data=json.dumps(data, ensure_ascii=False, indent=2),
