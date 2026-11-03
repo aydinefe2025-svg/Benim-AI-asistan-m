@@ -2,6 +2,7 @@
   "verified_at_local": "2026-11-03",
   "python": "3.12.10 x64",
   "pip": "25.0.1",
+  "network": "PASS; PyPI wheel downloads and GitHub working-branch update succeeded",
   "numpy": "2.5.4",
   "openmm": "8.6.1+local.20261103",
   "source_revision": "146a320f97bd4cd7319eaf94f58027d57f5abc7d",
