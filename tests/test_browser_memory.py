@@ -29,6 +29,13 @@ class BrowserMemoryTests(unittest.TestCase):
         self.assertFalse(write_confirmed(
             {"status": "ok", "ack": "wrong", "payload": "saved-data"}, pending))
 
+    def test_explicit_chat_save_request(self):
+        from core.browser_memory import explicit_memory_request
+        self.assertTrue(explicit_memory_request(
+            "Benim test kodum CANO-2026-1103. Bunu hafızana kaydet ve hatırla."))
+        self.assertFalse(explicit_memory_request("Sana kaydetmeni söylediğim test kodu neydi?"))
+        self.assertFalse(explicit_memory_request("Selam!"))
+
     def test_memory_context_for_test_code_query(self):
         saved = [new_memory("Benim test kodum CANO-2026-1103", ["test", "kod"])]
         self.assertIn("CANO-2026-1103",
