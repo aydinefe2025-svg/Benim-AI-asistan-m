@@ -159,6 +159,29 @@ class AgentColony:
                 (agent_id, limit)).fetchall()
         return [dict(row) for row in rows]
 
+    def evaluate_learning(self, agent_id, *, min_evidence=2):
+        """Measure accepted, evidence-backed lessons; never claim weight training.
+
+        A distinct evidence string is required for each counted lesson.
+        Readiness indicates reusable retrieval memory, not autonomous intelligence.
+        """
+        self.get(agent_id)
+        if type(min_evidence) is not int or not 1 <= min_evidence <= 20:
+            raise ValueError("Invalid evidence threshold")
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT lesson,evidence FROM colony_feedback "
+                "WHERE agent_id=? AND accepted=1 ORDER BY id DESC", (agent_id,)
+            ).fetchall()
+        unique_evidence = {row["evidence"].strip() for row in rows if row["evidence"].strip()}
+        return {
+            "agent_id": agent_id,
+            "accepted_lessons": len(rows),
+            "distinct_evidence": len(unique_evidence),
+            "retrieval_ready": len(unique_evidence) >= min_evidence,
+            "model_weights_updated": False,
+        }
+
     def run(self, agent_id, task, *, client, model, internal_review=False):
         agent = self.get(agent_id)
         if agent["state"] != "active":
