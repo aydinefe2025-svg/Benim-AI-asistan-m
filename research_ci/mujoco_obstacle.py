@@ -7,7 +7,8 @@ XML = """
 <mujoco model="obstacle_detection">
 <option timestep="0.002" gravity="0 0 0"/>
 <worldbody>
-  <body name="probe" pos="0 0 0">\n    <freejoint/>
+  <body name="probe" pos="0 0 0">
+    <freejoint/>
     <geom name="probe_geom" type="sphere" size="0.1" contype="1" conaffinity="1"/>
   </body>
   <body name="obstacle" pos="0.5 0 0">
