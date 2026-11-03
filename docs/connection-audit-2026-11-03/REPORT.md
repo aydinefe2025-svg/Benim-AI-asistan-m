@@ -34,7 +34,13 @@ teşhis komutunu çalıştırır. Anahtar değerleri okunup rapora aktarılmaz.
 Yalnızca model listesi ve Telegram `getMe` çağrılır; çıkarım, polling veya mesaj
 yoktur. Fork PR'larında çalışmaz, yetkisi `contents: read` ile sınırlıdır.
 Eksik anahtarlar `not_configured` ve başarısız teşhis sonucu olarak saklanır;
-bağlantı sağlanmış gibi gösterilmez. İlk çalışma sonucu henüz bekleniyor.
+bağlantı sağlanmış gibi gösterilmez. İlk çalışma tamamlandı:
+[run 41596702259](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/41596702259)
+**başarısız**; Google, Groq ve Telegram için `not_configured` döndü. Bu işin
+ortamına standart secret adları sağlanmadı. Bu sonuç başka isim veya korumalı
+GitHub Environment altında hiç anahtar bulunmadığını kanıtlamaz; bu kayıtların
+konumu bilinmeden kullanılamaz. Aynı kod ağacındaki Core tests ve Public
+research checks ise GitHub'da başarılıdır. Teşhis başarısızlığı saklanmadı.
 
 ## Önceki engel sınıflandırmasının düzeltilmesi
 

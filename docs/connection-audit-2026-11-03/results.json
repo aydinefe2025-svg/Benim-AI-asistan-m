@@ -64,8 +64,34 @@
     "existing_upstream_changes_preserved": true
   },
   "github_secret_connectivity_diagnostics": {
-    "status": "pending",
+    "status": "failed_not_configured",
     "workflow": ".github/workflows/provider-connection-diagnostics.yml",
-    "inference_or_messages": false
+    "run_id": 41596702259,
+    "job_id": 125785654087,
+    "run_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/41596702259",
+    "results": {
+      "google": {
+        "status": "not_configured",
+        "authenticated": false,
+        "reachable": false
+      },
+      "groq": {
+        "status": "not_configured",
+        "authenticated": false,
+        "reachable": false
+      },
+      "telegram": {
+        "status": "not_configured",
+        "authenticated": false,
+        "reachable": false
+      }
+    },
+    "inference_or_messages": false,
+    "secret_values_disclosed": false
+  },
+  "github_code_checks": {
+    "tested_head": "96ca5887ffe319153346ac818b8b6142a280fe63",
+    "core_tests": "success",
+    "public_research_checks": "success"
   }
 }
