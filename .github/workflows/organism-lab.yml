@@ -47,3 +47,30 @@ jobs:
             exit 1
           fi
           grep -q 'ok' /tmp/organism-health.txt
+      - name: Generate verified offline research report
+        run: python -m organism_lab.research_pipeline organism_lab_output
+      - name: Verify report and audit chain
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from organism_lab.audit_store import read_audit
+          from organism_lab.audit_recovery import assess_audit
+          root = Path("organism_lab_output")
+          report = json.loads((root / "report.json").read_text(encoding="utf-8"))
+          audit = root / "tasks.jsonl"
+          assert report["tasks"]["verified"] == 3
+          assert report["tasks"]["failed"] == 0
+          assert report["audit_records"] == 3
+          assert len(read_audit(audit)) == 3
+          assert assess_audit(audit)["status"] == "intact"
+          PY
+      - name: Upload research evidence artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: organism-lab-research-python-${{ matrix.python-version }}
+          path: |
+            organism_lab_output/report.json
+            organism_lab_output/tasks.jsonl
+          if-no-files-found: error
+          retention-days: 30
