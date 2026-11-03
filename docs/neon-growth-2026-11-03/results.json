@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-03",
+  "project": {
+    "name": "benim-ai-persistence",
+    "id": "sweet-sound-73776160",
+    "branch": "development",
+    "branch_id": "br-flat-sky-b95bk71x",
+    "region": "aws-eu-central-1",
+    "postgres_version": 17,
+    "min_cu": 0.25,
+    "max_cu": 0.25,
+    "organization_plan": "free",
+    "endpoint_state": "idle"
+  },
+  "live_driver_result": {
+    "existing_records_deleted": false,
+    "fresh_connection_read": true,
+    "owner_isolation": true,
+    "production_data_migrated": false,
+    "run_id": "cca8e99016ec4f13842d9a58a02a898f",
+    "status": "verified",
+    "synthetic_export_recovery": true,
+    "synthetic_owner": "synthetic-growth-cca8e99016ec4f13842d9a58a02a898f",
+    "synthetic_records_retained": 3,
+    "transaction_rollback": true,
+    "write_read": true
+  },
+  "after_client_exit_read": true,
+  "after_compute_restart_read": true,
+  "driver_version": "3.3.7",
+  "provisioning_attempts": [
+    {
+      "result": "HTTP 412",
+      "cause": "explicit suspend interval not permitted by account",
+      "project_created": false
+    },
+    {
+      "result": "created",
+      "change": "provider default suspend policy retained"
+    }
+  ],
+  "credential_handling": {
+    "connection_url_logged": false,
+    "connection_url_written_to_disk": false,
+    "secure_non_echoing_input": true
+  },
+  "existing_data_migrated": false,
+  "render_redeployed": false,
+  "local_tests": {
+    "passed": 221,
+    "failed": 0
+  },
+  "pip_check": "passed"
+}
