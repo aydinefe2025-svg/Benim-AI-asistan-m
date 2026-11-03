@@ -54,7 +54,7 @@ def restore_empty_colony(colony, snapshot):
         for table in ("colony_agents", "colony_feedback", "colony_reviews"):
             if db.execute("SELECT COUNT(*) FROM " + table).fetchone()[0]:
                 raise RuntimeError("Restore requires empty colony")
-        for a in agents:
+        for a in sorted(agents, key=lambda item: item['generation']):
             db.execute("INSERT INTO colony_agents VALUES (?,?,?,?,?,?,?)",
                        tuple(a[k] for k in ("id","parent_id","generation","role","instructions","state","created_at")))
         for row in feedback:
