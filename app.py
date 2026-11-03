@@ -350,7 +350,7 @@ def _research_answer(goal: str) -> str:
     )
     output = response.choices[0].message.content or ""
     if response.choices[0].finish_reason == "length":
-        output += "\\n\\n[UYARI: Model yanıtı token sınırında kesildi; içerik eksik olabilir.]"
+        output += "\n\n[UYARI: Model yanıtı token sınırında kesildi; içerik eksik olabilir.]"
     return output
 
 
