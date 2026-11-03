@@ -2,7 +2,7 @@ name: Daily research archive
 on:
   workflow_dispatch:
   schedule:
-    - cron: '15 7 * * *'
+    - cron: '55 13 * * *'
 permissions:
   contents: write
 concurrency:
@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/sqlite-backup-restore-20261031
+          ref: codex/issue-48-schedule-smoke-20261103
           fetch-depth: 0
           persist-credentials: true
       - uses: actions/setup-python@v5
@@ -37,7 +37,7 @@ jobs:
           import sys
 
           # BEGIN bounded archive push
-          branch = "fix/sqlite-backup-restore-20261031"
+          branch = "codex/issue-48-schedule-smoke-20261103"
           for attempt in range(3):
               pushed = subprocess.run(["git", "push", "origin", "HEAD:" + branch])
               if pushed.returncode == 0:
