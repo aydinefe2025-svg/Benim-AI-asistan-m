@@ -8,6 +8,7 @@ import json
 from datetime import datetime, timezone
 from core.research_drafts import load_draft
 from core.task_store import TaskStore
+from core.archive_integrity import archive_digest
 
 MAX_TASKS = 200
 MAX_EXPORT_BYTES = 3_000_000
@@ -29,6 +30,7 @@ def export_research_archive(store: TaskStore) -> bytes:
         "warning": "Drafts are unverified; this file is a backup, not independent evidence.",
         "tasks": items,
     }
+    payload["integrity"] = {"algorithm": "sha256", "digest": archive_digest(payload)}
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     if len(encoded) > MAX_EXPORT_BYTES:
         raise ValueError("Export exceeds size limit")

@@ -10,6 +10,7 @@ from contextlib import closing
 import uuid
 from datetime import datetime, timezone
 from core.task_store import TaskStore
+from core.archive_integrity import check_archive_integrity
 
 MAX_BYTES = 3_000_000
 MAX_TASKS = 200
@@ -24,6 +25,7 @@ def import_research_archive(store: TaskStore, raw: bytes) -> int:
         raise ValueError("Invalid JSON archive") from exc
     if not isinstance(archive, dict) or archive.get("schema") != "research-task-export-v1":
         raise ValueError("Unsupported archive schema")
+    check_archive_integrity(archive)
     tasks = archive.get("tasks")
     if not isinstance(tasks, list) or len(tasks) > MAX_TASKS:
         raise ValueError("Invalid task collection")

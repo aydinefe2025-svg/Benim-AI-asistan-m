@@ -11,6 +11,25 @@ from core.research_import import import_research_archive
 
 
 class ResearchImportTests(unittest.TestCase):
+    def test_valid_json_tampering_is_rejected_before_any_writes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            store = TaskStore(Path(folder) / 'tasks.sqlite3')
+            task = store.create('Preserve original')
+            before = store.list(), store.history(task['id'])
+            archive = json.loads(export_research_archive(store))
+            archive['tasks'][0]['title'] = 'Accidentally changed'
+            with self.assertRaisesRegex(ValueError, 'integrity'):
+                import_research_archive(store, json.dumps(archive).encode())
+            self.assertEqual((store.list(), store.history(task['id'])), before)
+
+    def test_legacy_backup_without_receipt_remains_importable(self):
+        with tempfile.TemporaryDirectory() as folder:
+            store = TaskStore(Path(folder) / 'tasks.sqlite3')
+            store.create('Legacy backup')
+            archive = json.loads(export_research_archive(store))
+            archive.pop('integrity')
+            self.assertEqual(import_research_archive(store, json.dumps(archive).encode()), 1)
+
     def test_round_trip_preserves_original_and_restarts_verification(self):
         with tempfile.TemporaryDirectory() as folder:
             store = TaskStore(Path(folder) / "tasks.sqlite3")
