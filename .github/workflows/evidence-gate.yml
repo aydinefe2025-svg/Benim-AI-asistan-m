@@ -3,11 +3,14 @@ on:
   push:
     branches:
       - feat/issue-58-evidence-gate
+      - feat/issue-58-running-heartbeat
   pull_request:
     paths:
       - 'core/evidence_gate.py'
       - 'tests/test_evidence_gate.py'
       - 'core/task_recovery.py'
+      - 'core/task_heartbeat.py'
+      - 'tests/test_task_heartbeat.py'
       - 'core/task_panel.py'
       - 'tests/test_research_panel_integration.py'
       - 'tests/test_task_recovery.py'
@@ -23,4 +26,4 @@ jobs:
       - name: Check syntax
         run: python -m compileall -q core tests
       - name: Run evidence gate and executor tests
-        run: python -m unittest discover -s tests -p 'test_evidence_gate.py' -v && python -m unittest discover -s tests -p 'test_agent_executor.py' -v && python -m unittest discover -s tests -p 'test_task_recovery.py' -v && python -m unittest discover -s tests -p 'test_research_panel_integration.py' -v
+        run: python -m unittest discover -s tests -p 'test_evidence_gate.py' -v && python -m unittest discover -s tests -p 'test_agent_executor.py' -v && python -m unittest discover -s tests -p 'test_task_recovery.py' -v && python -m unittest discover -s tests -p 'test_research_panel_integration.py' -v && python -m unittest discover -s tests -p 'test_task_heartbeat.py' -v
