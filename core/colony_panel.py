@@ -131,7 +131,9 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             if st.button("Ajan kayıtlarını kalıcı veritabanına yedekle",
                          key="colony_postgres_save"):
                 try:
-                    ColonySnapshotStore(database_url).save(owner_key, data)
+                    snapshot_store = ColonySnapshotStore(database_url)
+                    snapshot_store.initialize()
+                    snapshot_store.save(owner_key, data)
                     st.success("Kalıcı PostgreSQL yedeği yazıldı.")
                 except Exception:
                     st.error("PostgreSQL yedeği yazılamadı; yerel kayıtlar korunuyor.")
