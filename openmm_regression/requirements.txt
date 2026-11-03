@@ -1,3 +1,3 @@
-openmm==8.6.1
+openmm==8.6.1+local.20261103
 numpy==2.5.4
 pytest==9.2.0

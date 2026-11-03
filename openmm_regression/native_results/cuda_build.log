@@ -1,0 +1,10 @@
+[1/10] Linking CXX shared library OpenMMCUDA.dll
+[2/10] Linking CXX executable TestCudaCheckpoints.exe
+[3/10] Linking CXX executable TestCudaEwald.exe
+[4/10] Building CXX object plugins\rpmd\CMakeFiles\OpenMMRPMD.dir\openmmapi\src\RPMDMonteCarloBarostat.cpp.obj
+[5/10] Linking CXX executable TestCudaNonbondedForce.exe
+[6/10] Linking CXX shared library OpenMMDrudeCUDA.dll
+[7/10] Linking CXX shared library OpenMMAmoebaCUDA.dll
+[8/10] Building CXX object plugins\rpmd\CMakeFiles\OpenMMRPMD.dir\openmmapi\src\RPMDMonteCarloBarostatImpl.cpp.obj
+[9/10] Linking CXX shared library OpenMMRPMD.dll
+[10/10] Linking CXX shared library OpenMMRPMDCUDA.dll

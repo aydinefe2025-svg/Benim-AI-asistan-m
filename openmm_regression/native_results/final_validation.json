@@ -1,0 +1,29 @@
+{
+  "verified_at_local": "2026-11-03",
+  "python": "3.12.10 x64",
+  "pip": "25.0.1",
+  "numpy": "2.5.4",
+  "openmm": "8.6.1+local.20261103",
+  "source_revision": "146a320f97bd4cd7319eaf94f58027d57f5abc7d",
+  "gpu": "NVIDIA GeForce RTX 3060, 12288 MiB",
+  "driver": "560.94",
+  "cuda_driver_api": "12.6",
+  "platforms": ["Reference", "CPU", "OpenCL", "CUDA"],
+  "offline_fresh_environment_install": "PASS",
+  "pip_check": "PASS",
+  "openmm_testInstallation": "PASS on all four platforms",
+  "issue_regressions": {
+    "5532": "PASS; 26/27/52 chains and both keepIds modes",
+    "5521": "PASS; waters 101/102/103, 7 atoms, alternate conformers and two-model check",
+    "5515": "PASS; zero missing pairs in 30 triclinic boundary cases",
+    "5493": "PASS; OpenCL and CUDA, both integrators, zero mismatches and zero drift",
+    "5494": "PASS; OpenCL and CUDA CPU PME force/energy, force groups and charge updates"
+  },
+  "upstream_cpp_tests": "21/21 PASS (CPU, OpenCL and CUDA)",
+  "wheel": {
+    "file": "../../dist/openmm-8.6.1+local.20261103-cp312-cp312-win_amd64.whl",
+    "sha256": "b8dfa23609a1e000d0dd921dbe744108cf1ac56e406bf38732cca859deb88419",
+    "bytes": 14066637
+  },
+  "scope": "Local synthetic computational verification only; no paid operation, physical robot or biological experiment."
+}

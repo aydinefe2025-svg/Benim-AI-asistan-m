@@ -1,0 +1,12 @@
+[1/12] Building C object CMakeFiles\OpenCL.dir\loader\icd_trace.c.obj
+[2/12] Building C object CMakeFiles\OpenCL.dir\loader\icd_dispatch.c.obj
+[3/12] Building C object CMakeFiles\OpenCL.dir\loader\icd.c.obj
+[4/12] Building C object CMakeFiles\OpenCL.dir\loader\windows\icd_windows.c.obj
+[5/12] Building C object CMakeFiles\OpenCL.dir\loader\icd_dispatch_generated.c.obj
+[6/12] Building C object CMakeFiles\OpenCL.dir\loader\windows\icd_windows_library.c.obj
+[7/12] Building C object CMakeFiles\OpenCL.dir\loader\windows\icd_windows_envvars.c.obj
+[8/12] Building C object CMakeFiles\OpenCL.dir\loader\windows\icd_windows_dxgk.c.obj
+[9/12] Building RC object CMakeFiles\OpenCL.dir\loader\windows\OpenCL.rc.res
+[10/12] Building C object CMakeFiles\OpenCL.dir\loader\windows\icd_windows_hkr.c.obj
+[11/12] Building C object CMakeFiles\OpenCL.dir\loader\windows\icd_windows_apppackage.c.obj
+[12/12] Linking C shared library OpenCL.dll

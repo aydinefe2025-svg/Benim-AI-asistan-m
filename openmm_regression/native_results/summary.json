@@ -1,0 +1,288 @@
+{
+  "tests": [
+    {
+      "issue": 5532,
+      "status": "PASS",
+      "details": [
+        {
+          "issue": 5532,
+          "chains": 26,
+          "keep_ids": false,
+          "status": "PASS",
+          "checks": {
+            "atoms": true,
+            "chains": true,
+            "unique_ids": true,
+            "bonds": true,
+            "no_self_bonds": true,
+            "positions": true
+          },
+          "observed_bonds": [
+            [
+              0,
+              25
+            ]
+          ]
+        },
+        {
+          "issue": 5532,
+          "chains": 27,
+          "keep_ids": false,
+          "status": "PASS",
+          "checks": {
+            "atoms": true,
+            "chains": true,
+            "unique_ids": true,
+            "bonds": true,
+            "no_self_bonds": true,
+            "positions": true
+          },
+          "observed_bonds": [
+            [
+              0,
+              26
+            ]
+          ]
+        },
+        {
+          "issue": 5532,
+          "chains": 52,
+          "keep_ids": false,
+          "status": "PASS",
+          "checks": {
+            "atoms": true,
+            "chains": true,
+            "unique_ids": true,
+            "bonds": true,
+            "no_self_bonds": true,
+            "positions": true
+          },
+          "observed_bonds": [
+            [
+              0,
+              51
+            ]
+          ]
+        },
+        {
+          "issue": 5532,
+          "chains": 26,
+          "keep_ids": true,
+          "status": "PASS",
+          "checks": {
+            "atoms": true,
+            "chains": true,
+            "unique_ids": true,
+            "bonds": true,
+            "no_self_bonds": true,
+            "positions": true
+          },
+          "observed_bonds": [
+            [
+              0,
+              25
+            ]
+          ]
+        },
+        {
+          "issue": 5532,
+          "chains": 27,
+          "keep_ids": true,
+          "status": "PASS",
+          "checks": {
+            "atoms": true,
+            "chains": true,
+            "unique_ids": true,
+            "bonds": true,
+            "no_self_bonds": true,
+            "positions": true
+          },
+          "observed_bonds": [
+            [
+              0,
+              26
+            ]
+          ]
+        },
+        {
+          "issue": 5532,
+          "chains": 52,
+          "keep_ids": true,
+          "status": "PASS",
+          "checks": {
+            "atoms": true,
+            "chains": true,
+            "unique_ids": true,
+            "bonds": true,
+            "no_self_bonds": true,
+            "positions": true
+          },
+          "observed_bonds": [
+            [
+              0,
+              51
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "issue": 5521,
+      "status": "PASS",
+      "details": {
+        "issue": 5521,
+        "status": "PASS",
+        "water_ids": [
+          "101",
+          "102",
+          "103"
+        ],
+        "atoms": 7
+      }
+    },
+    {
+      "issue": 5515,
+      "status": "PASS",
+      "details": [
+        {
+          "bx": 0.0,
+          "eps": 1e-05,
+          "missing": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "bx": 0.0,
+          "eps": 1e-08,
+          "missing": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "bx": 1.5,
+          "eps": 1e-05,
+          "missing": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "bx": 1.5,
+          "eps": 1e-08,
+          "missing": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "bx": -1.5,
+          "eps": 1e-05,
+          "missing": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "bx": -1.5,
+          "eps": 1e-08,
+          "missing": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "issue": 5493,
+      "status": "PASS",
+      "details": [
+        {
+          "platform": "OpenCL",
+          "custom": false,
+          "checkpoint_mismatches": 0,
+          "max_dx": 0.0
+        },
+        {
+          "platform": "OpenCL",
+          "custom": true,
+          "checkpoint_mismatches": 0,
+          "max_dx": 0.0
+        },
+        {
+          "platform": "CUDA",
+          "custom": false,
+          "checkpoint_mismatches": 0,
+          "max_dx": 0.0
+        },
+        {
+          "platform": "CUDA",
+          "custom": true,
+          "checkpoint_mismatches": 0,
+          "max_dx": 0.0
+        }
+      ]
+    },
+    {
+      "issue": 5494,
+      "status": "PASS",
+      "details": [
+        {
+          "platform": "OpenCL",
+          "reference_energy": -81064.66015313275,
+          "gpu_energy": -81064.66268570593,
+          "cpu_pme_energy": -81064.67115945986,
+          "relative_force_error": 8.72918198454305e-06,
+          "gpu_cpu_force_delta": 0.00665283203125,
+          "group_sum_error": 0.0,
+          "updated_first_energy": -1356.4861298254364,
+          "updated_second_energy": -1356.4861298254364,
+          "updated_reference_energy": -1356.489104298908
+        },
+        {
+          "platform": "CUDA",
+          "reference_energy": -81064.66015313275,
+          "gpu_energy": -81064.69979508093,
+          "cpu_pme_energy": -81064.70253153017,
+          "relative_force_error": 8.681422529882112e-06,
+          "gpu_cpu_force_delta": 0.0008291006088256836,
+          "group_sum_error": 0.0,
+          "updated_first_energy": -1356.4880870184534,
+          "updated_second_energy": -1356.4880870184534,
+          "updated_reference_energy": -1356.489104298908
+        }
+      ]
+    }
+  ],
+  "created_utc": "2026-11-03T13:11:25.219572+00:00",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "python_package_version": "8.6.1+local.20261103",
+  "native_version": "8.6.1+local.20261103",
+  "source_revision": "146a320f97bd4cd7319eaf94f58027d57f5abc7d + native_fixes.patch",
+  "platforms": [
+    "Reference",
+    "CPU",
+    "CUDA",
+    "OpenCL"
+  ],
+  "plugin_errors": []
+}

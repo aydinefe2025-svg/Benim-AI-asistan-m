@@ -1,0 +1,50 @@
+Internal ctest changing into directory: C:/Users/User/Documents/Codex/2026-11-02/codex-openmm-kurulumunu-tamamla-python-pip/native-build
+Test project C:/Users/User/Documents/Codex/2026-11-02/codex-openmm-kurulumunu-tamamla-python-pip/native-build
+      Start 232: TestOpenCLEwaldSingle
+      Start 234: TestOpenCLEwaldDouble
+ 1/21 Test #232: TestOpenCLEwaldSingle ............   Passed   24.74 sec
+      Start 233: TestOpenCLEwaldMixed
+ 2/21 Test #234: TestOpenCLEwaldDouble ............   Passed   25.17 sec
+      Start 276: TestOpenCLNonbondedForceDouble
+ 3/21 Test #233: TestOpenCLEwaldMixed .............   Passed   21.83 sec
+      Start 275: TestOpenCLNonbondedForceMixed
+ 4/21 Test #276: TestOpenCLNonbondedForceDouble ...   Passed   21.72 sec
+      Start 274: TestOpenCLNonbondedForceSingle
+ 5/21 Test #274: TestOpenCLNonbondedForceSingle ...   Passed   18.79 sec
+      Start 339: TestCpuNonbondedForce
+ 6/21 Test #275: TestOpenCLNonbondedForceMixed ....   Passed   19.21 sec
+      Start 176: TestOpenCLCheckpointsMixed
+ 7/21 Test #176: TestOpenCLCheckpointsMixed .......   Passed    1.37 sec
+      Start 177: TestOpenCLCheckpointsDouble
+ 8/21 Test #177: TestOpenCLCheckpointsDouble ......   Passed    1.43 sec
+      Start 175: TestOpenCLCheckpointsSingle
+ 9/21 Test #175: TestOpenCLCheckpointsSingle ......   Passed    2.44 sec
+      Start 414: TestCpuPme
+10/21 Test #414: TestCpuPme .......................   Passed    1.40 sec
+      Start 338: TestCpuNeighborList
+11/21 Test #338: TestCpuNeighborList ..............   Passed    0.24 sec
+      Start  16: TestCudaCheckpointsSingle
+12/21 Test #339: TestCpuNonbondedForce ............   Passed    8.43 sec
+      Start  17: TestCudaCheckpointsMixed
+13/21 Test  #16: TestCudaCheckpointsSingle ........   Passed    4.14 sec
+      Start  18: TestCudaCheckpointsDouble
+14/21 Test  #17: TestCudaCheckpointsMixed .........   Passed    4.35 sec
+      Start  70: TestCudaEwaldSingle
+15/21 Test  #18: TestCudaCheckpointsDouble ........   Passed    5.18 sec
+      Start  71: TestCudaEwaldMixed
+16/21 Test  #70: TestCudaEwaldSingle ..............   Passed   55.57 sec
+      Start  72: TestCudaEwaldDouble
+17/21 Test  #71: TestCudaEwaldMixed ...............   Passed   53.10 sec
+      Start 112: TestCudaNonbondedForceSingle
+18/21 Test #112: TestCudaNonbondedForceSingle .....   Passed   37.97 sec
+      Start 113: TestCudaNonbondedForceMixed
+19/21 Test  #72: TestCudaEwaldDouble ..............   Passed   64.56 sec
+      Start 114: TestCudaNonbondedForceDouble
+20/21 Test #113: TestCudaNonbondedForceMixed ......   Passed   38.43 sec
+21/21 Test #114: TestCudaNonbondedForceDouble .....   Passed   45.29 sec
+
+100% tests passed, 0 tests failed out of 21
+
+Total Test time (real) = 243.94 sec
+
+STDERR:

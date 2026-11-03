@@ -1,0 +1,333 @@
+diff --git a/olla/src/Platform.cpp b/olla/src/Platform.cpp
+index 9a2ac89..cea5879 100644
+--- a/olla/src/Platform.cpp
++++ b/olla/src/Platform.cpp
+@@ -353,11 +353,7 @@ const string& Platform::getDefaultPluginsDirectory() {
+ #define STRING(x) STRING1(x)
+ 
+ const string& Platform::getOpenMMVersion() {
+-#if OPENMM_BUILD_VERSION == 0
+-    static const string version = STRING(OPENMM_MAJOR_VERSION) "." STRING(OPENMM_MINOR_VERSION);
+-#else
+-    static const string version = STRING(OPENMM_MAJOR_VERSION) "." STRING(OPENMM_MINOR_VERSION) "." STRING(OPENMM_BUILD_VERSION);
+-#endif
++    static const string version = "8.6.1+local.20261103";
+     return version;
+ }
+ 
+diff --git a/openmmapi/src/ContextImpl.cpp b/openmmapi/src/ContextImpl.cpp
+index 63ad701..e76150c 100644
+--- a/openmmapi/src/ContextImpl.cpp
++++ b/openmmapi/src/ContextImpl.cpp
+@@ -469,6 +469,7 @@ void ContextImpl::createCheckpoint(ostream& stream) {
+     updateStateDataKernel.getAs<UpdateStateDataKernel>().createCheckpoint(*this, stream);
+     integrator.createCheckpoint(stream);
+     stream.flush();
++    integrator.stateChanged(State::Forces);
+ }
+ 
+ void ContextImpl::loadCheckpoint(istream& stream) {
+diff --git a/platforms/common/include/openmm/common/NonbondedUtilities.h b/platforms/common/include/openmm/common/NonbondedUtilities.h
+index be21559..25c1a4d 100644
+--- a/platforms/common/include/openmm/common/NonbondedUtilities.h
++++ b/platforms/common/include/openmm/common/NonbondedUtilities.h
+@@ -197,6 +197,8 @@ public:
+      * Set the source code for the main kernel.  It only needs to be changed in very unusual circumstances.
+      */
+     virtual void setKernelSource(const std::string& source) = 0;
++    /** Force a fresh neighbor list at the next evaluation. */
++    virtual void resetNeighborList() = 0;
+ };
+ 
+ } // namespace OpenMM
+diff --git a/platforms/common/src/CommonCalcNonbondedForce.cpp b/platforms/common/src/CommonCalcNonbondedForce.cpp
+index 019b06e..6157b76 100644
+--- a/platforms/common/src/CommonCalcNonbondedForce.cpp
++++ b/platforms/common/src/CommonCalcNonbondedForce.cpp
+@@ -137,30 +137,17 @@ private:
+     ComputeKernel addForcesKernel;
+ };
+ 
+-class CommonCalcNonbondedForceKernel::PmePreComputation : public ComputeContext::ForcePreComputation {
+-public:
+-    PmePreComputation(ComputeContext& cc, Kernel& pme, CalcPmeReciprocalForceKernel::IO& io) : cc(cc), pme(pme), io(io) {
+-    }
+-    void computeForceAndEnergy(bool includeForces, bool includeEnergy, int groups) {
+-        Vec3 boxVectors[3];
+-        cc.getPeriodicBoxVectors(boxVectors[0], boxVectors[1], boxVectors[2]);
+-        pme.getAs<CalcPmeReciprocalForceKernel>().beginComputation(io, boxVectors, includeEnergy, true, false);
+-    }
+-private:
+-    ComputeContext& cc;
+-    Kernel pme;
+-    CalcPmeReciprocalForceKernel::IO& io;
+-};
+-
+ class CommonCalcNonbondedForceKernel::PmePostComputation : public ComputeContext::ForcePostComputation {
+ public:
+-    PmePostComputation(Kernel& pme, CalcPmeReciprocalForceKernel::IO& io) : pme(pme), io(io) {
++    PmePostComputation(Kernel& pme, CalcPmeReciprocalForceKernel::IO& io, int group) : pme(pme), io(io), group(group) {
+     }
+     double computeForceAndEnergy(bool includeForces, bool includeEnergy, int groups) {
++        if ((groups & (1<<group)) == 0) return 0.0;
+         return pme.getAs<CalcPmeReciprocalForceKernel>().finishComputation(io);
+     }
+ private:
+     Kernel pme;
++    int group;
+     CalcPmeReciprocalForceKernel::IO& io;
+ };
+ 
+@@ -425,14 +412,17 @@ void CommonCalcNonbondedForceKernel::commonInitialize(const System& system, cons
+                 try {
+                     cpuPme = getPlatform().createKernel(CalcPmeReciprocalForceKernel::Name(), *cc.getContextImpl());
+                     cpuPme.getAs<CalcPmeReciprocalForceKernel>().initialize(gridSizeX, gridSizeY, gridSizeZ, numParticles, {}, alpha, false);
+-                    ComputeProgram program = cc.compileProgram(CommonKernelSources::pme, pmeDefines);
++                    map<string, string> cpuReplacements;
++                    cpuReplacements["CHARGE"] = "pos.w";
++                    ComputeProgram program = cc.compileProgram(cc.replaceStrings(CommonKernelSources::pme, cpuReplacements), pmeDefines);
+                     ComputeKernel addForcesKernel = program->createKernel("addForces");
+                     pmeio = new PmeIO(cc, addForcesKernel);
+-                    cc.addPreComputation(new PmePreComputation(cc, cpuPme, *pmeio));
+-                    cc.addPostComputation(new PmePostComputation(cpuPme, *pmeio));
++                    int group = force.getReciprocalSpaceForceGroup();
++                    if (group < 0) group = force.getForceGroup();
++                    cc.addPostComputation(new PmePostComputation(cpuPme, *pmeio, group));
+                 }
+                 catch (OpenMMException& ex) {
+-                    // The CPU PME plugin isn't available.
++                    throw OpenMMException(string("CPU PME was requested, but initialization failed: ")+ex.what());
+                 }
+             }
+             if (pmeio == NULL) {
+@@ -563,7 +553,7 @@ void CommonCalcNonbondedForceKernel::commonInitialize(const System& system, cons
+ 
+     // Add code to subtract off the reciprocal part of excluded interactions.
+ 
+-    if ((nonbondedMethod == Ewald || nonbondedMethod == PME || nonbondedMethod == LJPME) && pmeio == NULL) {
++    if ((nonbondedMethod == Ewald || nonbondedMethod == PME || nonbondedMethod == LJPME)) {
+         int numContexts = cc.getNumContexts();
+         int startIndex = cc.getContextIndex()*force.getNumExceptions()/numContexts;
+         int endIndex = (cc.getContextIndex()+1)*force.getNumExceptions()/numContexts;
+@@ -891,7 +881,7 @@ double CommonCalcNonbondedForceKernel::execute(ContextImpl& context, bool includ
+         }
+     }
+     double energy = 0.0;
+-    if (includeReciprocal && (pmeGrid1.isInitialized() || cosSinSums.isInitialized())) {
++    if (includeReciprocal && (pmeGrid1.isInitialized() || cosSinSums.isInitialized() || pmeio != NULL)) {
+         Vec3 a, b, c;
+         cc.getPeriodicBoxVectors(a, b, c);
+         double volume = a[0]*b[1]*c[2];
+@@ -910,7 +900,7 @@ double CommonCalcNonbondedForceKernel::execute(ContextImpl& context, bool includ
+             // The Ewald self energy was computed in the kernel.
+ 
+             energy = 0.0;
+-            if ((pmeGrid1.isInitialized() || cosSinSums.isInitialized()) && includeReciprocal) {
++            if ((pmeGrid1.isInitialized() || cosSinSums.isInitialized() || pmeio != NULL) && includeReciprocal) {
+                 // Invoke a kernel to compute the correction for the neutralizing plasma.
+ 
+                 Vec3 a, b, c;
+@@ -926,6 +916,12 @@ double CommonCalcNonbondedForceKernel::execute(ContextImpl& context, bool includ
+         recomputeParams = false;
+     }
+ 
++    if (pmeio != NULL && includeReciprocal) {
++        Vec3 boxVectors[3];
++        cc.getPeriodicBoxVectors(boxVectors[0], boxVectors[1], boxVectors[2]);
++        cpuPme.getAs<CalcPmeReciprocalForceKernel>().beginComputation(*pmeio, boxVectors, includeEnergy, true, false);
++    }
++
+     // Do reciprocal space calculations.
+ 
+     if (cosSinSums.isInitialized() && includeReciprocal) {
+diff --git a/platforms/common/src/CommonKernels.cpp b/platforms/common/src/CommonKernels.cpp
+index 2cb0895..061ba18 100644
+--- a/platforms/common/src/CommonKernels.cpp
++++ b/platforms/common/src/CommonKernels.cpp
+@@ -380,6 +380,8 @@ void CommonUpdateStateDataKernel::createCheckpoint(ContextImpl& context, ostream
+     stream.write((char*) boxVectors, 3*sizeof(Vec3));
+     cc.getIntegrationUtilities().createCheckpoint(stream);
+     SimTKOpenMMUtilities::createCheckpoint(stream);
++    for (auto ctx : cc.getAllContexts())
++        ctx->getNonbondedUtilities().resetNeighborList();
+ }
+ 
+ void CommonUpdateStateDataKernel::loadCheckpoint(ContextImpl& context, istream& stream) {
+@@ -426,6 +428,8 @@ void CommonUpdateStateDataKernel::loadCheckpoint(ContextImpl& context, istream&
+     for (auto listener : cc.getReorderListeners())
+         listener->execute();
+     cc.validateAtomOrder();
++    for (auto ctx : contexts)
++        ctx->getNonbondedUtilities().resetNeighborList();
+ }
+ 
+ void CommonApplyConstraintsKernel::initialize(const System& system) {
+diff --git a/platforms/cpu/src/CpuKernels.cpp b/platforms/cpu/src/CpuKernels.cpp
+index afee171..5ce29b1 100644
+--- a/platforms/cpu/src/CpuKernels.cpp
++++ b/platforms/cpu/src/CpuKernels.cpp
+@@ -193,9 +193,9 @@ void CpuCalcForcesAndEnergyKernel::beginComputation(ContextImpl& context, bool i
+                     pos -= boxVectors[2]*floor(pos[2]*invBoxSize[2]);
+                     pos -= boxVectors[1]*floor(pos[1]*invBoxSize[1]);
+                     pos -= boxVectors[0]*floor(pos[0]*invBoxSize[0]);
+-                    posq[4*i] = (float) pos[0];
+-                    posq[4*i+1] = (float) pos[1];
+-                    posq[4*i+2] = (float) pos[2];
++                    posq[4*i] = min((float) pos[0], nextafterf((float) boxSize[0], 0.0f));
++                    posq[4*i+1] = min((float) pos[1], nextafterf((float) boxSize[1], 0.0f));
++                    posq[4*i+2] = min((float) pos[2], nextafterf((float) boxSize[2], 0.0f));
+                 }
+             }
+             else {
+diff --git a/platforms/cuda/include/CudaNonbondedUtilities.h b/platforms/cuda/include/CudaNonbondedUtilities.h
+index d0c56ff..b261fe2 100644
+--- a/platforms/cuda/include/CudaNonbondedUtilities.h
++++ b/platforms/cuda/include/CudaNonbondedUtilities.h
+@@ -262,6 +262,7 @@ public:
+      * it may be better to set this to false.
+      */
+     void setUsePadding(bool padding);
++    void resetNeighborList();
+     /**
+      * Set the range of atom blocks and tiles that should be processed by this context.
+      */
+diff --git a/platforms/cuda/src/CudaNonbondedUtilities.cpp b/platforms/cuda/src/CudaNonbondedUtilities.cpp
+index 5625cd1..e05f03b 100644
+--- a/platforms/cuda/src/CudaNonbondedUtilities.cpp
++++ b/platforms/cuda/src/CudaNonbondedUtilities.cpp
+@@ -481,6 +481,11 @@ bool CudaNonbondedUtilities::updateNeighborListSize() {
+     return true;
+ }
+ 
++void CudaNonbondedUtilities::resetNeighborList() {
++    forceRebuildNeighborList = true;
++    tilesAfterReorder = 0;
++}
++
+ void CudaNonbondedUtilities::setUsePadding(bool padding) {
+     usePadding = padding;
+ }
+diff --git a/platforms/hip/include/HipNonbondedUtilities.h b/platforms/hip/include/HipNonbondedUtilities.h
+index dfbd247..63fea89 100644
+--- a/platforms/hip/include/HipNonbondedUtilities.h
++++ b/platforms/hip/include/HipNonbondedUtilities.h
+@@ -263,6 +263,7 @@ public:
+      * it may be better to set this to false.
+      */
+     void setUsePadding(bool padding);
++    void resetNeighborList();
+     /**
+      * Set the range of atom blocks and tiles that should be processed by this context.
+      */
+diff --git a/platforms/hip/src/HipNonbondedUtilities.cpp b/platforms/hip/src/HipNonbondedUtilities.cpp
+index fffe349..9aa742a 100644
+--- a/platforms/hip/src/HipNonbondedUtilities.cpp
++++ b/platforms/hip/src/HipNonbondedUtilities.cpp
+@@ -503,6 +503,11 @@ bool HipNonbondedUtilities::updateNeighborListSize() {
+     return true;
+ }
+ 
++void HipNonbondedUtilities::resetNeighborList() {
++    forceRebuildNeighborList = true;
++    tilesAfterReorder = 0;
++}
++
+ void HipNonbondedUtilities::setUsePadding(bool padding) {
+     usePadding = padding;
+ }
+diff --git a/platforms/metal/include/MetalNonbondedUtilities.h b/platforms/metal/include/MetalNonbondedUtilities.h
+index 12e8032..e20af5c 100644
+--- a/platforms/metal/include/MetalNonbondedUtilities.h
++++ b/platforms/metal/include/MetalNonbondedUtilities.h
+@@ -264,6 +264,7 @@ public:
+      * it may be better to set this to false.
+      */
+     void setUsePadding(bool padding);
++    void resetNeighborList();
+     /**
+      * Set the range of atom blocks and tiles that should be processed by this context.
+      */
+diff --git a/platforms/metal/src/MetalNonbondedUtilities.cpp b/platforms/metal/src/MetalNonbondedUtilities.cpp
+index 4be4a8e..4deacff 100644
+--- a/platforms/metal/src/MetalNonbondedUtilities.cpp
++++ b/platforms/metal/src/MetalNonbondedUtilities.cpp
+@@ -372,6 +372,11 @@ bool MetalNonbondedUtilities::updateNeighborListSize() {
+     return true;
+ }
+ 
++void MetalNonbondedUtilities::resetNeighborList() {
++    forceRebuildNeighborList = true;
++    tilesAfterReorder = 0;
++}
++
+ void MetalNonbondedUtilities::setUsePadding(bool padding) {
+     usePadding = padding;
+ }
+diff --git a/platforms/opencl/include/OpenCLNonbondedUtilities.h b/platforms/opencl/include/OpenCLNonbondedUtilities.h
+index 78c8fee..cee5125 100644
+--- a/platforms/opencl/include/OpenCLNonbondedUtilities.h
++++ b/platforms/opencl/include/OpenCLNonbondedUtilities.h
+@@ -261,6 +261,7 @@ public:
+      * it may be better to set this to false.
+      */
+     void setUsePadding(bool padding);
++    void resetNeighborList();
+     /**
+      * Set the range of atom blocks and tiles that should be processed by this context.
+      */
+diff --git a/platforms/opencl/src/OpenCLNonbondedUtilities.cpp b/platforms/opencl/src/OpenCLNonbondedUtilities.cpp
+index b784b8d..31640bf 100644
+--- a/platforms/opencl/src/OpenCLNonbondedUtilities.cpp
++++ b/platforms/opencl/src/OpenCLNonbondedUtilities.cpp
+@@ -443,6 +443,11 @@ bool OpenCLNonbondedUtilities::updateNeighborListSize() {
+     return true;
+ }
+ 
++void OpenCLNonbondedUtilities::resetNeighborList() {
++    forceRebuildNeighborList = true;
++    tilesAfterReorder = 0;
++}
++
+ void OpenCLNonbondedUtilities::setUsePadding(bool padding) {
+     usePadding = padding;
+ }
+diff --git a/plugins/rpmd/openmmapi/include/openmm/RPMDMonteCarloBarostat.h b/plugins/rpmd/openmmapi/include/openmm/RPMDMonteCarloBarostat.h
+index 5c37162..85b2d66 100644
+--- a/plugins/rpmd/openmmapi/include/openmm/RPMDMonteCarloBarostat.h
++++ b/plugins/rpmd/openmmapi/include/openmm/RPMDMonteCarloBarostat.h
+@@ -61,7 +61,8 @@ public:
+      * @param scaleMoleculesAsRigid   if true, coordinate scaling keeps molecules rigid, scaling only the center of mass
+      *                                of each one.  If false, every atom is scaled independently.
+      */
+-    RPMDMonteCarloBarostat(double defaultPressure, int frequency=25, bool scaleMoleculesAsRigid=true);
++    RPMDMonteCarloBarostat(double defaultPressure, int frequency=25);
++    RPMDMonteCarloBarostat(double defaultPressure, int frequency, bool scaleMoleculesAsRigid);
+     /**
+      * Get the default pressure acting on the system (in bar).
+      *
+@@ -137,9 +138,10 @@ public:
+ protected:
+     ForceImpl* createImpl() const;
+ private:
+-    bool scaleMoleculesAsRigid;
+     double defaultPressure;
+     int frequency, randomNumberSeed;
++    // Keep this after the original fields so existing binary bindings retain their offsets.
++    bool scaleMoleculesAsRigid;
+ };
+ 
+ } // namespace OpenMM
+diff --git a/plugins/rpmd/openmmapi/src/RPMDMonteCarloBarostat.cpp b/plugins/rpmd/openmmapi/src/RPMDMonteCarloBarostat.cpp
+index ee0eb0d..1f97765 100644
+--- a/plugins/rpmd/openmmapi/src/RPMDMonteCarloBarostat.cpp
++++ b/plugins/rpmd/openmmapi/src/RPMDMonteCarloBarostat.cpp
+@@ -32,6 +32,9 @@
+ 
+ using namespace OpenMM;
+ 
++RPMDMonteCarloBarostat::RPMDMonteCarloBarostat(double defaultPressure, int frequency) : RPMDMonteCarloBarostat(defaultPressure, frequency, true) {
++}
++
+ RPMDMonteCarloBarostat::RPMDMonteCarloBarostat(double defaultPressure, int frequency, bool scaleMoleculesAsRigid) : scaleMoleculesAsRigid(scaleMoleculesAsRigid) {
+     setDefaultPressure(defaultPressure);
+     setFrequency(frequency);
