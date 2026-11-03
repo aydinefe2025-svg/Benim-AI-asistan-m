@@ -6,6 +6,7 @@ import sqlite3
 from pathlib import Path
 
 from core.agent_colony import AgentColony
+from core.agent_review_loop import AgentReviewLoop
 from core.task_panel import _session_database_path
 
 
@@ -91,6 +92,29 @@ def render_colony_panel(st, answer=None):
             st.text_area("Son doğrulanmamış taslak",
                          value=st.session_state["colony_last_draft"],
                          height=200, disabled=True)
+        if answer is not None and len(agents) >= 2:
+            with st.form("colony_review_form"):
+                reviewer = st.selectbox("Eleştiren uzman",
+                                        [a["id"] for a in agents if a["id"] != selected],
+                                        format_func=lambda k: labels[k])
+                review_goal = st.text_area("Üç aşamalı inceleme görevi", max_chars=1200)
+                review_run = st.form_submit_button("Taslak → eleştiri → düzeltme çalıştır")
+            if review_run:
+                try:
+                    record = AgentReviewLoop(colony).execute(
+                        selected, reviewer, review_goal,
+                        client=AnswerAdapter(answer), model="configured-provider")
+                    st.session_state["colony_last_review"] = record
+                    st.success("Üç model çağrısı tamamlandı; inceleme kaydı oluşturuldu.")
+                except (ValueError, RuntimeError, OSError, sqlite3.Error):
+                    st.error("İnceleme döngüsü tamamlanamadı.")
+        if st.session_state.get("colony_last_review"):
+            review = st.session_state["colony_last_review"]
+            for key, title in (("draft", "İlk taslak"),
+                               ("critique", "Eleştiri"),
+                               ("revision", "Düzeltilmiş taslak")):
+                st.text_area(title, value=review[key], disabled=True,
+                             height=130, key="review_" + key)
         with colony._db() as db:
             data = {"agents": [dict(row) for row in db.execute(
                 "SELECT * FROM colony_agents ORDER BY created_at,id")],
