@@ -98,6 +98,20 @@ class TaskPanelTests(unittest.TestCase):
             self.assertEqual(updated["evidence"], ["https://example.org/report"])
             self.assertIn("Kaynak kontrol edildi", TaskStore(_session_database_path(st, path)).history(task["id"])[-1]["note"])
 
+    def test_review_pending_task_renders_and_can_be_replanned(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / "tasks.sqlite3")
+            st = FakeStreamlit(submits=[False, False])
+            store = TaskStore(_session_database_path(st, path))
+            task = store.create("Review draft")
+            store.transition(task["id"], "running")
+            store.finish_draft(task["id"], "Draft requiring source review")
+            with patch.dict("os.environ", {"AGENT_TASK_DB_PATH": path}):
+                render_task_panel(st)
+            self.assertEqual(st.select_options["task_status_" + task["id"]], ["blocked", "planned"])
+            self.assertEqual(store.get(task["id"])["status"], "review_pending")
+            self.assertNotIn("verified", st.select_options["task_status_" + task["id"]])
+
     def test_each_browser_session_uses_a_distinct_database(self):
         with tempfile.TemporaryDirectory() as folder:
             base = str(Path(folder) / "tasks.sqlite3")
