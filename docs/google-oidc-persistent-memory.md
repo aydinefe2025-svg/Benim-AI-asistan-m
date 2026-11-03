@@ -1,16 +1,18 @@
 # Google login and persistent personal memory
 
-The application supports optional Streamlit Google OIDC login and PostgreSQL-backed personal memory. Login and the database are deliberately opt-in: until both are provisioned, current deployment behavior remains unchanged. Do not enable these settings on the live service until the secret file, database role, backup, and CI checks are ready.
+The application supports optional Streamlit Google OIDC login and PostgreSQL-backed personal memory. Both features are opt-in. Do not enable the login gate on the live service until the Google client is configured, the Secret File is installed, and existing user-controlled task data has been backed up and verified.
 
 ## Google OIDC setup
 
-1. In Google Cloud Console, create an OAuth client of type **Web application**. Add the exact Render origin callback `https://YOUR-RENDER-SERVICE.onrender.com/oauth2callback` as an authorized redirect URI.
-2. In Render, add a Secret File at `.streamlit/secrets.toml` using `.streamlit/secrets.toml.example` as a template. Enter the real client ID, client secret, and a generated random cookie secret in the Render dashboard only. Never put credentials in Git, logs, or chat.
-3. Add `APP_AUTH_REQUIRED=true` to Render environment variables only after the secret file is installed and verified. Streamlit's native OIDC requires Streamlit 1.42 or newer; see [Streamlit authentication](https://docs.streamlit.io/develop/concepts/connections/authentication).
+1. In Google Cloud Console, create an OAuth client of type **Web application**. Add this exact authorized redirect URI: `https://benim-ai-asistan-streamlit.onrender.com/oauth2callback`.
+2. In Render, create a Secret File at `.streamlit/secrets.toml` using `.streamlit/secrets.toml.example` as the template. Put the real client ID, client secret, and a long random cookie secret in Render's dashboard only. Never put credentials in Git, logs, or chat.
+3. Verify the Secret File is installed before setting `APP_AUTH_REQUIRED=true` in Render. That setting activates a login gate for the whole app. Streamlit's native OIDC requires Streamlit 1.42 or newer; see [Streamlit authentication](https://docs.streamlit.io/develop/concepts/connections/authentication).
+
+The app reads Google OIDC settings from the `[auth]` section in `.streamlit/secrets.toml`; standalone `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment variables are not used by this implementation. Google login does not require `DATABASE_URL`. Do not start a Google Cloud free trial for this setup.
 
 ## PostgreSQL setup
 
-Use a dedicated least-privilege database role and an existing managed PostgreSQL database. First, as the schema owner, create the table once:
+PostgreSQL is a separate, optional feature for persistent personal-memory notes. Use a dedicated least-privilege database role and an existing managed PostgreSQL database. First, as the schema owner, create the table once:
 
 ```sql
 CREATE TABLE IF NOT EXISTS private_memory_entries (
@@ -26,6 +28,6 @@ Grant that application role only `SELECT, INSERT, UPDATE, DELETE` on this table 
 
 ## Data and rollout
 
-The app derives an opaque owner key from the verified OIDC issuer and subject using the cookie secret; email is never used as an ownership key. Imported notes are upserted in one transaction and scoped by that owner key. Existing session-only SQLite research tasks are not migrated by this feature. Export user-controlled task data before any deployment that might replace ephemeral disk. No live data is copied or altered by this code change.
+The app derives an opaque owner key from the verified OIDC issuer and subject using the cookie secret; email is never used as an ownership key. Imported notes are upserted in one transaction and scoped by that owner key. Existing session-only SQLite research tasks are not migrated by this feature. Export user-controlled task data before any deployment or auth rollout that could affect access to existing data. No live data is copied or altered by this code change.
 
-Roll out through a reviewed GitHub PR and a planned Render deploy after credentials and backups are ready. No paid action or deployment is performed by this change.
+Roll out through a reviewed GitHub change and a planned Render deploy after credentials and backups are ready. No paid action or deployment is performed by this change.
