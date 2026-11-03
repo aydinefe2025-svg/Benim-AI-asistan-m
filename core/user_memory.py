@@ -131,7 +131,14 @@ def relevant_memories(items: list[dict[str, Any]], query: str, limit: int = 3) -
         if overlap:
             ranked.append((len(overlap) / len(query_tokens), len(overlap), item))
     ranked.sort(key=lambda row: (row[0], row[1]), reverse=True)
-    return [row[2] for row in ranked[:limit] if row[0] >= 0.2]
+    # Explicit recall questions can have many grammatical filler tokens.
+    # Preserve the requirement of at least one lexical match, but do not
+    # discard a saved code merely because the question says "kaydetmeni".
+    recall_question = bool(re.search(
+        r"hatırla|hatırlıyor|hafıza|kaydetti|kaydetmeni|neydi",
+        query.casefold(),
+    ))
+    return [row[2] for row in ranked if row[0] >= 0.2 or (recall_question and row[1] >= 1)][:limit]
 
 
 def memory_context(items: list[dict[str, Any]], query: str, limit: int = 3) -> str:
