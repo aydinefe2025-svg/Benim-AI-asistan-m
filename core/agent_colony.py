@@ -121,6 +121,8 @@ class AgentColony:
             raise RuntimeError("Agent is inactive")
         if not isinstance(task, str) or not task.strip():
             raise ValueError("Task required")
+        if len(task) > 3000:
+            raise ValueError("Task too long")
         memory = json.dumps(self.lessons(agent_id), ensure_ascii=False)
         prompt = (f"Task: {task.strip()}\\nAccepted past lessons (not verified facts): "
                   f"{memory}\\nSeparate facts, hypotheses and missing evidence.")
@@ -128,5 +130,7 @@ class AgentColony:
                              " Do not claim unverified results as facts.", prompt)
         if not isinstance(output, str) or not output.strip():
             raise RuntimeError("Empty model response")
+        if len(output) > 12000:
+            raise RuntimeError("Model response exceeds review storage limit")
         return {"agent_id": agent_id, "output": output, "status": "draft_unverified",
                 "lessons_used": len(self.lessons(agent_id)), "model": model}

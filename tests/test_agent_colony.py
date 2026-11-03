@@ -46,6 +46,15 @@ class ColonyTests(unittest.TestCase):
             self.assertNotIn("Unreviewed guess", client.prompts[-1])
             self.assertEqual(second["status"], "draft_unverified")
 
+    def test_rejects_oversized_task_without_model_call(self):
+        with tempfile.TemporaryDirectory() as folder:
+            colony = AgentColony(Path(folder) / "colony.sqlite3")
+            founder = colony.create_founder("research", "Careful")
+            client = FakeClient()
+            with self.assertRaises(ValueError):
+                colony.run(founder, "x" * 3001, client=client, model="mock")
+            self.assertEqual(client.prompts, [])
+
     def test_founder_unique_and_invalid_inputs(self):
         with tempfile.TemporaryDirectory() as folder:
             colony = AgentColony(Path(folder) / "colony.sqlite3")
