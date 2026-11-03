@@ -115,13 +115,13 @@ class AgentColony:
                 (agent_id, limit)).fetchall()
         return [dict(row) for row in rows]
 
-    def run(self, agent_id, task, *, client, model):
+    def run(self, agent_id, task, *, client, model, internal_review=False):
         agent = self.get(agent_id)
         if agent["state"] != "active":
             raise RuntimeError("Agent is inactive")
         if not isinstance(task, str) or not task.strip():
             raise ValueError("Task required")
-        if len(task) > 3000:
+        if len(task) > (26000 if internal_review else 3000):
             raise ValueError("Task too long")
         memory = json.dumps(self.lessons(agent_id), ensure_ascii=False)
         prompt = (f"Task: {task.strip()}\\nAccepted past lessons (not verified facts): "

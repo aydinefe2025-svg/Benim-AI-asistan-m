@@ -35,13 +35,13 @@ class AgentReviewLoop:
                        "Identify missing evidence, assumptions, and errors. "
                        "Do not assert independent verification.\n"
                        + draft["output"][:12000])
-        critique = self.colony.run(reviewer_id, review_task, client=client, model=model)
+        critique = self.colony.run(reviewer_id, review_task, client=client, model=model, internal_review=True)
         revision_task = ("Revise your draft using the independent-role critique. "
                          "Distinguish supported statements, hypotheses, and gaps. "
                          "Do not invent evidence.\nOriginal draft:\n"
                          + draft["output"][:12000] + "\nCritique:\n"
                          + critique["output"][:12000])
-        revision = self.colony.run(author_id, revision_task, client=client, model=model)
+        revision = self.colony.run(author_id, revision_task, client=client, model=model, internal_review=True)
         record_id = str(uuid.uuid4())
         with self.colony._db() as db:
             db.execute("INSERT INTO colony_reviews VALUES (?,?,?,?,?,?,?,?,?)",
