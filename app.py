@@ -345,10 +345,13 @@ def _research_answer(goal: str) -> str:
             {"role": "system", "content": "You are a research drafting assistant. Clearly distinguish uncertain claims. Do not invent citations, claim web browsing, or claim independent verification. Answer in Turkish."},
             {"role": "user", "content": goal[:30000] + " | Sources: " + _research_leads(goal[:1200])},
         ],
-        max_tokens=1200,
+        max_tokens=2400,
         temperature=0.2,
     )
-    return response.choices[0].message.content or ""
+    output = response.choices[0].message.content or ""
+    if response.choices[0].finish_reason == "length":
+        output += "\n\n[UYARI: Model yanıtı token sınırında kesildi; içerik eksik olabilir.]"
+    return output
 
 
 render_task_panel(st, answer=_research_answer if GROQ_KEY else None)
