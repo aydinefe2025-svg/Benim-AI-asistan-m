@@ -6,6 +6,7 @@ Spawn creates a configured agent record, never a process or unrestricted replica
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -39,11 +40,16 @@ class AgentColony:
                     created_at TEXT NOT NULL);
             """)
 
+    @contextmanager
     def _db(self):
         db = sqlite3.connect(self.path)
-        db.row_factory = sqlite3.Row
-        db.execute("PRAGMA foreign_keys=ON")
-        return db
+        try:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA foreign_keys=ON")
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def create_founder(self, role, instructions):
         if not role or not role.strip() or not instructions or not instructions.strip():
