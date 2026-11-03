@@ -40,19 +40,29 @@ class PostgresMemoryStore:
                 """)
 
     def save(self, owner_key: str, entry: dict):
+        self.save_many(owner_key, [entry])
+
+    def save_many(self, owner_key: str, entries: list[dict]):
         if not isinstance(owner_key, str) or not owner_key.strip():
             raise ValueError("owner_key required")
-        if not isinstance(entry, dict) or not isinstance(entry.get("id"), str) or not entry["id"]:
-            raise ValueError("entry with nonempty id required")
-        payload = json.dumps(entry, ensure_ascii=False, allow_nan=False)
+        if not isinstance(entries, list):
+            raise ValueError("entries must be a list")
+        prepared = []
+        for entry in entries:
+            if not isinstance(entry, dict) or not isinstance(entry.get("id"), str) or not entry["id"]:
+                raise ValueError("entry with nonempty id required")
+            prepared.append((
+                owner_key, entry["id"],
+                json.dumps(entry, ensure_ascii=False, allow_nan=False),
+            ))
         with self._connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("""
+                cur.executemany("""
                     INSERT INTO private_memory_entries (owner_key, entry_id, payload)
                     VALUES (%s, %s, %s::jsonb)
                     ON CONFLICT (owner_key, entry_id)
                     DO UPDATE SET payload=EXCLUDED.payload, updated_at=now()
-                """, (owner_key, entry["id"], payload))
+                """, prepared)
 
     def list(self, owner_key: str) -> list[dict]:
         if not isinstance(owner_key, str) or not owner_key.strip():
