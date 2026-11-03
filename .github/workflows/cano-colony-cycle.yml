@@ -1,0 +1,34 @@
+name: CANO scheduled colony cycle
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cano-colony-cycle
+  cancel-in-progress: false
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run bounded cycle
+        env:
+          CANO_CYCLE_OUTPUT: artifacts/colony-cycle.json
+          CANO_CYCLE_DB: artifacts/colony-cycle.sqlite3
+        run: python -m scripts.cano_colony_cycle
+      - name: Upload verifiable cycle audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: cano-colony-cycle-${{ github.run_id }}
+          path: artifacts/colony-cycle.json
+          retention-days: 30
