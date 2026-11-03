@@ -1,5 +1,7 @@
 """User-triggered research panel integration regression tests."""
 import tempfile
+from datetime import datetime, timezone, timedelta
+import sqlite3
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -26,6 +28,23 @@ class ResearchPanelIntegrationTests(unittest.TestCase):
                 render_task_panel(st, answer=lambda goal: "Unverified: " + goal)
             self.assertEqual(TaskStore(db_path).get(task["id"])["status"], "review_pending")
             self.assertEqual(load_draft(db_path, task["id"]), "Unverified: Find sources")
+
+    def test_panel_recovers_stale_running_without_provider_call(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / "tasks.sqlite3")
+            st = FakeStreamlit(submits=[False, False])
+            db_path = _session_database_path(st, path)
+            store = TaskStore(db_path)
+            task = store.create("Interrupted", "Find evidence")
+            store.transition(task["id"], "running", note="Started")
+            stale = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+            with sqlite3.connect(db_path) as conn:
+                conn.execute("UPDATE tasks SET updated_at=? WHERE id=?", (stale, task["id"]))
+            calls = []
+            with patch.dict("os.environ", {"AGENT_TASK_DB_PATH": path}):
+                render_task_panel(st, answer=lambda goal: calls.append(goal))
+            self.assertEqual(TaskStore(db_path).get(task["id"])["status"], "blocked")
+            self.assertEqual(calls, [])
 
     def test_without_provider_does_not_run(self):
         with tempfile.TemporaryDirectory() as folder:
