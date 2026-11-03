@@ -11,6 +11,7 @@ from core.research_import import import_research_archive
 from core.research_export import export_research_archive
 from core.research_drafts import save_draft, load_draft
 from core.agent_executor import run_research_task
+from core.task_recovery import recover_stale_running
 
 
 def _session_database_path(st, configured_path: str) -> Path:
@@ -36,9 +37,13 @@ def render_task_panel(st, answer=None) -> None:
         db_path = os.environ.get("AGENT_TASK_DB_PATH", "data/agent_tasks.sqlite3")
         try:
             store = TaskStore(_session_database_path(st, db_path))
+            recovered = recover_stale_running(store.db_path, stale_after_seconds=3600)
         except (OSError, ValueError, sqlite3.Error):
             st.error("Görev veritabanı açılamadı; kayıt yapılmadı.")
             return
+
+        if recovered:
+            st.warning(f"{len(recovered)} kesintiye uğramış görev güvenli şekilde engellendi; yeniden çalıştırmadan önce inceleyin.")
 
         with st.form("agent_task_create", clear_on_submit=True):
             title = st.text_input("Görev adı", max_chars=200)
