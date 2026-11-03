@@ -5,6 +5,7 @@ No user content is interpolated into JavaScript; data flows as component args.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -41,3 +42,14 @@ def browser_memory_component(write: dict | None = None) -> dict | None:
         path=str(Path(__file__).with_name("browser_memory_frontend")),
     )
     return component(write=write, key="cano_browser_memory", default=None)
+
+def explicit_memory_request(message: str) -> bool:
+    """Recognize clear user requests to persist a short note."""
+    if not isinstance(message, str) or not 1 <= len(message.strip()) <= 2000:
+        return False
+    lowered = message.casefold()
+    return bool(re.search(
+        r"(?:hafızana\s+kaydet|hafızaya\s+kaydet|bunu\s+kaydet|"
+        r"aklında\s+tut|unutma\b)",
+        lowered,
+    ))
