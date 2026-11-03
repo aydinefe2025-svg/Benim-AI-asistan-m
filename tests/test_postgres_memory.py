@@ -14,6 +14,8 @@ class FakeCursor:
         pass
     def execute(self, sql, params=None):
         self.statements.append((sql, params))
+    def executemany(self, sql, params):
+        self.statements.append((sql, list(params)))
     def fetchall(self):
         return self.rows
 
@@ -46,15 +48,32 @@ class PostgresMemoryTests(unittest.TestCase):
     def test_save_uses_parameters_not_interpolation(self):
         entry = {"id": "id-1", "text": "O'Reilly"}
         self.store.save("owner-1", entry)
-        sql, params = self.cursor.statements[-1]
+        sql, rows = self.cursor.statements[-1]
         self.assertNotIn("O'Reilly", sql)
-        self.assertEqual(params[0:2], ("owner-1", "id-1"))
-        self.assertEqual(json.loads(params[2]), entry)
+        self.assertEqual(rows[0][0:2], ("owner-1", "id-1"))
+        self.assertEqual(json.loads(rows[0][2]), entry)
 
     def test_list_is_scoped_to_owner(self):
         self.cursor.rows = [(json.dumps({"id": "id-1"}),)]
         self.assertEqual(self.store.list("owner-1"), [{"id": "id-1"}])
         self.assertEqual(self.cursor.statements[-1][1], ("owner-1",))
+
+    def test_save_many_batches_only_owner_scoped_parameterized_entries(self):
+        entries = [{"id": "id-1", "text": "first"}, {"id": "id-2", "text": "second"}]
+        self.store.save_many("owner-1", entries)
+        sql, rows = self.cursor.statements[-1]
+        self.assertIn("ON CONFLICT (owner_key, entry_id)", sql)
+        self.assertEqual([row[:2] for row in rows], [
+            ("owner-1", "id-1"), ("owner-1", "id-2"),
+        ])
+        self.assertEqual([json.loads(row[2]) for row in rows], entries)
+
+    def test_save_many_validates_all_entries_before_connecting(self):
+        with self.assertRaises(ValueError):
+            self.store.save_many("owner-1", [
+                {"id": "id-1"}, {"text": "missing id"},
+            ])
+        self.assertEqual(self.connections, [])
 
     def test_delete_is_scoped_to_owner_and_id(self):
         self.store.delete("owner-1", "id-1")
