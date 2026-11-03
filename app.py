@@ -22,6 +22,7 @@ if os.environ.get("DATABASE_URL"):
     try:
         from core.postgres_memory import PostgresMemoryStore
         _MEMORY_STORE = PostgresMemoryStore()
+        _MEMORY_STORE.initialize()
     except Exception:
         st.error("Kalıcı hafıza bağlantısı kurulamadı; kayıtlar değiştirilmedi.")
         st.stop()
