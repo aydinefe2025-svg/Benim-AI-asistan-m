@@ -92,6 +92,50 @@ class AgentColony:
                         role.strip(), instructions.strip(), "active", now()))
         return child_id
 
+    def grow_specialists(self, *, approved=False, batch_size=3):
+        """Create missing bounded specialist roles; never spawn unrestricted processes.
+
+        Repeat calls are idempotent by role. Growth requires an explicit
+        authorization and respects max_agents and the generation limit.
+        """
+        if not approved:
+            raise PermissionError("Growth needs explicit authorization")
+        if type(batch_size) is not int or not 1 <= batch_size <= 5:
+            raise ValueError("Invalid growth batch")
+        specs = (
+            ("evidence-reviewer", "Check evidence and uncertainty; never invent sources."),
+            ("test-engineer", "Design reproducible tests; report failures accurately."),
+            ("memory-curator", "Organize approved lessons; never assert unverified persistence."),
+            ("research-planner", "Break complex research into verifiable tasks."),
+            ("risk-auditor", "Identify security, cost, privacy and reliability risks."),
+            ("quality-editor", "Improve clarity without changing factual meaning."),
+        )
+        created = []
+        with self._db() as db:
+            agents = [dict(row) for row in db.execute(
+                "SELECT id,role,generation,state FROM colony_agents ORDER BY generation,id")]
+        if not agents:
+            raise RuntimeError("Create founder first")
+        existing = {a["role"] for a in agents}
+        # Prefer the founder so all new agents remain within generation limits.
+        parent = next((a for a in agents if a["generation"] == 0 and a["state"] == "active"), None)
+        if parent is None:
+            raise RuntimeError("Active founder required")
+        for role, instructions in specs:
+            if len(created) >= batch_size:
+                break
+            if role in existing:
+                continue
+            try:
+                child_id = self.spawn(parent["id"], role, instructions, approved=True)
+            except RuntimeError as exc:
+                if str(exc) == "Agent quota reached":
+                    break
+                raise
+            created.append(child_id)
+            existing.add(role)
+        return created
+
     def feedback(self, agent_id, task, lesson, evidence, *, accepted=False):
         self.get(agent_id)
         if not all(isinstance(v, str) and v.strip() for v in (task, lesson, evidence)):
