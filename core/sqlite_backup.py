@@ -179,5 +179,8 @@ def recovery_drill(
     if (result["source_count"] != sources or
             result["claim_count"] != claims or
             result["notion_link_count"] != notion_links):
+        # Only the new file created by this restore is removed; never touch
+        # the original archive or a pre-existing recovery destination.
+        Path(destination).expanduser().unlink()
         raise ValueError("Recovered record counts differ from receipt")
     return {"verified": True, **result}

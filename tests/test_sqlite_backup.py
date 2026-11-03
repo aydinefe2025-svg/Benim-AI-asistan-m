@@ -232,6 +232,26 @@ class SQLiteBackupTests(unittest.TestCase):
             recovery_drill(backup, receipt, target)
         self.assertFalse(target.exists())
 
+    def test_post_restore_receipt_mismatch_cleans_only_new_recovery_file(self):
+        self._seed()
+        backup = self.root / "backup.sqlite3"
+        receipt = self.root / "receipt.json"
+        backup_with_receipt(self.source_path, backup, receipt)
+        destination = self.root / "new" / "recovery.sqlite3"
+        from core.sqlite_backup import restore_research_db as actual_restore
+
+        def changed_after_restore(*args, **kwargs):
+            result = actual_restore(*args, **kwargs)
+            return {**result, "source_count": result["source_count"] + 1}
+
+        with patch("core.sqlite_backup.restore_research_db", side_effect=changed_after_restore):
+            with self.assertRaisesRegex(ValueError, "Recovered record counts"):
+                recovery_drill(backup, receipt, destination)
+        self.assertFalse(destination.exists())
+        self.assertTrue(backup.exists())
+        self.assertTrue(receipt.exists())
+        self.assertEqual(self.store.list_sources()[0]["title"], "Original research")
+
     def test_backup_never_overwrites_existing_file(self):
         self._seed()
         backup_path = self.root / "existing.backup"
