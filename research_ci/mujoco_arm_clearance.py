@@ -27,7 +27,7 @@ def clearance(q1,q2):
 def run():
     cases=[
       ("first_link_collision",0.0,0.0,False),
-      ("second_link_collision",math.pi/2,-math.pi/2,True),
+      ("bent_arm_clear",math.pi/2,-math.pi/2,True),
       ("clear_upward",math.pi/2,0.0,True),
       ("first_link_near_miss",0.35,0.0,True)
     ]
