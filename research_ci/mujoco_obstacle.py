@@ -7,7 +7,7 @@ XML = """
 <mujoco model="obstacle_detection">
 <option timestep="0.002" gravity="0 0 0"/>
 <worldbody>
-  <body mocap="true" name="probe" pos="0 0 0">
+  <body name="probe" pos="0 0 0">\n    <freejoint/>
     <geom name="probe_geom" type="sphere" size="0.1" contype="1" conaffinity="1"/>
   </body>
   <body name="obstacle" pos="0.5 0 0">
@@ -25,7 +25,7 @@ def run():
     cases = [(0.0, False), (0.29, False), (0.35, True), (0.5, True)]
     records = []
     for x, expected_contact in cases:
-        data.mocap_pos[0, :] = [x, 0, 0]
+        data.qpos[:3] = [x, 0, 0]
         mujoco.mj_forward(model, data)
         distances = [float(data.contact[i].dist) for i in range(data.ncon)
                      if {int(data.contact[i].geom1), int(data.contact[i].geom2)} == {probe, obstacle}]
