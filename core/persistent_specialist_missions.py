@@ -124,6 +124,17 @@ class PersistentSpecialistMissions:
             raise
         return self.get(mission_id)
 
+    def mark_interrupted(self, mission_id):
+        """Operator recovery after confirming the previous worker has stopped."""
+        with self._connect() as db:
+            changed = db.execute(
+                "UPDATE specialist_missions SET status='interrupted',updated_at=? "
+                "WHERE id=? AND status='running'",
+                (_timestamp(), mission_id)).rowcount
+        if changed != 1:
+            raise ValueError("Mission is not running")
+        return self.get(mission_id)
+
     def export_json(self, mission_id):
         """Export evidence-labelled draft; caller must archive and verify receipt."""
         return json.dumps(self.get(mission_id), ensure_ascii=False, indent=2)
