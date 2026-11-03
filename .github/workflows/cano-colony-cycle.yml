@@ -30,5 +30,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cano-colony-cycle-${{ github.run_id }}
-          path: |\n            artifacts/colony-cycle.json\n            artifacts/colony-cycle.sqlite3
+          path: |
+            artifacts/colony-cycle.json
+            artifacts/colony-cycle.sqlite3
           retention-days: 30
