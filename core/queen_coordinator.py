@@ -7,6 +7,7 @@ Distributed production requires a transactional shared store, not SQLite.
 from __future__ import annotations
 
 import sqlite3
+from contextlib import contextmanager
 import time
 from pathlib import Path
 
@@ -29,10 +30,15 @@ class QueenCoordinator:
                     VALUES(1,NULL,0,0);
             """)
 
+    @contextmanager
     def _connect(self):
         db = sqlite3.connect(self.path, timeout=5)
-        db.row_factory = sqlite3.Row
-        return db
+        try:
+            db.row_factory = sqlite3.Row
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def register(self, node_id, *, authorized=False):
         if not authorized:
