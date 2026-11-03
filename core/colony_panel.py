@@ -8,6 +8,7 @@ from pathlib import Path
 from core.agent_colony import AgentColony
 from core.agent_review_loop import AgentReviewLoop
 from core.colony_postgres import ColonySnapshotStore
+from core.colony_restore import restore_empty_colony
 from core.task_panel import _session_database_path
 
 
@@ -34,6 +35,21 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
         except (OSError, ValueError, sqlite3.Error):
             st.error("Ajan veritabanı açılamadı.")
             return
+        if not agents and owner_key and database_url:
+            if st.button("Kalıcı yedekten boş koloniyi geri yükle",
+                         key="colony_postgres_restore"):
+                try:
+                    snapshot = ColonySnapshotStore(database_url).load(owner_key)
+                    if not snapshot:
+                        st.warning("Bu hesap için kalıcı yedek bulunamadı.")
+                    else:
+                        count = restore_empty_colony(colony, snapshot)
+                        st.success(f"{count} uzman geri yüklendi.")
+                        st.rerun()
+                except (ValueError, RuntimeError, OSError, sqlite3.Error):
+                    st.error("Geri yükleme reddedildi; mevcut veriler korunuyor.")
+                except Exception:
+                    st.error("Kalıcı yedeğe erişilemedi; mevcut veriler korunuyor.")
         if not agents:
             if st.button("Kurucu araştırma ajanını oluştur", key="colony_founder"):
                 try:
