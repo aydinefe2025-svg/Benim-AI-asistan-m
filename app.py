@@ -40,6 +40,7 @@ from core.public_research import research_sources
 from core.scientific_sources import scientific_sources
 from core.user_memory import export_library, import_library, memory_context, new_memory
 from core.task_panel import render_task_panel
+from core.colony_panel import render_colony_panel
 
 _credentials = configured_credentials(st.secrets, os.environ)
 _credential_presence = credential_presence(_credentials)
@@ -300,6 +301,7 @@ def _research_answer(goal: str) -> str:
 
 
 render_task_panel(st, answer=_research_answer if GROQ_KEY else None)
+render_colony_panel(st, answer=_research_answer if GROQ_KEY else None)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
