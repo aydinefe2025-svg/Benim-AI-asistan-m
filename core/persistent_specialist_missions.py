@@ -6,6 +6,7 @@ independent self-improving agent. Each completed role is committed to SQLite.
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -38,11 +39,16 @@ class PersistentSpecialistMissions:
                     PRIMARY KEY(mission_id, role));
             """)
 
+    @contextmanager
     def _connect(self):
         db = sqlite3.connect(self.db_path)
-        db.row_factory = sqlite3.Row
-        db.execute("PRAGMA foreign_keys=ON")
-        return db
+        try:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA foreign_keys=ON")
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def create(self, question, *, model, domain="research"):
         if domain not in DOMAINS:
