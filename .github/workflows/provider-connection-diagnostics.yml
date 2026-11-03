@@ -2,19 +2,14 @@ name: Read-only provider connection diagnostics
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - ".github/workflows/provider-connection-diagnostics.yml"
-      - "core/connection_diagnostics.py"
-      - "scripts/check_connections.py"
 
 permissions:
   contents: read
 
 jobs:
   provider-connectivity:
-    # Repository secrets are never supplied to forks or external head repos.
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    # Only run reviewed code from the default branch; never execute PR code with secrets.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
