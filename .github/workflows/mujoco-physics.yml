@@ -38,11 +38,13 @@ jobs:
         run: python research_ci/mujoco_trajectory.py
       - name: Validate obstacle contact detection
         run: python research_ci/mujoco_obstacle.py
+      - name: Validate collision-free 2D path planning
+        run: python research_ci/mujoco_path_planning.py
       - name: Preserve results and digests
         if: always()
         shell: bash
         run: |
-          for f in mujoco_result.json mujoco_batch_result.json mujoco_benchmark_result.json mujoco_contact_result.json mujoco_actuator_result.json mujoco_reversal_result.json mujoco_two_joint_result.json mujoco_ik_result.json mujoco_trajectory_result.json mujoco_obstacle_result.json; do
+          for f in mujoco_result.json mujoco_batch_result.json mujoco_benchmark_result.json mujoco_contact_result.json mujoco_actuator_result.json mujoco_reversal_result.json mujoco_two_joint_result.json mujoco_ik_result.json mujoco_trajectory_result.json mujoco_obstacle_result.json mujoco_path_planning_result.json; do
             if [ -f "$f" ]; then sha256sum "$f" > "$f.sha256"; fi
           done
       - name: Upload evidence
@@ -71,4 +73,6 @@ jobs:
             mujoco_trajectory_result.json.sha256
             mujoco_obstacle_result.json
             mujoco_obstacle_result.json.sha256
+            mujoco_path_planning_result.json
+            mujoco_path_planning_result.json.sha256
           if-no-files-found: warn
