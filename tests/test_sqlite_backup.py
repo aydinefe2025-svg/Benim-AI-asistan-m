@@ -1,5 +1,6 @@
 """Backup/restore tests against real SQLite files and research lineage."""
 import json
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -78,9 +79,10 @@ class SQLiteBackupTests(unittest.TestCase):
         backup = self.root / "snapshot.sqlite3"
         recorded = backup_research_db(self.source_path, backup)["sha256"]
         import sqlite3
-        with sqlite3.connect(backup) as conn:
+        with closing(sqlite3.connect(backup)) as conn, conn:
             conn.execute("UPDATE sources SET title='Tampered' WHERE id=1")
-        self.assertEqual(sqlite3.connect(backup).execute("PRAGMA integrity_check").fetchone()[0], "ok")
+        with closing(sqlite3.connect(backup)) as conn:
+            self.assertEqual(conn.execute("PRAGMA integrity_check").fetchone()[0], "ok")
         destination = self.root / "must-not-be-created.sqlite3"
         with self.assertRaisesRegex(ValueError, "SHA-256"):
             restore_research_db(backup, destination, expected_sha256=recorded)
@@ -122,9 +124,10 @@ class SQLiteBackupTests(unittest.TestCase):
         receipt = self.root / "receipts" / "snapshot.json"
         backup_with_receipt(self.source_path, backup, receipt)
         import sqlite3
-        with sqlite3.connect(backup) as conn:
+        with closing(sqlite3.connect(backup)) as conn, conn:
             conn.execute("UPDATE sources SET title='Changed after backup'")
-        self.assertEqual(sqlite3.connect(backup).execute("PRAGMA integrity_check").fetchone()[0], "ok")
+        with closing(sqlite3.connect(backup)) as conn:
+            self.assertEqual(conn.execute("PRAGMA integrity_check").fetchone()[0], "ok")
         target = self.root / "recovered" / "should-not-exist.sqlite3"
         with self.assertRaisesRegex(ValueError, "SHA-256"):
             recovery_drill(backup, receipt, target)
@@ -183,7 +186,7 @@ class SQLiteBackupTests(unittest.TestCase):
         receipt = self.root / "receipts" / "snapshot.json"
         backup_with_receipt(self.source_path, backup, receipt)
         import sqlite3
-        with sqlite3.connect(backup) as conn:
+        with closing(sqlite3.connect(backup)) as conn, conn:
             conn.execute("PRAGMA foreign_keys=OFF")
             conn.execute("INSERT INTO claim_sources(claim_id,source_id,relationship) VALUES(99999,99999,'supports')")
         import hashlib
@@ -228,6 +231,26 @@ class SQLiteBackupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "record counts"):
             recovery_drill(backup, receipt, target)
         self.assertFalse(target.exists())
+
+    def test_post_restore_receipt_mismatch_cleans_only_new_recovery_file(self):
+        self._seed()
+        backup = self.root / "backup.sqlite3"
+        receipt = self.root / "receipt.json"
+        backup_with_receipt(self.source_path, backup, receipt)
+        destination = self.root / "new" / "recovery.sqlite3"
+        from core.sqlite_backup import restore_research_db as actual_restore
+
+        def changed_after_restore(*args, **kwargs):
+            result = actual_restore(*args, **kwargs)
+            return {**result, "source_count": result["source_count"] + 1}
+
+        with patch("core.sqlite_backup.restore_research_db", side_effect=changed_after_restore):
+            with self.assertRaisesRegex(ValueError, "Recovered record counts"):
+                recovery_drill(backup, receipt, destination)
+        self.assertFalse(destination.exists())
+        self.assertTrue(backup.exists())
+        self.assertTrue(receipt.exists())
+        self.assertEqual(self.store.list_sources()[0]["title"], "Original research")
 
     def test_backup_never_overwrites_existing_file(self):
         self._seed()

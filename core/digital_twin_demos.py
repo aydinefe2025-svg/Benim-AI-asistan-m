@@ -6,6 +6,8 @@ No hardware, network, laboratory, or external actions.
 """
 from __future__ import annotations
 
+from core.robotics_validation import validate_grid_point, validate_grid_moves
+
 
 def _check_shape(width: int, height: int) -> None:
     if type(width) is not int or type(height) is not int or width < 1 or height < 1:
@@ -26,8 +28,11 @@ def move_grid_robot(
 ) -> dict:
     """Apply only adjacent integer movement deltas to a virtual grid robot."""
     _check_shape(width, height)
-    blocked = set(obstacles or set())
-    if not _inside(start, width, height) or start in blocked:
+    start = validate_grid_point(start, width=width, height=height)
+    blocked = {validate_grid_point(point, width=width, height=height)
+               for point in (obstacles if obstacles is not None else ())}
+    moves = validate_grid_moves(moves)
+    if start in blocked:
         raise ValueError("Invalid robot starting location")
     if any(not _inside(p, width, height) for p in blocked):
         raise ValueError("Obstacle outside simulation")

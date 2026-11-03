@@ -1,0 +1,11 @@
+{
+  "contact_steps": 2572,
+  "contact_verified": true,
+  "engine": "3.17.0",
+  "expected_rest_z": 0.1,
+  "final_z": 0.0996328181575537,
+  "initial_z": 1.0,
+  "minimum_z": 0.07139236679325249,
+  "settling_tolerance": 0.03,
+  "steps": 3000
+}

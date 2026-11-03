@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from datetime import datetime, timezone, timedelta
@@ -21,7 +22,7 @@ class RecoveryTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def set_updated(self, stamp):
-        with sqlite3.connect(self.db) as conn:
+        with closing(sqlite3.connect(self.db)) as conn, conn:
             conn.execute("UPDATE tasks SET updated_at=? WHERE id=?",
                          (stamp.isoformat(), self.task["id"]))
 

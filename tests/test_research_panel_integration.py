@@ -2,6 +2,7 @@
 import tempfile
 from datetime import datetime, timezone, timedelta
 import sqlite3
+from contextlib import closing
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -38,7 +39,7 @@ class ResearchPanelIntegrationTests(unittest.TestCase):
             task = store.create("Interrupted", "Find evidence")
             store.transition(task["id"], "running", note="Started")
             stale = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
-            with sqlite3.connect(db_path) as conn:
+            with closing(sqlite3.connect(db_path)) as conn, conn:
                 conn.execute("UPDATE tasks SET updated_at=? WHERE id=?", (stale, task["id"]))
             calls = []
             with patch.dict("os.environ", {"AGENT_TASK_DB_PATH": path}):

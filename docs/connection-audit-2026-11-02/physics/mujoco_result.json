@@ -1,0 +1,12 @@
+{
+  "absolute_error": 0.004904999999961301,
+  "analytic_z": -2.9050000000000065,
+  "engine": "mujoco",
+  "observed_z": -2.9099049999999678,
+  "physics_verified": true,
+  "python": "3.15.2",
+  "steps": 1000,
+  "time": 1.0000000000000007,
+  "tolerance": 0.02,
+  "version": "3.17.0"
+}

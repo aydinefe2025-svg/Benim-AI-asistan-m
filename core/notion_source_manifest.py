@@ -66,7 +66,7 @@ def import_source_manifest(
     # Do not call store.add_source here: it opens and commits its own
     # connection for each source, defeating the batch rollback contract.
     inserted = 0
-    with store._connect() as conn:
+    with store._connection() as conn:
         conn.execute("BEGIN IMMEDIATE")
         for item in normalized.values():
             url = item["url"]

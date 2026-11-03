@@ -4,6 +4,7 @@ This module intentionally requires explicit independently checked evidence.
 It does not fetch or verify URLs automatically.
 """
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
 
 
@@ -20,7 +21,7 @@ def record_evidence_review(db_path, task_id, *, source_url, evidence_note, revie
     if accepted:
         raise PermissionError("Accepted review requires authenticated independent reviewer")
     now = datetime.now(timezone.utc).isoformat()
-    with sqlite3.connect(str(db_path), timeout=15) as conn:
+    with closing(sqlite3.connect(str(db_path), timeout=15)) as conn, conn:
         conn.execute("BEGIN IMMEDIATE")
         conn.execute("""CREATE TABLE IF NOT EXISTS evidence_reviews (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -29,7 +30,7 @@ class KnowledgeStore:
         self.db_path = str(db_path)
         if self.db_path != ":memory:":
             Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as conn:
+        with self._connection() as conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS sources (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,6 +97,15 @@ class KnowledgeStore:
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
+    @contextmanager
+    def _connection(self):
+        conn = self._connect()
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
+
     @staticmethod
     def _validate_url(url: str) -> str:
         url = url.strip()
@@ -113,7 +123,7 @@ class KnowledgeStore:
         if not title:
             raise ValueError("Source title cannot be empty")
         digest = sha256_text(content) if content else ""
-        with self._connect() as conn:
+        with self._connection() as conn:
             conn.execute(
                 """INSERT INTO sources(url,title,publisher,published_at,accessed_at,content_sha256,notes)
                    VALUES(?,?,?,?,?,?,?)
@@ -153,7 +163,7 @@ class KnowledgeStore:
         if not source_ids:
             raise ValueError("At least one source is required for a stored claim")
         relationships = relationships or {}
-        with self._connect() as conn:
+        with self._connection() as conn:
             placeholders = ",".join("?" for _ in set(source_ids))
             existing = conn.execute(
                 f"SELECT id FROM sources WHERE id IN ({placeholders})", tuple(set(source_ids))
@@ -181,7 +191,7 @@ class KnowledgeStore:
         return row
 
     def get_claim(self, claim_id: int) -> dict[str, Any]:
-        with self._connect() as conn:
+        with self._connection() as conn:
             row = conn.execute("SELECT * FROM claims WHERE id=?", (claim_id,)).fetchone()
             if row is None:
                 raise KeyError(f"Unknown claim: {claim_id}")
@@ -210,7 +220,7 @@ class KnowledgeStore:
             raise ValueError("Review notes require a reviewer label and rationale")
         if assessment not in {"supports", "disputed", "needs_more_evidence"}:
             raise ValueError("Invalid review assessment")
-        with self._connect() as conn:
+        with self._connection() as conn:
             link = conn.execute(
                 """SELECT s.content_sha256 FROM claim_sources cs
                    JOIN sources s ON s.id=cs.source_id
@@ -231,7 +241,7 @@ class KnowledgeStore:
 
     def list_review_notes(self, claim_id: int) -> list[dict[str, Any]]:
         """List recorded review notes; no note implies claim verification."""
-        with self._connect() as conn:
+        with self._connection() as conn:
             if conn.execute("SELECT id FROM claims WHERE id=?", (claim_id,)).fetchone() is None:
                 raise KeyError(f"Unknown claim: {claim_id}")
             rows = conn.execute(
@@ -246,7 +256,7 @@ class KnowledgeStore:
         This is a local data consistency check, not independent source
         authentication, reviewer authorization, or scientific verification.
         """
-        with self._connect() as conn:
+        with self._connection() as conn:
             claim = conn.execute(
                 "SELECT id,status FROM claims WHERE id=?", (claim_id,)
             ).fetchone()
@@ -306,7 +316,7 @@ class KnowledgeStore:
             raise ValueError("Audit offset must be a nonnegative integer")
         where = "WHERE status=?" if status is not None else ""
         params = (status,) if status is not None else ()
-        with self._connect() as conn:
+        with self._connection() as conn:
             total = conn.execute(
                 f"SELECT COUNT(*) FROM claims {where}", params
             ).fetchone()[0]
@@ -332,7 +342,7 @@ class KnowledgeStore:
 
     def list_revisions(self, source_id: int) -> list[dict[str, Any]]:
         """List recorded content fingerprints; these are not full snapshots."""
-        with self._connect() as conn:
+        with self._connection() as conn:
             source = conn.execute("SELECT id FROM sources WHERE id=?", (source_id,)).fetchone()
             if source is None:
                 raise KeyError(f"Unknown source: {source_id}")
@@ -345,7 +355,7 @@ class KnowledgeStore:
 
     def list_source_manifest_links(self) -> list[dict[str, Any]]:
         """List source provenance IDs; these are identifiers, not validation."""
-        with self._connect() as conn:
+        with self._connection() as conn:
             rows = conn.execute(
                 """SELECT l.research_id,l.notion_page_id,l.source_id,s.url,s.title
                    FROM notion_source_links l
@@ -355,12 +365,12 @@ class KnowledgeStore:
         return [dict(row) for row in rows]
 
     def list_sources(self) -> list[dict[str, Any]]:
-        with self._connect() as conn:
+        with self._connection() as conn:
             rows = conn.execute("SELECT * FROM sources ORDER BY id").fetchall()
         return [dict(row) for row in rows]
 
     def list_claims(self, status: str | None = None) -> list[dict[str, Any]]:
-        with self._connect() as conn:
+        with self._connection() as conn:
             if status is None:
                 rows = conn.execute("SELECT * FROM claims ORDER BY id").fetchall()
             else:

@@ -3,6 +3,7 @@
 Only stale running tasks are blocked; never silently re-run a provider call.
 """
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone, timedelta
 
 
@@ -14,7 +15,7 @@ def recover_stale_running(db_path, *, stale_after_seconds=3600, now=None):
         raise ValueError("now must have a timezone")
     threshold = now.astimezone(timezone.utc) - timedelta(seconds=stale_after_seconds)
     recovered = []
-    with sqlite3.connect(str(db_path), timeout=15) as conn:
+    with closing(sqlite3.connect(str(db_path), timeout=15)) as conn, conn:
         conn.execute("BEGIN IMMEDIATE")
         rows = conn.execute(
             "SELECT id,updated_at FROM tasks WHERE status='running' ORDER BY id"

@@ -12,7 +12,7 @@ class DailyResearchTests(unittest.TestCase):
                 "fullurl": "https://en.wikipedia.org/wiki/Neutron_star"
             }}}}
         with tempfile.TemporaryDirectory() as tmp:
-            path = run(fetch=fake, output_dir=tmp)
+            path = run(fetch=fake, output_dir=tmp, scientific_lookup=lambda _: [])
             report = json.loads(Path(path).read_text(encoding="utf-8"))
             self.assertEqual(set(report["topics"]), set(TOPICS))
             self.assertFalse(report["verified"])
@@ -22,7 +22,7 @@ class DailyResearchTests(unittest.TestCase):
         def broken(url):
             raise OSError("offline")
         with tempfile.TemporaryDirectory() as tmp:
-            report = json.loads(run(fetch=broken, output_dir=tmp).read_text(encoding="utf-8"))
+            report = json.loads(run(fetch=broken, output_dir=tmp, scientific_lookup=lambda _: []).read_text(encoding="utf-8"))
             self.assertTrue(all(v["status"] == "error" for v in report["topics"].values()))
             self.assertTrue(all(v["error_type"] == "OSError" for v in report["topics"].values()))
 
@@ -37,7 +37,7 @@ class DailyResearchTests(unittest.TestCase):
                 "fullurl": "https://en.wikipedia.org/wiki/Robotics"
             }}}}
         with tempfile.TemporaryDirectory() as tmp:
-            report = json.loads(run(fetch=flaky, output_dir=tmp).read_text(encoding="utf-8"))
+            report = json.loads(run(fetch=flaky, output_dir=tmp, scientific_lookup=lambda _: []).read_text(encoding="utf-8"))
             self.assertTrue(all(v["status"] == "found" for v in report["topics"].values()))
             self.assertEqual(report["topics"]["neutron_star_eos"]["attempts"], 2)
             self.assertEqual(calls["count"], len(TOPICS) + 1)
