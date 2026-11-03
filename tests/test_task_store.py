@@ -45,6 +45,16 @@ class TaskStoreTests(unittest.TestCase):
             self.store.transition(task["id"], "done")
         self.assertEqual(self.store.get(task["id"])["status"], "planned")
 
+    def test_review_pending_can_be_replanned_without_verification(self):
+        task = self.store.create("Review a saved draft")
+        self.store.transition(task["id"], "running")
+        self.store.finish_draft(task["id"], "Unverified research notes")
+        self.assertEqual(self.store.get(task["id"])["status"], "review_pending")
+        with self.assertRaises(ValueError):
+            self.store.transition(task["id"], "verified")
+        self.assertEqual(self.store.transition(task["id"], "planned")["status"], "planned")
+        self.assertEqual(self.store.history(task["id"])[-1]["new_status"], "planned")
+
     def test_failed_task_can_be_retried_but_verified_is_terminal(self):
         task = self.store.create("Hata kaydını denetle")
         self.store.transition(task["id"], "running")

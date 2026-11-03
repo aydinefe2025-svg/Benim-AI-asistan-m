@@ -107,7 +107,9 @@ def render_task_panel(st, answer=None) -> None:
 
             # Source verification is not implemented yet. Do not let arbitrary
             # user-entered text promote a task to verified.
-            next_statuses = sorted(ALLOWED_TRANSITIONS[task["status"]] - {"verified"})
+            next_statuses = sorted(ALLOWED_TRANSITIONS.get(task["status"], set()) - {"verified"})
+            if task["status"] not in ALLOWED_TRANSITIONS:
+                st.warning("Bilinmeyen görev durumu; kayıt değiştirilmedi. Yönetici incelemesi gerekli.")
             if not next_statuses:
                 continue
             with st.form("agent_task_transition_" + task["id"]):
