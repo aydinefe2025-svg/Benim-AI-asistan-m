@@ -89,3 +89,13 @@ Resmi başvurular:
 - https://render.com/docs/ssh
 - https://ai.google.dev/api/models
 - https://core.telegram.org/bots/api#getme
+
+
+## 2026-11-03 post-merge verification
+
+- PR #71 integrated Google OIDC and owner-scoped PostgreSQL persistence for explicit personal-memory notes. Merge commit: `b93d924f94cf2cb04a0c0ab98a9195d790410d2e`. The source branch is based on the current Render-tracked branch.
+- Local verification: 226/226 unit tests passed, syntax compilation passed, dependency check reported no broken requirements, and `git diff --check` passed. GitHub Core tests passed on Windows and Ubuntu; PostgreSQL adapter integration and public research checks passed on the final PR head. An earlier PR CI run caught a syntax error from an app-section insertion; it was corrected, and all final checks passed.
+- Render service `benim-ai-asistan-streamlit` remains on the Free plan with auto-deploy disabled. The latest deployment is still commit `8824269593b2fc0f08bbf446531151b6c21452a7`; no deployment, paid action, or live data migration was started. The live Streamlit UI loaded after the free service cold-start.
+- Local `.streamlit/secrets.toml` is absent. The available Render connector exposes no environment-variable read operation, so the presence of Google OIDC credentials or `DATABASE_URL` in Render is unverified. Do not enable or deploy OIDC-backed persistence until those secrets are configured privately and the existing Render SQLite data is exported/verified.
+- The personal-memory UI now uses the owner-scoped PostgreSQL adapter when explicitly configured. Research task/history SQLite remains unmigrated. The rollout status was corrected in `docs/POSTGRES_MEMORY_ROLLOUT.md` (commit `cbdc6ef2aa784db3a4cf0d6fa01b0df0701dcc89`).
+- Neutron-star research was not touched.
