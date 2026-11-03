@@ -2,6 +2,8 @@ name: Security CI isolated
 on:
   push:
     branches: [security-ci-isolated-20261103]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
