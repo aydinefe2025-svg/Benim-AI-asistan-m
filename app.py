@@ -15,6 +15,7 @@ from core.provider_config import (
     credential_presence,
 )
 from core.groq_diagnostics import check_groq_connection
+from core.provider_failure import failure_category, safe_failure_message
 from core.connection_diagnostics import check_provider
 from core.public_research import research_sources
 from core.scientific_sources import scientific_sources
@@ -306,7 +307,7 @@ def asistani_calistir(kullanici_mesaji):
                     api_mesajlari[-1]["content"] == kullanici_mesaji):
                 api_mesajlari.append({"role": "user", "content": kullanici_mesaji})
 
-            client = Groq(api_key=GROQ_KEY)
+            client = Groq(api_key=GROQ_KEY, timeout=25.0, max_retries=0)
             completion = client.chat.completions.create(
                 model=aktif_llm_adi,
                 messages=api_mesajlari,
@@ -330,7 +331,8 @@ def asistani_calistir(kullanici_mesaji):
         return temiz_cevap.strip()
 
     except Exception as e:
-        return "Model hizmetiyle bağlantı kurulamadı. Gizli yapılandırmayı kontrol edin."
+        logging.getLogger(__name__).warning("Provider request failed: category=%s", failure_category(e))
+        return safe_failure_message(e)
 
 # 🔄 SOHBET AKIŞINI EKRANA BASMA (Temiz Hafıza Akışı)
 for message in st.session_state.messages:

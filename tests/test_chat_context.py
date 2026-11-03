@@ -21,8 +21,10 @@ class ChatContextTests(unittest.TestCase):
                     choices=[types.SimpleNamespace(message=types.SimpleNamespace(content="Tamam"))]
                 )
         class FakeGroq:
-            def __init__(self, api_key):
+            def __init__(self, api_key, timeout, max_retries):
                 assert api_key == "demo"
+                assert timeout == 25.0
+                assert max_retries == 0
                 self.chat = types.SimpleNamespace(completions=FakeCompletions())
         fake_st = types.SimpleNamespace(session_state=types.SimpleNamespace(
             saved_memories=[],
