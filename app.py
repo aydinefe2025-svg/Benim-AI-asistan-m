@@ -17,6 +17,7 @@ from core.provider_config import (
 from core.groq_diagnostics import check_groq_connection
 from core.connection_diagnostics import check_provider
 from core.public_research import research_sources
+from core.scientific_sources import scientific_sources
 from core.user_memory import export_library, import_library, memory_context, new_memory
 from core.task_panel import render_task_panel
 
@@ -213,13 +214,20 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
 
 # User-controlled research task ledger; no automatic execution.
 def _research_leads(goal: str) -> str:
+    scholarly = []
+    try:
+        scholarly = scientific_sources(goal)
+    except Exception:
+        pass
     try:
         leads = research_sources(goal)
     except Exception:
-        return "Source lookup failed; independent verification pending."
+        leads = []
+    leads = scholarly + leads
     if not leads:
         return "No sources retrieved; independent verification pending."
-    return "; ".join(item["title"] + ": " + item["url"] for item in leads)
+    return "Metadata/source leads only; primary-source review required: " + "; ".join(
+        item["title"] + ": " + item["url"] for item in leads)
 
 
 def _research_answer(goal: str) -> str:
