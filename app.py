@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+from uuid import uuid4
 import requests
 from urllib.parse import urlencode
 import streamlit as st
@@ -40,6 +41,7 @@ from core.connection_diagnostics import check_provider
 from core.public_research import research_sources
 from core.scientific_sources import scientific_sources
 from core.user_memory import export_library, import_library, memory_context, new_memory
+from core.browser_memory import browser_memory_component, decode_snapshot, write_confirmed, explicit_memory_request
 from core.task_panel import render_task_panel
 from core.colony_panel import render_colony_panel
 
@@ -189,13 +191,54 @@ if "saved_memories" not in st.session_state:
     else:
         st.session_state.saved_memories = []
 
+# Browser-local fallback: verify the storage bridge before permitting writes.
+# PostgreSQL remains the account-scoped backend when configured.
+def _stage_browser_memory_write():
+    st.session_state["_browser_pending"] = {
+        "token": str(uuid4()),
+        "payload": export_library(st.session_state.saved_memories),
+    }
+
+
+if _MEMORY_STORE is None:
+    _browser_snapshot = browser_memory_component(st.session_state.get("_browser_pending"))
+    if _browser_snapshot is None:
+        st.info("Tarayıcı hafızası yükleniyor; kayıtlara henüz dokunulmadı.")
+        st.stop()
+    try:
+        _browser_reloaded = decode_snapshot(_browser_snapshot)
+    except ValueError:
+        st.error("Tarayıcı hafızası okunamadı. Verilerin üzerine yazılmadı; varsa JSON yedeğinizi saklayın.")
+        st.stop()
+    if not st.session_state.get("_browser_loaded"):
+        st.session_state.saved_memories = _browser_reloaded
+        st.session_state["_browser_loaded"] = True
+    _pending_write = st.session_state.get("_browser_pending")
+    if _pending_write is not None:
+        if write_confirmed(_browser_snapshot, _pending_write):
+            st.session_state.pop("_browser_pending", None)
+            _pending_chat_idx = st.session_state.pop("_browser_pending_chat_index", None)
+            if isinstance(_pending_chat_idx, int) and 0 <= _pending_chat_idx < len(st.session_state.messages):
+                st.session_state.messages[_pending_chat_idx]["content"] = (
+                    "Notu bu tarayıcının hafızasına kaydettim ve geri okuyarak doğruladım. "
+                    "Farklı cihazda görünmez; tarayıcı verilerini silerseniz kaybolabilir."
+                )
+            st.toast("Tarayıcı hafızası: kaydetme ve geri okuma başarılı.")
+        elif _browser_snapshot.get("ack") != _pending_write["token"]:
+            st.info("Tarayıcı hafızasına kaydediliyor...")
+            st.stop()
+        else:
+            st.error("Tarayıcı hafızasına yazma doğrulanamadı; JSON yedeği alın.")
+            st.stop()
+
+
 with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
     st.caption(
         "Yalnızca açıkça eklediğiniz notlar sonraki yanıtlara bağlam olur. "
         "Bu, modelin eğitildiği anlamına gelmez. "
         + ("Notlar giriş hesabınıza bağlı PostgreSQL'de saklanır. "
            if _MEMORY_STORE is not None else
-           "Notlar bu oturumda tutulur; kalıcı saklamak için JSON indirin. ")
+           "Notlar bu tarayıcıda tutulur; farklı cihazlara eşitlenmez. Tarayıcı verilerini silerseniz kaybolabilir, JSON yedek indirin. ")
         +
         "Gizli anahtar veya hassas kişisel bilgi kaydetmeyin."
     )
@@ -215,6 +258,8 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
                     st.session_state.saved_memories = _MEMORY_STORE.list(_OWNER_KEY)
                 else:
                     st.session_state.saved_memories = imported
+                    _stage_browser_memory_write()
+                    st.rerun()
                 st.success(f"{len(st.session_state.saved_memories)} not içe aktarıldı.")
             except (ValueError, UnicodeError):
                 st.error("Kitaplık dosyası geçersiz veya desteklenmiyor; içerik okunmadı.")
@@ -244,6 +289,9 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
                     if _MEMORY_STORE is not None:
                         _MEMORY_STORE.save(_OWNER_KEY, item)
                     st.session_state.saved_memories.append(item)
+                    if _MEMORY_STORE is None:
+                        _stage_browser_memory_write()
+                        st.rerun()
                     st.success("Not hafıza kitaplığına eklendi.")
                 except Exception:
                     st.error("Not kaydedilemedi; mevcut kayıtlar korundu.")
@@ -262,6 +310,8 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
                         saved for saved in st.session_state.saved_memories
                         if saved["id"] != item["id"]
                     ]
+                    if _MEMORY_STORE is None:
+                        _stage_browser_memory_write()
                     st.rerun()
                 except Exception:
                     st.error("Not silinemedi; kayıt olduğu gibi korundu.")
@@ -335,7 +385,7 @@ def asistani_calistir(kullanici_mesaji):
     - Bu uygulama, yapılandırılmış Groq veya Google modeliyle yanıt üretir.
     - internette_ara() DuckDuckGo anlık yanıtını ve şehir belirtilirse wttr.in hava servisini sorgular. Ayrıca açık ansiklopedi arama bağlantıları toplanabilir; bunlar bağımsız doğrulama değildir. Tam web tarayıcısı değildir.
     - Araştırma/görev paneli kullanıcı denetimli taslak ve kayıt işlevi sunar; görevleri arka planda kendiliğinden yürütmez.
-    - Hafıza notları DATABASE_URL ve doğrulanmış giriş yapılandırılmışsa PostgreSQL üzerinde kalıcıdır; aksi halde oturumda tutulur ve JSON dışa aktarma/içe aktarma gerekir.\n    - Sol menüde 🧬 Öğrenen uzman ajanlar paneli bulunur: kurucu uzman, izinli alt uzman, onaylı geri bildirimden ders çağırma ve modelle taslak üretme sunar.\n    - En az iki farklı ajan varsa panelde üç aşamalı taslak → eleştiri → düzeltme döngüsü vardır. İnceleme kayıtları oturuma özel SQLite dosyasındadır; sunucu yeniden başlatılınca korunacağı garanti değildir.\n    - Bu geri bildirim kullanımı model ağırlıklarını eğitmez. Uzmanlar otomatik olarak arka planda çoğalan bağımsız süreçler değildir.
+    - Hafıza notları DATABASE_URL ve doğrulanmış giriş yapılandırılmışsa PostgreSQL üzerinde kalıcıdır. Aksi halde yalnızca bu tarayıcının yerel deposunda saklanır; başka cihazlarla eşitlenmez, kullanıcı tarayıcı verilerini silerse kaybolabilir. Sohbet geçmişi hâlâ oturuma özeldir.\n    - Sol menüde 🧬 Öğrenen uzman ajanlar paneli bulunur: kurucu uzman, izinli alt uzman, onaylı geri bildirimden ders çağırma ve modelle taslak üretme sunar.\n    - En az iki farklı ajan varsa panelde üç aşamalı taslak → eleştiri → düzeltme döngüsü vardır. İnceleme kayıtları oturuma özel SQLite dosyasındadır; sunucu yeniden başlatılınca korunacağı garanti değildir.\n    - Bu geri bildirim kullanımı model ağırlıklarını eğitmez. Uzmanlar otomatik olarak arka planda çoğalan bağımsız süreçler değildir.
     - Kod geliştirme mümkündür ancak bu sohbet arayüzünde doğrudan GitHub, Render, Notion, dosya sistemi veya kod çalıştırma aracı bağlı değildir.
     - Kullanıcı ajan özelliklerini sorarsa önce bu uygulamada gerçekten mevcut olan paneli ve somut kullanım adımlarını anlat; genel bir "kalıcı hafızam yok, kendimi geliştiremem" metniyle mevcut özellikleri inkâr etme.\n    - Kullanıcı senden geliştirme, araştırma, hata giderme veya ajan koordinasyonu istediğinde kategorik olarak "imkansız" deme. Mevcut işlevleri dürüstçe anlat, uygulanabilir teknik çözüm ve kod taslağı sun, eksik bağlantıyı açıkça belirt.
     - Gerçekte çağrılmayan araçları çağırmış, kaydedilmemiş dosyaları kaydetmiş, doğrulanmamış kaynakları doğrulamış gibi gösterme.
@@ -398,7 +448,32 @@ if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
-    
+
+    # Explicit memory requests are saved instead of merely promised by an LLM.
+    if explicit_memory_request(prompt):
+        if len(st.session_state.saved_memories) >= 200:
+            result = "Hafıza dolu (en fazla 200 not). Önce eski notlardan birini silin."
+        else:
+            try:
+                _chat_note = new_memory(prompt, ["sohbet"])
+                if _MEMORY_STORE is not None:
+                    _MEMORY_STORE.save(_OWNER_KEY, _chat_note)
+                st.session_state.saved_memories.append(_chat_note)
+                if _MEMORY_STORE is None:
+                    _stage_browser_memory_write()
+                    st.session_state.messages.append({
+                        "role": "assistant", "content": "Tarayıcıya yazılıyor; kayıt henüz doğrulanmadı.",
+                    })
+                    st.session_state["_browser_pending_chat_index"] = len(st.session_state.messages) - 1
+                    st.rerun()
+                result = "Notu PostgreSQL hafızasına kaydettim."
+            except Exception:
+                result = "Kayıt başarısız oldu; hafızaya kaydedildiğini söylemiyorum."
+        st.session_state.messages.append({"role": "assistant", "content": result})
+        with st.chat_message("assistant"):
+            st.markdown(result)
+        st.stop()
+
     with st.chat_message("assistant"):
         with st.spinner("Asistanınız yanıt hazırlıyor..."):
             ajan_cevabi = asistani_calistir(prompt)

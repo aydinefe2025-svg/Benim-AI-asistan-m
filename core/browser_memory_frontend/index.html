@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="tr">
+<head><meta charset="utf-8"><title>Browser memory</title></head>
+<body style="margin:0;padding:0;overflow:hidden">
+<script>
+"use strict";
+// This iframe uses its own origin's durable browser localStorage.
+// No external scripts, code evaluation, network access or user-supplied HTML.
+const STORAGE_KEY = "cano.user_notes.v1";
+let lastWriteToken = null;
+let lastReport = null;
+
+function send(type, details) {
+  window.parent.postMessage(Object.assign(
+    {isStreamlitMessage: true, type: type}, details || {}
+  ), "*");
+}
+
+function report(result) {
+  const serialized = JSON.stringify(result);
+  if (serialized !== lastReport) {
+    lastReport = serialized;
+    send("streamlit:setComponentValue", {value: result, dataType: "json"});
+  }
+}
+
+window.addEventListener("message", function(event) {
+  if (event.source !== window.parent ||
+      !event.data || event.data.type !== "streamlit:render") {
+    return;
+  }
+  const args = event.data.args || {};
+  try {
+    const write = args.write;
+    if (write && typeof write.token === "string" &&
+        write.token.length > 0 && typeof write.payload === "string" &&
+        write.payload.length <= 1048576 && write.token !== lastWriteToken) {
+      localStorage.setItem(STORAGE_KEY, write.payload);
+      lastWriteToken = write.token;
+    }
+    const payload = localStorage.getItem(STORAGE_KEY) || "";
+    report({status: "ok", payload: payload, ack: lastWriteToken});
+  } catch (_err) {
+    report({status: "error", reason: "storage_unavailable", ack: null});
+  }
+});
+
+send("streamlit:componentReady", {apiVersion: 1});
+send("streamlit:setFrameHeight", {height: 0});
+</script>
+</body>
+</html>

@@ -76,8 +76,12 @@ class MissingSecretsTests(unittest.TestCase):
         requests = types.ModuleType("requests")
         groq = types.ModuleType("groq")
         groq.Groq = type("Groq", (), {})
-        with patch.dict(sys.modules, {"streamlit": streamlit, "requests": requests, "groq": groq}):
-            runpy.run_path(str(APP), run_name="__main__")
+        # In CI the fake Streamlit module has no browser component frontend.
+        # Simulate successful empty localStorage hydration to exercise startup.
+        with patch("core.browser_memory.browser_memory_component",
+                   return_value={"status": "ok", "payload": ""}):
+            with patch.dict(sys.modules, {"streamlit": streamlit, "requests": requests, "groq": groq}):
+                runpy.run_path(str(APP), run_name="__main__")
         self.assertEqual(errors, [])
         self.assertEqual(streamlit.sidebar.selectbox("options", ("Groq",)), "Groq")
 
