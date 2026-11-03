@@ -4,6 +4,7 @@ from core.authentication import (
     auth_is_required,
     authenticated_owner_key,
     oidc_is_configured,
+    render_auth_gate,
 )
 
 
@@ -17,6 +18,14 @@ class AuthenticationTests(unittest.TestCase):
     def test_oidc_requires_all_streamlit_settings(self):
         self.assertFalse(oidc_is_configured({}))
         self.assertTrue(oidc_is_configured({"auth": {
+            "redirect_uri": "https://example.test/oauth2callback",
+            "cookie_secret": "local-test-secret",
+            "owner_key_secret": "stable-owner-secret",
+            "client_id": "client-id",
+            "client_secret": "client-secret",
+            "server_metadata_url": "https://accounts.google.com/.well-known/openid-configuration",
+        }}))
+        self.assertFalse(oidc_is_configured({"auth": {
             "redirect_uri": "https://example.test/oauth2callback",
             "cookie_secret": "local-test-secret",
             "client_id": "client-id",
@@ -36,6 +45,31 @@ class AuthenticationTests(unittest.TestCase):
             "test-cookie-secret",
         ))
         self.assertIsNone(authenticated_owner_key({"iss": "issuer"}, "secret"))
+
+    def test_cookie_rotation_does_not_change_owner_key(self):
+        claims = {"iss": "https://accounts.google.com", "sub": "subject-1"}
+        class Sidebar:
+            def button(self, *args, **kwargs):
+                pass
+
+        class Streamlit:
+            sidebar = Sidebar()
+            user = {**claims, "is_logged_in": True}
+            def __init__(self, cookie_secret):
+                self.secrets = {"auth": {
+                    "redirect_uri": "https://example.test/oauth2callback",
+                    "cookie_secret": cookie_secret,
+                    "owner_key_secret": "stable-owner-secret",
+                    "client_id": "client-id",
+                    "client_secret": "client-secret",
+                    "server_metadata_url": "https://accounts.google.com/.well-known/openid-configuration",
+                }}
+            def logout(self):
+                pass
+
+        original = render_auth_gate(Streamlit("old-cookie"), {"APP_AUTH_REQUIRED": "true"})
+        rotated = render_auth_gate(Streamlit("new-cookie"), {"APP_AUTH_REQUIRED": "true"})
+        self.assertEqual(original, rotated)
 
 
 if __name__ == "__main__":
