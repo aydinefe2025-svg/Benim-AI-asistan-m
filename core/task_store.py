@@ -23,6 +23,7 @@ ALLOWED_TRANSITIONS = {
     "done": {"verified", "failed", "review_pending"},
     "failed": {"planned"},
     "verified": set(),
+    "review_pending": {"planned", "blocked"},
 }
 
 
