@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from core.public_research import research_sources
 from core.retry_policy import retry_transient
+from core.scientific_sources import scientific_sources
 
 TOPICS = {
     "neutron_star_eos": "neutron star equation of state NICER",
@@ -13,11 +14,17 @@ TOPICS = {
     "open_source_ai": "open source artificial intelligence agents",
 }
 
-def run(fetch=None, output_dir="research_reports"):
+def run(fetch=None, output_dir="research_reports", scientific_lookup=scientific_sources):
     now = datetime.now(timezone.utc)
     report = {"generated_at": now.isoformat(), "status": "source_leads_only",
-              "verified": False, "topics": {}}
+              "verified": False, "topics": {}, "scholarly_topics": {}}
     for key, query in TOPICS.items():
+        try:
+            report["scholarly_topics"][key] = {
+                "sources": scientific_lookup(query), "status": "metadata_only", "verified": False}
+        except Exception as exc:
+            report["scholarly_topics"][key] = {
+                "sources": [], "status": "error", "error_type": type(exc).__name__, "verified": False}
         attempts = 0
         def lookup():
             nonlocal attempts

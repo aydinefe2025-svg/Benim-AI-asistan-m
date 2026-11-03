@@ -21,6 +21,21 @@
   otomatik dağıtım kapalı. İlk 25 saniyelik sağlık isteği zaman aşımına
   uğradı; ikinci istek HTTP 200 ve tam Streamlit `ok` yanıtı verdi.
 
+Denetim devam ederken kaynak dalına `82cedba` commit'ine kadar ek çalışmalar
+birleştirildi. Bunlar da korunarak tekrar test edildi: **200/200 başarılı**.
+Bu sonuç ilk 196 testlik kaydın yerini gizlice almaz; iki kaynak anlık görüntüsü
+`results.json` içinde ayrı tutulur.
+
+## GitHub Secrets içinden ek erişim denetimi
+
+`provider-connection-diagnostics.yml` iş akışı, repository Secrets içindeki
+standart anahtar adlarını yalnızca çalışma ortamına bağlar ve mevcut güvenli
+teşhis komutunu çalıştırır. Anahtar değerleri okunup rapora aktarılmaz.
+Yalnızca model listesi ve Telegram `getMe` çağrılır; çıkarım, polling veya mesaj
+yoktur. Fork PR'larında çalışmaz, yetkisi `contents: read` ile sınırlıdır.
+Eksik anahtarlar `not_configured` ve başarısız teşhis sonucu olarak saklanır;
+bağlantı sağlanmış gibi gösterilmez. İlk çalışma sonucu henüz bekleniyor.
+
 ## Önceki engel sınıflandırmasının düzeltilmesi
 
 Özgün talep **robotik veri denetleyicilerinin entegrasyonu** idi. Fiziksel robot

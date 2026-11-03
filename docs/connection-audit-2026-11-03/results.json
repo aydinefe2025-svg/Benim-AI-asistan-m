@@ -55,5 +55,17 @@
   "physical_robot": {
     "mandatory_for_original_request": false,
     "hardware_verified": false
+  },
+  "subsequent_source_verification": {
+    "source_commit": "82cedbac6b6b3fdcc5dd104ba8e9fa00c726c18f",
+    "tests": 200,
+    "seconds": 5.287,
+    "exit_code": 0,
+    "existing_upstream_changes_preserved": true
+  },
+  "github_secret_connectivity_diagnostics": {
+    "status": "pending",
+    "workflow": ".github/workflows/provider-connection-diagnostics.yml",
+    "inference_or_messages": false
   }
 }
