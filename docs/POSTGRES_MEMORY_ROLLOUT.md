@@ -1,8 +1,10 @@
-# PostgreSQL persistence: verified development foundation
+# PostgreSQL persistent memory: integrated, production rollout gated
 
-Updated 2026-11-03. The existing adapter from
-`feat/postgres-research-store-20261103` is preserved in `core/postgres_memory.py`.
-It is not yet wired into the public Streamlit UI and does not migrate SQLite.
+Updated 2026-11-03 after PR #71. The adapter in `core/postgres_memory.py`
+is wired into the Streamlit UI for explicit personal-memory notes. Google OIDC
+creates an opaque, owner-scoped identity for those records. This feature remains
+opt-in until private Render secrets and a least-privilege production database
+role are configured. Existing SQLite research tasks are not migrated.
 
 ## Provisioned and tested
 
@@ -20,8 +22,11 @@ It is not yet wired into the public Streamlit UI and does not migrate SQLite.
 - Only three labeled synthetic records from the smoke run were retained.
   Existing application data was not uploaded, deleted or migrated.
 
-This proves the development adapter and database path. It does not prove public
-user authentication, a production migration, full-database recovery or an SLA.
+This proves the development adapter and database path. GitHub CI also passed the
+OIDC/authentication, PostgreSQL adapter, core, and research checks on PR #71.
+It does not prove a live Google login, a production database connection, full
+database recovery, or an SLA. The public app is still on the prior deployment
+because Render auto-deploy is disabled.
 
 ## Safe local verification
 
@@ -43,24 +48,31 @@ Errors expose only an exception class, not provider text or credentials.
 
 ## Production rollout gates
 
-1. Authenticate users and derive an owner key on the trusted server side.
-   A caller-supplied, constant or guessable owner key is not authorization.
-2. Provision a dedicated application role with only the required permissions.
-   The owner connection used for development verification is not the proposed
-   browser-facing credential. Never expose a database URL to the browser.
-3. Obtain and verify the existing Render SQLite/session export before any
-   deployment that may replace its ephemeral disk. Local backups do not cover
-   the live Render filesystem.
-4. Reconcile records and fingerprints in a separate migration target, test
-   recovery there, and preserve the source. Do not migrate on application import.
-5. Enable the durable store explicitly behind the application's storage factory
-   only after these checks. Preserve the current export/import fallback.
-6. Monitor storage/compute/transfer allowances. Stay on Free unless the user
-   explicitly authorizes a paid plan; do not enable chargeable services or
-   assume unlimited capacity. Retain independent private backups.
+1. **Google OIDC:** the login gate is implemented but not activated. Configure
+   `.streamlit/secrets.toml` as a Render Secret File with the Google Web OAuth
+   client, a strong random cookie secret, the exact Render callback URL, and
+   Google's metadata URL. Only then set `APP_AUTH_REQUIRED=true`. Never put
+   these values in Git, chat, or logs.
+2. **Production PostgreSQL:** use a dedicated role with only schema usage and
+   SELECT/INSERT/UPDATE/DELETE on `private_memory_entries`. Create the table as
+   the schema owner before configuring the app's `DATABASE_URL`; the app does
+   not run DDL or migrations. The app deliberately stops if `DATABASE_URL` is
+   present without required authenticated identity.
+3. **Existing user data:** research tasks and history remain in per-session
+   SQLite and are not moved by this feature. Export the live Render data through
+   the app's supported export before a deployment that may replace ephemeral
+   storage. Local snapshots do not back up Render's filesystem.
+4. **Recovery and migration:** test restoration using a separate target and
+   preserve the source. Do not import existing data automatically on app start.
+   Personal-memory JSON export/import remains available as a user-controlled
+   fallback.
+5. **Cost and monitoring:** remain on Free unless the user explicitly approves a
+   paid plan. Monitor storage, compute, and transfer allowances and keep an
+   independent private backup.
 
-No Render environment variables or live deployment were changed by this work.
-The free development database is a tested foundation for the next migration.
+As of this update, Render environment variables and the live deployment were
+not changed. The development Neon branch remains suspended after testing.
+The implementation is traceable in [PR #71](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/71).
 
 Official references: https://neon.com/docs/introduction/plans and
 https://neon.com/docs/connect/connection-pooling
