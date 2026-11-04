@@ -44,9 +44,10 @@ def inspect(page, path):
         raise AssertionError(f"Browser JavaScript error on {path}: {errors[:2]}")
     login_gate = "Giriş gerekli" in visible
     source_page = "CANO Kaynak–İddia Denetimi" in visible
-    command_center = "CANO Komuta Merkezi" in visible
+    command_center = ("CANO Komuta Merkezi" in visible or
+                      "CANO — Yapay Zekâ Komuta Merkezi" in visible)
     if not (login_gate or source_page or command_center):
-        raise AssertionError("Expected CANO page or explicit authentication gate")
+        raise AssertionError("Expected CANO page or explicit authentication gate; public text: " + repr(visible[:450]))
     return {
         "path": path or "/",
         "http_status": response.status,
