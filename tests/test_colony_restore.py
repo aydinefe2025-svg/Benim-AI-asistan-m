@@ -145,7 +145,7 @@ class RestoreTests(unittest.TestCase):
     def test_json_import_rejects_invalid_utf8_invalid_json_and_oversize(self):
         with tempfile.TemporaryDirectory() as directory:
             colony = AgentColony(Path(directory) / "restored.db")
-            for payload in (b"not json", b"\\xff", b"[]",
+            for payload in (b"not json", bytes([255]), b"[]",
                             b"x" * (2_000_000 + 1), "not bytes"):
                 with self.subTest(payload=str(payload)[:20]):
                     with self.assertRaises(ValueError):
