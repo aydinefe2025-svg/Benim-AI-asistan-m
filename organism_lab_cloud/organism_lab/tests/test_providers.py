@@ -4,7 +4,8 @@ import unittest
 from io import BytesIO
 from urllib.error import HTTPError, URLError
 from unittest.mock import patch
-from organism_lab.providers import ProviderError, generate, trained_local_ready
+from organism_lab.providers import (ProviderError, diagnose_groq_access, generate,
+                                    trained_local_ready)
 
 class FakeResponse:
     def __init__(self, payload):
@@ -150,8 +151,46 @@ class ProviderTests(unittest.TestCase):
                 self.assertNotIn("DO_NOT_EXPOSE", str(raised.exception))
                 self.assertNotIn("private model permission details", str(raised.exception))
 
+    def test_groq_403_reads_nested_safe_machine_code(self):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
+            def sender(request, timeout):
+                body = json.dumps({"error": {"details": {"reason": {
+                    "code": "model_permission_blocked_project",
+                    "message": "DO_NOT_EXPOSE private account text",
+                }}}}).encode()
+                raise HTTPError(request.full_url, 403, "provider failure", None, BytesIO(body))
+            with self.assertRaises(ProviderError) as raised:
+                generate("hello", "groq", transport=sender)
+        self.assertIn("model_permission_blocked_project", str(raised.exception))
+        self.assertNotIn("private account text", str(raised.exception))
+
+    def test_groq_access_diagnostic_checks_key_scoped_model_list(self):
+        captured = {}
+        def sender(request, timeout):
+            captured["url"] = request.full_url
+            captured["authorization"] = request.get_header("Authorization")
+            return FakeResponse({"data": [{"id": "openai/gpt-oss-120b"}]})
+        result = diagnose_groq_access("test-placeholder", "openai/gpt-oss-120b",
+                                      transport=sender)
+        self.assertEqual(captured["url"], "https://api.groq.com/openai/v1/models")
+        self.assertEqual(captured["authorization"], "Bearer test-placeholder")
+        self.assertEqual(result, {"reachable": True, "model_available": True,
+                                  "http_status": 200, "error_code": None})
+
+    def test_groq_access_diagnostic_returns_only_safe_error_metadata(self):
+        def sender(request, timeout):
+            body = json.dumps({"error": {"code": "invalid_project",
+                                          "message": "DO_NOT_EXPOSE secret detail"}}).encode()
+            raise HTTPError(request.full_url, 403, "denied", None, BytesIO(body))
+        result = diagnose_groq_access("test-placeholder", "openai/gpt-oss-120b",
+                                      transport=sender)
+        self.assertEqual(result, {"reachable": False, "model_available": False,
+                                  "http_status": 403, "error_code": "invalid_project"})
+        self.assertNotIn("secret detail", repr(result))
+
     def test_groq_network_error_is_reported_safely(self):
         with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
             with self.assertRaisesRegex(ProviderError, "Groq network request failed"):
                 generate("hello", "groq", transport=lambda *args, **kwargs: (_ for _ in ()).throw(URLError("private detail")))
+
 

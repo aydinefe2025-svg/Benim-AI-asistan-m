@@ -17,7 +17,8 @@ from organism_lab.adaptation_study import run_adaptation_study, save_adaptation_
 from organism_lab.literature_search import list_records, save_records, search_openalex
 from organism_lab.persistent_memory import (augment_with_memory, list_memories,
                                             retrieve_memories, save_memory)
-from organism_lab.providers import GROQ_MODEL_OPTIONS, ProviderError, generate, trained_local_ready
+from organism_lab.providers import (GROQ_MODEL_OPTIONS, ProviderError, diagnose_groq_access,
+                                    generate, trained_local_ready)
 from organism_lab.agent_roles import AGENT_PROFILES, profile_prompt
 from organism_lab.cloud_runtime import default_provider, session_output_dir
 
@@ -117,6 +118,20 @@ elif CLOUD_MODE:
         help="Büyük modeller daha fazla kota/tüketim kullanabilir. Model çağrısı yalnızca sen Yanıt üret'e bastığında yapılır.",
     )
     st.caption("Model erişimi ve ücret/kota koşulları Groq hesabına bağlıdır. Kullanılmayan modeller için otomatik çağrı yapılmaz.")
+    if groq_configured and st.button("Groq proje erişimini tanıla", key="diagnose_groq_project"):
+        diagnosis = diagnose_groq_access(
+            os.environ.get("GROQ_API_KEY", ""), selected_model,
+        )
+        if diagnosis["reachable"] and diagnosis["model_available"]:
+            st.success("Render anahtarı Groq modelleri uç noktasına erişiyor ve seçili model listeleniyor. Sohbet 403 verirse bu anahtarın proje/izin kapsamı Groq tarafından ayrıca reddediliyor.")
+        elif diagnosis["reachable"]:
+            st.error("Render anahtarının eriştiği Groq projesinde seçili model listelenmiyor. Render anahtarı başka bir Groq projesine ait olabilir.")
+        else:
+            status = diagnosis["http_status"]
+            code = diagnosis["error_code"]
+            safe_status = f"HTTP {status}" if isinstance(status, int) else "ağ yanıtı yok"
+            safe_code = f" · Groq kodu: {code}" if code else ""
+            st.error(f"Render anahtarının Groq model listesi isteği başarısız ({safe_status}{safe_code}). Anahtar değeri gösterilmedi.")
 else:
     st.info("Şu an Ollama temel modeli kullanılıyor; bu bilgisayarda eğitilmiş bir adaptör etkin değil. Kaydedilen notlar yanıta bağlam olarak eklenir, model ağırlıklarını değiştirmez.")
     selected_provider = "ollama"
@@ -415,4 +430,5 @@ if CLOUD_MODE:
                 st.error("Yedek doğrulanamadı; mevcut laboratuvar arşivi değiştirilmedi.")
     except Exception as exc:
         st.error(f"Kalıcı arşiv işlemi tamamlanamadı ({type(exc).__name__}); uygulama içeriği güvenli biçimde gizlendi.")
+
 
