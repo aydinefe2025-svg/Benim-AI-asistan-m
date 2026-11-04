@@ -1,2 +1,2 @@
 [secrets]
-files = ["/etc/secrets/secrets.toml", "secrets.toml"]
+files = ["/etc/secrets/secrets.toml", ".streamlit/secrets.toml", "secrets.toml"]
