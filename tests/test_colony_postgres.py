@@ -69,7 +69,7 @@ class ColonySnapshotTests(unittest.TestCase):
 
 
 
-    def test_initialize_only_verifies_preprovisioned_schema(self):
+    def test_verify_schema_only_checks_preprovisioned_schema(self):
         state = {"rows": {}, "queries": []}
         class PrivilegeCursor(Cursor):
             def fetchone(self):
@@ -80,7 +80,7 @@ class ColonySnapshotTests(unittest.TestCase):
         store = ColonySnapshotStore(
             "postgresql://unused",
             connect=lambda *a, **k: PrivilegeConnection(state))
-        store.initialize()
+        store.verify_schema()
         statements = [sql.lstrip().upper() for sql, _ in state["queries"]]
         self.assertEqual(len(statements), 3)
         self.assertTrue(all(sql.startswith("SELECT") for sql in statements))
