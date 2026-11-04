@@ -12,6 +12,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .digital_vm import GenomeWorld
+from .audit_store import _exclusive_lock
 
 MAX_TICKS = 10000
 
@@ -85,26 +86,35 @@ def read_checkpoint(path):
 def initialize_checkpoint(path, *, seed=0, capacity=64, resources_per_tick=10,
                           mutation_rate=0.02, allow_replication=True, target_tick=0):
     path = Path(path)
-    if path.exists():
-        raise FileExistsError("Refusing to overwrite an existing checkpoint")
-    parameters = dict(seed=seed, capacity=capacity, resources_per_tick=resources_per_tick,
-                      mutation_rate=mutation_rate, allow_replication=allow_replication)
-    world = _replay(parameters, target_tick)
-    result = _write(path, parameters, target_tick, world)
-    read_checkpoint(path)
-    return result
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # The same lock guards read/check/write across processes on Linux/Windows.
+    # Without it two concurrent initializers could both pass exists().
+    with _exclusive_lock(path):
+        if path.exists():
+            raise FileExistsError("Refusing to overwrite an existing checkpoint")
+        parameters = dict(seed=seed, capacity=capacity, resources_per_tick=resources_per_tick,
+                          mutation_rate=mutation_rate, allow_replication=allow_replication)
+        world = _replay(parameters, target_tick)
+        result = _write(path, parameters, target_tick, world)
+        read_checkpoint(path)
+        return result
 
 
 def advance_checkpoint(path, *, target_tick):
-    document = read_checkpoint(path)
-    if type(target_tick) is not int or target_tick < document["ticks"] or target_tick > MAX_TICKS:
-        raise ValueError("Checkpoint cannot move backwards or exceed bounded steps")
-    if target_tick == document["ticks"]:
-        return document  # Idempotent: repeat request causes no new write.
-    world = _replay(document["parameters"], target_tick)
-    result = _write(path, document["parameters"], target_tick, world)
-    read_checkpoint(path)
-    return result
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Lock the entire read -> validate -> replay -> atomic replace transaction.
+    # Concurrent writers cannot silently overwrite a newer tick.
+    with _exclusive_lock(path):
+        document = read_checkpoint(path)
+        if type(target_tick) is not int or target_tick < document["ticks"] or target_tick > MAX_TICKS:
+            raise ValueError("Checkpoint cannot move backwards or exceed bounded steps")
+        if target_tick == document["ticks"]:
+            return document  # Idempotent: repeat request causes no new write.
+        world = _replay(document["parameters"], target_tick)
+        result = _write(path, document["parameters"], target_tick, world)
+        read_checkpoint(path)
+        return result
 
 
 def main():
