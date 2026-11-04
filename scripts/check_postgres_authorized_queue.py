@@ -59,7 +59,8 @@ def run():
     database_url = os.environ["TEST_TASK_DATABASE_URL"]
     owner = "ci-owner-" + uuid.uuid4().hex
     queue = PostgresAuthorizedQueue(database_url, owner_key=owner, max_jobs=5)
-    provision_synthetic_schema(database_url)\n    queue.verify_schema()
+    provision_synthetic_schema(database_url)
+    queue.verify_schema()
 
     try:
         queue.enqueue("first", "Source review")
