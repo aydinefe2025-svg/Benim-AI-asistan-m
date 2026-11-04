@@ -214,12 +214,13 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             st.caption("Tarayıcı yedeği henüz doğrulanmadı; sayfadan ayrılmadan "
                        "önce yedek onayının görünmesini kontrol edin.")
 
-    def _checkpoint():
+    def _checkpoint(*, archive_prior=True):
         if backup_store is not None:
             snapshot = _snapshot(colony)
             backup_store.save_versioned_verified(
                 owner_key, snapshot,
-                expected_prior=st.session_state["_cano_backup_expected"])
+                expected_prior=st.session_state["_cano_backup_expected"],
+                archive_prior=archive_prior)
             st.session_state["_cano_backup_expected"] = snapshot
 
     cols = st.columns(4)
@@ -277,27 +278,35 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                 except Exception:
                     st.error("PostgreSQL yedeği hazır değil; model çağrısı yapılmadı.")
                     return
+                # Preserve one rollback boundary for the mission, not an
+                # extra archived revision for each of its four model stages.
+                # Every stage still gets a CAS-verified current PG snapshot.
+                stage_checkpoint_count = [0]
+                def _durable_stage_checkpoint():
+                    _checkpoint(archive_prior=(stage_checkpoint_count[0] == 0))
+                    stage_checkpoint_count[0] += 1
                 try:
                     result = manager.execute(
                         goal, client=_AnswerAdapter(answer),
                         model="configured-provider",
-                        source_lookup=scientific_sources if lookup else None)
+                        source_lookup=scientific_sources if lookup else None,
+                        on_checkpoint=_durable_stage_checkpoint if backup_store is not None else None)
                 except TeamRateLimitError:
                     try:
-                        _checkpoint()
+                        _checkpoint(archive_prior=(stage_checkpoint_count[0] == 0))
                     except Exception:
                         st.error("Kısmi görev PostgreSQL'e kaydedilemedi; JSON yedeği alın.")
                     st.warning("Groq kotası doldu. Kısmi aşamalar yerel SQLite'da korundu; "
                                "kota yenilendiğinde kaldığınız yerden sürdürün.")
                 except (RuntimeError, ValueError, OSError, sqlite3.Error):
                     try:
-                        _checkpoint()
+                        _checkpoint(archive_prior=(stage_checkpoint_count[0] == 0))
                     except Exception:
                         st.error("Kısmi görev PostgreSQL'e kaydedilemedi; JSON yedeği alın.")
                     st.error("Görev tamamlanamadı; yerel kayıt ve kısmi aşamalar korundu.")
                 else:
                     try:
-                        _checkpoint()
+                        _checkpoint(archive_prior=False)
                     except Exception:
                         st.error("Görev yerelde tamamlandı ama PostgreSQL yedeği "
                                  "doğrulanamadı; JSON yedeği alın.")

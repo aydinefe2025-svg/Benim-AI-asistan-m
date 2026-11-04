@@ -66,23 +66,28 @@ class CollaborativeMission:
         return (roles.get("research-planner", roles["research"]),
                 roles["research"], roles["evidence-reviewer"])
 
-    def execute(self, task, *, client, model, source_lookup=None):
+    def execute(self, task, *, client, model, source_lookup=None, on_checkpoint=None):
         if not isinstance(task, str) or not task.strip() or len(task) > 1200:
             raise ValueError("Task must be 1–1200 characters")
         self._agents()  # Validate before creating a mission record.
         if source_lookup is not None and not callable(source_lookup):
             raise ValueError("Source lookup must be callable")
+        if on_checkpoint is not None and not callable(on_checkpoint):
+            raise ValueError("Checkpoint must be callable")
         mission_id = str(uuid.uuid4())
         with self.colony._db() as db:
             db.execute("INSERT INTO colony_missions VALUES (?,?,?,?,?)",
                        (mission_id, task.strip(), "[]", "running",
                         datetime.now(timezone.utc).isoformat()))
-        return self._run(mission_id, client=client, model=model, source_lookup=source_lookup)
+        return self._run(mission_id, client=client, model=model,
+                         source_lookup=source_lookup, on_checkpoint=on_checkpoint)
 
-    def resume(self, mission_id, *, client, model, source_lookup=None):
+    def resume(self, mission_id, *, client, model, source_lookup=None, on_checkpoint=None):
         """Resume only a blocked mission, never duplicate a running mission."""
         if source_lookup is not None and not callable(source_lookup):
             raise ValueError("Source lookup must be callable")
+        if on_checkpoint is not None and not callable(on_checkpoint):
+            raise ValueError("Checkpoint must be callable")
         with self.colony._db() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT status FROM colony_missions WHERE id=?",
@@ -97,9 +102,10 @@ class CollaborativeMission:
                 raise RuntimeError("Mission is already running")
             db.execute("UPDATE colony_missions SET status='running' "
                        "WHERE id=? AND status='blocked'", (mission_id,))
-        return self._run(mission_id, client=client, model=model, source_lookup=source_lookup)
+        return self._run(mission_id, client=client, model=model,
+                         source_lookup=source_lookup, on_checkpoint=on_checkpoint)
 
-    def _run(self, mission_id, *, client, model, source_lookup=None):
+    def _run(self, mission_id, *, client, model, source_lookup=None, on_checkpoint=None):
         calls = 0
         try:
             planner, researcher, reviewer = self._agents()
@@ -165,6 +171,12 @@ class CollaborativeMission:
                         (json.dumps(stages, ensure_ascii=False), mission_id))
                     if cursor.rowcount != 1:
                         raise RuntimeError("Mission state changed during execution")
+                # SQLite stage commit succeeded. Before the next potentially
+                # billable model request, require the authenticated owner store
+                # to durably checkpoint this precise prefix. If PostgreSQL
+                # refuses the write, stop without making any further calls.
+                if on_checkpoint is not None:
+                    on_checkpoint()
             with self.colony._db() as db:
                 cursor = db.execute(
                     "UPDATE colony_missions SET status='review_pending' "
