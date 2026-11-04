@@ -116,18 +116,47 @@ def run():
     except PermissionError:
         pass
 
-    queued = queue.enqueue("concurrent", "Only one claim", approved=True)
-    def worker_claim(i):
-        return queue.claim(f"worker-{i}", approved=True, now=500)
+    # Two independent queue clients race the same authorized task.
+    # The winning worker commits one draft; a losing or cross-owner worker
+    # cannot write a second result. Real row locks and separate connections.
+    queued = queue.enqueue("concurrent", "Only one result write", approved=True)
+    def worker_claim_and_complete(i):
+        independent = PostgresAuthorizedQueue(
+            database_url, owner_key=owner, max_jobs=5)
+        lease = independent.claim(f"worker-{i}", approved=True, now=500)
+        if lease is None:
+            return None
+        result = independent.complete(
+            lease["id"], lease["lease_token"], "Only winner draft", now=501)
+        return lease, result
+
     with ThreadPoolExecutor(max_workers=2) as executor:
-        claims = list(executor.map(worker_claim, (0, 1)))
-    assert sum(c is not None for c in claims) == 1
-    assert next(c for c in claims if c is not None)["id"] == queued["id"]
+        results = list(executor.map(worker_claim_and_complete, (0, 1)))
+    winners = [item for item in results if item is not None]
+    assert len(winners) == 1, "Multiple workers wrote the same task"
+    winner, result = winners[0]
+    assert winner["id"] == queued["id"]
+    assert result["status"] == "review_pending" and not result["verified"]
+
+    try:
+        other.complete(queued["id"], winner["lease_token"],
+                       "Cross-owner overwrite", now=501)
+        raise AssertionError("Cross-owner completion was accepted")
+    except KeyError:
+        pass
+    try:
+        queue.complete(queued["id"], "different-worker-lease-token",
+                       "Losing worker overwrite", now=501)
+        raise AssertionError("Losing worker completion was accepted")
+    except PermissionError:
+        pass
 
     reopened = PostgresAuthorizedQueue(database_url, owner_key=owner, max_jobs=5)
     assert reopened.get(first["id"])["draft"] == "Unverified research draft"
-    assert len(reopened.events(queued["id"])) == 2
+    assert reopened.get(queued["id"])["draft"] == "Only winner draft"
+    assert [event["state"] for event in reopened.events(queued["id"])] == [
+        "queued", "running", "review_pending"]
     print("PostgreSQL CANO queue integration: authorization/idempotency/owners/"
-          "claims/retry/expiry/readback OK")
+          "claims/single-writer/retry/expiry/readback OK")
 if __name__ == "__main__":
     run()
