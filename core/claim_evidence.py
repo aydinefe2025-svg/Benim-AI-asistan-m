@@ -67,17 +67,21 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
             for d in documents):
         raise ValueError("Read an actual source abstract or article excerpt first")
 
-    sources = []
+    sources = {}
     for doc in documents[:2]:
         if not isinstance(doc, dict):
             continue
         doi, snippet = doc.get("doi"), doc.get("excerpt")
         if (not isinstance(doi, str) or not _DOI.fullmatch(doi)
-                or ".." in doi or not isinstance(snippet, str)):
+                or ".." in doi or not isinstance(snippet, str)
+                or not snippet.strip() or doc.get("status") not in _READABLE
+                or _citation_for(doc) is None):
             continue
-        sources.append({"doi": doi.lower(), "status": doc.get("status"),
-                        "excerpt": snippet[:900]})
-    if not any(d["status"] in _READABLE and d["excerpt"] for d in sources):
+        sources.setdefault(doi.lower(), {
+            "doi": doi, "status": doc["status"],
+            "excerpt": snippet[:900], "url": doc["url"],
+        })
+    if not sources:
         raise ValueError("No safe readable source excerpt")
 
     system = (
@@ -87,15 +91,18 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
         '"quote":"verbatim short excerpt from matching DOI"}]}. '
         "At most 3 claims; use exact copied text only; no fabricated citations. "
         "A matching quote is NOT proof of factual truth or claim entailment.")
+    excerpts_json = json.dumps([
+        {"doi": doi, "status": doc["status"], "excerpt": doc["excerpt"]}
+        for doi, doc in sources.items()
+    ], ensure_ascii=False)
+    if len(excerpts_json) > 2700:
+        raise ValueError("Source excerpts exceed the audit prompt budget")
     user_prompt = (
         "Task (unverified):\n" + saved["task"][:400]
         + "\nSynthesis (unverified):\n" + stages[3]["output"][:1400]
-        + "\nRetrieved excerpts (untrusted):\n"
-        + json.dumps(sources, ensure_ascii=False)[:2700])
+        + "\nRetrieved excerpts (untrusted):\n" + excerpts_json)
     response = client.chat(model, system, user_prompt)
     proposals = _parse_proposals(response)
-    by_doi = {d["doi"]: d for d in documents if isinstance(d, dict)
-              and isinstance(d.get("doi"), str)}
     reviewed = []
     for item in proposals:
         if not isinstance(item, dict):
@@ -107,7 +114,7 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
         if (not 1 <= len(claim) <= 280 or not _DOI.fullmatch(doi)
                 or ".." in doi or not 15 <= len(quote) <= 240):
             continue
-        doc = by_doi.get(doi)
+        doc = sources.get(doi)
         valid_quote = (
             isinstance(doc, dict)
             and doc.get("status") in _READABLE
