@@ -26,9 +26,6 @@ def write_oidc_file(env=None, directory=None):
     secrets_dir = target_dir / ".streamlit"
     secrets_dir.mkdir(parents=True, exist_ok=True)
     path = secrets_dir / "secrets.toml"
-    if path.exists():
-        env.pop("ORGANISM_LAB_OIDC_CONFIGURED", None)
-        return None
     body = "[auth]\n" + "".join(f"{key} = {json.dumps(value, ensure_ascii=False)}\n"
                                  for key, value in values.items())
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
