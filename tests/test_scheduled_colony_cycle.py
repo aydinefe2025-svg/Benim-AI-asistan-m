@@ -21,6 +21,9 @@ class ScheduledColonyCycleTests(unittest.TestCase):
             self.assertEqual(json.loads(result.stdout)["activated"], 0)
             data = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(data["mode"], "proposal_only")
+            self.assertEqual(data["db_integrity"], "ok")
+            self.assertEqual(data["stored_ticks"], 1)
+            self.assertEqual(data["verified_tick_id"], data["cycle"]["tick_id"])
             self.assertEqual(len(data["cycle"]["candidates"]), 3)
             self.assertEqual(data["cycle"]["activated"], 0)
 
