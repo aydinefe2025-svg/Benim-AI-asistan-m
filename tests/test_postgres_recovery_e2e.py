@@ -18,6 +18,7 @@ from core.agent_colony import AgentColony
 from core.claim_evidence import audit_claim_quotes
 from core.collaborative_mission import CollaborativeMission
 from core.colony_postgres import ColonySnapshotStore
+from core.cano_command_center import _snapshot
 
 DOI = "10.1038/nprot.2013.143"
 QUOTE = "Targeted nucleases are powerful tools for genome engineering."
@@ -34,17 +35,6 @@ class QuoteClient:
             {"claim": "Targeted nucleases are powerful genome tools",
              "doi": DOI, "quote": QUOTE}
         ]})
-
-
-def snapshot(colony):
-    with colony._db() as db:
-        return {key: [dict(row) for row in db.execute("SELECT * FROM " + table)]
-                for key, table in (
-                    ("agents", "colony_agents"),
-                    ("feedback", "colony_feedback"),
-                    ("reviews", "colony_reviews"),
-                    ("missions", "colony_missions"),
-                )}
 
 
 # The runner deliberately starts a *new* Python interpreter and SQLite file
@@ -111,7 +101,7 @@ class PostgresProcessRecoveryTests(unittest.TestCase):
                 audit = audit_claim_quotes(
                     manager, mission["id"], client=QuoteClient(), model="stub")
                 self.assertEqual(audit[0]["status"], "quote_found_unverified")
-                payload = snapshot(source)
+                payload = _snapshot(source)
                 self.assertTrue(store.save_versioned_verified(owner, payload))
                 self.assertEqual(store.load(owner), payload)
                 self.assertIsNone(store.load(owner + "-other"))
