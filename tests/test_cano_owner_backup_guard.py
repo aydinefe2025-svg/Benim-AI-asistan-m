@@ -57,5 +57,36 @@ class AuthenticatedBackupGuardTests(unittest.TestCase):
                         "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 0)
 
 
+    def test_cockpit_preflight_supplies_exact_remote_baseline_for_stale_tab_rejection(self):
+        """No billable model requests when owner-scoped snapshot CAS refuses the tab."""
+        from core.cano_command_center import prepare_cano_team, _snapshot
+        with tempfile.TemporaryDirectory() as temp:
+            base = str(Path(temp) / "colony.sqlite3")
+            st = FakeStreamlit()
+            colony = AgentColony(_session_database_path(st, base))
+            prepare_cano_team(colony, approved=True)
+            baseline = _snapshot(colony)
+            model = FakeModel()
+            with (patch.dict("os.environ", {
+                    "AGENT_COLONY_DB_PATH": base, "APP_AUTH_REQUIRED": "true"}),
+                  patch("core.cano_command_center.ColonySnapshotStore") as Store):
+                Store.return_value.load.return_value = baseline
+                render_cano_command_center(
+                    st, answer=model, owner_key="owner-123",
+                    database_url="postgresql://synthetic-test")
+                st.task = "Run only if current snapshot matches"
+                st.submit = True
+                Store.return_value.save_versioned_verified.side_effect = RuntimeError(
+                    "newer tab already committed")
+                render_cano_command_center(
+                    st, answer=model, owner_key="owner-123",
+                    database_url="postgresql://synthetic-test")
+                Store.return_value.save_versioned_verified.assert_called()
+                self.assertEqual(
+                    Store.return_value.save_versioned_verified.call_args.kwargs["expected_prior"],
+                    baseline)
+            self.assertEqual(model.calls, [])
+
+
 if __name__ == "__main__":
     unittest.main()
