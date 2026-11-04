@@ -22,7 +22,11 @@ class BackupTests(unittest.TestCase):
         fake_dump.write_text(
             "#!" + sys.executable + "\n"
             "import os,sys,pathlib\n"
-            "assert 'postgresql://' in os.environ['PGDATABASE']\n"
+            "assert os.environ['PGHOST'] == 'example.invalid'\n"
+            "assert os.environ['PGDATABASE'] == 'test'\n"
+            "assert os.environ['PGUSER'] == 'private'\n"
+            "assert os.environ['PGPASSWORD'] == 'secret'\n"
+            "assert 'DATABASE_URL' not in os.environ\n"
             "pathlib.Path(sys.argv[sys.argv.index('--file')+1]).write_bytes(b'PGDMP synthetic bytes')\n",
             encoding="utf-8")
         fake_restore = self.path / "fake_restore.py"
@@ -60,6 +64,41 @@ class BackupTests(unittest.TestCase):
         if os.name == "posix":
             self.assertEqual(Path(result["archive"]).stat().st_mode & 0o777, 0o600)
             self.assertEqual(Path(result["receipt"]).stat().st_mode & 0o777, 0o600)
+
+    def test_connection_uri_is_decomposed_without_argv_secret(self):
+        # A full PostgreSQL URI in PGDATABASE is not a safe equivalent to
+        # separate libpq connection parameter environment variables.
+        fake_dump = self.path / "fake_dump.py"
+        fake_dump.write_text(
+            "#!" + sys.executable + "\n"
+            "import os,sys,pathlib\n"
+            "assert os.environ['PGHOST'] == 'db.example.invalid'\n"
+            "assert os.environ['PGPORT'] == '6432'\n"
+            "assert os.environ['PGDATABASE'] == 'project'\n"
+            "assert os.environ['PGUSER'] == 'alice'\n"
+            "assert os.environ['PGPASSWORD'] == 'p@ss'\n"
+            "assert os.environ['PGSSLMODE'] == 'require'\n"
+            "assert os.environ['PGCHANNELBINDING'] == 'require'\n"
+            "assert not any('p@ss' in arg for arg in sys.argv)\n"
+            "pathlib.Path(sys.argv[sys.argv.index('--file')+1]).write_bytes(b'PGDMP synthetic')\n",
+            encoding="utf-8",
+        )
+        with patch.dict(os.environ, {
+            "DATABASE_URL": "postgresql://alice:p%40ss@db.example.invalid:6432/"
+                            "project?sslmode=require&channel_binding=require"
+        }):
+            data = make_backup(self.dest, dump_bin=self.dump, restore_bin=self.restore)
+        self.assertTrue(Path(data["archive"]).is_file())
+        self.assertNotIn("p@ss", json.dumps(data))
+
+    def test_unknown_connection_option_rejected_before_backup(self):
+        with patch.dict(os.environ, {
+            "DATABASE_URL": "postgresql://alice:secret@db.example.invalid/"
+                            "project?unsupported_secure_setting=true"
+        }):
+            with self.assertRaises(BackupError):
+                make_backup(self.dest, dump_bin=self.dump, restore_bin=self.restore)
+        self.assertFalse(self.dest.exists())
 
     def test_tamper_detected(self):
         result = make_backup(self.dest, dump_bin=self.dump, restore_bin=self.restore)

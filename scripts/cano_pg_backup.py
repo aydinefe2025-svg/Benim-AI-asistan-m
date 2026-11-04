@@ -16,10 +16,85 @@ import shutil
 import subprocess
 import tempfile
 import uuid
+from urllib.parse import parse_qsl, unquote, urlsplit
 
 
 class BackupError(RuntimeError):
     """An intentionally secret-free operational failure."""
+
+
+# Environment parameter names supported by PostgreSQL 17 libpq; URL query
+# parameters not in this allowlist are rejected rather than silently ignored.
+_LIBPQ_URI_OPTIONS = {
+    "sslmode": "PGSSLMODE",
+    "sslrootcert": "PGSSLROOTCERT",
+    "sslcert": "PGSSLCERT",
+    "sslkey": "PGSSLKEY",
+    "sslcrl": "PGSSLCRL",
+    "sslcrldir": "PGSSLCRLDIR",
+    "sslcertmode": "PGSSLCERTMODE",
+    "sslnegotiation": "PGSSLNEGOTIATION",
+    "sslsni": "PGSSLSNI",
+    "ssl_min_protocol_version": "PGSSLMINPROTOCOLVERSION",
+    "ssl_max_protocol_version": "PGSSLMAXPROTOCOLVERSION",
+    "channel_binding": "PGCHANNELBINDING",
+    "require_auth": "PGREQUIREAUTH",
+    "connect_timeout": "PGCONNECT_TIMEOUT",
+    "target_session_attrs": "PGTARGETSESSIONATTRS",
+    "application_name": "PGAPPNAME",
+    "options": "PGOPTIONS",
+    "hostaddr": "PGHOSTADDR",
+    "gssencmode": "PGGSSENCMODE",
+    "krbsrvname": "PGKRBSRVNAME",
+    "gsslib": "PGGSSLIB",
+    "gssdelegation": "PGGSSDELEGATION",
+    "sslcompression": "PGSSLCOMPRESSION",
+    "requirepeer": "PGREQUIREPEER",
+    "client_encoding": "PGCLIENTENCODING",
+    "load_balance_hosts": "PGLOADBALANCEHOSTS",
+}
+
+# A caller's inherited PGHOST/PGDATABASE/PGSERVICE settings must not
+# silently redirect a backup away from the requested connection URI.
+_LIBPQ_CONNECTION_VARS = frozenset({
+    "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGPASSWORD",
+    "PGSERVICE", "PGSERVICEFILE", "PGPASSFILE", "PGHOSTADDR",
+    *_LIBPQ_URI_OPTIONS.values(),
+})
+
+
+def _libpq_connection_env(database_url: str) -> dict[str, str]:
+    """Convert a PostgreSQL URI into libpq parameter environment variables.
+
+    The PGDATABASE environment variable accepts a database NAME, not the
+    complete URI in the same way that pg_dump's --dbname argument does.
+    Never put credentials into subprocess argv, error output or receipts.
+    """
+    try:
+        parts = urlsplit(database_url)
+        if (parts.scheme not in ("postgres", "postgresql")
+                or not parts.hostname or parts.username is None
+                or parts.path in ("", "/") or parts.fragment):
+            raise ValueError("Invalid PostgreSQL URI")
+        port = parts.port
+        result = {
+            "PGHOST": parts.hostname,
+            "PGPORT": str(port or 5432),
+            "PGDATABASE": unquote(parts.path[1:]),
+            "PGUSER": unquote(parts.username),
+        }
+        if parts.password is not None:
+            result["PGPASSWORD"] = unquote(parts.password)
+        seen = set()
+        for key, value in parse_qsl(parts.query, keep_blank_values=True,
+                                    strict_parsing=True):
+            if key not in _LIBPQ_URI_OPTIONS or key in seen or not value:
+                raise ValueError("Unsupported or duplicate PostgreSQL URI option")
+            seen.add(key)
+            result[_LIBPQ_URI_OPTIONS[key]] = value
+        return result
+    except (ValueError, UnicodeError):
+        raise BackupError("Invalid or unsupported PostgreSQL connection URL") from None
 
 
 def _sha256(path: Path) -> str:
@@ -78,6 +153,7 @@ def make_backup(destination: Path, *, database_env: str = "DATABASE_URL",
     database_url = os.environ.get(database_env, "")
     if not database_url or not database_url.startswith(("postgres://", "postgresql://")):
         raise BackupError(f"Expected PostgreSQL connection URL in {database_env}")
+    connection_env = _libpq_connection_env(database_url)
     dump_exe = _check_binary(dump_bin)
     _check_binary(restore_bin)
     destination = Path(destination)
@@ -93,8 +169,14 @@ def make_backup(destination: Path, *, database_env: str = "DATABASE_URL",
     os.chmod(temporary, 0o600)
     try:
         env = os.environ.copy()
-        # Keep the connection string out of command-line process listings.
-        env["PGDATABASE"] = database_url
+        # Explicitly remove the original URL and inherited libpq routing
+        # options, then provide only parsed libpq values to the subprocess.
+        # A whole URI in PGDATABASE made real pg_dump attempt a local socket.
+        for key in _LIBPQ_CONNECTION_VARS:
+            env.pop(key, None)
+        for key in ("DATABASE_URL", "AGENT_TASK_DATABASE_URL", database_env):
+            env.pop(key, None)
+        env.update(connection_env)
         try:
             result = subprocess.run(
                 [dump_exe, "--format=custom", "--no-owner", "--no-privileges",
