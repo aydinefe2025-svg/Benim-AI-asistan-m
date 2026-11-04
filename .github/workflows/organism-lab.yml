@@ -82,6 +82,13 @@ jobs:
           PY
       - name: Run paired genome replication resource study
         run: python -m organism_lab.reproduction_study --seeds 30 --steps 100 --output organism_reproduction_output
+      - name: Restart process and verify saved study from all three formats
+        shell: bash
+        run: |
+          shopt -s nullglob
+          exports=(organism_reproduction_output/*.json)
+          test "${#exports[@]}" -eq 1
+          python -m organism_lab.study_verifier "${exports[0]}"
       - name: Independently recompute and verify paired study exports
         run: |
           python - <<'PY'
