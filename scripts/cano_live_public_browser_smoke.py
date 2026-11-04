@@ -33,7 +33,9 @@ def inspect(page, path):
     page.wait_for_function(
         """() => {
           const s = document.body?.innerText || '';
-          return /Giriş gerekli|CANO|Güvenli giriş|Model bağlantısı|An error has occurred|Traceback/.test(s);
+          // A sidebar-only Streamlit shell contains "CANO" before page hydration.
+          // Wait for actual page content or a decisive startup error.
+          return /Giriş gerekli|CANO Komuta Merkezi|CANO Kaynak–İddia Denetimi|CANO — Yapay Zekâ Komuta Merkezi|Güvenli giriş yapılandırılmamış|Kalıcı hafıza bağlantısı kurulamadı|An error has occurred|Traceback/.test(s);
         }""", timeout=90000,
     )
     visible = page.locator("body").inner_text(timeout=20000)
