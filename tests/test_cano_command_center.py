@@ -330,7 +330,7 @@ class CommandCenterTests(unittest.TestCase):
         from core.colony_postgres import ColonySnapshotStore
         with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
               patch.object(ColonySnapshotStore, "__init__", return_value=None),
-              patch.object(ColonySnapshotStore, "initialize") as setup,
+              patch.object(ColonySnapshotStore, "verify_schema") as setup,
               patch.object(ColonySnapshotStore, "save_versioned_verified",
                            return_value=True) as save):
             render_cano_command_center(
@@ -367,7 +367,7 @@ class CommandCenterTests(unittest.TestCase):
             return f"Draft stage {len(calls)}"
         with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
               patch.object(ColonySnapshotStore, "__init__", return_value=None),
-              patch.object(ColonySnapshotStore, "initialize"),
+              patch.object(ColonySnapshotStore, "verify_schema"),
               patch.object(ColonySnapshotStore, "save_versioned_verified",
                            return_value=True) as save):
             render_cano_command_center(st, answer=interrupted, owner_key="owner",
@@ -391,7 +391,7 @@ class CommandCenterTests(unittest.TestCase):
             prepare_cano_team(colony, approved=True)
             st.task, st.submit = "Run with no durable DB", True
             with (patch.object(ColonySnapshotStore, "__init__", return_value=None),
-                  patch.object(ColonySnapshotStore, "initialize",
+                  patch.object(ColonySnapshotStore, "verify_schema",
                                side_effect=RuntimeError("secret PostgreSQL URL password"))):
                 render_cano_command_center(
                     st, answer=model, owner_key="owner",
