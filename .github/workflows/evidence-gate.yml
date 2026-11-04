@@ -14,6 +14,8 @@ on:
       - 'core/task_heartbeat_runner.py'
       - 'core/agent_executor.py'
       - 'tests/test_task_heartbeat_runner.py'
+      - 'tests/test_heartbeat_fail_closed.py'
+      - 'tests/test_agent_executor.py'
       - 'tests/test_task_heartbeat.py'
       - 'core/task_panel.py'
       - 'tests/test_research_panel_integration.py'
@@ -30,4 +32,4 @@ jobs:
       - name: Check syntax
         run: python -m compileall -q core tests
       - name: Run evidence gate and executor tests
-        run: python -m unittest discover -s tests -p 'test_evidence_gate.py' -v && python -m unittest discover -s tests -p 'test_agent_executor.py' -v && python -m unittest discover -s tests -p 'test_task_recovery.py' -v && python -m unittest discover -s tests -p 'test_research_panel_integration.py' -v && python -m unittest discover -s tests -p 'test_task_heartbeat.py' -v && python -m unittest discover -s tests -p 'test_task_heartbeat_runner.py' -v
+        run: python -m unittest discover -s tests -p 'test_evidence_gate.py' -v && python -m unittest discover -s tests -p 'test_agent_executor.py' -v && python -m unittest discover -s tests -p 'test_task_recovery.py' -v && python -m unittest discover -s tests -p 'test_research_panel_integration.py' -v && python -m unittest discover -s tests -p 'test_task_heartbeat.py' -v && python -m unittest discover -s tests -p 'test_task_heartbeat_runner.py' -v && python -m unittest discover -s tests -p 'test_heartbeat_fail_closed.py' -v
