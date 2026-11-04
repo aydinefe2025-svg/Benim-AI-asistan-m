@@ -73,20 +73,20 @@ class PostgresAuthorizedQueue:
             """)
             # Migration-owned tables may grant DML without granting ownership.
             # PostgreSQL rejects CREATE INDEX for non-owners even with IF NOT EXISTS.
-            cur.execute("""SELECT pg_get_userbyid(relowner) = current_user
+            cur.execute("""SELECT pg_get_userbyid(relowner) = current_user AS owns_table
                 FROM pg_class
                 WHERE oid = 'public.cano_authorized_jobs'::regclass""")
             owns_jobs = cur.fetchone()
-            if owns_jobs and owns_jobs[0]:
+            if owns_jobs and owns_jobs["owns_table"]:
                 cur.execute("""
                     CREATE INDEX IF NOT EXISTS idx_cano_authorized_claim
                     ON cano_authorized_jobs(owner_key,state,eligible_after)
                 """)
-            cur.execute("""SELECT pg_get_userbyid(relowner) = current_user
+            cur.execute("""SELECT pg_get_userbyid(relowner) = current_user AS owns_table
                 FROM pg_class
                 WHERE oid = 'public.cano_authorized_job_events'::regclass""")
             owns_events = cur.fetchone()
-            if owns_events and owns_events[0]:
+            if owns_events and owns_events["owns_table"]:
                 cur.execute("""
                     CREATE INDEX IF NOT EXISTS idx_cano_authorized_events
                     ON cano_authorized_job_events(owner_key,job_id,event_id)
