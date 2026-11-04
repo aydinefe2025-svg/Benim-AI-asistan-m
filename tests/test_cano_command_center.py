@@ -211,5 +211,79 @@ class CommandCenterTests(unittest.TestCase):
             self.assertIn("model bağlantısı", " ".join(st.messages).casefold())
 
 
+    def test_authenticated_cockpit_saves_team_and_completed_mission_to_postgres(self):
+        """Provider success is not durable until owner-scoped readback succeeds."""
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        model = FakeModel()
+        from core.colony_postgres import ColonySnapshotStore
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}), \
+             patch.object(ColonySnapshotStore, "initialize") as setup, \\
+             patch.object(ColonySnapshotStore, "save_versioned_verified", return_value=True) as save:
+            render_cano_command_center(
+                st, answer=model, owner_key="authenticated-owner",
+                database_url="postgresql://synthetic-test")
+            self.assertGreaterEqual(save.call_count, 1)
+            first_owner, first_snapshot = save.call_args.args
+            self.assertEqual(first_owner, "authenticated-owner")
+            self.assertEqual(len(first_snapshot["agents"]), 7)
+            self.assertEqual(first_snapshot["missions"], [])
+            st.task = "Test solar output"
+            st.submit = True
+            render_cano_command_center(
+                st, answer=model, owner_key="authenticated-owner",
+                database_url="postgresql://synthetic-test")
+            self.assertEqual(len(model.calls), 4)
+            self.assertGreaterEqual(save.call_count, 2)
+            final_owner, final_snapshot = save.call_args.args
+            self.assertEqual(final_owner, "authenticated-owner")
+            self.assertEqual(len(final_snapshot["missions"]), 1)
+            self.assertEqual(final_snapshot["missions"][0]["status"], "review_pending")
+            setup.assert_called()
+
+    def test_authenticated_cockpit_persists_blocked_partial_mission(self):
+        """Quota failure must not leave three produced stages only on ephemeral disk."""
+        from core.colony_postgres import ColonySnapshotStore
+        from core.groq_team import TeamRateLimitError
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        calls = []
+        def interrupted(prompt):
+            calls.append(prompt)
+            if len(calls) == 4:
+                raise TeamRateLimitError("429 simulated")
+            return f"Draft stage {len(calls)}"
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}), \\
+             patch.object(ColonySnapshotStore, "initialize"), \\
+             patch.object(ColonySnapshotStore, "save_versioned_verified", return_value=True) as save:
+            render_cano_command_center(st, answer=interrupted, owner_key="owner",
+                                       database_url="postgresql://synthetic-test")
+            st.task = "One approved mission"
+            st.submit = True
+            render_cano_command_center(st, answer=interrupted, owner_key="owner",
+                                       database_url="postgresql://synthetic-test")
+            self.assertEqual(len(calls), 4)
+            last = save.call_args.args[1]
+            self.assertEqual(last["missions"][0]["status"], "blocked")
+            self.assertEqual(len(__import__("json").loads(last["missions"][0]["stages"])), 3)
+
+    def test_unavailable_authenticated_backup_blocks_billable_mission(self):
+        """Fail before model calls when durable backing store is unavailable."""
+        from core.colony_postgres import ColonySnapshotStore
+        st = FakeStreamlit()
+        model = FakeModel()
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            prepare_cano_team(colony, approved=True)
+            st.task, st.submit = "Run with no durable DB", True
+            with patch.object(ColonySnapshotStore, "initialize",
+                              side_effect=RuntimeError("secret PostgreSQL URL password")):
+                render_cano_command_center(
+                    st, answer=model, owner_key="owner",
+                    database_url="postgresql://synthetic-test")
+        self.assertEqual(model.calls, [])
+        self.assertNotIn("password", " ".join(st.messages))
+        self.assertIn("PostgreSQL", " ".join(st.messages))
+
+
+
 if __name__ == "__main__":
     unittest.main()
