@@ -141,10 +141,22 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                        "ait yedeği onaylayarak geri yükleyin; önceki görevler korunacak.")
             return
         if "_cano_backup_expected" not in st.session_state:
-            if status["agents"] and remote_snapshot is not None and remote_snapshot != _snapshot(colony):
-                st.error("Bu oturumun CANO kayıtları hesaptaki güncel yedekle uyuşmuyor; "
-                         "yeni görev başlatılmadı. Önce mevcut oturumu yedekleyin.")
-                return
+            if status["agents"] and remote_snapshot is not None:
+                # Recovery deliberately converts interrupted "running" missions
+                # to "blocked" before they can be explicitly resumed. This one
+                # safe conversion must not be mistaken for an untrusted stale tab.
+                archived_missions = remote_snapshot.get("missions", [])
+                restored_shape = (
+                    {**remote_snapshot, "missions": [
+                        {**item, "status": "blocked"}
+                        if isinstance(item, dict) and item.get("status") == "running"
+                        else item for item in archived_missions]}
+                    if isinstance(archived_missions, list) else None
+                )
+                if restored_shape != _snapshot(colony):
+                    st.error("Bu oturumun CANO kayıtları hesaptaki güncel yedekle uyuşmuyor; "
+                             "yeni görev başlatılmadı. Önce mevcut oturumu yedekleyin.")
+                    return
             st.session_state["_cano_backup_expected"] = remote_snapshot
 
     # Streamlit rejects changing a widget's key after that widget has rendered.
