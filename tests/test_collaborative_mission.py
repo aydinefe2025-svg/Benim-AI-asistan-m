@@ -37,6 +37,40 @@ class CollaborativeMissionTests(unittest.TestCase):
         self.assertIn("Result 2", client.calls[2][2])
         self.assertIn("Result 3", client.calls[3][2])
 
+    def test_external_checkpoint_runs_after_each_durable_stage_before_next_model_call(self):
+        client = FakeClient()
+        seen = []
+        def checkpoint():
+            missions = self.missions.history()
+            self.assertEqual(len(missions), 1)
+            saved = self.missions.get(missions[0]["id"])
+            self.assertEqual(len(saved["stages"]), len(client.calls))
+            self.assertEqual(saved["status"], "running")
+            seen.append(len(saved["stages"]))
+        result = self.missions.execute(
+            "Research safely", client=client, model="fake",
+            on_checkpoint=checkpoint)
+        self.assertEqual(result["status"], "review_pending")
+        self.assertEqual(seen, [1, 2, 3, 4])
+        self.assertEqual(len(client.calls), 4)
+
+    def test_checkpoint_failure_prevents_any_additional_model_calls(self):
+        client = FakeClient()
+        seen = []
+        def checkpoint():
+            seen.append(len(client.calls))
+            if len(seen) == 2:
+                raise RuntimeError("Durable remote write failed")
+        with self.assertRaisesRegex(RuntimeError, "Durable remote write failed"):
+            self.missions.execute(
+                "Research safely", client=client, model="fake",
+                on_checkpoint=checkpoint)
+        self.assertEqual(len(client.calls), 2)
+        self.assertEqual(seen, [1, 2])
+        interrupted = self.missions.interrupted()
+        self.assertEqual(len(interrupted), 1)
+        self.assertEqual(len(self.missions.get(interrupted[0]["id"])["stages"]), 2)
+
     def test_explicit_crossref_metadata_leads_are_checkpointed(self):
         calls = []
         def lookup(query, limit=3):
