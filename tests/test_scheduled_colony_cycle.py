@@ -77,5 +77,29 @@ class ScheduledColonyCycleTests(unittest.TestCase):
 
 
 
+    def test_separate_processes_report_persistent_continuity(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "out.json"
+            env = os.environ.copy()
+            env["CANO_CYCLE_OUTPUT"] = str(output)
+            env["CANO_CYCLE_DB"] = str(Path(temp) / "cycle.sqlite3")
+            reports = []
+            for _ in range(2):
+                subprocess.run([sys.executable, "-m", "scripts.cano_colony_cycle"],
+                               env=env, capture_output=True, text=True, check=True)
+                reports.append(json.loads(output.read_text(encoding="utf-8")))
+            first, second = reports
+            self.assertEqual(first["stored_ticks"], 1)
+            self.assertFalse(first["continuity"]["had_prior_state"])
+            self.assertEqual(second["stored_ticks"], 2)
+            self.assertTrue(second["continuity"]["had_prior_state"])
+            self.assertTrue(second["continuity"]["increment_verified"])
+            self.assertEqual(second["continuity"]["previous_tick_id"],
+                             first["verified_tick_id"])
+            self.assertNotEqual(
+                [c["role"] for c in first["cycle"]["candidates"]],
+                [c["role"] for c in second["cycle"]["candidates"]])
+            self.assertEqual(second["cycle"]["activated"], 0)
+
 if __name__ == "__main__":
     unittest.main()
