@@ -8,6 +8,7 @@ from pathlib import Path
 from core.agent_colony import AgentColony
 from core.agent_review_loop import AgentReviewLoop
 from core.collaborative_mission import CollaborativeMission
+from core.scientific_sources import scientific_sources
 from core.colony_postgres import ColonySnapshotStore
 from core.colony_restore import restore_empty_colony, restore_colony_json_bytes
 from core.task_panel import _session_database_path
@@ -171,12 +172,17 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
         if answer is not None and len(agents) >= 2:
             with st.form("colony_collaborative_mission_form"):
                 mission_goal = st.text_area("Ortak araştırma görevi", max_chars=1200)
+                crossref_opt_in = st.checkbox(
+                    "Crossref DOI kaynak adaylarını da ara (görev metni dış servise gider; "
+                    "tam belge doğrulanmaz)", value=False,
+                    key="colony_crossref_opt_in")
                 mission_run = st.form_submit_button("CANO ekibini birlikte çalıştır (4 aşama)")
             if mission_run:
                 try:
                     mission = CollaborativeMission(colony).execute(
                         mission_goal, client=AnswerAdapter(answer),
-                        model="configured-provider")
+                        model="configured-provider",
+                        source_lookup=scientific_sources if crossref_opt_in else None)
                     st.session_state["colony_last_mission"] = mission
                     st.success("Dört aşamalı ekip görevi tamamlandı; bağımsız doğrulama bekliyor.")
                 except (ValueError, RuntimeError, OSError, sqlite3.Error):
@@ -189,6 +195,16 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 st.text_area("Ekip aşaması: " + stage["role"],
                              value=stage["output"], height=140, disabled=True,
                              key="mission_" + stage["role"])
+                if stage["role"] == "planner" and "source_lookup_status" in stage:
+                    status = stage["source_lookup_status"]
+                    if status == "unavailable":
+                        st.warning("Crossref metadata sorgusu başarısız; kaynak doğrulanmadı.")
+                    elif status == "no_candidates":
+                        st.info("Crossref'te güvenilir biçimde ayrıştırılabilen DOI adayı bulunamadı.")
+                    else:
+                        st.caption("Crossref bibliyografik DOI adayları — tam belge okunmadı, doğrulanmadı.")
+                    for lead in stage.get("source_leads", []):
+                        st.caption("Doğrulanmamış aday: " + lead["title"] + " — " + lead["url"])
         if answer is not None and len(agents) >= 2:
             mission_manager = CollaborativeMission(colony)
             interrupted = mission_manager.interrupted()
