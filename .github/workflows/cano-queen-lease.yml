@@ -1,6 +1,9 @@
 name: CANO PostgreSQL queen epoch fencing (synthetic CI)
 
 on:
+  push:
+    branches:
+      - fix/cano-queen-node-revocation-race-20261104
   pull_request:
     branches:
       - fix/sqlite-backup-restore-20261031
