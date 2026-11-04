@@ -82,8 +82,11 @@ class PostgresLeaderLease:
         self._scope(token.scope)
 
     def _authorize(self, cur) -> None:
+        # Hold a shared row lock through the transaction. Revocation UPDATE
+        # must wait until the in-flight fenced write commits or rolls back;
+        # otherwise authorization can be revoked between check and write.
         cur.execute("""SELECT verifier FROM public.cano_queen_authorized_nodes
-            WHERE owner_key=%s AND node_id=%s AND enabled=TRUE""",
+            WHERE owner_key=%s AND node_id=%s AND enabled=TRUE FOR SHARE""",
             (self.owner_key, self.node_id))
         row = cur.fetchone()
         expected = credential_digest(self.owner_key, self.node_id, self._secret)
