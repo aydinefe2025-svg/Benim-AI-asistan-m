@@ -1,6 +1,9 @@
 name: CANO PostgreSQL process-restart recovery
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     paths:
       - ".github/workflows/cano-postgres-recovery-e2e.yml"
