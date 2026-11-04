@@ -7,9 +7,10 @@ from typing import Mapping, Any
 
 
 def auth_is_required(environment: Mapping[str, str]) -> bool:
-    return environment.get("APP_AUTH_REQUIRED", "").strip().casefold() in {
-        "1", "true", "yes", "on",
-    }
+    # Only explicit false values disable login. A typo must never turn
+    # production authentication off silently (fail closed on invalid values).
+    raw = environment.get("APP_AUTH_REQUIRED", "").strip().casefold()
+    return raw not in {"", "0", "false", "no", "off"}
 
 
 def oidc_is_configured(secrets: Any) -> bool:
