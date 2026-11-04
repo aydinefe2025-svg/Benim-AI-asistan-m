@@ -34,6 +34,7 @@ class RenderRedirectGateTests(unittest.TestCase):
             error=errors.append,
             title=titles.append,
             button=lambda *args, **kwargs: None,
+            login=lambda: None,
             stop=stop,
         )
         with self.assertRaises(GateStopped):
