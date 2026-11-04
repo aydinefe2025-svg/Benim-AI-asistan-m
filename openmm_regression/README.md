@@ -107,3 +107,16 @@ internal manifest checks every bundled file after extraction. Keeping a
 second copy on another device or backup service is needed to recover if this
 workspace or its disk is lost.
 
+If a storage provider times out on the full ZIP, split it into 50 MiB parts.
+The transfer manifest records every part hash and the original archive hash;
+verify the set before use, then reassemble it:
+
+```powershell
+python repo/openmm_regression/package_transfer.py --source openmm-recovery.zip
+python repo/openmm_regression/package_transfer.py --verify-dir openmm-recovery.parts
+python repo/openmm_regression/package_transfer.py --join-dir openmm-recovery.parts --destination openmm-recovery-restored.zip
+```
+
+After reassembly, verify `openmm-recovery-restored.zip` with
+`package_recovery.py --verify` and the committed checksum file.
+
