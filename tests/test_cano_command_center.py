@@ -217,6 +217,7 @@ class CommandCenterTests(unittest.TestCase):
         model = FakeModel()
         from core.colony_postgres import ColonySnapshotStore
         with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
+              patch.object(ColonySnapshotStore, "__init__", return_value=None),
               patch.object(ColonySnapshotStore, "initialize") as setup,
               patch.object(ColonySnapshotStore, "save_versioned_verified",
                            return_value=True) as save):
@@ -253,6 +254,7 @@ class CommandCenterTests(unittest.TestCase):
                 raise TeamRateLimitError("429 simulated")
             return f"Draft stage {len(calls)}"
         with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
+              patch.object(ColonySnapshotStore, "__init__", return_value=None),
               patch.object(ColonySnapshotStore, "initialize"),
               patch.object(ColonySnapshotStore, "save_versioned_verified",
                            return_value=True) as save):
@@ -276,8 +278,9 @@ class CommandCenterTests(unittest.TestCase):
             colony = AgentColony(_session_database_path(st, self.db_base))
             prepare_cano_team(colony, approved=True)
             st.task, st.submit = "Run with no durable DB", True
-            with patch.object(ColonySnapshotStore, "initialize",
-                              side_effect=RuntimeError("secret PostgreSQL URL password")):
+            with (patch.object(ColonySnapshotStore, "__init__", return_value=None),
+                  patch.object(ColonySnapshotStore, "initialize",
+                               side_effect=RuntimeError("secret PostgreSQL URL password"))):
                 render_cano_command_center(
                     st, answer=model, owner_key="owner",
                     database_url="postgresql://synthetic-test")
