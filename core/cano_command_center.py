@@ -11,6 +11,11 @@ import sqlite3
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
+from core.browser_colony import (
+    browser_colony_component, encode_browser_colony_backup,
+    decode_browser_colony_backup, browser_write_confirmed,
+)
+from core.colony_restore import restore_empty_colony
 from core.groq_team import TeamRateLimitError
 from core.scientific_sources import scientific_sources
 from core.task_panel import _session_database_path
@@ -95,6 +100,48 @@ def render_cano_command_center(st, answer=None):
     except (OSError, sqlite3.Error, ValueError):
         st.error("CANO ajan kayıtları açılamadı; görev çalıştırılmadı.")
         return
+
+    local_opt_in = st.checkbox(
+        "Bu tarayıcıda CANO ekibini ve araştırma kayıtlarını otomatik yedekle "
+        "(yalnızca kişisel cihazda; tarayıcı depolaması şifrelenmemiştir)",
+        value=False, key="cano_local_backup_opt_in")
+    clear_local = st.button(
+        "Bu tarayıcıdaki CANO yedeğini sil",
+        key="cano_local_backup_clear")
+    if clear_local:
+        st.session_state["cano_local_backup_opt_in"] = False
+        local_opt_in = False
+
+    write = None
+    if local_opt_in and status["agents"] and not clear_local:
+        try:
+            write = encode_browser_colony_backup(_snapshot(colony))
+        except (ValueError, TypeError):
+            st.warning("Yerel yedek kapasitesi aşıldı; bu kaydı JSON olarak dışa aktarın.")
+    report = browser_colony_component(write=write, clear=clear_local)
+    if isinstance(report, dict) and report.get("status") == "error":
+        st.warning("Tarayıcı yedeğine erişilemiyor; kayıtlar yalnızca bu oturumda.")
+    elif clear_local and isinstance(report, dict) and report.get("ack") == "cleared":
+        st.caption("Bu tarayıcıdaki CANO yedeği silindi.")
+    elif (not clear_local and status["agents"] == 0
+          and isinstance(report, dict) and report.get("payload")):
+        try:
+            recovered = decode_browser_colony_backup(report)
+            count = restore_empty_colony(colony, recovered)
+        except (ValueError, RuntimeError, OSError, sqlite3.Error):
+            st.warning("Tarayıcı yedeği doğrulanamadı; mevcut kayıtlar değiştirilmedi.")
+        else:
+            st.session_state["cano_local_backup_opt_in"] = True
+            st.success(f"Bu tarayıcının önceki CANO yedeğinden {count} uzman geri yüklendi.")
+            st.rerun()
+            return
+    if local_opt_in and write is not None:
+        if browser_write_confirmed(report, write):
+            st.caption("Tarayıcı yedeği yazılıp geri okunarak doğrulandı. "
+                       "Bu bir hesaplar arası veya sunucu PostgreSQL yedeği değildir.")
+        else:
+            st.caption("Tarayıcı yedeği henüz doğrulanmadı; sayfadan ayrılmadan "
+                       "önce yedek onayının görünmesini kontrol edin.")
 
     cols = st.columns(4)
     for col, label, value in zip(
