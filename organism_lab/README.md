@@ -45,6 +45,27 @@ tests verify the deterministic simulator and local persistence only, not
 public accessibility, autonomous model learning, living cells or physical
 robotics. Production deployment needs separate verification.
 
+## Restartable digital genome state
+
+A local, single-writer digital genome checkpoint can survive a Python process
+restart. It stores a SHA-256 digest and the complete simulated population
+state; loading verifies the digest and **replays all ticks** from the stored
+seed. Resume by target tick (rather than by adding steps), so repeating the
+same command does not duplicate a simulated operation:
+
+```bash
+python -m organism_lab.genome_checkpoint init organism_state.json --seed 17 --target-tick 35
+python -m organism_lab.genome_checkpoint verify organism_state.json
+python -m organism_lab.genome_checkpoint advance organism_state.json --target-tick 120
+python -m organism_lab.genome_checkpoint verify organism_state.json
+```
+
+The checkpoint tool refuses to overwrite an existing file on initialization,
+rejects backward moves, and limits execution to 10,000 ticks. Checkpoint
+persistence is not a continuously running background worker or multi-server
+leader election. For simultaneous writers, add a proper transactional lock
+before any service deployment.
+
 ## Safety and integration
 
 - All spawn operations require an explicit call and respect a population cap (default 32).
