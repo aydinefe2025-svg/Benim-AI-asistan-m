@@ -1,0 +1,2 @@
+[secrets]
+files = ["/etc/secrets/secrets.toml"]
