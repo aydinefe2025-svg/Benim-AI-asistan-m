@@ -19,20 +19,23 @@ class ColonySnapshotStore:
         self.connect = connect
 
     def initialize(self):
+        """Verify the pre-provisioned runtime schema without performing DDL."""
         with self.connect(self.database_url, connect_timeout=8) as db:
             with db.cursor() as cur:
-                cur.execute("""CREATE TABLE IF NOT EXISTS private_colony_snapshots (
-                    owner_key TEXT PRIMARY KEY,
-                    payload JSONB NOT NULL,
-                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now())""")
-                cur.execute("""CREATE TABLE IF NOT EXISTS private_colony_snapshot_revisions (
-                    revision BIGSERIAL PRIMARY KEY,
-                    owner_key TEXT NOT NULL,
-                    payload JSONB NOT NULL,
-                    archived_at TIMESTAMPTZ NOT NULL DEFAULT now())""")
-                cur.execute("""CREATE INDEX IF NOT EXISTS
-                    idx_colony_revision_owner ON private_colony_snapshot_revisions
-                    (owner_key, revision DESC)""")
+                cur.execute("SELECT owner_key, payload, updated_at "
+                            "FROM public.private_colony_snapshots LIMIT 0")
+                cur.execute("SELECT revision, owner_key, payload, archived_at "
+                            "FROM public.private_colony_snapshot_revisions LIMIT 0")
+                cur.execute("""SELECT
+                    has_table_privilege(current_user,
+                        'public.private_colony_snapshots', 'SELECT, INSERT, UPDATE'),
+                    has_table_privilege(current_user,
+                        'public.private_colony_snapshot_revisions', 'SELECT, INSERT'),
+                    has_sequence_privilege(current_user,
+                        'public.private_colony_snapshot_revisions_revision_seq', 'USAGE')""")
+                privileges = cur.fetchone()
+                if not privileges or not all(privileges):
+                    raise PermissionError("CANO snapshot runtime privileges are incomplete")
 
     def save(self, owner_key, payload):
         if not isinstance(owner_key, str) or not owner_key.strip():
