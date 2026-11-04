@@ -1,0 +1,199 @@
+"""Visible CANO command center with explicitly controlled specialist missions.
+
+The cockpit drives real SQLite-backed role calls and never claims independent
+models, autonomous background processes, training or source verification.
+"""
+from __future__ import annotations
+
+import json
+import os
+import sqlite3
+
+from core.agent_colony import AgentColony
+from core.collaborative_mission import CollaborativeMission
+from core.scientific_sources import scientific_sources
+from core.task_panel import _session_database_path
+
+
+class _AnswerAdapter:
+    def __init__(self, answer):
+        self.answer = answer
+
+    def chat(self, model, system, prompt):
+        return self.answer(system + "\n\n" + prompt)
+
+
+def prepare_cano_team(colony, *, approved=False):
+    """Initialize a complete bounded role roster after an explicit button press."""
+    if not approved:
+        raise PermissionError("Team setup requires explicit approval")
+    with colony._db() as db:
+        total = db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0]
+    if not total:
+        colony.create_founder(
+            "research", "You are a careful Turkish research agent. Separate "
+            "verified facts, hypotheses, and absent primary-source evidence.")
+    # Two bounded, idempotent calls populate the six supported specialist roles.
+    colony.grow_specialists(approved=True, batch_size=5)
+    colony.grow_specialists(approved=True, batch_size=5)
+    with colony._db() as db:
+        return db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0]
+
+
+def read_cano_status(colony):
+    """Read observed, session-local counts; never derive progress from marketing."""
+    CollaborativeMission(colony)  # idempotent schema creation
+    with colony._db() as db:
+        agents = db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0]
+        roles = {row[0] for row in db.execute(
+            "SELECT role FROM colony_agents WHERE state='active'")}
+        lessons = db.execute(
+            "SELECT COUNT(*) FROM colony_feedback WHERE accepted=1").fetchone()[0]
+        missions = db.execute(
+            "SELECT COUNT(*) FROM colony_missions").fetchone()[0]
+        pending = db.execute(
+            "SELECT COUNT(*) FROM colony_missions "
+            "WHERE status='review_pending'").fetchone()[0]
+        blocked = db.execute(
+            "SELECT COUNT(*) FROM colony_missions "
+            "WHERE status='blocked'").fetchone()[0]
+        history = [dict(row) for row in db.execute(
+            "SELECT id,task,status,created_at FROM colony_missions "
+            "ORDER BY created_at DESC, rowid DESC LIMIT 12")]
+    return {"agents": agents, "roles": roles, "lessons": lessons,
+            "missions": missions, "review_pending": pending,
+            "blocked": blocked, "history": history,
+            "ready": "research" in roles and "evidence-reviewer" in roles}
+
+
+def _snapshot(colony):
+    """Downloadable manual backup from the same tables used by the side panel."""
+    with colony._db() as db:
+        result = {}
+        for key, table in (("agents", "colony_agents"),
+                           ("feedback", "colony_feedback"),
+                           ("reviews", "colony_reviews"),
+                           ("missions", "colony_missions")):
+            exists = db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                (table,)).fetchone()
+            result[key] = [dict(row) for row in db.execute("SELECT * FROM " + table)] if exists else []
+    return result
+
+
+def render_cano_command_center(st, answer=None):
+    """Render a top-level mission cockpit before the legacy sidebar/chat UI."""
+    st.header("🚀 CANO Komuta Merkezi")
+    st.caption("Uzmanları burada hazırla, gerçek ekip görevi çalıştır, "
+               "aşamaları ve kaynak adaylarını incele. Sonuçlar inceleme bekleyen taslaklardır.")
+    base = os.environ.get("AGENT_COLONY_DB_PATH", "data/agent_colony.sqlite3")
+    try:
+        colony = AgentColony(_session_database_path(st, base), max_agents=12)
+        manager = CollaborativeMission(colony)
+        status = read_cano_status(colony)
+    except (OSError, sqlite3.Error, ValueError):
+        st.error("CANO ajan kayıtları açılamadı; görev çalıştırılmadı.")
+        return
+
+    cols = st.columns(4)
+    for col, label, value in zip(
+        cols, ("Uzman", "Ekip görevleri", "İnceleme bekleyen", "Kabul edilmiş ders"),
+        (status["agents"], status["missions"],
+         status["review_pending"], status["lessons"])):
+        col.metric(label, value)
+
+    st.caption("Kayıt türü: bu oturuma özel geçici SQLite. "
+               "Dağıtım/yeniden başlatmada kaybolabilir; JSON yedeği indirin. "
+               "Uzmanlıklar ayrı eğitilmiş modeller değil, rol bazlı model çağrılarıdır.")
+    if st.button("🚀 CANO ekibini hazırla (1 kurucu + 6 uzman)",
+                 key="cano_prepare_team"):
+        try:
+            count = prepare_cano_team(colony, approved=True)
+            st.success(f"{count} rol kaydı hazır; ekip görevine geçebilirsiniz.")
+            st.rerun()
+            return
+        except (ValueError, PermissionError, RuntimeError, sqlite3.Error):
+            st.error("Ekip oluşturulamadı; mevcut kayıtlar korunuyor.")
+            return
+
+    if not status["ready"]:
+        st.info("Ekip görevi için kurucu araştırmacı ve kanıt inceleyici gerekiyor. "
+                "Yukarıdaki hazırlama düğmesini kullanın.")
+    elif answer is None:
+        st.warning("Model bağlantısı olmadan ekip görevi çalıştırılamaz.")
+    else:
+        st.caption("Bir görev dört sıralı model çağrısı yapar; yalnızca açıkça "
+                   "başlattığınızda çalışır. Ek maliyet sağlayıcı kotanıza bağlıdır.")
+        with st.form("cano_cockpit_mission_form"):
+            goal = st.text_area(
+                "CANO'ya ekip görevi ver", max_chars=1200,
+                placeholder="Örnek: Güneş enerjisinin iki avantajını ve bir sınırlamasını "
+                            "kanıt eksikleriyle birlikte araştır.",
+                key="cano_cockpit_goal")
+            lookup = st.checkbox(
+                "Bilimsel DOI kaynak adaylarını Crossref'te ara "
+                "(görev metni dış servise iletilir)", value=False,
+                key="cano_cockpit_crossref")
+            submitted = st.form_submit_button("🧠 Ekibi çalıştır — 4 aşama")
+        if submitted:
+            if not isinstance(goal, str) or not goal.strip():
+                st.warning("Önce araştırma görevini yazın.")
+            else:
+                try:
+                    result = manager.execute(
+                        goal, client=_AnswerAdapter(answer),
+                        model="configured-provider",
+                        source_lookup=scientific_sources if lookup else None)
+                    st.session_state["cano_cockpit_latest_mission"] = result["id"]
+                    st.success("CANO ekibi dört aşamayı çalıştırdı; "
+                               "bağımsız kaynak doğrulaması hâlâ gerekiyor.")
+                except (RuntimeError, ValueError, OSError, sqlite3.Error):
+                    st.error("Görev tamamlanamadı. Kısmi aşamalar korundu; "
+                             "yan menüden engellenmiş görevleri inceleyin.")
+
+    if status["blocked"]:
+        st.warning(f"{status['blocked']} yarım kalmış görev var. "
+                   "Yan menüdeki 'Öğrenen uzman ajanlar' alanından sürdürebilirsiniz.")
+
+    # Refresh after a button-triggered task so results are visible on this run.
+    status = read_cano_status(colony)
+    latest_id = st.session_state.get("cano_cockpit_latest_mission")
+    if not latest_id and status["history"]:
+        latest_id = status["history"][0]["id"]
+    if latest_id:
+        try:
+            latest = manager.get(latest_id)
+        except (KeyError, ValueError, sqlite3.Error):
+            st.warning("Önceki görev bu geçici oturumda bulunamadı; "
+                       "varsa indirilmiş yedeği geri yükleyin.")
+        else:
+            st.subheader("🧩 Son gerçek ekip görevi")
+            st.caption("Görev: " + latest["task"])
+            st.caption("Durum: " + latest["status"] +
+                       " — 'review_pending' bağımsız doğrulama yapıldığı anlamına gelmez.")
+            names = {"planner": "1 · Planlama", "researcher": "2 · Araştırma",
+                     "reviewer": "3 · Eleştirel inceleme",
+                     "synthesis": "4 · Düzeltilmiş sonuç"}
+            for stage in latest["stages"]:
+                with st.expander(names.get(stage["role"], stage["role"]),
+                                 expanded=(stage["role"] == "synthesis")):
+                    st.markdown(stage["output"])
+                    if stage["role"] == "planner" and "source_lookup_status" in stage:
+                        st.caption("DOI adayları: " + stage["source_lookup_status"] +
+                                   ". Yalnızca bibliyografik metadata; tam metin doğrulanmadı.")
+                        for lead in stage.get("source_leads", []):
+                            st.link_button("DOI adayı: " + lead["title"][:90],
+                                           lead["url"])
+
+    if status["history"]:
+        st.caption("Bu oturumda kayıtlı son ekip görevleri: " +
+                   " · ".join(x["task"][:45] + " (" + x["status"] + ")"
+                              for x in status["history"][:5]))
+    if status["agents"]:
+        payload = json.dumps(_snapshot(colony), ensure_ascii=False, indent=2)
+        st.download_button(
+            "💾 CANO ajanlarını, görevlerini ve dersleri JSON yedekle",
+            data=payload, file_name="cano-ekip-yedegi.json",
+            mime="application/json", key="cano_cockpit_backup")
+        st.caption("Geri yükleme: yan menü → Öğrenen uzman ajanlar → "
+                   "JSON yedekten geri yükle (yalnızca boş oturum).")

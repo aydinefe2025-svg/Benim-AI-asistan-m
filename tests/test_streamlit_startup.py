@@ -47,6 +47,14 @@ class MissingSecretsTests(unittest.TestCase):
         streamlit.error = lambda msg: errors.append(str(msg))
         streamlit.stop = lambda: (_ for _ in ()).throw(StopRequested())
         streamlit.title = lambda *a, **kw: None
+        # The primary CANO cockpit is visible on app startup. The fake
+        # Streamlit implementation must support the documented read-only
+        # widgets it renders, not just the former sidebar.
+        streamlit.header = lambda *a, **kw: None
+        streamlit.columns = lambda n: [streamlit for _ in range(n)]
+        streamlit.metric = lambda *a, **kw: None
+        streamlit.info = lambda *a, **kw: None
+        streamlit.warning = lambda *a, **kw: None
         streamlit.caption = lambda *a, **kw: None
         streamlit.markdown = lambda *a, **kw: None
         streamlit.chat_input = lambda *a, **kw: None
