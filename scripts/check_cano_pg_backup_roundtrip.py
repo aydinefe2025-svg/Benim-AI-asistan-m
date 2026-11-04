@@ -40,7 +40,7 @@ def _docker_cli(root: Path, tool: str) -> str:
     path = root / ("docker-" + tool)
     path.write_text(
         "#!/bin/sh\nset -eu\n"
-        'exec docker run --rm --network host --user "$(id -u):$(id -g)" '
+        'exec docker run --rm --network host --user 0:0 '
         '-v "$CANO_TEST_MOUNT_ROOT:$CANO_TEST_MOUNT_ROOT" '
         '-e PGDATABASE postgres:17 ' + tool + ' "$@"\n',
         encoding="utf-8",
@@ -60,6 +60,7 @@ def _restore_into_empty_database(parts, target_db: str, archive: Path, root: Pat
     # Only the synthetic destination database *name* enters argv.
     command = [
         "docker", "run", "--rm", "--network", "host",
+        "--user", "0:0",
         "--volume", str(root) + ":" + str(root),
         "--env", "PGHOST", "--env", "PGPORT", "--env", "PGUSER",
         "--env", "PGPASSWORD",
