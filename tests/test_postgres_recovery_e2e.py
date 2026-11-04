@@ -163,5 +163,39 @@ class PostgresProcessRecoveryTests(unittest.TestCase):
                             "WHERE owner_key=%s", (owner,))
 
 
+    def test_stage_checkpoints_keep_latest_without_filling_revision_history(self):
+        """Intermediate durable writes use CAS but archive only mission boundary."""
+        import psycopg
+        dsn = os.environ["CANO_TEST_POSTGRES_DSN"]
+        owner = "stages-" + uuid.uuid4().hex
+        store = ColonySnapshotStore(dsn)
+        store.initialize()
+        prior = {"agents": [], "feedback": [], "reviews": [], "missions": []}
+        try:
+            self.assertTrue(store.save_versioned_verified(
+                owner, prior, expected_prior=None))
+            started = {**prior, "missions": [{"id": "mission", "stages": 1}]}
+            self.assertTrue(store.save_versioned_verified(
+                owner, started, expected_prior=prior, archive_prior=True))
+            for i in (2, 3, 4):
+                current = {**prior, "missions": [{"id": "mission", "stages": i}]}
+                self.assertTrue(store.save_versioned_verified(
+                    owner, current, expected_prior=started,
+                    archive_prior=False))
+                self.assertEqual(store.load(owner), current)
+                started = current
+            with psycopg.connect(dsn, connect_timeout=8) as db, db.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM private_colony_snapshot_revisions "
+                            "WHERE owner_key=%s", (owner,))
+                self.assertEqual(cur.fetchone()[0], 1,
+                                 "Stage 2–4 should not consume archival quota")
+        finally:
+            with psycopg.connect(dsn, connect_timeout=8) as db, db.cursor() as cur:
+                cur.execute("DELETE FROM private_colony_snapshot_revisions "
+                            "WHERE owner_key=%s", (owner,))
+                cur.execute("DELETE FROM private_colony_snapshots "
+                            "WHERE owner_key=%s", (owner,))
+
+
 if __name__ == "__main__":
     unittest.main()
