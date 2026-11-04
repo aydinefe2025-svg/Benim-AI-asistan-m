@@ -162,24 +162,40 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             if not isinstance(goal, str) or not goal.strip():
                 st.warning("Önce araştırma görevini yazın.")
             else:
+                # Check durable write access before an expensive model request.
+                try:
+                    _checkpoint()
+                except Exception:
+                    st.error("PostgreSQL yedeği hazır değil; model çağrısı yapılmadı.")
+                    return
                 try:
                     result = manager.execute(
                         goal, client=_AnswerAdapter(answer),
                         model="configured-provider",
                         source_lookup=scientific_sources if lookup else None)
+                except TeamRateLimitError:
+                    try:
+                        _checkpoint()
+                    except Exception:
+                        st.error("Kısmi görev PostgreSQL'e kaydedilemedi; JSON yedeği alın.")
+                    st.warning("Groq kotası doldu. Kısmi aşamalar yerel SQLite'da korundu; "
+                               "kota yenilendiğinde kaldığınız yerden sürdürün.")
+                except (RuntimeError, ValueError, OSError, sqlite3.Error):
+                    try:
+                        _checkpoint()
+                    except Exception:
+                        st.error("Kısmi görev PostgreSQL'e kaydedilemedi; JSON yedeği alın.")
+                    st.error("Görev tamamlanamadı; yerel kayıt ve kısmi aşamalar korundu.")
+                else:
+                    try:
+                        _checkpoint()
+                    except Exception:
+                        st.error("Görev yerelde tamamlandı ama PostgreSQL yedeği "
+                                 "doğrulanamadı; JSON yedeği alın.")
+                        return
                     st.session_state["cano_cockpit_latest_mission"] = result["id"]
-                    # Earlier metrics have already rendered on this Streamlit run.
-                    # Refresh once to display the committed mission counters.
-                    # The submit state is not replayed on the next run.
                     st.rerun()
                     return
-                except TeamRateLimitError:
-                    st.warning("Groq dakikalık token kotası doldu. Tamamlanan "
-                               "aşamalar kaydedildi; kota yenilendiğinde yan "
-                               "menüden kaldığınız yerden sürdürebilirsiniz.")
-                except (RuntimeError, ValueError, OSError, sqlite3.Error):
-                    st.error("Görev tamamlanamadı. Kısmi aşamalar korundu; "
-                             "yan menüden engellenmiş görevleri inceleyin.")
 
     if status["blocked"]:
         st.warning(f"{status['blocked']} yarım kalmış görev var. "
@@ -231,6 +247,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                                  key="cano_read_sources_" + latest_id):
                         try:
                             manager.inspect_source_documents(latest_id)
+                            _checkpoint()
                             st.rerun()
                             return
                         except (RuntimeError, ValueError, OSError, sqlite3.Error):
