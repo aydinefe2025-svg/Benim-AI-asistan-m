@@ -9,6 +9,7 @@ on:
       - fix/sqlite-backup-restore-20261031
     paths:
       - core/postgres_leader_lease.py
+      - tests/test_postgres_leader_lease.py
       - scripts/check_cano_pg_queen_lease.py
       - scripts/provision_cano_queen_leases.sql
       - .github/workflows/cano-queen-lease.yml
@@ -18,6 +19,19 @@ permissions:
   contents: read
 
 jobs:
+  authorization-preflight:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Verify transactional authorization lock contract
+        run: python -m unittest discover -s tests -p 'test_postgres_leader_lease.py' -v
+
   real-pg-lease:
     runs-on: ubuntu-latest
     timeout-minutes: 8
