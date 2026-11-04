@@ -1,6 +1,9 @@
 name: PostgreSQL restore rehearsal (synthetic only)
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     paths:
       - 'scripts/cano_pg_backup.py'
