@@ -10,24 +10,15 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
-from urllib.parse import unquote, urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 
-from scripts.cano_pg_backup import BackupError, make_backup, verify_backup
+from scripts.cano_pg_backup import (BackupError, _libpq_env_from_url,
+                                    make_backup, verify_backup)
 
 
 def pg_env(url: str) -> dict[str, str]:
-    parts = urlsplit(url)
-    if parts.scheme not in {"postgres", "postgresql"} or not parts.hostname:
-        raise AssertionError("CI database URL must be a PostgreSQL URL")
-    env = os.environ.copy()
-    # Keep even synthetic credentials out of every subprocess argument/log.
-    env["PGHOST"] = parts.hostname
-    env["PGPORT"] = str(parts.port or 5432)
-    env["PGUSER"] = unquote(parts.username or "")
-    env["PGPASSWORD"] = unquote(parts.password or "")
-    env["PGDATABASE"] = url
-    return env
-
+    # Exercise the same production connection parser as the real pg_dump tool.
+    return _libpq_env_from_url(url)
 
 def run_sql(url: str, statement: str) -> str:
     process = subprocess.run(
