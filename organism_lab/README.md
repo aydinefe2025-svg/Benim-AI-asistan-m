@@ -20,6 +20,31 @@ python -m organism_lab.reproduction_study --seeds 30 --steps 100 --model-comment
 
 This runs paired instruction-executing genome/control simulations at five resource levels. A genome must execute `COPY_REST` then `DIVIDE`; inherited opcodes can mutate, and the control uses the same genome with division disabled. The run retains every per-seed result, calculates paired intervals, and saves JSON, CSV, and a local SQLite record. Optional Qwen checks use local Ollama; its structured checks are compared with computed metrics and contradictions are discarded. Commentary is not evidence or source verification. The dashboard has the same **Araştırma kampanyasını çalıştır** action. This is a computational study of this deliberately small virtual machine, not a biological experiment or a claim that the model learns.
 
+## Verifiable genome study replay
+
+The genome campaign now **re-opens all three persisted formats** (JSON,
+per-seed CSV, SQLite) and re-runs the deterministic experiment with its saved
+parameters before reporting success. It rejects missing, altered or mismatched
+files and returns a receipt with the JSON SHA-256 digest. A separate process
+can re-check the archive without the original Streamlit session:
+
+```bash
+python -m organism_lab.reproduction_study --seeds 30 --steps 100 --output organism_lab_output
+python -m organism_lab.study_verifier organism_lab_output/STUDY_ID.json
+```
+
+Replace STUDY_ID with the UUID filename printed by the first command. Every
+new CLI campaign saves a separate study; repeat runs are not automatically
+deduplicated. The Streamlit dashboard marks a campaign **saved** only after
+readback and independent recomputation succeed. CI deliberately tampers with
+stored data and confirms that verification fails. GitHub artifacts expire
+after 30 days, requiring an additional persistent backup.
+
+The feature branch is isolated from the production CANO service. Green CI
+tests verify the deterministic simulator and local persistence only, not
+public accessibility, autonomous model learning, living cells or physical
+robotics. Production deployment needs separate verification.
+
 ## Safety and integration
 
 - All spawn operations require an explicit call and respect a population cap (default 32).
