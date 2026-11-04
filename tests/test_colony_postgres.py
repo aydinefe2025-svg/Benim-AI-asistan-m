@@ -11,7 +11,7 @@ class Cursor:
         self.state["queries"].append((sql, params))
         if sql.startswith("INSERT"):
             self.state["rows"][params[0]] = params[1]
-        if sql.startswith("SELECT"):
+        if sql.startswith("SELECT") and params:
             self.state["last"] = params[0]
     def fetchone(self):
         value = self.state["rows"].get(self.state["last"])
