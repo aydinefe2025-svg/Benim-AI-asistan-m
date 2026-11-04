@@ -254,14 +254,19 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 try:
                     snapshot_store = ColonySnapshotStore(database_url)
                     snapshot_store.initialize()
-                    snapshot_store.save(owner_key, data)
-                    st.success("Kalıcı PostgreSQL yedeği yazıldı.")
+                    snapshot_store.save_verified(owner_key, data)
+                    st.success("PostgreSQL yedeği yazıldı ve tam içerikle geri okunarak doğrulandı.")
                 except Exception:
                     st.error("PostgreSQL yedeği yazılamadı; yerel kayıtlar korunuyor.")
             if st.button("Kalıcı yedeği kontrol et", key="colony_postgres_check"):
                 try:
                     saved = ColonySnapshotStore(database_url).load(owner_key)
-                    st.info("Kayıt bulundu." if saved else "Kayıt henüz yok.")
+                    if saved == data:
+                        st.success("Yedek mevcut ve bu oturumun bütün kayıtlarıyla eşleşiyor.")
+                    elif saved is None:
+                        st.warning("Bu kullanıcı için kalıcı yedek bulunamadı.")
+                    else:
+                        st.warning("Yedek mevcut ama bu oturumun kayıtlarından farklı; güncel olduğu doğrulanmadı.")
                 except Exception:
                     st.error("Kalıcı yedek okunamadı.")
         import json
