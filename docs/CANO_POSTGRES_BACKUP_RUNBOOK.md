@@ -21,8 +21,11 @@ python -m scripts.cano_pg_backup_manifest verify /secure/cano-2026-11-04.dump
 ```
 
 The environment variable `CANO_BACKUP_DATABASE_URL` is required for the first command.
-For compatibility, its connection URL is passed only via the child process environment
-(`PGDATABASE`), not in process command arguments or logs.
+The utility parses the URL into libpq environment variables such as `PGHOST`,
+`PGDATABASE`, and `PGPASSWORD`. `PGDATABASE` contains only the decoded database
+name. Credentials stay out of command arguments and logs. Remote connections
+require TLS. For a production export, configure `sslmode=verify-full` with the
+appropriate CA on the trusted backup host.
 
 The utility writes a custom-format PostgreSQL archive and a SHA-256 manifest.
 An integrity and pg_restore catalog check succeeds before publication. No automatic
@@ -43,6 +46,14 @@ and never issues `--clean` or `--create`. A successful `pg_restore` process is
 recorded as `restore_command_succeeded`, **not** as production recovery
 or independently verified row-level readback. Inspect table contents and compare
 source/restore counts before closing a recovery drill.
+
+## Tested recovery scope
+
+[PR #191](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/191)
+adds PostgreSQL 18 synthetic backup and restore coverage alongside PostgreSQL 17.
+Production acceptance still requires a trusted host with database access, a
+private encrypted destination, and an isolated restore with record readback.
+Keep only the sanitized acceptance result and checksum in the operations log.
 
 ## Scope and remaining work
 
