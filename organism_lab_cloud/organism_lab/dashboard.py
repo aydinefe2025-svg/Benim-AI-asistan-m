@@ -14,7 +14,8 @@ from organism_lab.adaptation_study import run_adaptation_study, save_adaptation_
 from organism_lab.literature_search import list_records, save_records, search_openalex
 from organism_lab.persistent_memory import (augment_with_memory, list_memories,
                                             retrieve_memories, save_memory)
-from organism_lab.providers import ProviderError, generate, trained_local_ready
+from organism_lab.providers import GROQ_MODEL_OPTIONS, ProviderError, generate, trained_local_ready
+from organism_lab.agent_roles import AGENT_PROFILES, profile_prompt
 from organism_lab.cloud_runtime import default_provider, session_output_dir
 
 CLOUD_MODE = os.environ.get("ORGANISM_LAB_CLOUD_MODE", "").strip() == "1"
@@ -58,19 +59,27 @@ if adapter_ready:
         "Sohbet modeli", options=list(model_choices),
         format_func=lambda value: model_choices[value], key="assistant_model_choice",
     )
+    selected_model = None
 elif CLOUD_MODE:
     if os.environ.get("GROQ_API_KEY", "").strip():
         st.info("Bulut sohbeti Groq üzerinden çalışır; gönderdiğin soru ve kullanılan açıkça kaydedilmiş notlar sağlayıcıya iletilir.")
         selected_provider = st.selectbox(
-            "Sohbet modeli", options=["groq"], format_func=lambda _: "Groq (bulut)",
+            "Sağlayıcı", options=["groq"], format_func=lambda _: "Groq Cloud",
             key="assistant_model_choice",
         )
+        selected_model = st.selectbox(
+            "Groq modeli", options=GROQ_MODEL_OPTIONS, index=0, key="assistant_groq_model",
+            help="Büyük modeller daha fazla kota/tüketim kullanabilir. Model çağrısı yalnızca sen Yanıt üret'e bastığında yapılır.",
+        )
+        st.caption("Model erişimi ve ücret/kota koşulları Groq hesabına bağlıdır. Kullanılmayan modeller için otomatik çağrı yapılmaz.")
     else:
         st.info("Bulut sohbet modeli yapılandırılmamış. Dijital simülasyon ve literatür kataloğu kullanılabilir; sohbet için sunucuda güvenli GROQ_API_KEY gerekir.")
         selected_provider = default_provider(cloud_mode=True)
+        selected_model = None
 else:
     st.info("Şu an Ollama temel modeli kullanılıyor; bu bilgisayarda eğitilmiş bir adaptör etkin değil. Kaydedilen notlar yanıta bağlam olarak eklenir, model ağırlıklarını değiştirmez.")
     selected_provider = "ollama"
+    selected_model = None
 try:
     research_status = json.loads((OUTPUT_DIR / "continuous_research_status.json").read_text(encoding="utf-8"))
     completed_cycles = research_status.get("last_completed_cycle", 0)
@@ -90,19 +99,31 @@ if save_memory_clicked:
         st.success(f"Not kaydedildi · #{note['id']} · {location}")
     except (OSError, ValueError) as exc:
         st.error(f"Not kaydedilemedi ({type(exc).__name__}); içerik güvenli biçimde reddedildi.")
+agent_ids = tuple(AGENT_PROFILES)
+selected_agent = st.selectbox(
+    "Destek ajanı", options=agent_ids,
+    format_func=lambda key: AGENT_PROFILES[key][0], key="organism_agent_role",
+    help="Ajan profilleri yalnızca kullanıcının başlattığı yanıta yön verir; araç izni veya kendi kendine işlem yetkisi vermez. Açıkça kaydedilmiş notlar ortak hafıza olarak bağlamda kullanılır.",
+)
+st.caption("Ajanların notlarla bağlam öğrenmesi açıkça kaydedilen notlarla sınırlıdır. Sohbetler kendiliğinden saklanmaz ve model ağırlıkları eğitilmez.")
 learning_query = st.text_area("Asistana sor" if CLOUD_MODE else "Yerel asistana sor", max_chars=4000, key="learning_query")
 ask_local_clicked = st.button("Groq'a sor" if CLOUD_MODE and selected_provider == "groq" else "Yanıt üret" if CLOUD_MODE else "Yerel Qwen'e sor", key="local_learning_chat", disabled=CLOUD_MODE and selected_provider == "offline")
 if ask_local_clicked:
     try:
         relevant = retrieve_memories(OUTPUT_DIR, learning_query)
-        response = generate(augment_with_memory(learning_query, relevant), selected_provider)
+        agent_prompt = learning_query
+        if selected_provider != "groq":
+            agent_prompt = profile_prompt(selected_agent) + "\n\nKullanıcının isteği:\n" + learning_query
+        response = generate(augment_with_memory(agent_prompt, relevant), selected_provider,
+                           model=selected_model,
+                           system_prompt=profile_prompt(selected_agent) if selected_provider == "groq" else None)
         st.session_state["local_learning_answer"] = response.get("text", "")
         st.session_state["local_learning_context_count"] = len(relevant)
         st.session_state["local_learning_provider"] = response.get("provider", "ollama")
     except (ProviderError, OSError, ValueError, RuntimeError) as exc:
         st.error(f"Model yanıt vermedi ({type(exc).__name__}); kaydedilmiş hafıza korunuyor.")
 if st.session_state.get("local_learning_answer"):
-    st.markdown("**Yerel modelin yanıtı**")
+    st.markdown("**Ajan yanıtı**")
     st.write(st.session_state["local_learning_answer"])
     st.caption(f"Model: {st.session_state.get('local_learning_provider', 'ollama')} · eklenen kayıtlı not: {st.session_state.get('local_learning_context_count', 0)}")
 with st.expander("Bu oturumdaki hafıza notları" if CLOUD_MODE else "Bu bilgisayarda saklanan hafıza notları"):
