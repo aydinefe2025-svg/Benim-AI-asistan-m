@@ -102,6 +102,27 @@ class BackupTests(unittest.TestCase):
             self.assertEqual(Path(result["archive"]).stat().st_mode & 0o777, 0o600)
             self.assertEqual(Path(result["receipt"]).stat().st_mode & 0o777, 0o600)
 
+    def test_pg_dump_is_noninteractive_even_without_a_terminal(self):
+        import subprocess
+        real_run = subprocess.run
+        calls = []
+
+        def record_run(*args, **kwargs):
+            calls.append((args, kwargs))
+            return real_run(*args, **kwargs)
+
+        with patch("cano_pg_backup.subprocess.run", side_effect=record_run):
+            make_backup(self.dest, dump_bin=self.dump, restore_bin=self.restore)
+
+        dump_calls = [(args, kwargs) for args, kwargs in calls
+                      if args and isinstance(args[0], list)
+                      and "--format=custom" in args[0]]
+        self.assertEqual(len(dump_calls), 1)
+        argv, kwargs = dump_calls[0]
+        self.assertIn("--no-password", argv[0])
+        self.assertEqual(kwargs.get("stdin"), subprocess.DEVNULL)
+        self.assertNotIn("secret", str(argv[0]))
+
     def test_tamper_detected(self):
         result = make_backup(self.dest, dump_bin=self.dump, restore_bin=self.restore)
         Path(result["archive"]).write_bytes(b"PGDMP malicious tamper")
