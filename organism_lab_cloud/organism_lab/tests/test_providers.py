@@ -1,6 +1,8 @@
 import json
 import os
 import unittest
+from io import BytesIO
+from urllib.error import HTTPError, URLError
 from unittest.mock import patch
 from organism_lab.providers import ProviderError, generate, trained_local_ready
 
@@ -88,4 +90,28 @@ class ProviderTests(unittest.TestCase):
     def test_empty_model_response(self):
         with self.assertRaises(ProviderError):
             generate("hello", "ollama", transport=lambda req, timeout: FakeResponse({"response": ""}))
+
+
+    def test_groq_http_errors_are_classified_without_exposing_provider_body(self):
+        cases = {
+            401: "geçersiz veya iptal edilmiş",
+            403: "erişimi reddetti",
+            404: "modeli veya isteği",
+            429: "kota veya istek hızı",
+            503: "geçici sunucu hatası",
+        }
+        for status, expected in cases.items():
+            with self.subTest(status=status), patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
+                def sender(request, timeout):
+                    raise HTTPError(request.full_url, status, "provider failure",
+                                    None, BytesIO(b"DO_NOT_EXPOSE_PROVIDER_BODY"))
+                with self.assertRaises(ProviderError) as raised:
+                    generate("hello", "groq", transport=sender)
+                self.assertIn(expected, str(raised.exception))
+                self.assertNotIn("DO_NOT_EXPOSE_PROVIDER_BODY", str(raised.exception))
+
+    def test_groq_network_error_is_reported_safely(self):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
+            with self.assertRaisesRegex(ProviderError, "Groq network request failed"):
+                generate("hello", "groq", transport=lambda *args, **kwargs: (_ for _ in ()).throw(URLError("private detail")))
 
