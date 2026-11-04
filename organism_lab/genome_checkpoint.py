@@ -24,7 +24,7 @@ def _snapshot(world):
     return {
         "metrics": world.metrics(),
         "next_id": world.next_id,
-        "organisms": [asdict(agent) for agent in world.organisms],
+        "organisms": [{**asdict(agent), "genome": list(agent.genome)} for agent in world.organisms],
     }
 
 
