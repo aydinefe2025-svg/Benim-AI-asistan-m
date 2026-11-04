@@ -14,12 +14,14 @@ def running_heartbeat(db_path, task_id, *, interval_seconds=30):
         raise ValueError("interval_seconds must be positive")
     stop = Event()
 
+    touch = db_path.touch_running if hasattr(db_path, "touch_running") else lambda task: touch_running(db_path, task)
+
     def loop():
         while not stop.wait(interval_seconds):
-            if not touch_running(db_path, task_id):
+            if not touch(task_id):
                 break
 
-    if not touch_running(db_path, task_id):
+    if not touch(task_id):
         raise ValueError("Task must be running before heartbeat starts")
     thread = Thread(target=loop, name="research-task-heartbeat", daemon=True)
     thread.start()

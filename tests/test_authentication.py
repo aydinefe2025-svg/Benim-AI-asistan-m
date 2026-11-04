@@ -19,6 +19,7 @@ class AuthenticationTests(unittest.TestCase):
         self.assertTrue(oidc_is_configured({"auth": {
             "redirect_uri": "https://example.test/oauth2callback",
             "cookie_secret": "local-test-secret",
+            "owner_key_secret": "separate-stable-owner-secret",
             "client_id": "client-id",
             "client_secret": "client-secret",
             "server_metadata_url": "https://accounts.google.com/.well-known/openid-configuration",
@@ -27,14 +28,15 @@ class AuthenticationTests(unittest.TestCase):
     def test_owner_key_is_stable_opaque_and_issuer_scoped(self):
         claims = {"iss": "https://accounts.google.com", "sub": "private-subject",
                   "email": "private@example.test"}
-        first = authenticated_owner_key(claims, "test-cookie-secret")
-        self.assertEqual(first, authenticated_owner_key(claims, "test-cookie-secret"))
+        first = authenticated_owner_key(claims, "test-owner-secret")
+        self.assertEqual(first, authenticated_owner_key(claims, "test-owner-secret"))
         self.assertNotIn(claims["email"], first)
         self.assertNotIn(claims["sub"], first)
         self.assertNotEqual(first, authenticated_owner_key(
             {"iss": "https://other-issuer.test", "sub": claims["sub"]},
-            "test-cookie-secret",
+            "test-owner-secret",
         ))
+        self.assertNotEqual(first, authenticated_owner_key(claims, "rotated-owner-secret"))
         self.assertIsNone(authenticated_owner_key({"iss": "issuer"}, "secret"))
 
 

@@ -44,6 +44,8 @@ def import_research_archive(store: TaskStore, raw: bytes) -> int:
         # restore its status/evidence into the active verification state.
         provenance = json.dumps(item, ensure_ascii=False, separators=(",", ":"))
         validated.append((title.strip(), goal, draft, provenance))
+    if hasattr(store, "import_tasks"):
+        return store.import_tasks(validated)
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     # TaskStore ensures the tasks/events schema exists.
     with closing(sqlite3.connect(store.db_path, timeout=10)) as conn, conn:

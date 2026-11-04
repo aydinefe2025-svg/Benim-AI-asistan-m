@@ -28,6 +28,19 @@ if os.environ.get("DATABASE_URL"):
         st.error("Kalıcı hafıza bağlantısı kurulamadı; kayıtlar değiştirilmedi.")
         st.stop()
 
+_TASK_STORE = None
+if os.environ.get("AGENT_TASK_DATABASE_URL"):
+    if not _AUTH_REQUIRED or not _OWNER_KEY:
+        st.error("Kalıcı görev verisi için doğrulanmış giriş zorunludur.")
+        st.stop()
+    try:
+        from core.postgres_task_store import PostgresTaskStore
+        _TASK_STORE = PostgresTaskStore(owner_key=_OWNER_KEY)
+        _TASK_STORE.initialize()
+    except Exception:
+        st.error("Kalıcı görev veritabanı bağlanamadı; görevler değiştirilmedi.")
+        st.stop()
+
 
 # 🔒 Her sağlayıcı bağımsız yapılandırılır. Değerleri hiçbir zaman ekranda gösterme.
 from core.provider_config import (
@@ -354,7 +367,7 @@ def _research_answer(goal: str) -> str:
     return output
 
 
-render_task_panel(st, answer=_research_answer if GROQ_KEY else None)
+render_task_panel(st, answer=_research_answer if GROQ_KEY else None, store_override=_TASK_STORE)
 render_colony_panel(st, answer=_research_answer if GROQ_KEY else None,
                     owner_key=_OWNER_KEY if _MEMORY_STORE is not None else None,
                     database_url=os.environ.get("DATABASE_URL") if _MEMORY_STORE is not None else None)

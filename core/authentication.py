@@ -18,7 +18,7 @@ def oidc_is_configured(secrets: Any) -> bool:
         return all(
             isinstance(auth.get(key), str) and auth.get(key).strip()
             for key in (
-                "redirect_uri", "cookie_secret", "client_id",
+                "redirect_uri", "cookie_secret", "owner_key_secret", "client_id",
                 "client_secret", "server_metadata_url",
             )
         )
@@ -26,18 +26,18 @@ def oidc_is_configured(secrets: Any) -> bool:
         return False
 
 
-def authenticated_owner_key(claims: Any, cookie_secret: str) -> str | None:
-    """Return a stable opaque owner key; never store the user's email."""
+def authenticated_owner_key(claims: Any, owner_key_secret: str) -> str | None:
+    """Return a stable opaque owner key, separate from the rotatable login cookie."""
     try:
         subject = claims.get("sub")
         issuer = claims.get("iss")
     except Exception:
         return None
     if not all(isinstance(value, str) and value.strip()
-               for value in (subject, issuer, cookie_secret)):
+               for value in (subject, issuer, owner_key_secret)):
         return None
     message = (issuer.strip() + "\x00" + subject.strip()).encode("utf-8")
-    digest = hmac.new(cookie_secret.encode("utf-8"), message, hashlib.sha256).hexdigest()
+    digest = hmac.new(owner_key_secret.encode("utf-8"), message, hashlib.sha256).hexdigest()
     return "oidc_" + digest
 
 
@@ -57,7 +57,7 @@ def render_auth_gate(st: Any, environment: Mapping[str, str]) -> str | None:
         st.button("Google ile giriş yap", on_click=st.login)
         st.stop()
     auth = st.secrets["auth"]
-    owner_key = authenticated_owner_key(user, auth["cookie_secret"])
+    owner_key = authenticated_owner_key(user, auth["owner_key_secret"])
     if owner_key is None:
         st.error("Giriş kimliği doğrulanamadı; oturum başlatılmadı.")
         st.stop()
