@@ -38,6 +38,7 @@ class ChatContextTests(unittest.TestCase):
             "st": fake_st, "Groq": FakeGroq, "GROQ_KEY": "demo",
             "secilen_model": "Groq GPT-OSS", "aktif_llm_adi": "openai/gpt-oss-120b",
             "internette_ara": lambda query: "Test verisi", "memory_context": lambda items, query: "MEMORY_CONTEXT", "re": re,
+            "label_research_answer": lambda answer, *, research_requested: answer,
         }
         exec(compile(ast.Module(body=[func], type_ignores=[]), str(APP), "exec"), namespace)
         result = namespace["asistani_calistir"]("Yeni soru")
