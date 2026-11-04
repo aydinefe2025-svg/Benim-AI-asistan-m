@@ -12,12 +12,13 @@ from core.cano_command_center import (
 
 
 class FakeStreamlit:
-    def __init__(self, *, clicks=None, submit=False, task="", crossref=False):
+    def __init__(self, *, clicks=None, submit=False, task="", crossref=False, local_backup=False):
         self.session_state = {}
         self.clicks = set(clicks or [])
         self.submit = submit
         self.task = task
         self.crossref = crossref
+        self.local_backup = local_backup
         self.messages = []
         self.downloaded = False
         self.metrics = {}
@@ -69,6 +70,8 @@ class FakeStreamlit:
         return self.task
 
     def checkbox(self, label, **kw):
+        if kw.get("key") == "cano_local_backup_opt_in":
+            return self.session_state.get("cano_local_backup_opt_in", self.local_backup)
         return self.crossref
 
     def form_submit_button(self, label, **kw):
@@ -103,6 +106,9 @@ class CommandCenterTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.db_base = str(Path(self.tmp.name) / "colony.sqlite3")
+        browser_patch = patch("core.cano_command_center.browser_colony_component", return_value=None)
+        self.browser_component = browser_patch.start()
+        self.addCleanup(browser_patch.stop)
 
     def test_one_click_prepares_real_roles_and_is_idempotent(self):
         colony = AgentColony(Path(self.tmp.name) / "direct.sqlite3")
@@ -200,6 +206,42 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(saved["stages"][0]["source_documents"][0]["status"],
                              "full_text_excerpt")
             self.assertFalse(saved["stages"][0]["source_documents"][0]["claim_verified"])
+
+    def test_opted_in_browser_backup_survives_new_session_and_no_provider_replay(self):
+        st = FakeStreamlit(clicks={"cano_prepare_team"}, local_backup=True)
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            render_cano_command_center(st, answer=FakeModel())
+            initial_write = self.browser_component.call_args.kwargs["write"]
+            self.assertIsNotNone(initial_write)
+            self.assertEqual(len(initial_write["token"]), 64)
+            report = {"status": "ok", "payload": initial_write["payload"],
+                      "ack": initial_write["token"]}
+            self.browser_component.return_value = report
+            render_cano_command_center(st, answer=FakeModel())
+            self.assertIn("geri okunarak doğrulandı", " ".join(st.messages))
+            # Hard browser refresh creates a new Streamlit session state and ID.
+            st2 = FakeStreamlit()
+            model = FakeModel()
+            render_cano_command_center(st2, answer=model)
+            self.assertIn("geri yüklendi", " ".join(st2.messages))
+            render_cano_command_center(st2, answer=model)
+            self.assertEqual(st2.metrics["Uzman"], 7)
+            self.assertEqual(len(model.calls), 0)
+            self.assertTrue(st2.session_state["cano_local_backup_opt_in"])
+            # An unrelated user's browser must not receive another browser's backup.
+            self.browser_component.return_value = None
+            st3 = FakeStreamlit()
+            render_cano_command_center(st3, answer=model)
+            self.assertEqual(st3.metrics["Uzman"], 0)
+
+    def test_malformed_browser_backup_does_not_create_agents(self):
+        self.browser_component.return_value = {"status":"ok","payload":"{}"}
+        st = FakeStreamlit()
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            self.assertEqual(st.metrics["Uzman"], 0)
+            self.assertIn("doğrulanamadı", " ".join(st.messages))
 
     def test_cockpit_exposes_truth_when_no_model(self):
         st = FakeStreamlit(clicks={"cano_prepare_team"}, submit=True, task="Test")
