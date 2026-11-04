@@ -16,6 +16,7 @@ from core.browser_colony import (
     decode_browser_colony_backup, browser_write_confirmed,
 )
 from core.colony_restore import restore_empty_colony
+from core.authentication import auth_is_required
 from core.groq_team import TeamRateLimitError
 from core.scientific_sources import scientific_sources
 from core.task_panel import _session_database_path
@@ -101,13 +102,18 @@ def render_cano_command_center(st, answer=None):
         st.error("CANO ajan kayıtları açılamadı; görev çalıştırılmadı.")
         return
 
-    local_opt_in = st.checkbox(
+    # Never reuse shared-browser storage between authenticated accounts.
+    # Signed-in users must use authenticated owner-scoped PostgreSQL storage.
+    browser_backup_enabled = not auth_is_required(os.environ)
+    local_opt_in = (st.checkbox(
         "Bu tarayıcıda CANO ekibini ve araştırma kayıtlarını otomatik yedekle "
         "(yalnızca kişisel cihazda; tarayıcı depolaması şifrelenmemiştir)",
         value=False, key="cano_local_backup_opt_in")
-    clear_local = st.button(
+        if browser_backup_enabled else False)
+    clear_local = (st.button(
         "Bu tarayıcıdaki CANO yedeğini sil",
         key="cano_local_backup_clear")
+        if browser_backup_enabled else False)
     if clear_local:
         st.session_state["cano_local_backup_opt_in"] = False
         local_opt_in = False
@@ -118,7 +124,8 @@ def render_cano_command_center(st, answer=None):
             write = encode_browser_colony_backup(_snapshot(colony))
         except (ValueError, TypeError):
             st.warning("Yerel yedek kapasitesi aşıldı; bu kaydı JSON olarak dışa aktarın.")
-    report = browser_colony_component(write=write, clear=clear_local)
+    report = (browser_colony_component(write=write, clear=clear_local)
+              if browser_backup_enabled else None)
     if isinstance(report, dict) and report.get("status") == "error":
         st.warning("Tarayıcı yedeğine erişilemiyor; kayıtlar yalnızca bu oturumda.")
     elif clear_local and isinstance(report, dict) and report.get("ack") == "cleared":
