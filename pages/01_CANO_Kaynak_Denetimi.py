@@ -11,6 +11,7 @@ from core.claim_evidence import audit_claim_quotes
 from core.groq_team import generate_team_stage, TeamRateLimitError
 from core.cano_command_center import _snapshot
 from core.colony_postgres import ColonySnapshotStore
+from core.colony_restore import restore_owner_backup
 from core.browser_colony import (
     browser_colony_component, browser_write_confirmed, encode_browser_colony_backup,
 )
@@ -27,7 +28,25 @@ manager = CollaborativeMission(colony)
 with colony._db() as db:
     missions = db.execute("SELECT id,task FROM colony_missions WHERE status=? ORDER BY created_at DESC LIMIT 12", ("review_pending",)).fetchall()
 if not missions:
-    st.info("Önce ana CANO ekranında araştırma görevi ve kaynak okuma işlemini tamamlayın.")
+    # A new Streamlit session creates a fresh, isolated SQLite file. Never
+    # silently import another owner's data or overwrite a nonempty colony.
+    # Recovery is explicit, authenticated and read back transactionally.
+    if owner:
+        st.info("Bu oturumda kaynak denetimi görevi yok. Hesabınızın kalıcı yedeğini güvenli biçimde geri yükleyebilirsiniz.")
+        if st.button("Hesabıma ait CANO yedeğini geri yükle", key="cano_evidence_restore"):
+            try:
+                store = ColonySnapshotStore(os.environ["DATABASE_URL"])
+                store.initialize()
+                restored = restore_owner_backup(colony, store, owner, approved=True)
+            except (KeyError, LookupError, ValueError, RuntimeError, OSError):
+                st.warning("Hesabınıza ait yedek geri yüklenemedi; mevcut kayıtlar değiştirilmedi.")
+            except Exception:
+                st.error("Kalıcı yedek servisi kullanılamıyor; hiçbir kayıt değiştirilmedi.")
+            else:
+                st.success(f"{restored} CANO rol kaydı geri yüklendi; kaynak denetimi görevleri yeniden okunuyor.")
+                st.rerun()
+    else:
+        st.info("Önce ana CANO ekranında araştırma görevi ve kaynak okuma işlemini tamamlayın.")
     st.stop()
 mission_ids = [m["id"] for m in missions]
 labels = {m["id"]: m["task"][:70] for m in missions}
