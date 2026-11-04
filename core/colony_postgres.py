@@ -8,6 +8,9 @@ import json
 import os
 
 
+_NO_EXPECTED_PRIOR = object()
+
+
 class ColonySnapshotStore:
     def __init__(self, database_url=None, *, connect=None):
         self.database_url = database_url or os.environ.get("DATABASE_URL")
@@ -93,7 +96,7 @@ class ColonySnapshotStore:
             raise RuntimeError("Colony snapshot readback mismatch")
         return True
 
-    def save_versioned_verified(self, owner_key, payload):
+    def save_versioned_verified(self, owner_key, payload, *, expected_prior=_NO_EXPECTED_PRIOR):
         """Atomically archive prior distinct snapshot before overwriting it.
 
         Cap history at 20 versions per owner; fail closed rather than silently
@@ -121,6 +124,9 @@ class ColonySnapshotStore:
                 prior = prior_row[0] if prior_row else None
                 if isinstance(prior, str):
                     prior = json.loads(prior)
+                # Reject a stale tab while holding the owner-scoped transaction lock.
+                if expected_prior is not _NO_EXPECTED_PRIOR and prior != expected_prior:
+                    raise RuntimeError("Owner snapshot changed since this session last read it")
                 if prior != payload:
                     if prior is not None:
                         cur.execute("SELECT COUNT(*) FROM private_colony_snapshot_revisions "
