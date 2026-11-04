@@ -42,7 +42,7 @@ class HeartbeatRunnerTests(unittest.TestCase):
     def test_background_storage_failure_blocks_provider_draft(self):
         self.store.transition(self.task["id"], "running")
         calls = [0]
-        original = self.store.touch_running
+        from core.task_heartbeat import touch_running as original
 
         def fails_after_start(task_id):
             calls[0] += 1
@@ -50,7 +50,7 @@ class HeartbeatRunnerTests(unittest.TestCase):
                 raise OSError("storage temporarily unavailable")
             return original(task_id)
 
-        with patch.object(self.store, "touch_running", side_effect=fails_after_start):
+        with patch("core.task_heartbeat_runner.touch_running", side_effect=fails_after_start):
             with self.assertRaisesRegex(RuntimeError, "heartbeat"):
                 with running_heartbeat(self.store, self.task["id"],
                                        interval_seconds=0.005):
