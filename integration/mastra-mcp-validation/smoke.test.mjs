@@ -1,7 +1,7 @@
 /** Genuine pinned Mastra package smoke, isolated from production. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Mastra } from '@mastra/core/mastra';
@@ -19,30 +19,29 @@ test('Node runtime passes known posthog peer engine floor', () => {
 });
 
 test('actual MCPServer, tool, and file-backed Mastra store register together', async () => {
+  // Mastra initializes background storage asynchronously. Keep the isolated
+  // database alive until CI process exits; never delete while init is running.
   const dir = mkdtempSync(join(tmpdir(), 'cano-mastra-'));
-  try {
-    const addNumbers = createTool({
-      id: 'add_numbers',
-      description: 'Add two integers without any side effects.',
-      inputSchema: z.object({ a: z.number().int(), b: z.number().int() }),
-      execute: async ({ a, b }) => ({ result: a + b }),
-    });
-    const server = new MCPServer({
-      id: 'cano-mcp-storage-smoke',
-      name: 'CANO MCP Storage Smoke',
-      version: '0.0.1',
-      tools: { addNumbers },
-      tasks: { tools: { addNumbers: { mode: 'always', recover: true } } },
-    });
-    const mastra = new Mastra({
-      storage: new LibSQLStore({ id: 'cano-mcp-smoke', url: `file:${join(dir, 'smoke.db')}` }),
-      backgroundTasks: { enabled: true },
-      mcpServers: { cano: server },
-    });
-    assert.ok(mastra.getStorage(), 'Mastra storage missing');
-    const actual = await server.executeTool('add_numbers', { a: 17, b: 25 });
-    assert.match(JSON.stringify(actual), /42/, 'Real Mastra tool output was not 42');
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  const addNumbers = createTool({
+    id: 'add_numbers',
+    description: 'Add two integers without any side effects.',
+    inputSchema: z.object({ a: z.number().int(), b: z.number().int() }),
+    execute: async ({ a, b }) => ({ result: a + b }),
+  });
+  const server = new MCPServer({
+    id: 'cano-mcp-storage-smoke',
+    name: 'CANO MCP Storage Smoke',
+    version: '0.0.1',
+    tools: { addNumbers },
+    tasks: { tools: { addNumbers: { mode: 'always', recover: true } } },
+  });
+  const mastra = new Mastra({
+    storage: new LibSQLStore({ id: 'cano-mcp-smoke', url: `file:${join(dir, 'smoke.db')}` }),
+    backgroundTasks: { enabled: true },
+    mcpServers: { cano: server },
+  });
+  assert.ok(mastra.getStorage(), 'Mastra storage missing');
+  // MCPServer exposes the object key (addNumbers), not the internal tool id.
+  const actual = await server.executeTool('addNumbers', { a: 17, b: 25 });
+  assert.match(JSON.stringify(actual), /42/, 'Real Mastra tool output was not 42');
 });
