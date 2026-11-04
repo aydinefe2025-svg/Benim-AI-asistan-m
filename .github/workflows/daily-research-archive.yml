@@ -26,6 +26,8 @@ jobs:
       - name: Validate generated archive
         run: python -m scripts.validate_research_archive "research_reports/$(date -u +%F).json"
       - name: Save report to research branch
+        env:
+          ARCHIVE_TARGET_BRANCH: fix/sqlite-backup-restore-20261031
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -37,7 +39,12 @@ jobs:
           import sys
 
           # BEGIN bounded archive push
-          branch = "fix/sqlite-backup-restore-20261031"
+          import os
+          branch = os.environ.get("ARCHIVE_TARGET_BRANCH") or subprocess.check_output(
+              ["git", "symbolic-ref", "--quiet", "--short", "HEAD"], text=True
+          ).strip()
+          if not branch or branch.startswith("-") or any(ch.isspace() for ch in branch):
+              sys.exit("Invalid archive target branch")
           for attempt in range(3):
               pushed = subprocess.run(["git", "push", "origin", "HEAD:" + branch])
               if pushed.returncode == 0:
