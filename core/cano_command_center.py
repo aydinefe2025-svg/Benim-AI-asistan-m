@@ -115,6 +115,23 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
         st.error("CANO ajan kayıtları açılamadı; görev çalıştırılmadı.")
         return
 
+    # A new Streamlit session has an empty ephemeral SQLite file. Never turn
+    # "prepare team" into an implicit overwrite of this owner's existing
+    # PostgreSQL-backed experts, missions, or source evidence.
+    if backup_store is not None and status["agents"] == 0:
+        try:
+            remote_snapshot = backup_store.load(owner_key)
+        except Exception:
+            st.error("Kalıcı CANO yedeği okunamadı; mevcut kayıtları korumak için yeni ekip oluşturulmadı.")
+            return
+        if remote_snapshot is not None and any(
+                remote_snapshot.get(name)
+                for name in ("agents", "feedback", "reviews", "missions")):
+            st.warning("Bu hesabın kalıcı CANO yedeği var. Yeni ekip hazırlamadan önce "
+                       "yan menüdeki 'Öğrenen uzman ajanlar' bölümünden hesabınıza "
+                       "ait yedeği onaylayarak geri yükleyin; önceki görevler korunacak.")
+            return
+
     # Streamlit rejects changing a widget's key after that widget has rendered.
     # Apply pending updates from restore/clear at the START of the next rerun.
     if st.session_state.pop("_cano_backup_enable_next_run", False):
