@@ -41,9 +41,10 @@ class CollaborativeMissionTests(unittest.TestCase):
         client = FakeClient()
         seen = []
         def checkpoint():
-            missions = self.missions.history()
-            self.assertEqual(len(missions), 1)
-            saved = self.missions.get(missions[0]["id"])
+            with self.colony._db() as db:
+                rows = db.execute("SELECT id FROM colony_missions").fetchall()
+            self.assertEqual(len(rows), 1)
+            saved = self.missions.get(rows[0]["id"])
             self.assertEqual(len(saved["stages"]), len(client.calls))
             self.assertEqual(saved["status"], "running")
             seen.append(len(saved["stages"]))
