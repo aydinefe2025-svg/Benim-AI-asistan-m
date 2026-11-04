@@ -8,6 +8,7 @@ than replay work that may already have caused an external side effect.
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import secrets
 import time
@@ -37,43 +38,54 @@ class PostgresAuthorizedQueue:
         return psycopg.connect(self.database_url, connect_timeout=8, row_factory=dict_row)
 
     def initialize(self):
-        with self._db() as db, db.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS cano_authorized_jobs (
-                    owner_key TEXT NOT NULL,
-                    id TEXT NOT NULL,
-                    idem_key TEXT NOT NULL,
-                    goal TEXT NOT NULL,
-                    state TEXT NOT NULL
-                        CHECK(state IN ('queued','running','review_pending','blocked')),
-                    max_calls INTEGER NOT NULL CHECK(max_calls BETWEEN 1 AND 3),
-                    attempts INTEGER NOT NULL DEFAULT 0,
-                    eligible_after DOUBLE PRECISION NOT NULL DEFAULT 0,
-                    lease_token TEXT,
-                    worker_id TEXT,
-                    lease_until DOUBLE PRECISION,
-                    result_digest TEXT,
-                    draft TEXT,
-                    created_at DOUBLE PRECISION NOT NULL,
-                    PRIMARY KEY(owner_key,id),
-                    UNIQUE(owner_key,idem_key)
-                )
-            """)
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS cano_authorized_job_events (
-                    event_id BIGSERIAL PRIMARY KEY,
-                    owner_key TEXT NOT NULL,
-                    job_id TEXT NOT NULL,
-                    at DOUBLE PRECISION NOT NULL,
-                    state TEXT NOT NULL,
-                    code TEXT NOT NULL,
-                    FOREIGN KEY(owner_key,job_id)
-                        REFERENCES cano_authorized_jobs(owner_key,id) ON DELETE CASCADE
-                )
-            """)
-            # The owner migration manages indexes on shared tables. The runtime
-            # role has DML access but does not own them, so it must not issue
-            # CREATE INDEX even with IF NOT EXISTS.
+        stage = "connect"
+        try:
+            with self._db() as db, db.cursor() as cur:
+                stage = "jobs_table"
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS cano_authorized_jobs (
+                        owner_key TEXT NOT NULL,
+                        id TEXT NOT NULL,
+                        idem_key TEXT NOT NULL,
+                        goal TEXT NOT NULL,
+                        state TEXT NOT NULL
+                            CHECK(state IN ('queued','running','review_pending','blocked')),
+                        max_calls INTEGER NOT NULL CHECK(max_calls BETWEEN 1 AND 3),
+                        attempts INTEGER NOT NULL DEFAULT 0,
+                        eligible_after DOUBLE PRECISION NOT NULL DEFAULT 0,
+                        lease_token TEXT,
+                        worker_id TEXT,
+                        lease_until DOUBLE PRECISION,
+                        result_digest TEXT,
+                        draft TEXT,
+                        created_at DOUBLE PRECISION NOT NULL,
+                        PRIMARY KEY(owner_key,id),
+                        UNIQUE(owner_key,idem_key)
+                    )
+                """)
+                stage = "job_events_table"
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS cano_authorized_job_events (
+                        event_id BIGSERIAL PRIMARY KEY,
+                        owner_key TEXT NOT NULL,
+                        job_id TEXT NOT NULL,
+                        at DOUBLE PRECISION NOT NULL,
+                        state TEXT NOT NULL,
+                        code TEXT NOT NULL,
+                        FOREIGN KEY(owner_key,job_id)
+                            REFERENCES cano_authorized_jobs(owner_key,id) ON DELETE CASCADE
+                    )
+                """)
+                # The owner migration manages indexes on shared tables. The runtime
+                # role has DML access but does not own them, so it must not issue
+                # CREATE INDEX even with IF NOT EXISTS.
+        except Exception as exc:
+            # Log only the fixed stage label, SQLSTATE, and class; never SQL or credentials.
+            logging.getLogger(__name__).warning(
+                "Authorized queue initialization failed at %s (%s, SQLSTATE=%s)",
+                stage, type(exc).__name__, getattr(exc, "sqlstate", None),
+            )
+            raise
 
 
     @staticmethod
