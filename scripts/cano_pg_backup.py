@@ -64,7 +64,10 @@ def _digest(path: Path):
 
 def _temp_file(directory: Path, *, suffix: str):
     fd, name = tempfile.mkstemp(prefix=".cano-pg-", suffix=suffix, dir=directory)
-    os.fchmod(fd, 0o600)
+    if hasattr(os, "fchmod"):
+        os.fchmod(fd, 0o600)
+    else:
+        os.chmod(name, 0o600)
     return fd, Path(name)
 
 
