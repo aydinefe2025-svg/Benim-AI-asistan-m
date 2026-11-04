@@ -19,36 +19,43 @@ GROQ_KEY = os.getenv("GROQ_API_KEY")
 # 🌐 ENGELSİZ CANLI İNTERNET VE METEOROLOJİ MOTORU
 def internette_ara(sorgu: str) -> str:
     try:
-        sorgu_temiz = sorgu.lower()
+        # Türkçe karakterleri sadeleştir; "sıcaklık", "yağış" gibi ifadeler de eşleşsin.
+        sorgu_temiz = sorgu.lower().translate(str.maketrans({"ı": "i", "ş": "s", "ğ": "g", "ü": "u", "ö": "o", "ç": "c"}))
         
-        # Kelime bazlı tam eşleşme kontrolü ile gereksiz tetiklenmeler önleniyor
-        hava_istegi_mi = any(re.search(rf"\b{kelime}\b", sorgu_temiz) for kelime in ["hava", "derece", "sicak", "yagis", "rüzgar", "bulut", "güneş", "durumu"])
+        # Hava durumu yalnızca hava durumu terimleri açıkça geçince tetiklenir.
+        hava_istegi_mi = any(re.search(rf"\b{kelime}\b", sorgu_temiz) for kelime in ["hava", "derece", "sicak", "sicaklik", "yagis", "ruzgar", "bulut", "gunes", "durumu", "nem"])
         
         if hava_istegi_mi:
             sehir = "Izmir"
             sehir_adi = "İzmir"
-            if "odemis" in sorgu_temiz or "ödemiş" in sorgu_temiz:
+            if "odemis" in sorgu_temiz:
                 sehir = "Odemis"
                 sehir_adi = "Ödemiş"
                 
-            headers = {"Accept-Language": "tr", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-            url = f"https://wttr.in{sehir}?format=%C+%t+%h+%w"
-            response = requests.get(url, headers=headers, timeout=6)
+            headers = {"Accept-Language": "tr", "User-Agent": "Mozilla/5.0"}
+            url = f"https://wttr.in/{sehir}?format=j1"
+            response = requests.get(url, headers=headers, timeout=8)
             
-            if response.status_code == 200 and "error" not in response.text.lower():
-                ham_veri = response.text.strip().split()
-                if len(ham_veri) >= 3:
-                    durum = ham_veri[0]
-                    sicaklik = ham_veri[1]
-                    nem = ham_veri[2]
-                    ruzgar = ham_veri[3] if len(ham_veri) > 3 else "Hafif"
-                    return f"MÜHÜRLÜ UYDU RAPORU -> Şehir: {sehir_adi} | Durum: {durum} | Sıcaklık: {sicaklik} | Nem: {nem} | Rüzgar: {ruzgar}."
-            return "Hava durumu uydusu şu an veri yeniliyor, genel iklim bilgisiyle Ali'ye yanıt ver."
+            if response.status_code == 200:
+                weather = response.json()
+                current = weather.get("current_condition", [{}])[0]
+                desc = current.get("weatherDesc", [{}])[0].get("value", "Bilinmiyor")
+                sicaklik = current.get("temp_C", "—") + "°C"
+                nem = current.get("humidity", "—") + "%"
+                ruzgar = current.get("windspeedKmph", "—") + " km/sa"
+                return f"MÜHÜRLÜ UYDU RAPORU -> Şehir: {sehir_adi} | Durum: {desc} | Sıcaklık: {sicaklik} | Nem: {nem} | Rüzgar: {ruzgar}."
+            return "Hava durumu servisi şu an veri vermiyor."
                     
         # Diğer genel internet aramaları için standart API bağlantısı
-        url = f"https://duckduckgo.com{requests.utils.quote(sorgu)}&format=json&no_html=1"
+        # DuckDuckGo Instant Answer API; parametreleri requests güvenli biçimde kodlar.
+        url = "https://api.duckduckgo.com/"
         headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=6)
+        response = requests.get(
+            url,
+            params={"q": sorgu, "format": "json", "no_html": 1, "skip_disambig": 1},
+            headers=headers,
+            timeout=8,
+        )
         if response.status_code == 200:
             data = response.json()
             if data.get("AbstractText"):
