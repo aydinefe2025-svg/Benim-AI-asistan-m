@@ -102,6 +102,13 @@ def render_cano_command_center(st, answer=None):
         st.error("CANO ajan kayıtları açılamadı; görev çalıştırılmadı.")
         return
 
+    # Streamlit rejects changing a widget's key after that widget has rendered.
+    # Apply pending updates from restore/clear at the START of the next rerun.
+    if st.session_state.pop("_cano_backup_enable_next_run", False):
+        st.session_state["cano_local_backup_opt_in"] = True
+    elif st.session_state.pop("_cano_backup_disable_next_run", False):
+        st.session_state["cano_local_backup_opt_in"] = False
+
     # Never reuse shared-browser storage between authenticated accounts.
     # Signed-in users must use authenticated owner-scoped PostgreSQL storage.
     browser_backup_enabled = not auth_is_required(os.environ)
@@ -115,7 +122,7 @@ def render_cano_command_center(st, answer=None):
         key="cano_local_backup_clear")
         if browser_backup_enabled else False)
     if clear_local:
-        st.session_state["cano_local_backup_opt_in"] = False
+        st.session_state["_cano_backup_disable_next_run"] = True
         local_opt_in = False
 
     write = None
@@ -138,7 +145,7 @@ def render_cano_command_center(st, answer=None):
         except (ValueError, RuntimeError, OSError, sqlite3.Error):
             st.warning("Tarayıcı yedeği doğrulanamadı; mevcut kayıtlar değiştirilmedi.")
         else:
-            st.session_state["cano_local_backup_opt_in"] = True
+            st.session_state["_cano_backup_enable_next_run"] = True
             st.success(f"Bu tarayıcının önceki CANO yedeğinden {count} uzman geri yüklendi.")
             st.rerun()
             return
