@@ -5,7 +5,7 @@ from io import BytesIO
 from urllib.error import HTTPError, URLError
 from unittest.mock import patch
 from organism_lab.providers import (ProviderError, diagnose_groq_access, generate,
-                                    trained_local_ready)
+                                    groq_active_key, groq_test_key, trained_local_ready)
 
 class FakeResponse:
     def __init__(self, payload):
@@ -65,6 +65,24 @@ class ProviderTests(unittest.TestCase):
         with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
             result = generate("hello", "groq", transport=lambda req, timeout: FakeResponse({"choices": [{"message": {"content": "OK"}}]}))
         self.assertEqual(result["text"], "OK")
+    def test_separate_test_key_is_inert_until_explicit_activation(self):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "existing-key",
+                                     "GROQ_API_KEY_TEST": "candidate-key",
+                                     "GROQ_API_KEY_TEST_ACTIVE": "0"}):
+            self.assertEqual(groq_test_key(), "candidate-key")
+            self.assertEqual(groq_active_key(), "existing-key")
+    def test_separate_test_key_can_be_activated_without_replacing_existing_key(self):
+        captured = {}
+        def sender(request, timeout):
+            captured["authorization"] = request.get_header("Authorization")
+            return FakeResponse({"choices": [{"message": {"content": "OK"}}]})
+        with patch.dict(os.environ, {"GROQ_API_KEY": "existing-key",
+                                     "GROQ_API_KEY_TEST": "candidate-key",
+                                     "GROQ_API_KEY_TEST_ACTIVE": "1"}):
+            result = generate("hello", "groq", transport=sender)
+            self.assertEqual(os.environ["GROQ_API_KEY"], "existing-key")
+        self.assertEqual(result["text"], "OK")
+        self.assertEqual(captured["authorization"], "Bearer candidate-key")
     def test_groq_trims_surrounding_key_whitespace(self):
         captured = {}
         def sender(request, timeout):
