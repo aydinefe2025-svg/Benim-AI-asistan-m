@@ -65,6 +65,7 @@ class MissingSecretsTests(unittest.TestCase):
         streamlit.text_area = lambda *a, **kw: ""
         streamlit.text_input = lambda *a, **kw: ""
         streamlit.button = lambda *a, **kw: False
+        streamlit.checkbox = lambda *a, **kw: False
         streamlit.form = lambda *a, **kw: nullcontext()
         streamlit.form_submit_button = lambda *a, **kw: False
         streamlit.rerun = lambda *a, **kw: None
@@ -88,6 +89,8 @@ class MissingSecretsTests(unittest.TestCase):
         # In CI the fake Streamlit module has no browser component frontend.
         # Simulate successful empty localStorage hydration to exercise startup.
         with patch("core.browser_memory.browser_memory_component",
+                   return_value={"status": "ok", "payload": ""}), \
+             patch("core.cano_command_center.browser_colony_component",
                    return_value={"status": "ok", "payload": ""}):
             with patch.dict(sys.modules, {"streamlit": streamlit, "requests": requests, "groq": groq}), \
              patch("core.ollama_client.OllamaClient.list_models", return_value=[]):
