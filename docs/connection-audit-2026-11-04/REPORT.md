@@ -11,7 +11,7 @@
 
 - Initial automated test invocation failed before collection because `pytest` was missing from both system Python and the project virtual environment (`No module named pytest`).
 - Added `requirements-dev.txt` with the runtime requirements and `pytest>=8.3,<10`, installed it in the project virtual environment, and reran the full suite: **226 tests and 46 subtests passed**.
-- PR #107 records the development dependency. At the time of this report, GitHub Actions research checks and Linux core tests passed; the Windows core job was still running.
+- PR #107 records the development dependency and this report. Its final head passed the GitHub Actions public research checks and core tests on Linux and Windows.
 
 ## Unavailable or not verified
 
