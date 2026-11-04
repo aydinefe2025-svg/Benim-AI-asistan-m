@@ -1,6 +1,9 @@
 name: PostgreSQL adapter integration
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     paths:
       - "core/postgres_memory.py"
