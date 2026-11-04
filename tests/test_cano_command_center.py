@@ -235,6 +235,14 @@ class CommandCenterTests(unittest.TestCase):
             render_cano_command_center(st3, answer=model)
             self.assertEqual(st3.metrics["Uzman"], 0)
 
+    def test_authenticated_account_never_reads_anonymous_local_backup(self):
+        st = FakeStreamlit(local_backup=True)
+        with patch.dict("os.environ", {
+                "AGENT_COLONY_DB_PATH": self.db_base, "APP_AUTH_REQUIRED": "true"}):
+            render_cano_command_center(st, answer=FakeModel())
+            self.browser_component.assert_not_called()
+            self.assertEqual(st.metrics["Uzman"], 0)
+
     def test_malformed_browser_backup_does_not_create_agents(self):
         self.browser_component.return_value = {"status":"ok","payload":"{}"}
         st = FakeStreamlit()
