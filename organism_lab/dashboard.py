@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import streamlit as st
 from organism_lab.shared_world import run_shared_world
 from organism_lab.reproduction_study import run_study, save_study
+from organism_lab.study_verifier import verify_saved_study
 
 st.set_page_config(page_title="Organizma Laboratuvarı", layout="wide")
 st.title("Organizma Laboratuvarı")
@@ -43,22 +44,33 @@ st.divider()
 st.header("Genom çoğaltma araştırması")
 st.caption("30 eşlenmiş tohum × 100 adım × 5 kaynak düzeyi. COPY_REST ve DIVIDE komutlarını yürüten genom, aynı genomun bölünmesi kapalı kontrolüyle karşılaştırılır; yavru genomlarda %2 komut mutasyonu uygulanır. Ölçümler yalnızca bu dijital simülasyona aittir.")
 if st.button("Araştırma kampanyasını çalıştır", key="run_genome_study_v2", type="primary"):
-    with st.spinner("Sanal genomları çalıştıran eşlenmiş deneyler yürütülüyor ve kaydediliyor…"):
-        campaign = run_study(seeds=tuple(range(30)), steps=100,
-                             resource_levels=(0, 2, 5, 10, 20))
-        commentary = {"status": "not_requested", "text": ""}
-        saved = save_study(campaign, Path.cwd() / "organism_lab_output",
-                           model_commentary=commentary)
-    st.session_state["genome_campaign_v2"] = campaign
-    st.session_state["genome_commentary_v2"] = commentary
-    st.session_state["genome_saved_v2"] = saved
+    for key in ("genome_campaign_v2", "genome_commentary_v2", "genome_saved_v2",
+                "genome_verified_receipt_v2"):
+        st.session_state.pop(key, None)
+    try:
+        with st.spinner("Sanal genomlar çalıştırılıyor; kayıtlar geri okunup yeniden hesaplanıyor…"):
+            campaign = run_study(seeds=tuple(range(30)), steps=100,
+                                 resource_levels=(0, 2, 5, 10, 20))
+            commentary = {"status": "not_requested", "text": ""}
+            saved = save_study(campaign, Path.cwd() / "organism_lab_output",
+                               model_commentary=commentary)
+            receipt = verify_saved_study(saved)
+    except (OSError, ValueError) as exc:
+        st.error(f"Kayıt doğrulanamadı. Başarılı sayılmadı: {type(exc).__name__}")
+    else:
+        st.session_state["genome_campaign_v2"] = campaign
+        st.session_state["genome_commentary_v2"] = commentary
+        st.session_state["genome_saved_v2"] = saved
+        st.session_state["genome_verified_receipt_v2"] = receipt
 
 if "genome_campaign_v2" in st.session_state:
     campaign = st.session_state["genome_campaign_v2"]
     st.dataframe(campaign["results"], width="stretch")
     st.info("Deney ölçümleri doğrudan simülasyondan hesaplandı. Bu kampanyada yerel model kontrolü kullanılmadı.")
     saved = st.session_state["genome_saved_v2"]
-    st.success(f"Kayıt tamamlandı · çalışma {saved['study_id']} · JSON, CSV ve SQLite")
+    receipt = st.session_state["genome_verified_receipt_v2"]
+    st.success(f"Kayıt tamamlandı ve geri okundu · çalışma {saved['study_id']} · JSON, CSV ve SQLite")
+    st.caption(f"Bağımsız sayısal yeniden hesaplama doğrulandı · {receipt['observations']} gözlem · SHA-256 {receipt['json_sha256'][:16]}…")
     st.download_button("Deney verisini JSON indir",
                        data=json.dumps({**campaign, "model_commentary": st.session_state["genome_commentary_v2"]}, ensure_ascii=False, indent=2),
                        file_name="reproduction-study.json", mime="application/json",
