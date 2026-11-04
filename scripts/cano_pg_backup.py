@@ -51,7 +51,7 @@ def _libpq_env_from_url(database_url: str) -> dict[str, str]:
                 not parts.path.startswith("/") or len(parts.path) < 2):
             raise ValueError("Invalid PostgreSQL connection parameters")
         database_name = unquote(parts.path[1:])
-        if not database_name or "\\x00" in database_name:
+        if not database_name or "\x00" in database_name:
             raise ValueError("Invalid PostgreSQL database name")
         port = parts.port or 5432
         if port < 1 or port > 65535:
