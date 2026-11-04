@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 from core.agent_colony import AgentColony
 from core.colony_restore import restore_empty_colony, restore_colony_json_bytes
+from core import colony_restore
 from core.collaborative_mission import CollaborativeMission
 
 
@@ -164,6 +165,63 @@ class RestoreTests(unittest.TestCase):
                 restore_empty_colony(colony, bad)
             with colony._db() as db:
                 self.assertEqual(db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0],0)
+
+
+    def test_db_mutation_during_import_causes_rollback(self):
+        """A trigger-induced mismatch must not leave a partially restored colony."""
+        with tempfile.TemporaryDirectory() as directory:
+            colony = AgentColony(Path(directory) / "colony.db")
+            with colony._db() as db:
+                db.execute("""CREATE TRIGGER corrupt_restore AFTER INSERT ON colony_agents
+                    BEGIN UPDATE colony_agents SET role='corrupted' WHERE id=NEW.id; END""")
+            snapshot = {"agents": [{
+                "id": "founder", "parent_id": None, "generation": 0,
+                "role": "research", "instructions": "Safe", "state": "active",
+                "created_at": "2026-01-01"}],
+                "feedback": [], "reviews": [], "missions": []}
+            with self.assertRaisesRegex(RuntimeError, "readback mismatch"):
+                restore_empty_colony(colony, snapshot)
+            with colony._db() as db:
+                self.assertEqual(db.execute(
+                    "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 0)
+
+    def test_owner_backup_requires_explicit_confirmation_before_lookup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            colony = AgentColony(Path(directory) / "colony.db")
+            class FakeStore:
+                def __init__(self): self.lookups = []
+                def load(self, owner):
+                    self.lookups.append(owner)
+                    return {"agents": [{
+                        "id": "owner-agent", "parent_id": None, "generation": 0,
+                        "role": "research", "instructions": "Safe",
+                        "state": "active", "created_at": "2026-01-01"}],
+                        "feedback": [], "reviews": [], "missions": []}
+            store = FakeStore()
+            with self.assertRaises(PermissionError):
+                colony_restore.restore_owner_backup(colony, store, "owner-123", approved=False)
+            self.assertEqual(store.lookups, [])
+            with self.assertRaises(ValueError):
+                colony_restore.restore_owner_backup(colony, store, " ", approved=True)
+            self.assertEqual(store.lookups, [])
+            self.assertEqual(colony_restore.restore_owner_backup(
+                colony, store, "owner-123", approved=True), 1)
+            self.assertEqual(store.lookups, ["owner-123"])
+            self.assertEqual(colony.get("owner-agent")["role"], "research")
+            with self.assertRaises(RuntimeError):
+                colony_restore.restore_owner_backup(colony, store, "owner-123", approved=True)
+
+    def test_missing_owner_backup_refuses_write(self):
+        with tempfile.TemporaryDirectory() as directory:
+            colony = AgentColony(Path(directory) / "colony.db")
+            class MissingStore:
+                def load(self, owner): return None
+            with self.assertRaises(LookupError):
+                colony_restore.restore_owner_backup(colony, MissingStore(), "owner-123",
+                                     approved=True)
+            with colony._db() as db:
+                self.assertEqual(db.execute(
+                    "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 0)
 
 
 if __name__ == "__main__":
