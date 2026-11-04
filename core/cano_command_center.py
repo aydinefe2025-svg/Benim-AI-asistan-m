@@ -102,7 +102,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             return
         try:
             backup_store = ColonySnapshotStore(database_url)
-            backup_store.initialize()
+            backup_store.verify_schema()
         except Exception:
             st.error("CANO PostgreSQL yedeği açılamadı; model çalıştırılmadı.")
             return
