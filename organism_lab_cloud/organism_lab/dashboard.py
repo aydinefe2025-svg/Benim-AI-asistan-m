@@ -18,7 +18,7 @@ from organism_lab.literature_search import list_records, save_records, search_op
 from organism_lab.persistent_memory import (augment_with_memory, list_memories,
                                             retrieve_memories, save_memory)
 from organism_lab.providers import (GROQ_MODEL_OPTIONS, ProviderError, diagnose_groq_access,
-                                    generate, trained_local_ready)
+                                    generate, groq_active_key, groq_test_key, trained_local_ready)
 from organism_lab.agent_roles import AGENT_PROFILES, profile_prompt
 from organism_lab.cloud_runtime import default_provider, session_output_dir
 
@@ -107,31 +107,36 @@ if adapter_ready:
     )
     selected_model = None
 elif CLOUD_MODE:
-    groq_configured = bool(os.environ.get("GROQ_API_KEY", "").strip())
+    groq_configured = bool(groq_active_key())
+    test_key = groq_test_key()
+    test_key_active = os.environ.get("GROQ_API_KEY_TEST_ACTIVE", "").strip() == "1"
     if groq_configured:
-        st.info("Bulut sohbeti Groq üzerinden çalışır; gönderdiğin soru ve kullanılan açıkça kaydedilmiş notlar sağlayıcıya iletilir.")
+        active_label = "ayrı test anahtarı" if test_key_active else "mevcut Groq anahtarı"
+        st.info(f"Bulut sohbeti Groq üzerinden çalışır ({active_label}); gönderdiğin soru ve kullanılan açıkça kaydedilmiş notlar sağlayıcıya iletilir.")
     else:
-        st.info("Model seçeneklerini inceleyebilirsin. Sohbet, sunucuya güvenli GROQ_API_KEY eklenene kadar kapalıdır; API çağrısı yapılmaz.")
+        st.info("Model seçeneklerini inceleyebilirsin. Sohbet, sunucuya güvenli Groq anahtarı eklenene kadar kapalıdır; API çağrısı yapılmaz.")
     selected_provider = "groq"
     selected_model = st.selectbox(
         "Groq modeli", options=GROQ_MODEL_OPTIONS, index=0, key="assistant_groq_model",
         help="Büyük modeller daha fazla kota/tüketim kullanabilir. Model çağrısı yalnızca sen Yanıt üret'e bastığında yapılır.",
     )
     st.caption("Model erişimi ve ücret/kota koşulları Groq hesabına bağlıdır. Kullanılmayan modeller için otomatik çağrı yapılmaz.")
-    if groq_configured and st.button("Groq proje erişimini tanıla", key="diagnose_groq_project"):
+    diagnostic_key = test_key or os.environ.get("GROQ_API_KEY", "")
+    diagnostic_label = "ayrı test anahtarı" if test_key else "mevcut Groq anahtarı"
+    if diagnostic_key.strip() and st.button("Groq proje erişimini tanıla", key="diagnose_groq_project"):
         diagnosis = diagnose_groq_access(
-            os.environ.get("GROQ_API_KEY", ""), selected_model,
+            diagnostic_key, selected_model,
         )
         if diagnosis["reachable"] and diagnosis["model_available"]:
-            st.success("Render anahtarı Groq modelleri uç noktasına erişiyor ve seçili model listeleniyor. Sohbet 403 verirse bu anahtarın proje/izin kapsamı Groq tarafından ayrıca reddediliyor.")
+            st.success(f"Render'daki {diagnostic_label} Groq'a erişiyor ve seçili model listeleniyor. Sohbet anahtarını değiştirmek için GROQ_API_KEY_TEST_ACTIVE değerini 1 yapıp yeniden dağıtabilirsin.")
         elif diagnosis["reachable"]:
-            st.error("Render anahtarının eriştiği Groq projesinde seçili model listelenmiyor. Render anahtarı başka bir Groq projesine ait olabilir.")
+            st.error(f"Render'daki {diagnostic_label} erişiyor, ancak seçili model bu anahtarın projesinde listelenmiyor.")
         else:
             status = diagnosis["http_status"]
             code = diagnosis["error_code"]
             safe_status = f"HTTP {status}" if isinstance(status, int) else "ağ yanıtı yok"
             safe_code = f" · Groq kodu: {code}" if code else ""
-            st.error(f"Render anahtarının Groq model listesi isteği başarısız ({safe_status}{safe_code}). Anahtar değeri gösterilmedi.")
+            st.error(f"Render'daki {diagnostic_label} ile Groq model listesi isteği başarısız ({safe_status}{safe_code}). Anahtar değeri gösterilmedi.")
 else:
     st.info("Şu an Ollama temel modeli kullanılıyor; bu bilgisayarda eğitilmiş bir adaptör etkin değil. Kaydedilen notlar yanıta bağlam olarak eklenir, model ağırlıklarını değiştirmez.")
     selected_provider = "ollama"
