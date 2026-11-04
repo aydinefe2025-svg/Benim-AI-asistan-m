@@ -1,1 +1,1 @@
-streamlit==1.66.1
+streamlit==1.66.1\npsycopg[binary]==3.3.7\n
