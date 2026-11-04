@@ -26,3 +26,16 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_memory_merge_safety.py' -v
       - name: Existing user memory tests
         run: python -m unittest discover -s tests -p 'test_user_memory.py' -v
+
+  full-safety-suite:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Full repository unit tests
+        run: python -m unittest discover -s tests -v
