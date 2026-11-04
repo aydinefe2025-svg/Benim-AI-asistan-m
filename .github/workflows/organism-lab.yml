@@ -118,6 +118,13 @@ jobs:
           assert database_rows[0][0] == saved["study_id"]
           assert json.loads(database_rows[0][1]) == expected
           PY
+      - name: Verify digital-genome checkpoint across separate processes
+        run: |
+          python -m organism_lab.genome_checkpoint init organism_checkpoint_output/state.json --seed 17 --target-tick 35
+          python -m organism_lab.genome_checkpoint verify organism_checkpoint_output/state.json
+          python -m organism_lab.genome_checkpoint advance organism_checkpoint_output/state.json --target-tick 120
+          python -m organism_lab.genome_checkpoint advance organism_checkpoint_output/state.json --target-tick 120
+          python -m organism_lab.genome_checkpoint verify organism_checkpoint_output/state.json
       - name: Upload research evidence artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -131,5 +138,6 @@ jobs:
             organism_reproduction_output/*.json
             organism_reproduction_output/*.csv
             organism_reproduction_output/research_studies.sqlite3
+            organism_checkpoint_output/state.json
           if-no-files-found: error
           retention-days: 30
