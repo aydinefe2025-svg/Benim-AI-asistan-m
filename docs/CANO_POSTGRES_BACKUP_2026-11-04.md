@@ -1,6 +1,6 @@
 # CANO PostgreSQL acil yedekleme kontrolü (4 Kasım 2026)
 
-**Amaç:** Render ücretsiz PostgreSQL'in 30 günlük süre sınırından önce kişisel, bağımsız, şifre açığa çıkarmayan bir yedek almak. Bu belgedeki komutlar **canlı sistemde çalıştırılmadı**; yalnızca sentetik testler çalıştırıldı. Bu araç yedekleme/inceleme yapar, hiçbir veritabanına restore veya silme yapmaz.
+**Amaç:** Render ücretsiz PostgreSQL'in 30 günlük süre sınırından önce kişisel, bağımsız, şifre açığa çıkarmayan bir yedek almak. Bu belgedeki komutlar **Render üretim veritabanında çalıştırılmadı**. Ayrı GitHub Actions servisinde **gerçek PostgreSQL 16** ve yalnızca sentetik kayıtlarla `pg_dump` + izole `pg_restore` testi yapıldı. Bu araç yedekleme/inceleme yapar, hiçbir veritabanına restore veya silme yapmaz.
 
 Resmî politika: https://render.com/docs/free (ücretsiz Postgres 30 günde sona erer, Render üzerinde ücretsiz DB yedeği yok; 14 gün ek ücretli yükseltme fırsatı, sonrasında silme). PostgreSQL araçları: https://www.postgresql.org/docs/current/app-pgdump.html ve https://www.postgresql.org/docs/current/app-pgrestore.html .
 
@@ -15,7 +15,7 @@ Resmî politika: https://render.com/docs/free (ücretsiz Postgres 30 günde sona
 
 ## Güvence ve sınırlamalar
 
-- İşlem URL'yi `PGDATABASE` üzerinden alt sürece iletir; argüman veya konsol çıktısına koymaz. Ortam değişkenleri bazı sistemlerde ayrıcalıklı işlemlerce okunabilir; kullanıcı erişimini kısıtlayın. Windows ACL ve şifreli disk güvenliği bu betik tarafından garanti edilmez.
+- İşlem bağlantı URL'sini libpq ortam değişkenleri `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD` ve yalnızca **veritabanı adı** içeren `PGDATABASE` alanlarına ayırır; URL'yi veya parolayı komut argümanlarına ya da konsol çıktısına koymaz. Dış bağlantılarda varsayılan `PGSSLMODE=require`; açıkça zayıf SSL modu reddedilir. Ortam değişkenleri bazı sistemlerde ayrıcalıklı işlemlerce okunabilir; kullanıcı erişimini kısıtlayın. Windows ACL ve şifreli disk güvenliği bu betik tarafından garanti edilmez.
 - Yedek `.dump` dosyası geçici ada yazılır; `pg_restore --list` ile ayrıştırma kontrolü başarılı olursa tam ada taşınır. SHA-256, boyut ve tarih ayrı `.receipt.json` dosyasına kaydedilir. Başarısız `pg_dump` sonrasında tamamlanmış yedek diye göstermeyecektir.
-- `pg_restore --list` **restore başarısı kanıtı değildir**; receipt `restored_to_new_database=false` taşır. Tek makinede sentetik test PASS, gerçek Render/PostgreSQL backup ve restore PASS değil.
+- `pg_restore --list` **restore başarısı kanıtı değildir**; receipt `restored_to_new_database=false` taşır. Gerçek PostgreSQL 16 üzerinde [CI #41838574816](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/41838574816) PASS: iki sentetik sahip satırı izole boş veritabanına geri okundu, backup sonrası kaynak değişikliği hedefe geçmedi, SHA bozulması reddedildi. Bu **yalnızca CI sentetik veri testi**; canlı Render backup/restore PASS değildir.
 - Ücretsiz Render PostgreSQL tarih/süre sınırlaması nedeniyle yedeği geciktirmeyin. 2 Aralık 2026 CANO proje kayıtlarındaki hedef tarihtir; **güncel gerçek son tarih Render panelinden ayrıca doğrulanmalıdır**.
