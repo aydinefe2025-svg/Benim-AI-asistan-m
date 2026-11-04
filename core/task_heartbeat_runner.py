@@ -44,10 +44,9 @@ def running_heartbeat(db_path, task_id, *, interval_seconds=30):
         yield
     finally:
         stop.set()
-        # A short heartbeat interval is not a thread shutdown deadline.
-        # Wait for in-flight SQLite work before Windows deletes its temp DB.
-        thread.join(timeout=5)
-        if thread.is_alive():
-            raise RuntimeError("Running task heartbeat worker did not stop")
+        # Wait for an in-flight bounded database touch to finish before the
+        # caller closes or removes its SQLite file. A short interval-based
+        # join can leave the daemon thread using the file during teardown.
+        thread.join()
         if failures:
             raise failures[0]
