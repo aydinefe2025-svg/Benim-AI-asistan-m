@@ -38,6 +38,37 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             st.error("Ajan veritabanı açılamadı.")
             return
         if not agents and owner_key and database_url:
+            # Archived recovery is limited to authenticated owners and empty
+            # local colonies; validation+transaction in restore_empty_colony.
+            if st.button("Eski PostgreSQL yedeklerini göster",
+                         key="colony_show_archived_backups"):
+                st.session_state["cano_show_archived_backups"] = True
+            if st.session_state.get("cano_show_archived_backups"):
+                try:
+                    archived_store = ColonySnapshotStore(database_url)
+                    archived_store.initialize()
+                    previous = archived_store.list_archived(owner_key)
+                    if not previous:
+                        st.info("Önceki yedek sürümü bulunmuyor.")
+                    else:
+                        revision = st.selectbox(
+                            "Geri yüklenecek eski CANO yedeği",
+                            [row["revision"] for row in previous],
+                            format_func=lambda revision: "Yedek sürümü " + str(revision),
+                            key="colony_archive_revision")
+                        if st.button("Seçili eski yedeği boş koloniye geri yükle",
+                                     key="colony_restore_archived"):
+                            snapshot = archived_store.load_archived(owner_key, revision)
+                            if snapshot is None:
+                                st.warning("Önceki yedek artık bulunamıyor.")
+                            else:
+                                restored = restore_empty_colony(colony, snapshot)
+                                st.success(f"Eski yedekten {restored} uzman geri yüklendi.")
+                                st.rerun()
+                except (ValueError, RuntimeError, OSError, sqlite3.Error):
+                    st.error("Eski yedek geri yükleme reddedildi; mevcut veriler korundu.")
+                except Exception:
+                    st.error("PostgreSQL geçmişine erişilemedi; veri değiştirilmedi.")
             if st.button("Kalıcı yedekten boş koloniyi geri yükle",
                          key="colony_postgres_restore"):
                 try:
@@ -254,10 +285,10 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 try:
                     snapshot_store = ColonySnapshotStore(database_url)
                     snapshot_store.initialize()
-                    snapshot_store.save_verified(owner_key, data)
-                    st.success("PostgreSQL yedeği yazıldı ve tam içerikle geri okunarak doğrulandı.")
+                    snapshot_store.save_versioned_verified(owner_key, data)
+                    st.success("PostgreSQL yedeği geri okunarak doğrulandı; farklı eski yedekler korunuyor.")
                 except Exception:
-                    st.error("PostgreSQL yedeği yazılamadı; yerel kayıtlar korunuyor.")
+                    st.error("Yedek doğrulanamadı veya geçmiş kotası doldu; mevcut kayıtlar korunuyor. JSON yedeği indirin.")
             if st.button("Kalıcı yedeği kontrol et", key="colony_postgres_check"):
                 try:
                     saved = ColonySnapshotStore(database_url).load(owner_key)
