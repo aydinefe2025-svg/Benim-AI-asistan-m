@@ -14,7 +14,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 from datetime import datetime, timezone
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, unquote, urlsplit
 
 
 class BackupError(RuntimeError):
@@ -31,11 +31,71 @@ def _database_url(url: str | None) -> str:
     return url
 
 
+_URL_OPTIONS = {
+    "sslmode": "PGSSLMODE",
+    "sslrootcert": "PGSSLROOTCERT",
+    "sslcert": "PGSSLCERT",
+    "sslkey": "PGSSLKEY",
+    "connect_timeout": "PGCONNECT_TIMEOUT",
+    "channel_binding": "PGCHANNELBINDING",
+    "target_session_attrs": "PGTARGETSESSIONATTRS",
+    "application_name": "PGAPPNAME",
+    "options": "PGOPTIONS",
+}
+
+
+def _libpq_env_from_uri(uri: str, inherited: dict) -> dict:
+    """Convert a standard PostgreSQL URI into secret-free argv + libpq env.
+
+    Deliberately reject unknown query parameters rather than silently dropping
+    security options. This supports the standard Render-style connection URI.
+    """
+    try:
+        parsed = urlsplit(uri)
+        if parsed.scheme not in ("postgres", "postgresql"):
+            raise ValueError("scheme")
+        if not parsed.hostname or not parsed.path or parsed.path == "/" or parsed.fragment:
+            raise ValueError("missing host, database or unexpected fragment")
+        port = parsed.port
+        options = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=True)
+    except ValueError:
+        raise BackupError("Invalid PostgreSQL URL structure") from None
+    env = inherited.copy()
+    # A previous libpq service or host address must not redirect the backup.
+    for name in ("PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR"):
+        env.pop(name, None)
+    env["PGHOST"] = parsed.hostname
+    env["PGDATABASE"] = unquote(parsed.path[1:])
+    if "\x00" in env["PGDATABASE"]:
+        raise BackupError("Invalid PostgreSQL database name")
+    # A stale ambient PGPORT must never redirect an explicit backup URL.
+    env["PGPORT"] = str(port or 5432)
+    if parsed.username is not None:
+        env["PGUSER"] = unquote(parsed.username)
+    if parsed.password is not None:
+        env["PGPASSWORD"] = unquote(parsed.password)
+    seen = set()
+    for key, value in options:
+        if key not in _URL_OPTIONS or key in seen or not value:
+            raise BackupError("Unsupported or invalid PostgreSQL URL option")
+        seen.add(key)
+        env[_URL_OPTIONS[key]] = value
+    if not env["PGDATABASE"].strip():
+        raise BackupError("PostgreSQL database name is required")
+    # Never permit a remote backup to silently downgrade to plaintext.
+    if parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
+        sslmode = env.get("PGSSLMODE", "require")
+        if sslmode not in {"require", "verify-ca", "verify-full"}:
+            raise BackupError("Remote PostgreSQL backup requires TLS")
+        env["PGSSLMODE"] = sslmode
+    return env
+
+
 def _run(args, *, database_url=None, runner=subprocess.run):
     environment = dict(os.environ)
     environment["PGCONNECT_TIMEOUT"] = "8"
     if database_url is not None:
-        environment["PGDATABASE"] = _database_url(database_url)
+        environment = _libpq_env_from_uri(_database_url(database_url), environment)
     try:
         result = runner(
             args, env=environment, stdin=subprocess.DEVNULL,
@@ -133,11 +193,10 @@ def verify_backup(destination: str | Path, *, runner=subprocess.run) -> dict:
 def restore_to_isolated_test_db(destination: str | Path, *, target_url: str,
                                 source_url: str, runner=subprocess.run) -> dict:
     """Explicit restore to a dedicated empty *_cano_restore_test database only."""
-    source = urlsplit(_database_url(source_url))
-    target = urlsplit(_database_url(target_url))
-    if (target.path.rstrip("/").split("/")[-1] == source.path.rstrip("/").split("/")[-1]
-            or not target.path.rstrip("/").endswith("_cano_restore_test")
-            or target.hostname == "" or target_url == source_url):
+    source = _libpq_env_from_uri(_database_url(source_url), os.environ)
+    target = _libpq_env_from_uri(_database_url(target_url), os.environ)
+    if (target["PGDATABASE"] == source["PGDATABASE"]
+            or not target["PGDATABASE"].endswith("_cano_restore_test")):
         raise BackupError("Dedicated *_cano_restore_test database required")
     verify_backup(destination, runner=runner)
     _run(["pg_restore", "--no-password", "--single-transaction",
