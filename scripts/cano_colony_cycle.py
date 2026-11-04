@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 import tempfile
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,10 +20,10 @@ def main() -> None:
     founder = {"id": "cano-research-founder", "generation": 0}
     prior_history = colony.history(limit=1)
     prior_tick_id = prior_history[0]["tick_id"] if prior_history else None
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db:
         previous_tick_count = db.execute("SELECT COUNT(*) FROM colony_tick").fetchone()[0]
     result = colony.tick([founder])
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db:
         integrity = db.execute("PRAGMA integrity_check").fetchone()[0]
         stored = db.execute("SELECT COUNT(*) FROM colony_tick").fetchone()[0]
         row = db.execute(

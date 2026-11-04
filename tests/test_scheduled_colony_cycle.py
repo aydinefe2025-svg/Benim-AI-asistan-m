@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+from contextlib import closing
 import subprocess
 import sys
 import tempfile
@@ -41,7 +42,7 @@ class ScheduledColonyCycleTests(unittest.TestCase):
 
             def tampered_tick(colony, agents):
                 result = original_tick(colony, agents)
-                with sqlite3.connect(db_path) as db:
+                with closing(sqlite3.connect(db_path)) as db, db:
                     db.execute(
                         "UPDATE colony_tick SET state='no_capacity' WHERE tick_id=?",
                         (result["tick_id"],),
@@ -72,7 +73,7 @@ class ScheduledColonyCycleTests(unittest.TestCase):
                     cano_colony_cycle.main()
             self.assertEqual(json.loads(output.read_text(encoding="utf-8")), {"previous": True})
             self.assertEqual(list(Path(temp).glob(".out.json.*.tmp")), [])
-            with sqlite3.connect(db_path) as db:
+            with closing(sqlite3.connect(db_path)) as db, db:
                 self.assertEqual(db.execute("SELECT COUNT(*) FROM colony_tick").fetchone()[0], 1)
 
 

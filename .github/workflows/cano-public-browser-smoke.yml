@@ -1,0 +1,31 @@
+name: CANO production public browser smoke
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cano-public-browser-smoke.yml"
+      - "scripts/cano_live_public_browser_smoke.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install free public-browser tooling
+        run: |
+          python -m pip install "playwright>=1.55,<2"
+          python -m playwright install --with-deps chromium
+      - name: Inspect live public startup and source route, without login or API calls
+        env:
+          CANO_PUBLIC_URL: https://benim-ai-asistan-streamlit.onrender.com
+        run: |
+          python -m compileall -q scripts/cano_live_public_browser_smoke.py
+          python scripts/cano_live_public_browser_smoke.py

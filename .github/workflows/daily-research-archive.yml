@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/sqlite-backup-restore-20261031
+          ref: main
           fetch-depth: 0
           persist-credentials: true
       - uses: actions/setup-python@v5
@@ -25,9 +25,9 @@ jobs:
         run: python -m scripts.daily_research
       - name: Validate generated archive
         run: python -m scripts.validate_research_archive "research_reports/$(date -u +%F).json"
-      - name: Save report to research branch
+      - name: Save report to main research library
         env:
-          ARCHIVE_TARGET_BRANCH: fix/sqlite-backup-restore-20261031
+          ARCHIVE_TARGET_BRANCH: main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
