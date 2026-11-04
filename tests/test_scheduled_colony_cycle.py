@@ -57,6 +57,25 @@ class ScheduledColonyCycleTests(unittest.TestCase):
             self.assertFalse(output.exists())
 
 
+    def test_atomic_publication_preserves_previous_report_on_replace_failure(self):
+        from scripts import cano_colony_cycle
+
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "out.json"
+            output.write_text('{"previous": true}', encoding="utf-8")
+            db_path = Path(temp) / "cycle.sqlite3"
+            with patch.dict(os.environ, {
+                "CANO_CYCLE_DB": str(db_path),
+                "CANO_CYCLE_OUTPUT": str(output),
+            }), patch.object(cano_colony_cycle.os, "replace", side_effect=OSError("simulated crash")):
+                with self.assertRaisesRegex(OSError, "simulated crash"):
+                    cano_colony_cycle.main()
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8")), {"previous": True})
+            self.assertEqual(list(Path(temp).glob(".out.json.*.tmp")), [])
+            with sqlite3.connect(db_path) as db:
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM colony_tick").fetchone()[0], 1)
+
+
 
 if __name__ == "__main__":
     unittest.main()
