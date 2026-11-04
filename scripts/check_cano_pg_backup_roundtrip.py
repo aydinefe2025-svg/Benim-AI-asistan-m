@@ -1,7 +1,7 @@
-"""Real PostgreSQL 17 dump -> separate empty DB restore acceptance (synthetic CI only).
+"""Real PostgreSQL 17/18 dump -> separate empty DB restore acceptance (synthetic CI only).
 
 Never run against production. No customer data, API keys, paid services or
-external firewall changes. The Docker image supplies pg_dump/pg_restore 17.
+external firewall changes. The validated Docker image supplies matching pg_dump/pg_restore.
 """
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ def _for_database(parts, name: str) -> str:
     return urlunsplit((parts.scheme, parts.netloc, "/" + name, "", ""))
 
 
-def _docker_cli(root: Path, tool: str) -> str:
+def _docker_cli(root: Path, tool: str, major: str) -> str:
     assert tool in {"pg_dump", "pg_restore"}
     path = root / ("docker-" + tool)
     path.write_text(
@@ -43,14 +43,14 @@ def _docker_cli(root: Path, tool: str) -> str:
         'exec docker run --rm --network host --user 0:0 '
         '-v "$CANO_TEST_MOUNT_ROOT:$CANO_TEST_MOUNT_ROOT" '
         '-e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD '
-        '-e PGDATABASE="$CANO_CI_SOURCE_DB" postgres:17 ' + tool + ' "$@"\n',
+        '-e PGDATABASE="$CANO_CI_SOURCE_DB" postgres:' + major + ' ' + tool + ' "$@"\n',
         encoding="utf-8",
     )
     path.chmod(path.stat().st_mode | stat.S_IXUSR)
     return str(path)
 
 
-def _restore_into_empty_database(parts, target_db: str, archive: Path, root: Path):
+def _restore_into_empty_database(parts, target_db: str, archive: Path, root: Path, major: str):
     env = os.environ.copy()
     env.update({
         "PGHOST": parts.hostname,
@@ -65,7 +65,7 @@ def _restore_into_empty_database(parts, target_db: str, archive: Path, root: Pat
         "--volume", str(root) + ":" + str(root),
         "--env", "PGHOST", "--env", "PGPORT", "--env", "PGUSER",
         "--env", "PGPASSWORD",
-        "postgres:17", "pg_restore", "--single-transaction",
+        "postgres:" + major, "pg_restore", "--single-transaction",
         "--exit-on-error", "--no-owner", "--no-privileges",
         "--dbname", target_db, str(archive),
     ]
@@ -75,12 +75,20 @@ def _restore_into_empty_database(parts, target_db: str, archive: Path, root: Pat
     )
     if result.returncode:
         # Never display stderr; some providers emit connection details.
-        raise RuntimeError("Isolated PostgreSQL 17 restore failed")
+        raise RuntimeError("Isolated synthetic PostgreSQL restore failed")
 
 
 def main():
     base_url = os.environ.get("TEST_DATABASE_URL", "")
     parts = _validate_ci_database(base_url)
+    major = os.environ.get("CANO_CI_PG_MAJOR", "17")
+    if major not in {"17", "18"}:
+        raise RuntimeError("Unsupported disposable CI PostgreSQL major")
+    # Reject wrong server versions before any test database is created.
+    with psycopg.connect(base_url) as db:
+        server_num = int(db.execute("SHOW server_version_num").fetchone()[0])
+    if server_num // 10000 != int(major):
+        raise RuntimeError("Disposable CI PostgreSQL server major mismatch")
     suffix = uuid4().hex[:10]
     src_name, dst_name = "cano_ci_source_" + suffix, "cano_ci_recovered_" + suffix
     created = []
@@ -126,8 +134,8 @@ def main():
                 os.environ["PGPORT"] = str(parts.port or 5432)
                 os.environ["PGUSER"] = unquote(parts.username or "")
                 os.environ["PGPASSWORD"] = unquote(parts.password or "")
-                dump_bin = _docker_cli(root, "pg_dump")
-                restore_bin = _docker_cli(root, "pg_restore")
+                dump_bin = _docker_cli(root, "pg_dump", major)
+                restore_bin = _docker_cli(root, "pg_restore", major)
                 try:
                     receipt = make_backup(
                         root / "backups", database_env=env_key,
@@ -174,7 +182,7 @@ def main():
                 assert verified["sha256"] == receipt["sha256"]
                 assert verified["restored_to_new_database"] is False
                 _restore_into_empty_database(
-                    parts, dst_name, Path(receipt["archive"]), root,
+                    parts, dst_name, Path(receipt["archive"]), root, major,
                 )
                 with psycopg.connect(target) as reopened:
                     rows = reopened.execute(
@@ -211,7 +219,7 @@ def main():
                         os.environ.pop(key, None)
                     else:
                         os.environ[key] = prior
-        print("PASS: real PostgreSQL 17 pg_dump, parsed archive, isolated restore, "
+        print("PASS: real PostgreSQL " + major + " pg_dump, parsed archive, isolated restore, 
               "two synthetic owners, exact JSONB readback, tamper detection")
     finally:
         if created:
