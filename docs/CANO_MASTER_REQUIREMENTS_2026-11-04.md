@@ -70,3 +70,12 @@
 ## Bitirme kapısı
 
 Bir özellik ancak **kod + platformlar arası ilgili test + canlı ortamda açık test + kalıcılık/kaynak doğrulaması gerektiğinde gerçek tatbikat + Notion/GitHub kayıt geri okuma** sağlandığında “tamamlandı” olur. Yalnızca PR/CI veya model yanıtı üretim doğruluğu değildir. API anahtarları arşivlenmez; başka kişilere/cihazlara izinsiz yayılım yapılmaz. Kullanıcı ödeme onayı olmadan ücretli kaynak başlatılmaz.
+
+
+## Organism Lab — 4 Kasım 2026 güvenilirlik denetimi (geliştirme dalı)
+
+- Kaynak dal: `feature/organism-lab-20261101`. GitHub branch comparison at audit: `ahead_by=106, behind_by=339`; main sürümüne otomatik birleştirme **yapılmadı**. Çalışan üretim uygulaması ile izole laboratuvar farklı kabul kapılarıdır.
+- Doğrulanmış önceki laboratuvar kanıtları: CI #195 (Python 3.11/3.12), Core #559 (Windows/Ubuntu), Public research #300; kaydedilen JSON/CSV/SQLite'nin yeniden okunması ve karşılaştırma deneyleri, checkpoint'in 35→120. adım ileri oynatılması, altı ZIP'in kalıcı Library klasöründe doğrulanması. Notion ana laboratuvar kaydı: https://app.notion.com/p/40d2bd61682a81ee8745c28af627d98b.
+- Yeni denetimde bulunan açık güvenlik hatası: farklı süreçlerin aynı dijital genom checkpoint dosyasına eşzamanlı yazması; kilitleme olmadan son yazan daha eski bir adımla veriyi geriye çevirebilir. Düzeltme kodu ve yarış koşulu testleri `bd7202c64cb8ac39f65396e791bb22fe2193b819` commit'ine kadar feature dalına yazıldı; `organism_lab/genome_checkpoint.py` artık Windows/Linux dosya kilidi kullanarak init/read/replay/replace işlemini koruyor. **Bu değişiklik için CI sonucu bekleniyorsa KODU DOĞRULANMIŞ SAYMA.** Takip: https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/41879014652.
+- P0 birleşme kapısı: Feature dalının `main` ile güncel farklılıklarını ve canlı CANO API/arayüz bağımlılıklarını kod incelemesiyle çöz; önce aynı dalda test, sonra temiz entegrasyon PR'ı, yeniden CI, yayın ve tarayıcı smoke, kayıt geri okuma/geri alma tatbikatı. Üretimi yanlışlıkla bozmamak için bu dokümantasyon güncellemesi dağıtım başlatmaz.
+- Diğer **açık** başlıklar: kalıcı kimlik ve uzak PostgreSQL disaster-recovery/yeniden başlatma tatbikatı, genel CANO transactional görev kuyruğu, ikinci bağımsız ajan failover, gerçek kaynak bazlı doğruluk, fiziksel robot ve biyolojik laboratuvar. Her biri ayrı kanıt ister. 
