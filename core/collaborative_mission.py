@@ -179,6 +179,10 @@ class CollaborativeMission:
                            "WHERE id=? AND status='running'", (mission_id,))
             raise
 
+    def inspect_source_documents(self, mission_id, *, reader=None):
+        """Explicit source-reading action; checkpoint excerpts, never verify claims."""
+        raise NotImplementedError("Source examination not implemented")
+
     def recover_stale(self, *, older_than_seconds=3600, current_time=None):
         """Mark abandoned running missions blocked after a conservative interval.
 
