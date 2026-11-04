@@ -60,9 +60,9 @@ class PostgresAuthorizedQueueSchemaTests(unittest.TestCase):
 
     def test_runtime_schema_verification_is_read_only(self):
         queries = self._verify(self._all_privileges())
-        self.assertEqual(len(queries), 3)
+        self.assertEqual(len(queries), 4)
         self.assertTrue(all(query.startswith("SELECT") for query in queries))
-        self.assertTrue(all("LIMIT 0" in query for query in queries[:2]))
+        self.assertTrue(all("LIMIT 0" in query for query in queries[1:3]))
         self.assertIn("HAS_SEQUENCE_PRIVILEGE", queries[-1])
 
     def test_missing_runtime_privilege_fails_closed(self):

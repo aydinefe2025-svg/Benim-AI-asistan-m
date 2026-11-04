@@ -55,6 +55,7 @@ from core.provider_failure import failure_category, safe_failure_message
 from core.connection_diagnostics import check_provider
 from core.public_research import research_sources
 from core.scientific_sources import scientific_sources
+from core.research_status import label_research_answer
 from core.user_memory import export_library, import_library, memory_context, new_memory
 from core.browser_memory import browser_memory_component, decode_snapshot, write_confirmed, explicit_memory_request
 from core.task_panel import render_task_panel
@@ -491,7 +492,7 @@ def asistani_calistir(kullanici_mesaji):
             raw_response = response.text
 
         temiz_cevap = re.sub(r'<(think|thought|düşün).*?(</\1>|$)', '', raw_response, flags=re.DOTALL | re.IGNORECASE)
-        return temiz_cevap.strip()
+        return label_research_answer(temiz_cevap, research_requested=arama_istegi)
 
     except Exception as e:
         logging.getLogger(__name__).warning("Provider request failed: category=%s", failure_category(e))
