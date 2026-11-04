@@ -300,9 +300,18 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             if st.button("Ajan kayıtlarını kalıcı veritabanına yedekle",
                          key="colony_postgres_save"):
                 try:
+                    # The cockpit read the owner's baseline earlier in this run.
+                    # A manual save must obey the same atomic stale-tab guard;
+                    # never let a sidebar button bypass compare-and-swap.
+                    if (st.session_state.get("_cano_backup_owner_key") != owner_key
+                            or "_cano_backup_expected" not in st.session_state):
+                        raise PermissionError("Authenticated CANO backup baseline required")
                     snapshot_store = ColonySnapshotStore(database_url)
                     snapshot_store.verify_schema()
-                    snapshot_store.save_versioned_verified(owner_key, data)
+                    snapshot_store.save_versioned_verified(
+                        owner_key, data,
+                        expected_prior=st.session_state["_cano_backup_expected"])
+                    st.session_state["_cano_backup_expected"] = data
                     st.success("PostgreSQL yedeği geri okunarak doğrulandı; farklı önceki sürüm korundu.")
                 except Exception:
                     st.error("Yedek doğrulanamadı veya sürüm kotası doldu; kayıtlar korunuyor. JSON yedeği indirin.")
