@@ -13,12 +13,27 @@ def running_heartbeat(db_path, task_id, *, interval_seconds=30):
     if interval_seconds <= 0:
         raise ValueError("interval_seconds must be positive")
     stop = Event()
+    failures = []
 
     touch = db_path.touch_running if hasattr(db_path, "touch_running") else lambda task: touch_running(db_path, task)
 
     def loop():
         while not stop.wait(interval_seconds):
-            if not touch(task_id):
+            try:
+                if touch(task_id):
+                    continue
+                # A normal completed/reviewed task no longer needs a heartbeat.
+                # Missing, blocked or reassigned tasks must fail closed.
+                from core.task_store import TaskStore
+                store = db_path if hasattr(db_path, "get") else TaskStore(db_path)
+                status = store.get(task_id)["status"]
+                if status not in {"review_pending", "done", "verified"}:
+                    failures.append(RuntimeError("Running task lost heartbeat ownership"))
+                break
+            except Exception as exc:
+                failure = RuntimeError("Running task heartbeat failed")
+                failure.__cause__ = exc
+                failures.append(failure)
                 break
 
     if not touch(task_id):
@@ -30,3 +45,5 @@ def running_heartbeat(db_path, task_id, *, interval_seconds=30):
     finally:
         stop.set()
         thread.join(timeout=min(interval_seconds, 5))
+        if failures:
+            raise failures[0]
