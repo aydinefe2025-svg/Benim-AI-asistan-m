@@ -32,6 +32,14 @@ def run_research_task(store: TaskStore, task_id: str, answer: Callable[[str], st
         store.finish_draft(task_id, result)
         return {"status": "review_pending", "draft": result, "verified": False}
     except Exception:
-        store.transition(task_id, "blocked", note="Research provider failed; retry is allowed",
-                         blockers=["Provider request failed; check connection or limits"])
+        # Another worker or a human may already have blocked the task.
+        # Avoid a second invalid 'blocked -> blocked' transition, and never
+        # overwrite a completed or independently reviewed result.
+        status = store.get(task_id)["status"]
+        if status == "running":
+            store.transition(task_id, "blocked",
+                             note="Research execution failed; inspect before retry",
+                             blockers=["Execution or provider failed; check connection, logs and limits"])
+        elif status != "blocked":
+            raise
         return {"status": "blocked", "draft": "", "verified": False}
