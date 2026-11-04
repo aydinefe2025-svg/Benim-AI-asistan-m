@@ -2,7 +2,7 @@ name: Organism Lab cloud demo
 
 on:
   pull_request:
-    branches: [fix/sqlite-backup-restore-20261031]
+    branches: [fix/sqlite-backup-restore-20261031, codex/organism-lab-persistent-storage-20261104]
     paths:
       - "organism_lab_cloud/**"
       - ".github/workflows/organism-lab-cloud.yml"
