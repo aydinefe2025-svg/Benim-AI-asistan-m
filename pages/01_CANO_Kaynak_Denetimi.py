@@ -8,7 +8,8 @@ from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.task_panel import _session_database_path
 from core.claim_evidence import audit_claim_quotes
-from core.groq_team import generate_team_stage, TeamRateLimitError
+from core.groq_team import TeamRateLimitError
+from core.groq_claim_json import generate_claim_quote_json
 from core.cano_command_center import _snapshot
 from core.colony_postgres import ColonySnapshotStore
 from core.colony_restore import restore_owner_backup
@@ -68,7 +69,7 @@ if not key:
 
 class Client:
     def chat(self, model, system, prompt):
-        return generate_team_stage(system + "\n\n" + prompt, api_key=key)
+        return generate_claim_quote_json(system, prompt, api_key=key)
 
 if documents and key and st.button("İddiaları kaynak alıntılarıyla karşılaştır (1 model çağrısı)"):
     try:
