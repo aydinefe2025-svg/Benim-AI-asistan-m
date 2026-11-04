@@ -43,5 +43,22 @@ class CanoSidebarOwnerDatabaseWiringTests(unittest.TestCase):
             "cano_database_url(os.environ) if _CANO_OWNER_KEY else None")
 
 
+    def test_sidebar_manual_save_uses_optimistic_owner_backup_precondition(self):
+        panel = Path(__file__).resolve().parents[1] / "core" / "colony_panel.py"
+        tree = ast.parse(panel.read_text(encoding="utf-8"))
+        calls = [
+            node for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "save_versioned_verified"
+        ]
+        self.assertEqual(len(calls), 1)
+        kwargs = {kw.arg: ast.unparse(kw.value) for kw in calls[0].keywords}
+        self.assertEqual(
+            kwargs.get("expected_prior"),
+            "st.session_state['_cano_backup_expected']",
+            "Manual sidebar save must not bypass owner-scoped atomic CAS")
+
+
 if __name__ == "__main__":
     unittest.main()
