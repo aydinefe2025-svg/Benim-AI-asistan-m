@@ -12,17 +12,19 @@ st.set_page_config(layout="wide")
 # Optional fail-closed production login. Keep APP_AUTH_REQUIRED unset locally;
 # enable it on Render only after the Google OIDC secrets file is configured.
 from core.authentication import auth_is_required, render_auth_gate
+from core.storage_config import cano_database_url, memory_database_url
 
 _AUTH_REQUIRED = auth_is_required(os.environ)
 _OWNER_KEY = render_auth_gate(st, os.environ)
 _MEMORY_STORE = None
-if os.environ.get("DATABASE_URL"):
+_MEMORY_DATABASE_URL = memory_database_url(os.environ)
+if _MEMORY_DATABASE_URL:
     if not _AUTH_REQUIRED or not _OWNER_KEY:
         st.error("Kalıcı kullanıcı verisi için doğrulanmış giriş zorunludur.")
         st.stop()
     try:
         from core.postgres_memory import PostgresMemoryStore
-        _MEMORY_STORE = PostgresMemoryStore()
+        _MEMORY_STORE = PostgresMemoryStore(database_url=_MEMORY_DATABASE_URL)
         _MEMORY_STORE.initialize()
     except Exception:
         st.error("Kalıcı hafıza bağlantısı kurulamadı; kayıtlar değiştirilmedi.")
@@ -385,10 +387,11 @@ def _team_answer(prompt: str) -> str:
     return generate_team_stage(prompt, api_key=GROQ_KEY)
 
 
+_CANO_OWNER_KEY = _OWNER_KEY if _AUTH_REQUIRED and _OWNER_KEY else None
 render_cano_command_center(
     st, answer=_team_answer if GROQ_KEY else None,
-    owner_key=_OWNER_KEY if _MEMORY_STORE is not None else None,
-    database_url=os.environ.get("DATABASE_URL") if _MEMORY_STORE is not None else None,
+    owner_key=_CANO_OWNER_KEY,
+    database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None,
 )
 render_task_panel(st, answer=_research_answer if GROQ_KEY else None, store_override=_TASK_STORE)
 render_authorized_queue_panel(
