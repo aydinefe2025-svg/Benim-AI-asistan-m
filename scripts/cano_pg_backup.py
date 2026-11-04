@@ -135,6 +135,10 @@ def verify_backup(receipt_path: Path, *, restore_bin: str = "pg_restore") -> dic
     if not isinstance(basename, str) or not basename.endswith(".dump") or Path(basename).name != basename:
         raise BackupError("Unsafe backup receipt archive name")
     archive = receipt_path.parent / basename
+    # Never follow a receipt-controlled symlink outside the private backup folder.
+    # The archive is expected to be a regular file published by os.replace().
+    if archive.is_symlink() or not archive.is_file():
+        raise BackupError("Unsafe backup archive type")
     if archive.stat().st_size != payload.get("size_bytes"):
         raise BackupError("Backup size mismatch")
     if _sha256(archive) != payload.get("sha256"):
