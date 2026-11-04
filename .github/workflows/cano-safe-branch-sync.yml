@@ -1,0 +1,34 @@
+name: CANO safe production branch synchronization
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # After the daily archive writes main; GitHub-token pushes do not trigger push workflows.
+    - cron: '45 7 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cano-main-production-safe-sync
+  cancel-in-progress: false
+
+jobs:
+  fast-forward-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Verify non-destructive synchronization implementation
+        run: python -m unittest discover -s tests -p 'test_cano_branch_sync.py' -v
+      - name: Fast-forward Render source branch only when main contains all commits
+        run: python -m scripts.cano_safe_branch_sync
