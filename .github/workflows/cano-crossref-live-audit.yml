@@ -1,0 +1,52 @@
+name: CANO live Crossref DOI identity audit
+
+on:
+  pull_request:
+    paths:
+      - 'cano/research_cycle/crossref_live_audit.py'
+      - 'cano/research_cycle/test_crossref_live_audit.py'
+      - 'cano/research_cycle/doi164_candidates_2026-11-04.json'
+      - '.github/workflows/cano-crossref-live-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cano-doi-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  crossref-identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: cano/research_cycle
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Deterministic offline tests, resource warnings treated as errors
+        run: python -W error::ResourceWarning -m unittest -q test_crossref_live_audit test_doi_evidence_gate
+      - name: One bounded sequential Crossref lookup for each of five DOI candidates
+        run: python crossref_live_audit.py doi164_candidates_2026-11-04.json --output crossref_live_review.json
+      - name: Fail closed if reports assert science or accept without peer review
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('crossref_live_review.json').read_text(encoding='utf-8'))
+          assert p['records_checked']==5 and p['scientific_claims_reproduced']==0
+          assert all(x['science_reproduced'] is False and x['automated_acceptance'] is False for x in p['items'])
+          print('Crossref independent metadata matches:', p['crossref_doi_title_matches'], '/5 (not scientific validation)')
+          PY
+      - name: Upload independent, reviewable bibliography result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cano-crossref-live-${{ github.run_id }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: cano/research_cycle/crossref_live_review.json
