@@ -143,6 +143,14 @@ class PostgresLeaderLease:
         commits this transaction. External API effects need separate fencing.
         """
         self._check_token(token)
+        # PostgreSQL SELECT FOR UPDATE is not a fencing guarantee under
+        # autocommit: it releases its lock before the caller's mutation.
+        # Fail closed unless the cursor's parent connection proves that
+        # it is inside an explicitly managed transactional connection.
+        connection = getattr(cursor, "connection", None)
+        if getattr(connection, "autocommit", None) is not False:
+            raise RuntimeError("fenced database writes require a transaction; "
+                               "autocommit or unknown connection rejected")
         self._authorize(cursor)
         cursor.execute("""SELECT node_id,epoch,expires_at
             FROM public.cano_queen_leases
