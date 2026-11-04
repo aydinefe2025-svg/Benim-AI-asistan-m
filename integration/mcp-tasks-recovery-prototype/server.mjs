@@ -80,7 +80,10 @@ rl.on('line', (line) => {
       }
       const key = typeof input.idempotencyKey === 'string' && input.idempotencyKey.length <= 200
         ? input.idempotencyKey : null;
-      let row = key ? db.prepare('SELECT task_id,status,created_at,last_updated_at FROM tasks WHERE idempotency_key=?').get(key) : null;
+      let row = key ? db.prepare('SELECT task_id,status,created_at,last_updated_at,input_json FROM tasks WHERE idempotency_key=?').get(key) : null;
+      if (row && row.input_json !== JSON.stringify({ a: input.a, b: input.b })) {
+        return fail(id, -32602, 'Idempotency key was already used with different arguments');
+      }
       if (!row) {
         const taskId = randomBytes(32).toString('base64url');
         db.prepare("INSERT INTO tasks(task_id,status,input_json,idempotency_key) VALUES(?,'working',?,?)")
@@ -106,6 +109,12 @@ rl.on('line', (line) => {
       if (!requiresTasks(id, params)) return;
       const update = db.prepare("UPDATE tasks SET status='cancelled',last_updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE task_id=? AND status='working'").run(params.taskId);
       if (update.changes === 0 && !db.prepare('SELECT 1 FROM tasks WHERE task_id=?').get(params.taskId)) return fail(id, -32602, 'Unknown task id');
+      return send(id, { resultType: 'complete' });
+    }
+    if (method === 'tasks/update') {
+      if (!requiresTasks(id, params)) return;
+      if (!db.prepare('SELECT 1 FROM tasks WHERE task_id=?').get(params.taskId)) return fail(id, -32602, 'Unknown task id');
+      // This prototype never emits input_required; no input response keys are outstanding.
       return send(id, { resultType: 'complete' });
     }
     fail(id, -32601, `Method not found: ${method}`);
