@@ -8,6 +8,8 @@ from core.collaborative_mission import CollaborativeMission
 from core.task_panel import _session_database_path
 from core.claim_evidence import audit_claim_quotes
 from core.groq_team import generate_team_stage, TeamRateLimitError
+from core.cano_command_center import _snapshot
+from core.colony_postgres import ColonySnapshotStore
 
 st.set_page_config(page_title="CANO Kanıt Denetimi", page_icon="📑")
 owner = render_auth_gate(st, os.environ)
@@ -43,7 +45,13 @@ class Client:
 
 if documents and key and st.button("İddiaları kaynak alıntılarıyla karşılaştır (1 model çağrısı)"):
     try:
+        if owner:
+            store = ColonySnapshotStore(os.environ["DATABASE_URL"])
+            store.initialize()
+            store.save_versioned_verified(owner, _snapshot(colony))
         audit_claim_quotes(manager, mid, client=Client(), model="configured-provider")
+        if owner:
+            store.save_versioned_verified(owner, _snapshot(colony))
         st.rerun()
     except (ValueError, RuntimeError, TeamRateLimitError) as err:
         st.warning("Alıntı denetimi tamamlanamadı; önceki kayıtlar korunuyor.")
@@ -58,4 +66,9 @@ for item in manager.get(mid)["stages"][0].get("source_claim_audit", []):
     else:
         st.warning("Önerilen alıntı ilgili kaynakta bulunmadı.")
         st.caption(item["claim"])
-st.caption("Sonuçlar oturum veritabanında tutulur. Ana CANO ekranına dönerek yedek onayını kontrol edin.")
+st.caption("Bu oturumun kaynak denetimi kayıtlarını saklamak için yedek alın.")
+if not owner:
+    st.download_button("Kaynak denetimini JSON yedekle",
+                       data=json.dumps(_snapshot(colony), ensure_ascii=False, indent=2),
+                       file_name="cano-claim-evidence.json", mime="application/json")
+
