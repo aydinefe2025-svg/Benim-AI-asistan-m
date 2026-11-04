@@ -18,7 +18,7 @@ from core.agent_colony import AgentColony
 STAGE_ROLES = ("planner", "researcher", "reviewer", "synthesis")
 # A restricted DOI URL is the only external link accepted into research prompts.
 DOI_LEAD_URL = re.compile(
-    r"^https://doi\\.org/10\\.\\d{4,9}/[A-Za-z0-9._;()/:+%\\-]{1,180}$",
+    r"^https://doi\.org/10\.\d{4,9}/[A-Za-z0-9._;()/:+%\-]{1,180}$",
     re.IGNORECASE,
 )
 
