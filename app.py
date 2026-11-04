@@ -8,6 +8,38 @@ import streamlit as st
 # 📺 Rahat bir okuma için standart geniş ekran düzeni aktif ediliyor
 st.set_page_config(layout="wide")
 
+# Optional fail-closed production login. Keep APP_AUTH_REQUIRED unset locally;
+# enable it on Render only after the Google OIDC secrets file is configured.
+from core.authentication import auth_is_required, render_auth_gate
+
+_AUTH_REQUIRED = auth_is_required(os.environ)
+_OWNER_KEY = render_auth_gate(st, os.environ)
+_MEMORY_STORE = None
+if os.environ.get("DATABASE_URL"):
+    if not _AUTH_REQUIRED or not _OWNER_KEY:
+        st.error("Kalıcı kullanıcı verisi için doğrulanmış giriş zorunludur.")
+        st.stop()
+    try:
+        from core.postgres_memory import PostgresMemoryStore
+        _MEMORY_STORE = PostgresMemoryStore()
+    except Exception:
+        st.error("Kalıcı hafıza bağlantısı kurulamadı; kayıtlar değiştirilmedi.")
+        st.stop()
+
+_TASK_STORE = None
+if os.environ.get("AGENT_TASK_DATABASE_URL"):
+    if not _AUTH_REQUIRED or not _OWNER_KEY:
+        st.error("Kalıcı görev verisi için doğrulanmış giriş zorunludur.")
+        st.stop()
+    try:
+        from core.postgres_task_store import PostgresTaskStore
+        _TASK_STORE = PostgresTaskStore(owner_key=_OWNER_KEY)
+        _TASK_STORE.initialize()
+    except Exception:
+        st.error("Kalıcı görev veritabanı bağlanamadı; görevler değiştirilmedi.")
+        st.stop()
+
+
 # 🔒 Her sağlayıcı bağımsız yapılandırılır. Değerleri hiçbir zaman ekranda gösterme.
 from core.provider_config import (
     available_providers,
@@ -156,13 +188,26 @@ st.markdown(
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "saved_memories" not in st.session_state:
-    st.session_state.saved_memories = []
+    if _MEMORY_STORE is not None:
+        try:
+            st.session_state.saved_memories = _MEMORY_STORE.list(_OWNER_KEY)
+        except Exception:
+            st.error(
+                "Kalıcı hafıza şeması veya veritabanı izinleri hazır değil; "
+                "kayıtlar değiştirilmedi."
+            )
+            st.stop()
+    else:
+        st.session_state.saved_memories = []
 
 with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
     st.caption(
         "Yalnızca açıkça eklediğiniz notlar sonraki yanıtlara bağlam olur. "
-        "Bu, modelin eğitildiği anlamına gelmez. Notlar oturumda tutulur; "
-        "kalıcı saklamak için JSON olarak indirin ve sonraki oturumda içe aktarın. "
+        "Bu, modelin eğitildiği anlamına gelmez. "
+        + ("Notlar giriş hesabınıza bağlı PostgreSQL'de saklanır. "
+           if _MEMORY_STORE is not None else
+           "Notlar bu oturumda tutulur; kalıcı saklamak için JSON indirin. ")
+        +
         "Gizli anahtar veya hassas kişisel bilgi kaydetmeyin."
     )
     memory_upload = st.file_uploader(
@@ -173,10 +218,19 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
             st.warning("Önce JSON kitaplık dosyasını seçin.")
         else:
             try:
-                st.session_state.saved_memories = import_library(memory_upload.getvalue())
+                imported = import_library(memory_upload.getvalue())
+                if _MEMORY_STORE is not None:
+                    combined = {item["id"]: item for item in st.session_state.saved_memories}
+                    combined.update({item["id"]: item for item in imported})
+                    _MEMORY_STORE.save_many(_OWNER_KEY, list(combined.values()))
+                    st.session_state.saved_memories = _MEMORY_STORE.list(_OWNER_KEY)
+                else:
+                    st.session_state.saved_memories = imported
                 st.success(f"{len(st.session_state.saved_memories)} not içe aktarıldı.")
             except (ValueError, UnicodeError):
                 st.error("Kitaplık dosyası geçersiz veya desteklenmiyor; içerik okunmadı.")
+            except Exception:
+                st.error("Kitaplık kaydedilemedi; veritabanı kayıtları değiştirilmedi.")
 
     st.download_button(
         "Hafıza kitaplığını indir",
@@ -197,8 +251,13 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
             if len(st.session_state.saved_memories) >= 200:
                 st.warning("Kitaplık en fazla 200 not tutabilir.")
             else:
-                st.session_state.saved_memories.append(item)
-                st.success("Not bu oturumun kitaplığına eklendi.")
+                try:
+                    if _MEMORY_STORE is not None:
+                        _MEMORY_STORE.save(_OWNER_KEY, item)
+                    st.session_state.saved_memories.append(item)
+                    st.success("Not hafıza kitaplığına eklendi.")
+                except Exception:
+                    st.error("Not kaydedilemedi; mevcut kayıtlar korundu.")
         except ValueError:
             st.warning("Kaydetmek için 1–2000 karakter arasında bir not yazın.")
 
@@ -207,11 +266,16 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
         for index, item in enumerate(st.session_state.saved_memories):
             st.markdown(f"**{index + 1}.** {item['text']}")
             if st.button("Sil", key=f"delete_memory_{item['id']}"):
-                st.session_state.saved_memories = [
-                    saved for saved in st.session_state.saved_memories
-                    if saved["id"] != item["id"]
-                ]
-                st.rerun()
+                try:
+                    if _MEMORY_STORE is not None:
+                        _MEMORY_STORE.delete(_OWNER_KEY, item["id"])
+                    st.session_state.saved_memories = [
+                        saved for saved in st.session_state.saved_memories
+                        if saved["id"] != item["id"]
+                    ]
+                    st.rerun()
+                except Exception:
+                    st.error("Not silinemedi; kayıt olduğu gibi korundu.")
 
 # User-controlled research task ledger; no automatic execution.
 def _research_leads(goal: str) -> str:
@@ -248,7 +312,7 @@ def _research_answer(goal: str) -> str:
     return response.choices[0].message.content or ""
 
 
-render_task_panel(st, answer=_research_answer if GROQ_KEY else None)
+render_task_panel(st, answer=_research_answer if GROQ_KEY else None, store_override=_TASK_STORE)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
