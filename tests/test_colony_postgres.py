@@ -65,5 +65,23 @@ class ColonySnapshotTests(unittest.TestCase):
 
 
 
+    def test_initialize_only_verifies_preprovisioned_schema(self):
+        state = {"rows": {}, "queries": []}
+        class PrivilegeCursor(Cursor):
+            def fetchone(self):
+                return (True, True, True)
+        class PrivilegeConnection(Connection):
+            def cursor(self):
+                return PrivilegeCursor(self.state)
+        store = ColonySnapshotStore(
+            "postgresql://unused",
+            connect=lambda *a, **k: PrivilegeConnection(state))
+        store.initialize()
+        statements = [sql.lstrip().upper() for sql, _ in state["queries"]]
+        self.assertEqual(len(statements), 3)
+        self.assertTrue(all(sql.startswith("SELECT") for sql in statements))
+        self.assertIn("HAS_SEQUENCE_PRIVILEGE", statements[-1])
+
+
 if __name__ == "__main__":
     unittest.main()
