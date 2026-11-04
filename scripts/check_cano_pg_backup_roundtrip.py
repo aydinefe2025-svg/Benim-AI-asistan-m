@@ -40,7 +40,7 @@ def _docker_cli(root: Path, tool: str) -> str:
     path = root / ("docker-" + tool)
     path.write_text(
         "#!/bin/sh\nset -eu\n"
-        'exec docker run --rm --network host '
+        'exec docker run --rm --network host --user "$(id -u):$(id -g)" '
         '-v "$CANO_TEST_MOUNT_ROOT:$CANO_TEST_MOUNT_ROOT" '
         '-e PGDATABASE postgres:17 ' + tool + ' "$@"\n',
         encoding="utf-8",
@@ -116,10 +116,35 @@ def main():
                 os.environ[env_key] = source
                 dump_bin = _docker_cli(root, "pg_dump")
                 restore_bin = _docker_cli(root, "pg_restore")
-                receipt = make_backup(
-                    root / "backups", database_env=env_key,
-                    dump_bin=dump_bin, restore_bin=restore_bin,
-                )
+                try:
+                    receipt = make_backup(
+                        root / "backups", database_env=env_key,
+                        dump_bin=dump_bin, restore_bin=restore_bin,
+                    )
+                except BackupError:
+                    # This probe only runs with the localhost synthetic-CI
+                    # environment guard. Classify errors without revealing
+                    # connection URLs, passwords or server stderr content.
+                    diagnostic = subprocess.run(
+                        [dump_bin, "--format=custom",
+                         "--file", str(root / "diagnostic.dump")],
+                        env={**os.environ, "PGDATABASE": source},
+                        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                        timeout=120, check=False,
+                    )
+                    stderr = diagnostic.stderr.decode("utf-8", "replace").lower()
+                    flags = {
+                        "permission": "permission denied" in stderr,
+                        "network": ("connection refused" in stderr
+                                    or "could not connect" in stderr),
+                        "version": "version mismatch" in stderr,
+                        "archive_path": "could not open output file" in stderr,
+                        "docker": ("docker:" in stderr
+                                   or "docker daemon" in stderr),
+                    }
+                    print("Synthetic pg_dump failure category:",
+                          diagnostic.returncode, flags)
+                    raise
                 verified = verify_backup(Path(receipt["receipt"]),
                                          restore_bin=restore_bin)
                 assert verified["sha256"] == receipt["sha256"]
