@@ -43,11 +43,19 @@ class ColonySnapshotStore:
                             "FROM public.private_colony_snapshots LIMIT 0")
                 cur.execute("SELECT revision, owner_key, payload, archived_at "
                             "FROM public.private_colony_snapshot_revisions LIMIT 0")
+                # Each privilege is a separate check. PostgreSQL treats
+                # comma-separated privilege names as ANY-of, not ALL-of.
                 cur.execute("""SELECT
                     has_table_privilege(current_user,
-                        'public.private_colony_snapshots', 'SELECT, INSERT, UPDATE'),
+                        'public.private_colony_snapshots', 'SELECT'),
                     has_table_privilege(current_user,
-                        'public.private_colony_snapshot_revisions', 'SELECT, INSERT'),
+                        'public.private_colony_snapshots', 'INSERT'),
+                    has_table_privilege(current_user,
+                        'public.private_colony_snapshots', 'UPDATE'),
+                    has_table_privilege(current_user,
+                        'public.private_colony_snapshot_revisions', 'SELECT'),
+                    has_table_privilege(current_user,
+                        'public.private_colony_snapshot_revisions', 'INSERT'),
                     has_sequence_privilege(current_user,
                         'public.private_colony_snapshot_revisions_revision_seq', 'USAGE')""")
                 privileges = cur.fetchone()
