@@ -78,3 +78,32 @@ lock, the script stops before claiming success. Restore the workspace `dist/`
 artifact bundle from backup before running it; no GitHub Actions, paid runner,
 or online dependency resolution is required.
 
+## Portable offline recovery bundle
+
+The workspace can produce a single portable ZIP containing `.runtime312/` and
+all local wheels under `dist/`. It hashes each file, writes an internal
+manifest, verifies the completed ZIP, and emits a SHA-256 sidecar:
+
+```powershell
+python repo/openmm_regression/package_recovery.py
+python repo/openmm_regression/package_recovery.py --verify openmm-recovery.zip --sha256-file repo/openmm_regression/native_results/recovery_bundle.sha256
+```
+
+The bundle is intentionally kept outside Git because it contains the Python
+runtime and several hundred megabytes of platform-specific wheels. Store
+`openmm-recovery.zip` and its `.sha256` file together in a separate backup
+location. To restore into a fresh workspace, verify the archive, then extract
+it at the workspace root so `.runtime312/` and `dist/` land beside `repo/`:
+
+```powershell
+python repo/openmm_regression/package_recovery.py --verify openmm-recovery.zip --sha256-file repo/openmm_regression/native_results/recovery_bundle.sha256
+Expand-Archive -LiteralPath openmm-recovery.zip -DestinationPath .
+python repo/openmm_regression/package_recovery.py --verify openmm-recovery.zip --sha256-file repo/openmm_regression/native_results/recovery_bundle.sha256 --verify-extracted .
+powershell -ExecutionPolicy Bypass -File repo/openmm_regression/setup_local.ps1
+```
+
+The committed checksum sidecar is the trusted expected value, and the
+internal manifest checks every bundled file after extraction. Keeping a
+second copy on another device or backup service is needed to recover if this
+workspace or its disk is lost.
+
