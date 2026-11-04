@@ -52,7 +52,7 @@ if CLOUD_MODE:
         )
         _archive = PostgresArchive(_owner_key)
         _archive.check()
-    except (PermissionError, RuntimeError, OSError, ValueError):
+    except Exception:
         st.error("Hesap doğrulanamadı veya kalıcı arşive erişilemiyor. Veriler korunuyor.")
         if st.button("Oturumu kapat"):
             st.logout()
@@ -67,7 +67,7 @@ if CLOUD_MODE:
             if _snapshot is not None:
                 unpack_directory(_snapshot, OUTPUT_DIR)
             st.session_state["organism_lab_archive_baseline"] = _archive_baseline
-    except (OSError, ValueError, RuntimeError):
+    except Exception:
         st.error("Kalıcı arşiv okunamadı veya bütünlük kontrolü başarısız. Oturum durduruldu.")
         st.stop()
 else:
