@@ -15,9 +15,12 @@ class FakeStreamlit:
         self.click = click
         self.messages = []
         self.reruns = 0
+        self.forms = []
 
     def expander(self, *a, **kw): return nullcontext()
-    def form(self, *a, **kw): return nullcontext()
+    def form(self, *a, **kw):
+        self.forms.append((a, kw))
+        return nullcontext()
     def text_input(self, label, *, key=None, **kw): return self.fields.get(key, "")
     def text_area(self, label, *, key=None, **kw): return self.fields.get(key, "")
     def checkbox(self, label, *, key=None, **kw): return self.approved.get(key, False)
@@ -84,6 +87,22 @@ class AuthorizedQueuePanelTests(unittest.TestCase):
         self.assertEqual(queue.run_once.call_count, 1)
         self.assertTrue(queue.run_once.call_args.kwargs["approved"])
         self.assertIs(queue.run_once.call_args.args[1], answer)
+
+    def test_each_execution_requires_fresh_cleared_form_consent(self):
+        queue = self._queue()
+        st = FakeStreamlit(click=True, approved={"cano_queue_approve_run": True})
+        with patch("core.authorized_queue_panel.PostgresAuthorizedQueue", return_value=queue):
+            render_authorized_queue_panel(st, answer=lambda _: "draft",
+                                          owner_key="oidc_owner",
+                                          database_url="postgresql://unused")
+        self.assertTrue(any(args and args[0] == "cano_queue_run_form"
+                            and kw.get("clear_on_submit") is True
+                            for args, kw in st.forms),
+                        "Execution approval must be cleared after every submit")
+        self.assertTrue(any(args and args[0] == "cano_persistent_queue_form"
+                            and kw.get("clear_on_submit") is True
+                            for args, kw in st.forms),
+                        "Enqueue approval must be cleared after every submit")
 
     def test_provider_missing_never_claims_work(self):
         queue = self._queue()
