@@ -1,0 +1,49 @@
+name: CANO real PostgreSQL 16 backup restore (synthetic CI only)
+
+on:
+  pull_request:
+    branches:
+      - fix/sqlite-backup-restore-20261031
+    paths:
+      - ".github/workflows/cano-pg-real-backup-restore.yml"
+      - "scripts/cano_pg_backup.py"
+      - "scripts/check_cano_pg_real_restore.py"
+      - "tests/test_cano_pg_backup.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: ci_backup_source
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d ci_backup_source"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install real PostgreSQL client 16
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-16
+          pg_dump --version
+          pg_restore --version
+      - name: Real pg_dump - verify - separate pg_restore - exact readback
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_backup_source
+        run: python -m scripts.check_cano_pg_real_restore
