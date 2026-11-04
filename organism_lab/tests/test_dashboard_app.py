@@ -46,5 +46,18 @@ class DashboardAppTests(unittest.TestCase):
             self.assertTrue(any("model kontrolü kullanılmadı" in item.value for item in app.info))
             self.assertTrue((Path(tmp) / "organism_lab_output" / "research_studies.sqlite3").exists())
 
+    def test_fails_closed_when_saved_study_cannot_be_verified(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch("pathlib.Path.cwd", return_value=Path(tmp)), \
+                patch("organism_lab.study_verifier.verify_saved_study",
+                      side_effect=ValueError("file altered")):
+            app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
+            app.button[1].click().run()
+            self.assertFalse(app.exception)
+            self.assertFalse(any("Kayıt tamamlandı" in item.value for item in app.success))
+            self.assertTrue(any("Kayıt doğrulanamadı" in item.value for item in app.error))
+            self.assertEqual(len(app.get("download_button")), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
