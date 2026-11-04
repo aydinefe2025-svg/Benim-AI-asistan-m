@@ -1,0 +1,71 @@
+name: CANO bounded Crossref discovery
+
+on:
+  pull_request:
+    paths:
+      - 'cano/research_cycle/crossref_discovery.py'
+      - 'cano/research_cycle/github_review_sink.py'
+      - 'cano/research_cycle/test_crossref_discovery.py'
+      - 'cano/research_cycle/test_github_review_sink.py'
+      - '.github/workflows/cano-crossref-discovery.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'cano/research_cycle/crossref_discovery.py'
+      - 'cano/research_cycle/github_review_sink.py'
+      - '.github/workflows/cano-crossref-discovery.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '43 9 * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: cano-crossref-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  metadata-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    defaults:
+      run:
+        working-directory: cano/research_cycle
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Security and idempotence tests (no network)
+        run: python -W error::ResourceWarning -m unittest -q test_crossref_discovery test_github_review_sink
+
+  fetch-and-queue:
+    needs: metadata-tests
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    defaults:
+      run:
+        working-directory: cano/research_cycle
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch one bounded topic (5 DOI metadata max; no full text)
+        run: python crossref_discovery.py --topic auto --rows 5 --output crossref_pending_review.json
+      - name: Add only novel DOI metadata to human review issue; verify write
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CANO_REVIEW_ISSUE: '164'
+        run: python github_review_sink.py crossref_pending_review.json
+      - name: Archive reviewable metadata without secrets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cano-crossref-${{ github.run_id }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: cano/research_cycle/crossref_pending_review.json
