@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -40,7 +41,21 @@ def main() -> None:
         "note": "No LLM inference, deployment, or active agents are started by this job.",
     }
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    # Publish verified reports atomically, avoiding truncated JSON on crash.
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=output.parent,
+            prefix=f".{output.name}.", suffix=".tmp", delete=False
+        ) as handle:
+            tmp_path = Path(handle.name)
+            json.dump(record, handle, ensure_ascii=False, indent=2)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_path, output)
+    finally:
+        if tmp_path is not None:
+            tmp_path.unlink(missing_ok=True)
     print(json.dumps({"tick_id": result["tick_id"], "proposed": len(result["candidates"]),
                       "activated": result["activated"], "artifact": str(output)}))
 
