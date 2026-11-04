@@ -1,5 +1,9 @@
-"""Run scientific assertions against the installed patched native libraries."""
-import gc, json, subprocess, sys, os, hashlib
+"""Run scientific assertions against the installed patched native libraries.
+
+Supports both ``python test_native.py`` (which also writes the JSON summary)
+and pytest (which runs the checks without changing tracked result files).
+"""
+import json, sys
 from datetime import datetime, timezone
 from importlib.metadata import version as package_version
 from pathlib import Path
@@ -11,7 +15,6 @@ from cpupme_repro import water_box as pme_water, forces
 from neighbor_repro import pair_count
 root=Path(__file__).resolve().parent
 logs=root/'native_results'
-logs.mkdir(exist_ok=True)
 results=[]
 def check(issue, fn):
     try:
@@ -79,22 +82,39 @@ def mmcif():
     rows=[roundtrip(n,k) for k in (False,True) for n in (26,27,52)]
     assert all(r['status']=='PASS' for r in rows),rows
     return rows
-check(5532,mmcif)
 def water_check():
     from openmm_mmcif_roundtrip_regression import waters
     r=waters();assert r['status']=='PASS',r
     return r
-check(5521,water_check)
-check(5515,neighbor)
-platforms=[mm.Platform.getPlatform(i).getName() for i in range(mm.Platform.getNumPlatforms())]
-gpu_platforms=[name for name in ('OpenCL','CUDA') if name in platforms]
-check(5493,lambda:[row for name in gpu_platforms for row in checkpoint(name)])
-check(5494,lambda:[cpupme(name) for name in gpu_platforms])
-errors=list(mm.Platform.getPluginLoadFailures())
-required={'Reference','CPU','OpenCL'}
-if (Path(sys.prefix)/'Lib/site-packages/OpenMM.libs/lib/plugins/OpenMMCUDA.dll').exists():
-    required.add('CUDA')
-out=dict(tests=results,created_utc=datetime.now(timezone.utc).isoformat(),python=sys.version,python_package_version=package_version('openmm'),native_version=mm.Platform.getOpenMMVersion(),source_revision='146a320f97bd4cd7319eaf94f58027d57f5abc7d + native_fixes.patch',platforms=platforms,plugin_errors=errors)
-(logs/'summary.json').write_text(json.dumps(out,indent=2)+'\n')
-raise SystemExit(any(r['status']!='PASS' for r in results) or bool(errors) or not required.issubset(platforms))
+def run_suite(write_summary=False):
+    global results
+    results=[]
+    check(5532,mmcif)
+    check(5521,water_check)
+    check(5515,neighbor)
+    platforms=[mm.Platform.getPlatform(i).getName() for i in range(mm.Platform.getNumPlatforms())]
+    gpu_platforms=[name for name in ('OpenCL','CUDA') if name in platforms]
+    check(5493,lambda:[row for name in gpu_platforms for row in checkpoint(name)])
+    check(5494,lambda:[cpupme(name) for name in gpu_platforms])
+    errors=list(mm.Platform.getPluginLoadFailures())
+    required={'Reference','CPU','OpenCL'}
+    if (Path(sys.prefix)/'Lib/site-packages/OpenMM.libs/lib/plugins/OpenMMCUDA.dll').exists():
+        required.add('CUDA')
+    out=dict(tests=results,created_utc=datetime.now(timezone.utc).isoformat(),python=sys.version,python_package_version=package_version('openmm'),native_version=mm.Platform.getOpenMMVersion(),source_revision='146a320f97bd4cd7319eaf94f58027d57f5abc7d + native_fixes.patch',platforms=platforms,plugin_errors=errors)
+    failed=any(r['status']!='PASS' for r in results) or bool(errors) or not required.issubset(platforms)
+    if write_summary:
+        logs.mkdir(exist_ok=True)
+        (logs/'summary.json').write_text(json.dumps(out,indent=2)+'\n')
+    return out, failed
+
+
+def test_native_regressions():
+    report, failed=run_suite(write_summary=False)
+    assert not failed, json.dumps(report,indent=2)
+
+
+if __name__=='__main__':
+    _,failed=run_suite(write_summary=True)
+    raise SystemExit(failed)
+
 

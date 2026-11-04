@@ -37,6 +37,16 @@ regression checks. The standalone mmCIF test is:
 .venv/Scripts/python.exe repo/openmm_regression/openmm_mmcif_roundtrip_regression.py
 ```
 
+The full native regression suite supports both pytest and direct execution:
+
+```powershell
+.venv/Scripts/python.exe -m pytest repo/openmm_regression/test_native.py -q -p no:cacheprovider
+.venv/Scripts/python.exe repo/openmm_regression/test_native.py
+```
+
+The pytest invocation validates without rewriting the archived summary. Direct
+execution refreshes `native_results/summary.json`.
+
 The wheel is Windows x64 / CPython 3.12 specific and the CUDA plugin requires a
 working NVIDIA driver. `native_results/wheel.json` records its SHA-256. The
 source patch is `native_fixes.patch`; native build and installation scripts are
@@ -48,3 +58,4 @@ extension, and RPMD is outside these five regression fixes.
 
 Only local synthetic computational tests were performed. No paid service,
 GitHub Actions run, physical robot or biological experiment was initiated.
+
