@@ -130,6 +130,12 @@ class CommandCenterTests(unittest.TestCase):
             st.submit = True
             render_cano_command_center(st, answer=model)
             self.assertEqual(len(model.calls), 4)
+            self.assertIn("rerun", st.messages)
+            # Simulate the Streamlit refresh that redraws metrics after submit.
+            render_cano_command_center(st, answer=model)
+            self.assertEqual(len(model.calls), 4)  # no duplicate provider charges
+            self.assertEqual(st.metrics["Ekip görevleri"], 1)
+            self.assertEqual(st.metrics["İnceleme bekleyen"], 1)
             self.assertIn("CANO aşama cevabı 4", " ".join(st.messages))
             self.assertTrue(st.downloaded)
             stats = read_cano_status(colony)

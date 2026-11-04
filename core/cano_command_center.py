@@ -146,8 +146,11 @@ def render_cano_command_center(st, answer=None):
                         model="configured-provider",
                         source_lookup=scientific_sources if lookup else None)
                     st.session_state["cano_cockpit_latest_mission"] = result["id"]
-                    st.success("CANO ekibi dört aşamayı çalıştırdı; "
-                               "bağımsız kaynak doğrulaması hâlâ gerekiyor.")
+                    # Earlier metrics have already rendered on this Streamlit run.
+                    # Refresh once to display the committed mission counters.
+                    # The submit state is not replayed on the next run.
+                    st.rerun()
+                    return
                 except TeamRateLimitError:
                     st.warning("Groq dakikalık token kotası doldu. Tamamlanan "
                                "aşamalar kaydedildi; kota yenilendiğinde yan "
