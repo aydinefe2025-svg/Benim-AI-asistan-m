@@ -144,6 +144,18 @@ def main():
                     }
                     print("Synthetic pg_dump failure category:",
                           diagnostic.returncode, flags)
+                    # Whitelist this diagnostic to our disposable localhost
+                    # CI environment; strip the entire connection URI and
+                    # synthetic password before showing the error category.
+                    import re
+                    redacted = re.sub(
+                        r"postgres(?:ql)?://[^\\s\\\"']+",
+                        "<redacted-ci-db-url>", stderr,
+                    )
+                    redacted = redacted.replace(unquote(parts.password or ""),
+                                                "<redacted>")
+                    print("Synthetic pg_dump diagnostic:",
+                          redacted[:650])
                     raise
                 verified = verify_backup(Path(receipt["receipt"]),
                                          restore_bin=restore_bin)
