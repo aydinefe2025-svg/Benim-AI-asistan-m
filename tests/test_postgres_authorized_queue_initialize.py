@@ -47,16 +47,15 @@ class PostgresAuthorizedQueueInitializeTests(unittest.TestCase):
         queue.initialize()
         return [query.strip().upper() for query in queries]
 
-    def test_shared_migration_owned_tables_skip_index_ddl(self):
-        queries = self._initialize(owns_tables=False)
-        self.assertEqual(sum(query.startswith("CREATE TABLE") for query in queries), 2)
-        self.assertFalse(any(query.startswith("CREATE INDEX") for query in queries))
-        self.assertEqual(sum("PG_GET_USERBYID" in query for query in queries), 2)
-
-    def test_runtime_owned_tables_create_indexes(self):
-        queries = self._initialize(owns_tables=True)
-        self.assertEqual(sum(query.startswith("CREATE INDEX") for query in queries), 2)
-
+    def test_runtime_never_runs_index_ddl_for_shared_or_owned_tables(self):
+        for owns_tables in (False, True):
+            with self.subTest(owns_tables=owns_tables):
+                queries = self._initialize(owns_tables=owns_tables)
+                self.assertEqual(
+                    sum(query.startswith("CREATE TABLE") for query in queries), 2
+                )
+                self.assertFalse(any(query.startswith("CREATE INDEX") for query in queries))
+                self.assertFalse(any("PG_GET_USERBYID" in query for query in queries))
 
 if __name__ == "__main__":
     unittest.main()
