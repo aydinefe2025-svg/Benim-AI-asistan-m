@@ -122,7 +122,7 @@ def restore_empty_colony(colony, snapshot):
     return len(agents)
 
 
-def restore_owner_backup(colony, snapshot_store, owner_key, *, approved=False):
+def restore_owner_backup(colony, snapshot_store, owner_key, *, approved=False, revision=None):
     """Restore one authenticated owner's PostgreSQL backup with explicit consent.
 
     The caller must authenticate the owner before passing owner_key. Never
@@ -134,7 +134,12 @@ def restore_owner_backup(colony, snapshot_store, owner_key, *, approved=False):
     if (not isinstance(owner_key, str) or not owner_key.strip()
             or len(owner_key) > 128):
         raise ValueError("Authenticated owner key required")
-    snapshot = snapshot_store.load(owner_key)
+    if revision is None:
+        snapshot = snapshot_store.load(owner_key)
+    else:
+        if type(revision) is not int or revision < 1:
+            raise ValueError("Invalid snapshot revision")
+        snapshot = snapshot_store.load_archived(owner_key, revision)
     if snapshot is None:
         raise LookupError("No backup for authenticated owner")
     return restore_empty_colony(colony, snapshot)

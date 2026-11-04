@@ -9,6 +9,7 @@ on:
       - "core/colony_panel.py"
       - "tests/test_colony_postgres.py"
       - "scripts/check_postgres_colony_snapshot.py"
+      - "scripts/check_colony_version_history.py"
       - "core/postgres_authorized_queue.py"
       - "scripts/check_postgres_authorized_queue.py"
       - "scripts/check_postgres_persistence.py"
@@ -62,3 +63,8 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
         run: python -m scripts.check_postgres_colony_snapshot
+
+      - name: Verify previous CANO snapshot remains recoverable on replacement
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_colony_version_history
