@@ -31,7 +31,7 @@ class StorageConfigTests(unittest.TestCase):
         # database as the cockpit's snapshot CAS.
         import ast
         from pathlib import Path
-        tree = ast.parse((Path(__file__).resolve().parents[1] / "app.py").read_text())
+        tree = ast.parse((Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8"))
         calls = [node for node in ast.walk(tree)
                  if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
                  and node.func.id == "render_colony_panel"]
