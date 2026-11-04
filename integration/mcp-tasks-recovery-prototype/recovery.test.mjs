@@ -92,6 +92,10 @@ try {
     name: 'add_numbers', arguments: args, _meta: taskCapability,
   });
   assert.equal(duplicate.result.taskId, taskId, 'idempotent retry must return the same task');
+  const conflictingRetry = await restarted.request('tools/call', {
+    name: 'add_numbers', arguments: { ...args, a: 18 }, _meta: taskCapability,
+  });
+  assert.equal(conflictingRetry.error.code, -32602, 'idempotency key must not alias different input');
 
   const synchronous = await restarted.request('tools/call', {
     name: 'add_numbers', arguments: { a: 2, b: 3 },
@@ -103,6 +107,8 @@ try {
   assert.equal(unknown.error.code, -32602);
   const missingCapability = await restarted.request('tasks/get', { taskId, _meta: {} });
   assert.equal(missingCapability.error.code, -32021);
+  const updateAck = await restarted.request('tasks/update', { taskId, inputResponses: {}, _meta: taskCapability });
+  assert.equal(updateAck.result.resultType, 'complete');
 
   const cancellable = await restarted.request('tools/call', {
     name: 'add_numbers', arguments: { a: 1, b: 1, idempotencyKey: 'cancel-me' }, _meta: taskCapability,
