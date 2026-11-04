@@ -71,6 +71,60 @@ class RestoreTests(unittest.TestCase):
             with target._db() as db:
                 self.assertEqual(db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0], 0)
 
+    def test_partial_mission_restores_blocked_and_resumes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = AgentColony(Path(directory) / "source.db")
+            founder = source.create_founder("research", "Research")
+            source.spawn(founder, "evidence-reviewer", "Review", approved=True)
+            missions = CollaborativeMission(source)
+            class FailSecond:
+                def __init__(self): self.calls = 0
+                def chat(self, model, system, prompt):
+                    self.calls += 1
+                    if self.calls == 2:
+                        raise RuntimeError("Provider interrupted")
+                    return "stage-" + str(self.calls)
+            with self.assertRaises(RuntimeError):
+                missions.execute("Safe test", client=FailSecond(), model="fake")
+            with source._db() as db:
+                snapshot = {
+                    "agents": [dict(r) for r in db.execute("SELECT * FROM colony_agents")],
+                    "feedback": [], "reviews": [],
+                    "missions": [dict(r) for r in db.execute("SELECT * FROM colony_missions")],
+                }
+            self.assertEqual(snapshot["missions"][0]["status"], "blocked")
+            target = AgentColony(Path(directory) / "restored.db")
+            self.assertEqual(restore_empty_colony(target, snapshot), 2)
+            saved = CollaborativeMission(target).get(snapshot["missions"][0]["id"])
+            self.assertEqual(len(saved["stages"]), 1)
+            class Fake:
+                def __init__(self): self.calls = 0
+                def chat(self, model, system, prompt):
+                    self.calls += 1
+                    return "continued-" + str(self.calls)
+            client = Fake()
+            resumed = CollaborativeMission(target).resume(saved["id"], client=client,
+                                                           model="fake")
+            self.assertEqual(resumed["model_calls"], 3)
+            self.assertEqual(client.calls, 3)
+            self.assertEqual(resumed["stages"][0]["output"], "stage-1")
+
+    def test_imported_running_mission_becomes_blocked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = AgentColony(Path(directory) / "restored.db")
+            snapshot = {
+                "agents": [{
+                    "id": "founder", "parent_id": None, "generation": 0,
+                    "role": "research", "instructions": "Research",
+                    "state": "active", "created_at": "2026-01-01"}],
+                "feedback": [], "reviews": [],
+                "missions": [{"id": "run1", "task": "Research", "stages": "[]",
+                              "status": "running", "created_at": "2026-01-01"}]
+            }
+            self.assertEqual(restore_empty_colony(target, snapshot), 1)
+            self.assertEqual(CollaborativeMission(target).get("run1")["status"],
+                             "blocked")
+
     def test_reject_missing_parent_without_writes(self):
         with tempfile.TemporaryDirectory() as directory:
             colony = AgentColony(Path(directory) / "colony.sqlite3")
