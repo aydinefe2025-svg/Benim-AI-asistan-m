@@ -11,6 +11,7 @@ import sqlite3
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
+from core.groq_team import TeamRateLimitError
 from core.scientific_sources import scientific_sources
 from core.task_panel import _session_database_path
 
@@ -147,6 +148,10 @@ def render_cano_command_center(st, answer=None):
                     st.session_state["cano_cockpit_latest_mission"] = result["id"]
                     st.success("CANO ekibi dört aşamayı çalıştırdı; "
                                "bağımsız kaynak doğrulaması hâlâ gerekiyor.")
+                except TeamRateLimitError:
+                    st.warning("Groq dakikalık token kotası doldu. Tamamlanan "
+                               "aşamalar kaydedildi; kota yenilendiğinde yan "
+                               "menüden kaldığınız yerden sürdürebilirsiniz.")
                 except (RuntimeError, ValueError, OSError, sqlite3.Error):
                     st.error("Görev tamamlanamadı. Kısmi aşamalar korundu; "
                              "yan menüden engellenmiş görevleri inceleyin.")
