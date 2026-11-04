@@ -56,6 +56,7 @@ from core.scientific_sources import scientific_sources
 from core.user_memory import export_library, import_library, memory_context, new_memory
 from core.browser_memory import browser_memory_component, decode_snapshot, write_confirmed, explicit_memory_request
 from core.task_panel import render_task_panel
+from core.authorized_queue_panel import render_authorized_queue_panel
 from core.colony_panel import render_colony_panel
 from core.cano_command_center import render_cano_command_center
 
@@ -370,6 +371,11 @@ def _research_answer(goal: str) -> str:
 
 render_cano_command_center(st, answer=_research_answer if GROQ_KEY else None)
 render_task_panel(st, answer=_research_answer if GROQ_KEY else None, store_override=_TASK_STORE)
+render_authorized_queue_panel(
+    st, answer=_research_answer if GROQ_KEY else None,
+    owner_key=_OWNER_KEY if _TASK_STORE is not None else None,
+    database_url=os.environ.get("AGENT_TASK_DATABASE_URL") if _TASK_STORE is not None else None,
+)
 render_colony_panel(st, answer=_research_answer if GROQ_KEY else None,
                     owner_key=_OWNER_KEY if _MEMORY_STORE is not None else None,
                     database_url=os.environ.get("DATABASE_URL") if _MEMORY_STORE is not None else None)
