@@ -35,6 +35,36 @@ class BrowserColonyTests(unittest.TestCase):
             self.assertEqual(_snapshot(restored)["agents"], original["agents"])
             self.assertEqual(_snapshot(restored)["feedback"], original["feedback"])
 
+    def test_source_excerpt_survives_new_browser_session(self):
+        from core.collaborative_mission import CollaborativeMission
+        with tempfile.TemporaryDirectory() as d:
+            source = AgentColony(Path(d) / "old.sqlite3")
+            source.create_founder("research", "Source research")
+            source.grow_specialists(approved=True)
+            class Model:
+                def chat(self, model, system, prompt):
+                    return "Unverified draft"
+            mission = CollaborativeMission(source).execute(
+                "Genome engineering using CRISPR-Cas9", client=Model(), model="fake",
+                source_lookup=lambda task, limit=3: [
+                    {"title":"Genome engineering",
+                     "url":"https://doi.org/10.1038/nprot.2013.143"}])
+            docs = CollaborativeMission(source).inspect_source_documents(
+                mission["id"], reader=lambda doi: {
+                    "doi":doi,"title":"Genome engineering",
+                    "url":"https://europepmc.org/articles/PMC3969860",
+                    "status":"full_text_excerpt","excerpt":"Real article text",
+                    "claim_verified":False})
+            write = encode_browser_colony_backup(_snapshot(source))
+            fresh = AgentColony(Path(d) / "new.sqlite3")
+            restore_empty_colony(fresh, decode_browser_colony_backup(
+                {"status":"ok","payload":write["payload"]}))
+            self.assertEqual(CollaborativeMission(fresh).get(
+                mission["id"])["stages"][0]["source_documents"], docs)
+            self.assertEqual(CollaborativeMission(fresh).inspect_source_documents(
+                mission["id"], reader=lambda doi:
+                    self.fail("No duplicate evidence request")), docs)
+
     def test_unavailable_or_corrupt_store_fails_closed(self):
         for report in (None, {}, {"status":"error"}, {"status":"ok","payload":""},
                        {"status":"ok","payload":"{}"},
