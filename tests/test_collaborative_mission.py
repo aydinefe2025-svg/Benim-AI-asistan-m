@@ -37,6 +37,51 @@ class CollaborativeMissionTests(unittest.TestCase):
         self.assertIn("Result 2", client.calls[2][2])
         self.assertIn("Result 3", client.calls[3][2])
 
+    def test_explicit_crossref_metadata_leads_are_checkpointed(self):
+        calls = []
+        def lookup(query, limit=3):
+            calls.append((query, limit))
+            return [{"title": "Solar PV technology", "url": "https://doi.org/10.1234/abc",
+                     "doi": "10.1234/abc", "verified": False}]
+        client = FakeClient()
+        result = self.missions.execute(
+            "Investigate solar PV", client=client, model="fake",
+            source_lookup=lookup)
+        self.assertEqual(calls, [("Investigate solar PV", 3)])
+        self.assertEqual(len(client.calls), 4)
+        self.assertEqual(result["stages"][0]["source_lookup_status"], "metadata_only")
+        self.assertEqual(result["stages"][0]["source_leads"][0]["url"],
+                         "https://doi.org/10.1234/abc")
+        self.assertFalse(result["stages"][0]["source_leads"][0]["verified"])
+        self.assertIn("https://doi.org/10.1234/abc", client.calls[1][2])
+        self.assertEqual(self.missions.get(result["id"])["stages"], result["stages"])
+
+    def test_no_crossref_call_by_default_and_failure_does_not_fake_sources(self):
+        client = FakeClient()
+        result = self.missions.execute("Private research", client=client, model="fake")
+        self.assertNotIn("source_leads", result["stages"][0])
+
+        def offline(query, limit=3):
+            raise TimeoutError("Crossref unavailable")
+        second = self.missions.execute("Public research", client=FakeClient(),
+                                       model="fake", source_lookup=offline)
+        self.assertEqual(second["status"], "review_pending")
+        self.assertEqual(second["stages"][0]["source_lookup_status"], "unavailable")
+        self.assertEqual(second["stages"][0]["source_leads"], [])
+
+    def test_reject_untrusted_candidate_urls_and_claimed_verification(self):
+        def bad(query, limit=3):
+            return [{"title":"Bad link", "url":"http://private.local/admin",
+                     "verified":True},
+                    {"title":"Paper", "url":"https://doi.org/10.1234/good",
+                     "verified":True}]
+        record = self.missions.execute("Research", client=FakeClient(),
+                                       model="fake", source_lookup=bad)
+        leads = record["stages"][0]["source_leads"]
+        self.assertEqual(len(leads), 1)
+        self.assertEqual(leads[0]["url"], "https://doi.org/10.1234/good")
+        self.assertFalse(leads[0]["verified"])
+
     def test_requires_reviewer_and_nonempty_task(self):
         with self.assertRaises(ValueError):
             self.missions.execute(" ", client=FakeClient(), model="fake")
