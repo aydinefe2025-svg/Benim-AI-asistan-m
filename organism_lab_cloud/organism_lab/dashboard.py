@@ -61,21 +61,17 @@ if adapter_ready:
     )
     selected_model = None
 elif CLOUD_MODE:
-    if os.environ.get("GROQ_API_KEY", "").strip():
+    groq_configured = bool(os.environ.get("GROQ_API_KEY", "").strip())
+    if groq_configured:
         st.info("Bulut sohbeti Groq üzerinden çalışır; gönderdiğin soru ve kullanılan açıkça kaydedilmiş notlar sağlayıcıya iletilir.")
-        selected_provider = st.selectbox(
-            "Sağlayıcı", options=["groq"], format_func=lambda _: "Groq Cloud",
-            key="assistant_model_choice",
-        )
-        selected_model = st.selectbox(
-            "Groq modeli", options=GROQ_MODEL_OPTIONS, index=0, key="assistant_groq_model",
-            help="Büyük modeller daha fazla kota/tüketim kullanabilir. Model çağrısı yalnızca sen Yanıt üret'e bastığında yapılır.",
-        )
-        st.caption("Model erişimi ve ücret/kota koşulları Groq hesabına bağlıdır. Kullanılmayan modeller için otomatik çağrı yapılmaz.")
     else:
-        st.info("Bulut sohbet modeli yapılandırılmamış. Dijital simülasyon ve literatür kataloğu kullanılabilir; sohbet için sunucuda güvenli GROQ_API_KEY gerekir.")
-        selected_provider = default_provider(cloud_mode=True)
-        selected_model = None
+        st.info("Model seçeneklerini inceleyebilirsin. Sohbet, sunucuya güvenli GROQ_API_KEY eklenene kadar kapalıdır; API çağrısı yapılmaz.")
+    selected_provider = "groq"
+    selected_model = st.selectbox(
+        "Groq modeli", options=GROQ_MODEL_OPTIONS, index=0, key="assistant_groq_model",
+        help="Büyük modeller daha fazla kota/tüketim kullanabilir. Model çağrısı yalnızca sen Yanıt üret'e bastığında yapılır.",
+    )
+    st.caption("Model erişimi ve ücret/kota koşulları Groq hesabına bağlıdır. Kullanılmayan modeller için otomatik çağrı yapılmaz.")
 else:
     st.info("Şu an Ollama temel modeli kullanılıyor; bu bilgisayarda eğitilmiş bir adaptör etkin değil. Kaydedilen notlar yanıta bağlam olarak eklenir, model ağırlıklarını değiştirmez.")
     selected_provider = "ollama"
@@ -107,7 +103,7 @@ selected_agent = st.selectbox(
 )
 st.caption("Ajanların notlarla bağlam öğrenmesi açıkça kaydedilen notlarla sınırlıdır. Sohbetler kendiliğinden saklanmaz ve model ağırlıkları eğitilmez.")
 learning_query = st.text_area("Asistana sor" if CLOUD_MODE else "Yerel asistana sor", max_chars=4000, key="learning_query")
-ask_local_clicked = st.button("Groq'a sor" if CLOUD_MODE and selected_provider == "groq" else "Yanıt üret" if CLOUD_MODE else "Yerel Qwen'e sor", key="local_learning_chat", disabled=CLOUD_MODE and selected_provider == "offline")
+ask_local_clicked = st.button("Groq'a sor" if CLOUD_MODE and selected_provider == "groq" else "Yanıt üret" if CLOUD_MODE else "Yerel Qwen'e sor", key="local_learning_chat", disabled=CLOUD_MODE and not groq_configured)
 if ask_local_clicked:
     try:
         relevant = retrieve_memories(OUTPUT_DIR, learning_query)
