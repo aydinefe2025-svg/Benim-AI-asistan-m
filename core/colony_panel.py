@@ -299,13 +299,27 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             st.caption("PostgreSQL yedeği doğrulanmış kullanıcı hesabına bağlıdır.")
             if st.button("Ajan kayıtlarını kalıcı veritabanına yedekle",
                          key="colony_postgres_save"):
-                try:
-                    snapshot_store = ColonySnapshotStore(database_url)
-                    snapshot_store.verify_schema()
-                    snapshot_store.save_versioned_verified(owner_key, data)
-                    st.success("PostgreSQL yedeği geri okunarak doğrulandı; farklı önceki sürüm korundu.")
-                except Exception:
-                    st.error("Yedek doğrulanamadı veya sürüm kotası doldu; kayıtlar korunuyor. JSON yedeği indirin.")
+                # The cockpit previously read and bound the owner's exact
+                # snapshot to this session. Refuse sidebar writes without
+                # that provenance: otherwise a stale tab could bypass the
+                # compare-and-swap protection in the main command center.
+                if (st.session_state.get("_cano_backup_owner_key") != owner_key
+                        or "_cano_backup_expected" not in st.session_state):
+                    st.error("Hesap yedeği doğrulanamadı; eski sekmeden kayıt yazılmadı. "
+                             "Oturumu yenileyip hesabınıza ait yedeği kontrol edin.")
+                else:
+                    try:
+                        snapshot_store = ColonySnapshotStore(database_url)
+                        snapshot_store.verify_schema()
+                        snapshot_store.save_versioned_verified(
+                            owner_key, data,
+                            expected_prior=st.session_state["_cano_backup_expected"])
+                        st.session_state["_cano_backup_expected"] = data
+                        st.success("PostgreSQL yedeği hesap sürümüyle eşleşti; "
+                                   "kaydedilip geri okundu.")
+                    except Exception:
+                        st.error("Hesabın yedeği değişmiş olabilir veya kayıt doğrulanamadı; "
+                                 "eski kayıtların üzerine yazılmadı. JSON yedeği indirin.")
             if st.button("Kalıcı yedeği kontrol et", key="colony_postgres_check"):
                 try:
                     saved = ColonySnapshotStore(database_url).load(owner_key)
