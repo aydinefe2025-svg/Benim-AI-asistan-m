@@ -37,6 +37,19 @@ class AtomicConcurrencyTests(unittest.TestCase):
             self.assertEqual(atomic_batch.audit(db)['checked'], 1)
             self.assertTrue(atomic_batch.audit(db)['ok'])
 
+    def test_receipt_lookup_is_indexed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            src, db = root / 'one.jsonl', root / 'findings.sqlite3'
+            src.write_text(json.dumps({'kind': 'observation', 'title': 'one', 'source': 'test', 'evidence': 'e'}) + '\n')
+            atomic_batch.run(src, db)
+            c = sqlite3.connect(db)
+            try:
+                indexes = [row[1] for row in c.execute('PRAGMA index_list(receipts)')]
+            finally:
+                c.close()
+            self.assertIn('ix_receipts_detail_status', indexes)
+
     def test_orphan_finding_fails_audit(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
