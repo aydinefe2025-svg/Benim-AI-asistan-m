@@ -11,6 +11,7 @@ import sqlite3
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
+from core.colony_postgres import ColonySnapshotStore
 from core.browser_colony import (
     browser_colony_component, encode_browser_colony_backup,
     decode_browser_colony_backup, browser_write_confirmed,
@@ -88,11 +89,23 @@ def _snapshot(colony):
     return result
 
 
-def render_cano_command_center(st, answer=None):
+def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=None):
     """Render a top-level mission cockpit before the legacy sidebar/chat UI."""
     st.header("🚀 CANO Komuta Merkezi")
     st.caption("Uzmanları burada hazırla, gerçek ekip görevi çalıştır, "
                "aşamaları ve kaynak adaylarını incele. Sonuçlar inceleme bekleyen taslaklardır.")
+    backup_store = None
+    if owner_key is not None or database_url is not None:
+        if (not isinstance(owner_key, str) or not owner_key.strip()
+                or not database_url):
+            st.error("CANO için doğrulanmış hesap ve PostgreSQL gereklidir.")
+            return
+        try:
+            backup_store = ColonySnapshotStore(database_url)
+            backup_store.initialize()
+        except Exception:
+            st.error("CANO PostgreSQL yedeği açılamadı; model çalıştırılmadı.")
+            return
     base = os.environ.get("AGENT_COLONY_DB_PATH", "data/agent_colony.sqlite3")
     try:
         colony = AgentColony(_session_database_path(st, base), max_agents=12)
@@ -150,6 +163,10 @@ def render_cano_command_center(st, answer=None):
             st.caption("Tarayıcı yedeği henüz doğrulanmadı; sayfadan ayrılmadan "
                        "önce yedek onayının görünmesini kontrol edin.")
 
+    def _checkpoint():
+        if backup_store is not None:
+            backup_store.save_versioned_verified(owner_key, _snapshot(colony))
+
     cols = st.columns(4)
     for col, label, value in zip(
         cols, ("Uzman", "Ekip görevleri", "İnceleme bekleyen", "Kabul edilmiş ders"),
@@ -157,18 +174,23 @@ def render_cano_command_center(st, answer=None):
          status["review_pending"], status["lessons"])):
         col.metric(label, value)
 
-    st.caption("Kayıt türü: bu oturuma özel geçici SQLite. "
-               "Dağıtım/yeniden başlatmada kaybolabilir; JSON yedeği indirin. "
-               "Uzmanlıklar ayrı eğitilmiş modeller değil, rol bazlı model çağrılarıdır.")
+    if backup_store is None:
+        st.caption("Bu oturumda yalnızca geçici SQLite var; JSON yedeği alın.")
+    else:
+        st.caption("Açıkça başlatılan görevlerin sonuçları hesap sahibine ait PostgreSQL "
+                   "sürümlü yedeğine otomatik yazılır. Ani sunucu kapanmalarında "
+                   "tam aşama garantisi yoktur; JSON yedeği de alın.")
+    st.caption("Uzmanlıklar rol bazlı model çağrılarıdır, ayrı eğitilmiş modeller değildir.")
     if st.button("🚀 CANO ekibini hazırla (1 kurucu + 6 uzman)",
                  key="cano_prepare_team"):
         try:
             count = prepare_cano_team(colony, approved=True)
+            _checkpoint()
             st.success(f"{count} rol kaydı hazır; ekip görevine geçebilirsiniz.")
             st.rerun()
             return
         except (ValueError, PermissionError, RuntimeError, sqlite3.Error):
-            st.error("Ekip oluşturulamadı; mevcut kayıtlar korunuyor.")
+            st.error("Ekip veya kalıcı yedek doğrulanamadı; yerel veri silinmedi.")
             return
 
     if not status["ready"]:
@@ -194,24 +216,40 @@ def render_cano_command_center(st, answer=None):
             if not isinstance(goal, str) or not goal.strip():
                 st.warning("Önce araştırma görevini yazın.")
             else:
+                # Check durable write access before an expensive model request.
+                try:
+                    _checkpoint()
+                except Exception:
+                    st.error("PostgreSQL yedeği hazır değil; model çağrısı yapılmadı.")
+                    return
                 try:
                     result = manager.execute(
                         goal, client=_AnswerAdapter(answer),
                         model="configured-provider",
                         source_lookup=scientific_sources if lookup else None)
+                except TeamRateLimitError:
+                    try:
+                        _checkpoint()
+                    except Exception:
+                        st.error("Kısmi görev PostgreSQL'e kaydedilemedi; JSON yedeği alın.")
+                    st.warning("Groq kotası doldu. Kısmi aşamalar yerel SQLite'da korundu; "
+                               "kota yenilendiğinde kaldığınız yerden sürdürün.")
+                except (RuntimeError, ValueError, OSError, sqlite3.Error):
+                    try:
+                        _checkpoint()
+                    except Exception:
+                        st.error("Kısmi görev PostgreSQL'e kaydedilemedi; JSON yedeği alın.")
+                    st.error("Görev tamamlanamadı; yerel kayıt ve kısmi aşamalar korundu.")
+                else:
+                    try:
+                        _checkpoint()
+                    except Exception:
+                        st.error("Görev yerelde tamamlandı ama PostgreSQL yedeği "
+                                 "doğrulanamadı; JSON yedeği alın.")
+                        return
                     st.session_state["cano_cockpit_latest_mission"] = result["id"]
-                    # Earlier metrics have already rendered on this Streamlit run.
-                    # Refresh once to display the committed mission counters.
-                    # The submit state is not replayed on the next run.
                     st.rerun()
                     return
-                except TeamRateLimitError:
-                    st.warning("Groq dakikalık token kotası doldu. Tamamlanan "
-                               "aşamalar kaydedildi; kota yenilendiğinde yan "
-                               "menüden kaldığınız yerden sürdürebilirsiniz.")
-                except (RuntimeError, ValueError, OSError, sqlite3.Error):
-                    st.error("Görev tamamlanamadı. Kısmi aşamalar korundu; "
-                             "yan menüden engellenmiş görevleri inceleyin.")
 
     if status["blocked"]:
         st.warning(f"{status['blocked']} yarım kalmış görev var. "
@@ -263,6 +301,7 @@ def render_cano_command_center(st, answer=None):
                                  key="cano_read_sources_" + latest_id):
                         try:
                             manager.inspect_source_documents(latest_id)
+                            _checkpoint()
                             st.rerun()
                             return
                         except (RuntimeError, ValueError, OSError, sqlite3.Error):
