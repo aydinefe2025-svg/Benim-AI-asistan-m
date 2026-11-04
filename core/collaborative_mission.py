@@ -180,8 +180,80 @@ class CollaborativeMission:
             raise
 
     def inspect_source_documents(self, mission_id, *, reader=None):
-        """Explicit source-reading action; checkpoint excerpts, never verify claims."""
-        raise NotImplementedError("Source examination not implemented")
+        """Read up to two opted-in source documents; checkpoint source excerpts.
+
+        This is independent document retrieval, not proof that a particular
+        draft claim is true. A repeated click returns the cached evidence.
+        """
+        if reader is None:
+            from core.europepmc_evidence import read_publication_evidence
+            reader = read_publication_evidence
+        if not callable(reader):
+            raise ValueError("Evidence reader must be callable")
+        saved = self.get(mission_id)
+        if saved["status"] != "review_pending":
+            raise RuntimeError("Only completed drafts can be inspected")
+        stages = saved["stages"]
+        if not isinstance(stages, list) or len(stages) != 4:
+            raise ValueError("Invalid completed mission")
+        planner = stages[0]
+        if "source_documents" in planner:
+            return planner["source_documents"]
+        leads = planner.get("source_leads", [])
+        if not isinstance(leads, list) or not leads:
+            return []
+        documents = []
+        for lead in leads[:2]:
+            url = lead.get("url") if isinstance(lead, dict) else None
+            if not isinstance(url, str) or not DOI_LEAD_URL.fullmatch(url):
+                continue
+            doi = url[len("https://doi.org/"):].lower()
+            try:
+                item = reader(doi)
+                if not isinstance(item, dict):
+                    raise ValueError("Invalid evidence response")
+                status = item.get("status")
+                if status not in ("full_text_excerpt", "abstract_excerpt",
+                                  "metadata_only", "not_found", "unavailable"):
+                    raise ValueError("Invalid evidence status")
+                text = item.get("excerpt", "")
+                if not isinstance(text, str):
+                    raise ValueError("Invalid evidence excerpt")
+                source_url = item.get("url")
+                if (not isinstance(source_url, str) or not re.fullmatch(
+                        r"https://europepmc\\.org/articles/PMC[0-9]{1,14}",
+                        source_url)):
+                    source_url = "https://doi.org/" + doi
+                documents.append({
+                    "doi": doi,
+                    "title": " ".join(str(lead.get("title", "")).split())[:180],
+                    "url": source_url,
+                    "status": status,
+                    "excerpt": text[:900],
+                    "claim_verified": False,
+                })
+            except Exception:
+                documents.append({
+                    "doi": doi, "title": str(lead.get("title", ""))[:180],
+                    "url": "https://doi.org/" + doi, "status": "unavailable",
+                    "excerpt": "", "claim_verified": False,
+                })
+        with self.colony._db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT stages,status FROM colony_missions WHERE id=?",
+                (mission_id,)).fetchone()
+            if row is None or row["status"] != "review_pending":
+                raise RuntimeError("Mission changed while reading sources")
+            current = json.loads(row["stages"])
+            if "source_documents" in current[0]:
+                return current[0]["source_documents"]
+            if current != stages:
+                raise RuntimeError("Mission stages changed while reading sources")
+            current[0]["source_documents"] = documents
+            db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
+                       (json.dumps(current, ensure_ascii=False), mission_id))
+        return documents
 
     def recover_stale(self, *, older_than_seconds=3600, current_time=None):
         """Mark abandoned running missions blocked after a conservative interval.
