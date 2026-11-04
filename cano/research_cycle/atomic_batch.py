@@ -30,6 +30,7 @@ def run(source, database, limit=1000, fault_after_finding=False):
     try:
         conn.execute('CREATE TABLE IF NOT EXISTS receipts '
                      '(digest TEXT PRIMARY KEY, status TEXT NOT NULL, detail TEXT NOT NULL)')
+        conn.execute('CREATE INDEX IF NOT EXISTS ix_receipts_detail_status ON receipts(detail,status)')
         conn.commit()
         for line in lines:
             if not line.strip():
