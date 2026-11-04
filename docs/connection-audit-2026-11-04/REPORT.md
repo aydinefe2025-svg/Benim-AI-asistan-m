@@ -15,7 +15,9 @@
 
 ## Unavailable or not verified
 
-- OpenCode and Ollama are not available on the local command path. Kody has no saved connections for them. Neither is reported as running.
+- OpenCode is installed from its official npm package at v2.2.5. `opencode-local.cmd --version` and `debug paths` pass; its runtime data is isolated in `opencode-runtime` because Windows denies writes to the default hidden config directory. It is not yet connected to an inference provider.
+- Ollama is still unavailable. The official Windows installer advertises a 1,675,999,728-byte download; the transfer stalled at 1.41 GiB and was stopped before signature verification or execution. The incomplete installer was removed. No model was downloaded. Kody has no saved connections for OpenCode or Ollama.
+- System GPU details could not be read in this managed environment. The requested Qwen3:8b model is about 5.2 GB on Ollama; without a verified local runtime and available hardware details, no inference test is claimed.
 - Local HTTP probes to both Render service URLs could not reach the endpoints from this environment. Render reports successful deployments, but end-user HTTP health was not independently verified here; recent Render metrics returned no samples.
 - Google OIDC credentials are absent from the local workspace; only `.streamlit/secrets.toml.example` exists. The Render connector does not expose secret values, so remote secret presence was not verified. Google MFA completion also remains unverified. OIDC stays opt-in and no deployment was triggered.
 - Git CLI fetch failed because this workstation has no Git HTTPS credential available. GitHub MCP access remains operational; PR #107 was created through that authenticated connector.
