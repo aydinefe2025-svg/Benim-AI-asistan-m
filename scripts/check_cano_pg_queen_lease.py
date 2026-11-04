@@ -256,7 +256,7 @@ def main():
     test_revocation_race_waits_for_fenced_transaction()
     test_concurrent_claims()
     test_killed_worker_recovery()
-    print("CANO_QUEEN_PG17: 4/4 scenarios PASS; "
+    print("CANO_QUEEN_PG17: 5/5 scenarios PASS; "
           "concurrent 1/8 leader, epoch 1->2->3, "
           "stale/revoked writes refused, owner isolation, "
           "SIGKILL worker recovered via new process")
