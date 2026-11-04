@@ -30,7 +30,8 @@ def main():
         st = FakeStreamlit(clicks={"cano_prepare_team"})
         fake_model = FakeModel()
         path = str(Path(folder) / "active.sqlite3")
-        with patch.dict(os.environ, {"AGENT_COLONY_DB_PATH": path}):
+        with patch.dict(os.environ, {"AGENT_COLONY_DB_PATH": path,
+                                     "APP_AUTH_REQUIRED": "true"}):
             render_cano_command_center(
                 st, answer=fake_model, owner_key=owner, database_url=url)
             founder_snapshot = store.load(owner)
