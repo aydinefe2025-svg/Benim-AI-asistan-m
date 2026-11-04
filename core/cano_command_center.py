@@ -46,7 +46,7 @@ def read_cano_status(colony):
     with colony._db() as db:
         agents = db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0]
         roles = {row[0] for row in db.execute(
-            "SELECT role FROM colony_agents WHERE state='active")}
+            "SELECT role FROM colony_agents WHERE state='active'")}
         lessons = db.execute(
             "SELECT COUNT(*) FROM colony_feedback WHERE accepted=1").fetchone()[0]
         missions = db.execute(
