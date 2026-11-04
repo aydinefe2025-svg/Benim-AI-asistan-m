@@ -9,7 +9,7 @@ from unittest.mock import Mock
 import crossref_discovery as feed
 
 GOOD = {'status': 'ok', 'message': {'items': [
-    {'DOI': '10.1234/PAPER.A', 'title': ['<i>Original</i> <script>Title</script>'],
+    {'DOI': '10.1234/PAPER.A', 'title': ['<i>Biomimetic materials for soft robotics</i> <script>Title</script>'],
      'published': {'date-parts': [[2026, 11, 3]]}, 'type': 'journal-article'},
     {'DOI': '10.1234/PAPER.A', 'title': ['Duplicate title']},
     {'DOI': 'javascript:alert(1)', 'title': ['Bad DOI']},
@@ -102,6 +102,27 @@ class CrossrefDiscoveryTests(unittest.TestCase):
             with self.assertRaisesRegex(feed.FeedError, 'unsafe'):
                 feed.save_json({'x': 1}, out)
             self.assertEqual(actual.read_text(), 'original')
+
+    def test_unrelated_results_must_not_enter_ai_queue(self):
+        payload = {'status': 'ok', 'message': {'items': [
+            {'DOI': '10.1234/unrelated', 'title': ['Spiritual intelligence and divorce']},
+            {'DOI': '10.1234/real', 'title': ['Multi-agent artificial intelligence for scientific discovery']},
+        ]}}
+        records = feed.parse_crossref_response(payload, 'artificial_intelligence')
+        self.assertEqual([item['doi'] for item in records['items']], ['10.1234/real'])
+        self.assertEqual(records['relevance_policy'], 'topic_title_anchor')
+
+    def test_all_irrelevant_rejected(self):
+        payload = {'status': 'ok', 'message': {'items': [
+            {'DOI': '10.1234/unrelated', 'title': ['Train tracks and heat waves']},
+        ]}}
+        with self.assertRaisesRegex(feed.FeedError, 'topic-relevant'):
+            feed.parse_crossref_response(payload, 'artificial_intelligence')
+
+    def test_bounded_search_prefers_relevance_over_date(self):
+        url = feed.build_url('artificial_intelligence', 5)
+        self.assertIn('sort=relevance', url)
+        self.assertIn('filter=from-pub-date', url)
 
     def test_date_invalid_is_ignored(self):
         self.assertIsNone(feed.paper_date({'date-parts': [[2026, 13, 2]]}))

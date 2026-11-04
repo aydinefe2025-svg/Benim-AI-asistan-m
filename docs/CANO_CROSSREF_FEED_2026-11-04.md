@@ -39,3 +39,9 @@
 Crossref REST API: https://www.crossref.org/documentation/retrieve-metadata/rest-api/
 
 Crossref API erişimi ve hız sınırları: https://www.crossref.org/documentation/retrieve-metadata/rest-api/access-and-authentication/
+
+## 4 Kasım 2026 — Konuya uygunluk düzeltmesi
+
+İlk canlı Crossref çekiminde bibliyografik arama ve `sort=published` birleşimi, yapay zekâ konusuna ilgisiz DOI'ler de üretti. [Issue #164'ün ilk yorumu](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/164#issuecomment-6631854406) **KARANTİNA** etiketiyle güncellendi ve geri okunarak doğrulandı. Bu beş kayıt bilimsel bulgu veya doğrulanmış konu eşleşmesi değildir.
+
+Yeni kalite kontrol: `sort=relevance`, güncel 2024+ yayın tarihi filtresi ve konuya özgü başlık anahtarları. Konuyla eşleşmeyen başlıklar kayıt kuyruğuna alınmaz; uygun sonuç yoksa sistem fail-closed davranır. Başlık eşleşmesi bilimsel doğruluk kanıtı değildir. Üç yeni regresyon testinde önce RED, düzeltme sonrası yerel **159/159 GREEN** kaydedildi. GitHub bağımsız CI ayrıca izlenecektir.
