@@ -401,8 +401,8 @@ render_authorized_queue_panel(
     database_url=os.environ.get("AGENT_TASK_DATABASE_URL") if _TASK_STORE is not None else None,
 )
 render_colony_panel(st, answer=_team_answer if GROQ_KEY else None,
-                    owner_key=_OWNER_KEY if _MEMORY_STORE is not None else None,
-                    database_url=os.environ.get("DATABASE_URL") if _MEMORY_STORE is not None else None)
+                    owner_key=_CANO_OWNER_KEY,
+                    database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
