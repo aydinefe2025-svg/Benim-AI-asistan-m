@@ -42,7 +42,8 @@ def _docker_cli(root: Path, tool: str) -> str:
         "#!/bin/sh\nset -eu\n"
         'exec docker run --rm --network host --user 0:0 '
         '-v "$CANO_TEST_MOUNT_ROOT:$CANO_TEST_MOUNT_ROOT" '
-        '-e PGDATABASE postgres:17 ' + tool + ' "$@"\n',
+        '-e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD '
+        '-e PGDATABASE="$CANO_CI_SOURCE_DB" postgres:17 ' + tool + ' "$@"\n',
         encoding="utf-8",
     )
     path.chmod(path.stat().st_mode | stat.S_IXUSR)
@@ -112,9 +113,19 @@ def main():
             env_key = "CANO_CI_DUMP_URL"
             old_root = os.environ.get("CANO_TEST_MOUNT_ROOT")
             old_url = os.environ.get(env_key)
+            old_ci_connection = {key: os.environ.get(key) for key in (
+                "CANO_CI_SOURCE_DB", "PGHOST", "PGPORT", "PGUSER", "PGPASSWORD")}
             try:
                 os.environ["CANO_TEST_MOUNT_ROOT"] = str(root)
                 os.environ[env_key] = source
+                # pg_dump in Docker needs explicit libpq environment variables.
+                # PGDATABASE containing a URI alone is treated as a database name
+                # and otherwise falls back to an unavailable Unix socket.
+                os.environ["CANO_CI_SOURCE_DB"] = src_name
+                os.environ["PGHOST"] = parts.hostname or "localhost"
+                os.environ["PGPORT"] = str(parts.port or 5432)
+                os.environ["PGUSER"] = unquote(parts.username or "")
+                os.environ["PGPASSWORD"] = unquote(parts.password or "")
                 dump_bin = _docker_cli(root, "pg_dump")
                 restore_bin = _docker_cli(root, "pg_restore")
                 try:
@@ -195,6 +206,11 @@ def main():
                     os.environ.pop("CANO_TEST_MOUNT_ROOT", None)
                 else:
                     os.environ["CANO_TEST_MOUNT_ROOT"] = old_root
+                for key, prior in old_ci_connection.items():
+                    if prior is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = prior
         print("PASS: real PostgreSQL 17 pg_dump, parsed archive, isolated restore, "
               "two synthetic owners, exact JSONB readback, tamper detection")
     finally:
