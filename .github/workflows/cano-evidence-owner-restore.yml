@@ -1,0 +1,26 @@
+name: CANO evidence owner restore acceptance
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cano-evidence-owner-restore.yml"
+      - "pages/01_CANO_Kaynak_Denetimi.py"
+      - "tests/test_cano_evidence_owner_restore.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-owner-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Check owner restore gate and no-overwrite behavior
+        run: python -m unittest discover -s tests -p 'test_cano_evidence_owner_restore.py' -v
