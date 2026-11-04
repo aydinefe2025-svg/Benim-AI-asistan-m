@@ -1,0 +1,28 @@
+name: Memory import no-loss regression
+
+on:
+  push:
+    branches: [fix/issue48-memory-import-no-loss-20261104]
+  pull_request:
+    branches: [release/issue-48-ffa863a]
+    paths:
+      - "core/user_memory.py"
+      - "app.py"
+      - "tests/test_memory_merge_safety.py"
+      - ".github/workflows/memory-merge-safety.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  memory-merge-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Memory merge tests
+        run: python -m unittest discover -s tests -p 'test_memory_merge_safety.py' -v
+      - name: Existing user memory tests
+        run: python -m unittest discover -s tests -p 'test_user_memory.py' -v
