@@ -62,3 +62,28 @@ class RestoreUIApprovalTests(unittest.TestCase):
             self.assertEqual(AgentColony(path).get("owner-agent")["role"], "research")
             self.assertTrue(any(level == "success" for level, _ in st.messages))
             self.assertTrue(any(level == "rerun" for level, _ in st.messages))
+
+    def test_archived_backup_requires_fresh_owner_confirmation(self):
+        from unittest.mock import Mock
+        from core.colony_restore import restore_owner_backup
+        with tempfile.TemporaryDirectory() as tmp:
+            target = AgentColony(Path(tmp) / "old-restore.sqlite3")
+            store = Mock()
+            store.load_archived.return_value = {
+                "agents": [{"id": "historical-founder", "parent_id": None,
+                            "generation": 0, "role": "research",
+                            "instructions": "Safe past instructions",
+                            "state": "active", "created_at": "2026-11-04"}],
+                "feedback": [], "reviews": [], "missions": []}
+            with self.assertRaises(PermissionError):
+                restore_owner_backup(target, store, "authenticated-user",
+                                     approved=False, revision=11)
+            store.load_archived.assert_not_called()
+            self.assertEqual(restore_owner_backup(
+                target, store, "authenticated-user",
+                approved=True, revision=11), 1)
+            store.load_archived.assert_called_once_with("authenticated-user", 11)
+            self.assertEqual(target.get("historical-founder")["role"], "research")
+            with self.assertRaises(RuntimeError):
+                restore_owner_backup(target, store, "authenticated-user",
+                                     approved=True, revision=11)
