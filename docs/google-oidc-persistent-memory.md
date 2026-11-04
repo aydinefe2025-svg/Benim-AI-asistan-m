@@ -5,7 +5,7 @@ The application supports optional Streamlit Google OIDC login and PostgreSQL-bac
 ## Google OIDC setup
 
 1. In Google Cloud Console, create an OAuth client of type **Web application**. Add this exact authorized redirect URI: `https://benim-ai-asistan-streamlit.onrender.com/oauth2callback`.
-2. In Render, create a Secret File at `.streamlit/secrets.toml` using `.streamlit/secrets.toml.example` as the template. Put the real client ID, client secret, and a long random cookie secret in Render's dashboard only. Never put credentials in Git, logs, or chat.
+2. In Render, create a Secret File at `.streamlit/secrets.toml` using `.streamlit/secrets.toml.example` as the template. Put the real client ID, client secret, and separate long random values for `cookie_secret` and `owner_key_secret` in Render's dashboard only. Never put credentials in Git, logs, or chat; keep `owner_key_secret` stable when rotating the cookie secret.
 3. Verify the Secret File is installed before setting `APP_AUTH_REQUIRED=true` in Render. That setting activates a login gate for the whole app. Streamlit's native OIDC requires Streamlit 1.42 or newer; see [Streamlit authentication](https://docs.streamlit.io/develop/concepts/connections/authentication).
 
 The app reads Google OIDC settings from the `[auth]` section in `.streamlit/secrets.toml`; standalone `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment variables are not used by this implementation. Google login does not require `DATABASE_URL`. Do not start a Google Cloud free trial for this setup.
@@ -28,6 +28,8 @@ Grant that application role only `SELECT, INSERT, UPDATE, DELETE` on this table 
 
 ## Data and rollout
 
-The app derives an opaque owner key from the verified OIDC issuer and subject using the cookie secret; email is never used as an ownership key. Imported notes are upserted in one transaction and scoped by that owner key. Existing session-only SQLite research tasks are not migrated by this feature. Export user-controlled task data before any deployment or auth rollout that could affect access to existing data. No live data is copied or altered by this code change.
+The app derives an opaque owner key from the verified OIDC issuer and subject using the separate stable `owner_key_secret`; email is never used as an ownership key. Imported notes are upserted in one transaction and scoped by that owner key. Existing session-only SQLite research tasks are not migrated by this feature. Export user-controlled task data before any deployment or auth rollout that could affect access to existing data. No live data is copied or altered by this code change.
+
+For persistent task records, configure a separate `AGENT_TASK_DATABASE_URL`; do not reuse `DATABASE_URL`, which is reserved for personal memory. On first start the app creates owner-scoped `agent_research_*` tables, so the role must own the tables or have schema create privileges. Every task, draft, and event query is scoped to the authenticated owner key. Existing SQLite task data is not migrated. Set this URL only after `APP_AUTH_REQUIRED=true` and the OIDC Secret File are verified.
 
 Roll out through a reviewed GitHub change and a planned Render deploy after credentials and backups are ready. No paid action or deployment is performed by this change.

@@ -21,7 +21,8 @@ def export_research_archive(store: TaskStore) -> bytes:
     items = []
     for task in tasks:
         item = dict(task)
-        item["draft"] = load_draft(store.db_path, task["id"])
+        item["draft"] = (store.load_draft(task["id"]) if hasattr(store, "load_draft")
+                         else load_draft(store.db_path, task["id"]))
         item["history"] = store.history(task["id"])
         items.append(item)
     payload = {

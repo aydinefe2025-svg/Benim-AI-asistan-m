@@ -27,18 +27,21 @@ def _session_database_path(st, configured_path: str) -> Path:
     return base.with_name(f"{base.stem}.{session_id}{suffix}")
 
 
-def render_task_panel(st, answer=None) -> None:
+def render_task_panel(st, answer=None, *, store_override=None) -> None:
     with st.sidebar.expander("📋 Araştırma görevleri", expanded=False):
-        st.caption(
-            "Görevler yalnızca bu tarayıcı oturumuna ait SQLite dosyasına yerel/geçici olarak kaydedilir. "
-            "Render ücretsiz diskinde yeniden dağıtım veya sunucu değişiminde kaybolabilir. "
-            "Araştırma yalnızca kullanıcı düğmeye bastığında çalışır; sonuç doğrulanmamış taslaktır."
-        )
-        db_path = os.environ.get("AGENT_TASK_DB_PATH", "data/agent_tasks.sqlite3")
+        if store_override is not None:
+            st.caption("Görevler giriş yapan hesabınıza ait kalıcı depoda tutulur. Araştırma yalnızca kullanıcı düğmeye bastığında çalışır; sonuç doğrulanmamış taslaktır.")
+        else:
+            st.caption("Görevler yalnızca bu tarayıcı oturumuna ait SQLite dosyasına yerel/geçici olarak kaydedilir. Render ücretsiz diskinde yeniden dağıtım veya sunucu değişiminde kaybolabilir. Araştırma yalnızca kullanıcı düğmeye bastığında çalışır; sonuç doğrulanmamış taslaktır.")
         try:
-            store = TaskStore(_session_database_path(st, db_path))
-            recovered = recover_stale_running(store.db_path, stale_after_seconds=3600)
-        except (OSError, ValueError, sqlite3.Error):
+            if store_override is not None:
+                store = store_override
+                recovered = store.recover_stale_running(stale_after_seconds=3600)
+            else:
+                db_path = os.environ.get("AGENT_TASK_DB_PATH", "data/agent_tasks.sqlite3")
+                store = TaskStore(_session_database_path(st, db_path))
+                recovered = recover_stale_running(store.db_path, stale_after_seconds=3600)
+        except Exception:
             st.error("Görev veritabanı açılamadı; kayıt yapılmadı.")
             return
 
@@ -67,7 +70,7 @@ def render_task_panel(st, answer=None) -> None:
                 try:
                     imported = import_research_archive(store, backup_upload.getvalue())
                     st.success(f"{imported} görev içe aktarıldı. Eski kayıtlar korunuyor.")
-                except (ValueError, OSError):
+                except Exception:
                     st.error("Yedek geçersiz veya veritabanı erişilemiyor; içe aktarma yapılamadı.")
         tasks = store.list()
         st.caption(f"Yerel kayıt sayısı: {len(tasks)}")
@@ -81,7 +84,7 @@ def render_task_panel(st, answer=None) -> None:
                 mime="application/json",
                 key="download_research_tasks",
             )
-        except (ValueError, OSError, sqlite3.Error):
+        except Exception:
             st.warning("Araştırma yedeği oluşturulamadı.")
         for task in tasks[-30:]:
             st.text(f"{task['title']} — {'İnceleme bekliyor' if task['status'] == 'review_pending' else task['status']}")
@@ -92,7 +95,8 @@ def render_task_panel(st, answer=None) -> None:
             if task["evidence"]:
                 st.text("Kanıt notları: " + "; ".join(task["evidence"]))
 
-            draft = load_draft(store.db_path, task["id"])
+            draft = (store.load_draft(task["id"]) if hasattr(store, "load_draft")
+                     else load_draft(store.db_path, task["id"]))
             if draft:
                 st.text_area("Doğrulanmamış araştırma taslağı", value=draft,
                              height=160, disabled=True, key="draft_" + task["id"])
@@ -136,6 +140,6 @@ def render_task_panel(st, answer=None) -> None:
                     )
                     st.success("Görev durumu güncellendi.")
                     st.rerun()
-                except (KeyError, ValueError, sqlite3.Error):
+                except Exception:
                     st.warning("Durum güncellenemedi; görev yeniden okunup kontrol edilmeli.")
 
