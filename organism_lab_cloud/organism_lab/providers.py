@@ -32,7 +32,14 @@ def trained_local_ready(*, transport=None):
 class ProviderError(RuntimeError):
     pass
 
-def generate(prompt, provider="offline", *, transport=None):
+GROQ_MODEL_OPTIONS = (
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
+    "meta-models/muse-spark-open",
+)
+
+def generate(prompt, provider="offline", *, transport=None, model=None, system_prompt=None):
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError("Prompt required")
     if provider == "offline":
@@ -67,14 +74,19 @@ def generate(prompt, provider="offline", *, transport=None):
         raise ValueError("Unsupported provider")
     env_url, default_url, env_model, default_model = config[provider]
     url = os.getenv(env_url, default_url)
-    model = os.getenv(env_model, default_model)
+    model = model or os.getenv(env_model, default_model)
+    if provider == "groq" and model not in GROQ_MODEL_OPTIONS:
+        raise ValueError("Unsupported Groq model")
     if provider == "groq":
         if not _trusted_groq_endpoint(url):
             raise ProviderError("Groq endpoint must be the trusted HTTPS API endpoint")
         key = os.getenv("GROQ_API_KEY")
         if not key:
             raise ProviderError("GROQ_API_KEY is missing")
-        payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": 512}
+        messages = ([{"role": "system", "content": system_prompt}]
+                    if isinstance(system_prompt, str) and system_prompt.strip() else [])
+        messages.append({"role": "user", "content": prompt})
+        payload = {"model": model, "messages": messages, "max_tokens": 512}
         headers = {"Authorization": "Bearer " + key}
     else:
         # Qwen3 may spend its entire response budget in a hidden reasoning
