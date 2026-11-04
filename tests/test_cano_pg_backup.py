@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from cano_pg_backup import BackupError, make_backup, verify_backup
+from cano_pg_backup import BackupError, _libpq_env_from_url, make_backup, verify_backup
 
 
 class BackupTests(unittest.TestCase):
@@ -83,6 +83,15 @@ class BackupTests(unittest.TestCase):
         with self.assertRaises(BackupError):
             make_backup(self.dest, dump_bin=str(bad), restore_bin=self.restore)
         self.assertEqual(list(self.dest.glob('*')), [])
+
+    def test_rejects_null_byte_database_name(self):
+        with self.assertRaises(BackupError):
+            _libpq_env_from_url("postgresql://ci:synthetic@localhost/ci%00db")
+
+    def test_rejects_remote_tls_downgrade(self):
+        with self.assertRaises(BackupError):
+            _libpq_env_from_url(
+                "postgresql://ci:synthetic@remote.example.invalid/db?sslmode=disable")
 
     def test_rejects_missing_url(self):
         with patch.dict(os.environ, {"DATABASE_URL": ""}):
