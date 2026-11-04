@@ -8,6 +8,7 @@ on:
       - core/postgres_leader_lease.py
       - scripts/check_cano_pg_queen_lease.py
       - scripts/provision_cano_queen_leases.sql
+      - tests/test_postgres_leader_lease.py
       - .github/workflows/cano-queen-lease.yml
   workflow_dispatch:
 
@@ -18,9 +19,13 @@ jobs:
   real-pg-lease:
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres_version: ["17", "18"]
     services:
       postgres:
-        image: postgres:17
+        image: postgres:${{ matrix.postgres_version }}
         env:
           POSTGRES_USER: ci_user
           POSTGRES_PASSWORD: synthetic-ci-only
