@@ -115,22 +115,37 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
         st.error("CANO ajan kayıtları açılamadı; görev çalıştırılmadı.")
         return
 
-    # A new Streamlit session has an empty ephemeral SQLite file. Never turn
-    # "prepare team" into an implicit overwrite of this owner's existing
-    # PostgreSQL-backed experts, missions, or source evidence.
-    if backup_store is not None and status["agents"] == 0:
+    # Bind the session to the authenticated owner and the snapshot it read.
+    # Compare-and-swap is checked atomically inside PostgreSQL before writing.
+    if backup_store is not None:
+        previous_owner = st.session_state.get("_cano_backup_owner_key")
+        if previous_owner and previous_owner != owner_key and status["agents"]:
+            st.error("Bu oturumda hesap değişti; önceki hesabın CANO kayıtları başka hesaba aktarılmadı. Yeni oturum açın.")
+            return
+        if previous_owner != owner_key:
+            st.session_state.pop("_cano_backup_expected", None)
+            st.session_state["_cano_backup_owner_key"] = owner_key
         try:
             remote_snapshot = backup_store.load(owner_key)
         except Exception:
             st.error("Kalıcı CANO yedeği okunamadı; mevcut kayıtları korumak için yeni ekip oluşturulmadı.")
             return
-        if remote_snapshot is not None and any(
+        if remote_snapshot is not None and not isinstance(remote_snapshot, dict):
+            st.error("Hesabın kalıcı CANO yedeği geçersiz; kayıtların üzerine yazılmadı.")
+            return
+        if status["agents"] == 0 and remote_snapshot is not None and any(
                 remote_snapshot.get(name)
                 for name in ("agents", "feedback", "reviews", "missions")):
             st.warning("Bu hesabın kalıcı CANO yedeği var. Yeni ekip hazırlamadan önce "
                        "yan menüdeki 'Öğrenen uzman ajanlar' bölümünden hesabınıza "
                        "ait yedeği onaylayarak geri yükleyin; önceki görevler korunacak.")
             return
+        if "_cano_backup_expected" not in st.session_state:
+            if status["agents"] and remote_snapshot is not None and remote_snapshot != _snapshot(colony):
+                st.error("Bu oturumun CANO kayıtları hesaptaki güncel yedekle uyuşmuyor; "
+                         "yeni görev başlatılmadı. Önce mevcut oturumu yedekleyin.")
+                return
+            st.session_state["_cano_backup_expected"] = remote_snapshot
 
     # Streamlit rejects changing a widget's key after that widget has rendered.
     # Apply pending updates from restore/clear at the START of the next rerun.
@@ -189,7 +204,11 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
 
     def _checkpoint():
         if backup_store is not None:
-            backup_store.save_versioned_verified(owner_key, _snapshot(colony))
+            snapshot = _snapshot(colony)
+            backup_store.save_versioned_verified(
+                owner_key, snapshot,
+                expected_prior=st.session_state["_cano_backup_expected"])
+            st.session_state["_cano_backup_expected"] = snapshot
 
     cols = st.columns(4)
     for col, label, value in zip(
