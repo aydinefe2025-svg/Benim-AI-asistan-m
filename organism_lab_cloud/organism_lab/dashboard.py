@@ -146,7 +146,7 @@ selected_agent = st.selectbox(
     format_func=lambda key: AGENT_PROFILES[key][0], key="organism_agent_role",
     help="Ajan profilleri yalnızca kullanıcının başlattığı yanıta yön verir; araç izni veya kendi kendine işlem yetkisi vermez. Açıkça kaydedilmiş notlar ortak hafıza olarak bağlamda kullanılır.",
 )
-st.caption("Ajanların notlarla bağlam öğrenmesi açıkça kaydedilen notlarla sınırlıdır. Sohbetler kendiliğinden saklanmaz ve model ağırlıkları eğitilmez.")
+st.caption("Ajanlar yalnızca açıkça kaydedilen notları bağlam olarak kullanır. Gönderilen bulut sohbetleri özel arşivde saklanır; sohbetler model ağırlıklarını eğitmez.")
 learning_query = st.text_area("Asistana sor" if CLOUD_MODE else "Yerel asistana sor", max_chars=4000, key="learning_query")
 ask_local_clicked = st.button("Groq'a sor" if CLOUD_MODE and selected_provider == "groq" else "Yanıt üret" if CLOUD_MODE else "Yerel Qwen'e sor", key="local_learning_chat", disabled=CLOUD_MODE and not groq_configured)
 if ask_local_clicked:
@@ -172,7 +172,7 @@ if ask_local_clicked:
                     "question": learning_query,
                     "answer": response.get("text", ""),
                     "saved_note_count": len(relevant),
-                }, ensure_ascii=False, allow_nan=False) + "\\n")
+                }, ensure_ascii=False, allow_nan=False) + "\n")
         st.session_state["local_learning_provider"] = response.get("provider", "ollama")
     except (ProviderError, OSError, ValueError, RuntimeError) as exc:
         st.error(f"Model yanıt vermedi ({type(exc).__name__}); kaydedilmiş hafıza korunuyor.")
@@ -180,7 +180,7 @@ if st.session_state.get("local_learning_answer"):
     st.markdown("**Ajan yanıtı**")
     st.write(st.session_state["local_learning_answer"])
     st.caption(f"Model: {st.session_state.get('local_learning_provider', 'ollama')} · eklenen kayıtlı not: {st.session_state.get('local_learning_context_count', 0)}")
-with st.expander("Bu oturumdaki hafıza notları" if CLOUD_MODE else "Bu bilgisayarda saklanan hafıza notları"):
+with st.expander("Hesabımda saklanan kalıcı notlar" if CLOUD_MODE else "Bu bilgisayarda saklanan hafıza notları"):
     memory_rows = list_memories(OUTPUT_DIR)
     if memory_rows:
         st.dataframe([{"Başlık": row["topic"], "Not": row["content"],
