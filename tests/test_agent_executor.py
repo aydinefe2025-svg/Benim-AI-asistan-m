@@ -62,6 +62,30 @@ class ResearchExecutorTests(unittest.TestCase):
         self.assertIsNone(load_draft(self.store.db_path, self.task["id"]))
         self.assertNotIn("review_pending", [x["new_status"] for x in self.store.history(self.task["id"])])
 
+    def test_external_block_during_provider_is_preserved(self):
+        task_id = self.task["id"]
+        def cancelled(_):
+            self.store.transition(task_id, "blocked", note="Cancelled by operator")
+            return "Draft should not be stored"
+        result = run_research_task(self.store, task_id, cancelled)
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(self.store.get(task_id)["status"], "blocked")
+        self.assertIsNone(load_draft(self.store.db_path, task_id))
+
+    def test_heartbeat_error_cannot_save_provider_draft(self):
+        from contextlib import contextmanager
+        from unittest.mock import patch
+
+        @contextmanager
+        def heartbeat_failure(*_args, **_kwargs):
+            yield
+            raise RuntimeError("Heartbeat failed")
+
+        with patch("core.agent_executor.running_heartbeat", heartbeat_failure):
+            result = run_research_task(self.store, self.task["id"], lambda _: "Unsaved draft")
+        self.assertEqual(result["status"], "blocked")
+        self.assertIsNone(load_draft(self.store.db_path, self.task["id"]))
+
     def test_interrupted_task_can_be_explicitly_recovered(self):
         def interrupt(_):
             raise KeyboardInterrupt()
