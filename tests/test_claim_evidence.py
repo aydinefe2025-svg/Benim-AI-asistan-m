@@ -7,6 +7,7 @@ from pathlib import Path
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.claim_evidence import audit_claim_quotes
+from core.targeted_research import execute_targeted_research
 
 
 DOI = "10.1038/nprot.2013.143"
@@ -96,12 +97,13 @@ class ClaimQuoteAuditTests(unittest.TestCase):
             reader=lambda doi: {
                 "doi": doi, "status": "metadata_only", "excerpt": QUOTE,
                 "url": "https://doi.org/" + doi, "claim_verified": False})
-        got = audit_claim_quotes(
-            self.manager, self.mission_id,
-            client=QuoteModel([{"claim": "Nucleases were used", "doi": DOI,
-                                "quote": QUOTE}]), model="stub")
-        self.assertEqual(got[0]["status"], "quote_not_found")
-        self.assertIsNone(got[0]["citation_url"])
+        model = QuoteModel([{"claim": "Nucleases were used", "doi": DOI,
+                             "quote": QUOTE}])
+        # Metadata cannot support a quote: reject before spending provider calls.
+        with self.assertRaises(ValueError):
+            audit_claim_quotes(self.manager, self.mission_id,
+                               client=model, model="stub")
+        self.assertEqual(model.calls, [])
 
     def test_refuses_to_spend_model_call_when_no_source_excerpt(self):
         model = QuoteModel([{"claim": "Something", "doi": DOI, "quote": QUOTE}])
@@ -133,10 +135,11 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertTrue(all(row["claim_verified"] is False for row in got))
 
     def test_requested_doi_wins_over_unrelated_crossref_candidates(self):
-        record = self.manager.execute(
+        record = execute_targeted_research(
+            self.manager,
             "Explicitly inspect DOI " + DOI + " and distinguish other studies",
             client=DraftModel(), model="stub",
-            source_lookup=lambda q, limit=3: [
+            lookup=lambda q, limit=3: [
                 {"title":"Unrelated A","url":"https://doi.org/10.7777/a"},
                 {"title":"Unrelated B","url":"https://doi.org/10.7777/b"},
                 {"title":"Unrelated C","url":"https://doi.org/10.7777/c"}])
