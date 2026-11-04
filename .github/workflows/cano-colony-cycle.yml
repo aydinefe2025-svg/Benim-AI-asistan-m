@@ -39,16 +39,19 @@ jobs:
           restore-keys: |
             cano-colony-db-${{ github.ref_name }}-
       - name: Restore last GitHub audit artifact when cache is missing
-        if: steps.colony_cache.outputs.cache-matched-key == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          previous_run="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow cano-colony-cycle.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
-          if [[ -n "$previous_run" ]]; then
-            mkdir -p artifacts
-            gh run download "$previous_run" --repo "$GITHUB_REPOSITORY" --name "cano-colony-cycle-$previous_run" --dir artifacts
+          if [[ -f artifacts/colony-cycle.sqlite3 ]]; then
+            echo "Previous SQLite restored by cache; skip archive extraction"
           else
-            echo "No prior successful CANO run; starting fresh"
+            previous_run="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow cano-colony-cycle.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+            if [[ -n "$previous_run" ]]; then
+              mkdir -p artifacts
+              gh run download "$previous_run" --repo "$GITHUB_REPOSITORY" --name "cano-colony-cycle-$previous_run" --dir artifacts
+            else
+              echo "No prior successful CANO run; starting fresh"
+            fi
           fi
       - name: Reject damaged restored state before advancing
         run: |
