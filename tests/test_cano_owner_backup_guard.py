@@ -1,0 +1,61 @@
+"""Prevent a fresh authenticated session from replacing a nonempty owner backup."""
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from core.agent_colony import AgentColony
+from core.cano_command_center import render_cano_command_center
+from core.task_panel import _session_database_path
+from tests.test_cano_command_center import FakeModel, FakeStreamlit
+
+
+class AuthenticatedBackupGuardTests(unittest.TestCase):
+    def test_fresh_session_cannot_replace_owner_backup_by_preparing_team(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = str(Path(temp) / "colony.sqlite3")
+            st = FakeStreamlit(clicks={"cano_prepare_team"})
+            model = FakeModel()
+            saved = {"agents": [{
+                "id": "existing-founder", "parent_id": None,
+                "generation": 0, "role": "research",
+                "instructions": "Research", "state": "active",
+                "created_at": "2026-11-04"}],
+                "feedback": [], "reviews": [], "missions": []}
+            with (patch.dict("os.environ", {
+                    "AGENT_COLONY_DB_PATH": base, "APP_AUTH_REQUIRED": "true"}),
+                  patch("core.cano_command_center.ColonySnapshotStore") as Store):
+                Store.return_value.load.return_value = saved
+                render_cano_command_center(
+                    st, answer=model, owner_key="owner-123",
+                    database_url="postgresql://synthetic-test")
+                Store.return_value.load.assert_called_with("owner-123")
+                Store.return_value.save_versioned_verified.assert_not_called()
+                self.assertIn("geri yükle", " ".join(st.messages).lower())
+                local = AgentColony(_session_database_path(st, base))
+                with local._db() as db:
+                    self.assertEqual(db.execute(
+                        "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 0)
+            self.assertEqual(model.calls, [])
+
+    def test_fresh_session_fails_closed_if_existing_backup_cannot_be_read(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = str(Path(temp) / "colony.sqlite3")
+            st = FakeStreamlit(clicks={"cano_prepare_team"})
+            with (patch.dict("os.environ", {
+                    "AGENT_COLONY_DB_PATH": base, "APP_AUTH_REQUIRED": "true"}),
+                  patch("core.cano_command_center.ColonySnapshotStore") as Store):
+                Store.return_value.load.side_effect = OSError("private connection info")
+                render_cano_command_center(
+                    st, answer=FakeModel(), owner_key="owner-123",
+                    database_url="postgresql://synthetic-test")
+                Store.return_value.save_versioned_verified.assert_not_called()
+                self.assertNotIn("private connection info", " ".join(st.messages))
+                local = AgentColony(_session_database_path(st, base))
+                with local._db() as db:
+                    self.assertEqual(db.execute(
+                        "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 0)
+
+
+if __name__ == "__main__":
+    unittest.main()

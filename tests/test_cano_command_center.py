@@ -331,6 +331,7 @@ class CommandCenterTests(unittest.TestCase):
         with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
               patch.object(ColonySnapshotStore, "__init__", return_value=None),
               patch.object(ColonySnapshotStore, "initialize") as setup,
+              patch.object(ColonySnapshotStore, "load", return_value=None),
               patch.object(ColonySnapshotStore, "save_versioned_verified",
                            return_value=True) as save):
             render_cano_command_center(
@@ -368,6 +369,7 @@ class CommandCenterTests(unittest.TestCase):
         with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
               patch.object(ColonySnapshotStore, "__init__", return_value=None),
               patch.object(ColonySnapshotStore, "initialize"),
+              patch.object(ColonySnapshotStore, "load", return_value=None),
               patch.object(ColonySnapshotStore, "save_versioned_verified",
                            return_value=True) as save):
             render_cano_command_center(st, answer=interrupted, owner_key="owner",
