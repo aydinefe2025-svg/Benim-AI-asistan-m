@@ -21,6 +21,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Restore prior verified colony database
+        uses: actions/cache@v4
+        with:
+          path: artifacts/colony-cycle.sqlite3
+          key: cano-colony-db-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            cano-colony-db-${{ github.ref_name }}-
       - name: Run bounded cycle
         env:
           CANO_CYCLE_OUTPUT: artifacts/colony-cycle.json
