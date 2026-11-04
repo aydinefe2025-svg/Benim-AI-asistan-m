@@ -76,6 +76,26 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(again, result)
         self.assertEqual(len(model.calls), 1)
 
+    def test_quote_outside_supplied_excerpt_is_not_cited(self):
+        self.manager.inspect_source_documents(
+            self.mission_id,
+            reader=lambda doi: {
+                "doi": doi, "status": "full_text_excerpt",
+                "url": "https://doi.org/" + doi,
+                "excerpt": QUOTE,
+                "claim_verified": False})
+        stages = self.manager.get(self.mission_id)["stages"]
+        stages[0]["source_documents"][0]["excerpt"] = "intro " * 160 + QUOTE
+        with self.manager.colony._db() as db:
+            db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
+                       (json.dumps(stages), self.mission_id))
+        model = QuoteModel([{"claim": "A claim", "doi": DOI, "quote": QUOTE}])
+        result = audit_claim_quotes(self.manager, self.mission_id,
+                                    client=model, model="stub")
+        self.assertNotIn(QUOTE, model.calls[0][2])
+        self.assertEqual(result[0]["status"], "quote_not_found")
+        self.assertIsNone(result[0]["citation_url"])
+
     def test_hallucinated_quote_or_doi_cannot_be_validated(self):
         self.add_excerpt()
         model = QuoteModel([
