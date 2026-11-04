@@ -193,6 +193,34 @@ def render_cano_command_center(st, answer=None):
                             st.link_button("DOI adayı: " + lead["title"][:90],
                                            lead["url"])
 
+    if latest_id:
+        try:
+            inspected = manager.get(latest_id)
+        except (KeyError, ValueError, sqlite3.Error):
+            inspected = None
+        if inspected and inspected["status"] == "review_pending" and inspected["stages"]:
+            planner_stage = inspected["stages"][0]
+            if planner_stage.get("source_leads"):
+                with st.expander("📑 Gerçek kaynak metnini incele", expanded=False):
+                    st.caption("Açık seçimle Europe PMC'den en fazla iki açık erişim "
+                               "makalesi veya özet metni okunur; sorgu DOI numarasıdır. "
+                               "Belge alıntısı bir iddianın doğrulandığı anlamına gelmez.")
+                    if st.button("Kaynak belgelerini oku ve göreve kaydet",
+                                 key="cano_read_sources_" + latest_id):
+                        try:
+                            manager.inspect_source_documents(latest_id)
+                            st.rerun()
+                            return
+                        except (RuntimeError, ValueError, OSError, sqlite3.Error):
+                            st.error("Kaynak okuma başarısız; görev taslağı korunuyor.")
+                    for doc in planner_stage.get("source_documents", []):
+                        st.caption(doc.get("title", "Kaynak") + ": " +
+                                   doc.get("status", "unavailable") +
+                                   " — iddia doğrulama yapılmadı.")
+                        st.link_button("Kaynağı aç", doc["url"])
+                        if doc.get("excerpt"):
+                            st.caption("Belgeden kısa metin: " + doc["excerpt"])
+
     if status["history"]:
         st.caption("Bu oturumda kayıtlı son ekip görevleri: " +
                    " · ".join(x["task"][:45] + " (" + x["status"] + ")"
