@@ -7,6 +7,7 @@ No claim of factual verification, independent model training or autonomous work.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -15,6 +16,34 @@ from core.agent_colony import AgentColony
 
 
 STAGE_ROLES = ("planner", "researcher", "reviewer", "synthesis")
+# A restricted DOI URL is the only external link accepted into research prompts.
+DOI_LEAD_URL = re.compile(
+    r"^https://doi\.org/10\.\d{4,9}/[A-Za-z0-9._;()/:+%\-]{1,180}$",
+    re.IGNORECASE,
+)
+
+
+def normalize_source_leads(candidates):
+    """Constrain untrusted external metadata to short unverified DOI leads."""
+    if not isinstance(candidates, list):
+        return []
+    leads, seen = [], set()
+    for candidate in candidates[:8]:
+        if not isinstance(candidate, dict):
+            continue
+        url, title = candidate.get("url"), candidate.get("title")
+        if not isinstance(url, str) or not DOI_LEAD_URL.fullmatch(url):
+            continue
+        if not isinstance(title, str) or not title.strip() or url in seen:
+            continue
+        seen.add(url)
+        clean_title = " ".join(title.split())[:180]
+        leads.append({"title": clean_title, "url": url, "verified": False,
+                      "stage": "source_lead", "retrieval": "publisher_metadata"})
+        if len(leads) == 3:
+            break
+    return leads
+
 
 
 class CollaborativeMission:
@@ -37,19 +66,23 @@ class CollaborativeMission:
         return (roles.get("research-planner", roles["research"]),
                 roles["research"], roles["evidence-reviewer"])
 
-    def execute(self, task, *, client, model):
+    def execute(self, task, *, client, model, source_lookup=None):
         if not isinstance(task, str) or not task.strip() or len(task) > 1200:
             raise ValueError("Task must be 1–1200 characters")
         self._agents()  # Validate before creating a mission record.
+        if source_lookup is not None and not callable(source_lookup):
+            raise ValueError("Source lookup must be callable")
         mission_id = str(uuid.uuid4())
         with self.colony._db() as db:
             db.execute("INSERT INTO colony_missions VALUES (?,?,?,?,?)",
                        (mission_id, task.strip(), "[]", "running",
                         datetime.now(timezone.utc).isoformat()))
-        return self._run(mission_id, client=client, model=model)
+        return self._run(mission_id, client=client, model=model, source_lookup=source_lookup)
 
-    def resume(self, mission_id, *, client, model):
+    def resume(self, mission_id, *, client, model, source_lookup=None):
         """Resume only a blocked mission, never duplicate a running mission."""
+        if source_lookup is not None and not callable(source_lookup):
+            raise ValueError("Source lookup must be callable")
         with self.colony._db() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT status FROM colony_missions WHERE id=?",
@@ -64,9 +97,9 @@ class CollaborativeMission:
                 raise RuntimeError("Mission is already running")
             db.execute("UPDATE colony_missions SET status='running' "
                        "WHERE id=? AND status='blocked'", (mission_id,))
-        return self._run(mission_id, client=client, model=model)
+        return self._run(mission_id, client=client, model=model, source_lookup=source_lookup)
 
-    def _run(self, mission_id, *, client, model):
+    def _run(self, mission_id, *, client, model, source_lookup=None):
         calls = 0
         try:
             planner, researcher, reviewer = self._agents()
@@ -89,6 +122,13 @@ class CollaborativeMission:
                     prompt = ("Investigate this goal following the plan. Distinguish "
                               "unverified claims. Goal: " + task
                               + "\nPlan:\n" + stages[0]["output"][:6000])
+                    if "source_leads" in stages[0]:
+                        # External metadata is untrusted data, never instructions
+                        # or primary-source verification.
+                        prompt += ("\nUNVERIFIED Crossref bibliographic leads; "
+                                   "do not imply their full texts were read:\n"
+                                   + json.dumps(stages[0]["source_leads"],
+                                                ensure_ascii=False)[:2800])
                 elif index == 2:
                     agent_id = reviewer
                     prompt = ("Critique factual support, assumptions and gaps. Do not claim "
@@ -103,8 +143,21 @@ class CollaborativeMission:
                 result = self.colony.run(agent_id, prompt, client=client, model=model,
                                          internal_review=(index > 0))
                 calls += 1
-                stages.append({"role": STAGE_ROLES[index], "agent_id": agent_id,
-                               "output": result["output"]})
+                stage = {"role": STAGE_ROLES[index], "agent_id": agent_id,
+                         "output": result["output"]}
+                if index == 0 and source_lookup is not None:
+                    # No external request unless the UI explicitly opted in.
+                    # Network/metadata failures do not turn an empty lead list
+                    # into invented citations or block the model-only task.
+                    try:
+                        candidates = source_lookup(task[:200], limit=3)
+                        stage["source_leads"] = normalize_source_leads(candidates)
+                        stage["source_lookup_status"] = (
+                            "metadata_only" if stage["source_leads"] else "no_candidates")
+                    except Exception:
+                        stage["source_leads"] = []
+                        stage["source_lookup_status"] = "unavailable"
+                stages.append(stage)
                 with self.colony._db() as db:
                     cursor = db.execute(
                         "UPDATE colony_missions SET stages=? "
