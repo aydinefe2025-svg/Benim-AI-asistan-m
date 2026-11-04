@@ -26,6 +26,13 @@ class PostgresMemoryStore:
     def _connection(self):
         return self._connect(self.database_url, connect_timeout=8)
 
+    def verify_schema(self):
+        """Check the memory table with read-only SQL; never migrate at app startup."""
+        with self._connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT owner_key, entry_id, payload, updated_at "
+                            "FROM public.private_memory_entries LIMIT 0")
+
     def initialize(self):
         with self._connection() as conn:
             with conn.cursor() as cur:
