@@ -1,4 +1,5 @@
 import tempfile
+from datetime import datetime, timedelta, timezone
 import unittest
 from pathlib import Path
 
@@ -44,14 +45,59 @@ class CollaborativeMissionTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.missions.execute("Valid", client=FakeClient(), model="fake")
 
-    def test_model_failure_does_not_write_completed_mission(self):
-        class BrokenClient:
+    def test_model_failure_checkpoints_and_resume_skips_completed_stages(self):
+        class FailingOnce:
+            def __init__(self):
+                self.calls = 0
+
             def chat(self, model, system, prompt):
-                raise RuntimeError("Provider down")
+                self.calls += 1
+                if self.calls == 3:
+                    raise RuntimeError("Provider down")
+                return "Result " + str(self.calls)
+
+        client = FailingOnce()
         with self.assertRaises(RuntimeError):
-            self.missions.execute("Valid", client=BrokenClient(), model="fake")
+            self.missions.execute("Valid", client=client, model="fake")
+        interrupted = self.missions.interrupted()
+        self.assertEqual(len(interrupted), 1)
+        self.assertEqual(interrupted[0]["status"], "blocked")
+        partial = self.missions.get(interrupted[0]["id"])
+        self.assertEqual([s["role"] for s in partial["stages"]],
+                         ["planner", "researcher"])
+        result = self.missions.resume(partial["id"], client=client, model="fake")
+        self.assertEqual(result["status"], "review_pending")
+        self.assertEqual(result["model_calls"], 2)
+        self.assertEqual(client.calls, 5)
+        self.assertEqual([s["output"] for s in result["stages"][:2]],
+                         ["Result 1", "Result 2"])
+        self.assertEqual(self.missions.resume(partial["id"], client=client,
+                                               model="fake")["model_calls"], 0)
+        self.assertEqual(client.calls, 5)
+        self.assertEqual(self.missions.interrupted(), [])
+
+    def test_stale_running_requires_recovery_before_resume(self):
+        mission_id = "running-test"
+        old_time = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
         with self.colony._db() as db:
-            self.assertEqual(db.execute("SELECT COUNT(*) FROM colony_missions").fetchone()[0], 0)
+            db.execute("INSERT INTO colony_missions VALUES (?,?,?,?,?)",
+                       (mission_id, "Valid", "[]", "running", old_time))
+        with self.assertRaises(RuntimeError):
+            self.missions.resume(mission_id, client=FakeClient(), model="fake")
+        recovered = self.missions.recover_stale(older_than_seconds=3600)
+        self.assertEqual(recovered, [mission_id])
+        result = self.missions.resume(mission_id, client=FakeClient(), model="fake")
+        self.assertEqual(result["model_calls"], 4)
+        self.assertEqual(result["status"], "review_pending")
+
+    def test_recent_running_not_recovered_and_threshold_validated(self):
+        with self.colony._db() as db:
+            db.execute("INSERT INTO colony_missions VALUES (?,?,?,?,?)",
+                       ("recent", "Valid", "[]", "running",
+                        datetime.now(timezone.utc).isoformat()))
+        self.assertEqual(self.missions.recover_stale(), [])
+        with self.assertRaises(ValueError):
+            self.missions.recover_stale(older_than_seconds=30)
 
 
 if __name__ == "__main__":

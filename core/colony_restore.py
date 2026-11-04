@@ -62,15 +62,16 @@ def restore_empty_colony(colony, snapshot):
         if row["id"] in seen_mission_ids or len(row["task"]) > 1200:
             raise ValueError("Duplicate or oversized mission")
         seen_mission_ids.add(row["id"])
-        if row["status"] != "review_pending" or len(row["stages"]) > 60000:
+        if row["status"] not in ("review_pending", "blocked", "running") or len(row["stages"]) > 60000:
             raise ValueError("Invalid mission status or stages")
         try:
             stages = json.loads(row["stages"])
         except (ValueError, TypeError):
             raise ValueError("Invalid mission JSON") from None
-        if not isinstance(stages, list) or [s.get("role") if isinstance(s, dict)
-                 else None for s in stages] != [
-                "planner", "researcher", "reviewer", "synthesis"]:
+        roles = [s.get("role") if isinstance(s, dict) else None for s in stages] if isinstance(stages, list) else []
+        if (not isinstance(stages, list) or len(stages) > 4 or
+                roles != ["planner", "researcher", "reviewer", "synthesis"][:len(stages)] or
+                (row["status"] == "review_pending" and len(stages) != 4)):
             raise ValueError("Invalid mission stage sequence")
         for stage in stages:
             if (not isinstance(stage.get("agent_id"), str)
@@ -96,6 +97,10 @@ def restore_empty_colony(colony, snapshot):
             db.execute("INSERT INTO colony_reviews VALUES (?,?,?,?,?,?,?,?,?)",
                        tuple(row[k] for k in ("id","task","author_id","reviewer_id","draft","critique","revision","status","created_at")))
         for row in missions:
+            # An imported in-flight process is no longer running in this process;
+            # require explicit operator resume rather than making duplicate calls.
             db.execute("INSERT INTO colony_missions VALUES (?,?,?,?,?)",
-                       tuple(row[k] for k in ("id", "task", "stages", "status", "created_at")))
+                       (row["id"], row["task"], row["stages"],
+                        "blocked" if row["status"] == "running" else row["status"],
+                        row["created_at"]))
     return len(agents)
