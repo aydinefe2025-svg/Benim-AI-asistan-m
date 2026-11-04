@@ -96,7 +96,7 @@ def generate(prompt, provider="offline", *, transport=None, model=None, system_p
     if provider == "groq":
         if not _trusted_groq_endpoint(url):
             raise ProviderError("Groq endpoint must be the trusted HTTPS API endpoint")
-        key = os.getenv("GROQ_API_KEY")
+        key = (os.getenv("GROQ_API_KEY") or "").strip()
         if not key:
             raise ProviderError("GROQ_API_KEY is missing")
         messages = ([{"role": "system", "content": system_prompt}]

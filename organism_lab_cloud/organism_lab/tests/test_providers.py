@@ -64,6 +64,16 @@ class ProviderTests(unittest.TestCase):
         with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
             result = generate("hello", "groq", transport=lambda req, timeout: FakeResponse({"choices": [{"message": {"content": "OK"}}]}))
         self.assertEqual(result["text"], "OK")
+    def test_groq_trims_surrounding_key_whitespace(self):
+        captured = {}
+        def sender(request, timeout):
+            captured["authorization"] = request.get_header("Authorization")
+            return FakeResponse({"choices": [{"message": {"content": "OK"}}]})
+        with patch.dict(os.environ, {"GROQ_API_KEY": "  test-placeholder\n"}):
+            result = generate("hello", "groq", transport=sender)
+        self.assertEqual(result["text"], "OK")
+        self.assertEqual(captured["authorization"], "Bearer test-placeholder")
+
     def test_groq_rejects_untrusted_endpoint_before_sending_key(self):
         sender_called = False
         def sender(*args, **kwargs):
