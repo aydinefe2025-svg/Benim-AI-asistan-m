@@ -15,7 +15,7 @@
 
 ## Unavailable or not verified
 
-- OpenCode is installed from its official npm package at v2.2.5. `opencode-local.cmd --version` and `debug paths` pass; its runtime data is isolated in `opencode-runtime` because Windows denies writes to the default hidden config directory. It is not yet connected to an inference provider.
+- OpenCode is installed from its official npm package at v2.2.5. `opencode-local.cmd --version` and `debug paths` pass; its runtime data is isolated in `opencode-runtime` because this managed environment denies writes to the default hidden config directory. It is not yet connected to an inference provider.
 - Ollama is still unavailable. The official Windows installer advertises a 1,675,999,728-byte download; the transfer stalled at 1.41 GiB and was stopped before signature verification or execution. The incomplete installer was removed. No model was downloaded. Kody has no saved connections for OpenCode or Ollama.
 - System GPU details could not be read in this managed environment. The requested Qwen3:8b model is about 5.2 GB on Ollama; without a verified local runtime and available hardware details, no inference test is claimed.
 - Local HTTP probes to both Render service URLs could not reach the endpoints from this environment. Render reports successful deployments, but end-user HTTP health was not independently verified here; recent Render metrics returned no samples.
