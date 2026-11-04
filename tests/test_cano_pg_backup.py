@@ -70,6 +70,28 @@ class BackupTests(unittest.TestCase):
         with self.assertRaises(BackupError):
             _libpq_env_from_uri("postgresql://host/db?unknown=value", {})
 
+    def test_remote_backup_requires_encrypted_connection(self):
+        url = "postgresql://ci:synthetic@remote.example.invalid/safe"
+        self.assertEqual(_libpq_env_from_uri(url, {})["PGSSLMODE"], "require")
+        for weak_mode in ("disable", "allow", "prefer"):
+            with self.subTest(weak_mode=weak_mode):
+                with self.assertRaises(BackupError):
+                    _libpq_env_from_uri(url + "?sslmode=" + weak_mode, {})
+        with self.assertRaises(BackupError):
+            _libpq_env_from_uri(url, {"PGSSLMODE": "disable"})
+
+    def test_uri_missing_port_does_not_use_inherited_port(self):
+        env = _libpq_env_from_uri(
+            "postgresql://ci:synthetic@remote.example.invalid/safe",
+            {"PGPORT": "5999"},
+        )
+        self.assertEqual(env["PGPORT"], "5432")
+
+    def test_nul_byte_database_name_is_rejected(self):
+        with self.assertRaises(BackupError):
+            _libpq_env_from_uri(
+                "postgresql://ci:synthetic@localhost/bad%00name", {})
+
     def test_successful_private_backup_and_readback(self):
         result = make_backup(self.dest, dump_bin=self.dump, restore_bin=self.restore)
         self.assertTrue(Path(result["archive"]).is_file())
