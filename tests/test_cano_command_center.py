@@ -92,6 +92,36 @@ class FakeStreamlit:
         self.messages.append("rerun")
 
 
+class StrictWidgetState(dict):
+    """Emulates Streamlit rejecting widget-key writes after instantiation."""
+    def __init__(self):
+        super().__init__()
+        self.blocked = set()
+
+    def __setitem__(self, key, value):
+        if key in self.blocked:
+            raise RuntimeError("StreamlitWidgetAlreadyInstantiatedError: " + key)
+        super().__setitem__(key, value)
+
+
+class StrictStreamlit(FakeStreamlit):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.session_state = StrictWidgetState()
+
+    def checkbox(self, label, **kwargs):
+        value = super().checkbox(label, **kwargs)
+        key = kwargs.get("key")
+        if key:
+            self.session_state.blocked.add(key)
+        return value
+
+    def rerun(self):
+        # The next execution is allowed to set widget state before rendering.
+        self.session_state.blocked.clear()
+        super().rerun()
+
+
 class FakeModel:
     def __init__(self):
         self.calls = []
@@ -242,6 +272,38 @@ class CommandCenterTests(unittest.TestCase):
             render_cano_command_center(st, answer=FakeModel())
             self.browser_component.assert_not_called()
             self.assertEqual(st.metrics["Uzman"], 0)
+
+    def test_browser_restore_does_not_mutate_instantiated_checkbox(self):
+        from core.browser_colony import encode_browser_colony_backup
+        from core.cano_command_center import _snapshot
+        source = AgentColony(Path(self.tmp.name) / "existing.sqlite3")
+        source.create_founder("research", "Research")
+        source.grow_specialists(approved=True)
+        write = encode_browser_colony_backup(_snapshot(source))
+        self.browser_component.return_value = {
+            "status": "ok", "payload": write["payload"], "ack": write["token"]
+        }
+        st = StrictStreamlit()
+        with patch.dict("os.environ", {
+                "AGENT_COLONY_DB_PATH": self.db_base, "APP_AUTH_REQUIRED": ""}):
+            render_cano_command_center(st, answer=FakeModel())
+            self.assertIn("geri yüklendi", " ".join(st.messages))
+            render_cano_command_center(st, answer=FakeModel())
+            self.assertTrue(st.session_state["cano_local_backup_opt_in"])
+            self.assertEqual(st.metrics["Uzman"], 4)
+
+    def test_browser_clear_does_not_mutate_instantiated_checkbox(self):
+        st = StrictStreamlit(clicks={"cano_local_backup_clear"})
+        st.session_state["cano_local_backup_opt_in"] = True
+        self.browser_component.return_value = {
+            "status":"ok", "payload":"", "ack":"cleared"}
+        with patch.dict("os.environ", {
+                "AGENT_COLONY_DB_PATH": self.db_base, "APP_AUTH_REQUIRED": ""}):
+            render_cano_command_center(st, answer=FakeModel())
+            st.session_state.blocked.clear()
+            render_cano_command_center(st, answer=FakeModel())
+            self.assertFalse(st.session_state["cano_local_backup_opt_in"])
+            self.assertTrue(self.browser_component.call_args.kwargs["write"] is None)
 
     def test_malformed_browser_backup_does_not_create_agents(self):
         self.browser_component.return_value = {"status":"ok","payload":"{}"}
