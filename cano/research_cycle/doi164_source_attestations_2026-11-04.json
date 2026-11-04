@@ -1,0 +1,10 @@
+{
+  "evidence": [
+    {"doi":"10.63328/ijcseai-v1ri1p3","source_title":"Collaborative Swarm Intelligence Framework for Multi-Agent Scientific Discovery Systems","url":"https://ijcseai.com/view_issue.php?title=-Collaborative-Swarm-Intelligence-Framework-for-Multi-Agent-Scientific-Discovery-Systems","source_kind":"publisher","observation_method":"web_source_inspection","science_reproduced":false},
+    {"doi":"10.1038/s44387-026-00102-5","source_title":"AgenticSciML: collaborative multi-agent systems for emergent discovery in scientific machine learning","url":"https://www.nature.com/articles/s44387-026-00102-5","source_kind":"publisher","observation_method":"web_source_inspection","science_reproduced":false},
+    {"doi":"10.3389/frai.2026.1820375","source_title":"Building MCP-native hierarchical AI scientist ecosystems: a perspective on scaling multi-agent scientific discovery","url":"https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2026.1820375/full","source_kind":"publisher","observation_method":"web_source_inspection","science_reproduced":false},
+    {"doi":"10.3389/frai.2026.1820375","source_title":"Building MCP-native hierarchical AI scientist ecosystems: a perspective on scaling multi-agent scientific discovery","url":"https://pubmed.ncbi.nlm.nih.gov/42211174/","source_kind":"index","observation_method":"web_source_inspection","science_reproduced":false},
+    {"doi":"10.24963/ijcai.2025/538","source_title":"Variational Offline Multi-agent Skill Discovery","url":"https://ijcai.org/proceedings/2025/538","source_kind":"publisher","observation_method":"web_source_inspection","science_reproduced":false},
+    {"doi":"10.1145/3788149.3788249","source_title":"Artificial Intelligence for Quantitative Finance: A RAG-Augmented Multi-Agent Framework for Robust Equity Strategy Discovery","url":"https://dblp.dagstuhl.de/rec/conf/csai/WangL25a.html","source_kind":"index","observation_method":"web_source_inspection","science_reproduced":false}
+  ]
+}
