@@ -52,6 +52,7 @@ def _safe_groq_error_code(exc):
         "model_access_denied", "permission_denied", "insufficient_permissions",
         "project_permission_denied", "project_not_found", "invalid_project",
         "organization_disabled", "organization_restricted",
+        "model_permission_blocked_org", "model_permission_blocked_project",
     }
     return code if isinstance(code, str) and code in allowed else None
 
