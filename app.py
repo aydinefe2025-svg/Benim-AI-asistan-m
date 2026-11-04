@@ -58,6 +58,7 @@ from core.browser_memory import browser_memory_component, decode_snapshot, write
 from core.task_panel import render_task_panel
 from core.colony_panel import render_colony_panel
 from core.cano_command_center import render_cano_command_center
+from core.groq_team import generate_team_stage
 
 _credentials = configured_credentials(st.secrets, os.environ)
 _credential_presence = credential_presence(_credentials)
@@ -368,9 +369,15 @@ def _research_answer(goal: str) -> str:
     return output
 
 
-render_cano_command_center(st, answer=_research_answer if GROQ_KEY else None)
+def _team_answer(prompt: str) -> str:
+    # Four short model calls; no implicit source lookup or large research prompt.
+    # A 429 leaves stage checkpoints blocked for explicit later resume.
+    return generate_team_stage(prompt, api_key=GROQ_KEY)
+
+
+render_cano_command_center(st, answer=_team_answer if GROQ_KEY else None)
 render_task_panel(st, answer=_research_answer if GROQ_KEY else None, store_override=_TASK_STORE)
-render_colony_panel(st, answer=_research_answer if GROQ_KEY else None,
+render_colony_panel(st, answer=_team_answer if GROQ_KEY else None,
                     owner_key=_OWNER_KEY if _MEMORY_STORE is not None else None,
                     database_url=os.environ.get("DATABASE_URL") if _MEMORY_STORE is not None else None)
 
