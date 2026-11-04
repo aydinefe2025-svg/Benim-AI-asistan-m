@@ -1,0 +1,94 @@
+name: MuJoCo physics validation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "research_ci/**"
+      - ".github/workflows/mujoco-physics.yml"
+jobs:
+  physics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pinned engine
+        run: python -m pip install --disable-pip-version-check mujoco==3.17.0
+      - name: Run real physics validation
+        run: python research_ci/mujoco_smoke.py
+      - name: Compare serial and batch physics
+        run: python research_ci/mujoco_batch.py
+      - name: Repeated benchmark and state equivalence
+        run: python research_ci/mujoco_benchmark.py
+      - name: Validate contact physics
+        run: python research_ci/mujoco_contact.py
+      - name: Validate actuated robot joint
+        run: python research_ci/mujoco_actuator.py
+      - name: Validate motor reversal and return to zero
+        run: python research_ci/mujoco_reversal.py
+      - name: Validate two-joint robot control
+        run: python research_ci/mujoco_two_joint.py
+      - name: Validate inverse kinematics and end-effector tracking
+        run: python research_ci/mujoco_ik.py
+      - name: Validate smooth robot trajectory
+        run: python research_ci/mujoco_trajectory.py
+      - name: Validate obstacle contact detection
+        run: python research_ci/mujoco_obstacle.py
+      - name: Validate collision-free 2D path planning
+        run: python research_ci/mujoco_path_planning.py
+      - name: Validate full two-link arm obstacle clearance
+        run: python research_ci/mujoco_arm_clearance.py
+      - name: Certify swept arm clearance
+        run: python research_ci/mujoco_swept_clearance.py
+      - name: Certify finite-width arm with multiple obstacles
+        run: python research_ci/mujoco_multi_obstacle.py
+      - name: Validate fail-closed robot command gate
+        run: python research_ci/mujoco_safety_gate.py
+      - name: Preserve results and digests
+        if: always()
+        shell: bash
+        run: |
+          for f in mujoco_result.json mujoco_batch_result.json mujoco_benchmark_result.json mujoco_contact_result.json mujoco_actuator_result.json mujoco_reversal_result.json mujoco_two_joint_result.json mujoco_ik_result.json mujoco_trajectory_result.json mujoco_obstacle_result.json mujoco_path_planning_result.json mujoco_arm_clearance_result.json mujoco_swept_clearance_result.json mujoco_multi_obstacle_result.json mujoco_safety_gate_result.json; do
+            if [ -f "$f" ]; then sha256sum "$f" > "$f.sha256"; fi
+          done
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mujoco-physics-evidence
+          path: |
+            mujoco_result.json
+            mujoco_result.json.sha256
+            mujoco_batch_result.json
+            mujoco_batch_result.json.sha256
+            mujoco_benchmark_result.json
+            mujoco_benchmark_result.json.sha256
+            mujoco_contact_result.json
+            mujoco_contact_result.json.sha256
+            mujoco_actuator_result.json
+            mujoco_actuator_result.json.sha256
+            mujoco_reversal_result.json
+            mujoco_reversal_result.json.sha256
+            mujoco_two_joint_result.json
+            mujoco_two_joint_result.json.sha256
+            mujoco_ik_result.json
+            mujoco_ik_result.json.sha256
+            mujoco_trajectory_result.json
+            mujoco_trajectory_result.json.sha256
+            mujoco_obstacle_result.json
+            mujoco_obstacle_result.json.sha256
+            mujoco_path_planning_result.json
+            mujoco_path_planning_result.json.sha256
+            mujoco_arm_clearance_result.json
+            mujoco_arm_clearance_result.json.sha256
+            mujoco_swept_clearance_result.json
+            mujoco_swept_clearance_result.json.sha256
+            mujoco_multi_obstacle_result.json
+            mujoco_multi_obstacle_result.json.sha256
+            mujoco_safety_gate_result.json
+            mujoco_safety_gate_result.json.sha256
+          if-no-files-found: warn
