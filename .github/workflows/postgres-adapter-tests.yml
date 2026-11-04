@@ -5,6 +5,8 @@ on:
     paths:
       - "core/postgres_memory.py"
       - "core/postgres_task_store.py"
+      - "core/postgres_authorized_queue.py"
+      - "scripts/check_postgres_authorized_queue.py"
       - "scripts/check_postgres_persistence.py"
       - "scripts/check_postgres_task_store.py"
       - "tests/test_postgres_memory.py"
@@ -48,3 +50,7 @@ jobs:
         env:
           TEST_TASK_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
         run: python scripts/check_postgres_task_store.py
+      - name: Verify authorized queue using real PostgreSQL and synthetic users
+        env:
+          TEST_TASK_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python scripts/check_postgres_authorized_queue.py
