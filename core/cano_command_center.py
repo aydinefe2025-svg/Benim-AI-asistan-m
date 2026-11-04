@@ -11,6 +11,7 @@ import sqlite3
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
+from core.colony_postgres import ColonySnapshotStore
 from core.groq_team import TeamRateLimitError
 from core.scientific_sources import scientific_sources
 from core.task_panel import _session_database_path
@@ -82,11 +83,23 @@ def _snapshot(colony):
     return result
 
 
-def render_cano_command_center(st, answer=None):
+def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=None):
     """Render a top-level mission cockpit before the legacy sidebar/chat UI."""
     st.header("🚀 CANO Komuta Merkezi")
     st.caption("Uzmanları burada hazırla, gerçek ekip görevi çalıştır, "
                "aşamaları ve kaynak adaylarını incele. Sonuçlar inceleme bekleyen taslaklardır.")
+    backup_store = None
+    if owner_key is not None or database_url is not None:
+        if (not isinstance(owner_key, str) or not owner_key.strip()
+                or not database_url):
+            st.error("CANO için doğrulanmış hesap ve PostgreSQL gereklidir.")
+            return
+        try:
+            backup_store = ColonySnapshotStore(database_url)
+            backup_store.initialize()
+        except Exception:
+            st.error("CANO PostgreSQL yedeği açılamadı; model çalıştırılmadı.")
+            return
     base = os.environ.get("AGENT_COLONY_DB_PATH", "data/agent_colony.sqlite3")
     try:
         colony = AgentColony(_session_database_path(st, base), max_agents=12)
@@ -96,6 +109,10 @@ def render_cano_command_center(st, answer=None):
         st.error("CANO ajan kayıtları açılamadı; görev çalıştırılmadı.")
         return
 
+    def _checkpoint():
+        if backup_store is not None:
+            backup_store.save_versioned_verified(owner_key, _snapshot(colony))
+
     cols = st.columns(4)
     for col, label, value in zip(
         cols, ("Uzman", "Ekip görevleri", "İnceleme bekleyen", "Kabul edilmiş ders"),
@@ -103,18 +120,23 @@ def render_cano_command_center(st, answer=None):
          status["review_pending"], status["lessons"])):
         col.metric(label, value)
 
-    st.caption("Kayıt türü: bu oturuma özel geçici SQLite. "
-               "Dağıtım/yeniden başlatmada kaybolabilir; JSON yedeği indirin. "
-               "Uzmanlıklar ayrı eğitilmiş modeller değil, rol bazlı model çağrılarıdır.")
+    if backup_store is None:
+        st.caption("Bu oturumda yalnızca geçici SQLite var; JSON yedeği alın.")
+    else:
+        st.caption("Açıkça başlatılan görevlerin sonuçları hesap sahibine ait PostgreSQL "
+                   "sürümlü yedeğine otomatik yazılır. Ani sunucu kapanmalarında "
+                   "tam aşama garantisi yoktur; JSON yedeği de alın.")
+    st.caption("Uzmanlıklar rol bazlı model çağrılarıdır, ayrı eğitilmiş modeller değildir.")
     if st.button("🚀 CANO ekibini hazırla (1 kurucu + 6 uzman)",
                  key="cano_prepare_team"):
         try:
             count = prepare_cano_team(colony, approved=True)
+            _checkpoint()
             st.success(f"{count} rol kaydı hazır; ekip görevine geçebilirsiniz.")
             st.rerun()
             return
         except (ValueError, PermissionError, RuntimeError, sqlite3.Error):
-            st.error("Ekip oluşturulamadı; mevcut kayıtlar korunuyor.")
+            st.error("Ekip veya kalıcı yedek doğrulanamadı; yerel veri silinmedi.")
             return
 
     if not status["ready"]:
