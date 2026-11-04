@@ -61,8 +61,13 @@ def _libpq_env_from_uri(uri: str, inherited: dict) -> dict:
     except ValueError:
         raise BackupError("Invalid PostgreSQL URL structure") from None
     env = inherited.copy()
-    # A previous libpq service or host address must not redirect the backup.
-    for name in ("PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR"):
+    # A new destination must never receive credentials or a password file
+    # inherited from a different PostgreSQL source. Only credentials carried
+    # by the explicitly selected URI may enter the pg_dump/pg_restore child.
+    # These app-specific URLs aren't used by libpq and should not be copied.
+    for name in ("PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR",
+                 "PGUSER", "PGPASSWORD", "PGPASSFILE", "DATABASE_URL",
+                 "CANO_BACKUP_DATABASE_URL", "CANO_RESTORE_TEST_DATABASE_URL"):
         env.pop(name, None)
     env["PGHOST"] = parsed.hostname
     env["PGDATABASE"] = unquote(parsed.path[1:])
