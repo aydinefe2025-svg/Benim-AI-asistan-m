@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: cano-colony-cycle
@@ -30,12 +31,30 @@ jobs:
       - name: Check colony regressions before writing state
         run: python -m unittest discover -s tests -p "test_*colony*.py" -q
       - name: Restore prior verified colony database
+        id: colony_cache
         uses: actions/cache@v4
         with:
           path: artifacts/colony-cycle.sqlite3
           key: cano-colony-db-${{ github.ref_name }}-${{ github.run_id }}
           restore-keys: |
             cano-colony-db-${{ github.ref_name }}-
+      - name: Restore last GitHub audit artifact when cache is missing
+        if: steps.colony_cache.outputs.cache-matched-key == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous_run="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow cano-colony-cycle.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          if [[ -n "$previous_run" ]]; then
+            mkdir -p artifacts
+            gh run download "$previous_run" --repo "$GITHUB_REPOSITORY" --name "cano-colony-cycle-$previous_run" --dir artifacts
+          else
+            echo "No prior successful CANO run; starting fresh"
+          fi
+      - name: Reject damaged restored state before advancing
+        run: |
+          if [[ -e artifacts/colony-cycle.sqlite3 ]]; then
+            python -m scripts.verify_cano_restore
+          fi
       - name: Run bounded cycle
         env:
           CANO_CYCLE_OUTPUT: artifacts/colony-cycle.json

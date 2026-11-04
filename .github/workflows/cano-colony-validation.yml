@@ -6,6 +6,8 @@ on:
     paths:
       - "core/continuous_colony.py"
       - "scripts/cano_colony_cycle.py"
+      - "scripts/verify_cano_restore.py"
+      - "tests/test_colony_restore.py"
       - "tests/test_continuous_colony.py"
       - "tests/test_scheduled_colony_cycle.py"
       - ".github/workflows/cano-colony-cycle.yml"
