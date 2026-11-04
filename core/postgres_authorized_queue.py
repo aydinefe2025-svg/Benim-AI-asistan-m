@@ -71,26 +71,10 @@ class PostgresAuthorizedQueue:
                         REFERENCES cano_authorized_jobs(owner_key,id) ON DELETE CASCADE
                 )
             """)
-            # Migration-owned tables may grant DML without granting ownership.
-            # PostgreSQL rejects CREATE INDEX for non-owners even with IF NOT EXISTS.
-            cur.execute("""SELECT pg_get_userbyid(relowner) = current_user AS owns_table
-                FROM pg_class
-                WHERE oid = 'public.cano_authorized_jobs'::regclass""")
-            owns_jobs = cur.fetchone()
-            if owns_jobs and owns_jobs["owns_table"]:
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_cano_authorized_claim
-                    ON cano_authorized_jobs(owner_key,state,eligible_after)
-                """)
-            cur.execute("""SELECT pg_get_userbyid(relowner) = current_user AS owns_table
-                FROM pg_class
-                WHERE oid = 'public.cano_authorized_job_events'::regclass""")
-            owns_events = cur.fetchone()
-            if owns_events and owns_events["owns_table"]:
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_cano_authorized_events
-                    ON cano_authorized_job_events(owner_key,job_id,event_id)
-                """)
+            # The owner migration manages indexes on shared tables. The runtime
+            # role has DML access but does not own them, so it must not issue
+            # CREATE INDEX even with IF NOT EXISTS.
+
 
     @staticmethod
     def _public(row):
