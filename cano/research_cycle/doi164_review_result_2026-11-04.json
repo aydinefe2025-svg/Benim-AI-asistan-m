@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "issue_comment_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/164#issuecomment-6632092882",
+  "record_count": 5,
+  "bibliographic_matches": 5,
+  "scientific_claims_verified": 0,
+  "review_status": "bibliographic_screen_only",
+  "items": [
+    {
+      "doi": "10.63328/ijcseai-v1ri1p3",
+      "title": "Collaborative Swarm Intelligence Framework for Multi-Agent Scientific Discovery Systems",
+      "bibliographic_status": "publisher_metadata_match",
+      "scientific_claims_verified": false,
+      "automated_research_acceptance": false,
+      "follow_up": "independent methods/data review required",
+      "source_evidence": [
+        {
+          "url": "https://ijcseai.com/view_issue.php?title=-Collaborative-Swarm-Intelligence-Framework-for-Multi-Agent-Scientific-Discovery-Systems",
+          "source_kind": "publisher"
+        }
+      ]
+    },
+    {
+      "doi": "10.1038/s44387-026-00102-5",
+      "title": "AgenticSciML: collaborative multi-agent systems for emergent discovery in scientific machine learning",
+      "bibliographic_status": "publisher_metadata_match",
+      "scientific_claims_verified": false,
+      "automated_research_acceptance": false,
+      "follow_up": "independent methods/data review required",
+      "source_evidence": [
+        {
+          "url": "https://www.nature.com/articles/s44387-026-00102-5",
+          "source_kind": "publisher"
+        }
+      ]
+    },
+    {
+      "doi": "10.3389/frai.2026.1820375",
+      "title": "Building MCP-native hierarchical AI scientist ecosystems: a perspective on scaling multi-agent scientific discovery",
+      "bibliographic_status": "publisher_and_index_metadata_match",
+      "scientific_claims_verified": false,
+      "automated_research_acceptance": false,
+      "follow_up": "independent methods/data review required",
+      "source_evidence": [
+        {
+          "url": "https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2026.1820375/full",
+          "source_kind": "publisher"
+        },
+        {
+          "url": "https://pubmed.ncbi.nlm.nih.gov/42211174/",
+          "source_kind": "index"
+        }
+      ]
+    },
+    {
+      "doi": "10.24963/ijcai.2025/538",
+      "title": "Variational Offline Multi-agent Skill Discovery",
+      "bibliographic_status": "publisher_metadata_match",
+      "scientific_claims_verified": false,
+      "automated_research_acceptance": false,
+      "follow_up": "independent methods/data review required",
+      "source_evidence": [
+        {
+          "url": "https://ijcai.org/proceedings/2025/538",
+          "source_kind": "publisher"
+        }
+      ]
+    },
+    {
+      "doi": "10.1145/3788149.3788249",
+      "title": "Artificial Intelligence for Quantitative Finance: A RAG-Augmented Multi-Agent Framework for Robust Equity Strategy Discovery",
+      "bibliographic_status": "index_metadata_match_only",
+      "scientific_claims_verified": false,
+      "automated_research_acceptance": false,
+      "follow_up": "independent methods/data review required",
+      "source_evidence": [
+        {
+          "url": "https://dblp.dagstuhl.de/rec/conf/csai/WangL25a.html",
+          "source_kind": "index"
+        }
+      ]
+    }
+  ]
+}
