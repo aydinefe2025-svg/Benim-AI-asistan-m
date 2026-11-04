@@ -2,10 +2,9 @@
 
 The daemon thread is bounded by a stop event and never runs a provider call.
 """
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from threading import Event, Thread
 import sqlite3
-from contextlib import closing
 
 from core.task_heartbeat import touch_running
 
@@ -39,6 +38,10 @@ def running_heartbeat(db_path, task_id, *, interval_seconds=30):
         yield
     finally:
         stop.set()
-        thread.join(timeout=min(interval_seconds, 5))
+        # SQLite connections can wait up to 15 seconds for a busy database.
+        # Never report a successful stop while the heartbeat worker still runs.
+        thread.join(timeout=16)
+        if thread.is_alive():
+            raise RuntimeError('Running task heartbeat did not stop')
         if failures:
             raise failures[0]
