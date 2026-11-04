@@ -96,11 +96,14 @@ class ColonySnapshotStore:
             raise RuntimeError("Colony snapshot readback mismatch")
         return True
 
-    def save_versioned_verified(self, owner_key, payload, *, expected_prior=_NO_EXPECTED_PRIOR):
+    def save_versioned_verified(self, owner_key, payload, *,
+                                expected_prior=_NO_EXPECTED_PRIOR,
+                                archive_prior=True):
         """Atomically archive prior distinct snapshot before overwriting it.
 
-        Cap history at 20 versions per owner; fail closed rather than silently
-        deleting old backups. Verify latest snapshot by fresh-connection readback.
+        Cap archived history at 20 versions per owner; fail closed rather than
+        deleting old backups. Non-archival intermediate checkpoints still
+        perform the same owner-scoped CAS and transactional readback.
         Caller must supply an authenticated and stable owner key.
         """
         if not isinstance(owner_key, str) or not owner_key.strip():
@@ -109,6 +112,8 @@ class ColonySnapshotStore:
             isinstance(payload.get(k), list) for k in ("agents", "feedback", "reviews")
         ):
             raise ValueError("Invalid colony snapshot")
+        if type(archive_prior) is not bool:
+            raise ValueError("archive_prior must be a boolean")
         serialized = json.dumps(payload, ensure_ascii=False, allow_nan=False)
         if len(serialized.encode("utf-8")) > 2_000_000:
             raise ValueError("Snapshot exceeds quota")
@@ -128,7 +133,7 @@ class ColonySnapshotStore:
                 if expected_prior is not _NO_EXPECTED_PRIOR and prior != expected_prior:
                     raise RuntimeError("Owner snapshot changed since this session last read it")
                 if prior != payload:
-                    if prior is not None:
+                    if prior is not None and archive_prior:
                         cur.execute("SELECT COUNT(*) FROM private_colony_snapshot_revisions "
                                     "WHERE owner_key=%s", (owner_key,))
                         if cur.fetchone()[0] >= 20:
