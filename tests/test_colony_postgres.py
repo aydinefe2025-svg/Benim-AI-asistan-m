@@ -40,6 +40,30 @@ class ColonySnapshotTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             store.save("owner-a", {"agents": []})
 
+    def test_save_verified_reads_back_exact_snapshot(self):
+        state = {"rows": {}, "queries": []}
+        store = ColonySnapshotStore("postgresql://unused",
+                                    connect=lambda *a, **k: Connection(state))
+        store.initialize()
+        payload = {"agents": [{"id": "owner-unit"}], "feedback": [],
+                   "reviews": [], "missions": [{"id": "m1", "status": "blocked"}]}
+        self.assertTrue(store.save_verified("owner-a", payload))
+        self.assertEqual(store.load("owner-a"), payload)
+        self.assertIsNone(store.load("owner-b"))
+
+    def test_save_verified_refuses_false_success_if_readback_differs(self):
+        state = {"rows": {}, "queries": []}
+        store = ColonySnapshotStore("postgresql://unused",
+                                    connect=lambda *a, **k: Connection(state))
+        store.initialize()
+        payload = {"agents": [{"id": "original"}], "feedback": [],
+                   "reviews": [], "missions": []}
+        store.load = lambda owner: {"agents": [], "feedback": [],
+                                    "reviews": [], "missions": []}
+        with self.assertRaises(RuntimeError):
+            store.save_verified("owner-a", payload)
+
+
 
 if __name__ == "__main__":
     unittest.main()
