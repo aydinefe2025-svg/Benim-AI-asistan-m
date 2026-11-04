@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 import os
+import select
 from pathlib import Path
 import subprocess
 import sys
@@ -165,10 +166,14 @@ def test_killed_worker_recovery():
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
         text=True)
     try:
+        ready, _, _ = select.select([p.stdout], [], [], 8)
+        if not ready:
+            raise AssertionError("child did not claim within 8 seconds")
         line = p.stdout.readline().strip()
         assert line == "CLAIM_EPOCH:1", "child claim did not complete"
     finally:
-        p.kill()
+        if p.poll() is None:
+            p.kill()
         p.wait(timeout=5)
         p.stdout.close()
         p.stderr.close()
