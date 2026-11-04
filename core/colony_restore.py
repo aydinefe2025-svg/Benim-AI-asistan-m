@@ -4,17 +4,22 @@ Validate all relationships before starting a transaction; never overwrite data.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from core.agent_review_loop import AgentReviewLoop
+from core.collaborative_mission import CollaborativeMission
 
 
 def restore_empty_colony(colony, snapshot):
     if not isinstance(snapshot, dict):
         raise ValueError("Invalid snapshot")
     agents, feedback, reviews = (snapshot.get(k) for k in ("agents", "feedback", "reviews"))
-    if not all(isinstance(v, list) for v in (agents, feedback, reviews)):
+    # Older snapshots predate collaborative missions and remain restorable.
+    missions = snapshot.get("missions", [])
+    if not all(isinstance(v, list) for v in (agents, feedback, reviews, missions)):
         raise ValueError("Invalid snapshot collections")
-    if len(agents) > colony.max_agents or len(feedback) > 10000 or len(reviews) > 1000:
+    if (len(agents) > colony.max_agents or len(feedback) > 10000
+            or len(reviews) > 1000 or len(missions) > 1000):
         raise ValueError("Snapshot quota exceeded")
     ids = [a.get("id") for a in agents if isinstance(a, dict)]
     if len(ids) != len(agents) or any(not isinstance(i, str) or not i for i in ids) or len(set(ids)) != len(ids):
@@ -48,10 +53,37 @@ def restore_empty_colony(colony, snapshot):
         if not all(isinstance(row.get(k), str) for k in
                    ("id", "task", "draft", "critique", "revision", "status", "created_at")):
             raise ValueError("Invalid review fields")
+    seen_mission_ids = set()
+    for row in missions:
+        if not isinstance(row, dict) or not all(
+                isinstance(row.get(k), str) and row[k]
+                for k in ("id", "task", "stages", "status", "created_at")):
+            raise ValueError("Invalid mission")
+        if row["id"] in seen_mission_ids or len(row["task"]) > 1200:
+            raise ValueError("Duplicate or oversized mission")
+        seen_mission_ids.add(row["id"])
+        if row["status"] != "review_pending" or len(row["stages"]) > 60000:
+            raise ValueError("Invalid mission status or stages")
+        try:
+            stages = json.loads(row["stages"])
+        except (ValueError, TypeError):
+            raise ValueError("Invalid mission JSON") from None
+        if not isinstance(stages, list) or [s.get("role") if isinstance(s, dict)
+                 else None for s in stages] != [
+                "planner", "researcher", "reviewer", "synthesis"]:
+            raise ValueError("Invalid mission stage sequence")
+        for stage in stages:
+            if (not isinstance(stage.get("agent_id"), str)
+                    or stage["agent_id"] not in by_id
+                    or not isinstance(stage.get("output"), str)
+                    or not stage["output"].strip()
+                    or len(stage["output"]) > 12000):
+                raise ValueError("Invalid mission stage")
+    CollaborativeMission(colony)
     AgentReviewLoop(colony)
     with colony._db() as db:
         db.execute("BEGIN IMMEDIATE")
-        for table in ("colony_agents", "colony_feedback", "colony_reviews"):
+        for table in ("colony_agents", "colony_feedback", "colony_reviews", "colony_missions"):
             if db.execute("SELECT COUNT(*) FROM " + table).fetchone()[0]:
                 raise RuntimeError("Restore requires empty colony")
         for a in sorted(agents, key=lambda item: item['generation']):
@@ -63,4 +95,7 @@ def restore_empty_colony(colony, snapshot):
         for row in reviews:
             db.execute("INSERT INTO colony_reviews VALUES (?,?,?,?,?,?,?,?,?)",
                        tuple(row[k] for k in ("id","task","author_id","reviewer_id","draft","critique","revision","status","created_at")))
+        for row in missions:
+            db.execute("INSERT INTO colony_missions VALUES (?,?,?,?,?)",
+                       tuple(row[k] for k in ("id", "task", "stages", "status", "created_at")))
     return len(agents)
