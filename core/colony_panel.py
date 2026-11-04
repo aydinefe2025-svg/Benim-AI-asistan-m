@@ -10,7 +10,7 @@ from core.agent_review_loop import AgentReviewLoop
 from core.collaborative_mission import CollaborativeMission
 from core.scientific_sources import scientific_sources
 from core.colony_postgres import ColonySnapshotStore
-from core.colony_restore import restore_empty_colony, restore_colony_json_bytes
+from core.colony_restore import restore_colony_json_bytes, restore_owner_backup
 from core.task_panel import _session_database_path
 
 
@@ -38,20 +38,28 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             st.error("Ajan veritabanı açılamadı.")
             return
         if not agents and owner_key and database_url:
+            confirm_restore = st.checkbox(
+                "Yedeğin yalnızca bu doğrulanmış hesaba ait olduğunu onaylıyorum; "
+                "işlem yalnızca boş koloniye uygulanır.", value=False,
+                key="colony_postgres_restore_confirm")
             if st.button("Kalıcı yedekten boş koloniyi geri yükle",
                          key="colony_postgres_restore"):
-                try:
-                    snapshot = ColonySnapshotStore(database_url).load(owner_key)
-                    if not snapshot:
-                        st.warning("Bu hesap için kalıcı yedek bulunamadı.")
-                    else:
-                        count = restore_empty_colony(colony, snapshot)
-                        st.success(f"{count} uzman geri yüklendi.")
+                if not confirm_restore:
+                    st.warning("Geri yüklemek için önce açık onay verin.")
+                else:
+                    try:
+                        count = restore_owner_backup(
+                            colony, ColonySnapshotStore(database_url),
+                            owner_key, approved=confirm_restore)
+                        st.success(f"{count} uzman geri yüklendi ve SQLite kayıtları doğrulandı.")
                         st.rerun()
-                except (ValueError, RuntimeError, OSError, sqlite3.Error):
-                    st.error("Geri yükleme reddedildi; mevcut veriler korunuyor.")
-                except Exception:
-                    st.error("Kalıcı yedeğe erişilemedi; mevcut veriler korunuyor.")
+                    except LookupError:
+                        st.warning("Bu hesap için kalıcı yedek bulunamadı.")
+                    except (PermissionError, ValueError, RuntimeError,
+                            OSError, sqlite3.Error):
+                        st.error("Geri yükleme reddedildi; mevcut veriler korunuyor.")
+                    except Exception:
+                        st.error("Kalıcı yedeğe erişilemedi; mevcut veriler korunuyor.")
         if not agents:
             backup_upload = st.file_uploader(
                 "Ajan kolonisini JSON yedekten geri yükle",
