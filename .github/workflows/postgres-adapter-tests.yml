@@ -53,4 +53,4 @@ jobs:
       - name: Verify authorized queue using real PostgreSQL and synthetic users
         env:
           TEST_TASK_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
-        run: python scripts/check_postgres_authorized_queue.py
+        run: python -m scripts.check_postgres_authorized_queue
