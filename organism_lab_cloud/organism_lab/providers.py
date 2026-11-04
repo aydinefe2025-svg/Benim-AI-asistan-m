@@ -39,6 +39,22 @@ GROQ_MODEL_OPTIONS = (
     "meta-models/muse-spark-open",
 )
 
+def _safe_groq_error_code(exc):
+    """Read only an allowlisted provider error code; never expose provider text."""
+    try:
+        payload = json.loads(exc.read(4096).decode("utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError, TypeError):
+        return None
+    error = payload.get("error") if isinstance(payload, dict) else None
+    code = error.get("code") if isinstance(error, dict) else None
+    allowed = {
+        "invalid_api_key", "model_not_found", "model_decommissioned", "model_not_available",
+        "model_access_denied", "permission_denied", "insufficient_permissions",
+        "project_permission_denied", "project_not_found", "invalid_project",
+        "organization_disabled", "organization_restricted",
+    }
+    return code if isinstance(code, str) and code in allowed else None
+
 def generate(prompt, provider="offline", *, transport=None, model=None, system_prompt=None):
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError("Prompt required")
@@ -110,8 +126,15 @@ def generate(prompt, provider="offline", *, transport=None, model=None, system_p
         return {"provider": provider, "status": "ok", "text": answer.strip()}
     except HTTPError as exc:
         if provider == "groq":
-            if exc.code == 401:
-                message = "Groq API anahtarı geçersiz veya iptal edilmiş (HTTP 401)."
+            code = _safe_groq_error_code(exc)
+            if code == "invalid_api_key" or exc.code == 401:
+                message = "Groq API anahtarı geçersiz veya iptal edilmiş (HTTP " + str(exc.code) + ")."
+            elif code in ("permission_denied", "insufficient_permissions", "project_permission_denied",
+                          "project_not_found", "invalid_project", "organization_disabled",
+                          "organization_restricted"):
+                message = "Groq anahtarının proje/organizasyon erişimi reddedildi (HTTP " + str(exc.code) + ")."
+            elif code in ("model_not_found", "model_decommissioned", "model_not_available", "model_access_denied"):
+                message = "Groq bu model için erişim vermedi; model seçimini/proje iznini kontrol edin (HTTP " + str(exc.code) + ")."
             elif exc.code == 403:
                 message = "Groq erişimi reddetti; proje veya model iznini kontrol edin (HTTP 403)."
             elif exc.code in (400, 404):
@@ -122,6 +145,8 @@ def generate(prompt, provider="offline", *, transport=None, model=None, system_p
                 message = "Groq geçici sunucu hatası verdi (HTTP " + str(exc.code) + ")."
             else:
                 message = "Groq isteği reddedildi (HTTP " + str(exc.code) + ")."
+            if code:
+                message += " Groq hata kodu: " + code + "."
             raise ProviderError(message) from None
         raise ProviderError("Provider HTTP request failed (HTTP " + str(exc.code) + ").") from None
     except (URLError, OSError) as exc:

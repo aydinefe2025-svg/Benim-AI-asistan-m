@@ -110,6 +110,21 @@ class ProviderTests(unittest.TestCase):
                 self.assertIn(expected, str(raised.exception))
                 self.assertNotIn("DO_NOT_EXPOSE_PROVIDER_BODY", str(raised.exception))
 
+    def test_groq_403_exposes_only_allowlisted_provider_code(self):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
+            def sender(request, timeout):
+                body = json.dumps({"error": {
+                    "code": "project_permission_denied",
+                    "message": "DO_NOT_EXPOSE provider detail",
+                }}).encode()
+                raise HTTPError(request.full_url, 403, "provider failure", None, BytesIO(body))
+            with self.assertRaises(ProviderError) as raised:
+                generate("hello", "groq", transport=sender)
+        self.assertIn("proje/organizasyon erişimi reddedildi", str(raised.exception))
+        self.assertIn("project_permission_denied", str(raised.exception))
+        self.assertNotIn("DO_NOT_EXPOSE", str(raised.exception))
+        self.assertNotIn("provider detail", str(raised.exception))
+
     def test_groq_network_error_is_reported_safely(self):
         with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
             with self.assertRaisesRegex(ProviderError, "Groq network request failed"):
