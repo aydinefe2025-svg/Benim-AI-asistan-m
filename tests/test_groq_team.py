@@ -51,6 +51,20 @@ class TeamBudgetTests(unittest.TestCase):
         self.assertNotIn("secret", str(failure.exception))
         self.assertIn("kota", str(failure.exception).casefold())
 
+    def test_short_response_truncation_is_not_silently_hidden(self):
+        class ShortResponse:
+            class Choice:
+                class Message:
+                    content = "Ön taslak"
+                message = Message()
+                finish_reason = "length"
+            choices = [Choice()]
+        client = FakeClient()
+        client.chat.completions.create = lambda **kw: ShortResponse()
+        output = generate_team_stage(
+            "Görev", api_key="key", client_factory=lambda **kw: client)
+        self.assertIn("token sınırında", output)
+
     def test_blank_and_oversized_prompt_rejected_before_call(self):
         client = FakeClient()
         for text in (" ", "x" * 15000):
