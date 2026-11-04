@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import tempfile
 import uuid
+from urllib.parse import parse_qsl, unquote, urlsplit
 
 
 class BackupError(RuntimeError):
@@ -35,6 +36,67 @@ def _check_binary(name: str) -> str:
     if not result:
         raise BackupError(f"Required executable not found: {name}")
     return result
+
+
+def _libpq_env_from_url(database_url: str) -> dict[str, str]:
+    """Translate a PostgreSQL URI into libpq PG* settings, without argv secrets.
+
+    PGDATABASE is a *database name*, not a URI; putting the whole URL there
+    caused a real PostgreSQL 16 connection failure in the recovery drill.
+    """
+    try:
+        parts = urlsplit(database_url)
+        if (parts.scheme not in {"postgres", "postgresql"}
+                or not parts.hostname or parts.fragment or
+                not parts.path.startswith("/") or len(parts.path) < 2):
+            raise ValueError("Invalid PostgreSQL connection parameters")
+        database_name = unquote(parts.path[1:])
+        if not database_name or "\\x00" in database_name:
+            raise ValueError("Invalid PostgreSQL database name")
+        port = parts.port or 5432
+        if port < 1 or port > 65535:
+            raise ValueError("Invalid PostgreSQL port")
+        option_names = {
+            "sslmode": "PGSSLMODE",
+            "sslrootcert": "PGSSLROOTCERT",
+            "sslcert": "PGSSLCERT",
+            "sslkey": "PGSSLKEY",
+            "channel_binding": "PGCHANNELBINDING",
+            "connect_timeout": "PGCONNECT_TIMEOUT",
+            "application_name": "PGAPPNAME",
+            "target_session_attrs": "PGTARGETSESSIONATTRS",
+        }
+        options = parse_qsl(parts.query, keep_blank_values=True, strict_parsing=True)
+        if len(set(k for k, _ in options)) != len(options):
+            raise ValueError("Duplicate PostgreSQL URI option")
+        if any(key not in option_names or not val for key, val in options):
+            raise ValueError("Unsupported PostgreSQL URI option")
+        params = dict(options)
+        local = parts.hostname in {"localhost", "127.0.0.1", "::1"}
+        sslmode = params.get("sslmode", "prefer" if local else "require")
+        if not local and sslmode not in {"require", "verify-ca", "verify-full"}:
+            raise ValueError("Remote PostgreSQL backup requires TLS")
+        env = os.environ.copy()
+        # Overwrite libpq input fields so ambient client settings cannot
+        # silently connect to a different database or less-protected host.
+        for key in ("PGHOST", "PGPORT", "PGUSER", "PGPASSWORD",
+                    "PGDATABASE", "PGSSLMODE"):
+            env.pop(key, None)
+        env.update({
+            "PGHOST": parts.hostname,
+            "PGPORT": str(port),
+            "PGUSER": unquote(parts.username or ""),
+            "PGPASSWORD": unquote(parts.password or ""),
+            "PGDATABASE": database_name,
+            "PGSSLMODE": sslmode,
+        })
+        for key, val in options:
+            env[option_names[key]] = val
+        env.setdefault("PGCONNECT_TIMEOUT", "8")
+        return env
+    except (ValueError, TypeError):
+        # Mask malformed URI details, which may contain passwords.
+        raise BackupError("Invalid PostgreSQL connection configuration") from None
 
 
 def _archive_is_valid(path: Path, *, restore_bin: str = "pg_restore") -> None:
@@ -92,9 +154,8 @@ def make_backup(destination: Path, *, database_env: str = "DATABASE_URL",
     os.close(fd)
     os.chmod(temporary, 0o600)
     try:
-        env = os.environ.copy()
-        # Keep the connection string out of command-line process listings.
-        env["PGDATABASE"] = database_url
+        # Correct libpq PG* settings; URI (with credentials) must not be argv.
+        env = _libpq_env_from_url(database_url)
         try:
             result = subprocess.run(
                 [dump_exe, "--format=custom", "--no-owner", "--no-privileges",
