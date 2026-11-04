@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import tempfile
 import uuid
+from urllib.parse import parse_qsl, unquote, urlsplit
 
 
 class BackupError(RuntimeError):
@@ -71,6 +72,61 @@ def _private_json(path: Path, payload: dict) -> None:
             os.unlink(temporary)
 
 
+
+# PostgreSQL does NOT interpret a connection URI stored in PGDATABASE as a URI.
+# Decompose the URL into standard libpq environment variables instead.
+_URL_OPTIONS = {
+    "sslmode": "PGSSLMODE",
+    "sslrootcert": "PGSSLROOTCERT",
+    "sslcert": "PGSSLCERT",
+    "sslkey": "PGSSLKEY",
+    "connect_timeout": "PGCONNECT_TIMEOUT",
+    "channel_binding": "PGCHANNELBINDING",
+    "target_session_attrs": "PGTARGETSESSIONATTRS",
+    "application_name": "PGAPPNAME",
+    "options": "PGOPTIONS",
+}
+
+
+def _libpq_env_from_uri(uri: str, inherited: dict) -> dict:
+    """Convert a standard PostgreSQL URI into secret-free argv + libpq env.
+
+    Deliberately reject unknown query parameters rather than silently dropping
+    security options. This supports the standard Render-style connection URI.
+    """
+    try:
+        parsed = urlsplit(uri)
+        if parsed.scheme not in ("postgres", "postgresql"):
+            raise ValueError("scheme")
+        if not parsed.hostname or not parsed.path or parsed.path == "/" or parsed.fragment:
+            raise ValueError("missing host, database or unexpected fragment")
+        port = parsed.port
+        options = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=True)
+    except ValueError:
+        raise BackupError("Invalid PostgreSQL URL structure") from None
+    env = inherited.copy()
+    # A previous libpq service or host address must not redirect the backup.
+    for name in ("PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR"):
+        env.pop(name, None)
+    env["PGHOST"] = parsed.hostname
+    env["PGDATABASE"] = unquote(parsed.path[1:])
+    if port is not None:
+        env["PGPORT"] = str(port)
+    if parsed.username is not None:
+        env["PGUSER"] = unquote(parsed.username)
+    if parsed.password is not None:
+        env["PGPASSWORD"] = unquote(parsed.password)
+    seen = set()
+    for key, value in options:
+        if key not in _URL_OPTIONS or key in seen or not value:
+            raise BackupError("Unsupported or invalid PostgreSQL URL option")
+        seen.add(key)
+        env[_URL_OPTIONS[key]] = value
+    if not env["PGDATABASE"].strip():
+        raise BackupError("PostgreSQL database name is required")
+    return env
+
+
 def make_backup(destination: Path, *, database_env: str = "DATABASE_URL",
                 dump_bin: str = "pg_dump", restore_bin: str = "pg_restore") -> dict:
     # Render free web service disks are ephemeral: destination MUST be an
@@ -92,9 +148,8 @@ def make_backup(destination: Path, *, database_env: str = "DATABASE_URL",
     os.close(fd)
     os.chmod(temporary, 0o600)
     try:
-        env = os.environ.copy()
-        # Keep the connection string out of command-line process listings.
-        env["PGDATABASE"] = database_url
+        # Keep credentials in the subprocess environment, never process argv.
+        env = _libpq_env_from_uri(database_url, os.environ)
         try:
             result = subprocess.run(
                 [dump_exe, "--format=custom", "--no-owner", "--no-privileges",
