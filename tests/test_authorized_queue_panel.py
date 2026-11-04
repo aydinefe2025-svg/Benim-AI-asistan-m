@@ -72,14 +72,15 @@ class AuthorizedQueuePanelTests(unittest.TestCase):
 
     def test_provider_call_requires_separate_click_and_approval(self):
         queue = self._queue()
-        st = FakeStreamlit(click=True)
+        st = FakeStreamlit(click=True, submits=[False, True])
         with patch("core.authorized_queue_panel.PostgresAuthorizedQueue", return_value=queue):
             render_authorized_queue_panel(st, answer=lambda _: "draft", owner_key="oidc_owner",
                                           database_url="postgresql://unused")
         queue.run_once.assert_not_called()
 
         queue = self._queue()
-        st = FakeStreamlit(click=True, approved={"cano_queue_approve_run": True})
+        st = FakeStreamlit(click=True, submits=[False, True],
+                           approved={"cano_queue_approve_run": True})
         def answer(goal): return "draft"
         with patch("core.authorized_queue_panel.PostgresAuthorizedQueue", return_value=queue):
             render_authorized_queue_panel(st, answer=answer, owner_key="oidc_owner",
