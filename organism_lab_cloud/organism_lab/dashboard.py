@@ -1,8 +1,11 @@
 """Streamlit dashboard for the digital organism lab (local or hosted demo)."""
 from pathlib import Path
+import hashlib
 import json
 import os
 import sys
+from datetime import datetime, timezone
+from uuid import uuid4
 
 # Streamlit launches this file directly; ensure repository imports resolve.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -19,31 +22,73 @@ from organism_lab.agent_roles import AGENT_PROFILES, profile_prompt
 from organism_lab.cloud_runtime import default_provider, session_output_dir
 
 CLOUD_MODE = os.environ.get("ORGANISM_LAB_CLOUD_MODE", "").strip() == "1"
+st.set_page_config(page_title="Organizma Laboratuvarı", layout="wide")
+_archive = None
+_archive_baseline = None
+_owner_key = None
 if CLOUD_MODE:
+    from organism_lab.persistent_store import (
+        PostgresArchive, PersistenceConflict, authenticated_owner_key,
+        pack_directory, unpack_directory,
+    )
+    if os.environ.get("ORGANISM_LAB_OIDC_CONFIGURED") != "1":
+        st.title("Organizma Laboratuvarı")
+        st.error("Kalıcı bulut laboratuvarı güvenli giriş ayarları tamamlanana kadar kapalı.")
+        st.stop()
+    required = ("DATABASE_URL", "ORGANISM_LAB_OWNER_EMAIL", "ORGANISM_LAB_OWNER_KEY_SECRET")
+    if any(not os.environ.get(name, "").strip() for name in required):
+        st.title("Organizma Laboratuvarı")
+        st.error("Kalıcı veritabanı ve hesap sahipliği yapılandırması tamamlanana kadar bulut kullanımı kapalı.")
+        st.stop()
+    if not st.user.is_logged_in:
+        st.title("Organizma Laboratuvarı")
+        st.button("Google ile güvenli giriş", on_click=st.login)
+        st.stop()
+    try:
+        _owner_key = authenticated_owner_key(
+            st.user,
+            allowed_email=os.environ["ORGANISM_LAB_OWNER_EMAIL"],
+            secret=os.environ["ORGANISM_LAB_OWNER_KEY_SECRET"],
+        )
+        _archive = PostgresArchive(_owner_key)
+        _archive.check()
+    except Exception:
+        st.error("Hesap doğrulanamadı veya kalıcı arşive erişilemiyor. Veriler korunuyor.")
+        if st.button("Oturumu kapat"):
+            st.logout()
+        st.stop()
     OUTPUT_DIR = session_output_dir(
         os.environ.get("ORGANISM_LAB_OUTPUT_DIR", "/tmp/organism-lab-sessions"),
         st.session_state,
     )
+    try:
+        if not st.session_state.get("organism_lab_archive_conflict"):
+            _snapshot, _archive_baseline = _archive.load()
+            if _snapshot is not None:
+                unpack_directory(_snapshot, OUTPUT_DIR)
+            st.session_state["organism_lab_archive_baseline"] = _archive_baseline
+    except Exception:
+        st.error("Kalıcı arşiv okunamadı veya bütünlük kontrolü başarısız. Oturum durduruldu.")
+        st.stop()
 else:
     OUTPUT_DIR = Path(os.environ.get(
         "ORGANISM_LAB_OUTPUT_DIR",
         Path(__file__).resolve().parents[3] / "organism_lab_output",
     )).resolve()
-
-st.set_page_config(page_title="Organizma Laboratuvarı", layout="wide")
 st.title("Organizma Laboratuvarı")
 st.caption("Yalnızca dijital simülasyon. Fiziksel robot veya biyolojik organizma kontrolü içermez.")
 if CLOUD_MODE:
-    st.warning(
-        "Bulut demo modu: her tarayıcı oturumu ayrı geçici depolama kullanır. "
-        "Render yeniden başlatılır veya dağıtım yapılırsa notlar ve deney dosyaları silinebilir; "
-        "önemli sonuçları indirin. Bu örnekte giriş hesabı ve kalıcı arşiv etkin değildir. "
-        "Yerel Ollama/LoRA modeli bu sunucuda çalışmaz."
+    st.caption(
+        "Hesap başına kalıcı laboratuvar arşivi etkin. Her kayıt Neon PostgreSQL'de "
+        "kullanıcıya özel anahtarla saklanır; yedekleri düzenli olarak indirin. "
+        "Yerel Ollama/LoRA modeli bulut sunucusunda çalışmaz."
     )
+    if st.button("Oturumu kapat", key="organism_lab_logout"):
+        st.logout()
 
-st.header("Araştırma asistanı ve oturum notları" if CLOUD_MODE else "Yerel asistan ve kalıcı hafıza")
+st.header("Araştırma asistanı ve kalıcı arşiv" if CLOUD_MODE else "Yerel asistan ve kalıcı hafıza")
 st.caption(
-    "Bu tarayıcı oturumunda açıkça eklenen notlar geçici SQLite dosyasında tutulur. "
+    "Açıkça kaydedilen notlar kalıcı ve hesaba özel arşivde tutulur. "
     "Sohbetler model ağırlıklarını eğitmez; notlar bağımsız doğrulanmış değildir."
     if CLOUD_MODE else
     "Ham sohbetler kendiliğinden eğitime katılmaz. Burada açıkça kaydettiğin notlar bu bilgisayardaki SQLite belleğinde tutulur. Kalıcı bellek ile ağırlık eğitimi ayrı şeylerdir; notlar bağımsız doğrulanmış değildir."
@@ -87,11 +132,11 @@ except (OSError, ValueError, TypeError):
 memory_topic = st.text_input("Not başlığı", max_chars=100, key="memory_topic")
 memory_content = st.text_area("Asistanın sonraki oturumlarda hatırlamasını istediğin bilgi", max_chars=4000,
                               key="memory_content")
-save_memory_clicked = st.button("Notu oturuma kaydet" if CLOUD_MODE else "Notu kalıcı hafızaya kaydet", key="save_assistant_memory")
+save_memory_clicked = st.button("Notu kalıcı hafızaya kaydet", key="save_assistant_memory")
 if save_memory_clicked:
     try:
         note = save_memory(OUTPUT_DIR, memory_topic, memory_content)
-        location = "yalnızca bu oturumda" if CLOUD_MODE else "yalnızca yerel bilgisayarda"
+        location = "hesaba ait kalıcı arşivde" if CLOUD_MODE else "yalnızca yerel bilgisayarda"
         st.success(f"Not kaydedildi · #{note['id']} · {location}")
     except (OSError, ValueError) as exc:
         st.error(f"Not kaydedilemedi ({type(exc).__name__}); içerik güvenli biçimde reddedildi.")
@@ -101,7 +146,7 @@ selected_agent = st.selectbox(
     format_func=lambda key: AGENT_PROFILES[key][0], key="organism_agent_role",
     help="Ajan profilleri yalnızca kullanıcının başlattığı yanıta yön verir; araç izni veya kendi kendine işlem yetkisi vermez. Açıkça kaydedilmiş notlar ortak hafıza olarak bağlamda kullanılır.",
 )
-st.caption("Ajanların notlarla bağlam öğrenmesi açıkça kaydedilen notlarla sınırlıdır. Sohbetler kendiliğinden saklanmaz ve model ağırlıkları eğitilmez.")
+st.caption("Ajanlar yalnızca açıkça kaydedilen notları bağlam olarak kullanır. Gönderilen bulut sohbetleri özel arşivde saklanır; sohbetler model ağırlıklarını eğitmez.")
 learning_query = st.text_area("Asistana sor" if CLOUD_MODE else "Yerel asistana sor", max_chars=4000, key="learning_query")
 ask_local_clicked = st.button("Groq'a sor" if CLOUD_MODE and selected_provider == "groq" else "Yanıt üret" if CLOUD_MODE else "Yerel Qwen'e sor", key="local_learning_chat", disabled=CLOUD_MODE and not groq_configured)
 if ask_local_clicked:
@@ -115,6 +160,19 @@ if ask_local_clicked:
                            system_prompt=profile_prompt(selected_agent) if selected_provider == "groq" else None)
         st.session_state["local_learning_answer"] = response.get("text", "")
         st.session_state["local_learning_context_count"] = len(relevant)
+        if CLOUD_MODE:
+            chat_path = OUTPUT_DIR / "chat_history.jsonl"
+            with chat_path.open("a", encoding="utf-8") as history_file:
+                history_file.write(json.dumps({
+                    "id": uuid4().hex,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "agent": selected_agent,
+                    "provider": response.get("provider", "groq"),
+                    "model": selected_model,
+                    "question": learning_query,
+                    "answer": response.get("text", ""),
+                    "saved_note_count": len(relevant),
+                }, ensure_ascii=False, allow_nan=False) + "\n")
         st.session_state["local_learning_provider"] = response.get("provider", "ollama")
     except (ProviderError, OSError, ValueError, RuntimeError) as exc:
         st.error(f"Model yanıt vermedi ({type(exc).__name__}); kaydedilmiş hafıza korunuyor.")
@@ -122,7 +180,7 @@ if st.session_state.get("local_learning_answer"):
     st.markdown("**Ajan yanıtı**")
     st.write(st.session_state["local_learning_answer"])
     st.caption(f"Model: {st.session_state.get('local_learning_provider', 'ollama')} · eklenen kayıtlı not: {st.session_state.get('local_learning_context_count', 0)}")
-with st.expander("Bu oturumdaki hafıza notları" if CLOUD_MODE else "Bu bilgisayarda saklanan hafıza notları"):
+with st.expander("Hesabımda saklanan kalıcı notlar" if CLOUD_MODE else "Bu bilgisayarda saklanan hafıza notları"):
     memory_rows = list_memories(OUTPUT_DIR)
     if memory_rows:
         st.dataframe([{"Başlık": row["topic"], "Not": row["content"],
@@ -132,7 +190,7 @@ with st.expander("Bu oturumdaki hafıza notları" if CLOUD_MODE else "Bu bilgisa
         st.info("Henüz kaydedilmiş not yok.")
 
 st.header("Bilimsel literatür kataloğu")
-st.caption("OpenAlex'ten en fazla 5 bibliyografik kayıt getirir ve kaynak kökeniyle kaydeder. Bulut demosunda kayıtlar geçici oturum depolamasındadır. Katalog kaydı, makalenin içeriğini veya iddialarını doğrulamaz.")
+st.caption("OpenAlex'ten en fazla 5 bibliyografik kayıt getirir ve kaynak kökeniyle hesaba özel kalıcı arşive kaydeder. Katalog kaydı, makalenin içeriğini veya iddialarını doğrulamaz.")
 literature_query = st.text_input("Araştırma konusu", value="digital evolution Avida", max_chars=200)
 if st.button("Literatürde ara ve kaydet", key="search_literature"):
     try:
@@ -200,6 +258,18 @@ materials = st.number_input("Başlangıç malzemesi", min_value=0, max_value=100
 
 if st.button("Simülasyonu çalıştır", type="primary"):
     st.session_state["organism_result"] = run_shared_world(steps=steps, energy=int(energy), materials=int(materials))
+    if CLOUD_MODE:
+        (OUTPUT_DIR / "simulation_result.json").write_text(
+            json.dumps(st.session_state["organism_result"], ensure_ascii=False, allow_nan=False),
+            encoding="utf-8",
+        )
+if CLOUD_MODE and "organism_result" not in st.session_state:
+    try:
+        st.session_state["organism_result"] = json.loads(
+            (OUTPUT_DIR / "simulation_result.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError, TypeError):
+        pass
 
 if "organism_result" in st.session_state:
     result = st.session_state["organism_result"]
@@ -225,6 +295,10 @@ if st.button("Araştırma kampanyasını çalıştır", key="run_genome_study_v2
         commentary = {"status": "not_requested", "text": ""}
         saved = save_study(campaign, OUTPUT_DIR,
                            model_commentary=commentary)
+    if CLOUD_MODE:
+        (OUTPUT_DIR / "genome_campaign_latest.json").write_text(
+            json.dumps(campaign, ensure_ascii=False, allow_nan=False), encoding="utf-8"
+        )
     st.session_state["genome_campaign_v2"] = campaign
     st.session_state["genome_commentary_v2"] = commentary
     st.session_state["genome_saved_v2"] = saved
@@ -251,6 +325,25 @@ if st.button("Uyum deneyini çalıştır (30 eşlenmiş tohum)", key="run_enviro
         st.session_state["environment_shift_path"] = str(path)
     except (OSError, ValueError, RuntimeError) as exc:
         st.error(f"Uyum deneyi tamamlanamadı ({type(exc).__name__}); mevcut kayıtlar korunuyor.")
+if CLOUD_MODE and "genome_campaign_v2" not in st.session_state:
+    try:
+        st.session_state["genome_campaign_v2"] = json.loads(
+            (OUTPUT_DIR / "genome_campaign_latest.json").read_text(encoding="utf-8")
+        )
+        st.session_state["genome_saved_v2"] = {"study_id": "restored"}
+        st.session_state["genome_commentary_v2"] = {"status": "not_requested", "text": ""}
+    except (OSError, ValueError, TypeError):
+        pass
+
+if CLOUD_MODE and "environment_shift_report" not in st.session_state:
+    try:
+        st.session_state["environment_shift_report"] = json.loads(
+            (OUTPUT_DIR / "environment-shift-study.json").read_text(encoding="utf-8")
+        )
+        st.session_state["environment_shift_path"] = str(OUTPUT_DIR / "environment-shift-study.json")
+    except (OSError, ValueError, TypeError):
+        pass
+
 if "environment_shift_report" in st.session_state:
     adaptation = st.session_state["environment_shift_report"]
     st.dataframe(adaptation["results"], width="stretch", hide_index=True)
@@ -273,4 +366,48 @@ with st.expander("Kayıtlı araştırmaların otomatik özeti"):
             st.info("Araştırma özeti okunamadı; ham kayıtlar korunuyor.")
     else:
         st.info("Sürekli araştırma ilk özetini oluşturduğunda burada görünür.")
+
+if CLOUD_MODE:
+    try:
+        _snapshot_data = pack_directory(OUTPUT_DIR)
+        _snapshot_digest = hashlib.sha256(_snapshot_data).hexdigest()
+        if _snapshot_digest != st.session_state.get("organism_lab_archive_baseline"):
+            try:
+                _archive_baseline = _archive.save(
+                    _snapshot_data,
+                    expected_digest=st.session_state.get("organism_lab_archive_baseline"),
+                )
+                st.session_state["organism_lab_archive_baseline"] = _archive_baseline
+                st.session_state.pop("organism_lab_archive_conflict", None)
+                st.success("Laboratuvar verileri kalıcı arşive kaydedildi.")
+            except PersistenceConflict:
+                st.session_state["organism_lab_archive_conflict"] = True
+                st.error("Başka bir oturum arşivi güncelledi. Bu oturumdaki veriyi indirin; üzerine yazılmadı.")
+        st.download_button(
+            "Kalıcı laboratuvar arşivini yedekle",
+            data=_snapshot_data,
+            file_name="organism-lab-backup.tar.gz",
+            mime="application/gzip",
+            key="organism_lab_backup_download",
+        )
+        _restore_upload = st.file_uploader(
+            "Önceden indirdiğin laboratuvar yedeğini geri yükle",
+            type=["gz"],
+            key="organism_lab_restore_upload",
+        )
+        if _restore_upload is not None and st.button("Yedeği geri yükle", key="organism_lab_restore"):
+            try:
+                unpack_directory(_restore_upload.getvalue(), OUTPUT_DIR)
+                _new_backup = pack_directory(OUTPUT_DIR)
+                _new_digest = _archive.save(
+                    _new_backup,
+                    expected_digest=st.session_state.get("organism_lab_archive_baseline"),
+                )
+                st.session_state["organism_lab_archive_baseline"] = _new_digest
+                st.session_state.pop("organism_lab_archive_conflict", None)
+                st.success("Yedek doğrulandı ve kalıcı arşive geri yüklendi.")
+            except (OSError, ValueError, RuntimeError):
+                st.error("Yedek doğrulanamadı; mevcut laboratuvar arşivi değiştirilmedi.")
+    except Exception as exc:
+        st.error(f"Kalıcı arşiv işlemi tamamlanamadı ({type(exc).__name__}); uygulama içeriği güvenli biçimde gizlendi.")
 
