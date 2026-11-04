@@ -203,7 +203,11 @@ def main(argv=None):
                        resource_levels=tuple(args.resources))
     commentary = summarize_with_local_model(report) if args.model_commentary else None
     saved = save_study(report, args.output, model_commentary=commentary)
+    # Import after module initialization to avoid a cycle with run_study.
+    from .study_verifier import verify_saved_study
+    receipt = verify_saved_study(saved)
     print(json.dumps({"study_id": saved["study_id"], "files": saved,
+                      "verification_receipt": receipt,
                       "results": report["results"], "model_commentary": commentary},
                      ensure_ascii=False, indent=2))
     return 0
