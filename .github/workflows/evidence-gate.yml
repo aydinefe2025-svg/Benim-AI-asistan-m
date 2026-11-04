@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - main
-  push:
-    branches:
       - feat/issue-58-evidence-gate
       - feat/issue-58-running-heartbeat
       - feat/issue-58-heartbeat-runner
