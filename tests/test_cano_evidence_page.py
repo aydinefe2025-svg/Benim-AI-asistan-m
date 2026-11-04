@@ -15,7 +15,7 @@ class EvidencePageSmokeTests(unittest.TestCase):
             for alias in node.names
         }
         self.assertIn("json", imports)
-        self.assertIn("streamlit", imports)
+        self.assertIn("st", imports)
         self.assertIn("audit_claim_quotes", source)
         self.assertIn("İddiaları kaynak alıntılarıyla karşılaştır", source)
 
