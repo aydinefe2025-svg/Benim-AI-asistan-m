@@ -146,6 +146,16 @@ class PostgresLeaderLease:
         commits this transaction. External API effects need separate fencing.
         """
         self._check_token(token)
+        # The fence row lock and protected SQL write MUST share a transaction.
+        # Autocommit releases row locks immediately after SELECT; an opaque
+        # cursor cannot prove that the caller can hold a transaction open.
+        try:
+            connection = cursor.connection
+            autocommit = connection.autocommit
+        except (AttributeError, TypeError):
+            raise RuntimeError("Explicit non-autocommit transaction required") from None
+        if type(autocommit) is not bool or autocommit:
+            raise RuntimeError("Explicit non-autocommit transaction required")
         self._authorize(cursor)
         cursor.execute("""SELECT node_id,epoch,expires_at
             FROM public.cano_queen_leases
