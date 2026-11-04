@@ -18,7 +18,7 @@ class _Cursor:
         self.queries.append(sql)
 
     def fetchone(self):
-        return (self.owns_tables,)
+        return {"owns_table": self.owns_tables}
 
 
 class _Connection:
