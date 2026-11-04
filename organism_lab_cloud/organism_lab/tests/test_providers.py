@@ -69,7 +69,7 @@ class ProviderTests(unittest.TestCase):
         def sender(request, timeout):
             captured["authorization"] = request.get_header("Authorization")
             return FakeResponse({"choices": [{"message": {"content": "OK"}}]})
-        with patch.dict(os.environ, {"GROQ_API_KEY": "  test-placeholder\\n"}):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "  test-placeholder\n"}):
             result = generate("hello", "groq", transport=sender)
         self.assertEqual(result["text"], "OK")
         self.assertEqual(captured["authorization"], "Bearer test-placeholder")
