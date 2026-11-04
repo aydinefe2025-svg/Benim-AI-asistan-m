@@ -43,6 +43,17 @@ class PostgresAuthorizedQueue:
         stage = "connect"
         try:
             with self._db() as db, db.cursor() as cur:
+                stage = "identity"
+                cur.execute("""SELECT current_user AS runtime_role,
+                    current_database() AS runtime_database,
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_jobs', 'SELECT') AS queue_select""")
+                identity = cur.fetchone() or {}
+                logging.getLogger(__name__).info(
+                    "Authorized queue DB identity role=%s database=%s queue_select=%s",
+                    identity.get("runtime_role"), identity.get("runtime_database"),
+                    identity.get("queue_select"),
+                )
                 stage = "jobs_columns"
                 cur.execute(
                     "SELECT owner_key,id,idem_key,goal,state,max_calls,attempts,"
