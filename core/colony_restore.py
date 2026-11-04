@@ -103,7 +103,41 @@ def restore_empty_colony(colony, snapshot):
                        (row["id"], row["task"], row["stages"],
                         "blocked" if row["status"] == "running" else row["status"],
                         row["created_at"]))
+        # Verify inside the same transaction, so any SQL trigger or database
+        # mutation that changes a restored row causes a rollback, not a false
+        # success or a partially committed restore. Do not silently drop fields.
+        collections = (
+            ("colony_agents", agents), ("colony_feedback", feedback),
+            ("colony_reviews", reviews),
+            ("colony_missions", [
+                {**item, "status": "blocked"} if item["status"] == "running" else item
+                for item in missions
+            ]),
+        )
+        for table, expected in collections:
+            saved = [dict(row) for row in db.execute("SELECT * FROM " + table)]
+            canonical = lambda rows: sorted(rows, key=lambda row: str(row["id"]))
+            if canonical(saved) != canonical(expected):
+                raise RuntimeError("Colony snapshot readback mismatch")
     return len(agents)
+
+
+def restore_owner_backup(colony, snapshot_store, owner_key, *, approved=False):
+    """Restore one authenticated owner's PostgreSQL backup with explicit consent.
+
+    The caller must authenticate the owner before passing owner_key. Never
+    retrieve data for another owner or overwrite an existing colony. The
+    shared transactional restore verifies every row before committing.
+    """
+    if approved is not True:
+        raise PermissionError("Explicit restore confirmation required")
+    if (not isinstance(owner_key, str) or not owner_key.strip()
+            or len(owner_key) > 128):
+        raise ValueError("Authenticated owner key required")
+    snapshot = snapshot_store.load(owner_key)
+    if snapshot is None:
+        raise LookupError("No backup for authenticated owner")
+    return restore_empty_colony(colony, snapshot)
 
 
 def restore_colony_json_bytes(colony, raw):
