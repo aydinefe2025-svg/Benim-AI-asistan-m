@@ -224,7 +224,7 @@ class CommandCenterTests(unittest.TestCase):
             render_cano_command_center(
                 st, answer=model, owner_key="authenticated-owner",
                 database_url="postgresql://synthetic-test")
-            self.assertGreaterEqual(save.call_count, 1)
+            self.assertGreaterEqual(save.call_count, 1, msg=repr(st.messages))
             first_owner, first_snapshot = save.call_args.args
             self.assertEqual(first_owner, "authenticated-owner")
             self.assertEqual(len(first_snapshot["agents"]), 7)
