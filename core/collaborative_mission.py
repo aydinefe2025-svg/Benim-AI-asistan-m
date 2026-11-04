@@ -221,7 +221,7 @@ class CollaborativeMission:
                     raise ValueError("Invalid evidence excerpt")
                 source_url = item.get("url")
                 if (not isinstance(source_url, str) or not re.fullmatch(
-                        r"https://europepmc\\.org/articles/PMC[0-9]{1,14}",
+                        r"https://europepmc\.org/articles/PMC[0-9]{1,14}",
                         source_url)):
                     source_url = "https://doi.org/" + doi
                 documents.append({
