@@ -137,6 +137,22 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(stats["review_pending"], 1)
             self.assertIn("Uzman", st.metrics)
 
+    def test_model_quota_failure_is_visible_and_task_remains_recoverable(self):
+        from core.groq_team import TeamRateLimitError
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            st.task = "Sınırlı bir araştırma görevi"
+            st.submit = True
+            def quota_exhausted(prompt):
+                raise TeamRateLimitError("safe quota limit")
+            render_cano_command_center(st, answer=quota_exhausted)
+            stats = read_cano_status(AgentColony(
+                _session_database_path(st, self.db_base)))
+            self.assertEqual(stats["blocked"], 1)
+            self.assertEqual(stats["missions"], 1)
+            self.assertIn("kota", " ".join(st.messages).casefold())
+
     def test_cockpit_exposes_truth_when_no_model(self):
         st = FakeStreamlit(clicks={"cano_prepare_team"}, submit=True, task="Test")
         with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
