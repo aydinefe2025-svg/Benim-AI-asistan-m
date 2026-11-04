@@ -385,7 +385,11 @@ def _team_answer(prompt: str) -> str:
     return generate_team_stage(prompt, api_key=GROQ_KEY)
 
 
-render_cano_command_center(st, answer=_team_answer if GROQ_KEY else None)
+render_cano_command_center(
+    st, answer=_team_answer if GROQ_KEY else None,
+    owner_key=_OWNER_KEY if _MEMORY_STORE is not None else None,
+    database_url=os.environ.get("DATABASE_URL") if _MEMORY_STORE is not None else None,
+)
 render_task_panel(st, answer=_research_answer if GROQ_KEY else None, store_override=_TASK_STORE)
 render_authorized_queue_panel(
     st, answer=_research_answer if GROQ_KEY else None,
