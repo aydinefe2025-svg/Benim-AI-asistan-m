@@ -23,27 +23,32 @@ def write_oidc_file(env=None, directory=None):
         env.pop("ORGANISM_LAB_OIDC_CONFIGURED", None)
         return None
     target_dir = Path(directory or tempfile.gettempdir()) / "organism-lab-runtime"
-    target_dir.mkdir(parents=True, exist_ok=True)
-    path = target_dir / "secrets.toml"
+    secrets_dir = target_dir / ".streamlit"
+    secrets_dir.mkdir(parents=True, exist_ok=True)
+    path = secrets_dir / "secrets.toml"
+    if path.exists():
+        env.pop("ORGANISM_LAB_OIDC_CONFIGURED", None)
+        return None
     body = "[auth]\n" + "".join(f"{key} = {json.dumps(value, ensure_ascii=False)}\n"
                                  for key, value in values.items())
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
     fd = os.open(path, flags, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as output:
         output.write(body)
-    env["STREAMLIT_SECRETS_FILES"] = json.dumps([str(path)])
     env["ORGANISM_LAB_OIDC_CONFIGURED"] = "1"
     return path
 
 
 def main():
-    write_oidc_file()
+    runtime_root = Path(tempfile.gettempdir()) / "organism-lab-runtime"
+    runtime_root.mkdir(parents=True, exist_ok=True)
+    write_oidc_file(directory=tempfile.gettempdir())
     dashboard = Path(__file__).resolve().parent / "organism_lab" / "dashboard.py"
     port = os.environ.get("PORT", "8501")
     command = [sys.executable, "-m", "streamlit", "run", str(dashboard),
                "--server.address", "0.0.0.0", "--server.port", port,
                "--server.headless", "true"]
-    raise SystemExit(subprocess.call(command))
+    raise SystemExit(subprocess.call(command, cwd=runtime_root))
 
 
 if __name__ == "__main__":
