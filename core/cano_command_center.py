@@ -281,7 +281,8 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                     result = manager.execute(
                         goal, client=_AnswerAdapter(answer),
                         model="configured-provider",
-                        source_lookup=scientific_sources if lookup else None)
+                        source_lookup=scientific_sources if lookup else None,
+                        on_checkpoint=_checkpoint if backup_store is not None else None)
                 except TeamRateLimitError:
                     try:
                         _checkpoint()
