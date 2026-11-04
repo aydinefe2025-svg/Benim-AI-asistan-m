@@ -11,6 +11,9 @@ from core.claim_evidence import audit_claim_quotes
 from core.groq_team import generate_team_stage, TeamRateLimitError
 from core.cano_command_center import _snapshot
 from core.colony_postgres import ColonySnapshotStore
+from core.browser_colony import (
+    browser_colony_component, browser_write_confirmed, encode_browser_colony_backup,
+)
 from core.targeted_research import execute_targeted_research
 from core.scientific_sources import scientific_sources
 
@@ -70,6 +73,22 @@ for item in manager.get(mid)["stages"][0].get("source_claim_audit", []):
         st.warning("Önerilen alıntı ilgili kaynakta bulunmadı.")
         st.caption(item["claim"])
 st.caption("Bu oturumun kaynak denetimi kayıtlarını saklamak için yedek alın.")
+if not owner:
+    save_in_browser = st.checkbox(
+        "Bu kişisel tarayıcıda CANO alıntı kayıtlarını yedeklemeyi onaylıyorum "
+        "(şifrelenmemiş yerel depolama)",
+        value=bool(st.session_state.get("cano_local_backup_opt_in")),
+        key="cano_claim_backup_consent")
+    if save_in_browser:
+        try:
+            payload = encode_browser_colony_backup(_snapshot(colony))
+            receipt = browser_colony_component(write=payload)
+            if browser_write_confirmed(receipt, payload):
+                st.caption("Tarayıcı yedeği yazıldı ve geri okunarak doğrulandı.")
+            else:
+                st.info("Tarayıcı yedeği henüz doğrulanmadı; doğrulama mesajını kontrol edin.")
+        except (ValueError, RuntimeError):
+            st.warning("Tarayıcı yedeği başarısız; JSON yedeğini indirin.")
 if not owner:
     st.download_button("Kaynak denetimini JSON yedekle",
                        data=json.dumps(_snapshot(colony), ensure_ascii=False, indent=2),
