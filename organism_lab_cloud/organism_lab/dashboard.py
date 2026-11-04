@@ -86,7 +86,7 @@ if CLOUD_MODE:
     if st.button("Oturumu kapat", key="organism_lab_logout"):
         st.logout()
 
-st.header("Araştırma asistanı ve oturum notları" if CLOUD_MODE else "Yerel asistan ve kalıcı hafıza")
+st.header("Araştırma asistanı ve kalıcı arşiv" if CLOUD_MODE else "Yerel asistan ve kalıcı hafıza")
 st.caption(
     "Açıkça kaydedilen notlar kalıcı ve hesaba özel arşivde tutulur. "
     "Sohbetler model ağırlıklarını eğitmez; notlar bağımsız doğrulanmış değildir."
@@ -160,6 +160,19 @@ if ask_local_clicked:
                            system_prompt=profile_prompt(selected_agent) if selected_provider == "groq" else None)
         st.session_state["local_learning_answer"] = response.get("text", "")
         st.session_state["local_learning_context_count"] = len(relevant)
+        if CLOUD_MODE:
+            chat_path = OUTPUT_DIR / "chat_history.jsonl"
+            with chat_path.open("a", encoding="utf-8") as history_file:
+                history_file.write(json.dumps({
+                    "id": uuid4().hex,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "agent": selected_agent,
+                    "provider": response.get("provider", "groq"),
+                    "model": selected_model,
+                    "question": learning_query,
+                    "answer": response.get("text", ""),
+                    "saved_note_count": len(relevant),
+                }, ensure_ascii=False, allow_nan=False) + "\\n")
         st.session_state["local_learning_provider"] = response.get("provider", "ollama")
     except (ProviderError, OSError, ValueError, RuntimeError) as exc:
         st.error(f"Model yanıt vermedi ({type(exc).__name__}); kaydedilmiş hafıza korunuyor.")
@@ -245,6 +258,18 @@ materials = st.number_input("Başlangıç malzemesi", min_value=0, max_value=100
 
 if st.button("Simülasyonu çalıştır", type="primary"):
     st.session_state["organism_result"] = run_shared_world(steps=steps, energy=int(energy), materials=int(materials))
+    if CLOUD_MODE:
+        (OUTPUT_DIR / "simulation_result.json").write_text(
+            json.dumps(st.session_state["organism_result"], ensure_ascii=False, allow_nan=False),
+            encoding="utf-8",
+        )
+if CLOUD_MODE and "organism_result" not in st.session_state:
+    try:
+        st.session_state["organism_result"] = json.loads(
+            (OUTPUT_DIR / "simulation_result.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError, TypeError):
+        pass
 
 if "organism_result" in st.session_state:
     result = st.session_state["organism_result"]
@@ -270,6 +295,10 @@ if st.button("Araştırma kampanyasını çalıştır", key="run_genome_study_v2
         commentary = {"status": "not_requested", "text": ""}
         saved = save_study(campaign, OUTPUT_DIR,
                            model_commentary=commentary)
+    if CLOUD_MODE:
+        (OUTPUT_DIR / "genome_campaign_latest.json").write_text(
+            json.dumps(campaign, ensure_ascii=False, allow_nan=False), encoding="utf-8"
+        )
     st.session_state["genome_campaign_v2"] = campaign
     st.session_state["genome_commentary_v2"] = commentary
     st.session_state["genome_saved_v2"] = saved
@@ -296,6 +325,25 @@ if st.button("Uyum deneyini çalıştır (30 eşlenmiş tohum)", key="run_enviro
         st.session_state["environment_shift_path"] = str(path)
     except (OSError, ValueError, RuntimeError) as exc:
         st.error(f"Uyum deneyi tamamlanamadı ({type(exc).__name__}); mevcut kayıtlar korunuyor.")
+if CLOUD_MODE and "genome_campaign_v2" not in st.session_state:
+    try:
+        st.session_state["genome_campaign_v2"] = json.loads(
+            (OUTPUT_DIR / "genome_campaign_latest.json").read_text(encoding="utf-8")
+        )
+        st.session_state["genome_saved_v2"] = {"study_id": "restored"}
+        st.session_state["genome_commentary_v2"] = {"status": "not_requested", "text": ""}
+    except (OSError, ValueError, TypeError):
+        pass
+
+if CLOUD_MODE and "environment_shift_report" not in st.session_state:
+    try:
+        st.session_state["environment_shift_report"] = json.loads(
+            (OUTPUT_DIR / "environment-shift-study.json").read_text(encoding="utf-8")
+        )
+        st.session_state["environment_shift_path"] = str(OUTPUT_DIR / "environment-shift-study.json")
+    except (OSError, ValueError, TypeError):
+        pass
+
 if "environment_shift_report" in st.session_state:
     adaptation = st.session_state["environment_shift_report"]
     st.dataframe(adaptation["results"], width="stretch", hide_index=True)
@@ -350,9 +398,14 @@ if CLOUD_MODE:
         if _restore_upload is not None and st.button("Yedeği geri yükle", key="organism_lab_restore"):
             try:
                 unpack_directory(_restore_upload.getvalue(), OUTPUT_DIR)
-                st.session_state["organism_lab_archive_baseline"] = _archive_baseline
+                _new_backup = pack_directory(OUTPUT_DIR)
+                _new_digest = _archive.save(
+                    _new_backup,
+                    expected_digest=st.session_state.get("organism_lab_archive_baseline"),
+                )
+                st.session_state["organism_lab_archive_baseline"] = _new_digest
                 st.session_state.pop("organism_lab_archive_conflict", None)
-                st.rerun()
+                st.success("Yedek doğrulandı ve kalıcı arşive geri yüklendi.")
             except (OSError, ValueError, RuntimeError):
                 st.error("Yedek doğrulanamadı; mevcut laboratuvar arşivi değiştirilmedi.")
 
