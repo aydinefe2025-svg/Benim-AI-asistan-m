@@ -48,6 +48,22 @@ class LeaderPreflightTests(unittest.TestCase):
             with self.subTest(token=token), self.assertRaises(PermissionError):
                 s.release(token)
 
+    def test_authorization_node_row_is_transactionally_locked(self):
+        # No real credentials or database: assert the SQL lock contract.
+        # A shared node lock serializes admin UPDATE enabled=FALSE against
+        # an in-flight fenced database mutation.
+        class Cursor:
+            sql = ""
+            params = ()
+            def execute(self, sql, params=None):
+                self.sql, self.params = sql, params
+            def fetchone(self):
+                return (credential_digest("oidc_owner_a", "queen-a", CAPABILITY),)
+        cursor = Cursor()
+        store()._authorize(cursor)
+        self.assertIn("FOR SHARE", cursor.sql.upper())
+        self.assertEqual(cursor.params, ("oidc_owner_a", "queen-a"))
+
     def test_empty_owner_and_invalid_node_rejected(self):
         for owner,node in (("", "queen-a"),("oidc_a", "../other"),
                            ("oidc_a","node with spaces")):

@@ -147,6 +147,53 @@ def test_auth_and_isolation():
             WHERE owner_key=%s AND node_id=%s""", (OWNER_A,"queen-a"))
 
 
+def test_revocation_race_waits_for_fenced_transaction():
+    """An in-flight fenced write must serialize against node revocation.
+
+    Admin revocation cannot commit in between authorization and the
+    protected mutation. A separate connection with a tiny lock timeout
+    makes this a deterministic test against real disposable PostgreSQL.
+    """
+    node = client(OWNER_A, "queen-c")
+    token = node.acquire("revoke-race", ttl_seconds=15)
+    assert token is not None
+    try:
+        with psycopg.connect(DSN, connect_timeout=8) as in_flight:
+            with in_flight.cursor() as cur:
+                node.assert_fence(cur, token)
+                with psycopg.connect(DSN, connect_timeout=8) as revoker:
+                    with revoker.cursor() as admin:
+                        admin.execute("SET LOCAL lock_timeout = '300ms'")
+                        try:
+                            admin.execute("""UPDATE public.cano_queen_authorized_nodes
+                                SET enabled=FALSE WHERE owner_key=%s AND node_id=%s""",
+                                (OWNER_A, "queen-c"))
+                        except psycopg.errors.LockNotAvailable:
+                            revoker.rollback()
+                        else:
+                            raise AssertionError(
+                                "Node revocation committed during an in-flight fenced write")
+                cur.execute("""INSERT INTO cano_ci_fenced_events
+                    (owner_key,scope,event) VALUES (%s,%s,%s)""",
+                    (OWNER_A, "revoke-race", "before-revocation"))
+        assert read_events(OWNER_A, "revoke-race") == ["before-revocation"]
+        with psycopg.connect(DSN, connect_timeout=8) as revoker:
+            revoker.execute("""UPDATE public.cano_queen_authorized_nodes
+                SET enabled=FALSE WHERE owner_key=%s AND node_id=%s""",
+                (OWNER_A, "queen-c"))
+        try:
+            node.renew(token)
+        except PermissionError:
+            pass
+        else:
+            raise AssertionError("Revoked node renewed after admin commit")
+    finally:
+        with psycopg.connect(DSN, connect_timeout=8) as admin:
+            admin.execute("""UPDATE public.cano_queen_authorized_nodes
+                SET enabled=TRUE WHERE owner_key=%s AND node_id=%s""",
+                (OWNER_A, "queen-c"))
+
+
 def test_concurrent_claims():
     def ask(i: int):
         return client(OWNER_A, f"race-{i}").acquire(
@@ -205,9 +252,10 @@ def main():
     provision()
     test_leader_fence()
     test_auth_and_isolation()
+    test_revocation_race_waits_for_fenced_transaction()
     test_concurrent_claims()
     test_killed_worker_recovery()
-    print("CANO_QUEEN_PG17: 4/4 scenarios PASS; "
+    print("CANO_QUEEN_PG17: 5/5 scenarios PASS; "
           "concurrent 1/8 leader, epoch 1->2->3, "
           "stale/revoked writes refused, owner isolation, "
           "SIGKILL worker recovered via new process")

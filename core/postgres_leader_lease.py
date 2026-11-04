@@ -82,8 +82,11 @@ class PostgresLeaderLease:
         self._scope(token.scope)
 
     def _authorize(self, cur) -> None:
+        # Protect an in-flight authenticated, fenced database write from
+        # concurrent revocation: administrator UPDATE enabled=FALSE must
+        # serialize after the authorizing transaction ends.
         cur.execute("""SELECT verifier FROM public.cano_queen_authorized_nodes
-            WHERE owner_key=%s AND node_id=%s AND enabled=TRUE""",
+            WHERE owner_key=%s AND node_id=%s AND enabled=TRUE FOR SHARE""",
             (self.owner_key, self.node_id))
         row = cur.fetchone()
         expected = credential_digest(self.owner_key, self.node_id, self._secret)
