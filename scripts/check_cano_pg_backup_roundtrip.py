@@ -219,7 +219,7 @@ def main():
                         os.environ.pop(key, None)
                     else:
                         os.environ[key] = prior
-        print("PASS: real PostgreSQL " + major + " pg_dump, parsed archive, isolated restore, 
+        print("PASS: real PostgreSQL " + major + " pg_dump, parsed archive, isolated restore, "
               "two synthetic owners, exact JSONB readback, tamper detection")
     finally:
         if created:
