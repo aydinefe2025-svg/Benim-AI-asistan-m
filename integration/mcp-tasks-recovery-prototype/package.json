@@ -1,7 +1,0 @@
-{
-  "name": "cano-mcp-tasks-crash-recovery-prototype",
-  "private": true,
-  "type": "module",
-  "scripts": { "test": "node ./recovery.test.mjs" },
-  "engines": { "node": ">=22.13.0" }
-}
