@@ -173,6 +173,33 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 st.text_area("Ekip aşaması: " + stage["role"],
                              value=stage["output"], height=140, disabled=True,
                              key="mission_" + stage["role"])
+        if answer is not None and len(agents) >= 2:
+            mission_manager = CollaborativeMission(colony)
+            interrupted = mission_manager.interrupted()
+            if interrupted:
+                st.warning("Kesintiye uğrayan veya hâlâ çalışan ekip görevleri var.")
+                for item in interrupted:
+                    st.caption(item["status"] + ": " + item["task"][:160])
+                    if item["status"] == "blocked":
+                        if st.button("Görevi kaldığı yerden sürdür: " + item["id"][:8],
+                                     key="resume_mission_" + item["id"]):
+                            try:
+                                result = mission_manager.resume(
+                                    item["id"], client=AnswerAdapter(answer),
+                                    model="configured-provider")
+                                st.session_state["colony_last_mission"] = result
+                                st.success("Kayıtlı aşamalar korunarak görev sürdürüldü.")
+                                st.rerun()
+                            except (RuntimeError, ValueError, KeyError,
+                                    OSError, sqlite3.Error):
+                                st.error("Görev kaldığı yerden sürdürülemedi; kayıt korundu.")
+                if any(item["status"] == "running" for item in interrupted):
+                    if st.button("1 saatten eski yarım görevleri kurtarmaya aç",
+                                 key="recover_stale_colony_missions"):
+                        recovered = mission_manager.recover_stale(
+                            older_than_seconds=3600)
+                        st.info(f"{len(recovered)} eski görev yeniden denemeye açıldı.")
+                        st.rerun()
         with colony._db() as db:
             data = {"agents": [dict(row) for row in db.execute(
                 "SELECT * FROM colony_agents ORDER BY created_at,id")],
