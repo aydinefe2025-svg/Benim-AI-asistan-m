@@ -24,7 +24,7 @@ def render_authorized_queue_panel(st, answer=None, *, owner_key=None, database_u
         )
         try:
             queue = PostgresAuthorizedQueue(database_url, owner_key=owner_key, max_jobs=100)
-            queue.initialize()
+            queue.verify_schema()
         except Exception as exc:
             # Record only the exception type; database errors may include URLs or credentials.
             logging.getLogger(__name__).warning(
