@@ -1,0 +1,25 @@
+name: Vercel static gateway contract
+
+on:
+  push:
+    branches:
+      - fix/vercel-streamlit-static-gateway-20261104
+  pull_request:
+    paths:
+      - "vercel.json"
+      - "index.html"
+      - "tests/test_vercel_gateway.py"
+      - ".github/workflows/vercel-gateway.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  gateway-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s tests -p 'test_vercel_gateway.py' -v
