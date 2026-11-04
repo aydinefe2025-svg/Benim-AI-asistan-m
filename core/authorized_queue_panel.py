@@ -28,7 +28,7 @@ def render_authorized_queue_panel(st, answer=None, *, owner_key=None, database_u
             st.error("Güvenli PostgreSQL görev kuyruğu açılamadı; hiçbir iş çalıştırılmadı.")
             return
 
-        with st.form("cano_persistent_queue_form", clear_on_submit=False):
+        with st.form("cano_persistent_queue_form", clear_on_submit=True):
             goal = st.text_area("Araştırma hedefi", key="cano_queue_goal", max_chars=1200)
             idempotency = st.text_input(
                 "Tekil iş anahtarı (yeniden gönderimde aynı kalmalı)",
@@ -77,11 +77,13 @@ def render_authorized_queue_panel(st, answer=None, *, owner_key=None, database_u
         if answer is None:
             st.info("Model sağlayıcısı bağlı değil; işler kaydedilebilir ancak yürütülemez.")
             return
-        approved_run = st.checkbox(
-            "Sıradaki uygun görev için yalnızca bir model çağrısına izin veriyorum",
-            key="cano_queue_approve_run"
-        )
-        if st.button("Sıradaki onaylı görevi bir kez çalıştır", key="cano_queue_run_once"):
+        with st.form("cano_queue_run_form", clear_on_submit=True):
+            approved_run = st.checkbox(
+                "Sıradaki uygun görev için yalnızca bir model çağrısına izin veriyorum",
+                key="cano_queue_approve_run"
+            )
+            execute = st.form_submit_button("Sıradaki onaylı görevi bir kez çalıştır")
+        if execute:
             if not approved_run:
                 st.warning("Model çağrısı için ayrıca açık onay gerekli.")
                 return
