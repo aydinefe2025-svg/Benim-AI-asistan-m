@@ -13,10 +13,17 @@ def running_heartbeat(db_path, task_id, *, interval_seconds=30):
     if interval_seconds <= 0:
         raise ValueError("interval_seconds must be positive")
     stop = Event()
+    failures = []
 
     def loop():
         while not stop.wait(interval_seconds):
-            if not touch_running(db_path, task_id):
+            try:
+                if not touch_running(db_path, task_id):
+                    failures.append(RuntimeError('Running task lost heartbeat ownership'))
+                    break
+            except Exception as exc:
+                failures.append(RuntimeError('Running task heartbeat failed'))
+                failures[-1].__cause__ = exc
                 break
 
     if not touch_running(db_path, task_id):
@@ -28,3 +35,5 @@ def running_heartbeat(db_path, task_id, *, interval_seconds=30):
     finally:
         stop.set()
         thread.join(timeout=min(interval_seconds, 5))
+        if failures:
+            raise failures[0]
