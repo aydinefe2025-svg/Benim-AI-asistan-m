@@ -21,9 +21,10 @@ class ArchivePushTests(unittest.TestCase):
     def test_push_outage_is_bounded_to_three_attempts(self):
         def run(command, **kwargs):
             return subprocess.CompletedProcess(command, 1 if command[1] == 'push' else 0)
-        with patch('subprocess.run', side_effect=run) as calls:
-            with self.assertRaisesRegex(SystemExit, '3 attempts'):
-                exec(compile(push_code(), str(WORKFLOW), 'exec'), {})
+        with patch.dict(os.environ, {'ARCHIVE_TARGET_BRANCH': 'test-archive'}):
+            with patch('subprocess.run', side_effect=run) as calls:
+                with self.assertRaisesRegex(SystemExit, '3 attempts'):
+                    exec(compile(push_code(), str(WORKFLOW), 'exec'), {})
         commands = [call.args[0][1] for call in calls.call_args_list]
         self.assertEqual(commands, ['push', 'fetch', 'rebase', 'push', 'fetch', 'rebase', 'push'])
 
