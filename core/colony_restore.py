@@ -104,3 +104,18 @@ def restore_empty_colony(colony, snapshot):
                         "blocked" if row["status"] == "running" else row["status"],
                         row["created_at"]))
     return len(agents)
+
+
+def restore_colony_json_bytes(colony, raw):
+    """Import a bounded, explicitly supplied UTF-8 JSON backup into an empty colony.
+
+    The data is never executed; relational validation is delegated to the same
+    fail-closed, transactional restore used by authenticated PostgreSQL backups.
+    """
+    if not isinstance(raw, (bytes, bytearray)) or len(raw) > 2_000_000:
+        raise ValueError("Invalid or oversized backup")
+    try:
+        snapshot = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("Invalid JSON backup") from exc
+    return restore_empty_colony(colony, snapshot)
