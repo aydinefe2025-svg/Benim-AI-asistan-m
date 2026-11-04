@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.sqlite3
+*.db
+.local-run/
+.ci-run/
+.ci-summary.json
+.venv/
