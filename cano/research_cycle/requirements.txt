@@ -1,0 +1,4 @@
+# Runtime dependencies for offline research, synthetic image tests and replay audits.
+numpy>=2,<3
+scikit-learn>=1.6,<2
+opencv-python-headless>=4.9,<5
