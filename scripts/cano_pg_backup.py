@@ -153,6 +153,7 @@ def make_backup(destination: Path, *, database_env: str = "DATABASE_URL",
     database_url = os.environ.get(database_env, "")
     if not database_url or not database_url.startswith(("postgres://", "postgresql://")):
         raise BackupError(f"Expected PostgreSQL connection URL in {database_env}")
+    connection_env = _libpq_connection_env(database_url)
     dump_exe = _check_binary(dump_bin)
     _check_binary(restore_bin)
     destination = Path(destination)
@@ -175,7 +176,7 @@ def make_backup(destination: Path, *, database_env: str = "DATABASE_URL",
             env.pop(key, None)
         for key in ("DATABASE_URL", "AGENT_TASK_DATABASE_URL", database_env):
             env.pop(key, None)
-        env.update(_libpq_connection_env(database_url))
+        env.update(connection_env)
         try:
             result = subprocess.run(
                 [dump_exe, "--format=custom", "--no-owner", "--no-privileges",
