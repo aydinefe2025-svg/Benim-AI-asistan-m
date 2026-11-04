@@ -3,7 +3,7 @@ import json
 import unittest
 from pathlib import Path
 from core.agent_colony import AgentColony
-from core.colony_restore import restore_empty_colony
+from core.colony_restore import restore_empty_colony, restore_colony_json_bytes
 from core.collaborative_mission import CollaborativeMission
 
 
@@ -124,6 +124,35 @@ class RestoreTests(unittest.TestCase):
             self.assertEqual(restore_empty_colony(target, snapshot), 1)
             self.assertEqual(CollaborativeMission(target).get("run1")["status"],
                              "blocked")
+
+    def test_json_upload_round_trip_preserves_agents(self):
+        with tempfile.TemporaryDirectory() as directory:
+            colony = AgentColony(Path(directory) / "restored.db")
+            record = {
+                "agents": [{
+                    "id": "founder", "parent_id": None, "generation": 0,
+                    "role": "research", "instructions": "Research",
+                    "state": "active", "created_at": "2026-01-01"}],
+                "feedback": [], "reviews": [], "missions": []
+            }
+            payload = json.dumps(record, ensure_ascii=False).encode("utf-8")
+            self.assertEqual(restore_colony_json_bytes(colony, payload), 1)
+            self.assertEqual(colony.get("founder")["role"], "research")
+            with self.assertRaises(RuntimeError):
+                restore_colony_json_bytes(colony, payload)
+            self.assertEqual(colony.get("founder")["role"], "research")
+
+    def test_json_import_rejects_invalid_utf8_invalid_json_and_oversize(self):
+        with tempfile.TemporaryDirectory() as directory:
+            colony = AgentColony(Path(directory) / "restored.db")
+            for payload in (b"not json", b"\\xff", b"[]",
+                            b"x" * (2_000_000 + 1), "not bytes"):
+                with self.subTest(payload=str(payload)[:20]):
+                    with self.assertRaises(ValueError):
+                        restore_colony_json_bytes(colony, payload)
+            with colony._db() as db:
+                self.assertEqual(db.execute(
+                    "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 0)
 
     def test_reject_missing_parent_without_writes(self):
         with tempfile.TemporaryDirectory() as directory:
