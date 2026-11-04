@@ -103,7 +103,13 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             except (ValueError, sqlite3.Error, KeyError):
                 st.warning("Ders kaydedilemedi.")
 
-        st.caption(f"Kabul edilmiş ders: {len(colony.lessons(selected, limit=20))} (son 20)")
+        learning = colony.evaluate_learning(selected)
+        st.caption(
+            f"Öğrenme kaydı: {learning['accepted_lessons']} kabul edilmiş ders; "
+            f"{learning['distinct_evidence']} farklı kanıt etiketi. "
+            f"Kanıt çeşitliliği eşiği: {'sağlandı' if learning['retrieval_ready'] else 'henüz sağlanmadı'}. "
+            "Bu, model ağırlıklarının eğitildiği veya kanıtların doğrulandığı anlamına gelmez."
+        )
         if answer is None:
             st.warning("Görev yürütmek için model sağlayıcısı gerekli.")
         else:
