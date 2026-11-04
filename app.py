@@ -25,7 +25,7 @@ if _MEMORY_DATABASE_URL:
     try:
         from core.postgres_memory import PostgresMemoryStore
         _MEMORY_STORE = PostgresMemoryStore(database_url=_MEMORY_DATABASE_URL)
-        _MEMORY_STORE.initialize()
+        _MEMORY_STORE.verify_schema()
     except Exception:
         st.error("Kalıcı hafıza bağlantısı kurulamadı; kayıtlar değiştirilmedi.")
         st.stop()
