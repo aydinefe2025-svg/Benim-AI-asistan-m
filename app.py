@@ -51,7 +51,7 @@ from core.provider_failure import failure_category, safe_failure_message
 from core.connection_diagnostics import check_provider
 from core.public_research import research_sources
 from core.scientific_sources import scientific_sources
-from core.user_memory import export_library, import_library, memory_context, new_memory
+from core.user_memory import export_library, import_library, merge_libraries, memory_context, new_memory
 from core.task_panel import render_task_panel
 
 _credentials = configured_credentials(st.secrets, os.environ)
@@ -220,15 +220,14 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
             try:
                 imported = import_library(memory_upload.getvalue())
                 if _MEMORY_STORE is not None:
-                    combined = {item["id"]: item for item in st.session_state.saved_memories}
-                    combined.update({item["id"]: item for item in imported})
-                    _MEMORY_STORE.save_many(_OWNER_KEY, list(combined.values()))
+                    combined = merge_libraries(st.session_state.saved_memories, imported)
+                    _MEMORY_STORE.save_many(_OWNER_KEY, combined)
                     st.session_state.saved_memories = _MEMORY_STORE.list(_OWNER_KEY)
                 else:
-                    st.session_state.saved_memories = imported
+                    st.session_state.saved_memories = merge_libraries(st.session_state.saved_memories, imported)
                 st.success(f"{len(st.session_state.saved_memories)} not içe aktarıldı.")
             except (ValueError, UnicodeError):
-                st.error("Kitaplık dosyası geçersiz veya desteklenmiyor; içerik okunmadı.")
+                st.error("Kitaplık içe aktarılamadı: dosya geçersiz veya 200 not sınırı aşılıyor. Mevcut notlar korundu.")
             except Exception:
                 st.error("Kitaplık kaydedilemedi; veritabanı kayıtları değiştirilmedi.")
 
@@ -345,7 +344,7 @@ def asistani_calistir(kullanici_mesaji):
     - Bu uygulama, yapılandırılmış Groq veya Google modeliyle yanıt üretir.
     - internette_ara() DuckDuckGo anlık yanıtını ve şehir belirtilirse wttr.in hava servisini sorgular. Ayrıca açık ansiklopedi arama bağlantıları toplanabilir; bunlar bağımsız doğrulama değildir. Tam web tarayıcısı değildir.
     - Araştırma/görev paneli kullanıcı denetimli taslak ve kayıt işlevi sunar; görevleri arka planda kendiliğinden yürütmez.
-    - Hafıza notları oturumda tutulur; kalıcılık için kullanıcı JSON dışa aktarma/içe aktarma yapabilir.
+    - Hafıza notları yalnızca açıkça kaydedilir. Doğrulanmış giriş ve DATABASE_URL varsa kullanıcıya bağlı PostgreSQL'de tutulur; aksi halde oturumda tutulur ve JSON ile taşınabilir.
     - Kod geliştirme mümkündür ancak bu sohbet arayüzünde doğrudan GitHub, Render, Notion, dosya sistemi veya kod çalıştırma aracı bağlı değildir.
     - Kullanıcı senden geliştirme, araştırma, hata giderme veya ajan koordinasyonu istediğinde kategorik olarak "imkansız" deme. Mevcut işlevleri dürüstçe anlat, uygulanabilir teknik çözüm ve kod taslağı sun, eksik bağlantıyı açıkça belirt.
     - Gerçekte çağrılmayan araçları çağırmış, kaydedilmemiş dosyaları kaydetmiş, doğrulanmamış kaynakları doğrulamış gibi gösterme.
