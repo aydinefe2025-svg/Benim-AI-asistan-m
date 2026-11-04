@@ -45,7 +45,7 @@ class PostgresTaskStoreInitializeTests(unittest.TestCase):
             connect=lambda *_args, **_kwargs: _Connection(queries, owns_tables),
         )
         store.initialize()
-        return [query.upper() for query in queries]
+        return [query.upper().lstrip() for query in queries]
 
     def test_shared_migration_owned_tables_skip_index_ddl(self):
         queries = self._initialize(owns_tables=False)

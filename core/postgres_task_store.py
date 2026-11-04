@@ -51,6 +51,21 @@ class PostgresTaskStore:
     def _connection(self):
         return self._connect(self.database_url, connect_timeout=8)
 
+    def verify_schema(self) -> None:
+        """Check runtime table/sequence access without applying migrations."""
+        with self._connection() as conn, conn.cursor() as cur:
+            cur.execute("SELECT owner_key,id,title,goal,status,evidence,blockers,created_at,updated_at "
+                        "FROM public.agent_research_tasks LIMIT 0")
+            cur.execute("SELECT event_id,owner_key,task_id,at,old_status,new_status,note "
+                        "FROM public.agent_research_task_events LIMIT 0")
+            cur.execute("SELECT owner_key,task_id,content,updated_at "
+                        "FROM public.agent_research_drafts LIMIT 0")
+            cur.execute("SELECT has_sequence_privilege(current_user, "
+                        "'public.agent_research_task_events_event_id_seq', 'USAGE')")
+            row = cur.fetchone()
+            if not row or not row[0]:
+                raise PermissionError("task event sequence USAGE privilege is required")
+
     def initialize(self) -> None:
         with self._connection() as conn, conn.cursor() as cur:
             cur.execute("""

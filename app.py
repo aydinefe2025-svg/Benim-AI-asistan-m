@@ -38,7 +38,7 @@ if os.environ.get("AGENT_TASK_DATABASE_URL"):
     try:
         from core.postgres_task_store import PostgresTaskStore
         _TASK_STORE = PostgresTaskStore(owner_key=_OWNER_KEY)
-        _TASK_STORE.initialize()
+        _TASK_STORE.verify_schema()
     except Exception:
         st.error("Kalıcı görev veritabanı bağlanamadı; görevler değiştirilmedi.")
         st.stop()
