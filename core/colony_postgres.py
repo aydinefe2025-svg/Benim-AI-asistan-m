@@ -19,7 +19,24 @@ class ColonySnapshotStore:
         self.connect = connect
 
     def initialize(self):
-        """Verify the pre-provisioned runtime schema without performing DDL."""
+        """Provision snapshot tables. Production runtime must call verify_schema()."""
+        with self.connect(self.database_url, connect_timeout=8) as db:
+            with db.cursor() as cur:
+                cur.execute("""CREATE TABLE IF NOT EXISTS private_colony_snapshots (
+                    owner_key TEXT PRIMARY KEY,
+                    payload JSONB NOT NULL,
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now())""")
+                cur.execute("""CREATE TABLE IF NOT EXISTS private_colony_snapshot_revisions (
+                    revision BIGSERIAL PRIMARY KEY,
+                    owner_key TEXT NOT NULL,
+                    payload JSONB NOT NULL,
+                    archived_at TIMESTAMPTZ NOT NULL DEFAULT now())""")
+                cur.execute("""CREATE INDEX IF NOT EXISTS
+                    idx_colony_revision_owner ON private_colony_snapshot_revisions
+                    (owner_key, revision DESC)""")
+
+    def verify_schema(self):
+        """Verify pre-provisioned tables and exact runtime privileges using SELECT only."""
         with self.connect(self.database_url, connect_timeout=8) as db:
             with db.cursor() as cur:
                 cur.execute("SELECT owner_key, payload, updated_at "
@@ -36,6 +53,7 @@ class ColonySnapshotStore:
                 privileges = cur.fetchone()
                 if not privileges or not all(privileges):
                     raise PermissionError("CANO snapshot runtime privileges are incomplete")
+
 
     def save(self, owner_key, payload):
         if not isinstance(owner_key, str) or not owner_key.strip():
