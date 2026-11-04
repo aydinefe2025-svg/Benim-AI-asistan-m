@@ -1,12 +1,14 @@
+import base64
 import hashlib
 import io
+import json
 import tarfile
 import tempfile
 import unittest
 from pathlib import Path
 
 from organism_lab.persistent_store import (
-    PersistenceConflict, PostgresArchive, authenticated_owner_key,
+    PersistenceConflict, PersistenceNotConfigured, PostgresArchive, authenticated_owner_key,
     pack_directory, restore_snapshot_json, snapshot_json, unpack_directory,
 )
 
@@ -50,6 +52,25 @@ class PersistentStoreTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 unpack_directory(buffer.getvalue(), target)
             self.assertFalse(Path(target).parent.joinpath("escape.txt").exists())
+
+    def test_database_connection_is_required(self):
+        with self.assertRaises(PersistenceNotConfigured):
+            PostgresArchive("a" * 64, database_url="", connect=lambda *a, **k: None)
+
+    def test_corrupt_persisted_snapshot_fails_integrity_check(self):
+        payload = {"data_b64": base64.b64encode(b"changed").decode("ascii"), "sha256": "0" * 64}
+        class Cursor:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def execute(self, *args): pass
+            def fetchone(self): return (json.dumps(payload),)
+        class Connection:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def cursor(self): return Cursor()
+        store = PostgresArchive("a" * 64, "postgresql://private", connect=lambda *a, **k: Connection())
+        with self.assertRaisesRegex(ValueError, "integrity"):
+            store.load()
 
     def test_archive_conflict_is_fail_closed(self):
         statements = []
