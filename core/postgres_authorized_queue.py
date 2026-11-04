@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import logging
 import os
 import secrets
 import time
@@ -39,33 +40,45 @@ class PostgresAuthorizedQueue:
 
     def verify_schema(self):
         """Validate pre-provisioned queue tables and privileges with SELECT only."""
-        with self._db() as db, db.cursor() as cur:
-            cur.execute(
-                "SELECT owner_key,id,idem_key,goal,state,max_calls,attempts,"
-                "eligible_after,lease_token,worker_id,lease_until,result_digest,draft,created_at "
-                "FROM public.cano_authorized_jobs LIMIT 0"
+        stage = "connect"
+        try:
+            with self._db() as db, db.cursor() as cur:
+                stage = "jobs_columns"
+                cur.execute(
+                    "SELECT owner_key,id,idem_key,goal,state,max_calls,attempts,"
+                    "eligible_after,lease_token,worker_id,lease_until,result_digest,draft,created_at "
+                    "FROM public.cano_authorized_jobs LIMIT 0"
+                )
+                stage = "events_columns"
+                cur.execute(
+                    "SELECT event_id,owner_key,job_id,at,state,code "
+                    "FROM public.cano_authorized_job_events LIMIT 0"
+                )
+                stage = "privileges"
+                cur.execute("""SELECT
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_jobs', 'SELECT') AS jobs_select,
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_jobs', 'INSERT') AS jobs_insert,
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_jobs', 'UPDATE') AS jobs_update,
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_job_events', 'SELECT') AS events_select,
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_job_events', 'INSERT') AS events_insert,
+                    has_sequence_privilege(current_user,
+                        'public.cano_authorized_job_events_event_id_seq', 'USAGE') AS events_seq_usage
+                """)
+                privileges = cur.fetchone()
+                if not privileges or not all(privileges.values()):
+                    raise PermissionError("authorized queue runtime privileges are incomplete")
+        except Exception as exc:
+            # Log only a fixed stage label, SQLSTATE, and class; no SQL or credentials.
+            logging.getLogger(__name__).warning(
+                "Authorized queue schema verification failed at %s (%s, SQLSTATE=%s)",
+                stage, type(exc).__name__, getattr(exc, "sqlstate", None),
             )
-            cur.execute(
-                "SELECT event_id,owner_key,job_id,at,state,code "
-                "FROM public.cano_authorized_job_events LIMIT 0"
-            )
-            cur.execute("""SELECT
-                has_table_privilege(current_user,
-                    'public.cano_authorized_jobs', 'SELECT') AS jobs_select,
-                has_table_privilege(current_user,
-                    'public.cano_authorized_jobs', 'INSERT') AS jobs_insert,
-                has_table_privilege(current_user,
-                    'public.cano_authorized_jobs', 'UPDATE') AS jobs_update,
-                has_table_privilege(current_user,
-                    'public.cano_authorized_job_events', 'SELECT') AS events_select,
-                has_table_privilege(current_user,
-                    'public.cano_authorized_job_events', 'INSERT') AS events_insert,
-                has_sequence_privilege(current_user,
-                    'public.cano_authorized_job_events_event_id_seq', 'USAGE') AS events_seq_usage
-            """)
-            privileges = cur.fetchone()
-            if not privileges or not all(privileges.values()):
-                raise PermissionError("authorized queue runtime privileges are incomplete")
+            raise
 
 
     @staticmethod
