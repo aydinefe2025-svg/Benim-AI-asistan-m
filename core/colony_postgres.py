@@ -105,8 +105,17 @@ class ColonySnapshotStore:
                         VALUES (%s,%s::jsonb) ON CONFLICT(owner_key)
                         DO UPDATE SET payload=EXCLUDED.payload, updated_at=now()""",
                                 (owner_key, serialized))
-        if self.load(owner_key) != payload:
-            raise RuntimeError("Colony snapshot readback mismatch")
+                # Read back before releasing the owner transaction lock;
+                # another authorized tab can legitimately write immediately
+                # after commit, so checking 'latest' afterward races.
+                cur.execute("SELECT payload FROM private_colony_snapshots "
+                            "WHERE owner_key=%s", (owner_key,))
+                row = cur.fetchone()
+                actual = row[0] if row else None
+                if isinstance(actual, str):
+                    actual = json.loads(actual)
+                if actual != payload:
+                    raise RuntimeError("Colony snapshot readback mismatch")
         return True
 
     def list_archived(self, owner_key):
