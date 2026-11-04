@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+from urllib.parse import urlsplit
 from typing import Mapping, Any
 
 
@@ -13,17 +14,45 @@ def auth_is_required(environment: Mapping[str, str]) -> bool:
     return raw not in {"", "0", "false", "no", "off"}
 
 
-def oidc_is_configured(secrets: Any) -> bool:
+def oidc_is_configured(
+    secrets: Any, environment: Mapping[str, str] | None = None,
+) -> bool:
+    """Check the OIDC callback shape and its Render public origin, never secrets."""
     try:
         auth = secrets["auth"]
-        return all(
+        if not all(
             isinstance(auth.get(key), str) and auth.get(key).strip()
             for key in (
                 "redirect_uri", "cookie_secret", "owner_key_secret", "client_id",
                 "client_secret", "server_metadata_url",
             )
-        )
+        ):
+            return False
+
+        callback = urlsplit(auth["redirect_uri"].strip())
+        if (callback.path != "/oauth2callback" or callback.query
+                or callback.fragment or callback.hostname is None
+                or callback.username or callback.password):
+            return False
+
+        env = environment or {}
+        public_url = env.get("RENDER_EXTERNAL_URL", "").strip()
+        on_render = env.get("RENDER", "").strip().casefold() == "true"
+        if callback.scheme != "https":
+            if not (callback.scheme == "http"
+                    and callback.hostname in {"localhost", "127.0.0.1"}
+                    and not public_url and not on_render):
+                return False
+        if public_url:
+            public = urlsplit(public_url)
+            if callback.scheme != public.scheme or callback.netloc != public.netloc:
+                return False
+        elif on_render:
+            # A Render app has a known public URL; do not guess a login origin.
+            return False
+        return True
     except Exception:
+        # No credentials or raw parser exception should reach a browser or log.
         return False
 
 
@@ -46,7 +75,7 @@ def render_auth_gate(st: Any, environment: Mapping[str, str]) -> str | None:
     """Stop the Streamlit run unless required Google OIDC is configured and valid."""
     if not auth_is_required(environment):
         return None
-    if not oidc_is_configured(st.secrets):
+    if not oidc_is_configured(st.secrets, environment):
         st.error(
             "Güvenli giriş yapılandırılmamış. Google OIDC ayarlarını Streamlit "
             "Secrets içinde tamamlayın; uygulama kapalı kalacak."
