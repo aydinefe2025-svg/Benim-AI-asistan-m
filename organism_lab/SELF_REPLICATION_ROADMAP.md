@@ -18,10 +18,12 @@ The user explicitly requests **self-replicating organisms** as a core, continuin
 
 ## Milestones
 
-- [ ] Implement deterministic resource-limited digital organism world.
-- [ ] Add reproduction, inheritance, mutation and lineage tests.
-- [ ] Add metrics and baseline/control comparisons.
-- [ ] Add visualization and experiment export.
+- [x] Implement deterministic resource-limited digital organism world (`digital_vm.py`, CI #191).
+- [x] Add reproduction, inheritance, mutation and lineage tests (`test_digital_vm.py`, `test_reproduction_study.py`).
+- [x] Add metrics and paired division-disabled control comparisons (`reproduction_study.py`; five resource levels, 30 seeds).
+- [x] Add a local Streamlit visualization and JSON/CSV/SQLite export (`dashboard.py`).
+- [x] Verify study persistence by independent replay across JSON/CSV/SQLite (`study_verifier.py`, CI #191).
+- [x] Verify deterministic genome checkpoint restore and idempotent advance (`genome_checkpoint.py`, CI #191).
 - [ ] Explore modular robot self-assembly in simulation.
 - [ ] Evaluate improvements before adding live model providers or deployment.
 
