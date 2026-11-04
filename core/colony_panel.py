@@ -9,7 +9,7 @@ from core.agent_colony import AgentColony
 from core.agent_review_loop import AgentReviewLoop
 from core.collaborative_mission import CollaborativeMission
 from core.colony_postgres import ColonySnapshotStore
-from core.colony_restore import restore_empty_colony
+from core.colony_restore import restore_empty_colony, restore_colony_json_bytes
 from core.task_panel import _session_database_path
 
 
@@ -52,6 +52,22 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 except Exception:
                     st.error("Kalıcı yedeğe erişilemedi; mevcut veriler korunuyor.")
         if not agents:
+            backup_upload = st.file_uploader(
+                "Ajan kolonisini JSON yedekten geri yükle",
+                type=["json"], key="colony_json_backup_upload")
+            if st.button("Ajan yedeğini geri yükle", key="colony_json_backup_restore"):
+                if backup_upload is None:
+                    st.warning("Önce daha önce indirdiğiniz JSON yedeğini seçin.")
+                elif backup_upload.size > 2_000_000:
+                    st.error("Yedek 2 MB sınırını aşıyor; veri değiştirilmedi.")
+                else:
+                    try:
+                        count = restore_colony_json_bytes(
+                            colony, backup_upload.getvalue())
+                        st.success(f"{count} ajan JSON yedekten geri yüklendi.")
+                        st.rerun()
+                    except (ValueError, RuntimeError, OSError, sqlite3.Error):
+                        st.error("Yedek geçersiz veya mevcut kayıtlar dolu; veri değiştirilmedi.")
             if st.button("Kurucu araştırma ajanını oluştur", key="colony_founder"):
                 try:
                     colony.create_founder(
