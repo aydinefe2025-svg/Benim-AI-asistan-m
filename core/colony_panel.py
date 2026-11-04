@@ -66,7 +66,7 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             if st.session_state.get("cano_show_archived_backups"):
                 try:
                     old_store = ColonySnapshotStore(database_url)
-                    old_store.initialize()
+                    old_store.verify_schema()
                     versions = old_store.list_archived(owner_key)
                     if not versions:
                         st.info("Önceki yedek sürümü bulunamadı.")
@@ -301,7 +301,7 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                          key="colony_postgres_save"):
                 try:
                     snapshot_store = ColonySnapshotStore(database_url)
-                    snapshot_store.initialize()
+                    snapshot_store.verify_schema()
                     snapshot_store.save_versioned_verified(owner_key, data)
                     st.success("PostgreSQL yedeği geri okunarak doğrulandı; farklı önceki sürüm korundu.")
                 except Exception:
