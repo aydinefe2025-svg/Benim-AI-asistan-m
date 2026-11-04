@@ -10,6 +10,8 @@ from core.claim_evidence import audit_claim_quotes
 from core.groq_team import generate_team_stage, TeamRateLimitError
 from core.cano_command_center import _snapshot
 from core.colony_postgres import ColonySnapshotStore
+from core.targeted_research import execute_targeted_research
+from core.scientific_sources import scientific_sources
 
 st.set_page_config(page_title="CANO Kanıt Denetimi", page_icon="📑")
 owner = render_auth_gate(st, os.environ)
