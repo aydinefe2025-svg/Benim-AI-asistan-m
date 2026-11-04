@@ -40,7 +40,9 @@ class PostgresBackupTests(unittest.TestCase):
         self.assertEqual(verify_backup(self.path, runner=runner)["integrity_verified"], True)
         self.assertFalse(verify_backup(self.path, runner=runner)["restore_tested"])
         self.assertEqual(runner.calls[0][0][0], "pg_dump")
-        self.assertEqual(runner.calls[0][1]["PGDATABASE"], SOURCE)
+        self.assertEqual(runner.calls[0][1]["PGDATABASE"], "live_db")
+        self.assertEqual(runner.calls[0][1]["PGHOST"], "postgres.example.test")
+        self.assertEqual(runner.calls[0][1]["PGSSLMODE"], "require")
         self.assertNotIn("private-password", json.dumps(report))
         self.assertTrue(all("private-password" not in repr(args) for args, env in runner.calls))
         with self.assertRaises(FileExistsError):
@@ -92,7 +94,7 @@ class PostgresBackupTests(unittest.TestCase):
         self.assertEqual(restore_args[0], "pg_restore")
         self.assertIn("--single-transaction", restore_args)
         self.assertNotIn(TEST, repr(restore_args))
-        self.assertEqual(restore_env["PGDATABASE"], TEST)
+        self.assertEqual(restore_env["PGDATABASE"], "backup_cano_restore_test")
 
 
 if __name__ == "__main__":
