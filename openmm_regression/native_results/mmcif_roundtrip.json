@@ -1,0 +1,132 @@
+[
+  {
+    "issue": 5532,
+    "chains": 26,
+    "keep_ids": false,
+    "status": "PASS",
+    "checks": {
+      "atoms": true,
+      "chains": true,
+      "unique_ids": true,
+      "bonds": true,
+      "no_self_bonds": true,
+      "positions": true
+    },
+    "observed_bonds": [
+      [
+        0,
+        25
+      ]
+    ]
+  },
+  {
+    "issue": 5532,
+    "chains": 27,
+    "keep_ids": false,
+    "status": "PASS",
+    "checks": {
+      "atoms": true,
+      "chains": true,
+      "unique_ids": true,
+      "bonds": true,
+      "no_self_bonds": true,
+      "positions": true
+    },
+    "observed_bonds": [
+      [
+        0,
+        26
+      ]
+    ]
+  },
+  {
+    "issue": 5532,
+    "chains": 52,
+    "keep_ids": false,
+    "status": "PASS",
+    "checks": {
+      "atoms": true,
+      "chains": true,
+      "unique_ids": true,
+      "bonds": true,
+      "no_self_bonds": true,
+      "positions": true
+    },
+    "observed_bonds": [
+      [
+        0,
+        51
+      ]
+    ]
+  },
+  {
+    "issue": 5532,
+    "chains": 26,
+    "keep_ids": true,
+    "status": "PASS",
+    "checks": {
+      "atoms": true,
+      "chains": true,
+      "unique_ids": true,
+      "bonds": true,
+      "no_self_bonds": true,
+      "positions": true
+    },
+    "observed_bonds": [
+      [
+        0,
+        25
+      ]
+    ]
+  },
+  {
+    "issue": 5532,
+    "chains": 27,
+    "keep_ids": true,
+    "status": "PASS",
+    "checks": {
+      "atoms": true,
+      "chains": true,
+      "unique_ids": true,
+      "bonds": true,
+      "no_self_bonds": true,
+      "positions": true
+    },
+    "observed_bonds": [
+      [
+        0,
+        26
+      ]
+    ]
+  },
+  {
+    "issue": 5532,
+    "chains": 52,
+    "keep_ids": true,
+    "status": "PASS",
+    "checks": {
+      "atoms": true,
+      "chains": true,
+      "unique_ids": true,
+      "bonds": true,
+      "no_self_bonds": true,
+      "positions": true
+    },
+    "observed_bonds": [
+      [
+        0,
+        51
+      ]
+    ]
+  },
+  {
+    "issue": 5521,
+    "status": "PASS",
+    "water_ids": [
+      "101",
+      "102",
+      "103"
+    ],
+    "atoms": 7
+  }
+]

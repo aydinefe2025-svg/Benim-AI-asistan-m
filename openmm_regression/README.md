@@ -23,15 +23,24 @@ it intentionally records the failures that motivated these fixes.
 
 ## Install the verified wheel
 
-The local wheel and pinned NVIDIA runtime wheels are in the parent workspace's
-`dist/` directory. On the machine used for verification, run:
+The OpenMM wheel and pinned runtime/test dependency wheels are in the parent
+workspace's `dist/` directory. Keep this artifact directory with the workspace;
+it is intentionally not copied into Git history. The SHA-256 manifest now
+covers every wheel in the bundle. The Windows Store CPython 3.12 runtime copy
+is kept in the workspace's `.runtime312/` directory, outside the Git checkout.
+The setup script prefers this accessible runtime, repairs stale virtual-env
+metadata without deleting packages, verifies the exact OpenMM wheel hash, then
+performs an offline reinstall and full validation. Run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File repo/openmm_regression/setup_local.ps1
 ```
 
-That script installs offline, runs `pip check`, and repeats all five scientific
-regression checks. The standalone mmCIF test is:
+That script pins packages from local wheels and runs `pip check`, reapplies the
+idempotent mmCIF parser patch, executes `openmm.testInstallation`, the 26/27/52
+chain and water checks, and all five scientific regressions. It refreshes raw
+logs, the JSON summary and SHA-256 manifest; the manifest is refreshed only
+after every check passes. The standalone mmCIF test is:
 
 ```powershell
 .venv/Scripts/python.exe repo/openmm_regression/openmm_mmcif_roundtrip_regression.py
@@ -58,4 +67,14 @@ extension, and RPMD is outside these five regression fixes.
 
 Only local synthetic computational tests were performed. No paid service,
 GitHub Actions run, physical robot or biological experiment was initiated.
+
+## Recovery and artifact integrity
+
+Use the project interpreter explicitly (`.venv/Scripts/python.exe`); the
+machine-wide `python` command may select another Python version. If `.venv` is
+missing, `setup_local.ps1` recreates it from `.runtime312/` or a registered
+CPython 3.12. If Python, package versions, or a wheel hash does not match the
+lock, the script stops before claiming success. Restore the workspace `dist/`
+artifact bundle from backup before running it; no GitHub Actions, paid runner,
+or online dependency resolution is required.
 

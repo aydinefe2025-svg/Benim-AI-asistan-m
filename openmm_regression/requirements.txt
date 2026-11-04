@@ -1,3 +1,7 @@
 openmm==8.6.1+local.20261103
 numpy==2.5.4
 pytest==9.2.0
+nvidia-cuda-nvrtc-cu12==12.6.85
+nvidia-cuda-runtime-cu12==12.6.77
+nvidia-cufft-cu12==11.3.0.4
+nvidia-nvjitlink-cu12==12.6.85

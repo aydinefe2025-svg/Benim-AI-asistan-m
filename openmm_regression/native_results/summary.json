@@ -249,10 +249,10 @@
         {
           "platform": "OpenCL",
           "reference_energy": -81064.66015313275,
-          "gpu_energy": -81064.67171890906,
-          "cpu_pme_energy": -81064.65870828799,
-          "relative_force_error": 8.598759698030852e-06,
-          "gpu_cpu_force_delta": 0.0068359375,
+          "gpu_energy": -81064.6702540653,
+          "cpu_pme_energy": -81064.67201395205,
+          "relative_force_error": 8.729587746973236e-06,
+          "gpu_cpu_force_delta": 0.00677490234375,
           "group_sum_error": 0.0,
           "updated_first_energy": -1356.4861298254364,
           "updated_second_energy": -1356.4861298254364,
@@ -261,10 +261,10 @@
         {
           "platform": "CUDA",
           "reference_energy": -81064.66015313275,
-          "gpu_energy": -81064.70321304968,
-          "cpu_pme_energy": -81064.69044656924,
-          "relative_force_error": 8.382480258188829e-06,
-          "gpu_cpu_force_delta": 0.000708660576492548,
+          "gpu_energy": -81064.70565445593,
+          "cpu_pme_energy": -81064.70875711611,
+          "relative_force_error": 8.55697279549965e-06,
+          "gpu_cpu_force_delta": 0.0007744431495666504,
           "group_sum_error": 0.0,
           "updated_first_energy": -1356.4880870184534,
           "updated_second_energy": -1356.4880870184534,
@@ -273,7 +273,7 @@
       ]
     }
   ],
-  "created_utc": "2026-11-04T08:15:28.947157+00:00",
+  "created_utc": "2026-11-04T08:44:51.627943+00:00",
   "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
   "python_package_version": "8.6.1+local.20261103",
   "native_version": "8.6.1+local.20261103",

@@ -1,0 +1,63 @@
+﻿Looking in links: c:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\openmm-8.6.1+local.20261103-cp312-cp312-win_amd64.whl (from -r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 1))
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\numpy-2.5.4-cp312-cp312-win_amd64.whl (from -r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 2))
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\pytest-9.2.0-py3-none-any.whl (from -r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 3))
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\nvidia_cuda_nvrtc_cu12-12.6.85-py3-none-win_amd64.whl (from -r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 4))
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\nvidia_cuda_runtime_cu12-12.6.77-py3-none-win_amd64.whl (from -r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 5))
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\nvidia_cufft_cu12-11.3.0.4-py3-none-win_amd64.whl (from -r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 6))
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\nvidia_nvjitlink_cu12-12.6.85-py3-none-win_amd64.whl (from -r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 7))
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\colorama-0.4.6-py2.py3-none-any.whl (from pytest==9.2.0->-r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 3))
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\iniconfig-2.3.1-py3-none-any.whl (from pytest==9.2.0->-r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 3))
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\packaging-26.3-py3-none-any.whl (from pytest==9.2.0->-r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 3))
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\pluggy-1.7.0-py3-none-any.whl (from pytest==9.2.0->-r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 3))
+Processing c:\users\user\documents\codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\dist\pygments-2.21.0-py3-none-any.whl (from pytest==9.2.0->-r C:\Users\User\Documents\Codex\2026-11-02\codex-openmm-kurulumunu-tamamla-python-pip\repo\openmm_regression\requirements.txt (line 3))
+Installing collected packages: pygments, pluggy, packaging, nvidia-nvjitlink-cu12, nvidia-cuda-runtime-cu12, nvidia-cuda-nvrtc-cu12, numpy, iniconfig, colorama, pytest, nvidia-cufft-cu12, openmm
+  Attempting uninstall: pygments
+    Found existing installation: Pygments 2.21.0
+    Uninstalling Pygments-2.21.0:
+      Successfully uninstalled Pygments-2.21.0
+  Attempting uninstall: pluggy
+    Found existing installation: pluggy 1.7.0
+    Uninstalling pluggy-1.7.0:
+      Successfully uninstalled pluggy-1.7.0
+  Attempting uninstall: packaging
+    Found existing installation: packaging 26.3
+    Uninstalling packaging-26.3:
+      Successfully uninstalled packaging-26.3
+  Attempting uninstall: nvidia-nvjitlink-cu12
+    Found existing installation: nvidia-nvjitlink-cu12 12.6.85
+    Uninstalling nvidia-nvjitlink-cu12-12.6.85:
+      Successfully uninstalled nvidia-nvjitlink-cu12-12.6.85
+  Attempting uninstall: nvidia-cuda-runtime-cu12
+    Found existing installation: nvidia-cuda-runtime-cu12 12.6.77
+    Uninstalling nvidia-cuda-runtime-cu12-12.6.77:
+      Successfully uninstalled nvidia-cuda-runtime-cu12-12.6.77
+  Attempting uninstall: nvidia-cuda-nvrtc-cu12
+    Found existing installation: nvidia-cuda-nvrtc-cu12 12.6.85
+    Uninstalling nvidia-cuda-nvrtc-cu12-12.6.85:
+      Successfully uninstalled nvidia-cuda-nvrtc-cu12-12.6.85
+  Attempting uninstall: numpy
+    Found existing installation: numpy 2.5.4
+    Uninstalling numpy-2.5.4:
+      Successfully uninstalled numpy-2.5.4
+  Attempting uninstall: iniconfig
+    Found existing installation: iniconfig 2.3.1
+    Uninstalling iniconfig-2.3.1:
+      Successfully uninstalled iniconfig-2.3.1
+  Attempting uninstall: colorama
+    Found existing installation: colorama 0.4.6
+    Uninstalling colorama-0.4.6:
+      Successfully uninstalled colorama-0.4.6
+  Attempting uninstall: pytest
+    Found existing installation: pytest 9.2.0
+    Uninstalling pytest-9.2.0:
+      Successfully uninstalled pytest-9.2.0
+  Attempting uninstall: nvidia-cufft-cu12
+    Found existing installation: nvidia-cufft-cu12 11.3.0.4
+    Uninstalling nvidia-cufft-cu12-11.3.0.4:
+      Successfully uninstalled nvidia-cufft-cu12-11.3.0.4
+  Attempting uninstall: openmm
+    Found existing installation: OpenMM 8.6.1+local.20261103
+    Uninstalling OpenMM-8.6.1+local.20261103:
+      Successfully uninstalled OpenMM-8.6.1+local.20261103
+Successfully installed colorama-0.4.6 iniconfig-2.3.1 numpy-2.5.4 nvidia-cuda-nvrtc-cu12-12.6.85 nvidia-cuda-runtime-cu12-12.6.77 nvidia-cufft-cu12-11.3.0.4 nvidia-nvjitlink-cu12-12.6.85 openmm-8.6.1+local.20261103 packaging-26.3 pluggy-1.7.0 pygments-2.21.0 pytest-9.2.0
