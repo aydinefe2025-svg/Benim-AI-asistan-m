@@ -26,6 +26,15 @@ MAX_RESPONSE_BYTES = 512 * 1024
 MAX_RECORDS = 5
 DOI_RE = re.compile(r'^10\.[0-9]{4,9}/[^\s<>"\']{1,180}$', re.I)
 CTRL_RE = re.compile(r'[\x00-\x1f\x7f]')
+# Crossref's bibliographic search also matches author/journal metadata. Reject titles
+# without explicit topic anchors instead of filling the review queue with unrelated DOIs.
+TOPIC_TITLE_SIGNALS = {
+    'robotics': re.compile(r'\b(robot(?:ic|ics|s)?|biorobotic|bio-inspired|actuator|locomotion|biomimetic)\b', re.I),
+    'materials': re.compile(r'\b(materials?|biomimetic|hydrogels?|metamaterials?|nanostructures?|polymers?|composites?)\b', re.I),
+    'biology': re.compile(r'\b(cells?|cellular|tissues?|mechanobiology|biomechanics|morphogenesis|cardiomyocytes?)\b', re.I),
+    'history': re.compile(r'\b(ancient|medieval|archaeolog(?:y|ical)|history|historical|antiquity|industrial revolution)\b', re.I),
+    'artificial_intelligence': re.compile(r'\b(artificial intelligence|machine learning|deep learning|large language models?|multi[- ]agents?|agentic|autonomous agents?|neural networks?|language models?|foundation models?|AI[- ]driven|scientific discovery)\b', re.I),
+}
 
 
 class FeedError(RuntimeError):
@@ -48,7 +57,8 @@ def build_url(topic, rows=MAX_RECORDS):
     query = urllib.parse.urlencode({
         'query.bibliographic': TOPICS[topic], 'rows': rows,
         'select': 'DOI,title,type,published,container-title,URL',
-        'sort': 'published', 'order': 'desc',
+        'filter': 'from-pub-date:2024-01-01,until-pub-date:' + dt.datetime.now(dt.timezone.utc).date().isoformat(),
+        'sort': 'relevance', 'order': 'desc',
     })
     return API + '?' + query
 
@@ -97,7 +107,7 @@ def parse_crossref_response(payload, topic, fetched_at=None):
         if isinstance(title, list):
             title = title[0] if title else ''
         title = clean_title(title)
-        if not title or doi in seen:
+        if not title or doi in seen or TOPIC_TITLE_SIGNALS[topic].search(title) is None:
             continue
         seen.add(doi)
         entries.append({
@@ -110,10 +120,10 @@ def parse_crossref_response(payload, topic, fetched_at=None):
             'review_status': 'pending_review',
         })
     if not entries:
-        raise FeedError('No usable DOI metadata in Crossref response')
+        raise FeedError('No topic-relevant DOI metadata in Crossref response')
     return {'schema_version': 1, 'topic': topic,
             'fetched_at': fetched_at or dt.datetime.now(dt.timezone.utc).isoformat(),
-            'source_api': API, 'items': entries,
+            'source_api': API, 'items': entries, 'relevance_policy': 'topic_title_anchor',
             'claims_verified': False, 'content_downloaded': False}
 
 
