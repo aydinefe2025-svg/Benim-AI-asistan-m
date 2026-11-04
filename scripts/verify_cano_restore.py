@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 
@@ -13,7 +14,7 @@ def verify_restored_state(path: str | Path) -> dict:
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError(f"CANO previous database missing: {path}")
-    with sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True) as db:
+    with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as db:
         integrity = db.execute("PRAGMA integrity_check").fetchone()[0]
         if integrity != "ok":
             raise RuntimeError(f"Restored CANO database has integrity error: {integrity}")
