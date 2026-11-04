@@ -11,6 +11,22 @@ from organism_lab.providers import trained_local_ready
 DASHBOARD = Path(__file__).resolve().parents[1] / "dashboard.py"
 
 class DashboardAppTests(unittest.TestCase):
+
+    def test_cloud_model_choices_are_visible_but_calls_disabled_without_key(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.dict(os.environ, {
+                    "ORGANISM_LAB_CLOUD_MODE": "1",
+                    "ORGANISM_LAB_OUTPUT_DIR": str(Path(tmp) / "sessions"),
+                    "GROQ_API_KEY": "",
+                }):
+            app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
+            self.assertFalse(app.exception)
+            model_choice = next(item for item in app.selectbox if item.key == "assistant_groq_model")
+            self.assertIn("openai/gpt-oss-120b", model_choice.options)
+            ask_button = next(button for button in app.button if button.label == "Groq'a sor")
+            self.assertTrue(ask_button.disabled)
+            self.assertTrue(any("API çağrısı yapılmaz" in item.value for item in app.info))
+
     def test_background_research_progress_is_reported_as_simulation(self):
         with tempfile.TemporaryDirectory() as tmp, \
                 patch.dict(os.environ, {"ORGANISM_LAB_OUTPUT_DIR": str(Path(tmp) / "organism_lab_output")}):
