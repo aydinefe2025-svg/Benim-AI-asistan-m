@@ -44,6 +44,9 @@ def running_heartbeat(db_path, task_id, *, interval_seconds=30):
         yield
     finally:
         stop.set()
-        thread.join(timeout=min(interval_seconds, 5))
+        # Wait for an in-flight bounded database touch to finish before the
+        # caller closes or removes its SQLite file. A short interval-based
+        # join can leave the daemon thread using the file during teardown.
+        thread.join()
         if failures:
             raise failures[0]
