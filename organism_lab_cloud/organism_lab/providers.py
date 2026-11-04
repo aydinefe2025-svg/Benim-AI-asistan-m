@@ -1,6 +1,7 @@
 """Explicit provider selection with safe offline fallback; no implicit network calls."""
 import json
 import os
+import re
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 from urllib.parse import urlsplit
@@ -40,21 +41,49 @@ GROQ_MODEL_OPTIONS = (
 )
 
 def _safe_groq_error_code(exc):
-    """Read only an allowlisted provider error code; never expose provider text."""
+    """Read only a bounded machine identifier; never expose provider prose."""
     try:
         payload = json.loads(exc.read(4096).decode("utf-8"))
     except (OSError, UnicodeDecodeError, ValueError, TypeError):
         return None
-    error = payload.get("error") if isinstance(payload, dict) else None
-    code = error.get("code") if isinstance(error, dict) else None
-    allowed = {
-        "invalid_api_key", "model_not_found", "model_decommissioned", "model_not_available",
-        "model_access_denied", "permission_denied", "insufficient_permissions",
-        "project_permission_denied", "project_not_found", "invalid_project",
-        "organization_disabled", "organization_restricted",
-        "model_permission_blocked_org", "model_permission_blocked_project",
-    }
-    return code if isinstance(code, str) and code in allowed else None
+    pending = [payload]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            code = value.get("code")
+            if isinstance(code, str) and re.fullmatch(r"[a-z][a-z0-9_]{0,63}", code):
+                return code
+            pending.extend(value.values())
+        elif isinstance(value, list):
+            pending.extend(value)
+    return None
+
+
+def diagnose_groq_access(api_key, model_id, *, transport=None):
+    """Check key-scoped model listing without generating text or returning secrets."""
+    if not isinstance(api_key, str) or not api_key.strip():
+        return {"reachable": False, "model_available": False, "http_status": None,
+                "error_code": None}
+    request = Request(
+        "https://api.groq.com/openai/v1/models",
+        headers={"Authorization": "Bearer " + api_key.strip()},
+        method="GET",
+    )
+    sender = transport or urlopen
+    try:
+        with sender(request, timeout=10) as response:
+            raw = response.read(64_000)
+        payload = json.loads(raw.decode("utf-8"))
+        models = payload.get("data", []) if isinstance(payload, dict) else []
+        model_ids = {item.get("id") for item in models if isinstance(item, dict)}
+        return {"reachable": True, "model_available": model_id in model_ids,
+                "http_status": 200, "error_code": None}
+    except HTTPError as exc:
+        return {"reachable": False, "model_available": False,
+                "http_status": exc.code, "error_code": _safe_groq_error_code(exc)}
+    except (URLError, OSError, UnicodeDecodeError, ValueError, TypeError):
+        return {"reachable": False, "model_available": False,
+                "http_status": None, "error_code": None}
 
 def generate(prompt, provider="offline", *, transport=None, model=None, system_prompt=None):
     if not isinstance(prompt, str) or not prompt.strip():
@@ -156,4 +185,5 @@ def generate(prompt, provider="offline", *, transport=None, model=None, system_p
     except (ValueError, KeyError, IndexError, TypeError) as exc:
         label = "Groq" if provider == "groq" else "Provider"
         raise ProviderError(label + " returned an invalid response (" + type(exc).__name__ + ").") from None
+
 
