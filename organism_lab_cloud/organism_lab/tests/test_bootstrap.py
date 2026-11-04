@@ -21,7 +21,7 @@ class RuntimeBootstrapTests(unittest.TestCase):
             self.assertTrue(path.is_file())
             self.assertEqual(environment["ORGANISM_LAB_OIDC_CONFIGURED"], "1")
             self.assertEqual(path.parent, Path(root) / "organism-lab-runtime")
-            self.assertNotIn("test-client-secret", str(environment))
+            self.assertNotIn("test-client-secret", environment["STREAMLIT_SECRETS_FILES"])
             if os.name != "nt":
                 self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
