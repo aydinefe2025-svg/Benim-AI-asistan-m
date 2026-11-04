@@ -31,7 +31,9 @@ if not missions:
     # A new Streamlit session creates a fresh, isolated SQLite file. Never
     # silently import another owner's data or overwrite a nonempty colony.
     # Recovery is explicit, authenticated and read back transactionally.
-    if owner:
+    with colony._db() as db:
+        local_agent_count = db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0]
+    if owner and not local_agent_count:
         st.info("Bu oturumda kaynak denetimi görevi yok. Hesabınızın kalıcı yedeğini güvenli biçimde geri yükleyebilirsiniz.")
         if st.button("Hesabıma ait CANO yedeğini geri yükle", key="cano_evidence_restore"):
             try:
@@ -46,7 +48,7 @@ if not missions:
                 st.success(f"{restored} CANO rol kaydı geri yüklendi; kaynak denetimi görevleri yeniden okunuyor.")
                 st.rerun()
     else:
-        st.info("Önce ana CANO ekranında araştırma görevi ve kaynak okuma işlemini tamamlayın.")
+        st.info("Önce ana CANO ekranında araştırma görevi ve kaynak okuma işlemini tamamlayın. Mevcut kayıtların üzerine yedek yüklenmez.")
     st.stop()
 mission_ids = [m["id"] for m in missions]
 labels = {m["id"]: m["task"][:70] for m in missions}
