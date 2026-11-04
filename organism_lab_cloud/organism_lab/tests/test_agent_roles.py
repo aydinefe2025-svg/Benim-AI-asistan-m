@@ -7,7 +7,7 @@ class AgentRoleTests(unittest.TestCase):
         for agent_id in AGENT_PROFILES:
             prompt = profile_prompt(agent_id)
             self.assertIn("Kendi kendine dış sistemleri değiştirme", prompt)
-            self.assertIn("model ağırlıkları", prompt)
+            self.assertIn("eğitim verisi", prompt)
 
     def test_unknown_profile_rejected(self):
         with self.assertRaises(ValueError):
