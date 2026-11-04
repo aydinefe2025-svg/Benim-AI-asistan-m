@@ -353,6 +353,13 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(final_owner, "authenticated-owner")
             self.assertEqual(len(final_snapshot["missions"]), 1)
             self.assertEqual(final_snapshot["missions"][0]["status"], "review_pending")
+            # Every stage is archived remotely BEFORE a later model call.
+            # The final duplicate checkpoint records review_pending state.
+            import json
+            stage_counts = [
+                len(json.loads(call.args[1]["missions"][0]["stages"]))
+                for call in save.call_args_list if call.args[1]["missions"]]
+            self.assertEqual(stage_counts, [1, 2, 3, 4, 4])
             setup.assert_called()
 
     def test_authenticated_cockpit_persists_blocked_partial_mission(self):
@@ -382,6 +389,10 @@ class CommandCenterTests(unittest.TestCase):
             last = save.call_args.args[1]
             self.assertEqual(last["missions"][0]["status"], "blocked")
             self.assertEqual(len(__import__("json").loads(last["missions"][0]["stages"])), 3)
+            stage_counts = [
+                len(__import__("json").loads(call.args[1]["missions"][0]["stages"]))
+                for call in save.call_args_list if call.args[1]["missions"]]
+            self.assertEqual(stage_counts, [1, 2, 3, 3])
 
     def test_unavailable_authenticated_backup_blocks_billable_mission(self):
         """Fail before model calls when durable backing store is unavailable."""
