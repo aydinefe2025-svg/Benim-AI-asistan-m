@@ -1,6 +1,12 @@
 name: CANO scheduled colony cycle
 
 on:
+  # One main-branch run on this workflow's next approved update.
+  # Does not loop on artifacts or cache writes.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cano-colony-cycle.yml"
   schedule:
     - cron: "17 * * * *"
   workflow_dispatch:
@@ -21,6 +27,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Check colony regressions before writing state
+        run: python -m unittest discover -s tests -p "test_*colony*.py" -q
       - name: Restore prior verified colony database
         uses: actions/cache@v4
         with:
