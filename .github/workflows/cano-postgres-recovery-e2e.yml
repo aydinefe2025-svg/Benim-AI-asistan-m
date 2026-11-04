@@ -1,0 +1,45 @@
+name: CANO PostgreSQL process-restart recovery
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cano-postgres-recovery-e2e.yml"
+      - "tests/test_postgres_recovery_e2e.py"
+      - "core/colony_postgres.py"
+      - "core/colony_restore.py"
+      - "core/claim_evidence.py"
+      - "core/cano_command_center.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recovery-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: cano_test
+          POSTGRES_PASSWORD: local_ci_only
+          POSTGRES_DB: cano_recovery
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cano_test -d cano_recovery"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      CANO_TEST_POSTGRES_DSN: postgresql://cano_test:local_ci_only@127.0.0.1:5432/cano_recovery
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install application dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Real PostgreSQL backup-to-new-process restore
+        run: python -W error::ResourceWarning -m unittest discover -s tests -p 'test_postgres_recovery_e2e.py' -v
