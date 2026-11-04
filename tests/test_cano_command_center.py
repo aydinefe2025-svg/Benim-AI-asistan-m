@@ -173,6 +173,34 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(resumed["status"], "review_pending")
             self.assertEqual(len(resumed["stages"]), 4)
 
+    def test_evidence_read_button_shows_saved_source_excerpt(self):
+        from core.collaborative_mission import CollaborativeMission
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            mission = CollaborativeMission(colony).execute(
+                "Solar study", client=type("Client", (), {
+                    "chat": lambda self, model, system, prompt: "Draft"
+                })(), model="test",
+                source_lookup=lambda query, limit=3: [
+                    {"title":"Solar study", "url":"https://doi.org/10.1234/solar"}])
+            st.clicks.add("cano_read_sources_" + mission["id"])
+            with patch("core.europepmc_evidence.read_publication_evidence",
+                       return_value={"doi":"10.1234/solar", "title":"Solar study",
+                                     "url":"https://europepmc.org/articles/PMC1234567",
+                                     "status":"full_text_excerpt",
+                                     "excerpt":"Measured solar output in a real study.",
+                                     "claim_verified":False}) as reader:
+                render_cano_command_center(st, answer=FakeModel())
+                reader.assert_called_once_with("10.1234/solar")
+            render_cano_command_center(st, answer=FakeModel())
+            self.assertIn("Measured solar output", " ".join(st.messages))
+            saved = CollaborativeMission(colony).get(mission["id"])
+            self.assertEqual(saved["stages"][0]["source_documents"][0]["status"],
+                             "full_text_excerpt")
+            self.assertFalse(saved["stages"][0]["source_documents"][0]["claim_verified"])
+
     def test_cockpit_exposes_truth_when_no_model(self):
         st = FakeStreamlit(clicks={"cano_prepare_team"}, submit=True, task="Test")
         with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
