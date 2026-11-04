@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "task": "sift_robustness",
+      "file": "amalga_robustness_suite.py",
+      "size": 2292,
+      "sha256": "7eaa236b6a89fb2a72d30d9323f57457d84a0a0a8bb0dd7ce0a014978ae1763a"
+    },
+    {
+      "task": "sift_synthetic",
+      "file": "amalga_sift_pilot.py",
+      "size": 2857,
+      "sha256": "9bdc07646f8358014792abaee7564d5083d5069dde1b0d942e0fc1e544f4552e"
+    }
+  ]
+}
