@@ -85,6 +85,18 @@ def diagnose_groq_access(api_key, model_id, *, transport=None):
         return {"reachable": False, "model_available": False,
                 "http_status": None, "error_code": None}
 
+
+def groq_test_key():
+    """Return the separately configured test credential, if present."""
+    return (os.getenv("GROQ_API_KEY_TEST") or "").strip()
+
+
+def groq_active_key():
+    """Select the test credential only after the explicit activation flag is set."""
+    if os.getenv("GROQ_API_KEY_TEST_ACTIVE", "").strip() == "1":
+        return groq_test_key()
+    return (os.getenv("GROQ_API_KEY") or "").strip()
+
 def generate(prompt, provider="offline", *, transport=None, model=None, system_prompt=None):
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError("Prompt required")
@@ -126,9 +138,9 @@ def generate(prompt, provider="offline", *, transport=None, model=None, system_p
     if provider == "groq":
         if not _trusted_groq_endpoint(url):
             raise ProviderError("Groq endpoint must be the trusted HTTPS API endpoint")
-        key = (os.getenv("GROQ_API_KEY") or "").strip()
+        key = groq_active_key()
         if not key:
-            raise ProviderError("GROQ_API_KEY is missing")
+            raise ProviderError("Active Groq API key is missing")
         messages = ([{"role": "system", "content": system_prompt}]
                     if isinstance(system_prompt, str) and system_prompt.strip() else [])
         messages.append({"role": "user", "content": prompt})
