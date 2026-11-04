@@ -14,6 +14,14 @@ class AuthenticationTests(unittest.TestCase):
             self.assertTrue(auth_is_required({"APP_AUTH_REQUIRED": value}))
         self.assertFalse(auth_is_required({"APP_AUTH_REQUIRED": "false"}))
 
+    def test_malformed_auth_flag_must_fail_closed(self):
+        # A typo in a production security toggle must not silently disable login.
+        for value in ("tru", "enabled", "2", "perhaps", " true false "):
+            with self.subTest(value=value):
+                self.assertTrue(auth_is_required({"APP_AUTH_REQUIRED": value}))
+        self.assertFalse(auth_is_required({"APP_AUTH_REQUIRED": "off"}))
+        self.assertFalse(auth_is_required({"APP_AUTH_REQUIRED": "0"}))
+
     def test_oidc_requires_all_streamlit_settings(self):
         self.assertFalse(oidc_is_configured({}))
         self.assertTrue(oidc_is_configured({"auth": {
