@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from cano_pg_backup import BackupError, make_backup, verify_backup
+from cano_pg_backup import BackupError, make_backup, verify_backup, _libpq_env_from_uri
 
 
 class BackupTests(unittest.TestCase):
@@ -22,7 +22,10 @@ class BackupTests(unittest.TestCase):
         fake_dump.write_text(
             "#!" + sys.executable + "\n"
             "import os,sys,pathlib\n"
-            "assert 'postgresql://' in os.environ['PGDATABASE']\n"
+            "assert os.environ['PGDATABASE'] == 'test'\n"
+            "assert os.environ['PGHOST'] == 'example.invalid'\n"
+            "assert os.environ['PGUSER'] == 'private'\n"
+            "assert os.environ['PGPASSWORD'] == 'secret'\n"
             "pathlib.Path(sys.argv[sys.argv.index('--file')+1]).write_bytes(b'PGDMP synthetic bytes')\n",
             encoding="utf-8")
         fake_restore = self.path / "fake_restore.py"
@@ -50,6 +53,22 @@ class BackupTests(unittest.TestCase):
         self.patch = patch.dict(os.environ, {"DATABASE_URL": "postgresql://private:secret@example.invalid/test"})
         self.patch.start()
         self.addCleanup(self.patch.stop)
+
+    def test_uri_percent_encoding_and_ssl_options(self):
+        env = _libpq_env_from_uri(
+            "postgresql://user%40host:p%25ss@db.example:6543/my%2Fdb?sslmode=require&connect_timeout=8",
+            {},
+        )
+        self.assertEqual(env["PGUSER"], "user@host")
+        self.assertEqual(env["PGPASSWORD"], "p%ss")
+        self.assertEqual(env["PGDATABASE"], "my/db")
+        self.assertEqual(env["PGPORT"], "6543")
+        self.assertEqual(env["PGSSLMODE"], "require")
+        self.assertEqual(env["PGCONNECT_TIMEOUT"], "8")
+
+    def test_unsupported_uri_option_fails_closed(self):
+        with self.assertRaises(BackupError):
+            _libpq_env_from_uri("postgresql://host/db?unknown=value", {})
 
     def test_successful_private_backup_and_readback(self):
         result = make_backup(self.dest, dump_bin=self.dump, restore_bin=self.restore)
