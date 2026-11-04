@@ -175,7 +175,12 @@ if ask_local_clicked:
                 }, ensure_ascii=False, allow_nan=False) + "\n")
         st.session_state["local_learning_provider"] = response.get("provider", "ollama")
     except (ProviderError, OSError, ValueError, RuntimeError) as exc:
-        st.error(f"Model yanıt vermedi ({type(exc).__name__}); kaydedilmiş hafıza korunuyor.")
+        if isinstance(exc, ProviderError):
+            # ProviderError messages contain fixed, sanitized categories/status codes only.
+            detail = str(exc)[:180]
+        else:
+            detail = type(exc).__name__
+        st.error(f"Model yanıt vermedi ({detail}); kaydedilmiş hafıza korunuyor.")
 if st.session_state.get("local_learning_answer"):
     st.markdown("**Ajan yanıtı**")
     st.write(st.session_state["local_learning_answer"])
