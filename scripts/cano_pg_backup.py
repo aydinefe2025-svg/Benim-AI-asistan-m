@@ -160,8 +160,9 @@ def make_backup(destination: Path, *, database_env: str = "DATABASE_URL",
         env = _libpq_env_from_uri(database_url, os.environ)
         try:
             result = subprocess.run(
-                [dump_exe, "--format=custom", "--no-owner", "--no-privileges",
-                 "--file", temporary], env=env, stdout=subprocess.DEVNULL,
+                [dump_exe, "--no-password", "--format=custom", "--no-owner",
+                 "--no-privileges", "--file", temporary], env=env,
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE, timeout=1800, check=False,
             )
         except (OSError, subprocess.TimeoutExpired):
