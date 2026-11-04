@@ -11,9 +11,13 @@ class Cursor:
         self.state["queries"].append((sql, params))
         if sql.startswith("INSERT"):
             self.state["rows"][params[0]] = params[1]
-        if sql.startswith("SELECT"):
+        if "has_table_privilege" in sql:
+            self.state["last"] = "__privileges__"
+        elif sql.startswith("SELECT") and params:
             self.state["last"] = params[0]
     def fetchone(self):
+        if self.state.get("last") == "__privileges__":
+            return (True, True, True, True, True, True)
         value = self.state["rows"].get(self.state["last"])
         return (value,) if value is not None else None
 
@@ -64,6 +68,60 @@ class ColonySnapshotTests(unittest.TestCase):
             store.save_verified("owner-a", payload)
 
 
+
+    def test_verify_schema_only_checks_preprovisioned_schema(self):
+        state = {"rows": {}, "queries": []}
+        class PrivilegeCursor(Cursor):
+            def fetchone(self):
+                return (True, True, True, True, True, True)
+        class PrivilegeConnection(Connection):
+            def cursor(self):
+                return PrivilegeCursor(self.state)
+        store = ColonySnapshotStore(
+            "postgresql://unused",
+            connect=lambda *a, **k: PrivilegeConnection(state))
+        store.verify_schema()
+        statements = [sql.lstrip().upper() for sql, _ in state["queries"]]
+        self.assertEqual(len(statements), 3)
+        self.assertTrue(all(sql.startswith("SELECT") for sql in statements))
+        self.assertIn("HAS_SEQUENCE_PRIVILEGE", statements[-1])
+
+
+    def test_verify_schema_only_reads_and_checks_runtime_privileges(self):
+        state = {"rows": {}, "queries": []}
+        class PrivilegeCursor(Cursor):
+            def fetchone(self):
+                return (True, True, True, True, True, True)
+        class PrivilegeConnection(Connection):
+            def cursor(self):
+                return PrivilegeCursor(self.state)
+        store = ColonySnapshotStore(
+            "postgresql://unused",
+            connect=lambda *a, **k: PrivilegeConnection(state))
+        store.verify_schema()
+        statements = [sql.lstrip().upper() for sql, _ in state["queries"]]
+        self.assertEqual(len(statements), 3)
+        self.assertTrue(all(sql.startswith("SELECT") for sql in statements))
+        self.assertIn("HAS_SEQUENCE_PRIVILEGE", statements[-1])
+
+
+
+    def test_verify_schema_rejects_one_missing_required_privilege(self):
+        state = {"rows": {}, "queries": []}
+        class MissingPrivilegeCursor(Cursor):
+            def fetchone(self):
+                return (True, True, False, True, True, True)
+        class MissingPrivilegeConnection(Connection):
+            def cursor(self):
+                return MissingPrivilegeCursor(self.state)
+        store = ColonySnapshotStore(
+            "postgresql://unused",
+            connect=lambda *a, **k: MissingPrivilegeConnection(state))
+        with self.assertRaisesRegex(PermissionError, "privileges"):
+            store.verify_schema()
+        access_sql = state["queries"][-1][0].upper()
+        self.assertEqual(access_sql.count("HAS_TABLE_PRIVILEGE"), 5)
+        self.assertEqual(access_sql.count("HAS_SEQUENCE_PRIVILEGE"), 1)
 
 if __name__ == "__main__":
     unittest.main()
