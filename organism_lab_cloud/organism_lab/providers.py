@@ -108,6 +108,26 @@ def generate(prompt, provider="offline", *, transport=None, model=None, system_p
         if not isinstance(answer, str) or not answer.strip():
             raise ProviderError("Provider returned an empty response")
         return {"provider": provider, "status": "ok", "text": answer.strip()}
-    except (HTTPError, URLError, OSError, ValueError, KeyError, IndexError, TypeError) as exc:
-        raise ProviderError("Provider request failed: " + type(exc).__name__) from exc
+    except HTTPError as exc:
+        if provider == "groq":
+            if exc.code == 401:
+                message = "Groq API anahtarı geçersiz veya iptal edilmiş (HTTP 401)."
+            elif exc.code == 403:
+                message = "Groq erişimi reddetti; proje veya model iznini kontrol edin (HTTP 403)."
+            elif exc.code in (400, 404):
+                message = "Groq bu modeli veya isteği kabul etmedi; model seçimini kontrol edin (HTTP " + str(exc.code) + ")."
+            elif exc.code == 429:
+                message = "Groq kota veya istek hızı sınırına ulaşıldı (HTTP 429)."
+            elif exc.code >= 500:
+                message = "Groq geçici sunucu hatası verdi (HTTP " + str(exc.code) + ")."
+            else:
+                message = "Groq isteği reddedildi (HTTP " + str(exc.code) + ")."
+            raise ProviderError(message) from None
+        raise ProviderError("Provider HTTP request failed (HTTP " + str(exc.code) + ").") from None
+    except (URLError, OSError) as exc:
+        label = "Groq" if provider == "groq" else "Provider"
+        raise ProviderError(label + " network request failed (" + type(exc).__name__ + ").") from None
+    except (ValueError, KeyError, IndexError, TypeError) as exc:
+        label = "Groq" if provider == "groq" else "Provider"
+        raise ProviderError(label + " returned an invalid response (" + type(exc).__name__ + ").") from None
 
