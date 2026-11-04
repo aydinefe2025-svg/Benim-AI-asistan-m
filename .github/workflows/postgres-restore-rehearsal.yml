@@ -61,7 +61,8 @@ jobs:
           pg_dump --version
           pg_restore --version
           test "$(pg_dump --version | awk '{print $3}' | cut -d. -f1)" = "${PG_MAJOR}"
-          test "$(psql -d postgres -Atc \"SELECT current_setting('server_version_num')::int / 10000\")" = "${PG_MAJOR}"
+          server_major=$(psql -d postgres -Atc "SELECT current_setting('server_version_num')::int / 10000")
+          test "$server_major" = "$PG_MAJOR"
       - name: Check synthetic unit tests
         run: python -m unittest discover -s tests -p 'test_cano_pg_backup.py' -v
       - name: Run real PostgreSQL dump and isolated restore rehearsal
