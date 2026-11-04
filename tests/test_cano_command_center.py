@@ -137,6 +137,36 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(stats["review_pending"], 1)
             self.assertIn("Uzman", st.metrics)
 
+    def test_rate_limit_keeps_stage_checkpoint_and_shows_quota(self):
+        from core.groq_team import TeamRateLimitError
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            st.task = "Sınırlı araştırma görevi"
+            st.submit = True
+            calls = []
+            def partial_then_429(prompt):
+                calls.append(prompt)
+                if len(calls) == 4:
+                    raise TeamRateLimitError("quota limit")
+                return f"Aşama {len(calls)}"
+            render_cano_command_center(st, answer=partial_then_429)
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            status = read_cano_status(colony)
+            self.assertEqual(status["blocked"], 1)
+            self.assertEqual(status["missions"], 1)
+            self.assertIn("kota", " ".join(st.messages).casefold())
+            self.assertEqual(len(calls), 4)
+            from core.collaborative_mission import CollaborativeMission
+            mission = CollaborativeMission(colony).get(status["history"][0]["id"])
+            self.assertEqual(len(mission["stages"]), 3)
+            resumed = CollaborativeMission(colony).resume(
+                mission["id"],
+                client=type("Client", (), {"chat": lambda self, model, system, prompt: "Son aşama"})(),
+                model="test")
+            self.assertEqual(resumed["status"], "review_pending")
+            self.assertEqual(len(resumed["stages"]), 4)
+
     def test_cockpit_exposes_truth_when_no_model(self):
         st = FakeStreamlit(clicks={"cano_prepare_team"}, submit=True, task="Test")
         with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
