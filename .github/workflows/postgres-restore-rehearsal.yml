@@ -18,10 +18,14 @@ permissions:
 jobs:
   restore-rehearsal:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        pg-major: ['16', '18']
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ matrix.pg-major }}
         env:
           POSTGRES_DB: postgres
           POSTGRES_USER: cano_test
@@ -39,17 +43,29 @@ jobs:
       PGUSER: cano_test
       PGPASSWORD: ephemeral_test_only
       CANO_PG_REHEARSAL: '1'
+      PG_MAJOR: ${{ matrix.pg-major }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Install PostgreSQL client programs
+      - name: Install a matching PostgreSQL client for each tested server
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client
+          sudo apt-get install -y -qq curl ca-certificates
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          . /etc/os-release
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-${PG_MAJOR}"
+          export PATH="/usr/lib/postgresql/${PG_MAJOR}/bin:${PATH}"
+          echo "/usr/lib/postgresql/${PG_MAJOR}/bin" >> "$GITHUB_PATH"
           pg_dump --version
           pg_restore --version
+          test "$(pg_dump --version | awk '{print $3}' | cut -d. -f1)" = "${PG_MAJOR}"
+          server_major=$(psql -d postgres -Atc "SELECT current_setting('server_version_num')::int / 10000")
+          test "$server_major" = "$PG_MAJOR"
       - name: Check synthetic unit tests
         run: python -m unittest discover -s tests -p 'test_cano_pg_backup.py' -v
       - name: Run real PostgreSQL dump and isolated restore rehearsal
