@@ -16,8 +16,8 @@ NOT a completed Render database backup and NOT proof of restored production data
 Provide the connection string from a trusted local secret manager or already configured process environment:
 
 ```sh
-python -m scripts.cano_pg_backup backup /secure/cano-2026-11-04.dump
-python -m scripts.cano_pg_backup verify /secure/cano-2026-11-04.dump
+python -m scripts.cano_pg_backup_manifest backup /secure/cano-2026-11-04.dump
+python -m scripts.cano_pg_backup_manifest verify /secure/cano-2026-11-04.dump
 ```
 
 The environment variable `CANO_BACKUP_DATABASE_URL` is required for the first command.
@@ -35,7 +35,7 @@ GitHub artifact upload, Notion upload, or third-party sync is performed.
 3. Run:
 
 ```sh
-python -m scripts.cano_pg_backup restore-test /secure/cano-2026-11-04.dump
+python -m scripts.cano_pg_backup_manifest restore-test /secure/cano-2026-11-04.dump
 ```
 
 The tool refuses a production database URL or a target without the isolated suffix,

@@ -6,6 +6,7 @@ authority to run another person's task. Provider drafts are not verification.
 """
 from __future__ import annotations
 
+import logging
 import uuid
 
 from core.postgres_authorized_queue import PostgresAuthorizedQueue
@@ -23,8 +24,12 @@ def render_authorized_queue_panel(st, answer=None, *, owner_key=None, database_u
         )
         try:
             queue = PostgresAuthorizedQueue(database_url, owner_key=owner_key, max_jobs=100)
-            queue.initialize()
-        except Exception:
+            queue.verify_schema()
+        except Exception as exc:
+            # Record only the exception type; database errors may include URLs or credentials.
+            logging.getLogger(__name__).warning(
+                "Authorized queue initialization failed (%s)", type(exc).__name__
+            )
             st.error("Güvenli PostgreSQL görev kuyruğu açılamadı; hiçbir iş çalıştırılmadı.")
             return
 

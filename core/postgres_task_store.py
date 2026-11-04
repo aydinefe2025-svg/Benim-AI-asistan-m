@@ -51,6 +51,21 @@ class PostgresTaskStore:
     def _connection(self):
         return self._connect(self.database_url, connect_timeout=8)
 
+    def verify_schema(self) -> None:
+        """Check runtime table/sequence access without applying migrations."""
+        with self._connection() as conn, conn.cursor() as cur:
+            cur.execute("SELECT owner_key,id,title,goal,status,evidence,blockers,created_at,updated_at "
+                        "FROM public.agent_research_tasks LIMIT 0")
+            cur.execute("SELECT event_id,owner_key,task_id,at,old_status,new_status,note "
+                        "FROM public.agent_research_task_events LIMIT 0")
+            cur.execute("SELECT owner_key,task_id,content,updated_at "
+                        "FROM public.agent_research_drafts LIMIT 0")
+            cur.execute("SELECT has_sequence_privilege(current_user, "
+                        "'public.agent_research_task_events_event_id_seq', 'USAGE')")
+            row = cur.fetchone()
+            if not row or not row[0]:
+                raise PermissionError("task event sequence USAGE privilege is required")
+
     def initialize(self) -> None:
         with self._connection() as conn, conn.cursor() as cur:
             cur.execute("""
@@ -92,14 +107,28 @@ class PostgresTaskStore:
                         REFERENCES agent_research_tasks(owner_key,id) ON DELETE CASCADE
                 )
             """)
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_agent_research_tasks_owner_status
-                ON agent_research_tasks(owner_key,status,created_at)
-            """)
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_agent_research_events_owner_task
-                ON agent_research_task_events(owner_key,task_id,event_id)
-            """)
+            # Runtime roles may have DML grants on migration-owned tables without
+            # owning those tables. PostgreSQL rejects CREATE INDEX in that case,
+            # even when IF NOT EXISTS is present. Create indexes only on tables
+            # this role owns; shared tables are provisioned by the owner migration.
+            cur.execute("""SELECT pg_get_userbyid(relowner) = current_user
+                FROM pg_class
+                WHERE oid = 'public.agent_research_tasks'::regclass""")
+            owns_tasks = cur.fetchone()
+            if owns_tasks and owns_tasks[0]:
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_agent_research_tasks_owner_status
+                    ON agent_research_tasks(owner_key,status,created_at)
+                """)
+            cur.execute("""SELECT pg_get_userbyid(relowner) = current_user
+                FROM pg_class
+                WHERE oid = 'public.agent_research_task_events'::regclass""")
+            owns_events = cur.fetchone()
+            if owns_events and owns_events[0]:
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_agent_research_events_owner_task
+                    ON agent_research_task_events(owner_key,task_id,event_id)
+                """)
 
     def create(self, title: str, goal: str = "") -> dict[str, Any]:
         title = title.strip()

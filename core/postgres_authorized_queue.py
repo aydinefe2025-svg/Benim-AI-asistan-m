@@ -8,6 +8,8 @@ than replay work that may already have caused an external side effect.
 from __future__ import annotations
 
 import hashlib
+import logging
+import logging
 import os
 import secrets
 import time
@@ -36,49 +38,59 @@ class PostgresAuthorizedQueue:
         from psycopg.rows import dict_row
         return psycopg.connect(self.database_url, connect_timeout=8, row_factory=dict_row)
 
-    def initialize(self):
-        with self._db() as db, db.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS cano_authorized_jobs (
-                    owner_key TEXT NOT NULL,
-                    id TEXT NOT NULL,
-                    idem_key TEXT NOT NULL,
-                    goal TEXT NOT NULL,
-                    state TEXT NOT NULL
-                        CHECK(state IN ('queued','running','review_pending','blocked')),
-                    max_calls INTEGER NOT NULL CHECK(max_calls BETWEEN 1 AND 3),
-                    attempts INTEGER NOT NULL DEFAULT 0,
-                    eligible_after DOUBLE PRECISION NOT NULL DEFAULT 0,
-                    lease_token TEXT,
-                    worker_id TEXT,
-                    lease_until DOUBLE PRECISION,
-                    result_digest TEXT,
-                    draft TEXT,
-                    created_at DOUBLE PRECISION NOT NULL,
-                    PRIMARY KEY(owner_key,id),
-                    UNIQUE(owner_key,idem_key)
+    def verify_schema(self):
+        """Validate pre-provisioned queue tables and privileges with SELECT only."""
+        stage = "connect"
+        try:
+            with self._db() as db, db.cursor() as cur:
+                stage = "identity"
+                cur.execute("""SELECT current_user AS runtime_role,
+                    current_database() AS runtime_database,
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_jobs', 'SELECT') AS queue_select""")
+                identity = cur.fetchone() or {}
+                logging.getLogger(__name__).info(
+                    "Authorized queue DB identity role=%s database=%s queue_select=%s",
+                    identity.get("runtime_role"), identity.get("runtime_database"),
+                    identity.get("queue_select"),
                 )
-            """)
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS cano_authorized_job_events (
-                    event_id BIGSERIAL PRIMARY KEY,
-                    owner_key TEXT NOT NULL,
-                    job_id TEXT NOT NULL,
-                    at DOUBLE PRECISION NOT NULL,
-                    state TEXT NOT NULL,
-                    code TEXT NOT NULL,
-                    FOREIGN KEY(owner_key,job_id)
-                        REFERENCES cano_authorized_jobs(owner_key,id) ON DELETE CASCADE
+                stage = "jobs_columns"
+                cur.execute(
+                    "SELECT owner_key,id,idem_key,goal,state,max_calls,attempts,"
+                    "eligible_after,lease_token,worker_id,lease_until,result_digest,draft,created_at "
+                    "FROM public.cano_authorized_jobs LIMIT 0"
                 )
-            """)
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_cano_authorized_claim
-                ON cano_authorized_jobs(owner_key,state,eligible_after)
-            """)
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_cano_authorized_events
-                ON cano_authorized_job_events(owner_key,job_id,event_id)
-            """)
+                stage = "events_columns"
+                cur.execute(
+                    "SELECT event_id,owner_key,job_id,at,state,code "
+                    "FROM public.cano_authorized_job_events LIMIT 0"
+                )
+                stage = "privileges"
+                cur.execute("""SELECT
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_jobs', 'SELECT') AS jobs_select,
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_jobs', 'INSERT') AS jobs_insert,
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_jobs', 'UPDATE') AS jobs_update,
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_job_events', 'SELECT') AS events_select,
+                    has_table_privilege(current_user,
+                        'public.cano_authorized_job_events', 'INSERT') AS events_insert,
+                    has_sequence_privilege(current_user,
+                        'public.cano_authorized_job_events_event_id_seq', 'USAGE') AS events_seq_usage
+                """)
+                privileges = cur.fetchone()
+                if not privileges or not all(privileges.values()):
+                    raise PermissionError("authorized queue runtime privileges are incomplete")
+        except Exception as exc:
+            # Log only a fixed stage label, SQLSTATE, and class; no SQL or credentials.
+            logging.getLogger(__name__).warning(
+                "Authorized queue schema verification failed at %s (%s, SQLSTATE=%s)",
+                stage, type(exc).__name__, getattr(exc, "sqlstate", None),
+            )
+            raise
+
 
     @staticmethod
     def _public(row):

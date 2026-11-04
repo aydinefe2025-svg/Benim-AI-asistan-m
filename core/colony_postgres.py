@@ -37,6 +37,35 @@ class ColonySnapshotStore:
                     idx_colony_revision_owner ON private_colony_snapshot_revisions
                     (owner_key, revision DESC)""")
 
+    def verify_schema(self):
+        """Verify pre-provisioned tables and exact runtime privileges using SELECT only."""
+        with self.connect(self.database_url, connect_timeout=8) as db:
+            with db.cursor() as cur:
+                cur.execute("SELECT owner_key, payload, updated_at "
+                            "FROM public.private_colony_snapshots LIMIT 0")
+                cur.execute("SELECT revision, owner_key, payload, archived_at "
+                            "FROM public.private_colony_snapshot_revisions LIMIT 0")
+                # Each privilege is a separate check. PostgreSQL treats
+                # comma-separated privilege names as ANY-of, not ALL-of.
+                cur.execute("""SELECT
+                    has_table_privilege(current_user,
+                        'public.private_colony_snapshots', 'SELECT'),
+                    has_table_privilege(current_user,
+                        'public.private_colony_snapshots', 'INSERT'),
+                    has_table_privilege(current_user,
+                        'public.private_colony_snapshots', 'UPDATE'),
+                    has_table_privilege(current_user,
+                        'public.private_colony_snapshot_revisions', 'SELECT'),
+                    has_table_privilege(current_user,
+                        'public.private_colony_snapshot_revisions', 'INSERT'),
+                    has_sequence_privilege(current_user,
+                        'public.private_colony_snapshot_revisions_revision_seq', 'USAGE')""")
+                privileges = cur.fetchone()
+                if not privileges or not all(privileges):
+                    raise PermissionError("CANO snapshot runtime privileges are incomplete")
+
+
+
     def save(self, owner_key, payload):
         if not isinstance(owner_key, str) or not owner_key.strip():
             raise ValueError("Authenticated owner required")
@@ -95,8 +124,7 @@ class ColonySnapshotStore:
                 prior = prior_row[0] if prior_row else None
                 if isinstance(prior, str):
                     prior = json.loads(prior)
-                # The advisory lock protects the check and write as one transaction.
-                # A stale tab must never overwrite newer owner data.
+                # Reject a stale tab while holding the owner-scoped transaction lock.
                 if expected_prior is not _NO_EXPECTED_PRIOR and prior != expected_prior:
                     raise RuntimeError("Owner snapshot changed since this session last read it")
                 if prior != payload:

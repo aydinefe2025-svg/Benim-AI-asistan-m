@@ -12,18 +12,20 @@ st.set_page_config(layout="wide")
 # Optional fail-closed production login. Keep APP_AUTH_REQUIRED unset locally;
 # enable it on Render only after the Google OIDC secrets file is configured.
 from core.authentication import auth_is_required, render_auth_gate
+from core.storage_config import cano_database_url, memory_database_url
 
 _AUTH_REQUIRED = auth_is_required(os.environ)
 _OWNER_KEY = render_auth_gate(st, os.environ)
 _MEMORY_STORE = None
-if os.environ.get("DATABASE_URL"):
+_MEMORY_DATABASE_URL = memory_database_url(os.environ)
+if _MEMORY_DATABASE_URL:
     if not _AUTH_REQUIRED or not _OWNER_KEY:
         st.error("Kalıcı kullanıcı verisi için doğrulanmış giriş zorunludur.")
         st.stop()
     try:
         from core.postgres_memory import PostgresMemoryStore
-        _MEMORY_STORE = PostgresMemoryStore()
-        _MEMORY_STORE.initialize()
+        _MEMORY_STORE = PostgresMemoryStore(database_url=_MEMORY_DATABASE_URL)
+        _MEMORY_STORE.verify_schema()
     except Exception:
         st.error("Kalıcı hafıza bağlantısı kurulamadı; kayıtlar değiştirilmedi.")
         st.stop()
@@ -36,7 +38,7 @@ if os.environ.get("AGENT_TASK_DATABASE_URL"):
     try:
         from core.postgres_task_store import PostgresTaskStore
         _TASK_STORE = PostgresTaskStore(owner_key=_OWNER_KEY)
-        _TASK_STORE.initialize()
+        _TASK_STORE.verify_schema()
     except Exception:
         st.error("Kalıcı görev veritabanı bağlanamadı; görevler değiştirilmedi.")
         st.stop()
@@ -53,6 +55,7 @@ from core.provider_failure import failure_category, safe_failure_message
 from core.connection_diagnostics import check_provider
 from core.public_research import research_sources
 from core.scientific_sources import scientific_sources
+from core.research_status import label_research_answer
 from core.user_memory import export_library, import_library, memory_context, new_memory
 from core.browser_memory import browser_memory_component, decode_snapshot, write_confirmed, explicit_memory_request
 from core.task_panel import render_task_panel
@@ -385,10 +388,11 @@ def _team_answer(prompt: str) -> str:
     return generate_team_stage(prompt, api_key=GROQ_KEY)
 
 
+_CANO_OWNER_KEY = _OWNER_KEY if _AUTH_REQUIRED and _OWNER_KEY else None
 render_cano_command_center(
     st, answer=_team_answer if GROQ_KEY else None,
-    owner_key=_OWNER_KEY if _MEMORY_STORE is not None else None,
-    database_url=os.environ.get("DATABASE_URL") if _MEMORY_STORE is not None else None,
+    owner_key=_CANO_OWNER_KEY,
+    database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None,
 )
 render_task_panel(st, answer=_research_answer if GROQ_KEY else None, store_override=_TASK_STORE)
 render_authorized_queue_panel(
@@ -488,7 +492,7 @@ def asistani_calistir(kullanici_mesaji):
             raw_response = response.text
 
         temiz_cevap = re.sub(r'<(think|thought|düşün).*?(</\1>|$)', '', raw_response, flags=re.DOTALL | re.IGNORECASE)
-        return temiz_cevap.strip()
+        return label_research_answer(temiz_cevap, research_requested=arama_istegi)
 
     except Exception as e:
         logging.getLogger(__name__).warning("Provider request failed: category=%s", failure_category(e))

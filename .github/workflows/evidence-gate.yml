@@ -5,6 +5,7 @@ on:
       - feat/issue-58-evidence-gate
       - feat/issue-58-running-heartbeat
       - feat/issue-58-heartbeat-runner
+      - fix/executor-cancellation-20261104
   pull_request:
     paths:
       - 'core/evidence_gate.py'

@@ -1,0 +1,53 @@
+name: PostgreSQL restore rehearsal (synthetic only)
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/cano_pg_backup.py'
+      - 'tests/test_cano_pg_backup.py'
+      - 'tests/test_postgres_restore_rehearsal.py'
+      - '.github/workflows/postgres-restore-rehearsal.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restore-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: cano_test
+          POSTGRES_PASSWORD: ephemeral_test_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: cano_test
+      PGPASSWORD: ephemeral_test_only
+      CANO_PG_REHEARSAL: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install PostgreSQL client programs
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          pg_dump --version
+          pg_restore --version
+      - name: Check synthetic unit tests
+        run: python -m unittest discover -s tests -p 'test_cano_pg_backup.py' -v
+      - name: Run real PostgreSQL dump and isolated restore rehearsal
+        run: python -m unittest discover -s tests -p 'test_postgres_restore_rehearsal.py' -v

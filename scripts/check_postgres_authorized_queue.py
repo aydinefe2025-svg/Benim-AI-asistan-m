@@ -12,11 +12,55 @@ from concurrent.futures import ThreadPoolExecutor
 from core.postgres_authorized_queue import PostgresAuthorizedQueue
 
 
+def provision_synthetic_schema(database_url):
+    """Create only the empty tables needed by this disposable CI smoke."""
+    import psycopg
+
+    with psycopg.connect(database_url) as db, db.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS public.cano_authorized_jobs (
+                owner_key text NOT NULL,
+                id text NOT NULL,
+                idem_key text NOT NULL,
+                goal text NOT NULL,
+                state text NOT NULL,
+                max_calls integer NOT NULL,
+                attempts integer NOT NULL DEFAULT 0,
+                eligible_after double precision NOT NULL DEFAULT 0,
+                lease_token text,
+                worker_id text,
+                lease_until double precision,
+                result_digest text,
+                draft text,
+                created_at double precision NOT NULL,
+                PRIMARY KEY (owner_key, id),
+                UNIQUE (owner_key, idem_key)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS public.cano_authorized_job_events (
+                event_id bigserial PRIMARY KEY,
+                owner_key text NOT NULL,
+                job_id text NOT NULL,
+                at double precision NOT NULL,
+                state text NOT NULL,
+                code text NOT NULL,
+                FOREIGN KEY (owner_key, job_id)
+                    REFERENCES public.cano_authorized_jobs(owner_key, id)
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_cano_authorized_jobs_claim
+            ON public.cano_authorized_jobs(owner_key, state, eligible_after, created_at, id)
+        """)
+
+
 def run():
     database_url = os.environ["TEST_TASK_DATABASE_URL"]
     owner = "ci-owner-" + uuid.uuid4().hex
     queue = PostgresAuthorizedQueue(database_url, owner_key=owner, max_jobs=5)
-    queue.initialize()
+    provision_synthetic_schema(database_url)
+    queue.verify_schema()
 
     try:
         queue.enqueue("first", "Source review")

@@ -1,36 +1,80 @@
-"""Fail-closed, local PostgreSQL custom-format backup and isolated restore drill.
+"""Private manual backups for CANO's expiring Render PostgreSQL instance.
 
-Requires PostgreSQL pg_dump and pg_restore installed in the executing environment.
-No database credentials or private records are sent to GitHub/Notion/logs.
-This utility is not a scheduled backup or evidence of a successful live restore.
+No database connection occurs on import. No automatic scheduling, restore,
+or external upload. Secret connection URLs never appear in subprocess argv,
+stdout, receipts, or exception messages.
 """
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
-from datetime import datetime, timezone
+import uuid
 from urllib.parse import parse_qsl, unquote, urlsplit
 
 
 class BackupError(RuntimeError):
-    pass
+    """An intentionally secret-free operational failure."""
 
 
-def _database_url(url: str | None) -> str:
-    if not isinstance(url, str) or not url:
-        raise BackupError("CANO_BACKUP_DATABASE_URL is required")
-    parsed = urlsplit(url)
-    if (parsed.scheme not in {"postgresql", "postgres"} or
-            not parsed.hostname or not parsed.path.strip("/")):
-        raise BackupError("PostgreSQL connection URL is invalid")
-    return url
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
+def _check_binary(name: str) -> str:
+    result = shutil.which(name)
+    if not result:
+        raise BackupError(f"Required executable not found: {name}")
+    return result
+
+
+def _archive_is_valid(path: Path, *, restore_bin: str = "pg_restore") -> None:
+    # This checks archive parsing, not whether a real restore would succeed.
+    if not path.is_file() or path.stat().st_size < 6:
+        raise BackupError("Backup file is missing or empty")
+    with path.open("rb") as stream:
+        if stream.read(5) != b"PGDMP":
+            raise BackupError("Not a PostgreSQL custom-format archive")
+    exe = _check_binary(restore_bin)
+    try:
+        result = subprocess.run(
+            [exe, "--list", str(path)], capture_output=True, timeout=90,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        raise BackupError("pg_restore archive inspection failed") from None
+    if result.returncode != 0 or not result.stdout.strip():
+        raise BackupError("pg_restore could not inspect the archive")
+
+
+def _private_json(path: Path, payload: dict) -> None:
+    fd, temporary = tempfile.mkstemp(prefix=".cano-receipt-", dir=str(path.parent))
+    try:
+        os.chmod(temporary, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, sort_keys=True, indent=2)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+
+# PostgreSQL does NOT interpret a connection URI stored in PGDATABASE as a URI.
+# Decompose the URL into standard libpq environment variables instead.
 _URL_OPTIONS = {
     "sslmode": "PGSSLMODE",
     "sslrootcert": "PGSSLROOTCERT",
@@ -91,140 +135,102 @@ def _libpq_env_from_uri(uri: str, inherited: dict) -> dict:
     return env
 
 
-def _run(args, *, database_url=None, runner=subprocess.run):
-    environment = dict(os.environ)
-    environment["PGCONNECT_TIMEOUT"] = "8"
-    if database_url is not None:
-        environment = _libpq_env_from_uri(_database_url(database_url), environment)
-    try:
-        result = runner(
-            args, env=environment, stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            check=False,
-        )
-    except (OSError, ValueError) as exc:
-        raise BackupError("PostgreSQL backup utilities unavailable") from None
-    if result.returncode != 0:
-        raise BackupError(args[0] + " failed (exit " + str(result.returncode) + ")")
-    return result
-
-
-def _digest(path: Path):
-    size = 0
-    h = hashlib.sha256()
-    with path.open("rb") as file:
-        if file.read(5) != b"PGDMP":
-            raise BackupError("Not a PostgreSQL custom-format archive")
-        file.seek(0)
-        for chunk in iter(lambda: file.read(1024 * 1024), b""):
-            size += len(chunk)
-            h.update(chunk)
-    return size, h.hexdigest()
-
-
-def _temp_file(directory: Path, *, suffix: str):
-    fd, name = tempfile.mkstemp(prefix=".cano-pg-", suffix=suffix, dir=directory)
-    if hasattr(os, "fchmod"):
-        os.fchmod(fd, 0o600)
-    else:
-        os.chmod(name, 0o600)
-    return fd, Path(name)
-
-
-def create_backup(destination: str | Path, *, database_url: str | None = None,
-                  runner=subprocess.run) -> dict:
-    """Publish backup and checksum manifest without overwrite or secrets."""
-    url = _database_url(database_url)
-    target = Path(destination)
-    manifest = target.with_name(target.name + ".manifest.json")
-    if target.exists() or target.is_symlink() or manifest.exists() or manifest.is_symlink():
-        raise FileExistsError("Backup or manifest already exists")
-    target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    fd, temporary = _temp_file(target.parent, suffix=".dump")
+def make_backup(destination: Path, *, database_env: str = "DATABASE_URL",
+                dump_bin: str = "pg_dump", restore_bin: str = "pg_restore") -> dict:
+    # Render free web service disks are ephemeral: destination MUST be an
+    # independently persistent user-controlled device/volume, not Render /tmp.
+    database_url = os.environ.get(database_env, "")
+    if not database_url or not database_url.startswith(("postgres://", "postgresql://")):
+        raise BackupError(f"Expected PostgreSQL connection URL in {database_env}")
+    dump_exe = _check_binary(dump_bin)
+    _check_binary(restore_bin)
+    destination = Path(destination)
+    destination.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if destination.is_symlink():
+        raise BackupError("Backup directory cannot be a symlink")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    basename = f"cano-postgres-{stamp}-{uuid.uuid4().hex[:12]}"
+    archive = destination / (basename + ".dump")
+    receipt = destination / (basename + ".receipt.json")
+    fd, temporary = tempfile.mkstemp(prefix=".cano-pgdump-", dir=str(destination))
     os.close(fd)
-    manifest_temporary = None
-    published = False
+    os.chmod(temporary, 0o600)
     try:
-        _run(["pg_dump", "--no-password", "--format=custom", "--no-owner",
-              "--no-acl", "--file", str(temporary)],
-             database_url=url, runner=runner)
-        size, digest = _digest(temporary)
-        _run(["pg_restore", "--list", str(temporary)], runner=runner)
-        report = {
-            "schema_version": 1, "format": "pg_custom",
-            "created_at_utc": datetime.now(timezone.utc).isoformat(),
-            "size_bytes": size, "sha256": digest,
-            "status": "catalog_verified_not_restore_tested",
+        # Keep credentials in the subprocess environment, never process argv.
+        env = _libpq_env_from_uri(database_url, os.environ)
+        try:
+            result = subprocess.run(
+                [dump_exe, "--format=custom", "--no-owner", "--no-privileges",
+                 "--file", temporary], env=env, stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE, timeout=1800, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            raise BackupError("pg_dump failed or exceeded the time limit") from None
+        if result.returncode != 0:
+            raise BackupError("pg_dump exited unsuccessfully; no backup was published")
+        _archive_is_valid(Path(temporary), restore_bin=restore_bin)
+        size = Path(temporary).stat().st_size
+        digest = _sha256(Path(temporary))
+        os.replace(temporary, archive)
+        payload = {
+            "format": "postgres-custom", "archive": archive.name,
+            "created_utc": datetime.now(timezone.utc).isoformat(),
+            "sha256": digest, "size_bytes": size,
+            "archive_parsed": True, "restored_to_new_database": False,
+            "note": "A successful pg_restore --list is not a restore rehearsal.",
         }
-        mf, manifest_temporary = _temp_file(target.parent, suffix=".json")
-        with os.fdopen(mf, "w", encoding="utf-8") as output:
-            json.dump(report, output, sort_keys=True, indent=2)
-            output.flush()
-            os.fsync(output.fileno())
-        # Hard-link publication is exclusive and atomic: an existing file is never replaced.
-        os.link(temporary, target)
-        published = True
-        os.link(manifest_temporary, manifest)
-        return report
-    except Exception:
-        if published:
-            target.unlink(missing_ok=True)
-        raise
+        _private_json(receipt, payload)
+        return {"archive": str(archive), "receipt": str(receipt), "sha256": digest,
+                "size_bytes": size, "archive_parsed": True,
+                "restored_to_new_database": False}
     finally:
-        temporary.unlink(missing_ok=True)
-        if manifest_temporary is not None:
-            manifest_temporary.unlink(missing_ok=True)
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
-def verify_backup(destination: str | Path, *, runner=subprocess.run) -> dict:
-    target = Path(destination)
-    manifest_path = target.with_name(target.name + ".manifest.json")
-    report = json.loads(manifest_path.read_text(encoding="utf-8"))
-    size, digest = _digest(target)
-    if (report.get("schema_version") != 1 or report.get("format") != "pg_custom"
-            or type(report.get("size_bytes")) is not int
-            or report["size_bytes"] != size or report.get("sha256") != digest):
-        raise BackupError("Backup manifest/checksum mismatch")
-    _run(["pg_restore", "--list", str(target)], runner=runner)
-    return {"integrity_verified": True, "size_bytes": size, "sha256": digest,
-            "restore_tested": False}
+def verify_backup(receipt_path: Path, *, restore_bin: str = "pg_restore") -> dict:
+    receipt_path = Path(receipt_path)
+    try:
+        payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        raise BackupError("Backup receipt unreadable") from None
+    basename = payload.get("archive")
+    if not isinstance(basename, str) or not basename.endswith(".dump") or Path(basename).name != basename:
+        raise BackupError("Unsafe backup receipt archive name")
+    archive = receipt_path.parent / basename
+    # Never follow a receipt-controlled symlink outside the private backup folder.
+    # The archive is expected to be a regular file published by os.replace().
+    if archive.is_symlink() or not archive.is_file():
+        raise BackupError("Unsafe backup archive type")
+    if archive.stat().st_size != payload.get("size_bytes"):
+        raise BackupError("Backup size mismatch")
+    if _sha256(archive) != payload.get("sha256"):
+        raise BackupError("Backup SHA-256 mismatch")
+    _archive_is_valid(archive, restore_bin=restore_bin)
+    return {"archive": str(archive), "sha256": payload["sha256"],
+            "size_bytes": payload["size_bytes"], "archive_parsed": True,
+            "restored_to_new_database": False}
 
 
-def restore_to_isolated_test_db(destination: str | Path, *, target_url: str,
-                                source_url: str, runner=subprocess.run) -> dict:
-    """Explicit restore to a dedicated empty *_cano_restore_test database only."""
-    source = _libpq_env_from_uri(_database_url(source_url), os.environ)
-    target = _libpq_env_from_uri(_database_url(target_url), os.environ)
-    if (target["PGDATABASE"] == source["PGDATABASE"]
-            or not target["PGDATABASE"].endswith("_cano_restore_test")):
-        raise BackupError("Dedicated *_cano_restore_test database required")
-    verify_backup(destination, runner=runner)
-    _run(["pg_restore", "--no-password", "--single-transaction",
-          "--exit-on-error", "--no-owner", "--no-acl", str(destination)],
-         database_url=target_url, runner=runner)
-    return {"restore_command_succeeded": True, "readback_verified": False,
-            "target_kind": "isolated_test_database"}
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Local CANO PostgreSQL disaster-recovery utility")
-    parser.add_argument("mode", choices=["backup", "verify", "restore-test"])
-    parser.add_argument("path")
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Private CANO PostgreSQL backup + integrity check")
+    commands = parser.add_subparsers(dest="command", required=True)
+    make = commands.add_parser("backup")
+    make.add_argument("destination", type=Path)
+    make.add_argument("--database-env", default="DATABASE_URL")
+    verify = commands.add_parser("verify")
+    verify.add_argument("receipt", type=Path)
     args = parser.parse_args()
     try:
-        if args.mode == "backup":
-            result = create_backup(args.path, database_url=os.environ.get("CANO_BACKUP_DATABASE_URL"))
-        elif args.mode == "verify":
-            result = verify_backup(args.path)
-        else:
-            result = restore_to_isolated_test_db(
-                args.path, source_url=os.environ.get("CANO_BACKUP_DATABASE_URL", ""),
-                target_url=os.environ.get("CANO_RESTORE_TEST_DATABASE_URL", ""))
-    except (BackupError, FileExistsError, OSError, ValueError, json.JSONDecodeError) as exc:
-        # Never print the exception or subprocess stderr: it can expose credentials.
-        raise SystemExit("Backup/verification refused or failed; credentials not logged") from None
-    print(json.dumps(result, sort_keys=True))
+        data = (make_backup(args.destination, database_env=args.database_env)
+                if args.command == "backup" else verify_backup(args.receipt))
+    except (BackupError, OSError, ValueError, KeyError):
+        # Never print underlying OS or provider exceptions: some contain URLs.
+        print("ERROR: PostgreSQL backup or verification failed (see local configuration)")
+        return 1
+    print(json.dumps(data, indent=2))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
