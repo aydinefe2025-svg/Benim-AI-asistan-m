@@ -5,7 +5,7 @@ def prioritize_requested_doi(task, candidates):
     if not isinstance(task, str):
         return choices
     for word in task.split():
-        doi = word.strip("(),;").lower()
+        doi = word.split("doi.org/")[-1].strip("(),;:.?!").lower()
         if doi.startswith("10.") and "/" in doi and len(doi) < 195:
             url = "https://doi.org/" + doi
             matched = next((a for a in choices if isinstance(a, dict) and
