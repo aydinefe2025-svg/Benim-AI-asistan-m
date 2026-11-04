@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+
 from bootstrap import write_oidc_file
 
 
@@ -20,19 +21,18 @@ class RuntimeBootstrapTests(unittest.TestCase):
             path = write_oidc_file(environment, root)
             self.assertTrue(path.is_file())
             self.assertEqual(environment["ORGANISM_LAB_OIDC_CONFIGURED"], "1")
-            self.assertEqual(path.parent, Path(root) / "organism-lab-runtime")
-            self.assertNotIn("test-client-secret", environment["STREAMLIT_SECRETS_FILES"])
+            self.assertEqual(path.parent, Path(root) / "organism-lab-runtime" / ".streamlit")
             if os.name != "nt":
                 self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
-            probe_env = {**os.environ, "STREAMLIT_SECRETS_FILES": environment["STREAMLIT_SECRETS_FILES"]}
             probe = subprocess.run(
                 [sys.executable, "-c",
-                 "from streamlit import config; print(config.get_option('secrets.files'))"],
-                capture_output=True, text=True, env=probe_env, check=False,
+                 "import streamlit as st; print(bool(st.secrets.get('auth', {})))"],
+                capture_output=True, text=True, env=dict(os.environ),
+                cwd=path.parent.parent, check=False,
             )
             self.assertEqual(probe.returncode, 0, probe.stderr)
-            self.assertIn(str(path), probe.stdout)
+            self.assertIn("True", probe.stdout)
 
     def test_incomplete_oidc_settings_do_not_enable_login(self):
         environment = {"LAB_OIDC_CLIENT_ID": "incomplete"}
