@@ -42,17 +42,27 @@ class OllamaClient:
         return [str(model.get("name", "")) for model in models if model.get("name")]
 
     def chat(self, model: str, system: str, prompt: str, *, temperature: float = 0.2) -> str:
+        return self.chat_messages(
+            model,
+            [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+            temperature=temperature,
+        )
+
+    def chat_messages(self, model: str, messages: list[dict[str, str]], *, temperature: float = 0.2) -> str:
         if not model.strip():
             raise ValueError("Model name cannot be empty")
+        if not messages or any(
+            message.get("role") not in {"system", "user", "assistant"}
+            or not isinstance(message.get("content"), str)
+            for message in messages
+        ):
+            raise ValueError("Messages must contain valid chat roles and string content")
         response = self._request(
             "/api/chat",
             {
                 "model": model,
                 "stream": False,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": prompt},
-                ],
+                "messages": messages,
                 "options": {"temperature": temperature},
             },
         )

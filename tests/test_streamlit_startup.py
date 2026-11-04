@@ -28,7 +28,8 @@ class MissingSecretsTests(unittest.TestCase):
 
         streamlit.stop = stop
         requests = types.ModuleType("requests")
-        with patch.dict(sys.modules, {"streamlit": streamlit, "requests": requests}):
+        with patch.dict(sys.modules, {"streamlit": streamlit, "requests": requests}), \
+             patch("core.ollama_client.OllamaClient.list_models", return_value=[]):
             with self.assertRaises(StopRequested):
                 runpy.run_path(str(APP), run_name="__main__")
         return errors
@@ -88,7 +89,8 @@ class MissingSecretsTests(unittest.TestCase):
         # Simulate successful empty localStorage hydration to exercise startup.
         with patch("core.browser_memory.browser_memory_component",
                    return_value={"status": "ok", "payload": ""}):
-            with patch.dict(sys.modules, {"streamlit": streamlit, "requests": requests, "groq": groq}):
+            with patch.dict(sys.modules, {"streamlit": streamlit, "requests": requests, "groq": groq}), \
+             patch("core.ollama_client.OllamaClient.list_models", return_value=[]):
                 runpy.run_path(str(APP), run_name="__main__")
         self.assertEqual(errors, [])
         self.assertEqual(streamlit.sidebar.selectbox("options", ("Groq",)), "Groq")

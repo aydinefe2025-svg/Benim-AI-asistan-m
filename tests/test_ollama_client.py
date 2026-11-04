@@ -44,6 +44,23 @@ class OllamaClientTests(unittest.TestCase):
         self.assertEqual(payload["model"], "qwen3:8b")
         self.assertFalse(payload["stream"])
 
+    def test_chat_messages_preserves_conversation_history(self):
+        response = FakeResponse(json.dumps({"message": {"content": "Yanıt"}}).encode())
+        messages = [
+            {"role": "system", "content": "talimat"},
+            {"role": "user", "content": "önceki"},
+            {"role": "assistant", "content": "yanıt"},
+            {"role": "user", "content": "şimdi"},
+        ]
+        with patch("urllib.request.urlopen", return_value=response) as mocked:
+            self.assertEqual(OllamaClient().chat_messages("qwen3:8b", messages), "Yanıt")
+        payload = json.loads(mocked.call_args.args[0].data.decode())
+        self.assertEqual(payload["messages"], messages)
+
+    def test_chat_messages_rejects_invalid_roles(self):
+        with self.assertRaises(ValueError):
+            OllamaClient().chat_messages("qwen3:8b", [{"role": "tool", "content": "x"}])
+
     def test_http_errors_keep_status_and_body(self):
         error = urllib.error.HTTPError(
             "http://127.0.0.1:11434/api/tags", 404, "not found", {}, None

@@ -68,9 +68,15 @@ logging.getLogger(__name__).info(
     _credential_presence["GROQ_API_KEY"],
     _credential_presence["GOOGLE_API_KEY"],
 )
-available_models = available_providers(_credentials)
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
+try:
+    from core.ollama_client import OllamaClient
+    _local_ollama_models = OllamaClient(OLLAMA_URL, timeout=1).list_models()
+except Exception:
+    _local_ollama_models = []
+available_models = available_providers(_credentials, _local_ollama_models)
 if not available_models:
-    st.error("Model bağlantısı için GROQ_API_KEY veya GOOGLE_API_KEY gerekli. Render ortam değişkenlerini veya Streamlit Secrets ayarlarını kontrol edin.")
+    st.error("Model bağlantısı için Streamlit Secrets veya ortam değişkenlerinde GROQ_API_KEY/GOOGLE_API_KEY ya da erişilebilir yerel Ollama modeli gerekli.")
     st.stop()
 
 GOOGLE_KEY = _credentials.get("GOOGLE_API_KEY")
@@ -142,7 +148,10 @@ secilen_model = st.sidebar.selectbox(
     available_models
 )
 
-if "Groq" in secilen_model:
+if secilen_model.startswith("Ollama (Yerel): "):
+    aktif_llm_adi = secilen_model.removeprefix("Ollama (Yerel): ")
+    st.sidebar.success(f"Aktif Beyin: Yerel Ollama · {aktif_llm_adi}")
+elif "Groq" in secilen_model:
     from groq import Groq
     aktif_llm_adi = "openai/gpt-oss-120b" 
     st.sidebar.success("Aktif Beyin: Groq GPT-OSS ⚡")
@@ -162,7 +171,7 @@ if "Groq" in secilen_model and GROQ_KEY and st.sidebar.button("Groq bağlantıs�
     else:
         st.sidebar.error("Groq bağlantısı doğrulanamadı. Ayrıntılar güvenlik için gizlendi.")
 
-if "Groq" not in secilen_model and GOOGLE_KEY and st.sidebar.button("Google bağlantısını doğrula"):
+if "Google Gemini" in secilen_model and GOOGLE_KEY and st.sidebar.button("Google bağlantısını doğrula"):
     check = check_provider("google", GOOGLE_KEY, model=aktif_llm_adi)
     if check["status"] == "verified" and check.get("model_available"):
         st.sidebar.success("Google bağlantısı ve seçili model listede doğrulandı; metin üretilmedi.")
@@ -434,7 +443,17 @@ def asistani_calistir(kullanici_mesaji):
 
     try:
         raw_response = ""
-        if "Groq" in secilen_model:
+        if secilen_model.startswith("Ollama (Yerel): "):
+            api_mesajlari = [{"role": "system", "content": sistem_talimati}]
+            api_mesajlari.extend(
+                {"role": msg["role"], "content": msg["content"]}
+                for msg in st.session_state.messages
+                if msg.get("role") in {"user", "assistant"}
+            )
+            raw_response = OllamaClient(OLLAMA_URL).chat_messages(
+                aktif_llm_adi, api_mesajlari
+            )
+        elif "Groq" in secilen_model:
             api_mesajlari = [{"role": "system", "content": sistem_talimati}]
             for msg in st.session_state.messages:
                 api_mesajlari.append({"role": msg["role"], "content": msg["content"]})

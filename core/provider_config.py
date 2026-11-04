@@ -4,7 +4,7 @@ Never log or return credential values through diagnostics.
 """
 
 
-def available_providers(secrets):
+def available_providers(secrets, local_models=()):
     labels = []
     for name, label in (
         ("GROQ_API_KEY", "Groq GPT-OSS (Hızlı / Kesintisiz)"),
@@ -16,6 +16,7 @@ def available_providers(secrets):
             continue
         if isinstance(token, str) and token.strip():
             labels.append(label)
+    labels.extend(f"Ollama (Yerel): {model}" for model in local_models if model)
     return tuple(labels)
 
 
