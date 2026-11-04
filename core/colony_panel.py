@@ -7,6 +7,7 @@ from pathlib import Path
 
 from core.agent_colony import AgentColony
 from core.agent_review_loop import AgentReviewLoop
+from core.collaborative_mission import CollaborativeMission
 from core.colony_postgres import ColonySnapshotStore
 from core.colony_restore import restore_empty_colony
 from core.task_panel import _session_database_path
@@ -151,11 +152,37 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                                ("revision", "Düzeltilmiş taslak")):
                 st.text_area(title, value=review[key], disabled=True,
                              height=130, key="review_" + key)
+        if answer is not None and len(agents) >= 2:
+            with st.form("colony_collaborative_mission_form"):
+                mission_goal = st.text_area("Ortak araştırma görevi", max_chars=1200)
+                mission_run = st.form_submit_button("CANO ekibini birlikte çalıştır (4 aşama)")
+            if mission_run:
+                try:
+                    mission = CollaborativeMission(colony).execute(
+                        mission_goal, client=AnswerAdapter(answer),
+                        model="configured-provider")
+                    st.session_state["colony_last_mission"] = mission
+                    st.success("Dört aşamalı ekip görevi tamamlandı; bağımsız doğrulama bekliyor.")
+                except (ValueError, RuntimeError, OSError, sqlite3.Error):
+                    st.error("Ekip görevi tamamlanamadı; ajanları ve modeli kontrol edin.")
+        if st.session_state.get("colony_last_mission"):
+            mission = st.session_state["colony_last_mission"]
+            st.caption("4 model çağrısı: plan, araştırma, eleştiri, sentez. "
+                       "Bu sonuç bağımsız doğrulanmış bilgi değildir.")
+            for stage in mission["stages"]:
+                st.text_area("Ekip aşaması: " + stage["role"],
+                             value=stage["output"], height=140, disabled=True,
+                             key="mission_" + stage["role"])
         with colony._db() as db:
             data = {"agents": [dict(row) for row in db.execute(
                 "SELECT * FROM colony_agents ORDER BY created_at,id")],
                     "feedback": [dict(row) for row in db.execute(
                 "SELECT * FROM colony_feedback ORDER BY id")]}
+        with colony._db() as db:
+            data["missions"] = [dict(row) for row in db.execute(
+                "SELECT * FROM colony_missions ORDER BY created_at,id")] if db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='colony_missions'"
+            ).fetchone() else []
         with colony._db() as db:
             data["reviews"] = [dict(row) for row in db.execute(
                 "SELECT * FROM colony_reviews ORDER BY created_at,id")] if db.execute(
