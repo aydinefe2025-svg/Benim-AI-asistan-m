@@ -17,7 +17,7 @@ class Cursor:
             self.state["last"] = params[0]
     def fetchone(self):
         if self.state.get("last") == "__privileges__":
-            return (True, True, True)
+            return (True, True, True, True, True, True)
         value = self.state["rows"].get(self.state["last"])
         return (value,) if value is not None else None
 
@@ -73,7 +73,7 @@ class ColonySnapshotTests(unittest.TestCase):
         state = {"rows": {}, "queries": []}
         class PrivilegeCursor(Cursor):
             def fetchone(self):
-                return (True, True, True)
+                return (True, True, True, True, True, True)
         class PrivilegeConnection(Connection):
             def cursor(self):
                 return PrivilegeCursor(self.state)
@@ -91,7 +91,7 @@ class ColonySnapshotTests(unittest.TestCase):
         state = {"rows": {}, "queries": []}
         class PrivilegeCursor(Cursor):
             def fetchone(self):
-                return (True, True, True)
+                return (True, True, True, True, True, True)
         class PrivilegeConnection(Connection):
             def cursor(self):
                 return PrivilegeCursor(self.state)
@@ -104,6 +104,24 @@ class ColonySnapshotTests(unittest.TestCase):
         self.assertTrue(all(sql.startswith("SELECT") for sql in statements))
         self.assertIn("HAS_SEQUENCE_PRIVILEGE", statements[-1])
 
+
+
+    def test_verify_schema_rejects_one_missing_required_privilege(self):
+        state = {"rows": {}, "queries": []}
+        class MissingPrivilegeCursor(Cursor):
+            def fetchone(self):
+                return (True, True, False, True, True, True)
+        class MissingPrivilegeConnection(Connection):
+            def cursor(self):
+                return MissingPrivilegeCursor(self.state)
+        store = ColonySnapshotStore(
+            "postgresql://unused",
+            connect=lambda *a, **k: MissingPrivilegeConnection(state))
+        with self.assertRaisesRegex(PermissionError, "privileges"):
+            store.verify_schema()
+        access_sql = state["queries"][-1][0].upper()
+        self.assertEqual(access_sql.count("HAS_TABLE_PRIVILEGE"), 5)
+        self.assertEqual(access_sql.count("HAS_SEQUENCE_PRIVILEGE"), 1)
 
 if __name__ == "__main__":
     unittest.main()
