@@ -38,5 +38,15 @@ class ContinuousColonyTests(unittest.TestCase):
         self.assertEqual(tick["activated"], 0)
 
 
+    def test_specialist_roles_rotate_using_saved_ticks(self):
+        founder = [{"id": "founder", "generation": 0}]
+        first = self.colony.tick(founder)
+        second = self.colony.tick(founder)
+        self.assertNotEqual([c["role"] for c in first["candidates"]],
+                            [c["role"] for c in second["candidates"]])
+        self.assertEqual(second["candidates"][0]["role"], "software")
+        self.assertEqual(second["activated"], 0)
+        self.assertEqual(len(ContinuousColony(self.path).history()), 2)
+
 if __name__ == "__main__":
     unittest.main()
