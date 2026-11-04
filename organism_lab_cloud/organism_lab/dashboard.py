@@ -408,4 +408,6 @@ if CLOUD_MODE:
                 st.success("Yedek doğrulandı ve kalıcı arşive geri yüklendi.")
             except (OSError, ValueError, RuntimeError):
                 st.error("Yedek doğrulanamadı; mevcut laboratuvar arşivi değiştirilmedi.")
+    except Exception as exc:
+        st.error(f"Kalıcı arşiv işlemi tamamlanamadı ({type(exc).__name__}); uygulama içeriği güvenli biçimde gizlendi.")
 
