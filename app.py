@@ -57,6 +57,7 @@ from core.user_memory import export_library, import_library, memory_context, new
 from core.browser_memory import browser_memory_component, decode_snapshot, write_confirmed, explicit_memory_request
 from core.task_panel import render_task_panel
 from core.colony_panel import render_colony_panel
+from core.cano_command_center import render_cano_command_center
 
 _credentials = configured_credentials(st.secrets, os.environ)
 _credential_presence = credential_presence(_credentials)
@@ -169,8 +170,8 @@ if "Groq" not in secilen_model and GOOGLE_KEY and st.sidebar.button("Google bağ
         st.sidebar.error("Google bağlantısı doğrulanamadı. Ayrıntılar güvenlik için gizlendi.")
 
 # Web Sayfası Başlığı ve Sade Tasarım
-st.title("🌐 Standart ve Kararlı AI Asistanım")
-st.caption("Her mesajda hava durumuna atlama sorunu ve liste indeksi hatası düzeltilmiş kararlı asistan")
+st.title("🧠 CANO — Yapay Zekâ Komuta Merkezi")
+st.caption("Gerçek görevler · Uzman ekip · Denetim aşamaları · Bilimsel kaynak adayları · Açık kayıt durumu")
 
 # 🎨 Tarayıcı düzeyinde <think> etiketlerini tamamen yok eden CSS kodu
 st.markdown(
@@ -367,6 +368,7 @@ def _research_answer(goal: str) -> str:
     return output
 
 
+render_cano_command_center(st, answer=_research_answer if GROQ_KEY else None)
 render_task_panel(st, answer=_research_answer if GROQ_KEY else None, store_override=_TASK_STORE)
 render_colony_panel(st, answer=_research_answer if GROQ_KEY else None,
                     owner_key=_OWNER_KEY if _MEMORY_STORE is not None else None,
