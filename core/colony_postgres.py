@@ -43,6 +43,19 @@ class ColonySnapshotStore:
                     DO UPDATE SET payload=EXCLUDED.payload, updated_at=now()""",
                     (owner_key, data))
 
+    def save_verified(self, owner_key, payload):
+        """Save and read back an exact owner-scoped colony snapshot.
+
+        A successful SQL commit alone is insufficient evidence that the
+        correct owner's complete payload can be recovered. The caller must
+        report backup success only when the readback matches exactly.
+        """
+        self.save(owner_key, payload)
+        actual = self.load(owner_key)
+        if actual != payload:
+            raise RuntimeError("Colony snapshot readback mismatch")
+        return True
+
     def load(self, owner_key):
         if not isinstance(owner_key, str) or not owner_key.strip():
             raise ValueError("Authenticated owner required")
