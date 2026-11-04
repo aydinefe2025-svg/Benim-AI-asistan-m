@@ -1,0 +1,55 @@
+name: CANO offline research verification
+
+on:
+  pull_request:
+    paths:
+      - 'cano/research_cycle/**'
+      - '.github/workflows/cano-real-research.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'cano/research_cycle/**'
+      - '.github/workflows/cano-real-research.yml'
+  workflow_dispatch:
+  schedule:
+    # Applies only after this workflow reaches the repository default branch.
+    - cron: '21 9 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: cano/research_cycle
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: cano/research_cycle/requirements.txt
+      - name: Install bounded dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run all regression tests; fail on leaked SQLite resources
+        run: python -W error::ResourceWarning -m unittest discover -q
+      - name: Run real-data study, replay and independent evidence checks
+        run: python ci_smoke.py --output .ci-run > .ci-summary.json
+      - name: Upload reviewable outputs (no database, no secrets)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cano-evidence-${{ github.run_id }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            cano/research_cycle/.ci-summary.json
+            cano/research_cycle/.ci-run/RESULTS.md
+            cano/research_cycle/.ci-run/manifest.json
