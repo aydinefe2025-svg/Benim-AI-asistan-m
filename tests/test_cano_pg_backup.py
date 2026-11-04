@@ -85,6 +85,24 @@ class BackupTests(unittest.TestCase):
                 make_backup(self.dest, dump_bin=self.dump, restore_bin=self.restore)
         self.assertFalse(self.dest.exists())
 
+    def test_rejects_symlinked_archive_readback(self):
+        self.dest.mkdir()
+        outside = self.path / "private-outside.dump"
+        outside.write_bytes(b"PGDMP external archive bytes")
+        link = self.dest / "redirect.dump"
+        try:
+            link.symlink_to(outside)
+        except (OSError, NotImplementedError):
+            self.skipTest("symlinks unavailable on this runner")
+        receipt = self.dest / "redirect.receipt.json"
+        import hashlib
+        receipt.write_text(json.dumps({
+            "archive": link.name, "size_bytes": outside.stat().st_size,
+            "sha256": hashlib.sha256(outside.read_bytes()).hexdigest(),
+        }))
+        with self.assertRaises(BackupError):
+            verify_backup(receipt, restore_bin=self.restore)
+
     def test_rejects_receipt_path_traversal(self):
         self.dest.mkdir()
         receipt = self.dest / "bad.receipt.json"
