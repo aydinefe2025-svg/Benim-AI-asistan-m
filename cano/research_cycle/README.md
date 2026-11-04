@@ -28,3 +28,7 @@ Windows: `python ci_smoke.py --output .local-run` komutuyla aynı denetim yapıl
 - GitHub Action'ın gerçek sunucu koşusu, bu dizin PR'da açıldıktan sonra ayrıca kontrol edilmelidir.
 
 Önceki denetim geçmişi ve yerel tam çalışma paketi ana dosya kütüphanesinde `/Ortak Kesif Ekosistemi/CANO_Real_Data_2026-11-04` klasöründedir.
+
+## Eşzamanlı ajan dayanıklılığı
+
+`atomic_batch.py` aynı bulguyu iki işçinin eşzamanlı yazmasına karşı `BEGIN IMMEDIATE` işlem kilidiyle korunur. Farklı süreçlerin aynı JSONL girdisini birlikte işlemesi ve iki işçinin tam aynı anda kayıt yarışına girmesi test edilmiştir. Makbuz referansı bulunmayan bulgular reddedilir; `receipts(detail,status)` indeksi iki yönlü denetimin toplu kayıtlar için verimli yapılmasını sağlar. Bu, tüm olası donanım ve ağ arızalarına karşı sınırsız garanti vermez.
