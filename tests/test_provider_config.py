@@ -20,6 +20,12 @@ class ProviderConfigTests(unittest.TestCase):
         self.assertEqual(available_providers({}), ())
         self.assertEqual(available_providers({"GOOGLE_API_KEY": "   "}), ())
 
+    def test_local_models_are_available_without_credentials(self):
+        self.assertEqual(
+            available_providers({}, ["qwen3:8b"]),
+            ("Ollama (Yerel): qwen3:8b",),
+        )
+
     def test_unavailable_secret_storage_is_graceful(self):
         class NoFile:
             def __getitem__(self, key):
