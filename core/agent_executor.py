@@ -23,7 +23,7 @@ def run_research_task(store: TaskStore, task_id: str, answer: Callable[[str], st
     store.transition(task_id, "running", note="User-triggered bounded research started")
     try:
         kwargs = {} if sleep is None else {"sleep": sleep}
-        with running_heartbeat(store.db_path, task_id):
+        with running_heartbeat(store if hasattr(store, "touch_running") else store.db_path, task_id):
             result = retry_transient(lambda: answer(goal), **kwargs)
         if not isinstance(result, str) or not result.strip():
             raise ValueError("Empty provider response")
