@@ -11,9 +11,13 @@ class Cursor:
         self.state["queries"].append((sql, params))
         if sql.startswith("INSERT"):
             self.state["rows"][params[0]] = params[1]
-        if sql.startswith("SELECT") and params:
+        if "has_table_privilege" in sql:
+            self.state["last"] = "__privileges__"
+        elif sql.startswith("SELECT") and params:
             self.state["last"] = params[0]
     def fetchone(self):
+        if self.state.get("last") == "__privileges__":
+            return (True, True, True)
         value = self.state["rows"].get(self.state["last"])
         return (value,) if value is not None else None
 
