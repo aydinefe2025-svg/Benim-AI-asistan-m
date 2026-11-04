@@ -65,6 +65,21 @@ jobs:
           assert len(read_audit(audit)) == 3
           assert assess_audit(audit)["status"] == "intact"
           PY
+      - name: Generate multi-seed evolution evidence bundle
+        run: python -m organism_lab.experiment_report organism_evolution_output
+      - name: Verify evolution evidence and population accounting
+        run: |
+          python -m organism_lab.experiment_report --verify organism_evolution_output
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("organism_evolution_output")
+          doc = json.loads((root / "experiment_summary.json").read_text(encoding="utf-8"))
+          assert doc["runs"] == 12
+          assert all(0 <= item["population"] <= doc["capacity"] for item in doc["experiments"])
+          assert all(item["population"] == 1 + item["births"] - item["deaths"] for item in doc["experiments"])
+          assert len({item["seed"] for item in doc["experiments"]}) == 12
+          PY
       - name: Upload research evidence artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -72,5 +87,8 @@ jobs:
           path: |
             organism_lab_output/report.json
             organism_lab_output/tasks.jsonl
+            organism_evolution_output/experiment_results.json
+            organism_evolution_output/experiment_summary.json
+            organism_evolution_output/experiment_manifest.json
           if-no-files-found: error
           retention-days: 30
