@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 from scripts.cano_pg_backup_manifest import (
     BackupError, create_backup, verify_backup, restore_to_isolated_test_db,
+    _libpq_env_from_uri,
 )
 
 
@@ -47,6 +48,38 @@ class PostgresBackupTests(unittest.TestCase):
         self.assertTrue(all("private-password" not in repr(args) for args, env in runner.calls))
         with self.assertRaises(FileExistsError):
             create_backup(self.path, database_url=SOURCE, runner=runner)
+
+    def test_new_restore_host_never_inherits_prior_pg_credentials(self):
+        previous = {
+            "PGHOST": "render.internal", "PGDATABASE": "render_production",
+            "PGUSER": "render_owner", "PGPASSWORD": "synthetic-render-secret",
+            "PGPASSFILE": "/private/render-only-pgpass",
+            "DATABASE_URL": "postgresql://render_owner:old-secret@render.internal/prod",
+            "CANO_BACKUP_DATABASE_URL": "postgresql://old:old-secret@render.internal/prod",
+            "CANO_RESTORE_TEST_DATABASE_URL": "postgresql://old:old-secret@render.internal/test",
+        }
+        result = _libpq_env_from_uri(
+            "postgresql://neon.example.test/cano_cano_restore_test?sslmode=require",
+            previous,
+        )
+        self.assertEqual(result["PGHOST"], "neon.example.test")
+        self.assertEqual(result["PGDATABASE"], "cano_cano_restore_test")
+        for name in ("PGUSER", "PGPASSWORD", "PGPASSFILE",
+                     "DATABASE_URL", "CANO_BACKUP_DATABASE_URL",
+                     "CANO_RESTORE_TEST_DATABASE_URL"):
+            with self.subTest(name=name):
+                self.assertNotIn(name, result,
+                                 "A different PostgreSQL host inherited a previous secret")
+
+    def test_explicit_target_credentials_do_not_inherit_other_pgpassfile(self):
+        result = _libpq_env_from_uri(
+            "postgresql://target_user:t%40rget@neon.example.test/cano_cano_restore_test",
+            {"PGUSER": "render_owner", "PGPASSWORD": "old-secret",
+             "PGPASSFILE": "/private/other-database-pgpass"},
+        )
+        self.assertEqual(result["PGUSER"], "target_user")
+        self.assertEqual(result["PGPASSWORD"], "t@rget")
+        self.assertNotIn("PGPASSFILE", result)
 
     def test_missing_source_refused_without_file(self):
         with self.assertRaises(BackupError):
