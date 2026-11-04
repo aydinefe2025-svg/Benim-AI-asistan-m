@@ -22,7 +22,12 @@ class BackupTests(unittest.TestCase):
         fake_dump.write_text(
             "#!" + sys.executable + "\n"
             "import os,sys,pathlib\n"
-            "assert 'postgresql://' in os.environ['PGDATABASE']\n"
+            "assert os.environ['PGDATABASE'] == 'test'\n"
+            "assert os.environ['PGHOST'] == 'example.invalid'\n"
+            "assert os.environ['PGPORT'] == '5432'\n"
+            "assert os.environ['PGUSER'] == 'private'\n"
+            "assert os.environ['PGPASSWORD'] == 'secret'\n"
+            "assert os.environ['PGSSLMODE'] == 'require'\n"
             "pathlib.Path(sys.argv[sys.argv.index('--file')+1]).write_bytes(b'PGDMP synthetic bytes')\n",
             encoding="utf-8")
         fake_restore = self.path / "fake_restore.py"
