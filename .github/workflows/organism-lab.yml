@@ -80,6 +80,37 @@ jobs:
           assert all(item["population"] == 1 + item["births"] - item["deaths"] for item in doc["experiments"])
           assert len({item["seed"] for item in doc["experiments"]}) == 12
           PY
+      - name: Run paired genome replication resource study
+        run: python -m organism_lab.reproduction_study --seeds 30 --steps 100 --output organism_reproduction_output
+      - name: Independently recompute and verify paired study exports
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          import sqlite3
+          from pathlib import Path
+          from organism_lab.reproduction_study import run_study
+          root = Path("organism_reproduction_output")
+          json_paths = list(root.glob("*.json"))
+          csv_paths = list(root.glob("*.csv"))
+          assert len(json_paths) == len(csv_paths) == 1
+          saved = json.loads(json_paths[0].read_text(encoding="utf-8"))
+          expected = run_study(seeds=tuple(range(30)), steps=100)
+          for key in ("schema", "design", "results", "observations", "interpretation_limits"):
+              assert saved[key] == expected[key], "Recomputation mismatch: " + key
+          assert len(saved["results"]) == 5
+          assert len(saved["observations"]) == 150
+          with csv_paths[0].open(encoding="utf-8", newline="") as stream:
+              rows = list(csv.DictReader(stream))
+          assert len(rows) == 150
+          for row, item in zip(rows, saved["observations"]):
+              assert row == {key: str(value) for key, value in item.items()}
+          with sqlite3.connect(root / "research_studies.sqlite3") as con:
+              database_rows = con.execute("SELECT study_id, report_json FROM studies").fetchall()
+          assert len(database_rows) == 1
+          assert database_rows[0][0] == saved["study_id"]
+          assert json.loads(database_rows[0][1]) == expected
+          PY
       - name: Upload research evidence artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -90,5 +121,8 @@ jobs:
             organism_evolution_output/experiment_results.json
             organism_evolution_output/experiment_summary.json
             organism_evolution_output/experiment_manifest.json
+            organism_reproduction_output/*.json
+            organism_reproduction_output/*.csv
+            organism_reproduction_output/research_studies.sqlite3
           if-no-files-found: error
           retention-days: 30
