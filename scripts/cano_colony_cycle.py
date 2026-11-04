@@ -17,6 +17,10 @@ def main() -> None:
     colony = ContinuousColony(db_path, max_active=12, max_candidates_per_tick=3)
     colony.initialize()
     founder = {"id": "cano-research-founder", "generation": 0}
+    prior_history = colony.history(limit=1)
+    prior_tick_id = prior_history[0]["tick_id"] if prior_history else None
+    with sqlite3.connect(db_path) as db:
+        previous_tick_count = db.execute("SELECT COUNT(*) FROM colony_tick").fetchone()[0]
     result = colony.tick([founder])
     with sqlite3.connect(db_path) as db:
         integrity = db.execute("PRAGMA integrity_check").fetchone()[0]
@@ -25,7 +29,8 @@ def main() -> None:
             "SELECT active_count,candidates,state FROM colony_tick WHERE tick_id=?",
             (result["tick_id"],),
         ).fetchone()
-    if (integrity != "ok" or row is None or row[0] != result["active_count"]
+    if (integrity != "ok" or stored != previous_tick_count + 1
+            or row is None or row[0] != result["active_count"]
             or json.loads(row[1]) != result["candidates"] or row[2] != result["state"]):
         raise RuntimeError("Colony audit database failed integrity/readback check")
     record = {
@@ -34,6 +39,12 @@ def main() -> None:
         "db_integrity": integrity,
         "stored_ticks": stored,
         "verified_tick_id": result["tick_id"],
+        "continuity": {
+            "had_prior_state": prior_tick_id is not None,
+            "previous_tick_id": prior_tick_id,
+            "previous_tick_count": previous_tick_count,
+            "increment_verified": stored == previous_tick_count + 1,
+        },
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "cycle": result,
         "mode": "proposal_only",

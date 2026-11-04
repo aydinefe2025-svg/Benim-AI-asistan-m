@@ -55,16 +55,19 @@ class ContinuousColony:
             raise ValueError("Active agent count exceeds configured limit")
         capacity = min(self.max_active - len(identities), self.max_candidates_per_tick)
         domains = ("research", "verification", "software", "archive", "simulation")
-        candidates = [
-            {"parent_id": identities[i % len(identities)] if identities else None,
-             "role": domains[i % len(domains)],
-             "generation": 1 + max((int(a.get("generation", 0)) for a in active_agents), default=0),
-             "status": "awaiting_validation"}
-            for i in range(capacity)
-        ]
-        state = "proposed" if candidates else "no_capacity"
         now = timestamp or datetime.now(timezone.utc).isoformat()
         with self._db() as db:
+            # Rotate specialist roles using persisted history instead of
+            # proposing the same initial roles on every scheduled run.
+            previous_ticks = db.execute("SELECT COUNT(*) FROM colony_tick").fetchone()[0]
+            candidates = [
+                {"parent_id": identities[i % len(identities)] if identities else None,
+                 "role": domains[(previous_ticks * self.max_candidates_per_tick + i) % len(domains)],
+                 "generation": 1 + max((int(a.get("generation", 0)) for a in active_agents), default=0),
+                 "status": "awaiting_validation"}
+                for i in range(capacity)
+            ]
+            state = "proposed" if candidates else "no_capacity"
             cur = db.execute(
                 "INSERT INTO colony_tick(created_at,active_count,candidates,state) VALUES(?,?,?,?)",
                 (now, len(identities), json.dumps(candidates), state),
