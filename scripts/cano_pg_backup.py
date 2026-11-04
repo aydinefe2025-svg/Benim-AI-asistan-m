@@ -110,8 +110,10 @@ def _libpq_env_from_uri(uri: str, inherited: dict) -> dict:
         env.pop(name, None)
     env["PGHOST"] = parsed.hostname
     env["PGDATABASE"] = unquote(parsed.path[1:])
-    if port is not None:
-        env["PGPORT"] = str(port)
+    if "\x00" in env["PGDATABASE"]:
+        raise BackupError("Invalid PostgreSQL database name")
+    # A stale ambient PGPORT must never redirect an explicit backup URL.
+    env["PGPORT"] = str(port or 5432)
     if parsed.username is not None:
         env["PGUSER"] = unquote(parsed.username)
     if parsed.password is not None:
@@ -124,6 +126,12 @@ def _libpq_env_from_uri(uri: str, inherited: dict) -> dict:
         env[_URL_OPTIONS[key]] = value
     if not env["PGDATABASE"].strip():
         raise BackupError("PostgreSQL database name is required")
+    # Never permit a remote backup to silently downgrade to plaintext.
+    if parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
+        sslmode = env.get("PGSSLMODE", "require")
+        if sslmode not in {"require", "verify-ca", "verify-full"}:
+            raise BackupError("Remote PostgreSQL backup requires TLS")
+        env["PGSSLMODE"] = sslmode
     return env
 
 
