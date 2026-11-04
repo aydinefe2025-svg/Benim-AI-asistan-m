@@ -111,29 +111,35 @@ class AgentColony:
             ("quality-editor", "Improve clarity without changing factual meaning."),
         )
         created = []
+        # One write transaction covers detection, quota and inserts. Without it,
+        # concurrent UI sessions could each observe a missing specialist and
+        # create duplicate roles, even if individual spawns are transactional.
         with self._db() as db:
+            db.execute("BEGIN IMMEDIATE")
             agents = [dict(row) for row in db.execute(
                 "SELECT id,role,generation,state FROM colony_agents ORDER BY generation,id")]
-        if not agents:
-            raise RuntimeError("Create founder first")
-        existing = {a["role"] for a in agents}
-        # Prefer the founder so all new agents remain within generation limits.
-        parent = next((a for a in agents if a["generation"] == 0 and a["state"] == "active"), None)
-        if parent is None:
-            raise RuntimeError("Active founder required")
-        for role, instructions in specs:
-            if len(created) >= batch_size:
-                break
-            if role in existing:
-                continue
-            try:
-                child_id = self.spawn(parent["id"], role, instructions, approved=True)
-            except RuntimeError as exc:
-                if str(exc) == "Agent quota reached":
+            if not agents:
+                raise RuntimeError("Create founder first")
+            existing = {a["role"] for a in agents}
+            parent = next((a for a in agents
+                           if a["generation"] == 0 and a["state"] == "active"), None)
+            if parent is None:
+                raise RuntimeError("Active founder required")
+            if parent["generation"] >= 3:
+                raise RuntimeError("Generation limit reached")
+            count = len(agents)
+            for role, instructions in specs:
+                if len(created) >= batch_size or count >= self.max_agents:
                     break
-                raise
-            created.append(child_id)
-            existing.add(role)
+                if role in existing:
+                    continue
+                child_id = str(uuid.uuid4())
+                db.execute("INSERT INTO colony_agents VALUES (?,?,?,?,?,?,?)",
+                           (child_id, parent["id"], parent["generation"] + 1,
+                            role, instructions, "active", now()))
+                created.append(child_id)
+                existing.add(role)
+                count += 1
         return created
 
     def feedback(self, agent_id, task, lesson, evidence, *, accepted=False):
