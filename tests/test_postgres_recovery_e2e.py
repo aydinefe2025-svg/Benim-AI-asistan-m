@@ -131,5 +131,37 @@ class PostgresProcessRecoveryTests(unittest.TestCase):
                         (owner,))
 
 
+    def test_stale_owner_session_cannot_replace_fresher_postgres_snapshot(self):
+        """Real PostgreSQL transaction rejects a stale second tab with no data loss."""
+        dsn = os.environ["CANO_TEST_POSTGRES_DSN"]
+        owner = "cas-" + uuid.uuid4().hex
+        store = ColonySnapshotStore(dsn)
+        store.initialize()
+        first = {"agents": [], "feedback": [], "reviews": [], "missions": []}
+        fresh = {**first, "agents": [{"id": "fresh-tab"}]}
+        stale = {**first, "agents": [{"id": "stale-tab"}]}
+        try:
+            self.assertTrue(store.save_versioned_verified(
+                owner, first, expected_prior=None))
+            self.assertTrue(store.save_versioned_verified(
+                owner, fresh, expected_prior=first))
+            with self.assertRaises(RuntimeError):
+                store.save_versioned_verified(
+                    owner, stale, expected_prior=first)
+            self.assertEqual(store.load(owner), fresh)
+            import psycopg
+            with psycopg.connect(dsn, connect_timeout=8) as db, db.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM private_colony_snapshot_revisions "
+                            "WHERE owner_key=%s", (owner,))
+                self.assertEqual(cur.fetchone()[0], 1)
+        finally:
+            import psycopg
+            with psycopg.connect(dsn, connect_timeout=8) as db, db.cursor() as cur:
+                cur.execute("DELETE FROM private_colony_snapshot_revisions "
+                            "WHERE owner_key=%s", (owner,))
+                cur.execute("DELETE FROM private_colony_snapshots "
+                            "WHERE owner_key=%s", (owner,))
+
+
 if __name__ == "__main__":
     unittest.main()
