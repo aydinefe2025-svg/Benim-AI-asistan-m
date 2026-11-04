@@ -55,5 +55,29 @@ class LeaderPreflightTests(unittest.TestCase):
                 store(owner,node)
 
 
+    def test_reject_autocommit_cursor_before_authorization(self):
+        # With autocommit=True the SELECT FOR UPDATE lock would end before
+        # the caller's subsequent mutation: fencing would be ineffective.
+        from unittest.mock import Mock
+        from core.postgres_leader_lease import LeaderToken
+        lease = store()
+        cursor = Mock()
+        cursor.connection.autocommit = True
+        with self.assertRaisesRegex(RuntimeError, "transaction"):
+            lease.assert_fence(cursor, LeaderToken("oidc_owner_a", "main", "queen-a", 1))
+        cursor.execute.assert_not_called()
+
+    def test_reject_uninspectable_connection_before_authorization(self):
+        # A cursor without an inspectable owning connection must not be
+        # accepted as proof of a durable transactional row lock.
+        from unittest.mock import Mock
+        from core.postgres_leader_lease import LeaderToken
+        lease = store()
+        cursor = Mock(spec=["execute", "fetchone"])
+        with self.assertRaisesRegex(RuntimeError, "transaction"):
+            lease.assert_fence(cursor, LeaderToken("oidc_owner_a", "main", "queen-a", 1))
+        cursor.execute.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
