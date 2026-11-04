@@ -4,6 +4,8 @@ The daemon thread is bounded by a stop event and never runs a provider call.
 """
 from contextlib import contextmanager
 from threading import Event, Thread
+import sqlite3
+from contextlib import closing
 
 from core.task_heartbeat import touch_running
 
@@ -19,7 +21,10 @@ def running_heartbeat(db_path, task_id, *, interval_seconds=30):
         while not stop.wait(interval_seconds):
             try:
                 if not touch_running(db_path, task_id):
-                    failures.append(RuntimeError('Running task lost heartbeat ownership'))
+                    with closing(sqlite3.connect(str(db_path), timeout=15)) as conn:
+                        row = conn.execute('SELECT status FROM tasks WHERE id=?', (task_id,)).fetchone()
+                    if row is None or row[0] not in ('review_pending', 'done', 'verified'):
+                        failures.append(RuntimeError('Running task lost heartbeat ownership'))
                     break
             except Exception as exc:
                 failures.append(RuntimeError('Running task heartbeat failed'))
