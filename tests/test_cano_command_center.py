@@ -216,9 +216,10 @@ class CommandCenterTests(unittest.TestCase):
         st = FakeStreamlit(clicks={"cano_prepare_team"})
         model = FakeModel()
         from core.colony_postgres import ColonySnapshotStore
-        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}), \
-             patch.object(ColonySnapshotStore, "initialize") as setup, \\
-             patch.object(ColonySnapshotStore, "save_versioned_verified", return_value=True) as save:
+        with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
+              patch.object(ColonySnapshotStore, "initialize") as setup,
+              patch.object(ColonySnapshotStore, "save_versioned_verified",
+                           return_value=True) as save):
             render_cano_command_center(
                 st, answer=model, owner_key="authenticated-owner",
                 database_url="postgresql://synthetic-test")
@@ -251,9 +252,10 @@ class CommandCenterTests(unittest.TestCase):
             if len(calls) == 4:
                 raise TeamRateLimitError("429 simulated")
             return f"Draft stage {len(calls)}"
-        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}), \\
-             patch.object(ColonySnapshotStore, "initialize"), \\
-             patch.object(ColonySnapshotStore, "save_versioned_verified", return_value=True) as save:
+        with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
+              patch.object(ColonySnapshotStore, "initialize"),
+              patch.object(ColonySnapshotStore, "save_versioned_verified",
+                           return_value=True) as save):
             render_cano_command_center(st, answer=interrupted, owner_key="owner",
                                        database_url="postgresql://synthetic-test")
             st.task = "One approved mission"
