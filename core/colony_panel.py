@@ -155,7 +155,9 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         count = restore_colony_json_bytes(
                             colony, backup_upload.getvalue())
                         _checkpoint(archive_prior=False)
-                        st.success(f"{count} ajan JSON yedekten geri yüklendi ve hesap yedeği doğrulandı.")
+                        st.success(f"{count} ajan JSON yedekten geri yüklendi." +
+                                   (" PostgreSQL hesap yedeği doğrulandı." if owner_key and database_url
+                                    else " Bu oturum için JSON yedeğinizi saklayın."))
                         st.rerun()
                     except Exception:
                         st.error("JSON geri yükleme veya PostgreSQL yedeği doğrulanamadı; "
@@ -186,7 +188,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 _checkpoint(archive_prior=False)
                 child = colony.spawn(selected, role, instructions, approved=True)
                 _checkpoint(archive_prior=False)
-                st.success("Uzman ajan kalıcı yedeğe kaydedildi: " + child[:8])
+                st.success(("Uzman ajan hesap yedeğine kaydedildi: "
+                            if owner_key and database_url else "Uzman ajan oturuma kaydedildi: ") + child[:8])
                 st.rerun()
             except Exception:
                 st.error("Uzman oluşturma veya PostgreSQL yedeği doğrulanamadı; "
@@ -200,7 +203,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 created = colony.grow_specialists(approved=True, batch_size=3)
                 _checkpoint(archive_prior=False)
                 if created:
-                    st.success(f"{len(created)} yeni uzman kalıcı yedeğe kaydedildi.")
+                    st.success(f"{len(created)} yeni uzman kaydedildi." +
+                               (" PostgreSQL doğrulandı." if owner_key and database_url else ""))
                     st.rerun()
                 else:
                     st.info("Yeni uzmanlık kalmadı veya ajan kotası doldu.")
@@ -219,7 +223,11 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 _checkpoint(archive_prior=False)
                 colony.feedback(selected, task, lesson, evidence, accepted=accepted)
                 _checkpoint(archive_prior=False)
-                st.success("Ders hesap yedeğine kaydedildi." if accepted else "Ders kaydedildi; inceleme bekliyor.")
+                st.success(("Ders kaydedildi; hesap yedeği doğrulandı." if accepted else
+                            "Ders kaydedildi; inceleme bekliyor.")
+                           if owner_key and database_url else
+                           ("Ders oturuma kaydedildi." if accepted else
+                            "Ders oturuma kaydedildi; inceleme bekliyor."))
             except Exception:
                 st.error("Dersin PostgreSQL kaydı doğrulanamadı; "
                          "yerel SQLite/JSON yedeğini kontrol edin.")
