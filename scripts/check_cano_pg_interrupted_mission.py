@@ -181,7 +181,7 @@ def main():
         assert store.load(other_owner) == unrelated
         try:
             store.save_versioned_verified(
-                owner, mid, expected_prior=unrelated, archive_prior=False
+                owner, mid, expected_prior=mid, archive_prior=False
             )
         except RuntimeError:
             pass
