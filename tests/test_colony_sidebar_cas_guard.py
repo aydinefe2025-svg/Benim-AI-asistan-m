@@ -57,7 +57,7 @@ class SidebarBackupCASTests(unittest.TestCase):
         class SimulatedRemote:
             def verify_schema(self): return None
             def save_versioned_verified(self, owner, payload, *,
-                                        expected_prior=None):
+                                        expected_prior=None, archive_prior=True):
                 if expected_prior is not None and expected_prior != remote["payload"]:
                     raise RuntimeError("Stale writer refused")
                 remote["payload"] = copy.deepcopy(payload)
@@ -98,7 +98,8 @@ class SidebarBackupCASTests(unittest.TestCase):
         store = Mock()
         self._render(st, store)
         store.save_versioned_verified.assert_called_once_with(
-            "owner-A", self.current_payload, expected_prior=self.base_payload)
+            "owner-A", self.current_payload, expected_prior=self.base_payload,
+            archive_prior=True)
         self.assertEqual(st.session_state["_cano_backup_expected"],
                          self.current_payload)
 

@@ -58,7 +58,10 @@ class RestoreUIApprovalTests(unittest.TestCase):
                 fake_store.return_value.load.return_value = payload
                 render_colony_panel(st, owner_key="authenticated-user",
                                     database_url="postgresql://test")
-                fake_store.return_value.load.assert_called_once_with("authenticated-user")
+                self.assertEqual(fake_store.return_value.load.call_count, 2)
+                fake_store.return_value.load.assert_any_call("authenticated-user")
+                self.assertEqual(st.session_state["_cano_backup_owner_key"], "authenticated-user")
+                self.assertEqual(st.session_state["_cano_backup_expected"], payload)
             self.assertEqual(AgentColony(path).get("owner-agent")["role"], "research")
             self.assertTrue(any(level == "success" for level, _ in st.messages))
             self.assertTrue(any(level == "rerun" for level, _ in st.messages))
