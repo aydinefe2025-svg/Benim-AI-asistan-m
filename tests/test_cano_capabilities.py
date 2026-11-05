@@ -36,6 +36,18 @@ class CapabilityTests(unittest.TestCase):
         self.assertIn('tarayıcı deposunu kullanıyor', text)
         self.assertIn('kalıcı hesap yedeği bağlı değil', text)
 
+    def test_natural_self_learning_phrases_get_capability_answer(self):
+        for query in (
+            'Bilgi toplayarak kendini geliştir',
+            'Bilgi toplayarak kendini geliştirebilir misin?',
+            'Fiziksel laboratuvar olmadan kendini geliştirebilir miyiz?',
+        ):
+            with self.subTest(query=query):
+                text = capability_reply(query, persistent_memory=True,
+                                        persistent_colony=True)
+                self.assertIn('onayladığın dersler', text)
+                self.assertIn('model ağırlıklarını yeniden eğitmez', text)
+
     def test_domain_tasks_are_not_replaced_with_a_capability_answer(self):
         for task in ('Kendini geliştiren robot tasarla', 'CANO için kalıcı hafıza geliştir',
                      '2+2 kaç?', 'kendini geliştir ve güneş enerjisini araştır'):
