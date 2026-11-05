@@ -146,5 +146,91 @@ class SidebarStageCheckpointTests(unittest.TestCase):
         self.assertEqual(manager.get(mission["id"])["status"], "review_pending")
 
 
+    def test_sidebar_feedback_is_persisted_without_manual_backup_click(self):
+        class FeedbackUI(PanelUI):
+            def text_input(self, label, **kwargs):
+                return {
+                    "Dersin ilişkili olduğu görev": "Check paper",
+                    "İnceleme/kanıt referansı": "DOI:10.1000/test",
+                }.get(label, "")
+            def text_area(self, label, **kwargs):
+                return "Mark unsupported claims as pending" if label == "Öğrenilecek ders" else ""
+            def form_submit_button(self, label, **kwargs):
+                return label == "Dersi kaydet"
+        st = FeedbackUI()
+        store = SyntheticOwnerStore(_snapshot(self.colony))
+        self._render(st, store, answer=None)
+        self.assertEqual(len(_snapshot(self.colony)["feedback"]), 1)
+        self.assertEqual(store.current, _snapshot(self.colony))
+        self.assertEqual(st.session_state["_cano_backup_expected"], store.current)
+
+    def test_sidebar_spawn_is_persisted_without_manual_backup_click(self):
+        class SpawnUI(PanelUI):
+            def text_input(self, label, **kwargs):
+                return "taxonomy-specialist" if label == "Yeni uzmanlık" else ""
+            def text_area(self, label, **kwargs):
+                return "Classify candidate claims" if label == "Yeni ajanın görevi" else ""
+            def form_submit_button(self, label, **kwargs):
+                return label == "Uzman ajan oluştur"
+        st = SpawnUI()
+        store = SyntheticOwnerStore(_snapshot(self.colony))
+        self._render(st, store, answer=None)
+        self.assertEqual(len(_snapshot(self.colony)["agents"]), 8)
+        self.assertEqual(store.current, _snapshot(self.colony))
+
+    def test_sidebar_source_excerpts_are_durable_after_read(self):
+        class FakeClient:
+            def chat(self, model, system, prompt):
+                return "Unverified draft"
+        manager = CollaborativeMission(self.colony)
+        mission = manager.execute(
+            "Check source for this topic", client=FakeClient(), model="mock",
+            source_lookup=lambda task, limit: [
+                {"title": "Synthetic bibliographic lead",
+                 "url": "https://doi.org/10.1000/test-2026"}])
+        self.assertTrue(mission["stages"][0].get("source_leads"))
+        st = PanelUI(clicks={"read_mission_sources_" + mission["id"]})
+        st.session_state["colony_last_mission"] = mission
+        store = SyntheticOwnerStore(_snapshot(self.colony))
+        stub = {"status": "abstract_excerpt", "excerpt": "Synthetic evidence excerpt",
+                "url": "https://europepmc.org/articles/PMC123456"}
+        with patch("core.europepmc_evidence.read_publication_evidence", return_value=stub):
+            self._render(st, store, answer=lambda _: "unused")
+        actual = manager.get(mission["id"])
+        self.assertEqual(actual["stages"][0]["source_documents"][0]["excerpt"],
+                         "Synthetic evidence excerpt")
+        self.assertEqual(store.current, _snapshot(self.colony))
+
+    def test_sidebar_stale_recovery_is_saved_before_rerun(self):
+        class FakeClient:
+            def chat(self, model, system, prompt):
+                return "Unverified draft"
+        manager = CollaborativeMission(self.colony)
+        mission = manager.execute("Old mission", client=FakeClient(), model="mock")
+        with self.colony._db() as db:
+            db.execute(
+                "UPDATE colony_missions SET status='running', created_at=? WHERE id=?",
+                ("2024-01-01T00:00:00+00:00", mission["id"]))
+        st = PanelUI(clicks={"recover_stale_colony_missions"})
+        store = SyntheticOwnerStore(_snapshot(self.colony))
+        self._render(st, store, answer=lambda _: "unused")
+        self.assertEqual(manager.get(mission["id"])["status"], "blocked")
+        self.assertEqual(store.current, _snapshot(self.colony))
+
+    def test_sidebar_pg_failure_blocks_feedback_mutation(self):
+        class FeedbackUI(PanelUI):
+            def text_input(self, label, **kwargs): return "task or evidence"
+            def text_area(self, label, **kwargs):
+                return "lesson to evaluate" if label == "Öğrenilecek ders" else ""
+            def form_submit_button(self, label, **kwargs):
+                return label == "Dersi kaydet"
+        st = FeedbackUI()
+        store = SyntheticOwnerStore(_snapshot(self.colony), reject_stage=0)
+        self._render(st, store, answer=None)
+        self.assertEqual(_snapshot(self.colony)["feedback"], [])
+        self.assertTrue(any("yedek" in msg.lower() or "postgre" in msg.lower()
+                            for msg in st.messages))
+
+
 if __name__ == "__main__":
     unittest.main()
