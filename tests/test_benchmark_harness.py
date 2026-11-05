@@ -5,7 +5,7 @@ a local responder; two equal passes only prove repeatability in those passes.
 """
 import unittest
 
-from core.benchmark_harness import BenchmarkCase, benchmark_sha256, run_benchmark
+from core.benchmark_harness import (BenchmarkCase, benchmark_sha256, run_benchmark, run_paired_benchmark)
 from core.agent_evolution import AgentEvaluator
 
 
@@ -81,6 +81,59 @@ class BenchmarkHarnessTests(unittest.TestCase):
                                source_refs=("e",), safety_pass=True)
         self.assertEqual(result.passed, 0)
         self.assertFalse(result.reproducible)
+
+
+    def test_paired_memory_candidate_reports_per_task_improvements_and_regressions(self):
+        cases = (
+            BenchmarkCase("A", "prompt-a", "right-a"),
+            BenchmarkCase("B", "prompt-b", "right-b"),
+            BenchmarkCase("C", "prompt-c", "right-c"),
+        )
+        baseline_calls = []
+        candidate_calls = []
+        baseline_outputs = {"prompt-a": "right-a", "prompt-b": "wrong", "prompt-c": "right-c"}
+        candidate_outputs = {"prompt-a": "right-a", "prompt-b": "right-b", "prompt-c": "wrong"}
+        result = run_paired_benchmark(
+            "no-memory", "memory-enabled", cases,
+            lambda prompt: baseline_calls.append(prompt) or baseline_outputs[prompt],
+            lambda prompt: candidate_calls.append(prompt) or candidate_outputs[prompt],
+            source_refs=("fixture:memory-learning-v1",), safety_pass=True,
+        )
+        self.assertEqual(result["baseline"].passed, 2)
+        self.assertEqual(result["candidate"].passed, 2)
+        self.assertEqual(result["delta"], 0.0)
+        self.assertEqual(result["improved_case_ids"], ["B"])
+        self.assertEqual(result["regressed_case_ids"], ["C"])
+        self.assertEqual([item["outcome"] for item in result["case_results"]],
+                         ["unchanged", "improved", "regressed"])
+        self.assertEqual(result["reproducible"], {"baseline": True, "candidate": True})
+        self.assertEqual(len(baseline_calls), 6)
+        self.assertEqual(len(candidate_calls), 6)
+        self.assertNotIn("right-a", repr(result))
+        self.assertEqual(result["baseline"].benchmark_sha256,
+                         result["candidate"].benchmark_sha256)
+
+    def test_paired_benchmark_treats_failures_as_regressions_without_leaking_errors(self):
+        case = (BenchmarkCase("private-case-id", "sensitive prompt", "expected"),)
+        result = run_paired_benchmark(
+            "no-memory", "memory-enabled", case,
+            lambda _: "expected",
+            lambda _: (_ for _ in ()).throw(RuntimeError("secret provider token")),
+            source_refs=("fixture:failure",), safety_pass=True,
+        )
+        self.assertEqual(result["regressed_case_ids"], ["private-case-id"])
+        self.assertFalse(result["reproducible"]["candidate"])
+        self.assertNotIn("secret provider token", repr(result))
+        self.assertNotIn("sensitive prompt", repr(result))
+
+    def test_paired_benchmark_validates_before_any_responder_runs(self):
+        calls = []
+        with self.assertRaises(ValueError):
+            run_paired_benchmark(
+                "baseline", "candidate", (), lambda _: calls.append("b"),
+                lambda _: calls.append("c"), source_refs=("fixture",), safety_pass=True,
+            )
+        self.assertEqual(calls, [])
 
 
 if __name__ == "__main__":
