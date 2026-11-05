@@ -19,6 +19,7 @@ from core.browser_colony import (
 from core.colony_restore import restore_empty_colony
 from core.authentication import auth_is_required
 from core.groq_team import TeamRateLimitError
+from core.cano_chat_tasks import stage_execution_notice
 from core.scientific_sources import scientific_sources
 from core.task_panel import _session_database_path
 
@@ -342,6 +343,9 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             for stage in latest["stages"]:
                 with st.expander(names.get(stage["role"], stage["role"]),
                                  expanded=(stage["role"] == "synthesis")):
+                    legacy_notice = stage_execution_notice(stage)
+                    if legacy_notice:
+                        st.warning(legacy_notice)
                     st.caption("Bu aşama model metnidir; kod, cihaz veya fiziksel deney "
                                "çalıştırılmadı. Gerçek kaynak okuma kayıtları ayrıca gösterilir.")
                     st.markdown(stage["output"])

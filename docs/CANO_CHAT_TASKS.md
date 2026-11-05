@@ -10,7 +10,8 @@ PostgreSQL snapshot before another provider call begins. A completed task is
 shown with its task ID and remains marked as a draft awaiting review. The
 stages do not execute code, calculations, experiments, or unrestricted web
 search. Optional source retrieval remains a separate explicit action in the
-command center.
+command center. Historical stages without the recorded text-only mode carry a
+warning that experiment claims have no saved tool receipt.
 
 The command requires `GROQ_API_KEY`, the existing colony schema, and a writable
 SQLite session. With authenticated owner storage configured, it checks the
@@ -21,4 +22,4 @@ and no later stage is called. Retrying the same in-session request resumes the
 saved mission; a completed mission ID returns its saved output without another
 provider call.
 
-Verification: `python -m unittest discover -s tests` (504 tests, 6 skipped).
+Verification: `python -m unittest discover -s tests` (508 tests, 6 skipped).
