@@ -183,7 +183,8 @@ def record_source_claim_review(manager, mission_id, claim_index, *, reviewer_id,
     if not isinstance(audit, list) or claim_index >= len(audit):
         raise ValueError("Claim audit entry does not exist")
     item = audit[claim_index]
-    if not isinstance(item, dict) or not isinstance(item.get("claim"), str):
+    if (not isinstance(item, dict) or not isinstance(item.get("claim"), str)
+            or not isinstance(item.get("doi"), str)):
         raise ValueError("Invalid audited claim")
 
     documents = stages[0].get("source_documents")
