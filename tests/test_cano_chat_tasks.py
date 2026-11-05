@@ -50,16 +50,24 @@ class CanoChatTasksTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, patch.dict(
                 os.environ, {"AGENT_COLONY_DB_PATH": str(Path(tmp) / "colony.sqlite3")}):
             exec(compile(ast.Module(body=[function], type_ignores=[]), str(app), "exec"), namespace)
-            first = namespace["asistani_calistir"]("CANO görev: küçük bir karşılaştırma yap")
+            preview = namespace["asistani_calistir"]("CANO görev: küçük bir karşılaştırma yap")
+            self.assertEqual(len(calls), 0)
+            self.assertIn("Henüz model çağrısı", preview)
+            self.assertEqual(state["_cano_chat_task_pending"]["task"],
+                             "küçük bir karşılaştırma yap")
+            mission_id = state["cano_chat_request_id"]["id"]
+
+            first = namespace["asistani_calistir"](
+                "CANO görev: küçük bir karşılaştırma yap", approved=True)
             self.assertEqual(len(calls), 4)
             self.assertIn("CANO görev kaydı:", first)
             self.assertIn("review_pending", first)
-            mission_id = re.search(r"CANO görev kaydı: ([0-9a-f-]+)", first).group(1)
 
             state["cano_chat_request_id"] = {
                 "task": "küçük bir karşılaştırma yap", "id": mission_id,
             }
-            replay = namespace["asistani_calistir"]("CANO görev: küçük bir karşılaştırma yap")
+            replay = namespace["asistani_calistir"](
+                "CANO görev: küçük bir karşılaştırma yap", approved=True)
             self.assertIn("yeni model çağrısı: 0", replay)
             self.assertEqual(len(calls), 4)
 
@@ -114,13 +122,21 @@ class CanoChatTasksTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {
                 "AGENT_COLONY_DB_PATH": str(Path(tmp) / "colony.sqlite3")}):
             with patch("core.colony_postgres.ColonySnapshotStore", MemorySnapshotStore):
-                first = app_function({})("CANO görev: ilk kayıtlı hedef")
+                first_function = app_function({})
+                preview = first_function("CANO görev: ilk kayıtlı hedef")
+                self.assertIn("Henüz model çağrısı", preview)
+                self.assertEqual(len(calls), 0)
+                first = first_function("CANO görev: ilk kayıtlı hedef", approved=True)
                 self.assertIn("review_pending", first)
                 self.assertEqual(len(calls), 4)
                 self.assertEqual(len(MemorySnapshotStore.remote["missions"]), 1)
 
                 # A new Streamlit state allocates a different empty SQLite file.
-                second = app_function({})("CANO görev: ikinci hedef")
+                second_function = app_function({})
+                preview = second_function("CANO görev: ikinci hedef")
+                self.assertIn("Henüz model çağrısı", preview)
+                self.assertEqual(len(calls), 4)
+                second = second_function("CANO görev: ikinci hedef", approved=True)
                 self.assertIn("review_pending", second)
                 self.assertEqual(len(calls), 8)
                 saved = MemorySnapshotStore.remote["missions"]
@@ -134,6 +150,10 @@ class CanoChatTasksTests(unittest.TestCase):
                          "İki seçenek karşılaştır")
         self.assertEqual(parse_task_request("Görev: 2+2"), "2+2")
         self.assertIsNone(parse_task_request("Kendini geliştir CANO"))
+        self.assertIn("ölçülebilir gelişim önerisi",
+                      parse_task_request("Kendini geliştir öğrenmeye başla"))
+        self.assertIn("önerileri otomatik uygulama",
+                      parse_task_request("Kendini geliştir öğrenmeye başla"))
         self.assertIsNone(parse_task_request("CANO görev:"))
         self.assertIsNone(parse_task_request("CANO görev: " + "x" * 1201))
 
