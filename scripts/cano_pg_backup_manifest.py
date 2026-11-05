@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -250,12 +251,18 @@ def restore_to_isolated_test_db(destination: str | Path, *, target_url: str,
     source = _libpq_env_from_uri(_database_url(source_url), os.environ)
     target = _libpq_env_from_uri(_database_url(target_url), os.environ)
     if (target["PGDATABASE"] == source["PGDATABASE"]
-            or not target["PGDATABASE"].endswith("_cano_restore_test")):
+            or not target["PGDATABASE"].endswith("_cano_restore_test")
+            or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,62}",
+                                target["PGDATABASE"])):
         raise BackupError("Dedicated *_cano_restore_test database required")
     verify_backup(destination, runner=runner)
     _require_empty_restore_target(target_url, runner=runner)
-    _run(["pg_restore", "--no-password", "--single-transaction",
-          "--exit-on-error", "--no-owner", "--no-acl", str(destination)],
+    # pg_restore ignores PGDATABASE unless --dbname is explicitly passed.
+    # The validated plain database name (never a URI or secret) is safe in
+    # argv; all host/user/password/SSL parameters remain in libpq env.
+    _run(["pg_restore", "--no-password", "--dbname", target["PGDATABASE"],
+          "--single-transaction", "--exit-on-error", "--no-owner",
+          "--no-acl", str(destination)],
          database_url=target_url, runner=runner)
     return {"restore_command_succeeded": True, "readback_verified": False,
             "target_kind": "isolated_test_database"}
