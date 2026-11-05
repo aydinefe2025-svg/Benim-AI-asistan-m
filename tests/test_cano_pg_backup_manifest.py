@@ -15,14 +15,19 @@ TEST = "postgresql://test:another-password@postgres.example.test/backup_cano_res
 
 
 class FakePG:
-    def __init__(self, fail=None):
+    def __init__(self, fail=None, target_objects=0):
         self.calls = []
         self.fail = fail
+        self.target_objects = target_objects
 
     def __call__(self, args, **kwargs):
         self.calls.append((list(args), kwargs["env"].copy()))
         if args[0] == "pg_dump" and self.fail != "pg_dump":
             Path(args[-1]).write_bytes(b"PGDMP" + b"test-private-contents")
+        if args[0] == "psql":
+            return SimpleNamespace(
+                returncode=1 if self.fail == "psql" else 0,
+                stdout=(str(self.target_objects) + "\n").encode("ascii"))
         return SimpleNamespace(returncode=1 if args[0] == self.fail else 0)
 
 
@@ -115,6 +120,54 @@ class PostgresBackupTests(unittest.TestCase):
             restore_to_isolated_test_db(
                 self.path, source_url=SOURCE,
                 target_url="postgresql://host/production", runner=runner)
+
+    def test_populated_restore_target_is_rejected_before_pg_restore(self):
+        runner = FakePG(target_objects=2)
+        create_backup(self.path, database_url=SOURCE, runner=runner)
+        with self.assertRaisesRegex(BackupError, "empty"):
+            restore_to_isolated_test_db(
+                self.path, source_url=SOURCE, target_url=TEST, runner=runner)
+        self.assertFalse(any(
+            args[0] == "pg_restore" and "--single-transaction" in args
+            for args, _ in runner.calls),
+            "Do not restore into an existing database with user objects")
+
+    def test_missing_or_invalid_target_empty_check_fails_closed(self):
+        for reason in ("psql", "unknown"):
+            with self.subTest(reason=reason):
+                runner = FakePG(fail="psql" if reason == "psql" else None,
+                                target_objects="not-an-integer" if reason == "unknown" else 0)
+                create_backup(self.path, database_url=SOURCE, runner=runner)
+                try:
+                    with self.assertRaises(BackupError):
+                        restore_to_isolated_test_db(
+                            self.path, source_url=SOURCE, target_url=TEST,
+                            runner=runner)
+                    self.assertFalse(any(
+                        args[0] == "pg_restore" and "--single-transaction" in args
+                        for args, _ in runner.calls))
+                finally:
+                    self.path.unlink(missing_ok=True)
+                    self.path.with_name("backup.dump.manifest.json").unlink(missing_ok=True)
+
+    def test_empty_target_preflight_is_required_before_restore(self):
+        runner = FakePG(target_objects=0)
+        create_backup(self.path, database_url=SOURCE, runner=runner)
+        result = restore_to_isolated_test_db(
+            self.path, source_url=SOURCE, target_url=TEST, runner=runner)
+        preflight = [i for i, (args, _) in enumerate(runner.calls)
+                     if args[0] == "psql"]
+        restore = [i for i, (args, _) in enumerate(runner.calls)
+                   if args[0] == "pg_restore" and "--single-transaction" in args]
+        self.assertEqual(len(preflight), 1)
+        self.assertEqual(len(restore), 1)
+        self.assertLess(preflight[0], restore[0])
+        args, env = runner.calls[preflight[0]]
+        self.assertIn("--no-psqlrc", args)
+        self.assertNotIn(TEST, repr(args))
+        self.assertEqual(env["PGDATABASE"], "backup_cano_restore_test")
+        self.assertTrue(result["restore_command_succeeded"])
+        self.assertFalse(result["readback_verified"])
 
     def test_isolated_restore_requires_explicit_separate_database(self):
         runner = FakePG()
