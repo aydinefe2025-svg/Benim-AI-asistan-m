@@ -65,6 +65,24 @@ class DiscoverySweepTests(unittest.TestCase):
                 run_discovery_sweep(**args)
 
 
+    def test_first_versioned_save_preserves_legacy_latest_report_exactly(self):
+        report = run_discovery_sweep(screening_seeds=(0, 1, 2),
+                                     confirmation_seeds=(10, 11, 12),
+                                     mutation_rates=(0.0, 0.1), steps=12,
+                                     shift_tick=5, capacity=8)
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "discovery-sweep-latest.json"
+            previous = json.dumps({"schema": "older-report", "result": [1, 2, 3]},
+                                  separators=(",", ":")).encode("utf-8")
+            target.write_bytes(previous)
+
+            saved = save_discovery_sweep(report, target)
+            preserved = list((target.parent / "discovery-sweeps").glob("discovery-sweep-preserved-*.json"))
+            self.assertEqual(len(preserved), 1)
+            self.assertEqual(preserved[0].read_bytes(), previous)
+            self.assertEqual(json.loads(target.read_text(encoding="utf-8")), saved)
+
+
 if __name__ == "__main__":
     unittest.main()
 
