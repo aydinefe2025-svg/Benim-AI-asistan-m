@@ -69,6 +69,30 @@ class ResearchOrchestratorTests(unittest.TestCase):
         self.assertEqual(len(sources), 1)
         self.assertIn("not fetched or verified", sources[0]["notes"])
 
+    def test_opted_in_provider_fallback_is_recorded_as_actual_model_for_all_roles(self):
+        from core.fallback_chat_client import FallbackChatClient
+
+        class UnavailableLocal:
+            def chat(self, model, system, prompt, *, temperature=0.2):
+                raise TimeoutError("local provider timed out")
+
+        remote = FakeClient()
+        failover = FallbackChatClient(
+            UnavailableLocal(), fallback=remote, fallback_model="groq/gpt-oss",
+            allow_fallback=True,
+        )
+        result = ResearchOrchestrator(
+            failover, task_store=self.store, output_dir=self.out_dir,
+        ).run("A bounded test question", research_model="qwen3:8b")
+
+        self.assertEqual(len(remote.calls), 3)
+        self.assertEqual(result["research_model"], "groq/gpt-oss")
+        self.assertEqual(result["skeptic_model"], "groq/gpt-oss")
+        self.assertEqual(result["synthesis_model"], "groq/gpt-oss")
+        self.assertEqual(result["same_model_all_roles"], "true")
+        self.assertIn("Araştırma modeli: groq/gpt-oss", result["report"])
+        self.assertNotIn("Araştırma modeli: qwen3:8b", result["report"])
+
     def test_empty_question_rejected(self):
         with self.assertRaises(ValueError):
             self.orchestrator.run("   ")
