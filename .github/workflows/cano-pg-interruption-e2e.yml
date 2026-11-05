@@ -19,12 +19,16 @@ permissions:
   contents: read
 
 jobs:
-  synthetic-pg18-real-process-crash:
+  synthetic-pg-process-crash:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        pg_major: ["17", "18"]
     services:
       postgres:
-        image: postgres:18
+        image: postgres:${{ matrix.pg_major }}
         env:
           POSTGRES_USER: ci_user
           POSTGRES_PASSWORD: synthetic-ci-only
