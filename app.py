@@ -406,6 +406,15 @@ render_colony_panel(st, answer=_team_answer if GROQ_KEY else None,
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
+    from core.cano_capabilities import capability_reply
+    capability = capability_reply(
+        kullanici_mesaji,
+        persistent_memory=globals().get("_MEMORY_STORE") is not None,
+        persistent_colony=bool(globals().get("_CANO_OWNER_KEY")
+                               and cano_database_url(os.environ)),
+    )
+    if capability is not None:
+        return capability
     # Avoid unrequested external lookups and leaking casual chat to third parties.
     arama_istegi = any(k in kullanici_mesaji.casefold() for k in (
         "araştır", "internette", "internetten", "webde", "web'de",
@@ -427,9 +436,15 @@ def asistani_calistir(kullanici_mesaji):
         except (OSError, ValueError, KeyError, TypeError):
             arama_sonucu += "\nAçık kaynak araması başarısız; sonuç doğrulanamadı."
     saved_context = memory_context(st.session_state.saved_memories, kullanici_mesaji)
+    storage_context = (
+        "Hafıza notları şu anda doğrulanmış giriş hesabının PostgreSQL deposunda saklanır."
+        if globals().get("_MEMORY_STORE") is not None else
+        "Bu oturumdaki hafıza notları yalnızca tarayıcı deposundadır."
+    )
     sistem_talimati = f"""Sen sadece Türkçe konuşan, samimi ve harika bir dijital asistansın.
     İnternetten senin için gelen veri kutusu şudur: {arama_sonucu}
     {saved_context}
+    GÜNCEL ÇALIŞMA DURUMU: {storage_context}
     
     🧰 GERÇEK YETENEKLER VE SINIRLAR:
     - Bu uygulama, yapılandırılmış Groq veya Google modeliyle yanıt üretir.
