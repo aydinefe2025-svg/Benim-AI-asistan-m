@@ -189,12 +189,16 @@ def record_source_claim_review(manager, mission_id, claim_index, *, reviewer_id,
     documents = stages[0].get("source_documents")
     doc = next((candidate for candidate in documents or []
                 if isinstance(candidate, dict)
-                and candidate.get("doi", "").casefold() == item.get("doi", "").casefold()), None)
+                and isinstance(candidate.get("doi"), str)
+                and candidate["doi"].casefold() == item.get("doi", "").casefold()), None)
     if not isinstance(doc, dict) or doc.get("status") not in _READABLE:
         raise ValueError("A retrieved readable source is required")
     if not isinstance(doc.get("excerpt"), str) or not doc["excerpt"].strip():
         raise ValueError("Source excerpt is missing")
-    if not isinstance(doc.get("url"), str) or doc.get("url") != item.get("citation_url"):
+    if _citation_for(doc) is None:
+        raise ValueError("Retrieved source URL is not a safe citation")
+    if (item.get("status") == "quote_found_unverified"
+            and doc.get("url") != item.get("citation_url")):
         raise ValueError("Claim citation does not match the retrieved source")
     if item.get("status") == "quote_found_unverified":
         if _normalized(item.get("quote", "")) not in _normalized(doc["excerpt"]):
