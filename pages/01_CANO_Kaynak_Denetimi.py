@@ -12,6 +12,7 @@ from core.groq_team import TeamRateLimitError
 from core.groq_claim_json import generate_claim_quote_json
 from core.cano_command_center import _snapshot
 from core.colony_postgres import ColonySnapshotStore
+from core.storage_config import cano_database_url
 from core.colony_restore import restore_owner_backup
 from core.browser_colony import (
     browser_colony_component, browser_write_confirmed, encode_browser_colony_backup,
@@ -41,7 +42,7 @@ if not missions:
         st.info("Bu oturumda kaynak denetimi görevi yok. Hesabınızın kalıcı yedeğini güvenli biçimde geri yükleyebilirsiniz.")
         if st.button("Hesabıma ait CANO yedeğini geri yükle", key="cano_evidence_restore"):
             try:
-                store = ColonySnapshotStore(os.environ["DATABASE_URL"])
+                store = ColonySnapshotStore(cano_database_url(os.environ))
                 store.verify_schema()
                 restore_result = restore_owner_backup(
                     colony, store, owner, approved=True,
@@ -97,7 +98,7 @@ class Client:
 if documents and key and st.button("İddiaları kaynak alıntılarıyla karşılaştır (1 model çağrısı)"):
     try:
         if owner:
-            store = ColonySnapshotStore(os.environ["DATABASE_URL"])
+            store = ColonySnapshotStore(cano_database_url(os.environ))
             store.verify_schema()
             store.save_versioned_verified(owner, _snapshot(colony))
         audit_claim_quotes(manager, mid, client=Client(), model="configured-provider")
