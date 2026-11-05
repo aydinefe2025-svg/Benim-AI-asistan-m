@@ -3,6 +3,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 from organism_lab.reproduction_study import run_study, save_study
@@ -40,7 +41,7 @@ class StudyVerifierTests(unittest.TestCase):
             verify_saved_study(self.paths)
 
     def test_rejects_corrupted_sqlite(self):
-        with sqlite3.connect(self.paths["database_path"]) as conn:
+        with closing(sqlite3.connect(self.paths["database_path"])) as conn, conn:
             conn.execute("DELETE FROM studies WHERE study_id = ?", (self.paths["study_id"],))
         with self.assertRaisesRegex(ValueError, "SQLite"):
             verify_saved_study(self.paths)
