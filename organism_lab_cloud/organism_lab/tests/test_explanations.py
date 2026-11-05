@@ -2,6 +2,7 @@ import unittest
 
 from organism_lab.explanations import (
     explain_adaptation_study,
+    explain_discovery_sweep,
     explain_reproduction_study,
     explain_shared_world,
 )
@@ -11,6 +12,30 @@ from organism_lab.adaptation_study import run_adaptation_study
 
 
 class ExplanationTests(unittest.TestCase):
+    def test_discovery_explanation_leads_with_plain_language_result(self):
+        explanation = explain_discovery_sweep({
+            "status": "replicated_simulation_candidate",
+            "selected_candidate": {"mutation_rate": 0.2},
+            "confirmation": {"mean_difference": 0.8634, "approx_ci95_low": 0.8474,
+                             "approx_ci95_high": 0.8794},
+            "design": {"screening_seeds": list(range(10)),
+                       "confirmation_seeds": list(range(30))},
+        })
+        self.assertIn("20% mutasyon", explanation["finding"])
+        self.assertIn("86.3 yüzde puan", explanation["finding"])
+        self.assertIn("10 farklı başlangıç", explanation["finding"])
+        self.assertIn("30 başlangıçla tekrar", explanation["finding"])
+        self.assertIn("uyarı", explanation["warning_explanation"])
+
+    def test_discovery_explanation_does_not_call_failed_confirmation_a_finding(self):
+        explanation = explain_discovery_sweep({
+            "status": "not_reproduced_on_confirmation_seeds",
+            "selected_candidate": {"mutation_rate": 0.2},
+            "confirmation": {"mean_difference": 0.01},
+            "design": {"screening_seeds": [1], "confirmation_seeds": [2]},
+        })
+        self.assertIn("desteklemedi", explanation["finding"])
+
     def test_shared_world_explanation_matches_computed_metrics_and_states_limits(self):
         result = run_shared_world(steps=4, energy=40, materials=12)
         explanation = explain_shared_world(result)
