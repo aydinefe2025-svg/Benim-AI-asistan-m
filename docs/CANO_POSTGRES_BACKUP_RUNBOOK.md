@@ -45,8 +45,11 @@ Before running the write-capable `pg_restore`, the tool uses read-only `psql`
 catalog queries against the chosen target to reject nonempty user schemas,
 relations, routines and user-defined types. An unavailable `psql` client,
 unreadable catalog or any nonzero/non-numeric result **aborts the restore**.
-The target URL is passed only through sanitized libpq environment variables;
-no passwords or entire database URL go into subprocess command arguments.
+The target URL is parsed into sanitized libpq environment variables;
+only a strictly validated, ordinary database name is passed as `pg_restore --dbname`.
+PostgreSQL requires `--dbname` for a direct database restore; without it,
+`PGDATABASE` alone does not select a restore destination. No passwords or
+entire connection URL go into subprocess command arguments.
 This check does not eliminate the time-of-check/time-of-use race if another
 writer modifies the target after preflight: arrange exclusive access to the
 isolated destination while testing recovery.
