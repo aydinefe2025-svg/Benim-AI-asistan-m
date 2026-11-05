@@ -26,10 +26,17 @@ class AnswerAdapter:
 
 def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
     with st.sidebar.expander("🧬 Öğrenen uzman ajanlar", expanded=False):
-        st.caption(
+        description = (
             "Ajanlar yapılandırılmış uzman örnekleridir; kendi kendine çalışan süreçler "
-            "veya eğitilmiş yeni modeller değildir. İşlemler yalnızca düğmeye basınca çalışır. "
-            "Kayıtlar oturuma özel geçici SQLite dosyasındadır; JSON yedeği alın.")
+            "veya eğitilmiş yeni modeller değildir. İşlemler yalnızca düğmeye basınca çalışır.")
+        if owner_key and database_url:
+            st.caption(
+                description + " Koloni değişiklikleri oturum SQLite'ında işlenir ve "
+                "hesaba bağlı PostgreSQL yedeğine CAS doğrulamasıyla kaydedilir.")
+        else:
+            st.caption(
+                description + " Kayıtlar oturuma özel geçici SQLite dosyasındadır; "
+                "JSON yedeği alın.")
         base = os.environ.get("AGENT_COLONY_DB_PATH", "data/agent_colony.sqlite3")
         try:
             colony = AgentColony(_session_database_path(st, base), max_agents=12)

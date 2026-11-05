@@ -103,5 +103,30 @@ class SidebarBackupCASTests(unittest.TestCase):
                          self.current_payload)
 
 
+    def test_storage_caption_matches_owner_database_configuration(self):
+        from unittest.mock import Mock
+
+        persistent = PanelFake(clicks={"no_action"})
+        with patch("core.colony_panel._session_database_path",
+                   return_value=str(self.path)), patch(
+                     "core.colony_panel.ColonySnapshotStore", return_value=Mock()
+                   ):
+            render_colony_panel(
+                persistent, owner_key="owner-A",
+                database_url="postgresql://synthetic")
+        persistent_text = " ".join(persistent.messages)
+        self.assertIn("hesaba bağlı PostgreSQL yedeğine CAS doğrulamasıyla kaydedilir",
+                      persistent_text)
+        self.assertNotIn("Kayıtlar oturuma özel geçici SQLite", persistent_text)
+
+        local = PanelFake(clicks={"no_action"})
+        with patch("core.colony_panel._session_database_path",
+                   return_value=str(self.path)):
+            render_colony_panel(local)
+        local_text = " ".join(local.messages)
+        self.assertIn("Kayıtlar oturuma özel geçici SQLite", local_text)
+        self.assertNotIn("hesaba bağlı PostgreSQL yedeğine CAS", local_text)
+
+
 if __name__ == "__main__":
     unittest.main()
