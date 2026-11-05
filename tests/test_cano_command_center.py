@@ -277,7 +277,8 @@ class CommandCenterTests(unittest.TestCase):
             render_cano_command_center(
                 st, owner_key="owner", database_url="postgresql://synthetic")
         self.assertTrue(st.session_state["cano_open_restore_panel"])
-        self.assertIn("Yedeği şimdi geri yükle", " ".join(st.messages))
+        self.assertNotIn("cano_open_restore_panel", st.clicks,
+                         "The direct restore button was rendered and clicked")
         self.assertIn("rerun", st.messages)
 
     def test_authenticated_account_never_reads_anonymous_local_backup(self):
