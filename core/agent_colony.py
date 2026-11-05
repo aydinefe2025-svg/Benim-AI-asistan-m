@@ -207,8 +207,10 @@ class AgentColony:
             raise ValueError("Task too long")
         lessons = self.lessons(agent_id) if include_lessons else []
         memory = json.dumps(lessons, ensure_ascii=False)
-        prompt = (f"Task: {task.strip()}\\nAccepted past lessons (not verified facts): "
-                  f"{memory}\\nSeparate facts, hypotheses and missing evidence.")
+        prompt = (f"Task: {task.strip()}\n"
+                  "Accepted past lessons (not verified facts):\n"
+                  f"{memory}\n"
+                  "Separate facts, hypotheses and missing evidence.")
         output = client.chat(model, agent["instructions"] +
                              " Do not claim unverified results as facts.", prompt)
         if not isinstance(output, str) or not output.strip():

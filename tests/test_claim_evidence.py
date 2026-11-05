@@ -6,7 +6,7 @@ from pathlib import Path
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
-from core.claim_evidence import audit_claim_quotes
+from core.claim_evidence import audit_claim_quotes, record_source_claim_review
 from core.targeted_research import execute_targeted_research
 
 
@@ -167,6 +167,88 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(leads[0]["url"], "https://doi.org/" + DOI)
         self.assertEqual(len(leads), 3)
         self.assertFalse(leads[0]["verified"])
+
+
+    def test_authenticated_full_text_review_verifies_only_the_claim_and_persists_audit(self):
+        self.manager.inspect_source_documents(
+            self.mission_id,
+            reader=lambda doi: {
+                "doi": doi, "status": "full_text_excerpt",
+                "title": "Original research",
+                "url": "https://europepmc.org/articles/PMC1234567",
+                "excerpt": QUOTE + " Study results follow.",
+                "claim_verified": False})
+        model = QuoteModel([{"claim": "Targeted nucleases are powerful genome tools",
+                             "doi": DOI, "quote": QUOTE}])
+        audit_claim_quotes(self.manager, self.mission_id, client=model, model="stub")
+        reviewer = "oidc_" + "a" * 64
+        with self.assertRaises(ValueError):
+            record_source_claim_review(
+                self.manager, self.mission_id, 0, reviewer_id=reviewer,
+                supported=True, rationale="The article supports this result.",
+                primary_source_confirmed=False)
+        with self.assertRaises(PermissionError):
+            record_source_claim_review(
+                self.manager, self.mission_id, 0, reviewer_id="reviewer",
+                supported=True, rationale="The article supports this result.",
+                primary_source_confirmed=True)
+        result = record_source_claim_review(
+            self.manager, self.mission_id, 0, reviewer_id=reviewer,
+            supported=True,
+            rationale="The full-text results directly support this specific claim.",
+            primary_source_confirmed=True)
+        self.assertTrue(result["claim_verified"])
+        self.assertEqual(result["human_review"]["status"], "human_reviewed_supported")
+        self.assertEqual(result["human_review"]["reviewer_id"], reviewer)
+        mission = self.manager.get(self.mission_id)
+        self.assertEqual(mission["status"], "review_pending")
+        events = mission["stages"][0]["source_claim_review_events"]
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["evidence_digest"], result["human_review"]["evidence_digest"])
+
+    def test_abstract_or_unmatched_quote_cannot_be_accepted_but_can_be_rejected(self):
+        self.add_excerpt()
+        model = QuoteModel([{"claim": "Targeted nucleases are powerful genome tools",
+                             "doi": DOI, "quote": QUOTE}])
+        audit_claim_quotes(self.manager, self.mission_id, client=model, model="stub")
+        with self.assertRaises(ValueError):
+            record_source_claim_review(
+                self.manager, self.mission_id, 0,
+                reviewer_id="oidc_" + "b" * 64, supported=True,
+                rationale="An abstract is not enough for primary-source review.",
+                primary_source_confirmed=True)
+        result = record_source_claim_review(
+            self.manager, self.mission_id, 0,
+            reviewer_id="oidc_" + "b" * 64, supported=False,
+            rationale="The abstract does not establish this specific claim.",
+            primary_source_confirmed=False)
+        self.assertFalse(result["claim_verified"])
+        self.assertEqual(result["human_review"]["status"], "human_reviewed_not_supported")
+        self.assertEqual(self.manager.get(self.mission_id)["status"], "review_pending")
+
+    def test_human_acceptance_cannot_use_a_changed_or_mismatched_source(self):
+        self.manager.inspect_source_documents(
+            self.mission_id,
+            reader=lambda doi: {
+                "doi": doi, "status": "full_text_excerpt",
+                "url": "https://europepmc.org/articles/PMC1234567",
+                "excerpt": "A different passage that does not match the proposed quotation.",
+                "claim_verified": False})
+        model = QuoteModel([{"claim": "Unsupported claim", "doi": DOI, "quote": QUOTE}])
+        audit_claim_quotes(self.manager, self.mission_id, client=model, model="stub")
+        with self.assertRaises(ValueError):
+            record_source_claim_review(
+                self.manager, self.mission_id, 0,
+                reviewer_id="oidc_" + "c" * 64, supported=True,
+                rationale="The full-text data directly support this claim.",
+                primary_source_confirmed=True)
+        result = record_source_claim_review(
+            self.manager, self.mission_id, 0,
+            reviewer_id="oidc_" + "c" * 64, supported=False,
+            rationale="The quoted passage is absent from the retrieved text.",
+            primary_source_confirmed=False)
+        self.assertFalse(result["claim_verified"])
+        self.assertEqual(result["human_review"]["status"], "human_reviewed_not_supported")
 
 
 if __name__ == "__main__":

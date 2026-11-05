@@ -20,6 +20,7 @@ from core.colony_restore import restore_empty_colony, restore_owner_backup
 from core.cano_owner_checkpoint import bind_restored_owner_baseline
 from core.authentication import auth_is_required
 from core.groq_team import TeamRateLimitError
+from core.cano_chat_tasks import stage_execution_notice
 from core.scientific_sources import scientific_sources
 from core.task_panel import _session_database_path
 
@@ -137,9 +138,9 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
         if status["agents"] == 0 and remote_snapshot is not None and any(
                 remote_snapshot.get(name)
                 for name in ("agents", "feedback", "reviews", "missions")):
-            # The current identity is authenticated and this session-local
-            # database is empty. Restore only this owner's validated snapshot;
-            # never merge into or overwrite a nonempty local colony.
+            # Identity is verified, and the session-local destination is empty.
+            # Restore only this owner's validated snapshot; never overwrite or
+            # merge with a nonempty local colony.
             try:
                 restored = restore_owner_backup(
                     colony, backup_store, owner_key, approved=True,
@@ -367,7 +368,17 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             for stage in latest["stages"]:
                 with st.expander(names.get(stage["role"], stage["role"]),
                                  expanded=(stage["role"] == "synthesis")):
+                    legacy_notice = stage_execution_notice(stage)
+                    if legacy_notice:
+                        st.warning(legacy_notice)
+                    st.caption("Bu aşama model metnidir; kod, cihaz veya fiziksel deney "
+                               "çalıştırılmadı. Gerçek kaynak okuma kayıtları ayrıca gösterilir.")
                     st.markdown(stage["output"])
+                    lessons_used = stage.get("approved_lessons_used")
+                    if type(lessons_used) is int and lessons_used >= 0:
+                        st.caption(
+                            f"Bu aşamaya eklenen kabul edilmiş ders sayısı: {lessons_used}. "
+                            "Bu sayı, dersin sonucu iyileştirdiğini kanıtlamaz.")
                     if stage["role"] == "planner" and "source_lookup_status" in stage:
                         st.caption("DOI adayları: " + stage["source_lookup_status"] +
                                    ". Yalnızca bibliyografik metadata; tam metin doğrulanmadı.")

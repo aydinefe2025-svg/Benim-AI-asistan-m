@@ -19,6 +19,11 @@ class PanelFake(FakeStreamlit):
     def __init__(self, clicks=None):
         super().__init__(clicks=clicks or {"colony_postgres_save"})
         self.sidebar = self
+        self.expander_options = []
+
+    def expander(self, *args, **kwargs):
+        self.expander_options.append(kwargs)
+        return super().expander(*args, **kwargs)
 
     def text_input(self, label, **kwargs):
         return ""
@@ -57,7 +62,7 @@ class SidebarBackupCASTests(unittest.TestCase):
         class SimulatedRemote:
             def verify_schema(self): return None
             def save_versioned_verified(self, owner, payload, *,
-                                        expected_prior=None, archive_prior=True):
+                                        expected_prior=None):
                 if expected_prior is not None and expected_prior != remote["payload"]:
                     raise RuntimeError("Stale writer refused")
                 remote["payload"] = copy.deepcopy(payload)
@@ -98,10 +103,43 @@ class SidebarBackupCASTests(unittest.TestCase):
         store = Mock()
         self._render(st, store)
         store.save_versioned_verified.assert_called_once_with(
-            "owner-A", self.current_payload, expected_prior=self.base_payload,
-            archive_prior=True)
+            "owner-A", self.current_payload, expected_prior=self.base_payload)
         self.assertEqual(st.session_state["_cano_backup_expected"],
                          self.current_payload)
+
+
+    def test_restore_cta_opens_sidebar_restore_panel_once(self):
+        st = PanelFake(clicks={"no_action"})
+        st.session_state["_cano_restore_panel_open_requested"] = True
+        with patch("core.colony_panel._session_database_path",
+                   return_value=str(self.path)):
+            self._render(st, store=None)
+        self.assertTrue(st.expander_options[0]["expanded"])
+        self.assertNotIn("_cano_restore_panel_open_requested", st.session_state)
+
+    def test_storage_caption_matches_owner_database_configuration(self):
+        from unittest.mock import Mock
+
+        persistent = PanelFake(clicks={"no_action"})
+        with patch("core.colony_panel._session_database_path",
+                   return_value=str(self.path)), patch(
+                     "core.colony_panel.ColonySnapshotStore", return_value=Mock()
+                   ):
+            render_colony_panel(
+                persistent, owner_key="owner-A",
+                database_url="postgresql://synthetic")
+        persistent_text = " ".join(persistent.messages)
+        self.assertIn("hesaba bağlı PostgreSQL yedeğine CAS doğrulamasıyla kaydedilir",
+                      persistent_text)
+        self.assertNotIn("Kayıtlar oturuma özel geçici SQLite", persistent_text)
+
+        local = PanelFake(clicks={"no_action"})
+        with patch("core.colony_panel._session_database_path",
+                   return_value=str(self.path)):
+            render_colony_panel(local)
+        local_text = " ".join(local.messages)
+        self.assertIn("Kayıtlar oturuma özel geçici SQLite", local_text)
+        self.assertNotIn("hesaba bağlı PostgreSQL yedeğine CAS", local_text)
 
 
 if __name__ == "__main__":

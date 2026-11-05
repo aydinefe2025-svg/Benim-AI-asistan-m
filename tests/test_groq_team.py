@@ -38,6 +38,8 @@ class TeamBudgetTests(unittest.TestCase):
         self.assertEqual(payload["messages"][1]["content"],
                          "Aşağıdaki araştırmayı yap")
         self.assertIn("kaynak", payload["messages"][0]["content"].casefold())
+        self.assertIn("Yapılmamış deneyleri yapılmış gibi anlatma",
+                      payload["messages"][0]["content"])
 
     def test_provider_429_is_explicit_without_secrets(self):
         class Error429(Exception):
