@@ -426,8 +426,19 @@ if "organism_discovery_report" in st.session_state:
             options=["En son tarama", *history_labels],
             key="organism_discovery_selection",
         )
-        if selected_discovery != "En son tarama":
-            discovery_path_display, discovery = history_labels[selected_discovery]
+        try:
+            discovery_path_display, discovery = discovery_sweep.select_discovery_sweep(
+                OUTPUT_DIR / "discovery-sweep-latest.json",
+                selected_discovery,
+                history_labels,
+            )
+            if selected_discovery == "En son tarama":
+                st.session_state["organism_discovery_report"] = discovery
+                st.session_state["organism_discovery_path"] = str(discovery_path_display)
+        except (OSError, ValueError, KeyError, TypeError):
+            st.error("Seçilen tarama raporu okunamadı; arşiv dosyaları değiştirilmedi.")
+            discovery = st.session_state["organism_discovery_report"]
+            discovery_path_display = st.session_state.get("organism_discovery_path")
     status = discovery.get("status")
     status_text = {
         "replicated_simulation_candidate": "Aday ayrı tohumlarla tekrarlandı; yalnızca bu simülasyonda desteklendi.",
