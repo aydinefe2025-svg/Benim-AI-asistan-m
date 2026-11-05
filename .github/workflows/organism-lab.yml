@@ -6,6 +6,10 @@ on:
   pull_request:
     paths:
       - 'organism_lab/**'
+      - 'core/organism_lab_panel.py'
+      - 'app.py'
+      - 'tests/test_streamlit_startup.py'
+      - 'tests/test_organism_lab_panel.py'
       - '.github/workflows/organism-lab.yml'
 jobs:
   unittest:
