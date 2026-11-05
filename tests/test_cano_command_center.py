@@ -265,20 +265,28 @@ class CommandCenterTests(unittest.TestCase):
             render_cano_command_center(st3, answer=model)
             self.assertEqual(st3.metrics["Uzman"], 0)
 
-    def test_persistent_backup_shows_direct_restore_action(self):
+    def test_authenticated_empty_session_automatically_restores_owner_backup(self):
         from core.colony_postgres import ColonySnapshotStore
-        st = FakeStreamlit(clicks={"cano_open_restore_panel"})
+        st = FakeStreamlit()
+        saved = {
+            "agents": [{
+                "id": "saved-agent", "parent_id": None, "generation": 0,
+                "role": "research", "instructions": "Research",
+                "state": "active", "created_at": "2026-11-04"}],
+            "feedback": [], "reviews": [], "missions": []
+        }
         with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
               patch.object(ColonySnapshotStore, "__init__", return_value=None),
               patch.object(ColonySnapshotStore, "verify_schema"),
-              patch.object(ColonySnapshotStore, "load", return_value={
-                  "agents": [{"id": "saved-agent"}], "feedback": [], "reviews": [], "missions": []
-              })):
+              patch.object(ColonySnapshotStore, "load", return_value=saved)):
             render_cano_command_center(
                 st, owner_key="owner", database_url="postgresql://synthetic")
-        self.assertTrue(st.session_state["_cano_restore_panel_open_requested"])
-        self.assertNotIn("cano_open_restore_panel", st.clicks,
-                         "The direct restore button was rendered and clicked")
+        self.assertIn("geri yüklendi", " ".join(st.messages).lower())
+        self.assertEqual(st.session_state["_cano_backup_expected"], saved)
+        local = AgentColony(_session_database_path(st, self.db_base))
+        with local._db() as db:
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 1)
         self.assertIn("rerun", st.messages)
 
     def test_authenticated_account_never_reads_anonymous_local_backup(self):
