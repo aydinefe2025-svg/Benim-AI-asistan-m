@@ -55,6 +55,13 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                     or "_cano_backup_expected" not in st.session_state):
                 raise RuntimeError("Authenticated owner backup baseline is missing")
             current = _snapshot(colony)
+            expected = st.session_state["_cano_backup_expected"]
+            if (not current["agents"] and isinstance(expected, dict)
+                    and any(expected.get(name)
+                            for name in ("agents", "feedback", "reviews", "missions"))):
+                # A missing local database must not erase an existing owner's
+                # complete remote research archive. Restore it first.
+                raise RuntimeError("Empty local colony cannot replace an existing owner backup")
             backup_store = ColonySnapshotStore(database_url)
             backup_store.verify_schema()
             backup_store.save_versioned_verified(
@@ -100,9 +107,13 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                     st.warning("Geri yüklemek için önce açık onay verin.")
                 else:
                     try:
+                        owner_store = ColonySnapshotStore(database_url)
                         count = restore_owner_backup(
-                            colony, ColonySnapshotStore(database_url),
-                            owner_key, approved=confirm_restore)
+                            colony, owner_store, owner_key, approved=confirm_restore)
+                        # The next checkpoint must compare against this exact
+                        # authenticated remote readback, not an old empty baseline.
+                        st.session_state["_cano_backup_owner_key"] = owner_key
+                        st.session_state["_cano_backup_expected"] = owner_store.load(owner_key)
                         st.success(f"{count} uzman geri yüklendi ve SQLite kayıtları doğrulandı.")
                         st.rerun()
                     except LookupError:
@@ -169,12 +180,17 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                     st.error("Yedek 2 MB sınırını aşıyor; veri değiştirilmedi.")
                 else:
                     try:
-                        count = restore_colony_json_bytes(
-                            colony, backup_upload.getvalue())
-                        st.success(f"{count} ajan JSON yedekten geri yüklendi.")
-                        st.rerun()
-                    except (ValueError, RuntimeError, OSError, sqlite3.Error):
-                        st.error("Yedek geçersiz veya mevcut kayıtlar dolu; veri değiştirilmedi.")
+                        saved, count = _persist_mutation(
+                            lambda: restore_colony_json_bytes(
+                                colony, backup_upload.getvalue()))
+                        if saved:
+                            st.success(f"{count} ajan JSON yedekten geri yüklendi." +
+                                       (" Hesap yedeği doğrulandı." if owner_key and database_url
+                                        else " Kalıcı kayıt için JSON yedeğini saklayın."))
+                            st.rerun()
+                    except Exception:
+                        st.error("JSON geri yükleme veya PostgreSQL yedeği doğrulanamadı; "
+                                 "yerel veriler değişmiş olabilir, JSON yedeğinizi koruyun.")
             if st.button("Kurucu araştırma ajanını oluştur", key="colony_founder"):
                 try:
                     saved, _ = _persist_mutation(lambda: colony.create_founder(
