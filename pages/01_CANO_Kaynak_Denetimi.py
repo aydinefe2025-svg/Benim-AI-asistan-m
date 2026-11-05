@@ -7,7 +7,7 @@ from core.authentication import render_auth_gate
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.task_panel import _session_database_path
-from core.claim_evidence import audit_claim_quotes
+from core.claim_evidence import audit_claim_quotes, record_source_claim_review
 from core.groq_team import TeamRateLimitError
 from core.groq_claim_json import generate_claim_quote_json
 from core.cano_command_center import _snapshot
@@ -114,15 +114,72 @@ if documents and key and st.button("İddiaları kaynak alıntılarıyla karşıl
         st.warning("Alıntı denetimi tamamlanamadı; önceki kayıtlar korunuyor.")
 if not key:
     st.warning("Model bağlantısı yok; yeni iddia denetimi çalıştırılmadı.")
-for item in manager.get(mid)["stages"][0].get("source_claim_audit", []):
+reviewed_mission = manager.get(mid)
+for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_claim_audit", [])):
+    docs = reviewed_mission["stages"][0].get("source_documents", [])
+    source = next((doc for doc in docs
+                   if isinstance(doc, dict)
+                   and doc.get("doi", "").casefold() == item.get("doi", "").casefold()), None)
     if item["status"] == "quote_found_unverified":
-        st.success("Alıntı kaynakta bulundu; iddianın doğruluğu henüz kanıtlanmadı.")
+        st.success("Alıntı kaynakta bulundu; iddianın doğruluğu henüz incelenmedi.")
         st.caption(item["claim"] + " — " + item["doi"])
         st.code(item["quote"])
         st.link_button("Kaynağı aç", item["citation_url"])
     else:
         st.warning("Önerilen alıntı ilgili kaynakta bulunmadı.")
         st.caption(item["claim"])
+
+    human_review = item.get("human_review")
+    if human_review:
+        label = ("İnsan tarafından birincil kaynağa göre desteklendi"
+                 if human_review.get("supported")
+                 else "İnsan incelemesinde desteklenmedi")
+        st.info(label + ": " + human_review.get("rationale", ""))
+    if not owner:
+        st.caption("Karar kaydı yalnızca Google OIDC ile doğrulanmış hesapta kullanılabilir.")
+        continue
+    if not isinstance(source, dict) or source.get("status") not in {"full_text_excerpt", "abstract_excerpt"}:
+        st.caption("Okunabilir kaynak yok; iddia için onay kaydedilemez.")
+        continue
+    if source.get("url"):
+        st.link_button("İncelenecek kaynağı aç", source["url"])
+    can_accept = (
+        item.get("status") == "quote_found_unverified"
+        and source.get("status") == "full_text_excerpt"
+    )
+    if not can_accept:
+        st.caption("Kabul için eşleşen alıntı ve alınmış tam metin gerekir; bu kayıt yalnızca reddedilebilir.")
+    with st.form(f"claim_source_review_{mid}_{claim_index}"):
+        decision = st.radio(
+            "Kaynak değerlendirmesi",
+            ["Kaynak iddiayı destekliyor", "Kaynak iddiayı desteklemiyor"]
+            if can_accept else ["Kaynak iddiayı desteklemiyor"],
+            key=f"claim_decision_{mid}_{claim_index}")
+        primary_confirmed = st.checkbox(
+            "Tam metni inceleyip bunun birincil araştırma verisi olduğunu ve sonuçların iddiayı doğrudan desteklediğini doğruladım.",
+            value=False, key=f"claim_primary_{mid}_{claim_index}",
+            disabled=not can_accept)
+        rationale = st.text_area(
+            "İnceleme gerekçesi (en az 20 karakter)",
+            max_chars=1000, key=f"claim_rationale_{mid}_{claim_index}")
+        submitted_review = st.form_submit_button("İnsan incelemesini kaydet")
+    if submitted_review:
+        supported = decision == "Kaynak iddiayı destekliyor"
+        try:
+            store = ColonySnapshotStore(cano_database_url(os.environ))
+            store.verify_schema()
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony))
+            result = record_source_claim_review(
+                manager, mid, claim_index, reviewer_id=owner,
+                supported=supported, rationale=rationale,
+                primary_source_confirmed=primary_confirmed)
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony),
+                                  archive_prior=False)
+        except (ValueError, PermissionError, RuntimeError, OSError, sqlite3.Error):
+            st.warning("İnceleme kaydedilmedi; kaynak ve mevcut yedek korundu.")
+        else:
+            st.success("İnceleme denetim geçmişine ve hesap yedeğine kaydedildi.")
+            st.rerun()
 st.caption("Bu oturumun kaynak denetimi kayıtlarını saklamak için yedek alın.")
 if not owner:
     save_in_browser = st.checkbox(
