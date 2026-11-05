@@ -194,3 +194,61 @@ def run_paired_benchmark(
         "regressed_case_ids": [item["case_id"] for item in case_outcomes
                                if item["outcome"] == "regressed"],
     }
+
+def run_colony_memory_benchmark(
+    colony,
+    agent_id: str,
+    cases: Sequence[BenchmarkCase],
+    *,
+    client,
+    model: str,
+    source_refs: tuple[str, ...],
+    safety_pass: bool = False,
+) -> dict:
+    """Measure one colony agent with accepted lessons off vs on.
+
+    Each condition runs twice on the same cases (four responder calls per case).
+    This helper performs no calls itself beyond the explicitly supplied
+    client.chat responder. Keep suites to at most 10 cases (40 model calls)
+    and use a local/mock client for free validation before any paid provider.
+    Raw prompts and model outputs are never included in the returned report.
+    """
+    from core.agent_colony import AgentColony
+
+    if not isinstance(colony, AgentColony):
+        raise ValueError("colony must be an AgentColony")
+    if not isinstance(agent_id, str) or not agent_id.strip():
+        raise ValueError("agent_id is required")
+    if not isinstance(model, str) or not model.strip():
+        raise ValueError("model is required")
+    if not callable(getattr(client, "chat", None)):
+        raise ValueError("client must provide a callable chat method")
+    canonical = _canonical_cases(cases)
+    if len(canonical) > 10:
+        raise ValueError("Colony benchmark is limited to 10 cases (40 model calls)")
+    # Fail before invoking the responder if the agent does not exist.
+    colony.get(agent_id)
+    lesson_count = len(colony.lessons(agent_id))
+
+    def respond(prompt: str, *, include_lessons: bool) -> str:
+        result = colony.run(
+            agent_id, prompt, client=client, model=model,
+            include_lessons=include_lessons,
+        )
+        return result["output"]
+
+    result = run_paired_benchmark(
+        "no-approved-lessons",
+        "accepted-lessons-enabled",
+        cases,
+        lambda prompt: respond(prompt, include_lessons=False),
+        lambda prompt: respond(prompt, include_lessons=True),
+        source_refs=source_refs,
+        safety_pass=safety_pass,
+    )
+    return {
+        **result,
+        "memory_lessons_available": lesson_count,
+        "comparison": "accepted_feedback_retrieval_only",
+        "model_weights_updated": False,
+    }

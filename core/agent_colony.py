@@ -188,7 +188,16 @@ class AgentColony:
             "model_weights_updated": False,
         }
 
-    def run(self, agent_id, task, *, client, model, internal_review=False):
+    def run(self, agent_id, task, *, client, model, internal_review=False,
+            include_lessons=True):
+        """Run one bounded draft, optionally without accepted feedback lessons.
+
+        The switch exists for controlled paired evaluation. Normal calls keep
+        the historical memory-enabled behavior; disabling memory never changes
+        or deletes stored feedback.
+        """
+        if type(include_lessons) is not bool:
+            raise ValueError("include_lessons must be boolean")
         agent = self.get(agent_id)
         if agent["state"] != "active":
             raise RuntimeError("Agent is inactive")
@@ -196,7 +205,8 @@ class AgentColony:
             raise ValueError("Task required")
         if len(task) > (26000 if internal_review else 3000):
             raise ValueError("Task too long")
-        memory = json.dumps(self.lessons(agent_id), ensure_ascii=False)
+        lessons = self.lessons(agent_id) if include_lessons else []
+        memory = json.dumps(lessons, ensure_ascii=False)
         prompt = (f"Task: {task.strip()}\\nAccepted past lessons (not verified facts): "
                   f"{memory}\\nSeparate facts, hypotheses and missing evidence.")
         output = client.chat(model, agent["instructions"] +
@@ -206,4 +216,4 @@ class AgentColony:
         if len(output) > 12000:
             raise RuntimeError("Model response exceeds review storage limit")
         return {"agent_id": agent_id, "output": output, "status": "draft_unverified",
-                "lessons_used": len(self.lessons(agent_id)), "model": model}
+                "lessons_used": len(lessons), "model": model}
