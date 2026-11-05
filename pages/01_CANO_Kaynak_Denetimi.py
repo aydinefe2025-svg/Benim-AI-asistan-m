@@ -52,8 +52,16 @@ if not missions:
                 st.warning(
                     "Eski CANO yedeğinde geri yükleme için gerekli alanlar eksik; "
                     "mevcut kayıtlar ve kalıcı yedek korunuyor.")
-            except (KeyError, LookupError, RuntimeError, OSError):
-                st.warning("Hesabınıza ait yedek geri yüklenemedi; mevcut kayıtlar değiştirilmedi.")
+            except KeyError:
+                st.warning("Yedek kaydının beklenen alanı eksik; mevcut kayıtlar ve kalıcı yedek korundu.")
+            except LookupError:
+                st.warning("Bu hesap için eşleşen kalıcı yedek bulunamadı; başka hesapların kayıtları açılmadı.")
+            except PermissionError:
+                st.warning("Kalıcı yedek erişim izni doğrulanamadı; hiçbir kayıt değiştirilmedi.")
+            except RuntimeError:
+                st.warning("Geri yükleme güvenli biçimde durdu; mevcut kayıtlar ve kalıcı yedek korundu.")
+            except OSError:
+                st.warning("Yerel oturum depolaması kullanılamadı; kalıcı yedek değiştirilmedi.")
             except Exception:
                 st.error("Kalıcı yedek servisi kullanılamıyor; hiçbir kayıt değiştirilmedi.")
             else:
