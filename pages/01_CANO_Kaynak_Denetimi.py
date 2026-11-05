@@ -120,7 +120,9 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
     docs = reviewed_mission["stages"][0].get("source_documents", [])
     source = next((doc for doc in docs
                    if isinstance(doc, dict)
-                   and doc.get("doi", "").casefold() == item.get("doi", "").casefold()), None)
+                   and isinstance(doc.get("doi"), str)
+                   and isinstance(item.get("doi"), str)
+                   and doc["doi"].casefold() == item["doi"].casefold()), None)
     if item["status"] == "quote_found_unverified":
         st.success("Alıntı kaynakta bulundu; iddianın doğruluğu henüz incelenmedi.")
         st.caption(item["claim"] + " — " + item["doi"])
