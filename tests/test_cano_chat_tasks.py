@@ -29,7 +29,7 @@ class CountingClient:
 
 
 class CanoChatTasksTests(unittest.TestCase):
-    def test_app_chat_function_routes_task_and_reuses_saved_id_without_provider_calls(self):
+    def test_app_chat_function_requires_new_preview_even_for_reused_saved_id(self):
         app = Path(__file__).resolve().parents[1] / "app.py"
         tree = ast.parse(app.read_text(encoding="utf-8"))
         function = next(node for node in tree.body
@@ -68,8 +68,75 @@ class CanoChatTasksTests(unittest.TestCase):
             }
             replay = namespace["asistani_calistir"](
                 "CANO görev: küçük bir karşılaştırma yap", approved=True)
-            self.assertIn("yeni model çağrısı: 0", replay)
+            self.assertIn("onay", replay.casefold())
             self.assertEqual(len(calls), 4)
+
+    def test_approved_call_without_matching_preview_must_not_run_or_mutate(self):
+        """A boolean approval alone is not consent for a new request ID."""
+        app = Path(__file__).resolve().parents[1] / "app.py"
+        tree = ast.parse(app.read_text(encoding="utf-8"))
+        function = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                        and node.name == "asistani_calistir")
+        calls, state = [], {}
+        namespace = {
+            "_CANO_OWNER_KEY": None,
+            "GROQ_KEY": "synthetic-key",
+            "_team_answer": lambda prompt: calls.append(prompt) or "provider called",
+            "st": SimpleNamespace(session_state=state),
+            "os": os, "uuid4": uuid.uuid4, "logging": logging,
+            "failure_category": lambda error: type(error).__name__,
+        }
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {
+                "AGENT_COLONY_DB_PATH": str(Path(tmp) / "isolated.sqlite3")}):
+            exec(compile(ast.Module(body=[function], type_ignores=[]),
+                         str(app), "exec"), namespace)
+            run = namespace["asistani_calistir"]
+            result = run("CANO görev: test onayı yok", approved=True)
+            self.assertIn("onay", result.casefold())
+            self.assertEqual(calls, [])
+            self.assertNotIn("cano_chat_request_id", state)
+            self.assertNotIn("_cano_chat_task_pending", state)
+
+            preview = run("CANO görev: önce onay iste")
+            self.assertIn("Henüz model çağrısı", preview)
+            self.assertEqual(calls, [])
+            # A stale form approval for a different task must never run it.
+            mismatch = run("CANO görev: yanlış görev", approved=True)
+            self.assertIn("onay", mismatch.casefold())
+            self.assertEqual(calls, [])
+            self.assertEqual(state["cano_chat_request_id"]["task"],
+                             "önce onay iste")
+            self.assertEqual(state["_cano_chat_task_pending"]["task"],
+                             "önce onay iste")
+
+    def test_replaying_approval_after_completion_does_not_start_new_mission(self):
+        """Double submit of the same approval cannot allocate another request."""
+        app = Path(__file__).resolve().parents[1] / "app.py"
+        tree = ast.parse(app.read_text(encoding="utf-8"))
+        function = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                        and node.name == "asistani_calistir")
+        calls, state = [], {}
+        namespace = {
+            "_CANO_OWNER_KEY": None, "GROQ_KEY": "synthetic-key",
+            "_team_answer": lambda prompt: calls.append(prompt) or "OK",
+            "st": SimpleNamespace(session_state=state),
+            "os": os, "uuid4": uuid.uuid4, "logging": logging,
+            "failure_category": lambda error: type(error).__name__,
+        }
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {
+                "AGENT_COLONY_DB_PATH": str(Path(tmp) / "isolated.sqlite3")}):
+            exec(compile(ast.Module(body=[function], type_ignores=[]),
+                         str(app), "exec"), namespace)
+            run = namespace["asistani_calistir"]
+            run("CANO görev: tek yürütme")
+            done = run("CANO görev: tek yürütme", approved=True)
+            self.assertIn("review_pending", done)
+            self.assertEqual(len(calls), 4)
+            replay = run("CANO görev: tek yürütme", approved=True)
+            self.assertIn("onay", replay.casefold())
+            self.assertEqual(len(calls), 4)
+            self.assertNotIn("cano_chat_request_id", state)
+            self.assertNotIn("_cano_chat_task_pending", state)
 
     def test_new_chat_session_restores_owner_snapshot_and_keeps_prior_mission(self):
         app = Path(__file__).resolve().parents[1] / "app.py"
