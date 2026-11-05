@@ -7,6 +7,7 @@ import json
 import statistics
 from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 
 from .digital_vm import COPY_REST, DIVIDE, GenomeWorld, TASK_A, TASK_B
 
@@ -151,14 +152,32 @@ def run_discovery_sweep(*, screening_seeds=tuple(range(10)),
 
 
 def save_discovery_sweep(report, path):
-    """Atomically save the exact computed report with its generation time."""
+    """Save an immutable run and atomically refresh the convenience latest file."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    document = {**report, "generated_at": datetime.now(timezone.utc).isoformat()}
-    temporary = target.with_suffix(target.suffix + ".tmp")
-    temporary.write_text(json.dumps(document, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
-                         encoding="utf-8")
-    temporary.replace(target)
+    run_id = uuid4().hex
+    document = {**report, "generated_at": datetime.now(timezone.utc).isoformat(),
+                "run_id": run_id}
+    payload = json.dumps(document, ensure_ascii=False, indent=2, allow_nan=False) + "\\n"
+
+    history_dir = target.parent / "discovery-sweeps"
+    history_dir.mkdir(parents=True, exist_ok=True)
+    history_path = history_dir / f"discovery-sweep-{run_id}.json"
+
+    def write_atomic(destination):
+        temporary = destination.with_name(destination.name + f".{uuid4().hex}.tmp")
+        try:
+            temporary.write_text(payload, encoding="utf-8")
+            temporary.replace(destination)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+    write_atomic(history_path)
+    if json.loads(history_path.read_text(encoding="utf-8")) != document:
+        raise OSError("Versioned discovery report failed read-back verification")
+    write_atomic(target)
+    if json.loads(target.read_text(encoding="utf-8")) != document:
+        raise OSError("Latest discovery report failed read-back verification")
     return document
 
 
