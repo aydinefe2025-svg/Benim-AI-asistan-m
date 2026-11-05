@@ -25,7 +25,7 @@ class AnswerAdapter:
 
 
 def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
-    expand_restore = bool(st.session_state.pop("cano_open_restore_panel", False))
+    expand_restore = bool(st.session_state.pop("_cano_restore_panel_open_requested", False))
     with st.sidebar.expander("🧬 Öğrenen uzman ajanlar", expanded=expand_restore):
         description = (
             "Ajanlar yapılandırılmış uzman örnekleridir; kendi kendine çalışan süreçler "

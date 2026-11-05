@@ -138,7 +138,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                 for name in ("agents", "feedback", "reviews", "missions")):
             st.warning("Bu hesabın kalıcı CANO yedeği var. Önceki görevlerinizi geri yüklemek için aşağıdaki düğmeye basın.")
             if st.button("Yedeği şimdi geri yükle", key="cano_open_restore_panel"):
-                st.session_state["cano_open_restore_panel"] = True
+                st.session_state["_cano_restore_panel_open_requested"] = True
                 st.rerun()
             return
         if "_cano_backup_expected" not in st.session_state:
