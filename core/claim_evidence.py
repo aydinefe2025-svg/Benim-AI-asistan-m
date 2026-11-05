@@ -143,3 +143,104 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
         db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
                    (json.dumps(current, ensure_ascii=False), mission_id))
     return reviewed
+
+
+
+_OWNER = re.compile(r"^oidc_[0-9a-f]{64}$")
+
+
+def record_source_claim_review(manager, mission_id, claim_index, *, reviewer_id,
+                               supported, rationale,
+                               primary_source_confirmed=False):
+    """Record an authenticated human's claim-level source decision.
+
+    A model or quote match cannot call this successfully: the actor must be a
+    stable OIDC owner key, and acceptance requires a full-text excerpt plus an
+    explicit primary-source attestation and written rationale. The mission
+    itself remains review_pending; only this specific claim is marked reviewed.
+    """
+    import hashlib
+    from datetime import datetime, timezone
+
+    if not isinstance(mission_id, str) or not mission_id.strip():
+        raise ValueError("Mission id required")
+    if type(claim_index) is not int or claim_index < 0:
+        raise ValueError("Invalid claim index")
+    if not isinstance(reviewer_id, str) or not _OWNER.fullmatch(reviewer_id):
+        raise PermissionError("Authenticated OIDC reviewer required")
+    if type(supported) is not bool or type(primary_source_confirmed) is not bool:
+        raise ValueError("Review decision and primary-source attestation must be explicit")
+    if not isinstance(rationale, str) or not 20 <= len(rationale.strip()) <= 1000:
+        raise ValueError("A 20–1000 character review rationale is required")
+    if supported and not primary_source_confirmed:
+        raise ValueError("Acceptance requires explicit primary-source confirmation")
+
+    saved = manager.get(mission_id)
+    if saved["status"] != "review_pending" or len(saved["stages"]) != 4:
+        raise RuntimeError("Only a completed draft can receive claim review")
+    stages = saved["stages"]
+    audit = stages[0].get("source_claim_audit")
+    if not isinstance(audit, list) or claim_index >= len(audit):
+        raise ValueError("Claim audit entry does not exist")
+    item = audit[claim_index]
+    if not isinstance(item, dict) or not isinstance(item.get("claim"), str):
+        raise ValueError("Invalid audited claim")
+
+    documents = stages[0].get("source_documents")
+    doc = next((candidate for candidate in documents or []
+                if isinstance(candidate, dict)
+                and candidate.get("doi", "").casefold() == item.get("doi", "").casefold()), None)
+    if not isinstance(doc, dict) or doc.get("status") not in _READABLE:
+        raise ValueError("A retrieved readable source is required")
+    if not isinstance(doc.get("excerpt"), str) or not doc["excerpt"].strip():
+        raise ValueError("Source excerpt is missing")
+    if not isinstance(doc.get("url"), str) or doc.get("url") != item.get("citation_url"):
+        raise ValueError("Claim citation does not match the retrieved source")
+    if item.get("status") == "quote_found_unverified":
+        if _normalized(item.get("quote", "")) not in _normalized(doc["excerpt"]):
+            raise ValueError("Quoted passage is not present in the retrieved excerpt")
+    elif supported:
+        raise ValueError("An unmatched quote cannot be accepted")
+    if supported and doc.get("status") != "full_text_excerpt":
+        raise ValueError("Acceptance requires retrieved full-text evidence")
+
+    digest_payload = json.dumps({
+        "claim": item["claim"], "doi": item.get("doi"),
+        "quote": item.get("quote"), "source_url": doc["url"],
+        "source_status": doc["status"], "excerpt": doc["excerpt"],
+    }, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    evidence_digest = hashlib.sha256(digest_payload.encode("utf-8")).hexdigest()
+    reviewed_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    event = {
+        "claim_index": claim_index, "evidence_digest": evidence_digest,
+        "reviewer_id": reviewer_id, "supported": supported,
+        "primary_source_confirmed": primary_source_confirmed,
+        "rationale": rationale.strip(), "reviewed_at": reviewed_at,
+    }
+    with manager.colony._db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT status,stages FROM colony_missions WHERE id=?",
+                         (mission_id,)).fetchone()
+        if row is None or row["status"] != "review_pending":
+            raise RuntimeError("Mission changed during claim review")
+        current = json.loads(row["stages"])
+        if current != stages:
+            raise RuntimeError("Evidence changed during review; reload and retry")
+        events = current[0].setdefault("source_claim_review_events", [])
+        if not isinstance(events, list):
+            raise ValueError("Invalid source claim review history")
+        events.append(event)
+        reviewed_claim = current[0]["source_claim_audit"][claim_index]
+        reviewed_claim["human_review"] = {
+            "evidence_digest": evidence_digest, "reviewer_id": reviewer_id,
+            "supported": supported,
+            "primary_source_confirmed": primary_source_confirmed,
+            "rationale": rationale.strip(), "reviewed_at": reviewed_at,
+            "status": "human_reviewed_supported" if supported
+                      else "human_reviewed_not_supported",
+        }
+        reviewed_claim["claim_verified"] = supported
+        db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
+                   (json.dumps(current, ensure_ascii=False), mission_id))
+    result = manager.get(mission_id)["stages"][0]["source_claim_audit"][claim_index]
+    return result
