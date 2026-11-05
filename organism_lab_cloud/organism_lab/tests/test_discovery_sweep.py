@@ -5,6 +5,7 @@ from pathlib import Path
 
 from organism_lab.discovery_sweep import (list_versioned_discovery_sweeps,
                                           run_discovery_sweep, save_discovery_sweep,
+                                          select_discovery_sweep,
                                           validate_discovery_sweep)
 
 
@@ -103,6 +104,36 @@ class DiscoverySweepTests(unittest.TestCase):
             self.assertEqual([document["run_id"] for _, document in remaining],
                              [first["run_id"]])
 
+
+    def test_switching_back_to_latest_reloads_latest_after_archive_selection(self):
+        report = run_discovery_sweep(screening_seeds=(0, 1, 2),
+                                     confirmation_seeds=(10, 11, 12),
+                                     mutation_rates=(0.0, 0.1), steps=12,
+                                     shift_tick=5, capacity=8)
+        with tempfile.TemporaryDirectory() as temporary:
+            latest_path = Path(temporary) / "discovery-sweep-latest.json"
+            first = save_discovery_sweep(report, latest_path)
+            latest = save_discovery_sweep(report, latest_path)
+            history = list_versioned_discovery_sweeps(latest_path.parent / "discovery-sweeps")
+            labels = {f"archived-{document['run_id']}": (path, document)
+                      for path, document in history if document["run_id"] == first["run_id"]}
+
+            archived_path, archived = select_discovery_sweep(
+                latest_path, f"archived-{first['run_id']}", labels)
+            self.assertEqual(archived_path.name, f"discovery-sweep-{first['run_id']}.json")
+            self.assertEqual(archived["run_id"], first["run_id"])
+
+            latest_result_path, latest_result = select_discovery_sweep(
+                latest_path, "En son tarama", labels)
+            self.assertEqual(latest_result_path, latest_path)
+            self.assertEqual(latest_result["run_id"], latest["run_id"])
+
+    def test_latest_selection_fails_closed_for_invalid_report(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            latest_path = Path(temporary) / "latest.json"
+            latest_path.write_text("{}", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                select_discovery_sweep(latest_path, "En son tarama", {})
 
 if __name__ == "__main__":
     unittest.main()
