@@ -154,6 +154,21 @@ class ProviderTests(unittest.TestCase):
         self.assertNotIn("DO_NOT_EXPOSE", str(raised.exception))
         self.assertNotIn("provider detail", str(raised.exception))
 
+    def test_groq_403_falls_back_to_safe_error_type_when_code_is_absent(self):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
+            def sender(request, timeout):
+                body = json.dumps({"error": {
+                    "type": "permissions_error",
+                    "message": "DO_NOT_EXPOSE private permission detail",
+                }}).encode()
+                raise HTTPError(request.full_url, 403, "provider failure", None, BytesIO(body))
+            with self.assertRaises(ProviderError) as raised:
+                generate("hello", "groq", transport=sender)
+        self.assertIn("erişimi reddedildi", str(raised.exception))
+        self.assertIn("permissions_error", str(raised.exception))
+        self.assertNotIn("DO_NOT_EXPOSE", str(raised.exception))
+        self.assertNotIn("private permission detail", str(raised.exception))
+
     def test_groq_model_permission_codes_are_safely_exposed(self):
         for code in ("model_permission_blocked_org", "model_permission_blocked_project"):
             with self.subTest(code=code), patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):

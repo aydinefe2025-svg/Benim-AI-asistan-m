@@ -41,7 +41,7 @@ GROQ_MODEL_OPTIONS = (
 )
 
 def _safe_groq_error_code(exc):
-    """Read only a bounded machine identifier; never expose provider prose."""
+    """Read a bounded machine code/type; never expose provider prose."""
     try:
         payload = json.loads(exc.read(4096).decode("utf-8"))
     except (OSError, UnicodeDecodeError, ValueError, TypeError):
@@ -53,6 +53,9 @@ def _safe_groq_error_code(exc):
             code = value.get("code")
             if isinstance(code, str) and re.fullmatch(r"[a-z][a-z0-9_]{0,63}", code):
                 return code
+            error_type = value.get("type")
+            if isinstance(error_type, str) and re.fullmatch(r"[a-z][a-z0-9_]{0,63}", error_type):
+                return error_type
             pending.extend(value.values())
         elif isinstance(value, list):
             pending.extend(value)
@@ -171,7 +174,7 @@ def generate(prompt, provider="offline", *, transport=None, model=None, system_p
             code = _safe_groq_error_code(exc)
             if code == "invalid_api_key" or exc.code == 401:
                 message = "Groq API anahtarı geçersiz veya iptal edilmiş (HTTP " + str(exc.code) + ")."
-            elif code in ("permission_denied", "insufficient_permissions", "project_permission_denied",
+            elif code in ("permission_denied", "permissions_error", "insufficient_permissions", "project_permission_denied",
                           "project_not_found", "invalid_project", "organization_disabled",
                           "organization_restricted"):
                 message = "Groq anahtarının proje/organizasyon erişimi reddedildi (HTTP " + str(exc.code) + ")."

@@ -121,8 +121,8 @@ elif CLOUD_MODE:
         help="Büyük modeller daha fazla kota/tüketim kullanabilir. Model çağrısı yalnızca sen Yanıt üret'e bastığında yapılır.",
     )
     st.caption("Model erişimi ve ücret/kota koşulları Groq hesabına bağlıdır. Kullanılmayan modeller için otomatik çağrı yapılmaz.")
-    diagnostic_key = test_key or os.environ.get("GROQ_API_KEY", "")
-    diagnostic_label = "ayrı test anahtarı" if test_key else "mevcut Groq anahtarı"
+    diagnostic_key = groq_active_key()
+    diagnostic_label = "ayrı test anahtarı" if test_key_active else "mevcut Groq anahtarı"
     if diagnostic_key.strip() and st.button("Groq proje erişimini tanıla", key="diagnose_groq_project"):
         diagnosis = diagnose_groq_access(
             diagnostic_key, selected_model,
