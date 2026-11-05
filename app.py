@@ -406,6 +406,88 @@ render_colony_panel(st, answer=_team_answer if GROQ_KEY else None,
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji):
+    from core.cano_chat_tasks import parse_task_request, format_task_result
+    task_goal = parse_task_request(kullanici_mesaji)
+    if task_goal is not None:
+        if not GROQ_KEY:
+            return ("CANO görevini sohbetten dört aşamalı ekibe yönlendiremedim: "
+                    "ekip yürütücüsü için Groq anahtarı yapılandırılmamış. "
+                    "Bu istek sıradan sohbet yanıtı gibi gösterilmedi.")
+        try:
+            from core.agent_colony import AgentColony
+            from core.collaborative_mission import CollaborativeMission
+            from core.cano_command_center import (
+                _AnswerAdapter, _snapshot, prepare_cano_team,
+            )
+            from core.colony_postgres import ColonySnapshotStore
+            from core.colony_restore import restore_empty_colony
+            from core.task_panel import _session_database_path
+
+            owner = globals().get("_CANO_OWNER_KEY")
+            db_path = _session_database_path(
+                st, os.environ.get("AGENT_COLONY_DB_PATH", "data/agent_colony.sqlite3"))
+            colony = AgentColony(db_path, max_agents=12)
+            mission_manager = CollaborativeMission(colony)
+            store = None
+            if owner:
+                database_url = cano_database_url(os.environ)
+                if not database_url:
+                    raise RuntimeError("Hesaba bağlı CANO PostgreSQL adresi bulunamadı")
+                store = ColonySnapshotStore(database_url)
+                store.verify_schema()
+                if st.session_state.get("_cano_backup_owner_key") != owner:
+                    if st.session_state.get("_cano_backup_owner_key") is not None:
+                        raise RuntimeError("Giriş hesabı değişti; yeni oturum açın")
+                    st.session_state["_cano_backup_owner_key"] = owner
+                remote = store.load(owner)
+                with colony._db() as db:
+                    local_agents = db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0]
+                if not local_agents and remote is not None and any(
+                        remote.get(name) for name in ("agents", "feedback", "reviews", "missions")):
+                    restore_empty_colony(colony, remote)
+                    st.session_state["_cano_backup_expected"] = store.load(owner)
+                elif "_cano_backup_expected" not in st.session_state:
+                    if local_agents and remote != _snapshot(colony):
+                        raise RuntimeError("Yerel ekip ile hesaba bağlı kayıt eşleşmiyor")
+                    st.session_state["_cano_backup_expected"] = remote
+
+            def checkpoint(*, archive_prior=False):
+                if store is not None:
+                    snapshot = _snapshot(colony)
+                    store.save_versioned_verified(
+                        owner, snapshot,
+                        expected_prior=st.session_state["_cano_backup_expected"],
+                        archive_prior=archive_prior)
+                    st.session_state["_cano_backup_expected"] = snapshot
+
+            # Check storage access before initializing or calling a model.
+            checkpoint()
+            with colony._db() as db:
+                agent_count = db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0]
+            if not agent_count:
+                prepare_cano_team(colony, approved=True)
+                checkpoint()
+
+            request_key = "cano_chat_request_id"
+            pending = st.session_state.get(request_key)
+            if not isinstance(pending, dict) or pending.get("task") != task_goal:
+                pending = {"task": task_goal, "id": str(uuid4())}
+                st.session_state[request_key] = pending
+            result = mission_manager.execute(
+                task_goal, client=_AnswerAdapter(_team_answer),
+                model="configured-groq-team", mission_id=pending["id"],
+                on_checkpoint=lambda: checkpoint(archive_prior=False) if store else None)
+            checkpoint(archive_prior=False)
+            st.session_state["cano_cockpit_latest_mission"] = result["id"]
+            st.session_state.pop(request_key, None)
+            return format_task_result(result)
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "CANO chat task failed: category=%s", failure_category(exc))
+            return ("CANO görevi tamamlanmadı. Başarısız model aşaması tekrar "
+                    "başlatılmadı ve uydurma sonuç gösterilmiyor. Komuta Merkezi'ndeki "
+                    "görev geçmişinden engellenen kaydı inceleyip sürdürün; PostgreSQL "
+                    "kayıt hatasında tekrar denemeden önce yedek durumunu kontrol edin.")
     from core.cano_capabilities import capability_reply
     capability = capability_reply(
         kullanici_mesaji,
@@ -532,6 +614,8 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # ✍️ KULLANICI GİRİŞ ALANI
+st.caption("CANO ekibine gerçekten görev vermek için ‘CANO görev:’ yazıp hedefi ekleyin. "
+           "Görev dört kayıtlı model aşamasından geçer; sonuç taslak olarak işaretlenir.")
 if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
     with st.chat_message("user"):
         st.markdown(prompt)

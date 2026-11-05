@@ -66,7 +66,8 @@ class CollaborativeMission:
         return (roles.get("research-planner", roles["research"]),
                 roles["research"], roles["evidence-reviewer"])
 
-    def execute(self, task, *, client, model, source_lookup=None, on_checkpoint=None):
+    def execute(self, task, *, client, model, source_lookup=None, on_checkpoint=None,
+                mission_id=None):
         if not isinstance(task, str) or not task.strip() or len(task) > 1200:
             raise ValueError("Task must be 1–1200 characters")
         self._agents()  # Validate before creating a mission record.
@@ -74,7 +75,28 @@ class CollaborativeMission:
             raise ValueError("Source lookup must be callable")
         if on_checkpoint is not None and not callable(on_checkpoint):
             raise ValueError("Checkpoint must be callable")
-        mission_id = str(uuid.uuid4())
+        if mission_id is None:
+            mission_id = str(uuid.uuid4())
+        else:
+            try:
+                mission_id = str(uuid.UUID(str(mission_id)))
+            except (ValueError, TypeError, AttributeError):
+                raise ValueError("Invalid mission id") from None
+            try:
+                existing = self.get(mission_id)
+            except KeyError:
+                existing = None
+            if existing is not None:
+                if existing["task"] != task.strip():
+                    raise ValueError("Mission id is already bound to another task")
+                if existing["status"] == "review_pending":
+                    existing["model_calls"] = 0
+                    return existing
+                if existing["status"] != "blocked":
+                    raise RuntimeError("Mission is already running")
+                return self.resume(mission_id, client=client, model=model,
+                                   source_lookup=source_lookup,
+                                   on_checkpoint=on_checkpoint)
         with self.colony._db() as db:
             db.execute("INSERT INTO colony_missions VALUES (?,?,?,?,?)",
                        (mission_id, task.strip(), "[]", "running",
