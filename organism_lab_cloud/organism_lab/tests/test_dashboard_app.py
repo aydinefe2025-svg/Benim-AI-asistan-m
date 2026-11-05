@@ -90,7 +90,7 @@ class DashboardAppTests(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as tmp, \
                 patch.dict(os.environ, {"ORGANISM_LAB_OUTPUT_DIR": str(Path(tmp) / "organism_lab_output")}), \
-                patch("organism_lab.dashboard.run_discovery_sweep", return_value=report):
+                patch("organism_lab.discovery_sweep.run_discovery_sweep", return_value=report):
             app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
             next(button for button in app.button if button.key == "run_bounded_discovery").click().run()
             self.assertFalse(app.exception)

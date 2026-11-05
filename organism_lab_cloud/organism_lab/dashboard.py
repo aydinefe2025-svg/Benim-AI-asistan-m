@@ -16,7 +16,7 @@ from organism_lab.explanations import (explain_shared_world, explain_reproductio
                                        explain_adaptation_study, render_explanation)
 from organism_lab.reproduction_study import run_study, save_study
 from organism_lab.adaptation_study import run_adaptation_study, save_adaptation_study
-from organism_lab.discovery_sweep import run_discovery_sweep, save_discovery_sweep
+from organism_lab import discovery_sweep
 from organism_lab.literature_search import list_records, save_records, search_openalex
 from organism_lab.persistent_memory import (augment_with_memory, list_memories,
                                             retrieve_memories, save_memory)
@@ -391,9 +391,9 @@ st.caption("Sistem önce sınırlı sayıda mutasyon ayarını tarar; ardından 
 if st.button("Sınırlı keşif taramasını çalıştır", key="run_bounded_discovery"):
     try:
         with st.spinner("Aday ayarlar taranıyor; seçilen aday bağımsız simülasyon tohumlarında sınanıyor…"):
-            discovery = run_discovery_sweep()
+            discovery = discovery_sweep.run_discovery_sweep()
             discovery_path = OUTPUT_DIR / "discovery-sweep-latest.json"
-            saved_discovery = save_discovery_sweep(discovery, discovery_path)
+            saved_discovery = discovery_sweep.save_discovery_sweep(discovery, discovery_path)
         st.session_state["organism_discovery_report"] = saved_discovery
         st.session_state["organism_discovery_path"] = str(discovery_path)
     except (OSError, ValueError, RuntimeError) as exc:
