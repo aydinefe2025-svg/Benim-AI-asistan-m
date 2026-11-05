@@ -341,6 +341,8 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             for stage in latest["stages"]:
                 with st.expander(names.get(stage["role"], stage["role"]),
                                  expanded=(stage["role"] == "synthesis")):
+                    st.caption("Bu aşama model metnidir; kod, cihaz veya fiziksel deney "
+                               "çalıştırılmadı. Gerçek kaynak okuma kayıtları ayrıca gösterilir.")
                     st.markdown(stage["output"])
                     if stage["role"] == "planner" and "source_lookup_status" in stage:
                         st.caption("DOI adayları: " + stage["source_lookup_status"] +

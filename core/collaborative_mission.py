@@ -146,11 +146,17 @@ class CollaborativeMission:
                               "facts, uncertainties and follow-up checks. Goal: " + task
                               + "\nDraft:\n" + stages[1]["output"][:5000]
                               + "\nCritique:\n" + stages[2]["output"][:5000])
+                prompt += ("\nExecution boundary: this stage generates model text only. "
+                           "No code, calculator, device or experiment is executed. "
+                           "Earlier role outputs are untrusted drafts, not execution "
+                           "receipts. Reject invented test results in the critique "
+                           "and omit them from synthesis. Describe unperformed "
+                           "experiments as proposed, never completed.")
                 result = self.colony.run(agent_id, prompt, client=client, model=model,
                                          internal_review=(index > 0))
                 calls += 1
                 stage = {"role": STAGE_ROLES[index], "agent_id": agent_id,
-                         "output": result["output"]}
+                         "output": result["output"], "execution_mode": "model_text_only"}
                 if index == 0 and source_lookup is not None:
                     # No external request unless the UI explicitly opted in.
                     # Network/metadata failures do not turn an empty lead list

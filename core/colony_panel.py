@@ -55,6 +55,22 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 archive_prior=archive_prior)
             st.session_state["_cano_backup_expected"] = current
 
+        def _persist_mutation(mutate):
+            # Refuse stale owner writes before changing the local colony.
+            try:
+                _checkpoint()
+            except Exception:
+                st.error("Kalıcı hesap yedeği doğrulanamadı; kayıt değiştirilmedi.")
+                return False, None
+            result = mutate()
+            try:
+                _checkpoint(archive_prior=False)
+            except Exception:
+                st.error("Değişiklik yerel oturumda korundu ama PostgreSQL yedeği "
+                         "doğrulanamadı; JSON yedeği alın.")
+                return False, result
+            return True, result
+
         def _stage_checkpoint_callback():
             """One archived rollback boundary; each later stage is still read-back verified."""
             if not (owner_key and database_url):
@@ -147,10 +163,11 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         st.error("Yedek geçersiz veya mevcut kayıtlar dolu; veri değiştirilmedi.")
             if st.button("Kurucu araştırma ajanını oluştur", key="colony_founder"):
                 try:
-                    colony.create_founder(
+                    saved, _ = _persist_mutation(lambda: colony.create_founder(
                         "research", "You are a careful Turkish research agent. "
-                        "Separate verified facts from assumptions and draft claims.")
-                    st.rerun()
+                        "Separate verified facts from assumptions and draft claims."))
+                    if saved:
+                        st.rerun()
                 except (RuntimeError, ValueError, sqlite3.Error):
                     st.error("Kurucu ajan oluşturulamadı.")
             return
@@ -165,7 +182,10 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             spawn = st.form_submit_button("Uzman ajan oluştur")
         if spawn:
             try:
-                child = colony.spawn(selected, role, instructions, approved=True)
+                saved, child = _persist_mutation(
+                    lambda: colony.spawn(selected, role, instructions, approved=True))
+                if not saved:
+                    return
                 st.success("Uzman ajan kaydedildi: " + child[:8])
                 st.rerun()
             except (ValueError, RuntimeError, PermissionError, sqlite3.Error):
@@ -175,7 +195,10 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                    "12 ajan kotası korunur. Bu, arka planda bağımsız çoğalma değildir.")
         if st.button("Koloniyi kontrollü büyüt (+3 uzman)", key="colony_grow"):
             try:
-                created = colony.grow_specialists(approved=True, batch_size=3)
+                saved, created = _persist_mutation(
+                    lambda: colony.grow_specialists(approved=True, batch_size=3))
+                if not saved:
+                    return
                 if created:
                     st.success(f"{len(created)} yeni uzman kaydedildi.")
                     st.rerun()
@@ -192,7 +215,10 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             save = st.form_submit_button("Dersi kaydet")
         if save:
             try:
-                colony.feedback(selected, task, lesson, evidence, accepted=accepted)
+                saved, _ = _persist_mutation(
+                    lambda: colony.feedback(selected, task, lesson, evidence, accepted=accepted))
+                if not saved:
+                    return
                 st.success("Ders kaydedildi." if accepted else "Ders inceleme bekliyor.")
             except (ValueError, sqlite3.Error, KeyError):
                 st.warning("Ders kaydedilemedi.")
@@ -231,9 +257,11 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 review_run = st.form_submit_button("Taslak → eleştiri → düzeltme çalıştır")
             if review_run:
                 try:
-                    record = AgentReviewLoop(colony).execute(
+                    saved, record = _persist_mutation(lambda: AgentReviewLoop(colony).execute(
                         selected, reviewer, review_goal,
-                        client=AnswerAdapter(answer), model="configured-provider")
+                        client=AnswerAdapter(answer), model="configured-provider"))
+                    if not saved:
+                        return
                     st.session_state["colony_last_review"] = record
                     st.success("Üç model çağrısı tamamlandı; inceleme kaydı oluşturuldu.")
                 except (ValueError, RuntimeError, OSError, sqlite3.Error):
@@ -294,7 +322,10 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 if st.button("Açık erişimli kaynak pasajlarını oku", key="read_mission_sources_" + mission["id"]):
                     try:
                         manager = CollaborativeMission(colony)
-                        manager.inspect_source_documents(mission["id"])
+                        saved, _ = _persist_mutation(
+                            lambda: manager.inspect_source_documents(mission["id"]))
+                        if not saved:
+                            return
                         st.session_state["colony_last_mission"] = manager.get(mission["id"])
                         st.rerun()
                     except (ValueError, RuntimeError, OSError, sqlite3.Error):
@@ -369,10 +400,15 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 if any(item["status"] == "running" for item in interrupted):
                     if st.button("1 saatten eski yarım görevleri kurtarmaya aç",
                                  key="recover_stale_colony_missions"):
-                        recovered = mission_manager.recover_stale(
-                            older_than_seconds=3600)
-                        st.info(f"{len(recovered)} eski görev yeniden denemeye açıldı.")
-                        st.rerun()
+                        try:
+                            saved, recovered = _persist_mutation(
+                                lambda: mission_manager.recover_stale(older_than_seconds=3600))
+                            if not saved:
+                                return
+                            st.info(f"{len(recovered)} eski görev yeniden denemeye açıldı.")
+                            st.rerun()
+                        except (ValueError, RuntimeError, OSError, sqlite3.Error):
+                            st.error("Yarım görev kurtarma tamamlanamadı; yerel kayıtlar korundu.")
         with colony._db() as db:
             data = {"agents": [dict(row) for row in db.execute(
                 "SELECT * FROM colony_agents ORDER BY created_at,id")],
