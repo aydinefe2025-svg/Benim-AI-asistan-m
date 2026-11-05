@@ -66,7 +66,8 @@ class CollaborativeMission:
         return (roles.get("research-planner", roles["research"]),
                 roles["research"], roles["evidence-reviewer"])
 
-    def execute(self, task, *, client, model, source_lookup=None, on_checkpoint=None):
+    def execute(self, task, *, client, model, source_lookup=None, on_checkpoint=None,
+                mission_id=None):
         if not isinstance(task, str) or not task.strip() or len(task) > 1200:
             raise ValueError("Task must be 1–1200 characters")
         self._agents()  # Validate before creating a mission record.
@@ -74,7 +75,28 @@ class CollaborativeMission:
             raise ValueError("Source lookup must be callable")
         if on_checkpoint is not None and not callable(on_checkpoint):
             raise ValueError("Checkpoint must be callable")
-        mission_id = str(uuid.uuid4())
+        if mission_id is None:
+            mission_id = str(uuid.uuid4())
+        else:
+            try:
+                mission_id = str(uuid.UUID(str(mission_id)))
+            except (ValueError, TypeError, AttributeError):
+                raise ValueError("Invalid mission id") from None
+            try:
+                existing = self.get(mission_id)
+            except KeyError:
+                existing = None
+            if existing is not None:
+                if existing["task"] != task.strip():
+                    raise ValueError("Mission id is already bound to another task")
+                if existing["status"] == "review_pending":
+                    existing["model_calls"] = 0
+                    return existing
+                if existing["status"] != "blocked":
+                    raise RuntimeError("Mission is already running")
+                return self.resume(mission_id, client=client, model=model,
+                                   source_lookup=source_lookup,
+                                   on_checkpoint=on_checkpoint)
         with self.colony._db() as db:
             db.execute("INSERT INTO colony_missions VALUES (?,?,?,?,?)",
                        (mission_id, task.strip(), "[]", "running",
@@ -146,11 +168,18 @@ class CollaborativeMission:
                               "facts, uncertainties and follow-up checks. Goal: " + task
                               + "\nDraft:\n" + stages[1]["output"][:5000]
                               + "\nCritique:\n" + stages[2]["output"][:5000])
+                prompt += ("\nExecution boundary: this stage generates model text only. "
+                           "No code, calculator, device or experiment is executed. "
+                           "Earlier role outputs are untrusted drafts, not execution "
+                           "receipts. Reject invented test results in the critique "
+                           "and omit them from synthesis. Describe unperformed "
+                           "experiments as proposed, never completed.")
                 result = self.colony.run(agent_id, prompt, client=client, model=model,
                                          internal_review=(index > 0))
                 calls += 1
                 stage = {"role": STAGE_ROLES[index], "agent_id": agent_id,
-                         "output": result["output"]}
+                         "output": result["output"], "execution_mode": "model_text_only",
+                         "approved_lessons_used": result.get("lessons_used", 0)}
                 if index == 0 and source_lookup is not None:
                     # No external request unless the UI explicitly opted in.
                     # Network/metadata failures do not turn an empty lead list

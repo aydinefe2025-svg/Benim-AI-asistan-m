@@ -25,12 +25,19 @@ class AnswerAdapter:
 
 
 def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
-    with st.sidebar.expander("🧬 Öğrenen uzman ajanlar", expanded=False):
-        st.caption(
+    expand_restore = bool(st.session_state.pop("_cano_restore_panel_open_requested", False))
+    with st.sidebar.expander("🧬 Öğrenen uzman ajanlar", expanded=expand_restore):
+        description = (
             "Ajanlar yapılandırılmış uzman örnekleridir; kendi kendine çalışan süreçler "
-            "veya eğitilmiş yeni modeller değildir. İşlemler yalnızca düğmeye basınca çalışır. "
-            "Hesapla oturum açıldığında desteklenen kayıtlar PostgreSQL'e yazılır; "
-            "aksi durumda geçici SQLite/JSON yedeği kullanılır.")
+            "veya eğitilmiş yeni modeller değildir. İşlemler yalnızca düğmeye basınca çalışır.")
+        if owner_key and database_url:
+            st.caption(
+                description + " Koloni değişiklikleri oturum SQLite'ında işlenir ve "
+                "hesaba bağlı PostgreSQL yedeğine CAS doğrulamasıyla kaydedilir.")
+        else:
+            st.caption(
+                description + " Kayıtlar oturuma özel geçici SQLite dosyasındadır; "
+                "JSON yedeği alın.")
         base = os.environ.get("AGENT_COLONY_DB_PATH", "data/agent_colony.sqlite3")
         try:
             colony = AgentColony(_session_database_path(st, base), max_agents=12)
@@ -42,14 +49,19 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             return
         def _checkpoint(*, archive_prior=True):
             """CAS-verified owner backup after every explicitly run research stage."""
-            if owner_key is None and database_url is None:
+            if not (owner_key and database_url):
                 return
-            if not owner_key or not database_url:
-                raise RuntimeError("Owner and PostgreSQL backup must be configured together")
             if (st.session_state.get("_cano_backup_owner_key") != owner_key
                     or "_cano_backup_expected" not in st.session_state):
                 raise RuntimeError("Authenticated owner backup baseline is missing")
             current = _snapshot(colony)
+            expected = st.session_state["_cano_backup_expected"]
+            if (not current["agents"] and isinstance(expected, dict)
+                    and any(expected.get(name)
+                            for name in ("agents", "feedback", "reviews", "missions"))):
+                # A missing local database must not erase an existing owner's
+                # complete remote research archive. Restore it first.
+                raise RuntimeError("Empty local colony cannot replace an existing owner backup")
             backup_store = ColonySnapshotStore(database_url)
             backup_store.verify_schema()
             backup_store.save_versioned_verified(
@@ -57,6 +69,22 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 expected_prior=st.session_state["_cano_backup_expected"],
                 archive_prior=archive_prior)
             st.session_state["_cano_backup_expected"] = current
+
+        def _persist_mutation(mutate):
+            # Refuse stale owner writes before changing the local colony.
+            try:
+                _checkpoint()
+            except Exception:
+                st.error("Kalıcı hesap yedeği doğrulanamadı; kayıt değiştirilmedi.")
+                return False, None
+            result = mutate()
+            try:
+                _checkpoint(archive_prior=False)
+            except Exception:
+                st.error("Değişiklik yerel oturumda korundu ama PostgreSQL yedeği "
+                         "doğrulanamadı; JSON yedeği alın.")
+                return False, result
+            return True, result
 
         def _stage_checkpoint_callback():
             """One archived rollback boundary; each later stage is still read-back verified."""
@@ -82,7 +110,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         owner_store = ColonySnapshotStore(database_url)
                         count = restore_owner_backup(
                             colony, owner_store, owner_key, approved=confirm_restore)
-                        # Bind the exact remote readback before the next UI rerun.
+                        # The next checkpoint must compare against this exact
+                        # authenticated remote readback, not an old empty baseline.
                         st.session_state["_cano_backup_owner_key"] = owner_key
                         st.session_state["_cano_backup_expected"] = owner_store.load(owner_key)
                         st.success(f"{count} uzman geri yüklendi ve SQLite kayıtları doğrulandı.")
@@ -151,28 +180,26 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                     st.error("Yedek 2 MB sınırını aşıyor; veri değiştirilmedi.")
                 else:
                     try:
-                        _checkpoint(archive_prior=False)
-                        count = restore_colony_json_bytes(
-                            colony, backup_upload.getvalue())
-                        _checkpoint(archive_prior=False)
-                        st.success(f"{count} ajan JSON yedekten geri yüklendi." +
-                                   (" PostgreSQL hesap yedeği doğrulandı." if owner_key and database_url
-                                    else " Bu oturum için JSON yedeğinizi saklayın."))
-                        st.rerun()
+                        saved, count = _persist_mutation(
+                            lambda: restore_colony_json_bytes(
+                                colony, backup_upload.getvalue()))
+                        if saved:
+                            st.success(f"{count} ajan JSON yedekten geri yüklendi." +
+                                       (" Hesap yedeği doğrulandı." if owner_key and database_url
+                                        else " Kalıcı kayıt için JSON yedeğini saklayın."))
+                            st.rerun()
                     except Exception:
                         st.error("JSON geri yükleme veya PostgreSQL yedeği doğrulanamadı; "
-                                 "yerel kayıtların durumunu kontrol edin.")
+                                 "yerel veriler değişmiş olabilir, JSON yedeğinizi koruyun.")
             if st.button("Kurucu araştırma ajanını oluştur", key="colony_founder"):
                 try:
-                    _checkpoint(archive_prior=False)
-                    colony.create_founder(
+                    saved, _ = _persist_mutation(lambda: colony.create_founder(
                         "research", "You are a careful Turkish research agent. "
-                        "Separate verified facts from assumptions and draft claims.")
-                    _checkpoint(archive_prior=False)
-                    st.rerun()
-                except Exception:
-                    st.error("Kurucu oluşturma veya PostgreSQL yedeği doğrulanamadı; "
-                             "yerel kayıtları kontrol edin.")
+                        "Separate verified facts from assumptions and draft claims."))
+                    if saved:
+                        st.rerun()
+                except (RuntimeError, ValueError, sqlite3.Error):
+                    st.error("Kurucu ajan oluşturulamadı.")
             return
 
         labels = {a["id"]: f"{a['role']} (nesil {a['generation']}, {a['id'][:8]})"
@@ -185,32 +212,30 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             spawn = st.form_submit_button("Uzman ajan oluştur")
         if spawn:
             try:
-                _checkpoint(archive_prior=False)
-                child = colony.spawn(selected, role, instructions, approved=True)
-                _checkpoint(archive_prior=False)
-                st.success(("Uzman ajan hesap yedeğine kaydedildi: "
-                            if owner_key and database_url else "Uzman ajan oturuma kaydedildi: ") + child[:8])
+                saved, child = _persist_mutation(
+                    lambda: colony.spawn(selected, role, instructions, approved=True))
+                if not saved:
+                    return
+                st.success("Uzman ajan kaydedildi: " + child[:8])
                 st.rerun()
-            except Exception:
-                st.error("Uzman oluşturma veya PostgreSQL yedeği doğrulanamadı; "
-                         "yerel kayıtları kontrol edin.")
+            except (ValueError, RuntimeError, PermissionError, sqlite3.Error):
+                st.warning("Ajan oluşturulamadı; kota veya alanları kontrol edin.")
 
         st.caption("Kontrollü büyüme: eksik uzmanlıklar en fazla üçerli eklenir; "
                    "12 ajan kotası korunur. Bu, arka planda bağımsız çoğalma değildir.")
         if st.button("Koloniyi kontrollü büyüt (+3 uzman)", key="colony_grow"):
             try:
-                _checkpoint(archive_prior=False)
-                created = colony.grow_specialists(approved=True, batch_size=3)
-                _checkpoint(archive_prior=False)
+                saved, created = _persist_mutation(
+                    lambda: colony.grow_specialists(approved=True, batch_size=3))
+                if not saved:
+                    return
                 if created:
-                    st.success(f"{len(created)} yeni uzman kaydedildi." +
-                               (" PostgreSQL doğrulandı." if owner_key and database_url else ""))
+                    st.success(f"{len(created)} yeni uzman kaydedildi.")
                     st.rerun()
                 else:
                     st.info("Yeni uzmanlık kalmadı veya ajan kotası doldu.")
-            except Exception:
-                st.error("Büyüme veya PostgreSQL yedeği doğrulanamadı; "
-                         "yerel kayıtları kontrol edin.")
+            except (RuntimeError, ValueError, PermissionError, sqlite3.Error):
+                st.error("Kontrollü büyüme tamamlanamadı.")
 
         with st.form("colony_feedback_form"):
             task = st.text_input("Dersin ilişkili olduğu görev", max_chars=300)
@@ -220,17 +245,13 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             save = st.form_submit_button("Dersi kaydet")
         if save:
             try:
-                _checkpoint(archive_prior=False)
-                colony.feedback(selected, task, lesson, evidence, accepted=accepted)
-                _checkpoint(archive_prior=False)
-                st.success(("Ders kaydedildi; hesap yedeği doğrulandı." if accepted else
-                            "Ders kaydedildi; inceleme bekliyor.")
-                           if owner_key and database_url else
-                           ("Ders oturuma kaydedildi." if accepted else
-                            "Ders oturuma kaydedildi; inceleme bekliyor."))
-            except Exception:
-                st.error("Dersin PostgreSQL kaydı doğrulanamadı; "
-                         "yerel SQLite/JSON yedeğini kontrol edin.")
+                saved, _ = _persist_mutation(
+                    lambda: colony.feedback(selected, task, lesson, evidence, accepted=accepted))
+                if not saved:
+                    return
+                st.success("Ders kaydedildi." if accepted else "Ders inceleme bekliyor.")
+            except (ValueError, sqlite3.Error, KeyError):
+                st.warning("Ders kaydedilemedi.")
 
         learning = colony.evaluate_learning(selected)
         st.caption(
@@ -266,16 +287,15 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 review_run = st.form_submit_button("Taslak → eleştiri → düzeltme çalıştır")
             if review_run:
                 try:
-                    _checkpoint(archive_prior=False)
-                    record = AgentReviewLoop(colony).execute(
+                    saved, record = _persist_mutation(lambda: AgentReviewLoop(colony).execute(
                         selected, reviewer, review_goal,
-                        client=AnswerAdapter(answer), model="configured-provider")
-                    _checkpoint(archive_prior=False)
+                        client=AnswerAdapter(answer), model="configured-provider"))
+                    if not saved:
+                        return
                     st.session_state["colony_last_review"] = record
                     st.success("Üç model çağrısı tamamlandı; inceleme kaydı oluşturuldu.")
-                except Exception:
-                    st.error("İnceleme döngüsü veya PostgreSQL yedeği doğrulanamadı; "
-                             "yerel kayıtları kontrol edin.")
+                except (ValueError, RuntimeError, OSError, sqlite3.Error):
+                    st.error("İnceleme döngüsü tamamlanamadı.")
         if st.session_state.get("colony_last_review"):
             review = st.session_state["colony_last_review"]
             for key, title in (("draft", "İlk taslak"),
@@ -331,15 +351,15 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 st.caption("Kaynak metni yalnızca bu düğmeye bastığında Europe PMC üzerinden aranır (en fazla iki DOI adayı).")
                 if st.button("Açık erişimli kaynak pasajlarını oku", key="read_mission_sources_" + mission["id"]):
                     try:
-                        _checkpoint(archive_prior=False)
                         manager = CollaborativeMission(colony)
-                        manager.inspect_source_documents(mission["id"])
-                        _checkpoint(archive_prior=False)
+                        saved, _ = _persist_mutation(
+                            lambda: manager.inspect_source_documents(mission["id"]))
+                        if not saved:
+                            return
                         st.session_state["colony_last_mission"] = manager.get(mission["id"])
                         st.rerun()
-                    except Exception:
-                        st.error("Kaynak okuma veya PostgreSQL yedeği doğrulanamadı. "
-                                 "Yerel veri değişmiş olabilir; JSON yedeğini kontrol edin.")
+                    except (ValueError, RuntimeError, OSError, sqlite3.Error):
+                        st.error("Kaynak metni okunamadı; görev taslağı ve iddiası değişmedi.")
             elif source_documents:
                 st.subheader("Kaynak pasajları ve iddia karşılaştırması")
                 st.caption("Kaynak alıntısı tek başına doğrulama değildir. Karşılaştırma metin eşleşmesi tarar ve iddiayı review_pending durumunda bırakır.")
@@ -411,16 +431,14 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                     if st.button("1 saatten eski yarım görevleri kurtarmaya aç",
                                  key="recover_stale_colony_missions"):
                         try:
-                            _checkpoint(archive_prior=False)
-                            recovered = mission_manager.recover_stale(
-                                older_than_seconds=3600)
-                            _checkpoint(archive_prior=False)
-                        except Exception:
-                            st.error("Görev kurtarma veya PostgreSQL yedeği doğrulanamadı; "
-                                     "yerel kayıtları ve JSON yedeğini kontrol edin.")
-                        else:
+                            saved, recovered = _persist_mutation(
+                                lambda: mission_manager.recover_stale(older_than_seconds=3600))
+                            if not saved:
+                                return
                             st.info(f"{len(recovered)} eski görev yeniden denemeye açıldı.")
                             st.rerun()
+                        except (ValueError, RuntimeError, OSError, sqlite3.Error):
+                            st.error("Yarım görev kurtarma tamamlanamadı; yerel kayıtlar korundu.")
         with colony._db() as db:
             data = {"agents": [dict(row) for row in db.execute(
                 "SELECT * FROM colony_agents ORDER BY created_at,id")],
@@ -450,7 +468,12 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                              "Oturumu yenileyip hesabınıza ait yedeği kontrol edin.")
                 else:
                     try:
-                        _checkpoint()
+                        snapshot_store = ColonySnapshotStore(database_url)
+                        snapshot_store.verify_schema()
+                        snapshot_store.save_versioned_verified(
+                            owner_key, data,
+                            expected_prior=st.session_state["_cano_backup_expected"])
+                        st.session_state["_cano_backup_expected"] = data
                         st.success("PostgreSQL yedeği hesap sürümüyle eşleşti; "
                                    "kaydedilip geri okundu.")
                     except Exception:

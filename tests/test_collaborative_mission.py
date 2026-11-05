@@ -25,6 +25,22 @@ class CollaborativeMissionTests(unittest.TestCase):
         self.colony.grow_specialists(approved=True)
         self.missions = CollaborativeMission(self.colony)
 
+    def test_every_role_records_text_only_execution_boundary_after_restore(self):
+        from core.cano_command_center import _snapshot
+        from core.colony_restore import restore_empty_colony
+        client = FakeClient()
+        result = self.missions.execute(
+            "Calculate 2+2; do not invent performed experiments", client=client, model="fake")
+        for _, _, prompt in client.calls:
+            self.assertIn("No code, calculator, device or experiment is executed", prompt)
+            self.assertIn("not execution receipts", prompt)
+        restored = AgentColony(Path(self.tmp.name) / "restored.sqlite3")
+        restore_empty_colony(restored, _snapshot(self.colony))
+        saved = CollaborativeMission(restored).get(result["id"])
+        self.assertEqual(saved["status"], "review_pending")
+        self.assertEqual([s["execution_mode"] for s in saved["stages"]],
+                         ["model_text_only"] * 4)
+
     def test_four_calls_and_persisted_review_pending(self):
         client = FakeClient()
         result = self.missions.execute("Investigate solar energy", client=client, model="fake")
@@ -36,6 +52,24 @@ class CollaborativeMissionTests(unittest.TestCase):
         self.assertEqual(self.missions.get(result["id"])["stages"], result["stages"])
         self.assertIn("Result 2", client.calls[2][2])
         self.assertIn("Result 3", client.calls[3][2])
+
+    def test_accepted_lesson_is_retrieved_by_the_next_team_mission(self):
+        founder = self.colony.get(self.missions._agents()[0])["id"]
+        self.colony.feedback(
+            founder, "Earlier source review", "Prefer primary evidence",
+            "review:accepted-17", accepted=True)
+        self.colony.feedback(
+            founder, "Earlier source review", "Guess a citation when needed",
+            "review:rejected-18", accepted=False)
+        client = FakeClient()
+
+        result = self.missions.execute(
+            "Investigate a new energy question", client=client, model="fake")
+
+        self.assertEqual(result["status"], "review_pending")
+        self.assertIn("Prefer primary evidence", client.calls[0][2])
+        self.assertIn("Prefer primary evidence", client.calls[1][2])
+        self.assertNotIn("Guess a citation when needed", repr(client.calls))
 
     def test_external_checkpoint_runs_after_each_durable_stage_before_next_model_call(self):
         client = FakeClient()
