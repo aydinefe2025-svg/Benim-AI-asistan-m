@@ -74,7 +74,16 @@ class PostgreSQLRestoreRehearsal(unittest.TestCase):
             expected_tasks = self._query(source, "SELECT owner_key||'|'||id||'|'||status||'|'||evidence::text FROM agent_research_tasks ORDER BY owner_key,id")
 
             with tempfile.TemporaryDirectory() as tmp:
-                with patch.dict(os.environ, {"DATABASE_URL": "postgresql://localhost:5432/" + source}):
+                # The fixture uses only the workflow's known disposable credentials.
+                # An explicit URI protects the backup from ambient libpq account
+                # inheritance while preserving the real dump/restore exercise.
+                from urllib.parse import quote
+                self.assertEqual(os.environ.get("PGUSER"), "cano_test")
+                self.assertEqual(os.environ.get("PGPASSWORD"), "ephemeral_test_only")
+                ci_url = ("postgresql://" + quote(os.environ["PGUSER"], safe="")
+                          + ":" + quote(os.environ["PGPASSWORD"], safe="")
+                          + "@localhost:5432/" + source)
+                with patch.dict(os.environ, {"DATABASE_URL": ci_url}):
                     backup = make_backup(Path(tmp), database_env="DATABASE_URL")
                 verified = verify_backup(Path(backup["receipt"]))
                 self.assertEqual(verified["sha256"], backup["sha256"])
