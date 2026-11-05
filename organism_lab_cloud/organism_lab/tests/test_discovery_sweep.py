@@ -42,8 +42,18 @@ class DiscoverySweepTests(unittest.TestCase):
             restored = json.loads(target.read_text(encoding="utf-8"))
             self.assertEqual(restored, saved)
             self.assertTrue(restored["generated_at"])
+            self.assertTrue(restored["run_id"])
             self.assertFalse(target.with_suffix(".json.tmp").exists())
             self.assertTrue(validate_discovery_sweep(restored))
+
+            archived_path = target.parent / "discovery-sweeps" / f"discovery-sweep-{saved['run_id']}.json"
+            self.assertEqual(json.loads(archived_path.read_text(encoding="utf-8")), saved)
+
+            second = save_discovery_sweep(report, target)
+            self.assertNotEqual(second["run_id"], saved["run_id"])
+            self.assertEqual(json.loads(archived_path.read_text(encoding="utf-8")), saved)
+            self.assertEqual(json.loads(target.read_text(encoding="utf-8")), second)
+            self.assertEqual(len(list((target.parent / "discovery-sweeps").glob("*.json"))), 2)
 
     def test_rejects_overlapping_or_unbounded_inputs(self):
         base = {"screening_seeds": (1, 2, 3), "confirmation_seeds": (4, 5, 6),
