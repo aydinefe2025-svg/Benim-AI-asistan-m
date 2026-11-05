@@ -178,7 +178,8 @@ class CollaborativeMission:
                                          internal_review=(index > 0))
                 calls += 1
                 stage = {"role": STAGE_ROLES[index], "agent_id": agent_id,
-                         "output": result["output"], "execution_mode": "model_text_only"}
+                         "output": result["output"], "execution_mode": "model_text_only",
+                         "approved_lessons_used": result.get("lessons_used", 0)}
                 if index == 0 and source_lookup is not None:
                     # No external request unless the UI explicitly opted in.
                     # Network/metadata failures do not turn an empty lead list

@@ -170,6 +170,10 @@ class CanoChatTasksTests(unittest.TestCase):
             original = AgentColony(Path(tmp) / "session-a.sqlite3")
             prepare_cano_team(original, approved=True)
             manager = CollaborativeMission(original)
+            founder = manager._agents()[1]
+            original.feedback(
+                founder, "Önceki kaynak denetimi", "Birincil kanıtı tercih et",
+                "review:approved-24", accepted=True)
             client = CountingClient()
             request_id = str(uuid.uuid4())
             checkpoint_counts = []
@@ -184,10 +188,13 @@ class CanoChatTasksTests(unittest.TestCase):
                 mission_id=request_id, on_checkpoint=checkpoint)
             self.assertEqual(result["status"], "review_pending")
             self.assertEqual(len(client.calls), 4)
+            self.assertEqual([s["approved_lessons_used"] for s in result["stages"]],
+                             [0, 1, 0, 1])
             self.assertEqual(checkpoint_counts, [1, 2, 3, 4])
             rendered = format_task_result(result)
             self.assertIn("inceleme bekleyen taslaktır", rendered)
             self.assertIn("hesap makinesi çalıştırıldığı anlamına gelmez", rendered)
+            self.assertIn("Kullanılan kabul edilmiş ders: 1", rendered)
 
             restored = AgentColony(Path(tmp) / "session-b.sqlite3")
             restore_empty_colony(restored, _snapshot(original))

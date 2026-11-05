@@ -53,6 +53,24 @@ class CollaborativeMissionTests(unittest.TestCase):
         self.assertIn("Result 2", client.calls[2][2])
         self.assertIn("Result 3", client.calls[3][2])
 
+    def test_accepted_lesson_is_retrieved_by_the_next_team_mission(self):
+        founder = self.colony.get(self.missions._agents()[0])["id"]
+        self.colony.feedback(
+            founder, "Earlier source review", "Prefer primary evidence",
+            "review:accepted-17", accepted=True)
+        self.colony.feedback(
+            founder, "Earlier source review", "Guess a citation when needed",
+            "review:rejected-18", accepted=False)
+        client = FakeClient()
+
+        result = self.missions.execute(
+            "Investigate a new energy question", client=client, model="fake")
+
+        self.assertEqual(result["status"], "review_pending")
+        self.assertIn("Prefer primary evidence", client.calls[0][2])
+        self.assertIn("Prefer primary evidence", client.calls[1][2])
+        self.assertNotIn("Guess a citation when needed", repr(client.calls))
+
     def test_external_checkpoint_runs_after_each_durable_stage_before_next_model_call(self):
         client = FakeClient()
         seen = []

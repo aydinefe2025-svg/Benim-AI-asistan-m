@@ -44,6 +44,10 @@ class ColonyTests(unittest.TestCase):
             self.assertEqual(second["lessons_used"], 1)
             self.assertIn("Check primary evidence", client.prompts[-1])
             self.assertNotIn("Unreviewed guess", client.prompts[-1])
+            self.assertIn("Task: Question\nAccepted past lessons", client.prompts[-1])
+            self.assertIn("Separate facts, hypotheses and missing evidence.",
+                          client.prompts[-1])
+            self.assertNotIn(r"\nAccepted past lessons", client.prompts[-1])
             self.assertEqual(second["status"], "draft_unverified")
 
     def test_rejects_oversized_task_without_model_call(self):
