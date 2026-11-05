@@ -214,11 +214,10 @@ def list_versioned_discovery_sweeps(history_dir):
             continue
         if (isinstance(document, dict)
                 and document.get("schema") == "organism-lab-bounded-discovery-sweep-v1"
-                and isinstance(document.get("generated_at"), str)
-                and isinstance(document.get("run_id"), str)):
+                and isinstance(document.get("generated_at"), str)):
             reports.append((path, document))
-    return sorted(reports, key=lambda item: (item[1]["generated_at"], item[1]["run_id"]),
-                  reverse=True)
+    return sorted(reports, key=lambda item: (
+        item[1]["generated_at"], item[1].get("run_id", item[0].stem)), reverse=True)
 
 def validate_discovery_sweep(document):
     """Recompute the bounded sweep and reject edited or inconsistent metrics."""
