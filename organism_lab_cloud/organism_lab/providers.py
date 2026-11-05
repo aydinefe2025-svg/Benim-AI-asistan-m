@@ -102,7 +102,8 @@ def diagnose_groq_access(api_key, model_id, *, transport=None):
                 "error_code": None}
     request = Request(
         "https://api.groq.com/openai/v1/models",
-        headers={"Authorization": "Bearer " + api_key.strip()},
+        headers={"Authorization": "Bearer " + api_key.strip(),
+                 "User-Agent": "Benim-AI-asistan-m/1.0"},
         method="GET",
     )
     sender = transport or urlopen
@@ -182,7 +183,8 @@ def generate(prompt, provider="offline", *, transport=None, model=None, system_p
                     if isinstance(system_prompt, str) and system_prompt.strip() else [])
         messages.append({"role": "user", "content": prompt})
         payload = {"model": model, "messages": messages, "max_tokens": 512}
-        headers = {"Authorization": "Bearer " + key}
+        headers = {"Authorization": "Bearer " + key,
+                   "User-Agent": "Benim-AI-asistan-m/1.0"}
     else:
         # Qwen3 may spend its entire response budget in a hidden reasoning
         # trace unless thinking is explicitly disabled for this user-facing

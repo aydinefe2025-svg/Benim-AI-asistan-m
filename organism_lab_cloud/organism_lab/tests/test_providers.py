@@ -63,8 +63,13 @@ class ProviderTests(unittest.TestCase):
                 generate("hello", "groq")
     def test_groq_mock(self):
         with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
-            result = generate("hello", "groq", transport=lambda req, timeout: FakeResponse({"choices": [{"message": {"content": "OK"}}]}))
+            captured = {}
+            def sender(request, timeout):
+                captured["user_agent"] = request.get_header("User-agent")
+                return FakeResponse({"choices": [{"message": {"content": "OK"}}]})
+            result = generate("hello", "groq", transport=sender)
         self.assertEqual(result["text"], "OK")
+        self.assertEqual(captured["user_agent"], "Benim-AI-asistan-m/1.0")
     def test_separate_test_key_is_inert_until_explicit_activation(self):
         with patch.dict(os.environ, {"GROQ_API_KEY": "existing-key",
                                      "GROQ_API_KEY_TEST": "candidate-key",
@@ -217,11 +222,13 @@ class ProviderTests(unittest.TestCase):
         def sender(request, timeout):
             captured["url"] = request.full_url
             captured["authorization"] = request.get_header("Authorization")
+            captured["user_agent"] = request.get_header("User-agent")
             return FakeResponse({"data": [{"id": "openai/gpt-oss-120b"}]})
         result = diagnose_groq_access("test-placeholder", "openai/gpt-oss-120b",
                                       transport=sender)
         self.assertEqual(captured["url"], "https://api.groq.com/openai/v1/models")
         self.assertEqual(captured["authorization"], "Bearer test-placeholder")
+        self.assertEqual(captured["user_agent"], "Benim-AI-asistan-m/1.0")
         self.assertEqual(result, {"reachable": True, "model_available": True,
                                   "http_status": 200, "error_code": None})
 
