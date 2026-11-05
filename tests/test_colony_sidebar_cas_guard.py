@@ -110,12 +110,12 @@ class SidebarBackupCASTests(unittest.TestCase):
 
     def test_restore_cta_opens_sidebar_restore_panel_once(self):
         st = PanelFake(clicks={"no_action"})
-        st.session_state["cano_open_restore_panel"] = True
+        st.session_state["_cano_restore_panel_open_requested"] = True
         with patch("core.colony_panel._session_database_path",
                    return_value=str(self.path)):
             self._render(st, store=None)
         self.assertTrue(st.expander_options[0]["expanded"])
-        self.assertNotIn("cano_open_restore_panel", st.session_state)
+        self.assertNotIn("_cano_restore_panel_open_requested", st.session_state)
 
     def test_storage_caption_matches_owner_database_configuration(self):
         from unittest.mock import Mock
