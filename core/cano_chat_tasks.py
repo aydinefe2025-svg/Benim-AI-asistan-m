@@ -31,3 +31,14 @@ def format_task_result(result):
                           str(stage.get("output", ""))))
     lines.append("\nSonuç inceleme bekleyen taslaktır; kabul edilmiş veya bağımsız doğrulanmış sayılmaz.")
     return "\n".join(lines)
+
+
+def stage_execution_notice(stage):
+    """Flag historical outputs that predate the recorded text-only boundary."""
+    if not isinstance(stage, dict):
+        raise ValueError("Invalid mission stage")
+    if stage.get("execution_mode") == "model_text_only":
+        return None
+    return ("Bu eski aşamada gerçek araç çalıştırma kaydı yok. Metindeki "
+            "‘çalıştırdım’, ‘denedim’ veya ‘ölçtüm’ ifadeleri doğrulanmış "
+            "deney sonucu değildir.")

@@ -11,7 +11,9 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from core.agent_colony import AgentColony
-from core.cano_chat_tasks import format_task_result, parse_task_request
+from core.cano_chat_tasks import (
+    format_task_result, parse_task_request, stage_execution_notice,
+)
 from core.cano_command_center import _snapshot, prepare_cano_team
 from core.collaborative_mission import CollaborativeMission
 from core.colony_restore import restore_empty_colony
@@ -134,6 +136,14 @@ class CanoChatTasksTests(unittest.TestCase):
         self.assertIsNone(parse_task_request("Kendini geliştir CANO"))
         self.assertIsNone(parse_task_request("CANO görev:"))
         self.assertIsNone(parse_task_request("CANO görev: " + "x" * 1201))
+
+    def test_legacy_mission_stage_warns_about_unrecorded_tools(self):
+        notice = stage_execution_notice({"output": "Python ile denedim; sonuç 4."})
+        self.assertIn("gerçek araç çalıştırma kaydı yok", notice)
+        self.assertIn("doğrulanmış deney sonucu değildir", notice)
+        self.assertIsNone(stage_execution_notice({
+            "output": "Yalnızca model metni.", "execution_mode": "model_text_only",
+        }))
 
     def test_chat_task_executes_four_stages_persists_and_replays_without_model_calls(self):
         with tempfile.TemporaryDirectory() as tmp:
