@@ -65,6 +65,36 @@ def _safe_groq_error_code(exc):
     return "json_error_without_machine_code"
 
 
+def _safe_http_error_origin(exc):
+    """Return only allowlisted response source/content classes, never raw headers."""
+    headers = getattr(exc, "headers", None)
+    def header(name):
+        if not headers:
+            return ""
+        return (headers.get(name) or headers.get(name.title()) or "").lower()
+    server = header("server")
+    if "groq" in server:
+        source = "groq"
+    elif "cloudflare" in server:
+        source = "cloudflare"
+    elif "render" in server:
+        source = "render"
+    elif server:
+        source = "other_server"
+    else:
+        source = "unknown_server"
+    content_type = header("content-type")
+    if "json" in content_type:
+        body_type = "json"
+    elif "html" in content_type:
+        body_type = "html"
+    elif content_type:
+        body_type = "other"
+    else:
+        body_type = "unknown"
+    return source + "/" + body_type
+
+
 def diagnose_groq_access(api_key, model_id, *, transport=None):
     """Check key-scoped model listing without generating text or returning secrets."""
     if not isinstance(api_key, str) or not api_key.strip():
@@ -86,7 +116,8 @@ def diagnose_groq_access(api_key, model_id, *, transport=None):
                 "http_status": 200, "error_code": None}
     except HTTPError as exc:
         return {"reachable": False, "model_available": False,
-                "http_status": exc.code, "error_code": _safe_groq_error_code(exc)}
+                "http_status": exc.code, "error_code": _safe_groq_error_code(exc),
+                "response_origin": _safe_http_error_origin(exc)}
     except (URLError, OSError, UnicodeDecodeError, ValueError, TypeError):
         return {"reachable": False, "model_available": False,
                 "http_status": None, "error_code": None}

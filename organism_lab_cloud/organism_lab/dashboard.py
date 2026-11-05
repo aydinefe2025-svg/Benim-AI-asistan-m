@@ -136,7 +136,9 @@ elif CLOUD_MODE:
             code = diagnosis["error_code"]
             safe_status = f"HTTP {status}" if isinstance(status, int) else "ağ yanıtı yok"
             safe_code = f" · Groq kodu: {code}" if code else ""
-            st.error(f"Render'daki {diagnostic_label} ile Groq model listesi isteği başarısız ({safe_status}{safe_code}). Anahtar değeri gösterilmedi.")
+            response_origin = diagnosis.get("response_origin")
+            safe_origin = f" · yanıt sınıfı: {response_origin}" if response_origin else ""
+            st.error(f"Render'daki {diagnostic_label} ile Groq model listesi isteği başarısız ({safe_status}{safe_code}{safe_origin}). Anahtar değeri gösterilmedi.")
 else:
     st.info("Şu an Ollama temel modeli kullanılıyor; bu bilgisayarda eğitilmiş bir adaptör etkin değil. Kaydedilen notlar yanıta bağlam olarak eklenir, model ağırlıklarını değiştirmez.")
     selected_provider = "ollama"

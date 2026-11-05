@@ -233,8 +233,20 @@ class ProviderTests(unittest.TestCase):
         result = diagnose_groq_access("test-placeholder", "openai/gpt-oss-120b",
                                       transport=sender)
         self.assertEqual(result, {"reachable": False, "model_available": False,
-                                  "http_status": 403, "error_code": "invalid_project"})
+                                  "http_status": 403, "error_code": "invalid_project",
+                                  "response_origin": "unknown_server/unknown"})
         self.assertNotIn("secret detail", repr(result))
+
+    def test_groq_access_diagnostic_exposes_only_allowlisted_response_origin(self):
+        def sender(request, timeout):
+            raise HTTPError(request.full_url, 403, "denied",
+                            {"Server": "cloudflare", "Content-Type": "text/html; charset=UTF-8"},
+                            BytesIO(b"DO_NOT_EXPOSE private gateway details"))
+        result = diagnose_groq_access("test-placeholder", "openai/gpt-oss-120b",
+                                      transport=sender)
+        self.assertEqual(result["response_origin"], "cloudflare/html")
+        self.assertEqual(result["error_code"], "non_json_error_response")
+        self.assertNotIn("private gateway details", repr(result))
 
     def test_groq_network_error_is_reported_safely(self):
         with patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):
