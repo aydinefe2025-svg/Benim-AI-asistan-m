@@ -2,6 +2,7 @@ import tempfile
 import unittest
 import uuid
 import ast
+import json
 import logging
 import os
 import re
@@ -59,6 +60,72 @@ class CanoChatTasksTests(unittest.TestCase):
             replay = namespace["asistani_calistir"]("CANO görev: küçük bir karşılaştırma yap")
             self.assertIn("yeni model çağrısı: 0", replay)
             self.assertEqual(len(calls), 4)
+
+    def test_new_chat_session_restores_owner_snapshot_and_keeps_prior_mission(self):
+        app = Path(__file__).resolve().parents[1] / "app.py"
+        tree = ast.parse(app.read_text(encoding="utf-8"))
+        function = next(node for node in tree.body
+                        if isinstance(node, ast.FunctionDef)
+                        and node.name == "asistani_calistir")
+        calls = []
+
+        class MemorySnapshotStore:
+            remote = None
+
+            def __init__(self, database_url):
+                self.database_url = database_url
+
+            def verify_schema(self):
+                return None
+
+            def load(self, owner):
+                self.assert_owner(owner)
+                return type(self).remote
+
+            def assert_owner(self, owner):
+                if owner != "synthetic-owner":
+                    raise AssertionError("unexpected owner")
+
+            def save_versioned_verified(self, owner, payload, *, expected_prior,
+                                        archive_prior=True):
+                self.assert_owner(owner)
+                if expected_prior != type(self).remote:
+                    raise RuntimeError("snapshot CAS conflict")
+                type(self).remote = payload
+
+        MemorySnapshotStore.remote = None
+        def app_function(state):
+            namespace = {
+                "_CANO_OWNER_KEY": "synthetic-owner",
+                "GROQ_KEY": "synthetic-key",
+                "_team_answer": lambda prompt: calls.append(prompt) or f"Model yanıtı {len(calls)}",
+                "st": SimpleNamespace(session_state=state),
+                "os": os,
+                "uuid4": uuid.uuid4,
+                "logging": logging,
+                "failure_category": lambda error: type(error).__name__,
+                "cano_database_url": lambda env: "synthetic-dsn",
+            }
+            exec(compile(ast.Module(body=[function], type_ignores=[]), str(app), "exec"), namespace)
+            return namespace["asistani_calistir"]
+
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {
+                "AGENT_COLONY_DB_PATH": str(Path(tmp) / "colony.sqlite3")}):
+            with patch("core.colony_postgres.ColonySnapshotStore", MemorySnapshotStore):
+                first = app_function({})("CANO görev: ilk kayıtlı hedef")
+                self.assertIn("review_pending", first)
+                self.assertEqual(len(calls), 4)
+                self.assertEqual(len(MemorySnapshotStore.remote["missions"]), 1)
+
+                # A new Streamlit state allocates a different empty SQLite file.
+                second = app_function({})("CANO görev: ikinci hedef")
+                self.assertIn("review_pending", second)
+                self.assertEqual(len(calls), 8)
+                saved = MemorySnapshotStore.remote["missions"]
+                self.assertEqual(len(saved), 2)
+                self.assertTrue(all(mission["status"] == "review_pending"
+                                    and len(json.loads(mission["stages"])) == 4
+                                    for mission in saved))
 
     def test_only_clear_bounded_task_prefix_routes_to_team(self):
         self.assertEqual(parse_task_request("CANO görev: İki seçenek karşılaştır"),

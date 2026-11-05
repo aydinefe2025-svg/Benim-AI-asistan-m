@@ -21,4 +21,4 @@ and no later stage is called. Retrying the same in-session request resumes the
 saved mission; a completed mission ID returns its saved output without another
 provider call.
 
-Verification: `python -m unittest discover -s tests` (503 tests, 6 skipped).
+Verification: `python -m unittest discover -s tests` (504 tests, 6 skipped).
