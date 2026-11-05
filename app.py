@@ -404,7 +404,7 @@ render_authorized_queue_panel(
 render_colony_panel(st, answer=_team_answer if GROQ_KEY else None,
                     owner_key=_CANO_OWNER_KEY,
                     database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None)
-# Run the bounded, offline lab only after the existing authentication gate.
+# Explicit bounded simulation; existing login and production tasks stay unchanged.
 render_organism_lab_panel(st)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
@@ -690,7 +690,15 @@ if isinstance(_chat_pending_task, dict):
                 value=False, key="cano_chat_task_approval_checkbox")
             _chat_task_submit = st.form_submit_button(
                 "Dört aşamalı CANO görevini başlat")
-        if _chat_task_submit:
+            _chat_task_cancel = st.form_submit_button("Bekleyen görevi iptal et")
+        if _chat_task_cancel:
+            from core.cano_chat_tasks import cancel_pending_task
+            if cancel_pending_task(st.session_state):
+                st.info("Bekleyen CANO görevi iptal edildi; model çağrısı yapılmadı.")
+            else:
+                st.warning("Bu onay formu güncel değil; hiçbir görev başlatılmadı.")
+            st.rerun()
+        elif _chat_task_submit:
             if not _chat_task_approved:
                 st.warning("Başlatmak için bu görev özelindeki onay kutusunu işaretleyin.")
             else:

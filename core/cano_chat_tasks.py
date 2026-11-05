@@ -52,3 +52,21 @@ def stage_execution_notice(stage):
     return ("Bu eski aşamada gerçek araç çalıştırma kaydı yok. Metindeki "
             "‘çalıştırdım’, ‘denedim’ veya ‘ölçtüm’ ifadeleri doğrulanmış "
             "deney sonucu değildir.")
+
+
+def cancel_pending_task(session_state):
+    """Cancel only the currently previewed CANO task; never call a provider.
+
+    A stale form must not clear a newer pending request. Removing the preview
+    token also makes a later approved=True submission fail closed.
+    """
+    preview = session_state.pop("_cano_chat_task_pending", None)
+    request = session_state.get("cano_chat_request_id")
+    if (isinstance(preview, dict) and isinstance(request, dict)
+            and isinstance(preview.get("id"), str)
+            and bool(preview["id"])
+            and preview.get("id") == request.get("id")
+            and preview.get("task") == request.get("task")):
+        session_state.pop("cano_chat_request_id", None)
+        return True
+    return False
