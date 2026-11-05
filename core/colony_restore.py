@@ -6,6 +6,9 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import tempfile
+from pathlib import Path
+from core.agent_colony import AgentColony
 from core.agent_review_loop import AgentReviewLoop
 from core.collaborative_mission import CollaborativeMission
 
@@ -161,6 +164,13 @@ def restore_owner_backup(colony, snapshot_store, owner_key, *, approved=False, r
     incomplete = len(missions) - len(restorable)
     active_snapshot = {**snapshot, "missions": restorable}
     if incomplete:
+        # Validate every remaining record before changing the durable backup.
+        # This catches legacy agent rows that are also incomplete.
+        with tempfile.TemporaryDirectory() as directory:
+            probe = AgentColony(
+                Path(directory) / "restore-validation.sqlite3",
+                max_agents=colony.max_agents)
+            restore_empty_colony(probe, active_snapshot)
         snapshot_store.save_versioned_verified(
             owner_key, active_snapshot, expected_prior=snapshot, archive_prior=True)
     count = restore_empty_colony(colony, active_snapshot)

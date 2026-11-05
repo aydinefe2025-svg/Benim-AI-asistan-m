@@ -48,7 +48,11 @@ if not missions:
                     archive_incomplete_missions=True)
                 restored = restore_result["agent_count"]
                 skipped = restore_result["archived_incomplete_missions"]
-            except (KeyError, LookupError, ValueError, RuntimeError, OSError):
+            except ValueError:
+                st.warning(
+                    "Eski CANO yedeğinde geri yükleme için gerekli alanlar eksik; "
+                    "mevcut kayıtlar ve kalıcı yedek korunuyor.")
+            except (KeyError, LookupError, RuntimeError, OSError):
                 st.warning("Hesabınıza ait yedek geri yüklenemedi; mevcut kayıtlar değiştirilmedi.")
             except Exception:
                 st.error("Kalıcı yedek servisi kullanılamıyor; hiçbir kayıt değiştirilmedi.")
