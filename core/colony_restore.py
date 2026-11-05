@@ -122,7 +122,8 @@ def restore_empty_colony(colony, snapshot):
     return len(agents)
 
 
-def restore_owner_backup(colony, snapshot_store, owner_key, *, approved=False, revision=None):
+def restore_owner_backup(colony, snapshot_store, owner_key, *, approved=False, revision=None,
+                         archive_incomplete_missions=False):
     """Restore one authenticated owner's PostgreSQL backup with explicit consent.
 
     The caller must authenticate the owner before passing owner_key. Never
@@ -142,7 +143,28 @@ def restore_owner_backup(colony, snapshot_store, owner_key, *, approved=False, r
         snapshot = snapshot_store.load_archived(owner_key, revision)
     if snapshot is None:
         raise LookupError("No backup for authenticated owner")
-    return restore_empty_colony(colony, snapshot)
+    if type(archive_incomplete_missions) is not bool:
+        raise ValueError("archive_incomplete_missions must be a boolean")
+    if not archive_incomplete_missions:
+        return restore_empty_colony(colony, snapshot)
+
+    # Older releases wrote mission rows containing only id/status. They cannot
+    # be reconstructed because task text, stages and timestamp are absent.
+    # Keep those original rows in a versioned revision before excluding them
+    # from the active snapshot; never silently discard the only copy.
+    if not isinstance(snapshot, dict) or not isinstance(snapshot.get("missions", []), list):
+        raise ValueError("Invalid snapshot missions")
+    required = ("id", "task", "stages", "status", "created_at")
+    missions = snapshot.get("missions", [])
+    restorable = [row for row in missions
+                  if isinstance(row, dict) and all(key in row for key in required)]
+    incomplete = len(missions) - len(restorable)
+    active_snapshot = {**snapshot, "missions": restorable}
+    if incomplete:
+        snapshot_store.save_versioned_verified(
+            owner_key, active_snapshot, expected_prior=snapshot, archive_prior=True)
+    count = restore_empty_colony(colony, active_snapshot)
+    return {"agent_count": count, "archived_incomplete_missions": incomplete}
 
 
 def restore_colony_json_bytes(colony, raw):
