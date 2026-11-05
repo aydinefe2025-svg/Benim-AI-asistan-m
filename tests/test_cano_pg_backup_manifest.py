@@ -179,6 +179,9 @@ class PostgresBackupTests(unittest.TestCase):
         restore_args, restore_env = runner.calls[-1]
         self.assertEqual(restore_args[0], "pg_restore")
         self.assertIn("--single-transaction", restore_args)
+        self.assertIn("--dbname", restore_args)
+        self.assertEqual(restore_args[restore_args.index("--dbname") + 1],
+                         "backup_cano_restore_test")
         self.assertNotIn(TEST, repr(restore_args))
         self.assertEqual(restore_env["PGDATABASE"], "backup_cano_restore_test")
 
