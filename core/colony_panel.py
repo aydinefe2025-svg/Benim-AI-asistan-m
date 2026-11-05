@@ -9,6 +9,7 @@ from core.agent_colony import AgentColony
 from core.agent_review_loop import AgentReviewLoop
 from core.collaborative_mission import CollaborativeMission
 from core.scientific_sources import scientific_sources
+from core.claim_evidence_comparison import compare_claim_to_sources
 from core.colony_postgres import ColonySnapshotStore
 from core.colony_restore import restore_colony_json_bytes, restore_owner_backup
 from core.task_panel import _session_database_path
@@ -253,6 +254,61 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         st.caption("Crossref bibliyografik DOI adayları — tam belge okunmadı, doğrulanmadı.")
                     for lead in stage.get("source_leads", []):
                         st.caption("Doğrulanmamış aday: " + lead["title"] + " — " + lead["url"])
+            planner = next((stage for stage in mission["stages"] if stage["role"] == "planner"), {})
+            source_documents = planner.get("source_documents", [])
+            if planner.get("source_leads") and not source_documents:
+                st.caption("Kaynak metni yalnızca bu düğmeye bastığında Europe PMC üzerinden aranır (en fazla iki DOI adayı).")
+                if st.button("Açık erişimli kaynak pasajlarını oku", key="read_mission_sources_" + mission["id"]):
+                    try:
+                        manager = CollaborativeMission(colony)
+                        manager.inspect_source_documents(mission["id"])
+                        st.session_state["colony_last_mission"] = manager.get(mission["id"])
+                        st.rerun()
+                    except (ValueError, RuntimeError, OSError, sqlite3.Error):
+                        st.error("Kaynak metni okunamadı; görev taslağı ve iddiası değişmedi.")
+            elif source_documents:
+                st.subheader("Kaynak pasajları ve iddia karşılaştırması")
+                st.caption("Kaynak alıntısı tek başına doğrulama değildir. Karşılaştırma metin eşleşmesi tarar ve iddiayı review_pending durumunda bırakır.")
+                for document in source_documents:
+                    st.write("Kaynak:", document.get("title") or document.get("doi", ""))
+                    st.write("URL:", document.get("url", ""))
+                    st.caption("Kaynak okuma durumu: " + str(document.get("status", "unknown")))
+                    excerpt = document.get("excerpt", "")
+                    if excerpt:
+                        st.text_area("Kaynak özeti", value=excerpt, height=120, disabled=True,
+                                     key="mission_source_excerpt_" + mission["id"] + "_" + document.get("doi", "unknown"))
+                comparable = [document for document in source_documents if document.get("excerpt")]
+                if comparable:
+                    claim_text = st.text_area(
+                        "Karşılaştırılacak iddia (ekip taslağından seçip buraya yapıştır)",
+                        max_chars=2000, key="mission_claim_compare_" + mission["id"])
+                    selected_index = st.selectbox(
+                        "Karşılaştırılacak kaynak pasajı", list(range(len(comparable))),
+                        format_func=lambda index: comparable[index].get("title") or comparable[index].get("doi", "Kaynak"),
+                        key="mission_claim_source_" + mission["id"])
+                    if st.button("İddia ile pasajı karşılaştır", key="compare_mission_claim_" + mission["id"]):
+                        try:
+                            result = compare_claim_to_sources(claim_text, [{
+                                "title": comparable[selected_index].get("title") or comparable[selected_index].get("doi", "Kaynak"),
+                                "url": comparable[selected_index]["url"],
+                                "content": comparable[selected_index]["excerpt"],
+                            }])
+                            labels = {
+                                "possible_support": "Olası metin eşleşmesi",
+                                "possible_contradiction": "Olası açık çelişki",
+                                "insufficient_text_match": "Yeterli metin eşleşmesi yok",
+                            }
+                            st.info(labels[result["assessment"]])
+                            for match in result["passages"]:
+                                st.write(match["passage"])
+                                st.caption("Eşleşen terimler: " + ", ".join(match["matched_terms"]) +
+                                           " · örtüşme: " + f'{match["match_ratio"]:.0%}' +
+                                           " · karşılaştırılan metin SHA-256: " + match["citation"]["compared_text_sha256"])
+                            st.warning("Yalnızca sözcük örtüşmesi/açık olumsuzluk tarandı. Kaynağın özgünlüğü ve iddianın doğruluğu bağımsız inceleme bekliyor; durum review_pending kalır.")
+                        except ValueError as exc:
+                            st.error(str(exc))
+                else:
+                    st.info("Okunan kayıtlarda karşılaştırılabilir kaynak alıntısı yok.")
         if answer is not None and len(agents) >= 2:
             mission_manager = CollaborativeMission(colony)
             interrupted = mission_manager.interrupted()
