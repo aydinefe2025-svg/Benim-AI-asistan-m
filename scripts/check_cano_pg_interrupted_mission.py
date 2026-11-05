@@ -55,7 +55,7 @@ def _checkpoint(store, owner, colony, prior):
 
 
 def seed_and_kill(dbpath):
-    url, owner, mission_id = config()
+    url, owner, _ = config()
     colony = AgentColony(dbpath)
     assert prepare_cano_team(colony, approved=True) == 7
     store = ColonySnapshotStore(url)
@@ -75,7 +75,6 @@ def seed_and_kill(dbpath):
     CollaborativeMission(colony).execute(
         "CI synthetic interruption and recovery test",
         client=SyntheticCrashClient(), model="synthetic-no-provider",
-        mission_id=mission_id,
         on_checkpoint=lambda: _checkpoint(store, owner, colony, prior),
     )
     raise AssertionError("Synthetic process unexpectedly survived the crash")
@@ -164,7 +163,12 @@ def main():
         mid = store.load(owner)
         assert mid and len(mid["agents"]) == 7
         assert len(mid["missions"]) == 1
-        assert mid["missions"][0]["id"] == mission_id
+        # The current public execute() API allocates the mission ID itself.
+        # Derive it from the independently persisted PostgreSQL checkpoint.
+        persisted_mission_id = mid["missions"][0]["id"]
+        from uuid import UUID
+        assert str(UUID(persisted_mission_id)) == persisted_mission_id
+        env["CANO_TEST_MISSION_ID"] = persisted_mission_id
         assert mid["missions"][0]["status"] == "running"
         assert [x["role"] for x in json.loads(mid["missions"][0]["stages"])] == [
             "planner"
