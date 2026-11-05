@@ -8,8 +8,44 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import datetime, timezone
 
 from core.postgres_authorized_queue import PostgresAuthorizedQueue
+
+
+_STATE_LABELS = {
+    "queued": "Kuyrukta",
+    "running": "Çalışıyor",
+    "review_pending": "İnceleme bekliyor",
+    "blocked": "Engellendi",
+}
+_EVENT_LABELS = {
+    ("queued", "explicit_approval"): "İş kullanıcı onayıyla kuyruğa eklendi.",
+    ("running", "authorized_claim"): "Bir sağlayıcı denemesi kullanıcı onayıyla başlatıldı.",
+    ("review_pending", "unverified_draft_saved"): "Doğrulanmamış taslak kaydedildi.",
+    ("queued", "retry_requires_explicit_run"): "Deneme başarısız; tekrar için bekleme süresi ve yeni kullanıcı onayı gerekiyor.",
+    ("blocked", "call_budget_exhausted"): "Deneme bütçesi tükendi; iş engellendi.",
+    ("blocked", "lease_expired_manual_review"): "Çalışan süresi doldu; olası tekrar öncesi manuel inceleme gerekiyor.",
+}
+
+
+def format_queue_event(event):
+    """Render a bounded allowlisted queue event without exposing raw DB fields."""
+    if not isinstance(event, dict):
+        raise ValueError("Queue event must be an object")
+    state = event.get("state")
+    label = _STATE_LABELS.get(state, "Durum bilinmiyor")
+    description = _EVENT_LABELS.get((state, event.get("code")), "Kuyruk olayı kaydedildi.")
+    value = event.get("at")
+    try:
+        if isinstance(value, datetime):
+            moment = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+        else:
+            moment = datetime.fromtimestamp(float(value), tz=timezone.utc)
+        timestamp = moment.strftime("%Y-%m-%d %H:%M:%S UTC")
+    except (OverflowError, OSError, TypeError, ValueError):
+        timestamp = "Zaman bilinmiyor"
+    return f"{timestamp} · {label}: {description}"
 
 
 def render_authorized_queue_panel(st, answer=None, *, owner_key=None, database_url=None):
@@ -78,6 +114,17 @@ def render_authorized_queue_panel(st, answer=None, *, owner_key=None, database_u
                     value=job["draft"], disabled=True, height=120,
                     key="cano_queue_draft_" + job["id"],
                 )
+
+            with st.expander("Denetim geçmişi " + job["id"][:8], expanded=False):
+                try:
+                    audit_events = queue.events(job["id"])
+                    if audit_events:
+                        for event in audit_events[-12:]:
+                            st.write(format_queue_event(event))
+                    else:
+                        st.caption("Henüz kuyruk olayı yok.")
+                except Exception:
+                    st.warning("Bu işin denetim geçmişi okunamadı; hiçbir kayıt değiştirilmedi.")
 
         if answer is None:
             st.info("Model sağlayıcısı bağlı değil; işler kaydedilebilir ancak yürütülemez.")
