@@ -1,6 +1,7 @@
 """CANO auditable source quote review, accessible via Streamlit Pages."""
 import os
 import json
+import sqlite3
 from pathlib import Path
 import streamlit as st
 from core.authentication import render_auth_gate
