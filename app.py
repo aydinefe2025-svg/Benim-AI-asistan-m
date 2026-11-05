@@ -687,7 +687,15 @@ if isinstance(_chat_pending_task, dict):
                 value=False, key="cano_chat_task_approval_checkbox")
             _chat_task_submit = st.form_submit_button(
                 "Dört aşamalı CANO görevini başlat")
-        if _chat_task_submit:
+            _chat_task_cancel = st.form_submit_button("Bekleyen görevi iptal et")
+        if _chat_task_cancel:
+            from core.cano_chat_tasks import cancel_pending_task
+            if cancel_pending_task(st.session_state):
+                st.info("Bekleyen CANO görevi iptal edildi; model çağrısı yapılmadı.")
+            else:
+                st.warning("Bu onay formu güncel değil; hiçbir görev başlatılmadı.")
+            st.rerun()
+        elif _chat_task_submit:
             if not _chat_task_approved:
                 st.warning("Başlatmak için bu görev özelindeki onay kutusunu işaretleyin.")
             else:
