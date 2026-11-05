@@ -73,8 +73,8 @@ class DiscoverySweepTests(unittest.TestCase):
                                      shift_tick=5, capacity=8)
         with tempfile.TemporaryDirectory() as temporary:
             target = Path(temporary) / "discovery-sweep-latest.json"
-            previous = json.dumps({"schema": "older-report", "result": [1, 2, 3]},
-                                  separators=(",", ":")).encode("utf-8")
+            legacy_document = {**report, "generated_at": "2026-11-01T00:00:00+00:00"}
+            previous = json.dumps(legacy_document, separators=(",", ":")).encode("utf-8")
             target.write_bytes(previous)
 
             saved = save_discovery_sweep(report, target)
@@ -82,6 +82,8 @@ class DiscoverySweepTests(unittest.TestCase):
             self.assertEqual(len(preserved), 1)
             self.assertEqual(preserved[0].read_bytes(), previous)
             self.assertEqual(json.loads(target.read_text(encoding="utf-8")), saved)
+            listed = list_versioned_discovery_sweeps(target.parent / "discovery-sweeps")
+            self.assertEqual(listed[-1][1], legacy_document)
 
 
     def test_history_lists_only_valid_versioned_reports_newest_first(self):
