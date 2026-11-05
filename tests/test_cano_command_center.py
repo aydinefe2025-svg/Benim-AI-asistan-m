@@ -265,6 +265,21 @@ class CommandCenterTests(unittest.TestCase):
             render_cano_command_center(st3, answer=model)
             self.assertEqual(st3.metrics["Uzman"], 0)
 
+    def test_persistent_backup_shows_direct_restore_action(self):
+        from core.colony_postgres import ColonySnapshotStore
+        st = FakeStreamlit(clicks={"cano_open_restore_panel"})
+        with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
+              patch.object(ColonySnapshotStore, "__init__", return_value=None),
+              patch.object(ColonySnapshotStore, "verify_schema"),
+              patch.object(ColonySnapshotStore, "load", return_value={
+                  "agents": [{"id": "saved-agent"}], "feedback": [], "reviews": [], "missions": []
+              })):
+            render_cano_command_center(
+                st, owner_key="owner", database_url="postgresql://synthetic")
+        self.assertTrue(st.session_state["cano_open_restore_panel"])
+        self.assertIn("Yedeği şimdi geri yükle", " ".join(st.messages))
+        self.assertIn("rerun", st.messages)
+
     def test_authenticated_account_never_reads_anonymous_local_backup(self):
         st = FakeStreamlit(local_backup=True)
         with patch.dict("os.environ", {
