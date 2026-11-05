@@ -61,6 +61,7 @@ from core.browser_memory import browser_memory_component, decode_snapshot, write
 from core.task_panel import render_task_panel
 from core.authorized_queue_panel import render_authorized_queue_panel
 from core.colony_panel import render_colony_panel
+from core.organism_lab_panel import render_organism_lab_panel
 from core.cano_command_center import render_cano_command_center
 from core.groq_team import generate_team_stage
 
@@ -403,6 +404,8 @@ render_authorized_queue_panel(
 render_colony_panel(st, answer=_team_answer if GROQ_KEY else None,
                     owner_key=_CANO_OWNER_KEY,
                     database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None)
+# Explicit bounded simulation; existing login and production tasks stay unchanged.
+render_organism_lab_panel(st)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji, *, approved=False):
