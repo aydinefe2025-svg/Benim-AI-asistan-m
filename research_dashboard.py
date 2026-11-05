@@ -10,6 +10,7 @@ from pathlib import Path
 import streamlit as st
 
 from core.knowledge_store import KnowledgeStore
+from core.claim_evidence_comparison import compare_claim_to_sources
 from core.ollama_client import OllamaClient, OllamaError
 from core.research_orchestrator import ResearchOrchestrator
 from core.task_store import TaskStore
@@ -146,6 +147,77 @@ with tab_claims:
             details = knowledge.get_claim(claim["id"])
             for source in details["sources"]:
                 st.write(f"- [{source['title']}]({source['url']}) — {source['relationship']}")
+
+
+    st.divider()
+    st.subheader("İddia ile kaynak pasajını karşılaştır")
+    st.caption(
+        "Bu deneysel tarama yalnızca buraya yapıştırdığın metni inceler. "
+        "Kelime örtüşmesi ve açık olumsuzlukları bulur; anlamsal çıkarım veya bilimsel doğrulama yapmaz. "
+        "Yapıştırdığın metin araştırma veritabanına kaydedilmez; iddia durumu değişmez."
+    )
+    if not claims:
+        st.info("Önce İddia ve Kanıtlar bölümüne bir iddia kaydet.")
+    else:
+        selected_claim_id = st.selectbox(
+            "Karşılaştırılacak iddia",
+            [item["id"] for item in claims],
+            format_func=lambda claim_id: next(
+                f"#{item['id']} — {item['claim']}" for item in claims
+                if item["id"] == claim_id
+            ),
+            key="comparison_claim_id",
+        )
+        selected_claim = knowledge.get_claim(selected_claim_id)
+        linked_sources = selected_claim["sources"]
+        if not linked_sources:
+            st.info("Bu iddiaya bağlı kaynak yok.")
+        else:
+            selected_source_id = st.selectbox(
+                "Kaynak kaydı", [item["id"] for item in linked_sources],
+                format_func=lambda source_id: next(
+                    f"{item['title']} — {item['url']}" for item in linked_sources
+                    if item["id"] == source_id
+                ),
+                key="comparison_source_id",
+            )
+            selected_source = next(
+                item for item in linked_sources if item["id"] == selected_source_id
+            )
+            source_passage_text = st.text_area(
+                "Kaynak metni / incelenen pasajı buraya yapıştır",
+                max_chars=200_000,
+                key="comparison_source_text",
+            )
+            if st.button("Pasajı karşılaştır", key="compare_claim_source"):
+                try:
+                    result = compare_claim_to_sources(selected_claim["claim"], [{
+                        "title": selected_source["title"],
+                        "url": selected_source["url"],
+                        "content": source_passage_text,
+                    }])
+                    assessment_labels = {
+                        "possible_support": "Olası metin eşleşmesi",
+                        "possible_contradiction": "Olası açık çelişki",
+                        "insufficient_text_match": "Yeterli metin eşleşmesi yok",
+                    }
+                    st.info(assessment_labels[result["assessment"]])
+                    if result["passages"]:
+                        for match in result["passages"]:
+                            st.write(match["passage"])
+                            st.caption(
+                                f"Eşleşen terimler: {', '.join(match['matched_terms'])} · "
+                                f"örtüşme: {match['match_ratio']:.0%} · "
+                                f"karşılaştırılan metin SHA-256: {match['citation']['compared_text_sha256']}"
+                            )
+                            st.write("Kaynak başlığı:", match["citation"]["title"])
+                            st.write("Kaynak URL:", match["citation"]["url"])
+                    st.warning(
+                        "Sonuç yalnızca sözcük örtüşmesi/olumsuzluk taramasıdır; "
+                        "iddia incelemede kalır ve bağımsız değerlendirme gerekir."
+                    )
+                except ValueError as exc:
+                    st.error(str(exc))
 
 
 with tab_research:
