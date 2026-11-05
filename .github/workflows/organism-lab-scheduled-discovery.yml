@@ -24,10 +24,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out the lab release branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.LAB_BRANCH }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Run simulation regression tests
@@ -51,10 +51,10 @@ jobs:
       contents: write
     steps:
       - name: Check out the lab release branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.LAB_BRANCH }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Generate a uniquely archived report and verify it
@@ -65,8 +65,6 @@ jobs:
           python scripts/organism_lab_discovery.py --output "$report"
           python -c 'import json,sys; from organism_lab.discovery_sweep import validate_discovery_sweep; p=sys.argv[1]; d=json.load(open(p, encoding="utf-8")); validate_discovery_sweep(d); print("Validated archived report:", d["status"])' "$report"
       - name: Commit without overwriting concurrent branch updates
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
