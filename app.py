@@ -409,10 +409,6 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     from core.cano_chat_tasks import parse_task_request, format_task_result
     task_goal = parse_task_request(kullanici_mesaji)
     if task_goal is not None:
-        if not GROQ_KEY:
-            return ("CANO görevini sohbetten dört aşamalı ekibe yönlendiremedim: "
-                    "ekip yürütücüsü için Groq anahtarı yapılandırılmamış. "
-                    "Bu istek sıradan sohbet yanıtı gibi gösterilmedi.")
         request_key = "cano_chat_request_id"
         pending = st.session_state.get(request_key)
         if not isinstance(pending, dict) or pending.get("task") != task_goal:
@@ -424,6 +420,10 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
                     "Henüz model çağrısı veya görev kaydı yapılmadı. Aşağıdaki onay "
                     "kutusunu bu görev için işaretleyip başlat düğmesine basarsanız "
                     "dört model aşaması çalışır; sonuç inceleme bekleyen taslak olur.")
+        if not GROQ_KEY:
+            return ("CANO görevini sohbetten dört aşamalı ekibe yönlendiremedim: "
+                    "ekip yürütücüsü için Groq anahtarı yapılandırılmamış. "
+                    "Bu istek sıradan sohbet yanıtı gibi gösterilmedi.")
         try:
             from core.agent_colony import AgentColony
             from core.collaborative_mission import CollaborativeMission
