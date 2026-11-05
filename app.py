@@ -416,7 +416,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
             st.session_state[request_key] = pending
         if not approved:
             st.session_state["_cano_chat_task_pending"] = pending
-            return ("CANO görev taslağı hazır: " + task_goal + "\\n"
+            return ("CANO görev taslağı hazır: " + task_goal + "\n"
                     "Henüz model çağrısı veya görev kaydı yapılmadı. Aşağıdaki onay "
                     "kutusunu bu görev için işaretleyip başlat düğmesine basarsanız "
                     "dört model aşaması çalışır; sonuç inceleme bekleyen taslak olur.")
