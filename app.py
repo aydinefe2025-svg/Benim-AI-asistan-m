@@ -411,7 +411,21 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     if task_goal is not None:
         request_key = "cano_chat_request_id"
         pending = st.session_state.get(request_key)
-        if not isinstance(pending, dict) or pending.get("task") != task_goal:
+        if approved:
+            # Approval can execute only the exact task/id previously previewed.
+            # Do not allocate a new request during approval: duplicate form
+            # submits and stale approvals must remain read-only.
+            preview = st.session_state.get("_cano_chat_task_pending")
+            if (not isinstance(pending, dict)
+                    or not isinstance(preview, dict)
+                    or pending.get("task") != task_goal
+                    or preview.get("task") != task_goal
+                    or not isinstance(pending.get("id"), str)
+                    or preview.get("id") != pending.get("id")):
+                return ("Bu CANO görevi için geçerli bekleyen onay bulunamadı. "
+                        "Görevi yeniden yazıp yeni bir onay oluşturun; model "
+                        "çağrısı veya görev kaydı başlatılmadı.")
+        elif not isinstance(pending, dict) or pending.get("task") != task_goal:
             pending = {"task": task_goal, "id": str(uuid4())}
             st.session_state[request_key] = pending
         if not approved:
