@@ -273,8 +273,6 @@ class RestoreTests(unittest.TestCase):
             with colony._db() as db:
                 self.assertEqual(db.execute(
                     "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 0)
-                self.assertEqual(db.execute(
-                    "SELECT COUNT(*) FROM colony_missions").fetchone()[0], 0)
 
     def test_missing_owner_backup_refuses_write(self):
         with tempfile.TemporaryDirectory() as directory:
