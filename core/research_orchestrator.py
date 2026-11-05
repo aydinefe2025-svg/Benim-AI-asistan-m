@@ -62,7 +62,6 @@ class ResearchOrchestrator:
             raise ValueError("Research question cannot be empty")
         skeptic_model = skeptic_model or research_model
         synthesis_model = synthesis_model or research_model
-        models = [research_model, skeptic_model, synthesis_model]
         task = self.task_store.create(
             f"Yerel araştırma: {question[:120]}",
             "Planla, karşı kanıtları denetle ve sınırlamaları açık bir sentez üret.",
@@ -114,6 +113,7 @@ class ResearchOrchestrator:
                 "hesapları ve doğrulama adımlarını sırala. Kaynak bulmuş gibi davranma.\n\n"
                 f"ARAŞTIRMA SORUSU: {question}\n\nARAMA SONUÇLARI:\n{search_context}",
             )
+            actual_models = [getattr(self.client, "last_model_used", None) or research_model]
             critique = self.client.chat(
                 skeptic_model,
                 "Sen şüpheci metodoloji denetçisisin. " + rules,
@@ -121,6 +121,7 @@ class ResearchOrchestrator:
                 "eksik kanıt, kaynak kalitesi, yanlışlanabilir testler ve başarısızlık ihtimalleri.\n\n"
                 f"SORU: {question}\n\nARAMA SONUÇLARI:\n{search_context}\n\nPLAN:\n{plan}",
             )
+            actual_models.append(getattr(self.client, "last_model_used", None) or skeptic_model)
             synthesis = self.client.chat(
                 synthesis_model,
                 "Sen kanıt sınırlarını koruyan bilimsel editörsün. " + rules,
@@ -130,11 +131,12 @@ class ResearchOrchestrator:
                 f"SORU: {question}\n\nARAMA SONUÇLARI:\n{search_context}\n\n"
                 f"PLAN:\n{plan}\n\nDENETİM:\n{critique}",
             )
+            actual_models.append(getattr(self.client, "last_model_used", None) or synthesis_model)
             self.output_dir.mkdir(parents=True, exist_ok=True)
             stamp = dt.datetime.now().astimezone().isoformat(timespec="seconds")
             filename = f"{dt.datetime.now().strftime('%Y%m%d-%H%M%S')}-{_slug(question)}.md"
             output_path = self.output_dir / filename
-            same_model = len(set(models)) == 1
+            same_model = len(set(actual_models)) == 1
             if search_results:
                 source_list = "\n".join(
                     f"{i}. [{item.title}]({item.url}) — {item.publisher}\n"
@@ -177,10 +179,10 @@ class ResearchOrchestrator:
 
 ## Doğrulama sınırı
 
-Arama sonuçları yalnızca keşif ipuçlarıdır; kaynak sayfalarının içeriği bu iş akışında indirilmedi. Bu rapor, yerel modelin ürettiği bir plan/eleştiri/sentez kaydıdır. Kaynakların doğrulandığı, deneyin yapıldığı veya bilimsel sonucun kanıtlandığı anlamına gelmez.
+Arama sonuçları yalnızca keşif ipuçlarıdır; kaynak sayfalarının içeriği bu iş akışında indirilmedi. Bu rapor, seçilen sağlayıcının ürettiği bir plan/eleştiri/sentez taslağıdır. Kaynakların doğrulandığı, deneyin yapıldığı veya bilimsel sonucun kanıtlandığı anlamına gelmez.
 """
             output_path.write_text(report, encoding="utf-8")
-            evidence = [f"Report artifact: {output_path.as_posix()}", f"Models used: {', '.join(models)}"]
+            evidence = [f"Report artifact: {output_path.as_posix()}", f"Models used: {', '.join(actual_models)}"]
             if web_search:
                 evidence.append(f"Web search results captured: {len(search_results)}")
                 if search_error:
@@ -193,9 +195,9 @@ Arama sonuçları yalnızca keşif ipuçlarıdır; kaynak sayfalarının içeri�
             return {
                 "task_id": task["id"],
                 "report_path": output_path.as_posix(),
-                "research_model": research_model,
-                "skeptic_model": skeptic_model,
-                "synthesis_model": synthesis_model,
+                "research_model": actual_models[0],
+                "skeptic_model": actual_models[1],
+                "synthesis_model": actual_models[2],
                 "same_model_all_roles": str(same_model).lower(),
                 "search_count": str(len(search_results)),
                 "search_error": search_error,
