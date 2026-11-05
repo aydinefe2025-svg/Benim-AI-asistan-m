@@ -1,0 +1,88 @@
+name: Organism Lab scheduled discovery
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/organism-lab-scheduled-discovery.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "23 6 * * 1"
+
+concurrency:
+  group: organism-lab-scheduled-discovery
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  LAB_BRANCH: codex/organism-lab-cloud-demo-20261104
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the lab release branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.LAB_BRANCH }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run simulation regression tests
+        env:
+          PYTHONPATH: organism_lab_cloud
+        run: python -m unittest organism_lab.tests.test_discovery_sweep organism_lab.tests.test_adaptation_study organism_lab.tests.test_reproduction_study -v
+      - name: Run and independently recompute a bounded simulation
+        env:
+          PYTHONPATH: organism_lab_cloud
+        run: |
+          report="${RUNNER_TEMP}/organism-lab-discovery-${GITHUB_RUN_ID}.json"
+          python scripts/organism_lab_discovery.py --output "$report"
+          python -c 'import json,sys; from organism_lab.discovery_sweep import validate_discovery_sweep; p=sys.argv[1]; d=json.load(open(p, encoding="utf-8")); validate_discovery_sweep(d); print("Validated deterministic recomputation:", d["status"])' "$report"
+
+  archive:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the lab release branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.LAB_BRANCH }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate a uniquely archived report and verify it
+        env:
+          PYTHONPATH: organism_lab_cloud
+        run: |
+          report="research_reports/organism-lab-discoveries/$(date -u +%F)-run-${GITHUB_RUN_ID}.json"
+          python scripts/organism_lab_discovery.py --output "$report"
+          python -c 'import json,sys; from organism_lab.discovery_sweep import validate_discovery_sweep; p=sys.argv[1]; d=json.load(open(p, encoding="utf-8")); validate_discovery_sweep(d); print("Validated archived report:", d["status"])' "$report"
+      - name: Commit without overwriting concurrent branch updates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research_reports/organism-lab-discoveries/
+          if git diff --cached --quiet; then
+            echo "No report changes to archive."
+            exit 0
+          fi
+          git commit -m "archive: organism lab bounded simulation ${GITHUB_RUN_ID}"
+          for attempt in 1 2 3; do
+            git fetch origin "$LAB_BRANCH"
+            git rebase "origin/$LAB_BRANCH" || { git rebase --abort; exit 1; }
+            if git push origin "HEAD:refs/heads/$LAB_BRANCH"; then
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "Could not push after three safe attempts." >&2
+          exit 1
