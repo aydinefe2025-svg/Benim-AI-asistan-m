@@ -13,6 +13,7 @@ from core.groq_claim_json import generate_claim_quote_json
 from core.cano_command_center import _snapshot
 from core.colony_postgres import ColonySnapshotStore
 from core.storage_config import cano_database_url
+from core.cano_owner_checkpoint import save_owner_checkpoint, bind_restored_owner_baseline
 from core.colony_restore import restore_owner_backup
 from core.browser_colony import (
     browser_colony_component, browser_write_confirmed, encode_browser_colony_backup,
@@ -42,6 +43,8 @@ if not missions:
         st.info("Bu oturumda kaynak denetimi görevi yok. Hesabınızın kalıcı yedeğini güvenli biçimde geri yükleyebilirsiniz.")
         if st.button("Hesabıma ait CANO yedeğini geri yükle", key="cano_evidence_restore"):
             try:
+                if st.session_state.get("_cano_backup_owner_key") not in (None, owner):
+                    raise PermissionError("Session belongs to a different owner")
                 store = ColonySnapshotStore(cano_database_url(os.environ))
                 store.verify_schema()
                 restore_result = restore_owner_backup(
@@ -49,6 +52,7 @@ if not missions:
                     archive_incomplete_missions=True)
                 restored = restore_result["agent_count"]
                 skipped = restore_result["archived_incomplete_missions"]
+                bind_restored_owner_baseline(store, owner, st.session_state)
             except ValueError:
                 st.warning(
                     "Eski CANO yedeğinde geri yükleme için gerekli alanlar eksik; "
@@ -100,10 +104,11 @@ if documents and key and st.button("İddiaları kaynak alıntılarıyla karşıl
         if owner:
             store = ColonySnapshotStore(cano_database_url(os.environ))
             store.verify_schema()
-            store.save_versioned_verified(owner, _snapshot(colony))
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony))
         audit_claim_quotes(manager, mid, client=Client(), model="configured-provider")
         if owner:
-            store.save_versioned_verified(owner, _snapshot(colony))
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony),
+                                  archive_prior=False)
         st.rerun()
     except (ValueError, RuntimeError, TeamRateLimitError) as err:
         st.warning("Alıntı denetimi tamamlanamadı; önceki kayıtlar korunuyor.")

@@ -1,0 +1,31 @@
+name: CANO evidence owner CAS guard
+
+on:
+  push:
+    branches:
+      - fix/cano-evidence-owner-cas-20261105
+  pull_request:
+    paths:
+      - "core/cano_owner_checkpoint.py"
+      - "pages/01_CANO_Kaynak_Denetimi.py"
+      - "tests/test_cano_owner_checkpoint.py"
+      - ".github/workflows/cano-evidence-cas.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-cas:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Verify owner snapshot compare-and-swap guard
+        run: python -m unittest discover -s tests -p 'test_cano_owner_checkpoint.py' -v
+      - name: Verify CANO evidence page contract
+        run: python -m unittest discover -s tests -p 'test_cano_evidence_page.py' -v
