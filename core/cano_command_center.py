@@ -16,7 +16,8 @@ from core.browser_colony import (
     browser_colony_component, encode_browser_colony_backup,
     decode_browser_colony_backup, browser_write_confirmed,
 )
-from core.colony_restore import restore_empty_colony
+from core.colony_restore import restore_empty_colony, restore_owner_backup
+from core.cano_owner_checkpoint import bind_restored_owner_baseline
 from core.authentication import auth_is_required
 from core.groq_team import TeamRateLimitError
 from core.cano_chat_tasks import stage_execution_notice
@@ -137,10 +138,34 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
         if status["agents"] == 0 and remote_snapshot is not None and any(
                 remote_snapshot.get(name)
                 for name in ("agents", "feedback", "reviews", "missions")):
-            st.warning("Bu hesabın kalıcı CANO yedeği var. Önceki görevlerinizi geri yüklemek için aşağıdaki düğmeye basın.")
-            if st.button("Yedeği şimdi geri yükle", key="cano_open_restore_panel"):
-                st.session_state["_cano_restore_panel_open_requested"] = True
-                st.rerun()
+            # Identity is verified, and the session-local destination is empty.
+            # Restore only this owner's validated snapshot; never overwrite or
+            # merge with a nonempty local colony.
+            try:
+                restored = restore_owner_backup(
+                    colony, backup_store, owner_key, approved=True,
+                    archive_incomplete_missions=True)
+                bind_restored_owner_baseline(
+                    backup_store, owner_key, st.session_state)
+                status = read_cano_status(colony)
+            except LookupError:
+                st.warning("Bu hesap için kalıcı CANO yedeği bulunamadı.")
+                return
+            except (PermissionError, ValueError, RuntimeError,
+                    OSError, sqlite3.Error):
+                st.error("CANO yedeği doğrulanamadı; mevcut kayıtlar korunuyor.")
+                return
+            except Exception:
+                st.error("CANO yedeğine güvenli biçimde erişilemedi; kayıtlar korunuyor.")
+                return
+            st.success(
+                f"Bu doğrulanmış hesabın yedeğinden {restored['agent_count']} uzman "
+                "boş oturuma geri yüklendi.")
+            if restored["archived_incomplete_missions"]:
+                st.warning(
+                    f"{restored['archived_incomplete_missions']} eski eksik görev "
+                    "çalışma kaydına alınmadı; özgün yedek sürüm geçmişinde korundu.")
+            st.rerun()
             return
         if "_cano_backup_expected" not in st.session_state:
             if status["agents"] and remote_snapshot is not None:
