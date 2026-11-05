@@ -5,7 +5,7 @@ NOT a completed Render database backup and NOT proof of restored production data
 
 ## Preconditions
 
-- Install PostgreSQL client utilities `pg_dump` and `pg_restore` at versions compatible with the PostgreSQL server.
+- Install PostgreSQL client utilities `pg_dump`, `pg_restore` and `psql` at versions compatible with the PostgreSQL server.
 - Execute on a trusted host that can connect to the database. Do not weaken the Render database firewall to run this tool.
 - Keep secrets in the process environment, never in commands, repository, Notion or GitHub Actions logs.
 - Keep backup archives in private encrypted storage. The archive and manifest are not safe to publish.
@@ -33,13 +33,26 @@ GitHub artifact upload, Notion upload, or third-party sync is performed.
 
 ## Isolated restore test
 
-1. Provision a **separate empty database**, with a name ending in `_cano_restore_test`.
+1. Provision a **separate empty database**, with a name ending in `_cano_restore_test`. Do not reuse a populated staging or application database even if it ends in that suffix.
 2. Set `CANO_RESTORE_TEST_DATABASE_URL` to that test database's private connection URL.
 3. Run:
 
 ```sh
 python -m scripts.cano_pg_backup_manifest restore-test /secure/cano-2026-11-04.dump
 ```
+
+Before running the write-capable `pg_restore`, the tool uses read-only `psql`
+catalog queries against the chosen target to reject nonempty user schemas,
+relations, routines and user-defined types. An unavailable `psql` client,
+unreadable catalog or any nonzero/non-numeric result **aborts the restore**.
+The target URL is parsed into sanitized libpq environment variables;
+only a strictly validated, ordinary database name is passed as `pg_restore --dbname`.
+PostgreSQL requires `--dbname` for a direct database restore; without it,
+`PGDATABASE` alone does not select a restore destination. No passwords or
+entire connection URL go into subprocess command arguments.
+This check does not eliminate the time-of-check/time-of-use race if another
+writer modifies the target after preflight: arrange exclusive access to the
+isolated destination while testing recovery.
 
 The tool refuses a production database URL or a target without the isolated suffix,
 and never issues `--clean` or `--create`. A successful `pg_restore` process is
