@@ -219,6 +219,26 @@ def list_versioned_discovery_sweeps(history_dir):
     return sorted(reports, key=lambda item: (
         item[1]["generated_at"], item[1].get("run_id", item[0].stem)), reverse=True)
 
+
+def select_discovery_sweep(latest_path, selection, history_entries):
+    """Load latest afresh or return the explicitly selected immutable archive report.
+
+    Streamlit reruns may retain an older selected archive document in session state.
+    Reading the latest file here makes switching back to "En son tarama" deterministic.
+    """
+    if selection == "En son tarama":
+        path = Path(latest_path)
+        document = json.loads(path.read_text(encoding="utf-8"))
+        if (not isinstance(document, dict)
+                or document.get("schema") != "organism-lab-bounded-discovery-sweep-v1"
+                or not isinstance(document.get("generated_at"), str)):
+            raise ValueError("Latest discovery report is invalid")
+        return path, document
+    try:
+        return history_entries[selection]
+    except KeyError as exc:
+        raise ValueError("Selected discovery report is unavailable") from exc
+
 def validate_discovery_sweep(document):
     """Recompute the bounded sweep and reject edited or inconsistent metrics."""
     if not isinstance(document, dict) or document.get("schema") != "organism-lab-bounded-discovery-sweep-v1":
