@@ -27,7 +27,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install CPU PyTorch (no GPU or game simulator)
-        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch==2.10.0'
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch==2.10.0'
+          python -m pip install 'numpy>=2,<3'
       - name: Execute isolated original-method codebook smoke and safety tests
         run: python -W error::ResourceWarning -m unittest -q test_vomasd_cpu
       - name: Guard upstream launcher is not VO-MASD by default
