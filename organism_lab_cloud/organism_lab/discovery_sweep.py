@@ -94,6 +94,7 @@ def run_discovery_sweep(*, screening_seeds=tuple(range(10)),
     selected = max(nonzero, key=lambda row: row["mean_difference"])
     provisional = selected["mean_difference"] > 0
     confirmation = None
+    robustness = []
     status = "no_positive_screening_candidate"
     if provisional:
         confirmation = {"mutation_rate": selected["mutation_rate"], **_compare_rates(
@@ -102,6 +103,25 @@ def run_discovery_sweep(*, screening_seeds=tuple(range(10)),
             resources_per_tick=resources_per_tick)}
         low, high = confirmation["approx_ci95_low"], confirmation["approx_ci95_high"]
         status = "replicated_simulation_candidate" if low is not None and low > 0 else "not_reproduced_on_confirmation_seeds"
+        alternative_shifts = sorted({max(1, steps // 4), steps // 2,
+                                     min(steps - 1, (3 * steps) // 4)} - {shift_tick})
+        robustness = [{"shift_tick": alternative_shift, **_compare_rates(
+            selected["mutation_rate"], confirmation_seeds, steps=steps,
+            shift_tick=alternative_shift, capacity=capacity,
+            resources_per_tick=resources_per_tick)}
+            for alternative_shift in alternative_shifts]
+    supported_shift_count = sum(
+        row["approx_ci95_low"] is not None and row["approx_ci95_low"] > 0
+        for row in robustness
+    )
+    robustness_assessment = {
+        "tested_shift_count": len(robustness),
+        "positive_shift_count": supported_shift_count,
+        "summary": ("Aday, sınanan alternatif zamanlamaların tümünde olumlu kaldı."
+                    if robustness and supported_shift_count == len(robustness)
+                    else "Aday, sınanan alternatif zamanlamaların bazılarında olumlu kalmadı."
+                    if robustness else "Alternatif zamanlama koşulu hesaplanamadı."),
+    }
 
     return {
         "schema": "organism-lab-bounded-discovery-sweep-v1",
@@ -115,11 +135,13 @@ def run_discovery_sweep(*, screening_seeds=tuple(range(10)),
         "screening": screening,
         "selected_candidate": selected if provisional else None,
         "confirmation": confirmation,
+        "robustness": robustness,
         "interpretation": {
             "summary": ("A candidate repeated on separate simulation seeds." if status == "replicated_simulation_candidate"
                         else "A screening candidate did not clear the confirmation threshold on held-out seeds." if provisional
                         else "No positive candidate was found in this bounded screening run."),
             "evidence_level": "replicated_within_toy_simulator" if status == "replicated_simulation_candidate" else "exploratory_simulation_only",
+            "robustness": robustness_assessment,
             "interval_method": "approximate normal 95% interval over paired seed differences; exploratory, not adjusted for model misspecification",
             "limits": ["This is a bounded digital toy simulation, not a physical or biological experiment.",
                        "A repeated candidate is not a verified scientific discovery or a real-world causal claim.",
@@ -154,7 +176,8 @@ def validate_discovery_sweep(document):
         steps=design.get("steps"), shift_tick=design.get("shift_tick"),
         capacity=design.get("capacity"), resources_per_tick=design.get("resources_per_tick"),
     )
-    for field in ("status", "design", "screening", "selected_candidate", "confirmation", "interpretation"):
+    for field in ("status", "design", "screening", "selected_candidate", "confirmation",
+                  "robustness", "interpretation"):
         if document.get(field) != expected[field]:
             raise ValueError("Discovery report does not match deterministic recomputation")
     return True
