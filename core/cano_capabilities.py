@@ -28,7 +28,7 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
     natural_learning_request = (
         len(normalized) <= 240
         and any(phrase in normalized for phrase in self_learning_phrases)
-        and not any(re.search(rf'\\b{re.escape(verb)}\\b', normalized) for verb in task_verbs)
+        and not any(re.search(rf'\b{re.escape(verb)}\b', normalized) for verb in task_verbs)
     )
     if normalized not in exact_matches and not natural_learning_request:
         return None
