@@ -169,6 +169,21 @@ class ProviderTests(unittest.TestCase):
         self.assertNotIn("DO_NOT_EXPOSE", str(raised.exception))
         self.assertNotIn("private permission detail", str(raised.exception))
 
+    def test_groq_unstructured_403_is_classified_without_exposing_body(self):
+        for body, classification in (
+            (b"<html>DO_NOT_EXPOSE gateway denial</html>", "non_json_error_response"),
+            (b'{"error":{"message":"DO_NOT_EXPOSE private text"}}',
+             "json_error_without_machine_code"),
+        ):
+            with self.subTest(classification=classification), patch.dict(
+                    os.environ, {"GROQ_API_KEY": "test-placeholder"}):
+                def sender(request, timeout):
+                    raise HTTPError(request.full_url, 403, "provider failure", None, BytesIO(body))
+                with self.assertRaises(ProviderError) as raised:
+                    generate("hello", "groq", transport=sender)
+                self.assertIn(classification, str(raised.exception))
+                self.assertNotIn("DO_NOT_EXPOSE", str(raised.exception))
+
     def test_groq_model_permission_codes_are_safely_exposed(self):
         for code in ("model_permission_blocked_org", "model_permission_blocked_project"):
             with self.subTest(code=code), patch.dict(os.environ, {"GROQ_API_KEY": "test-placeholder"}):

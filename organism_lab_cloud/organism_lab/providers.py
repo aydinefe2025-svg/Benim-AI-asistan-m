@@ -43,9 +43,12 @@ GROQ_MODEL_OPTIONS = (
 def _safe_groq_error_code(exc):
     """Read a bounded machine code/type; never expose provider prose."""
     try:
-        payload = json.loads(exc.read(4096).decode("utf-8"))
+        raw = exc.read(4096)
+        if not raw.strip():
+            return "empty_error_response"
+        payload = json.loads(raw.decode("utf-8"))
     except (OSError, UnicodeDecodeError, ValueError, TypeError):
-        return None
+        return "non_json_error_response"
     pending = [payload]
     while pending:
         value = pending.pop()
@@ -59,7 +62,7 @@ def _safe_groq_error_code(exc):
             pending.extend(value.values())
         elif isinstance(value, list):
             pending.extend(value)
-    return None
+    return "json_error_without_machine_code"
 
 
 def diagnose_groq_access(api_key, model_id, *, transport=None):
