@@ -39,7 +39,7 @@ if not missions:
         if st.button("Hesabıma ait CANO yedeğini geri yükle", key="cano_evidence_restore"):
             try:
                 store = ColonySnapshotStore(os.environ["DATABASE_URL"])
-                store.initialize()
+                store.verify_schema()
                 restored = restore_owner_backup(colony, store, owner, approved=True)
             except (KeyError, LookupError, ValueError, RuntimeError, OSError):
                 st.warning("Hesabınıza ait yedek geri yüklenemedi; mevcut kayıtlar değiştirilmedi.")
@@ -75,7 +75,7 @@ if documents and key and st.button("İddiaları kaynak alıntılarıyla karşıl
     try:
         if owner:
             store = ColonySnapshotStore(os.environ["DATABASE_URL"])
-            store.initialize()
+            store.verify_schema()
             store.save_versioned_verified(owner, _snapshot(colony))
         audit_claim_quotes(manager, mid, client=Client(), model="configured-provider")
         if owner:
