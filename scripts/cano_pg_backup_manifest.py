@@ -195,6 +195,55 @@ def verify_backup(destination: str | Path, *, runner=subprocess.run) -> dict:
             "restore_tested": False}
 
 
+# Requiring a *_cano_restore_test name is not enough: a user could point
+# a restore at an already populated database bearing that suffix. Read only
+# PostgreSQL's catalog before any restore that can write target rows.
+_EMPTY_TARGET_CATALOG_SQL = """
+SELECT
+  (SELECT COUNT(*) FROM pg_catalog.pg_namespace AS n
+   WHERE n.nspname NOT IN ('public', 'pg_catalog', 'information_schema')
+     AND n.nspname NOT LIKE 'pg_toast%'
+     AND n.nspname NOT LIKE 'pg_temp%')
+  +
+  (SELECT COUNT(*) FROM pg_catalog.pg_class AS c
+   JOIN pg_catalog.pg_namespace AS n ON n.oid=c.relnamespace
+   WHERE n.nspname='public'
+     AND c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f'))
+  +
+  (SELECT COUNT(*) FROM pg_catalog.pg_proc AS p
+   JOIN pg_catalog.pg_namespace AS n ON n.oid=p.pronamespace
+   WHERE n.nspname='public')
+  +
+  (SELECT COUNT(*) FROM pg_catalog.pg_type AS t
+   JOIN pg_catalog.pg_namespace AS n ON n.oid=t.typnamespace
+   WHERE n.nspname='public'
+     AND t.typtype IN ('c', 'd', 'e', 'r', 'm'))
+"""
+
+
+def _require_empty_restore_target(target_url: str, *, runner=subprocess.run) -> None:
+    """Fail closed unless the selected target's catalog is independently empty.
+
+    psql runs with the target's parsed libpq environment and no secret in
+    argv.  The preflight prevents accidental population overwrites, though
+    an external writer racing after this check still needs coordination.
+    """
+    env = _libpq_env_from_uri(_database_url(target_url), dict(os.environ))
+    try:
+        result = runner(
+            ["psql", "--no-password", "--no-psqlrc", "--tuples-only",
+             "--no-align", "--set=ON_ERROR_STOP=1", "--command",
+             _EMPTY_TARGET_CATALOG_SQL],
+            env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL, check=False, timeout=30,
+        )
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        raise BackupError("Restore destination must be verified empty") from None
+    if (result.returncode != 0 or not isinstance(getattr(result, "stdout", None), bytes)
+            or result.stdout.strip() != b"0"):
+        raise BackupError("Restore destination must be verified empty")
+
+
 def restore_to_isolated_test_db(destination: str | Path, *, target_url: str,
                                 source_url: str, runner=subprocess.run) -> dict:
     """Explicit restore to a dedicated empty *_cano_restore_test database only."""
@@ -204,6 +253,7 @@ def restore_to_isolated_test_db(destination: str | Path, *, target_url: str,
             or not target["PGDATABASE"].endswith("_cano_restore_test")):
         raise BackupError("Dedicated *_cano_restore_test database required")
     verify_backup(destination, runner=runner)
+    _require_empty_restore_target(target_url, runner=runner)
     _run(["pg_restore", "--no-password", "--single-transaction",
           "--exit-on-error", "--no-owner", "--no-acl", str(destination)],
          database_url=target_url, runner=runner)
