@@ -31,7 +31,18 @@ jobs:
           python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch==2.10.0'
           python -m pip install 'numpy>=2,<3'
       - name: Execute isolated original-method codebook smoke and safety tests
-        run: python -W error::ResourceWarning -m unittest -q test_vomasd_cpu
+        run: python -W error::ResourceWarning -m unittest -q test_vomasd_cpu test_native_parity
+      - name: Check original upstream method parity and capture numeric evidence
+        run: |
+          python native_parity.py > native_parity_stdout.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path("native_parity_results.json").read_text())
+          assert x["native_original_function_executed"] and not x["paper_experiment_reproduced"]
+          assert x["parity_cases"]==32 and x["max_abs_output_diff"]==0 and x["max_abs_codebook_gradient_diff"]==0
+          print("UPSTREAM_SOURCE_PARITY_OK", x["parity_cases"])
+          PY
       - name: Guard upstream launcher is not VO-MASD by default
         run: |
           python - <<'PY'
@@ -48,6 +59,8 @@ jobs:
         if: always()
         with:
           name: cano-vomasd-cpu-${{ github.run_id }}
-          path: cano/vomasd_cpu_lab/toy_results.json
+          path: |
+            cano/vomasd_cpu_lab/toy_results.json
+            cano/vomasd_cpu_lab/native_parity_results.json
           retention-days: 14
           if-no-files-found: warn
