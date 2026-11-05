@@ -18,6 +18,8 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("st", imports)
         self.assertIn("audit_claim_quotes", source)
         self.assertIn("İddiaları kaynak alıntılarıyla karşılaştır", source)
+        self.assertIn("store.verify_schema()", source)
+        self.assertNotIn("store.initialize()", source)
 
 
 if __name__ == "__main__":

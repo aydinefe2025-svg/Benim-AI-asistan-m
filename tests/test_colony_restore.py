@@ -211,6 +211,69 @@ class RestoreTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 colony_restore.restore_owner_backup(colony, store, "owner-123", approved=True)
 
+    def test_incomplete_legacy_mission_is_archived_before_safe_restore(self):
+        with tempfile.TemporaryDirectory() as directory:
+            colony = AgentColony(Path(directory) / "colony.db")
+            original = {
+                "agents": [{
+                    "id": "owner-agent", "parent_id": None, "generation": 0,
+                    "role": "research", "instructions": "Safe",
+                    "state": "active", "created_at": "2026-01-01"}],
+                "feedback": [], "reviews": [],
+                "missions": [{"id": "old-mission", "status": "review_pending"}],
+            }
+            class VersionedStore:
+                def __init__(self):
+                    self.current = original
+                    self.revisions = []
+                def load(self, owner):
+                    return self.current
+                def save_versioned_verified(self, owner, payload, *,
+                                             expected_prior, archive_prior):
+                    self.assert_owner = owner
+                    self.assert_prior = expected_prior
+                    self.assert_archived = archive_prior
+                    self.revisions.append(self.current)
+                    self.current = payload
+            store = VersionedStore()
+            result = colony_restore.restore_owner_backup(
+                colony, store, "owner-123", approved=True,
+                archive_incomplete_missions=True)
+            self.assertEqual(result, {
+                "agent_count": 1, "archived_incomplete_missions": 1})
+            self.assertEqual(store.revisions, [original])
+            self.assertEqual(store.assert_prior, original)
+            self.assertTrue(store.assert_archived)
+            self.assertEqual(store.current["missions"], [])
+            self.assertEqual(colony.get("owner-agent")["role"], "research")
+            with colony._db() as db:
+                self.assertEqual(db.execute(
+                    "SELECT COUNT(*) FROM colony_missions").fetchone()[0], 0)
+
+    def test_incomplete_legacy_agent_fails_before_archiving_backup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            colony = AgentColony(Path(directory) / "colony.db")
+            original = {
+                "agents": [{"id": "old-agent", "role": "research"}],
+                "feedback": [], "reviews": [],
+                "missions": [{"id": "old-mission", "status": "review_pending"}],
+            }
+            class ReadOnlyStore:
+                archive_calls = 0
+                def load(self, owner):
+                    return original
+                def save_versioned_verified(self, *args, **kwargs):
+                    self.archive_calls += 1
+            store = ReadOnlyStore()
+            with self.assertRaisesRegex(ValueError, "Invalid agent"):
+                colony_restore.restore_owner_backup(
+                    colony, store, "owner-123", approved=True,
+                    archive_incomplete_missions=True)
+            self.assertEqual(store.archive_calls, 0)
+            with colony._db() as db:
+                self.assertEqual(db.execute(
+                    "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 0)
+
     def test_missing_owner_backup_refuses_write(self):
         with tempfile.TemporaryDirectory() as directory:
             colony = AgentColony(Path(directory) / "colony.db")

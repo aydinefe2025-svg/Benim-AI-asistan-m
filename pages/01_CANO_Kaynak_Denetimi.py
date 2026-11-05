@@ -28,6 +28,9 @@ colony = AgentColony(_session_database_path(st, base), max_agents=12)
 manager = CollaborativeMission(colony)
 with colony._db() as db:
     missions = db.execute("SELECT id,task FROM colony_missions WHERE status=? ORDER BY created_at DESC LIMIT 12", ("review_pending",)).fetchall()
+restore_notice = st.session_state.pop("_cano_evidence_restore_notice", None)
+if restore_notice:
+    st.warning(restore_notice)
 if not missions:
     # A new Streamlit session creates a fresh, isolated SQLite file. Never
     # silently import another owner's data or overwrite a nonempty colony.
@@ -39,14 +42,26 @@ if not missions:
         if st.button("Hesabıma ait CANO yedeğini geri yükle", key="cano_evidence_restore"):
             try:
                 store = ColonySnapshotStore(os.environ["DATABASE_URL"])
-                store.initialize()
-                restored = restore_owner_backup(colony, store, owner, approved=True)
-            except (KeyError, LookupError, ValueError, RuntimeError, OSError):
+                store.verify_schema()
+                restore_result = restore_owner_backup(
+                    colony, store, owner, approved=True,
+                    archive_incomplete_missions=True)
+                restored = restore_result["agent_count"]
+                skipped = restore_result["archived_incomplete_missions"]
+            except ValueError:
+                st.warning(
+                    "Eski CANO yedeğinde geri yükleme için gerekli alanlar eksik; "
+                    "mevcut kayıtlar ve kalıcı yedek korunuyor.")
+            except (KeyError, LookupError, RuntimeError, OSError):
                 st.warning("Hesabınıza ait yedek geri yüklenemedi; mevcut kayıtlar değiştirilmedi.")
             except Exception:
                 st.error("Kalıcı yedek servisi kullanılamıyor; hiçbir kayıt değiştirilmedi.")
             else:
                 st.success(f"{restored} CANO rol kaydı geri yüklendi; kaynak denetimi görevleri yeniden okunuyor.")
+                if skipped:
+                    st.session_state["_cano_evidence_restore_notice"] = (
+                        f"{skipped} eksik eski görev kaydı mevcut görev tablosuna alınamadı. "
+                        "Özgün yedek, sürüm geçmişine arşivlendi ve korunuyor.")
                 st.rerun()
     else:
         st.info("Önce ana CANO ekranında araştırma görevi ve kaynak okuma işlemini tamamlayın. Mevcut kayıtların üzerine yedek yüklenmez.")
@@ -75,7 +90,7 @@ if documents and key and st.button("İddiaları kaynak alıntılarıyla karşıl
     try:
         if owner:
             store = ColonySnapshotStore(os.environ["DATABASE_URL"])
-            store.initialize()
+            store.verify_schema()
             store.save_versioned_verified(owner, _snapshot(colony))
         audit_claim_quotes(manager, mid, client=Client(), model="configured-provider")
         if owner:
