@@ -11,7 +11,7 @@ from tests.test_cano_command_center import FakeModel, FakeStreamlit
 
 
 class AuthenticatedBackupGuardTests(unittest.TestCase):
-    def test_fresh_session_cannot_replace_owner_backup_by_preparing_team(self):
+    def test_fresh_authenticated_session_restores_owner_backup_before_team_setup(self):
         with tempfile.TemporaryDirectory() as temp:
             base = str(Path(temp) / "colony.sqlite3")
             st = FakeStreamlit(clicks={"cano_prepare_team"})
@@ -31,11 +31,12 @@ class AuthenticatedBackupGuardTests(unittest.TestCase):
                     database_url="postgresql://synthetic-test")
                 Store.return_value.load.assert_called_with("owner-123")
                 Store.return_value.save_versioned_verified.assert_not_called()
-                self.assertIn("geri yükle", " ".join(st.messages).lower())
+                self.assertIn("geri yüklendi", " ".join(st.messages).lower())
                 local = AgentColony(_session_database_path(st, base))
                 with local._db() as db:
                     self.assertEqual(db.execute(
-                        "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 0)
+                        "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 1)
+                self.assertEqual(st.session_state["_cano_backup_expected"], saved)
             self.assertEqual(model.calls, [])
 
     def test_fresh_session_fails_closed_if_existing_backup_cannot_be_read(self):
