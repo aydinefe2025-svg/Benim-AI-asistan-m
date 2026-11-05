@@ -12,6 +12,9 @@ import streamlit as st
 from core.knowledge_store import KnowledgeStore
 from core.ollama_client import OllamaClient, OllamaError
 from core.research_orchestrator import ResearchOrchestrator
+from core.fallback_chat_client import FallbackChatClient
+from core.groq_chat_client import GroqChatClient
+from core.provider_config import configured_credentials
 from core.task_store import TaskStore
 
 st.set_page_config(page_title="Büyük Sistem | Araştırma Merkezi", layout="wide")
@@ -149,31 +152,48 @@ with tab_claims:
 
 
 with tab_research:
-    st.subheader("Yerel Ollama ile araştırma taslağı")
-    st.caption("Bu akış planlayıcı → şüpheci denetçi → sentezleyici rollerini çalıştırır. Web araması yapmaz; aynı model üç rolde kullanılırsa bağımsız çoklu-model doğrulaması değildir.")
+    st.subheader("Ollama + isteğe bağlı Groq yedekli araştırma taslağı")
+    st.caption("Akış planlayıcı → şüpheci denetçi → sentezleyici rollerini çalıştırır. Groq yedeği kapalı başlar; açarsan Ollama hata/zaman aşımında aynı görev Groq'a geçer ve kalan roller orada tamamlanır. Bu harici API kullanımıdır; gönderilen soru ve önceki taslaklar sağlayıcıya iletilir ve hesap kullanımına/ücrete tabi olabilir. Web araması varsayılan olarak kapalıdır.")
+    research_credentials = configured_credentials(st.secrets, os.environ)
     with st.form("local_research", clear_on_submit=False):
         question = st.text_area("Araştırma sorusu", placeholder="Örn. Cezerî'nin mekanizmalarında hangi kontrol ilkeleri belgelenmiştir?")
         ollama_url = st.text_input("Ollama adresi", value=os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434"))
         model = st.text_input("Model adı", value=os.environ.get("OLLAMA_MODEL", "qwen3:8b"))
+        allow_groq_fallback = st.checkbox(
+            "Bu görevde Ollama başarısız olursa Groq yedeğine geçmeyi onaylıyorum",
+            value=False,
+            disabled=not bool(research_credentials.get("GROQ_API_KEY")),
+            help="İşaretlenmezse Ollama başarısız olduğunda görev güvenli biçimde durur; hiçbir harici yedek çağrısı yapılmaz.",
+        )
         web_search = st.checkbox("DuckDuckGo web araması yap (sorgu dış servise gönderilir; yalnızca snippet alınır)", value=False)
         run_research = st.form_submit_button("Araştırmayı çalıştır")
     if run_research:
         try:
-            client = OllamaClient(ollama_url, timeout=180)
-            available_models = client.list_models()
-            if model not in available_models:
-                st.error("Model Ollama'da görünmüyor. Kurulu modeller: " + (", ".join(available_models) or "(model bulunamadı)"))
-            else:
-                with st.spinner("Planlama, şüpheci denetim ve sentez çalışıyor..."):
-                    result = ResearchOrchestrator(
-                        client, task_store=tasks, output_dir="reports", knowledge_store=knowledge
-                    ).run(question, research_model=model, web_search=web_search)
-                st.session_state["last_research_report"] = result["report"]
-                st.session_state["last_research_path"] = result["report_path"]
-                st.session_state["last_research_task"] = result["task_id"]
-                st.success("Taslak rapor üretildi ve görev kaydına bağlandı.")
+            primary = OllamaClient(ollama_url, timeout=35)
+            fallback = (
+                GroqChatClient(research_credentials["GROQ_API_KEY"], timeout=20)
+                if allow_groq_fallback else None
+            )
+            client = FallbackChatClient(
+                primary,
+                fallback=fallback,
+                fallback_model="openai/gpt-oss-120b" if fallback else None,
+                allow_fallback=allow_groq_fallback,
+            )
+            with st.spinner("Planlama, şüpheci denetim ve sentez çalışıyor..."):
+                result = ResearchOrchestrator(
+                    client, task_store=tasks, output_dir="reports", knowledge_store=knowledge
+                ).run(question, research_model=model, web_search=web_search)
+            st.session_state["last_research_report"] = result["report"]
+            st.session_state["last_research_path"] = result["report_path"]
+            st.session_state["last_research_task"] = result["task_id"]
+            provider_message = (
+                "Ollama hata verdi; kullanıcı onaylı Groq yedeği devreye girdi."
+                if client.fallback_active else "Görev Ollama ile tamamlandı."
+            )
+            st.success(f"Taslak rapor üretildi ve görev kaydına bağlandı. {provider_message}")
         except (ValueError, KeyError, OSError, RuntimeError, OllamaError) as exc:
-            st.error(f"Yerel araştırma çalışmadı: {exc}")
+            st.error(f"Araştırma görevi tamamlanmadı: {exc}")
     if st.session_state.get("last_research_report"):
         st.caption(
             f"Görev: {st.session_state.get('last_research_task')} · "
