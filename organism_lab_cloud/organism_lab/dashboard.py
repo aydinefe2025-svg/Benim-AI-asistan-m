@@ -443,7 +443,10 @@ if "organism_discovery_report" in st.session_state:
                        file_name="organism-lab-discovery-sweep.json", mime="application/json",
                        key="download_discovery_report")
     if st.session_state.get("organism_discovery_path"):
-        st.caption("Kayıt: " + st.session_state["organism_discovery_path"])
+        st.caption("En son kayıt: " + st.session_state["organism_discovery_path"])
+        if discovery.get("run_id"):
+            st.caption("Bu çalışma ayrıca değiştirilemez sürümlü arşive kaydedildi · " +
+                       f"discovery-sweeps/discovery-sweep-{discovery['run_id']}.json")
 
 with st.expander("Kayıtlı araştırmaların otomatik özeti"):
     summary_path = OUTPUT_DIR / "research_summary.json"
