@@ -420,6 +420,17 @@ if "organism_discovery_report" in st.session_state:
         st.write("Tarama adayı", discovery["selected_candidate"])
     if discovery.get("confirmation"):
         st.write("Ayrı tohumlarla tekrar sınaması", discovery["confirmation"])
+    robustness = discovery.get("robustness", [])
+    if robustness:
+        st.markdown("**Ek sağlamlık kontrolü:** Aynı aday, çevre değişiminin daha erken ve daha geç olduğu koşullarda, taramada kullanılmayan aynı tohumlarla yeniden sınandı.")
+        st.dataframe([{
+            "Çevre değişiminin adımı": row["shift_tick"],
+            "Eşlenmiş deneme": row["paired_seeds"],
+            "Ortalama fark (yüzde puan)": row["mean_difference"] * 100,
+            "Yaklaşık %95 aralık alt sınırı": row["approx_ci95_low"] * 100,
+            "Yaklaşık %95 aralık üst sınırı": row["approx_ci95_high"] * 100,
+        } for row in robustness], width="stretch", hide_index=True)
+        st.caption(discovery.get("interpretation", {}).get("robustness", {}).get("summary", ""))
     discovery_explanation = explain_discovery_sweep(discovery)
     st.markdown("**Sonuç, sade dille:** " + discovery_explanation["finding"])
     st.caption("Yorum sınırı: " + discovery_explanation["limit"])
