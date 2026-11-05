@@ -1,7 +1,8 @@
 import unittest
+from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
 
-from core.authorized_queue_panel import format_queue_event
+from core.authorized_queue_panel import format_queue_event, render_authorized_queue_panel
 
 
 class AuthorizedQueueAuditTests(unittest.TestCase):
@@ -55,6 +56,33 @@ class AuthorizedQueueAuditTests(unittest.TestCase):
     def test_rejects_non_object_event(self):
         with self.assertRaises(ValueError):
             format_queue_event("bad")
+
+
+class AuthorizedQueueAuditPanelTests(unittest.TestCase):
+    def test_panel_reads_and_renders_job_audit_without_mutating_queue(self):
+        st = MagicMock()
+        st.form_submit_button.return_value = False
+        queue = MagicMock()
+        queue.list.return_value = [{
+            "id": "job-12345678", "state": "queued",
+            "attempts": 0, "max_calls": 2, "draft": None,
+        }]
+        queue.events.return_value = [{
+            "at": 0, "state": "queued", "code": "explicit_approval",
+        }]
+        with patch("core.authorized_queue_panel.PostgresAuthorizedQueue",
+                   return_value=queue):
+            render_authorized_queue_panel(
+                st, owner_key="owner-test", database_url="postgres://test",
+            )
+        queue.events.assert_called_once_with("job-12345678")
+        st.write.assert_any_call(
+            "1970-01-01 00:00:00 UTC · Kuyrukta: "
+            "İş kullanıcı onayıyla kuyruğa eklendi."
+        )
+        queue.enqueue.assert_not_called()
+        queue.run_once.assert_not_called()
+        st.rerun.assert_not_called()
 
 
 if __name__ == "__main__":
