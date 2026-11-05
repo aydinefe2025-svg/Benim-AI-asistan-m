@@ -87,6 +87,58 @@ class BackupTests(unittest.TestCase):
         )
         self.assertEqual(env["PGPORT"], "5432")
 
+    def test_uri_credentials_cannot_fall_back_to_ambient_libpq_secrets(self):
+        ambient = {"PGUSER": "wrong-owner", "PGPASSWORD": "wrong-secret",
+                   "PGPASSFILE": "/unsafe/other-owner.pgpass",
+                   "PGSERVICE": "unrelated-db"}
+        for url in (
+            "postgresql://db.example.invalid/cano",
+            "postgresql://correct-user@db.example.invalid/cano",
+            "postgresql://correct-user:@db.example.invalid/cano",
+        ):
+            with self.subTest(url=url):
+                with self.assertRaises(BackupError):
+                    _libpq_env_from_uri(url, ambient)
+
+    def test_backup_uri_isolates_inherited_postgresql_connection_settings(self):
+        ambient = {
+            "PGUSER": "wrong-owner", "PGPASSWORD": "wrong-password",
+            "PGPASSFILE": "/unsafe/passfile", "PGHOST": "evil.example.invalid",
+            "PGHOSTADDR": "203.0.113.1", "PGPORT": "5999",
+            "PGDATABASE": "wrong_db", "PGSERVICE": "other-service",
+            "PGSERVICEFILE": "/unsafe/service.conf", "PGOPTIONS": "-c search_path=wrong",
+            "PGSSLKEY": "/unsafe/ssl.key", "PGSSLCERT": "/unsafe/ssl.crt",
+            "PGSSLROOTCERT": "/unsafe/ca.pem", "PGAPPNAME": "wrong-app",
+            "PGCONNECT_TIMEOUT": "90", "PGCHANNELBINDING": "disable",
+            "PGTARGETSESSIONATTRS": "read-write", "PGGSSENCMODE": "disable",
+            "SAFE_UNRELATED_FLAG": "preserved",
+        }
+        result = _libpq_env_from_uri(
+            "postgresql://cano-user:cano-private@db.example.invalid/cano?sslmode=require",
+            ambient,
+        )
+        self.assertEqual(result["PGHOST"], "db.example.invalid")
+        self.assertEqual(result["PGDATABASE"], "cano")
+        self.assertEqual(result["PGPORT"], "5432")
+        self.assertEqual(result["PGUSER"], "cano-user")
+        self.assertEqual(result["PGPASSWORD"], "cano-private")
+        self.assertEqual(result["PGSSLMODE"], "require")
+        self.assertEqual(result["SAFE_UNRELATED_FLAG"], "preserved")
+        for key in ("PGPASSFILE", "PGHOSTADDR", "PGSERVICE", "PGSERVICEFILE",
+                    "PGOPTIONS", "PGSSLKEY", "PGSSLCERT", "PGSSLROOTCERT",
+                    "PGAPPNAME", "PGCONNECT_TIMEOUT", "PGCHANNELBINDING",
+                    "PGTARGETSESSIONATTRS", "PGGSSENCMODE"):
+            with self.subTest(key=key):
+                self.assertNotIn(key, result)
+
+    def test_ambient_strong_ssl_setting_must_not_silently_downgrade(self):
+        url = "postgresql://user:password@db.example.invalid/cano"
+        with self.assertRaises(BackupError):
+            _libpq_env_from_uri(url, {"PGSSLMODE": "verify-full"})
+        result = _libpq_env_from_uri(url + "?sslmode=verify-full",
+                                    {"PGSSLMODE": "disable"})
+        self.assertEqual(result["PGSSLMODE"], "verify-full")
+
     def test_nul_byte_database_name_is_rejected(self):
         with self.assertRaises(BackupError):
             _libpq_env_from_uri(
