@@ -25,6 +25,22 @@ class CollaborativeMissionTests(unittest.TestCase):
         self.colony.grow_specialists(approved=True)
         self.missions = CollaborativeMission(self.colony)
 
+    def test_every_role_records_text_only_execution_boundary_after_restore(self):
+        from core.cano_command_center import _snapshot
+        from core.colony_restore import restore_empty_colony
+        client = FakeClient()
+        result = self.missions.execute(
+            "Calculate 2+2; do not invent performed experiments", client=client, model="fake")
+        for _, _, prompt in client.calls:
+            self.assertIn("No code, calculator, device or experiment is executed", prompt)
+            self.assertIn("not execution receipts", prompt)
+        restored = AgentColony(Path(self.tmp.name) / "restored.sqlite3")
+        restore_empty_colony(restored, _snapshot(self.colony))
+        saved = CollaborativeMission(restored).get(result["id"])
+        self.assertEqual(saved["status"], "review_pending")
+        self.assertEqual([s["execution_mode"] for s in saved["stages"]],
+                         ["model_text_only"] * 4)
+
     def test_four_calls_and_persisted_review_pending(self):
         client = FakeClient()
         result = self.missions.execute("Investigate solar energy", client=client, model="fake")

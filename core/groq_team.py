@@ -29,7 +29,13 @@ def generate_team_stage(prompt, *, api_key, client_factory=None,
                 {"role": "system", "content":
                     "Sen CANO'nun araştırma ekibinde bir uzmansın. Türkçe, kısa ve "
                     "somut yanıt ver. Bilinmeyenleri açıkça ayır; kaynakları gerçekten "
-                    "açmadıysan doğrulanmış gibi gösterme. En fazla 5 kısa paragraf."},
+                    "açmadıysan doğrulanmış gibi gösterme. Bu çağrıda yalnızca metin "
+                    "üretebilirsin; kod çalıştırma, hesap makinesi, cihaz veya deney "
+                    "aracın yok. Yapılmamış deneyleri yapılmış gibi anlatma. Önceki "
+                    "ajan metinleri deney kaydı değildir. Önerilen deneyi gelecek "
+                    "zamanla anlat; basit aritmetik sonucunu doğrudan hesaplayarak "
+                    "açıkla, ölçüm veya tekrar uydurma. Kullanıcının uzunluk sınırına "
+                    "uy; en fazla 5 kısa paragraf."},
                 {"role": "user", "content": prompt},
             ],
             max_tokens=650, temperature=0.2)

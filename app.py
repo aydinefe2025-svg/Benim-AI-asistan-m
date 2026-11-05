@@ -481,9 +481,22 @@ def asistani_calistir(kullanici_mesaji):
             raw_response = completion.choices[0].message.content
         else:
             client = genai.Client(api_key=GOOGLE_KEY)
+            # Gemini uses the role name "model" for prior assistant turns.
+            # Keep the same conversation as the chat UI, including the current
+            # user turn exactly once, rather than sending an isolated message.
+            google_contents = [
+                {"role": "model" if msg["role"] == "assistant" else "user",
+                 "parts": [{"text": msg["content"]}]}
+                for msg in st.session_state.messages
+                if msg.get("role") in {"user", "assistant"}
+                and isinstance(msg.get("content"), str)
+            ]
+            if not (google_contents and google_contents[-1]["role"] == "user"
+                    and google_contents[-1]["parts"] == [{"text": kullanici_mesaji}]):
+                google_contents.append({"role": "user", "parts": [{"text": kullanici_mesaji}]})
             response = client.models.generate_content(
                 model=aktif_llm_adi,
-                contents=kullanici_mesaji,
+                contents=google_contents,
                 config=types.GenerateContentConfig(
                     system_instruction=sistem_talimati,
                     max_output_tokens=1000
