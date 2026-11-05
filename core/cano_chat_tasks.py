@@ -9,6 +9,13 @@ def parse_task_request(message):
     text = message.strip()
     prefixes = ("cano görev:", "cano gorev:", "görev:", "gorev:")
     folded = text.casefold()
+    if any(phrase in folded for phrase in (
+            "kendini geliştir", "kendini gelistir",
+            "öğrenmeye başla", "ogrenmeye basla")):
+        return ("CANO için ölçülebilir gelişim önerisi hazırla: inceleme bekleyen "
+                "taslaklarla doğrulanmış dersleri ayır; geliştirme ölçütü ve güvenli "
+                "deney öner. Model ağırlıklarını, kayıtları veya etkin ajanları "
+                "değiştirme; önerileri otomatik uygulama.")
     for prefix in prefixes:
         if folded.startswith(prefix):
             task = text[len(prefix):].strip()
