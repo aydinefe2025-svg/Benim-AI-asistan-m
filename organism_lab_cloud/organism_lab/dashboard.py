@@ -12,8 +12,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 from organism_lab.shared_world import run_shared_world
+from organism_lab.explanations import (explain_shared_world, explain_reproduction_study,
+                                       explain_adaptation_study, render_explanation)
 from organism_lab.reproduction_study import run_study, save_study
 from organism_lab.adaptation_study import run_adaptation_study, save_adaptation_study
+from organism_lab.discovery_sweep import run_discovery_sweep, save_discovery_sweep
 from organism_lab.literature_search import list_records, save_records, search_openalex
 from organism_lab.persistent_memory import (augment_with_memory, list_memories,
                                             retrieve_memories, save_memory)
@@ -300,6 +303,7 @@ if CLOUD_MODE and "organism_result" not in st.session_state:
 
 if "organism_result" in st.session_state:
     result = st.session_state["organism_result"]
+    render_explanation(st, explain_shared_world(result), key="explain_shared_world")
     a, b, c = st.columns(3)
     a.metric("Sanal robot", result["robots"])
     b.metric("Sanal organizma", result["organisms"])
@@ -332,6 +336,7 @@ if st.button("Araştırma kampanyasını çalıştır", key="run_genome_study_v2
 
 if "genome_campaign_v2" in st.session_state:
     campaign = st.session_state["genome_campaign_v2"]
+    render_explanation(st, explain_reproduction_study(campaign), key="explain_reproduction")
     st.dataframe(campaign["results"], width="stretch")
     commentary = st.session_state["genome_commentary_v2"]
     st.info("Deney ölçümleri doğrudan simülasyondan hesaplandı. Bu kampanyada yerel model kontrolü kullanılmadı.")
@@ -373,12 +378,57 @@ if CLOUD_MODE and "environment_shift_report" not in st.session_state:
 
 if "environment_shift_report" in st.session_state:
     adaptation = st.session_state["environment_shift_report"]
+    render_explanation(st, explain_adaptation_study(adaptation), key="explain_adaptation")
     st.dataframe(adaptation["results"], width="stretch", hide_index=True)
     st.download_button("Uyum deneyi raporunu indir (JSON)",
                        data=json.dumps(adaptation, ensure_ascii=False, indent=2),
                        file_name="environment-shift-study.json", mime="application/json",
                        key="download_environment_shift")
     st.caption("Kalıcı kayıt: " + st.session_state["environment_shift_path"])
+
+st.subheader("Otomatik keşif taraması · dijital simülasyon")
+st.caption("Sistem önce sınırlı sayıda mutasyon ayarını tarar; ardından en umut verici adayı taramada kullanılmayan ayrı tohumlarla yeniden sınar. Bu hesaplama yeni bir sanal aday bulabilir; gerçek canlılarda keşif veya deney değildir.")
+if st.button("Sınırlı keşif taramasını çalıştır", key="run_bounded_discovery"):
+    try:
+        with st.spinner("Aday ayarlar taranıyor; seçilen aday bağımsız simülasyon tohumlarında sınanıyor…"):
+            discovery = run_discovery_sweep()
+            discovery_path = OUTPUT_DIR / "discovery-sweep-latest.json"
+            saved_discovery = save_discovery_sweep(discovery, discovery_path)
+        st.session_state["organism_discovery_report"] = saved_discovery
+        st.session_state["organism_discovery_path"] = str(discovery_path)
+    except (OSError, ValueError, RuntimeError) as exc:
+        st.error(f"Tarama tamamlanamadı ({type(exc).__name__}); önceki sonuç korunuyor.")
+if CLOUD_MODE and "organism_discovery_report" not in st.session_state:
+    try:
+        discovery_path = OUTPUT_DIR / "discovery-sweep-latest.json"
+        st.session_state["organism_discovery_report"] = json.loads(discovery_path.read_text(encoding="utf-8"))
+        st.session_state["organism_discovery_path"] = str(discovery_path)
+    except (OSError, ValueError, TypeError):
+        pass
+if "organism_discovery_report" in st.session_state:
+    discovery = st.session_state["organism_discovery_report"]
+    status = discovery.get("status")
+    status_text = {
+        "replicated_simulation_candidate": "Aday ayrı tohumlarla tekrarlandı; yalnızca bu simülasyonda desteklendi.",
+        "not_reproduced_on_confirmation_seeds": "Tarama adayı, ayrı tohumlarda doğrulanmadı.",
+        "no_positive_screening_candidate": "Bu taramada olumlu aday bulunmadı.",
+    }.get(status, "Raporun durumu tanınmadı; dikkatli değerlendirme gerekiyor.")
+    st.info(status_text)
+    st.markdown("**Deneyin sorusu:** Ortam A'dan B'ye geçtiğinde, farklı mutasyon oranları B görevine uyumlu sanal genom payını mutasyonsuz kontrolün üzerine çıkarıyor mu?")
+    if discovery.get("selected_candidate"):
+        st.write("Tarama adayı", discovery["selected_candidate"])
+    if discovery.get("confirmation"):
+        st.write("Ayrı tohumlarla tekrar sınaması", discovery["confirmation"])
+    st.dataframe(discovery.get("screening", []), width="stretch", hide_index=True)
+    st.caption("Otomatik yorum: " + discovery.get("interpretation", {}).get("summary", "Yorum yok"))
+    st.caption("Kanıt düzeyi: " + discovery.get("interpretation", {}).get("evidence_level", "belirsiz"))
+    st.warning("Bu otomasyon gerçek dünya keşfini kanıtlamaz. Bulgular, yalnızca açık kaynak kodlu toy simülatör ve seçili parametreler için aday niteliğindedir.")
+    st.download_button("Keşif taraması raporunu indir",
+                       data=json.dumps(discovery, ensure_ascii=False, indent=2, allow_nan=False),
+                       file_name="organism-lab-discovery-sweep.json", mime="application/json",
+                       key="download_discovery_report")
+    if st.session_state.get("organism_discovery_path"):
+        st.caption("Kayıt: " + st.session_state["organism_discovery_path"])
 
 with st.expander("Kayıtlı araştırmaların otomatik özeti"):
     summary_path = OUTPUT_DIR / "research_summary.json"

@@ -42,7 +42,7 @@ class DashboardAppTests(unittest.TestCase):
     def test_simulation_button_and_metrics(self):
         app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
         self.assertFalse(app.exception)
-        self.assertEqual(len(app.button), 6)
+        self.assertEqual(len(app.button), 7)
         next(button for button in app.button if button.label == "Simülasyonu çalıştır").click().run()
         self.assertFalse(app.exception)
         self.assertEqual(len(app.metric), 3)
@@ -70,12 +70,33 @@ class DashboardAppTests(unittest.TestCase):
                 patch("organism_lab.reproduction_study.summarize_with_local_model",
                       side_effect=AssertionError("UI campaign must not call a model")):
             app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
-            self.assertEqual(len(app.button), 6)
+            self.assertEqual(len(app.button), 7)
             next(button for button in app.button if button.label == "Araştırma kampanyasını çalıştır").click().run()
             self.assertFalse(app.exception)
             self.assertTrue(any("Kayıt tamamlandı" in item.value for item in app.success))
             self.assertTrue(any("model kontrolü kullanılmadı" in item.value for item in app.info))
             self.assertTrue((Path(tmp) / "organism_lab_output" / "research_studies.sqlite3").exists())
+
+    def test_bounded_discovery_report_is_saved_and_explained(self):
+        report = {
+            "schema": "organism-lab-bounded-discovery-sweep-v1",
+            "status": "not_reproduced_on_confirmation_seeds",
+            "screening": [{"mutation_rate": 0.1, "mean_difference": 0.2}],
+            "selected_candidate": {"mutation_rate": 0.1, "mean_difference": 0.2},
+            "confirmation": {"mutation_rate": 0.1, "mean_difference": 0.01},
+            "interpretation": {"summary": "Aday ayrı tohumlarda tekrarlanmadı.",
+                               "evidence_level": "exploratory_simulation_only"},
+            "design": {"screening_seeds": [1, 2, 3], "confirmation_seeds": [10, 11, 12]},
+        }
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.dict(os.environ, {"ORGANISM_LAB_OUTPUT_DIR": str(Path(tmp) / "organism_lab_output")}), \
+                patch("organism_lab.dashboard.run_discovery_sweep", return_value=report):
+            app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
+            next(button for button in app.button if button.key == "run_bounded_discovery").click().run()
+            self.assertFalse(app.exception)
+            self.assertTrue(any("ayrı tohumlarda doğrulanmadı" in item.value for item in app.info))
+            target = Path(tmp) / "organism_lab_output" / "discovery-sweep-latest.json"
+            self.assertTrue(target.exists())
 
     def test_environment_shift_campaign_persists_without_external_model(self):
         with tempfile.TemporaryDirectory() as tmp, \
@@ -138,4 +159,5 @@ class DashboardAppTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 

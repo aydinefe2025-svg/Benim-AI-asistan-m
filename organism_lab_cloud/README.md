@@ -47,3 +47,21 @@ approval. No old session data is migrated automatically.
 
 All colony and evolution results are digital simulations, not biological or
 physical-system control. Assistant conversations do not train model weights.
+
+## Bounded automated discovery
+
+`.github/workflows/organism-lab-discovery.yml` runs a weekly simulation sweep
+and can also be started manually from GitHub Actions. It screens five bounded
+mutation rates, selects at most one positive candidate, and tests it against a
+zero-mutation control using separate, held-out random seeds. The runner
+recomputes the archived report before saving it under
+`research_reports/organism-lab-discoveries/`. The report records either a
+simulation-only repeat, a candidate that did not repeat, or no positive
+screening candidate; none is labeled a biological or real-world discovery.
+
+Pull request checks continue to run the Organism Lab regression suite. The
+hourly CANO job is proposal-only and does not start agents or model calls.
+Scheduled jobs run on GitHub-hosted runners and require no Render worker or
+provider API key. Their output is public repository history, so archive only
+non-sensitive deterministic measurements and never include user chat/data.
+
