@@ -136,9 +136,10 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
         if status["agents"] == 0 and remote_snapshot is not None and any(
                 remote_snapshot.get(name)
                 for name in ("agents", "feedback", "reviews", "missions")):
-            st.warning("Bu hesabın kalıcı CANO yedeği var. Yeni ekip hazırlamadan önce "
-                       "yan menüdeki 'Öğrenen uzman ajanlar' bölümünden hesabınıza "
-                       "ait yedeği onaylayarak geri yükleyin; önceki görevler korunacak.")
+            st.warning("Bu hesabın kalıcı CANO yedeği var. Önceki görevlerinizi geri yüklemek için aşağıdaki düğmeye basın.")
+            if st.button("Yedeği şimdi geri yükle", key="cano_open_restore_panel"):
+                st.session_state["cano_open_restore_panel"] = True
+                st.rerun()
             return
         if "_cano_backup_expected" not in st.session_state:
             if status["agents"] and remote_snapshot is not None:
