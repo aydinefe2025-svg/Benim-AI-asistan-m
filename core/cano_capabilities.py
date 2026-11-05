@@ -5,11 +5,32 @@ import re
 def capability_reply(message, *, persistent_memory=False, persistent_colony=False):
     normalized = ' '.join(str(message).casefold().replace('i\u0307', 'i').split())
     normalized = re.sub(r'[.!?,;]+$', '', normalized)
-    if normalized not in {
+    exact_matches = {
         'kendini geliştir', 'kendini geliştir cano', 'cano kendini geliştir',
         'kendini geliştirebilir misin', 'kendini geliştirebilir misin cano',
         'hafızan var mı', 'hafızan var mı cano',
-    }:
+    }
+    # Accept natural self-learning questions/statements without routing actual
+    # build or research requests away from their normal handlers.
+    self_learning_phrases = (
+        'bilgi toplayarak kendini geliştir',
+        'bilgi toplayıp kendini geliştir',
+        'kendini geliştirebilir miyiz',
+        'kendi kendini geliştirebilir',
+        'kendini öğrenerek geliştir',
+        'deney yapmadan kendini geliştir',
+        'fiziksel laboratuvar olmadan',
+    )
+    task_verbs = (
+        'tasarla', 'kur', 'kodla', 'yaz', 'üret', 'araştır',
+        'simüle et', 'başlat', 'oluştur',
+    )
+    natural_learning_request = (
+        len(normalized) <= 240
+        and any(phrase in normalized for phrase in self_learning_phrases)
+        and not any(re.search(rf'\\b{re.escape(verb)}\\b', normalized) for verb in task_verbs)
+    )
+    if normalized not in exact_matches and not natural_learning_request:
         return None
     memory = (
         'Hafıza kitaplığın bu oturumda giriş hesabına bağlı PostgreSQL üzerinden açık.'
