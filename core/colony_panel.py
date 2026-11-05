@@ -11,6 +11,7 @@ from core.collaborative_mission import CollaborativeMission
 from core.scientific_sources import scientific_sources
 from core.claim_evidence_comparison import compare_claim_to_sources
 from core.colony_postgres import ColonySnapshotStore
+from core.cano_command_center import _snapshot
 from core.colony_restore import restore_colony_json_bytes, restore_owner_backup
 from core.task_panel import _session_database_path
 
@@ -38,6 +39,32 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
         except (OSError, ValueError, sqlite3.Error):
             st.error("Ajan veritabanı açılamadı.")
             return
+        def _checkpoint(*, archive_prior=True):
+            """CAS-verified owner backup after every explicitly run research stage."""
+            if not (owner_key and database_url):
+                return
+            if (st.session_state.get("_cano_backup_owner_key") != owner_key
+                    or "_cano_backup_expected" not in st.session_state):
+                raise RuntimeError("Authenticated owner backup baseline is missing")
+            current = _snapshot(colony)
+            backup_store = ColonySnapshotStore(database_url)
+            backup_store.verify_schema()
+            backup_store.save_versioned_verified(
+                owner_key, current,
+                expected_prior=st.session_state["_cano_backup_expected"],
+                archive_prior=archive_prior)
+            st.session_state["_cano_backup_expected"] = current
+
+        def _stage_checkpoint_callback():
+            """One archived rollback boundary; each later stage is still read-back verified."""
+            if not (owner_key and database_url):
+                return None
+            completed = [0]
+            def save_stage():
+                _checkpoint(archive_prior=(completed[0] == 0))
+                completed[0] += 1
+            return save_stage
+
         if not agents and owner_key and database_url:
             confirm_restore = st.checkbox(
                 "Yedeğin yalnızca bu doğrulanmış hesaba ait olduğunu onaylıyorum; "
@@ -228,14 +255,20 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 mission_run = st.form_submit_button("CANO ekibini birlikte çalıştır (4 aşama)")
             if mission_run:
                 try:
+                    # Refuse model charges when the owner backup is stale or unavailable.
+                    _checkpoint()
                     mission = CollaborativeMission(colony).execute(
                         mission_goal, client=AnswerAdapter(answer),
                         model="configured-provider",
-                        source_lookup=scientific_sources if crossref_opt_in else None)
+                        source_lookup=scientific_sources if crossref_opt_in else None,
+                        on_checkpoint=_stage_checkpoint_callback())
+                    # The fourth stage's completion status must also be durable.
+                    _checkpoint(archive_prior=False)
                     st.session_state["colony_last_mission"] = mission
                     st.success("Dört aşamalı ekip görevi tamamlandı; bağımsız doğrulama bekliyor.")
                 except (ValueError, RuntimeError, OSError, sqlite3.Error):
-                    st.error("Ekip görevi tamamlanamadı; ajanları ve modeli kontrol edin.")
+                    st.error("Ekip görevi durduruldu; PostgreSQL aşama yedeğini, ajanları "
+                             "ve modeli kontrol edin. Doğrulanmamış kayıt tamamlandı sayılmaz.")
         if st.session_state.get("colony_last_mission"):
             mission = st.session_state["colony_last_mission"]
             st.caption("4 model çağrısı: plan, araştırma, eleştiri, sentez. "
@@ -320,15 +353,19 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         if st.button("Görevi kaldığı yerden sürdür: " + item["id"][:8],
                                      key="resume_mission_" + item["id"]):
                             try:
+                                _checkpoint()
                                 result = mission_manager.resume(
                                     item["id"], client=AnswerAdapter(answer),
-                                    model="configured-provider")
+                                    model="configured-provider",
+                                    on_checkpoint=_stage_checkpoint_callback())
+                                _checkpoint(archive_prior=False)
                                 st.session_state["colony_last_mission"] = result
                                 st.success("Kayıtlı aşamalar korunarak görev sürdürüldü.")
                                 st.rerun()
                             except (RuntimeError, ValueError, KeyError,
                                     OSError, sqlite3.Error):
-                                st.error("Görev kaldığı yerden sürdürülemedi; kayıt korundu.")
+                                st.error("Görev durduruldu; son doğrulanmış PostgreSQL "
+                                         "aşama yedeği korunur, kayıtları kontrol edin.")
                 if any(item["status"] == "running" for item in interrupted):
                     if st.button("1 saatten eski yarım görevleri kurtarmaya aç",
                                  key="recover_stale_colony_missions"):
