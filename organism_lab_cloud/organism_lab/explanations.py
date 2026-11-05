@@ -80,6 +80,59 @@ def explain_adaptation_study(report):
     }
 
 
+def explain_discovery_sweep(report):
+    """Translate a bounded sweep's measured effect and evidence limit."""
+    status = report.get("status")
+    candidate = report.get("selected_candidate") or {}
+    confirmation = report.get("confirmation") or {}
+    design = report.get("design", {})
+    mutation_rate = candidate.get("mutation_rate")
+    screen_n = len(design.get("screening_seeds", []))
+    confirm_n = len(design.get("confirmation_seeds", []))
+
+    if status == "replicated_simulation_candidate" and confirmation:
+        difference = float(confirmation.get("mean_difference", 0))
+        low = confirmation.get("approx_ci95_low")
+        high = confirmation.get("approx_ci95_high")
+        rate_text = f"{float(mutation_rate) * 100:g}%" if mutation_rate is not None else "seçilen"
+        details = (
+            f"İlk taramada {screen_n} farklı başlangıç kullanıldı; seçilen ayar "
+            f"tarama dışında tutulan {confirm_n} başlangıçla tekrar sınandı."
+        )
+        if low is not None and high is not None:
+            details += (
+                f" Yaklaşık belirsizlik aralığı {float(low) * 100:.1f}–"
+                f"{float(high) * 100:.1f} yüzde puan."
+            )
+        finding = (
+            f"Bu simülasyonda {rate_text} mutasyon ayarında, son ölçümde "
+            f"B göreviyle ilişkili sanal genom payı kontrol grubundan ortalama "
+            f"{difference * 100:.1f} yüzde puan yüksekti. {details}"
+        )
+        limit = (
+            "Bu, yalnızca laboratuvarın basitleştirilmiş bilgisayar modelinde görülen bir farktır. "
+            "Gerçek hücrelerde veya doğada aynı sonucun olacağını göstermez."
+        )
+    elif status == "not_reproduced_on_confirmation_seeds":
+        finding = (
+            "İlk taramada umut veren bir ayar çıktı; ancak ayrı başlangıçlarla yapılan tekrar "
+            "aynı farkı desteklemedi. Bu nedenle şu an simülatörde bile tekrarlanmış bir bulgu yok."
+        )
+        limit = "İlk tarama sonucu tek başına güvenilir bir keşif sayılmaz; daha fazla sınama gerekir."
+    else:
+        finding = "Bu sınırlı taramada kontrol grubundan daha iyi sonuç veren bir ayar bulunmadı."
+        limit = "Bu, hiçbir ayarın işe yaramayacağını kanıtlamaz; yalnızca denenen ayarlarda aday çıkmadı."
+
+    return {
+        "finding": finding,
+        "limit": limit,
+        "warning_explanation": (
+            "Ekrandaki uyarı, sonucun ne olmadığını açıklar; yukarıdaki ölçüm ise "
+            "simülatörde ne görüldüğünü anlatır."
+        ),
+    }
+
+
 def render_explanation(st, explanation, *, key):
     """Render an accessible result card with consistent wording."""
     with st.expander("Sonucu sade dille açıkla", key=key):
