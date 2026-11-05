@@ -1,0 +1,143 @@
+name: Organism Lab tests
+on:
+  push:
+    branches:
+      - feature/organism-lab-20261101
+  pull_request:
+    paths:
+      - 'organism_lab/**'
+      - '.github/workflows/organism-lab.yml'
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Streamlit for UI interaction tests
+        run: python -m pip install 'streamlit>=1.40,<2'
+      - name: Run offline and dashboard tests
+        run: python -m unittest discover -s organism_lab/tests -v
+      - name: Start Streamlit and verify HTTP health
+        shell: bash
+        run: |
+          python -m streamlit run organism_lab/dashboard.py --server.headless true --server.address 127.0.0.1 --server.port 8501 > /tmp/organism-streamlit.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:8501/_stcore/health > /tmp/organism-health.txt 2>/dev/null; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/organism-streamlit.log
+            exit 1
+          fi
+          grep -q 'ok' /tmp/organism-health.txt
+      - name: Generate verified offline research report
+        run: python -m organism_lab.research_pipeline organism_lab_output
+      - name: Verify report and audit chain
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from organism_lab.audit_store import read_audit
+          from organism_lab.audit_recovery import assess_audit
+          root = Path("organism_lab_output")
+          report = json.loads((root / "report.json").read_text(encoding="utf-8"))
+          audit = root / "tasks.jsonl"
+          assert report["tasks"]["checked"] == 3
+          assert report["tasks"]["failed"] == 0
+          assert report["audit_records"] == 3
+          assert len(read_audit(audit)) == 3
+          assert assess_audit(audit)["status"] == "intact"
+          PY
+      - name: Generate multi-seed evolution evidence bundle
+        run: python -m organism_lab.experiment_report organism_evolution_output
+      - name: Verify evolution evidence and population accounting
+        run: |
+          python -m organism_lab.experiment_report --verify organism_evolution_output
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("organism_evolution_output")
+          doc = json.loads((root / "experiment_summary.json").read_text(encoding="utf-8"))
+          assert doc["runs"] == 12
+          assert all(0 <= item["population"] <= doc["capacity"] for item in doc["experiments"])
+          assert all(item["population"] == 1 + item["births"] - item["deaths"] for item in doc["experiments"])
+          assert len({item["seed"] for item in doc["experiments"]}) == 12
+          PY
+      - name: Run paired genome replication resource study
+        run: python -m organism_lab.reproduction_study --seeds 30 --steps 100 --output organism_reproduction_output
+      - name: Restart process and verify saved study from all three formats
+        shell: bash
+        run: |
+          shopt -s nullglob
+          exports=(organism_reproduction_output/*.json)
+          test "${#exports[@]}" -eq 1
+          python -m organism_lab.study_verifier "${exports[0]}"
+      - name: Independently recompute and verify paired study exports
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          import sqlite3
+          from pathlib import Path
+          from organism_lab.reproduction_study import run_study
+          root = Path("organism_reproduction_output")
+          json_paths = list(root.glob("*.json"))
+          csv_paths = list(root.glob("*.csv"))
+          assert len(json_paths) == len(csv_paths) == 1
+          saved = json.loads(json_paths[0].read_text(encoding="utf-8"))
+          expected = run_study(seeds=tuple(range(30)), steps=100)
+          for key in ("schema", "design", "results", "observations", "interpretation_limits"):
+              assert saved[key] == expected[key], "Recomputation mismatch: " + key
+          assert len(saved["results"]) == 5
+          assert len(saved["observations"]) == 150
+          with csv_paths[0].open(encoding="utf-8", newline="") as stream:
+              rows = list(csv.DictReader(stream))
+          assert len(rows) == 150
+          for row, item in zip(rows, saved["observations"]):
+              assert row == {key: str(value) for key, value in item.items()}
+          with sqlite3.connect(root / "research_studies.sqlite3") as con:
+              database_rows = con.execute("SELECT study_id, report_json FROM studies").fetchall()
+          assert len(database_rows) == 1
+          assert database_rows[0][0] == saved["study_id"]
+          assert json.loads(database_rows[0][1]) == expected
+          PY
+      - name: Verify digital-genome checkpoint across separate processes
+        run: |
+          python -m organism_lab.genome_checkpoint init organism_checkpoint_output/state.json --seed 17 --target-tick 35
+          python -m organism_lab.genome_checkpoint verify organism_checkpoint_output/state.json
+          python -m organism_lab.genome_checkpoint advance organism_checkpoint_output/state.json --target-tick 120
+          python -m organism_lab.genome_checkpoint advance organism_checkpoint_output/state.json --target-tick 120
+          python -m organism_lab.genome_checkpoint verify organism_checkpoint_output/state.json
+      - name: Upload research evidence artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: organism-lab-research-python-${{ matrix.python-version }}
+          path: |
+            organism_lab_output/report.json
+            organism_lab_output/tasks.jsonl
+            organism_evolution_output/experiment_results.json
+            organism_evolution_output/experiment_summary.json
+            organism_evolution_output/experiment_manifest.json
+            organism_reproduction_output/*.json
+            organism_reproduction_output/*.csv
+            organism_reproduction_output/research_studies.sqlite3
+            organism_checkpoint_output/state.json
+          if-no-files-found: error
+          retention-days: 30

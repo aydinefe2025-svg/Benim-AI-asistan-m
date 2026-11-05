@@ -1,0 +1,63 @@
+"""Run via the dashboard-ui CI job with Streamlit installed."""
+import unittest
+from pathlib import Path
+import tempfile
+from unittest.mock import patch
+from streamlit.testing.v1 import AppTest
+
+DASHBOARD = Path(__file__).resolve().parents[1] / "dashboard.py"
+
+class DashboardAppTests(unittest.TestCase):
+    def test_simulation_button_and_metrics(self):
+        app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
+        self.assertFalse(app.exception)
+        self.assertEqual(len(app.button), 2)
+        app.button[0].click().run()
+        self.assertFalse(app.exception)
+        self.assertEqual(len(app.metric), 3)
+        self.assertEqual(len(app.get("download_button")), 1)
+
+    def test_results_survive_rerun(self):
+        app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
+        app.button[0].click().run()
+        self.assertEqual(len(app.metric), 3)
+        app.run()
+        self.assertFalse(app.exception)
+        self.assertEqual(len(app.metric), 3)
+        self.assertEqual(len(app.get("download_button")), 1)
+
+    def test_zero_steps(self):
+        app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
+        app.slider[0].set_value(0).run()
+        app.button[0].click().run()
+        self.assertFalse(app.exception)
+        self.assertTrue(any("Sıfır adım" in item.value for item in app.info))
+
+    def test_research_campaign_does_not_call_a_model_and_persists(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch("pathlib.Path.cwd", return_value=Path(tmp)), \
+                patch("organism_lab.reproduction_study.summarize_with_local_model",
+                      side_effect=AssertionError("UI campaign must not call a model")):
+            app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
+            self.assertEqual(len(app.button), 2)
+            app.button[1].click().run()
+            self.assertFalse(app.exception)
+            self.assertTrue(any("Kayıt tamamlandı" in item.value for item in app.success))
+            self.assertTrue(any("model kontrolü kullanılmadı" in item.value for item in app.info))
+            self.assertTrue((Path(tmp) / "organism_lab_output" / "research_studies.sqlite3").exists())
+
+    def test_fails_closed_when_saved_study_cannot_be_verified(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch("pathlib.Path.cwd", return_value=Path(tmp)), \
+                patch("organism_lab.study_verifier.verify_saved_study",
+                      side_effect=ValueError("file altered")):
+            app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
+            app.button[1].click().run()
+            self.assertFalse(app.exception)
+            self.assertFalse(any("Kayıt tamamlandı" in item.value for item in app.success))
+            self.assertTrue(any("Kayıt doğrulanamadı" in item.value for item in app.error))
+            self.assertEqual(len(app.get("download_button")), 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
