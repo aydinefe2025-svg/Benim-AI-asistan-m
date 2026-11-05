@@ -25,5 +25,14 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertNotIn("store.initialize()", source)
 
 
+    def test_evidence_restore_uses_cano_only_database_url(self):
+        """The second page must use the least-privilege CANO database URL."""
+        path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
+        source = path.read_text(encoding="utf-8")
+        self.assertIn("from core.storage_config import cano_database_url", source)
+        self.assertEqual(source.count("ColonySnapshotStore(cano_database_url(os.environ))"), 2)
+        self.assertNotIn('os.environ["DATABASE_URL"]', source)
+
+
 if __name__ == "__main__":
     unittest.main()
