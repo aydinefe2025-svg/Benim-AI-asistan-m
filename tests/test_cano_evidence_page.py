@@ -19,6 +19,9 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("audit_claim_quotes", source)
         self.assertIn("İddiaları kaynak alıntılarıyla karşılaştır", source)
         self.assertIn("store.verify_schema()", source)
+        self.assertIn("except LookupError:", source)
+        self.assertIn("except PermissionError:", source)
+        self.assertIn("except RuntimeError:", source)
         self.assertNotIn("store.initialize()", source)
 
 
