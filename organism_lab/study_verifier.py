@@ -8,6 +8,7 @@ import csv
 import hashlib
 import json
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 from .reproduction_study import run_study
@@ -45,7 +46,9 @@ def verify_saved_study(saved):
         if rows != [{name: str(value) for name, value in row.items()}
                     for row in expected["observations"]]:
             raise ValueError("CSV observations differ from recomputed experiment")
-        with sqlite3.connect(f"file:{database_path.resolve().as_posix()}?mode=ro", uri=True) as conn:
+        # sqlite3's transaction context manager does not close the handle.
+        # An explicit close is required before Windows can replace the archive.
+        with closing(sqlite3.connect(f"file:{database_path.resolve().as_posix()}?mode=ro", uri=True)) as conn:
             db_rows = conn.execute(
                 "SELECT created_at, report_json, commentary_json FROM studies WHERE study_id=?",
                 (identifier,)).fetchall()
