@@ -20,11 +20,10 @@ ALLOWED_TRANSITIONS = {
     "planned": {"running", "blocked"},
     "running": {"done", "review_pending", "blocked", "failed"},
     "blocked": {"planned", "running", "failed"},
-    "done": {"verified", "failed", "review_pending"},
+    "done": {"failed", "review_pending"},
     "failed": {"planned"},
-    "review_pending": {"planned", "failed"},
+    "review_pending": {"planned", "blocked", "failed"},
     "verified": set(),
-    "review_pending": {"planned", "blocked"},
 }
 
 

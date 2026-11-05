@@ -108,7 +108,7 @@ class TaskPanelTests(unittest.TestCase):
             store.finish_draft(task["id"], "Draft requiring source review")
             with patch.dict("os.environ", {"AGENT_TASK_DB_PATH": path}):
                 render_task_panel(st)
-            self.assertEqual(st.select_options["task_status_" + task["id"]], ["blocked", "planned"])
+            self.assertEqual(st.select_options["task_status_" + task["id"]], ["blocked", "failed", "planned"])
             self.assertEqual(store.get(task["id"])["status"], "review_pending")
             self.assertNotIn("verified", st.select_options["task_status_" + task["id"]])
 
