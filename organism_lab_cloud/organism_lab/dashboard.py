@@ -13,7 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import streamlit as st
 from organism_lab.shared_world import run_shared_world
 from organism_lab.explanations import (explain_shared_world, explain_reproduction_study,
-                                       explain_adaptation_study, render_explanation)
+                                       explain_adaptation_study, explain_discovery_sweep,
+                                       render_explanation)
 from organism_lab.reproduction_study import run_study, save_study
 from organism_lab.adaptation_study import run_adaptation_study, save_adaptation_study
 from organism_lab import discovery_sweep
@@ -419,10 +420,13 @@ if "organism_discovery_report" in st.session_state:
         st.write("Tarama adayı", discovery["selected_candidate"])
     if discovery.get("confirmation"):
         st.write("Ayrı tohumlarla tekrar sınaması", discovery["confirmation"])
+    discovery_explanation = explain_discovery_sweep(discovery)
+    st.markdown("**Sonuç, sade dille:** " + discovery_explanation["finding"])
+    st.caption("Yorum sınırı: " + discovery_explanation["limit"])
     st.dataframe(discovery.get("screening", []), width="stretch", hide_index=True)
-    st.caption("Otomatik yorum: " + discovery.get("interpretation", {}).get("summary", "Yorum yok"))
-    st.caption("Kanıt düzeyi: " + discovery.get("interpretation", {}).get("evidence_level", "belirsiz"))
-    st.warning("Bu otomasyon gerçek dünya keşfini kanıtlamaz. Bulgular, yalnızca açık kaynak kodlu toy simülatör ve seçili parametreler için aday niteliğindedir.")
+    with st.expander("Bu uyarı neden gösteriliyor?"):
+        st.write(discovery_explanation["warning_explanation"])
+        st.caption("Kanıt düzeyi: " + discovery.get("interpretation", {}).get("evidence_level", "belirsiz"))
     st.download_button("Keşif taraması raporunu indir",
                        data=json.dumps(discovery, ensure_ascii=False, indent=2, allow_nan=False),
                        file_name="organism-lab-discovery-sweep.json", mime="application/json",
