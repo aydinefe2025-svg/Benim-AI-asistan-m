@@ -102,22 +102,32 @@ def _libpq_env_from_uri(uri: str, inherited: dict) -> dict:
             raise ValueError("missing host, database or unexpected fragment")
         port = parsed.port
         options = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=True)
+        username = unquote(parsed.username or "")
+        password = unquote(parsed.password or "")
+        if (not username or not password or
+                "\x00" in username or "\x00" in password):
+            raise ValueError("missing or invalid explicit credentials")
     except ValueError:
         raise BackupError("Invalid PostgreSQL URL structure") from None
-    env = inherited.copy()
-    # A previous libpq service or host address must not redirect the backup.
-    for name in ("PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR"):
-        env.pop(name, None)
+    # Never reuse ambient libpq credentials, passfiles, service files, SSL
+    # settings or host overrides from a different database/account.
+    # If an operator intended stronger ambient TLS, require it in the URI;
+    # silently changing verify-full to require would weaken the connection.
+    uri_sets_sslmode = any(key == "sslmode" for key, _ in options)
+    ambient_sslmode = inherited.get("PGSSLMODE")
+    if (parsed.hostname not in {"localhost", "127.0.0.1", "::1"}
+            and ambient_sslmode not in (None, "", "require")
+            and not uri_sets_sslmode):
+        raise BackupError("Put the intended remote TLS mode in the backup URL")
+    env = {key: value for key, value in inherited.items()
+           if not key.startswith("PG")}
     env["PGHOST"] = parsed.hostname
     env["PGDATABASE"] = unquote(parsed.path[1:])
     if "\x00" in env["PGDATABASE"]:
         raise BackupError("Invalid PostgreSQL database name")
-    # A stale ambient PGPORT must never redirect an explicit backup URL.
     env["PGPORT"] = str(port or 5432)
-    if parsed.username is not None:
-        env["PGUSER"] = unquote(parsed.username)
-    if parsed.password is not None:
-        env["PGPASSWORD"] = unquote(parsed.password)
+    env["PGUSER"] = username
+    env["PGPASSWORD"] = password
     seen = set()
     for key, value in options:
         if key not in _URL_OPTIONS or key in seen or not value:
