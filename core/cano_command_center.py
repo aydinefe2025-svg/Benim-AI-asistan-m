@@ -374,6 +374,11 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                     st.caption("Bu aşama model metnidir; kod, cihaz veya fiziksel deney "
                                "çalıştırılmadı. Gerçek kaynak okuma kayıtları ayrıca gösterilir.")
                     st.markdown(stage["output"])
+                    lessons_used = stage.get("approved_lessons_used")
+                    if type(lessons_used) is int and lessons_used >= 0:
+                        st.caption(
+                            f"Bu aşamaya eklenen kabul edilmiş ders sayısı: {lessons_used}. "
+                            "Bu sayı, dersin sonucu iyileştirdiğini kanıtlamaz.")
                     if stage["role"] == "planner" and "source_lookup_status" in stage:
                         st.caption("DOI adayları: " + stage["source_lookup_status"] +
                                    ". Yalnızca bibliyografik metadata; tam metin doğrulanmadı.")

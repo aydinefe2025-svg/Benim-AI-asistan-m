@@ -36,6 +36,9 @@ def format_task_result(result):
         if isinstance(stage, dict):
             lines.extend((f"\n### {stage.get('role', 'Aşama')}",
                           str(stage.get("output", ""))))
+            lessons_used = stage.get("approved_lessons_used")
+            if type(lessons_used) is int and lessons_used >= 0:
+                lines.append(f"Kullanılan kabul edilmiş ders: {lessons_used}.")
     lines.append("\nSonuç inceleme bekleyen taslaktır; kabul edilmiş veya bağımsız doğrulanmış sayılmaz.")
     return "\n".join(lines)
 
