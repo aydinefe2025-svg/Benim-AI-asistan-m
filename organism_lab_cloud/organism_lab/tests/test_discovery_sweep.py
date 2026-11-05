@@ -3,7 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from organism_lab.discovery_sweep import (run_discovery_sweep, save_discovery_sweep,
+from organism_lab.discovery_sweep import (list_versioned_discovery_sweeps,
+                                          run_discovery_sweep, save_discovery_sweep,
                                           validate_discovery_sweep)
 
 
@@ -81,6 +82,24 @@ class DiscoverySweepTests(unittest.TestCase):
             self.assertEqual(len(preserved), 1)
             self.assertEqual(preserved[0].read_bytes(), previous)
             self.assertEqual(json.loads(target.read_text(encoding="utf-8")), saved)
+
+
+    def test_history_lists_only_valid_versioned_reports_newest_first(self):
+        report = run_discovery_sweep(screening_seeds=(0, 1, 2),
+                                     confirmation_seeds=(10, 11, 12),
+                                     mutation_rates=(0.0, 0.1), steps=12,
+                                     shift_tick=5, capacity=8)
+        with tempfile.TemporaryDirectory() as temporary:
+            latest = Path(temporary) / "latest.json"
+            first = save_discovery_sweep(report, latest)
+            second = save_discovery_sweep(report, latest)
+            history = list_versioned_discovery_sweeps(latest.parent / "discovery-sweeps")
+            self.assertEqual([document["run_id"] for _, document in history],
+                             [second["run_id"], first["run_id"]])
+            history[0][0].write_text("{invalid", encoding="utf-8")
+            remaining = list_versioned_discovery_sweeps(latest.parent / "discovery-sweeps")
+            self.assertEqual([document["run_id"] for _, document in remaining],
+                             [first["run_id"]])
 
 
 if __name__ == "__main__":
