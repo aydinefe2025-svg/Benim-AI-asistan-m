@@ -286,6 +286,42 @@ class RestoreTests(unittest.TestCase):
                 self.assertEqual(db.execute(
                     "SELECT COUNT(*) FROM colony_agents").fetchone()[0], 0)
 
+    def test_archived_revision_becomes_current_checkpoint_and_preserves_newer_backup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            colony = AgentColony(Path(directory) / "colony.db")
+            def snapshot(agent_id, role):
+                return {"agents": [{
+                    "id": agent_id, "parent_id": None, "generation": 0,
+                    "role": role, "instructions": "Safe",
+                    "state": "active", "created_at": "2026-01-01"}],
+                    "feedback": [], "reviews": [], "missions": []}
+            historical = snapshot("historic-agent", "research")
+            current = snapshot("new-agent", "evidence-reviewer")
+            class VersionedStore:
+                def __init__(self):
+                    self.current = current
+                    self.archived = {7: historical}
+                    self.revisions = []
+                def load(self, owner):
+                    return self.current
+                def load_archived(self, owner, revision):
+                    return self.archived.get(revision)
+                def save_versioned_verified(self, owner, payload, *,
+                                             expected_prior, archive_prior):
+                    self.assert_owner = owner
+                    self.assert_prior = expected_prior
+                    self.assert_archive = archive_prior
+                    self.revisions.append(self.current)
+                    self.current = payload
+            store = VersionedStore()
+            self.assertEqual(colony_restore.restore_owner_backup(
+                colony, store, "owner-123", approved=True, revision=7), 1)
+            self.assertEqual(colony.get("historic-agent")["role"], "research")
+            self.assertEqual(store.current, historical)
+            self.assertEqual(store.revisions, [current])
+            self.assertEqual(store.assert_prior, current)
+            self.assertTrue(store.assert_archive)
+
 
 if __name__ == "__main__":
     unittest.main()
