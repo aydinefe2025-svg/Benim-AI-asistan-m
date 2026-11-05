@@ -28,6 +28,9 @@ colony = AgentColony(_session_database_path(st, base), max_agents=12)
 manager = CollaborativeMission(colony)
 with colony._db() as db:
     missions = db.execute("SELECT id,task FROM colony_missions WHERE status=? ORDER BY created_at DESC LIMIT 12", ("review_pending",)).fetchall()
+restore_notice = st.session_state.pop("_cano_evidence_restore_notice", None)
+if restore_notice:
+    st.warning(restore_notice)
 if not missions:
     # A new Streamlit session creates a fresh, isolated SQLite file. Never
     # silently import another owner's data or overwrite a nonempty colony.
@@ -40,13 +43,21 @@ if not missions:
             try:
                 store = ColonySnapshotStore(os.environ["DATABASE_URL"])
                 store.verify_schema()
-                restored = restore_owner_backup(colony, store, owner, approved=True)
+                restore_result = restore_owner_backup(
+                    colony, store, owner, approved=True,
+                    archive_incomplete_missions=True)
+                restored = restore_result["agent_count"]
+                skipped = restore_result["archived_incomplete_missions"]
             except (KeyError, LookupError, ValueError, RuntimeError, OSError):
                 st.warning("Hesabınıza ait yedek geri yüklenemedi; mevcut kayıtlar değiştirilmedi.")
             except Exception:
                 st.error("Kalıcı yedek servisi kullanılamıyor; hiçbir kayıt değiştirilmedi.")
             else:
                 st.success(f"{restored} CANO rol kaydı geri yüklendi; kaynak denetimi görevleri yeniden okunuyor.")
+                if skipped:
+                    st.session_state["_cano_evidence_restore_notice"] = (
+                        f"{skipped} eksik eski görev kaydı mevcut görev tablosuna alınamadı. "
+                        "Özgün yedek, sürüm geçmişine arşivlendi ve korunuyor.")
                 st.rerun()
     else:
         st.info("Önce ana CANO ekranında araştırma görevi ve kaynak okuma işlemini tamamlayın. Mevcut kayıtların üzerine yedek yüklenmez.")
