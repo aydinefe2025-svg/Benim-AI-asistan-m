@@ -143,6 +143,12 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                                 count = restore_owner_backup(
                                     colony, old_store, owner_key, approved=True,
                                     revision=revision)
+                                # Archived revisions are promoted to current by
+                                # restore_owner_backup. Bind this session to the
+                                # verified readback so the next checkpoint can
+                                # continue from the selected historical state.
+                                st.session_state["_cano_backup_owner_key"] = owner_key
+                                st.session_state["_cano_backup_expected"] = old_store.load(owner_key)
                                 st.success(f"Eski yedekten {count} uzman geri yüklendi.")
                                 st.rerun()
                 except LookupError:

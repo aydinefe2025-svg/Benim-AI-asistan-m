@@ -138,8 +138,9 @@ def restore_owner_backup(colony, snapshot_store, owner_key, *, approved=False, r
     if (not isinstance(owner_key, str) or not owner_key.strip()
             or len(owner_key) > 128):
         raise ValueError("Authenticated owner key required")
+    latest = snapshot_store.load(owner_key)
     if revision is None:
-        snapshot = snapshot_store.load(owner_key)
+        snapshot = latest
     else:
         if type(revision) is not int or revision < 1:
             raise ValueError("Invalid snapshot revision")
@@ -149,6 +150,21 @@ def restore_owner_backup(colony, snapshot_store, owner_key, *, approved=False, r
     if type(archive_incomplete_missions) is not bool:
         raise ValueError("archive_incomplete_missions must be a boolean")
     if not archive_incomplete_missions:
+        # An archived revision is a deliberate rollback. Promote the selected
+        # snapshot to the owner's current version while archiving the previous
+        # current version, so later checkpoints compare against the restored
+        # state instead of rejecting it as stale. Validate on an isolated DB
+        # before moving the durable pointer.
+        if revision is not None:
+            if latest is None:
+                raise RuntimeError("Current owner snapshot is missing")
+            with tempfile.TemporaryDirectory() as directory:
+                probe = AgentColony(
+                    Path(directory) / "restore-validation.sqlite3",
+                    max_agents=colony.max_agents)
+                restore_empty_colony(probe, snapshot)
+            snapshot_store.save_versioned_verified(
+                owner_key, snapshot, expected_prior=latest, archive_prior=True)
         return restore_empty_colony(colony, snapshot)
 
     # Older releases wrote mission rows containing only id/status. They cannot
