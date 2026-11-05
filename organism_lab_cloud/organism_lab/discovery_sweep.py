@@ -162,6 +162,25 @@ def save_discovery_sweep(report, path):
 
     history_dir = target.parent / "discovery-sweeps"
     history_dir.mkdir(parents=True, exist_ok=True)
+
+    # Preserve the pre-versioning latest report on the first new run.
+    if target.exists():
+        existing = target.read_bytes()
+        try:
+            existing_document = json.loads(existing.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            existing_document = None
+        existing_run_id = existing_document.get("run_id") if isinstance(existing_document, dict) else None
+        existing_version = (history_dir / f"discovery-sweep-{existing_run_id}.json"
+                            if isinstance(existing_run_id, str) and existing_run_id else None)
+        if existing_version is None or not existing_version.exists():
+            legacy_path = history_dir / f"discovery-sweep-preserved-{uuid4().hex}.json"
+            temporary_legacy = legacy_path.with_name(legacy_path.name + ".tmp")
+            temporary_legacy.write_bytes(existing)
+            temporary_legacy.replace(legacy_path)
+            if legacy_path.read_bytes() != existing:
+                raise OSError("Previous discovery report failed read-back verification")
+
     history_path = history_dir / f"discovery-sweep-{run_id}.json"
 
     def write_atomic(destination):
