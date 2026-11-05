@@ -55,6 +55,16 @@ class TaskStoreTests(unittest.TestCase):
         self.assertEqual(self.store.transition(task["id"], "planned")["status"], "planned")
         self.assertEqual(self.store.history(task["id"])[-1]["new_status"], "planned")
 
+    def test_review_pending_can_be_blocked_or_failed(self):
+        for status in ("blocked", "failed"):
+            with self.subTest(status=status):
+                task = self.store.create("Review pending transition")
+                self.store.transition(task["id"], "running")
+                self.store.finish_draft(task["id"], "Unverified draft")
+                result = self.store.transition(task["id"], status, note="review interrupted")
+                self.assertEqual(result["status"], status)
+                self.assertEqual(self.store.history(task["id"])[-1]["new_status"], status)
+
     def test_failed_task_can_be_retried_but_verified_is_terminal(self):
         task = self.store.create("Hata kaydını denetle")
         self.store.transition(task["id"], "running")
