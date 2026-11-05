@@ -200,6 +200,26 @@ def save_discovery_sweep(report, path):
     return document
 
 
+
+def list_versioned_discovery_sweeps(history_dir):
+    """Read valid versioned reports newest-first without changing archive files."""
+    directory = Path(history_dir)
+    reports = []
+    if not directory.is_dir():
+        return reports
+    for path in directory.glob("discovery-sweep-*.json"):
+        try:
+            document = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if (isinstance(document, dict)
+                and document.get("schema") == "organism-lab-bounded-discovery-sweep-v1"
+                and isinstance(document.get("generated_at"), str)
+                and isinstance(document.get("run_id"), str)):
+            reports.append((path, document))
+    return sorted(reports, key=lambda item: (item[1]["generated_at"], item[1]["run_id"]),
+                  reverse=True)
+
 def validate_discovery_sweep(document):
     """Recompute the bounded sweep and reject edited or inconsistent metrics."""
     if not isinstance(document, dict) or document.get("schema") != "organism-lab-bounded-discovery-sweep-v1":
