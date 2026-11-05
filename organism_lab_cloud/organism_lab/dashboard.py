@@ -397,6 +397,7 @@ if st.button("Sınırlı keşif taramasını çalıştır", key="run_bounded_dis
             saved_discovery = discovery_sweep.save_discovery_sweep(discovery, discovery_path)
         st.session_state["organism_discovery_report"] = saved_discovery
         st.session_state["organism_discovery_path"] = str(discovery_path)
+        st.session_state["organism_discovery_selection"] = "En son tarama"
     except (OSError, ValueError, RuntimeError) as exc:
         st.error(f"Tarama tamamlanamadı ({type(exc).__name__}); önceki sonuç korunuyor.")
 if CLOUD_MODE and "organism_discovery_report" not in st.session_state:
@@ -408,6 +409,24 @@ if CLOUD_MODE and "organism_discovery_report" not in st.session_state:
         pass
 if "organism_discovery_report" in st.session_state:
     discovery = st.session_state["organism_discovery_report"]
+    discovery_path_display = st.session_state.get("organism_discovery_path")
+    history_entries = discovery_sweep.list_versioned_discovery_sweeps(
+        OUTPUT_DIR / "discovery-sweeps")
+    latest_run_id = discovery.get("run_id")
+    history_entries = [(path, report) for path, report in history_entries
+                       if report.get("run_id") != latest_run_id]
+    if history_entries:
+        history_labels = {
+            f"{report['generated_at'][:19].replace('T', ' ')} · {report['run_id'][:8]}": (path, report)
+            for path, report in history_entries
+        }
+        selected_discovery = st.selectbox(
+            "Arşivden önceki taramayı aç",
+            options=["En son tarama", *history_labels],
+            key="organism_discovery_selection",
+        )
+        if selected_discovery != "En son tarama":
+            discovery_path_display, discovery = history_labels[selected_discovery]
     status = discovery.get("status")
     status_text = {
         "replicated_simulation_candidate": "Aday ayrı tohumlarla tekrarlandı; yalnızca bu simülasyonda desteklendi.",
@@ -442,8 +461,8 @@ if "organism_discovery_report" in st.session_state:
                        data=json.dumps(discovery, ensure_ascii=False, indent=2, allow_nan=False),
                        file_name="organism-lab-discovery-sweep.json", mime="application/json",
                        key="download_discovery_report")
-    if st.session_state.get("organism_discovery_path"):
-        st.caption("En son kayıt: " + st.session_state["organism_discovery_path"])
+    if discovery_path_display:
+        st.caption("Gösterilen kayıt: " + str(discovery_path_display))
         if discovery.get("run_id"):
             st.caption("Bu çalışma ayrıca değiştirilemez sürümlü arşive kaydedildi · " +
                        f"discovery-sweeps/discovery-sweep-{discovery['run_id']}.json")
