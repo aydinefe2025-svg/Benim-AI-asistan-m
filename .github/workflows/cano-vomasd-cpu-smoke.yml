@@ -1,0 +1,53 @@
+name: CANO VO-MASD isolated CPU codebook smoke
+
+on:
+  pull_request:
+    paths:
+      - 'cano/vomasd_cpu_lab/**'
+      - '.github/workflows/cano-vomasd-cpu-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cpu-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: cano/vomasd_cpu_lab
+    env:
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install CPU PyTorch (no GPU or game simulator)
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch==2.10.0'
+          python -m pip install 'numpy>=2,<3'
+      - name: Execute isolated original-method codebook smoke and safety tests
+        run: python -W error::ResourceWarning -m unittest -q test_vomasd_cpu
+      - name: Guard upstream launcher is not VO-MASD by default
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from preflight import inspect_shell_script
+          a=inspect_shell_script(Path('train_marine_upstream.sh').read_text())
+          assert a['status']=='BLOCKED_WRONG_ALGORITHM', a
+          print(a['status'])
+          PY
+      - name: Repeat seeded synthetic CPU experiment
+        run: python toy_quantizer.py --output toy_results.json
+      - name: Upload reproducibility evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cano-vomasd-cpu-${{ github.run_id }}
+          path: cano/vomasd_cpu_lab/toy_results.json
+          retention-days: 14
+          if-no-files-found: warn
