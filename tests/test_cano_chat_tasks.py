@@ -29,7 +29,7 @@ class CountingClient:
 
 
 class CanoChatTasksTests(unittest.TestCase):
-    def test_app_chat_function_routes_task_and_reuses_saved_id_without_provider_calls(self):
+    def test_app_chat_function_requires_new_preview_even_for_reused_saved_id(self):
         app = Path(__file__).resolve().parents[1] / "app.py"
         tree = ast.parse(app.read_text(encoding="utf-8"))
         function = next(node for node in tree.body
@@ -68,7 +68,7 @@ class CanoChatTasksTests(unittest.TestCase):
             }
             replay = namespace["asistani_calistir"](
                 "CANO görev: küçük bir karşılaştırma yap", approved=True)
-            self.assertIn("yeni model çağrısı: 0", replay)
+            self.assertIn("onay", replay.casefold())
             self.assertEqual(len(calls), 4)
 
     def test_approved_call_without_matching_preview_must_not_run_or_mutate(self):
