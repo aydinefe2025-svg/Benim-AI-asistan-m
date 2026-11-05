@@ -158,7 +158,7 @@ def save_discovery_sweep(report, path):
     run_id = uuid4().hex
     document = {**report, "generated_at": datetime.now(timezone.utc).isoformat(),
                 "run_id": run_id}
-    payload = json.dumps(document, ensure_ascii=False, indent=2, allow_nan=False) + "\\n"
+    payload = json.dumps(document, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
 
     history_dir = target.parent / "discovery-sweeps"
     history_dir.mkdir(parents=True, exist_ok=True)
