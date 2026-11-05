@@ -65,8 +65,7 @@ class MissingSecretsTests(unittest.TestCase):
         streamlit.text_area = lambda *a, **kw: ""
         streamlit.text_input = lambda *a, **kw: ""
         streamlit.button = lambda *a, **kw: False
-        # Keep the startup smoke double aligned with the actual Streamlit API.
-        # The organism lab renders input widgets without auto-running a study.
+        # Smoke test includes the new bounded Streamlit laboratory widgets.
         streamlit.slider = lambda *a, **kw: kw.get("value", a[3] if len(a) > 3 else a[2])
         streamlit.number_input = lambda *a, **kw: kw.get("value", 0)
         streamlit.divider = lambda *a, **kw: None

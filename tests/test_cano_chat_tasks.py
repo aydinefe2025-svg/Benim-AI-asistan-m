@@ -138,6 +138,55 @@ class CanoChatTasksTests(unittest.TestCase):
             self.assertNotIn("cano_chat_request_id", state)
             self.assertNotIn("_cano_chat_task_pending", state)
 
+    def test_canceling_preview_clears_authorization_and_blocks_late_submit(self):
+        """Cancel removes exactly the preview token, not any unrelated task."""
+        from core import cano_chat_tasks
+        cancel = getattr(cano_chat_tasks, "cancel_pending_task", None)
+        self.assertTrue(callable(cancel), "Missing explicit task cancellation")
+        state = {
+            "cano_chat_request_id": {"id": "example-1", "task": "ilk görev"},
+            "_cano_chat_task_pending": {"id": "example-1", "task": "ilk görev"},
+        }
+        self.assertTrue(cancel(state))
+        self.assertNotIn("cano_chat_request_id", state)
+        self.assertNotIn("_cano_chat_task_pending", state)
+
+        # A later duplicate submit of the canceled form cannot call the model.
+        app = Path(__file__).resolve().parents[1] / "app.py"
+        tree = ast.parse(app.read_text(encoding="utf-8"))
+        function = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                        and node.name == "asistani_calistir")
+        calls = []
+        namespace = {
+            "_CANO_OWNER_KEY": None, "GROQ_KEY": "synthetic-key",
+            "_team_answer": lambda prompt: calls.append(prompt) or "called",
+            "st": SimpleNamespace(session_state=state),
+            "os": os, "uuid4": uuid.uuid4, "logging": logging,
+            "failure_category": lambda error: type(error).__name__,
+        }
+        exec(compile(ast.Module(body=[function], type_ignores=[]),
+                     str(app), "exec"), namespace)
+        result = namespace["asistani_calistir"](
+            "CANO görev: ilk görev", approved=True)
+        self.assertIn("onay", result.casefold())
+        self.assertEqual(calls, [])
+
+        page_source = app.read_text(encoding="utf-8")
+        self.assertIn('st.form_submit_button("Bekleyen görevi iptal et")', page_source)
+        self.assertIn("cancel_pending_task(st.session_state)", page_source)
+
+    def test_cancel_old_preview_cannot_clear_a_newer_request(self):
+        from core import cano_chat_tasks
+        cancel = getattr(cano_chat_tasks, "cancel_pending_task", None)
+        self.assertTrue(callable(cancel), "Missing explicit task cancellation")
+        state = {
+            "cano_chat_request_id": {"id": "new-id", "task": "yeni görev"},
+            "_cano_chat_task_pending": {"id": "stale-id", "task": "eski görev"},
+        }
+        self.assertFalse(cancel(state))
+        self.assertEqual(state["cano_chat_request_id"]["id"], "new-id")
+        self.assertNotIn("_cano_chat_task_pending", state)
+
     def test_new_chat_session_restores_owner_snapshot_and_keeps_prior_mission(self):
         app = Path(__file__).resolve().parents[1] / "app.py"
         tree = ast.parse(app.read_text(encoding="utf-8"))
