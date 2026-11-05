@@ -82,8 +82,10 @@ class ProductionRestoreGuards(unittest.TestCase):
     def show(self, ui, store, *, baseline):
         ui.session_state["_cano_backup_owner_key"] = "owner-A"
         ui.session_state["_cano_backup_expected"] = copy.deepcopy(baseline)
-        with patch("core.colony_panel._session_database_path", return_value=str(self.path)), \\
-             patch("core.colony_panel.ColonySnapshotStore", return_value=store):
+        with (
+            patch("core.colony_panel._session_database_path", return_value=str(self.path)),
+            patch("core.colony_panel.ColonySnapshotStore", return_value=store),
+        ):
             render_colony_panel(
                 ui, owner_key="owner-A", database_url="postgresql://synthetic")
 
