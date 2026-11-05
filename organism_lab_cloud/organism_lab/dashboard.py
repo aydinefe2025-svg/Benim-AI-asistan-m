@@ -414,10 +414,11 @@ if "organism_discovery_report" in st.session_state:
         OUTPUT_DIR / "discovery-sweeps")
     latest_run_id = discovery.get("run_id")
     history_entries = [(path, report) for path, report in history_entries
-                       if report.get("run_id") != latest_run_id]
+                       if not latest_run_id or report.get("run_id") != latest_run_id]
     if history_entries:
         history_labels = {
-            f"{report['generated_at'][:19].replace('T', ' ')} · {report['run_id'][:8]}": (path, report)
+            f"{report['generated_at'][:19].replace('T', ' ')} · "
+            f"{report.get('run_id', path.stem).replace('discovery-sweep-preserved-', '')[:8]}": (path, report)
             for path, report in history_entries
         }
         selected_discovery = st.selectbox(
