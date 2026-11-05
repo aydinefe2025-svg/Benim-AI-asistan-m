@@ -405,7 +405,7 @@ render_colony_panel(st, answer=_team_answer if GROQ_KEY else None,
                     database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
-def asistani_calistir(kullanici_mesaji):
+def asistani_calistir(kullanici_mesaji, *, approved=False):
     from core.cano_chat_tasks import parse_task_request, format_task_result
     task_goal = parse_task_request(kullanici_mesaji)
     if task_goal is not None:
@@ -413,6 +413,17 @@ def asistani_calistir(kullanici_mesaji):
             return ("CANO görevini sohbetten dört aşamalı ekibe yönlendiremedim: "
                     "ekip yürütücüsü için Groq anahtarı yapılandırılmamış. "
                     "Bu istek sıradan sohbet yanıtı gibi gösterilmedi.")
+        request_key = "cano_chat_request_id"
+        pending = st.session_state.get(request_key)
+        if not isinstance(pending, dict) or pending.get("task") != task_goal:
+            pending = {"task": task_goal, "id": str(uuid4())}
+            st.session_state[request_key] = pending
+        if not approved:
+            st.session_state["_cano_chat_task_pending"] = pending
+            return ("CANO görev taslağı hazır: " + task_goal + "\\n"
+                    "Henüz model çağrısı veya görev kaydı yapılmadı. Aşağıdaki onay "
+                    "kutusunu bu görev için işaretleyip başlat düğmesine basarsanız "
+                    "dört model aşaması çalışır; sonuç inceleme bekleyen taslak olur.")
         try:
             from core.agent_colony import AgentColony
             from core.collaborative_mission import CollaborativeMission
@@ -468,11 +479,6 @@ def asistani_calistir(kullanici_mesaji):
                 prepare_cano_team(colony, approved=True)
                 checkpoint()
 
-            request_key = "cano_chat_request_id"
-            pending = st.session_state.get(request_key)
-            if not isinstance(pending, dict) or pending.get("task") != task_goal:
-                pending = {"task": task_goal, "id": str(uuid4())}
-                st.session_state[request_key] = pending
             result = mission_manager.execute(
                 task_goal, client=_AnswerAdapter(_team_answer),
                 model="configured-groq-team", mission_id=pending["id"],
@@ -480,6 +486,7 @@ def asistani_calistir(kullanici_mesaji):
             checkpoint(archive_prior=False)
             st.session_state["cano_cockpit_latest_mission"] = result["id"]
             st.session_state.pop(request_key, None)
+            st.session_state.pop("_cano_chat_task_pending", None)
             return format_task_result(result)
         except Exception as exc:
             logging.getLogger(__name__).warning(
@@ -652,3 +659,29 @@ if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
             st.markdown(ajan_cevabi)
             
             st.session_state.messages.append({"role": "assistant", "content": ajan_cevabi})
+
+# A team task preview never runs a provider call. Each execution needs a fresh,
+# task-specific approval form; clearing submission resets the checkbox.
+_chat_pending_task = st.session_state.get("_cano_chat_task_pending")
+if isinstance(_chat_pending_task, dict):
+    with st.chat_message("assistant"):
+        with st.form("cano_chat_task_approval", clear_on_submit=True):
+            st.info("Görev: " + str(_chat_pending_task.get("task", "")))
+            st.caption("Onay verilmeden CANO modeli çağırmaz veya görev kaydı oluşturmaz.")
+            _chat_task_approved = st.checkbox(
+                "Bu görev için dört model aşamasını başlatmayı onaylıyorum.",
+                value=False, key="cano_chat_task_approval_checkbox")
+            _chat_task_submit = st.form_submit_button(
+                "Dört aşamalı CANO görevini başlat")
+        if _chat_task_submit:
+            if not _chat_task_approved:
+                st.warning("Başlatmak için bu görev özelindeki onay kutusunu işaretleyin.")
+            else:
+                with st.spinner("Onaylanan CANO görevi yürütülüyor..."):
+                    _chat_task_result = asistani_calistir(
+                        "CANO görev: " + str(_chat_pending_task.get("task", "")),
+                        approved=True)
+                st.markdown(_chat_task_result)
+                st.session_state.messages.append({
+                    "role": "assistant", "content": _chat_task_result,
+                })
