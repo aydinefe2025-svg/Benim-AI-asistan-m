@@ -20,6 +20,12 @@ class DiscoverySweepTests(unittest.TestCase):
                                         "replicated_simulation_candidate",
                                         "not_reproduced_on_confirmation_seeds"})
         self.assertIn("toy simulation", " ".join(first["interpretation"]["limits"]))
+        self.assertLessEqual(len(first["robustness"]), 3)
+        self.assertEqual(first["interpretation"]["robustness"]["tested_shift_count"],
+                         len(first["robustness"]))
+        for condition in first["robustness"]:
+            self.assertIn(condition["shift_tick"], {5, 10, 15})
+            self.assertEqual(condition["paired_seeds"], 3)
         self.assertTrue(validate_discovery_sweep(first))
         tampered = {**first, "screening": []}
         with self.assertRaises(ValueError):
