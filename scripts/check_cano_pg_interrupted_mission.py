@@ -14,6 +14,8 @@ import sys
 import tempfile
 from uuid import uuid4
 
+import psycopg
+
 from core.agent_colony import AgentColony
 from core.cano_command_center import _snapshot, prepare_cano_team
 from core.collaborative_mission import CollaborativeMission
@@ -133,6 +135,10 @@ def main():
     _validate_ci_database(url)
     if os.environ.get("CANO_CI_ALLOW_DISPOSABLE_DB") != "1":
         raise RuntimeError("Disposable localhost CI database required")
+    with psycopg.connect(url) as connection:
+        server_major = int(connection.execute("SHOW server_version_num").fetchone()[0]) // 10000
+    if server_major not in (17, 18):
+        raise RuntimeError("Test accepts only disposable PostgreSQL 17 or 18")
     owner = "ci-recovery-" + uuid4().hex
     other_owner = "ci-recovery-" + uuid4().hex
     mission_id = str(uuid4())
@@ -189,7 +195,7 @@ def main():
             raise AssertionError("Stale owner overwrite was accepted")
         assert store.load(owner) == final
 
-    print("PASS: PostgreSQL 18, real Python process kill at stage 2, "
+    print(f"PASS: PostgreSQL {server_major}, real Python process kill at stage 2, "
           "owner-specific stage 1 checkpoint, fresh interpreter and SQLite "
           "recovery, 3 remaining model stubs, no duplicates, terminal save, "
           "stale CAS rejection, other-owner isolation")
