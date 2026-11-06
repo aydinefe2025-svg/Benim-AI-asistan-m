@@ -677,7 +677,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
         raw_response = router.chat(aktif_llm_adi, sistem_talimati, conversation)
         st.session_state["last_provider_used"] = router.last_provider_used
         st.session_state["last_model_used"] = router.last_model_used
-        temiz_cevap = re.sub(r'<(think|thought|düşün).*?(</\\1>|$)', '', raw_response, flags=re.DOTALL | re.IGNORECASE)
+        temiz_cevap = re.sub(r'<(think|thought|düşün).*?(</\1>|$)', '', raw_response, flags=re.DOTALL | re.IGNORECASE)
         return label_research_answer(temiz_cevap.strip(), research_requested=arama_istegi)
 
     except Exception as e:
