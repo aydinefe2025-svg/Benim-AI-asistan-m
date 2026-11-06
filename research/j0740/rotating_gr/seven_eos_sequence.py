@@ -16,10 +16,8 @@ import numpy as np
 
 from jester_to_rns import from_jester_npz, write_rns
 from rns_benchmark import OBSERVED_SPIN_HZ, RNS_COMMIT, run_rns, sha256_file
-from target_mass_rns import (
-    TARGET_MASS_MSUN, bracketed_rotating_mass_solver,
-    fixed_gravitational_mass_radius_difference,
-)
+from target_mass_rns import TARGET_MASS_MSUN, fixed_gravitational_mass_radius_difference
+from resilient_mass_root import resilient_mass_root, NumericalRootError
 from validate_jester_rns import stable_reference_radius_at_mass
 
 EOS_NAMES = ("APR4_EPP", "ENG", "MPA1", "MS1", "MS1B", "WFF1", "WFF2")
@@ -95,21 +93,47 @@ def solve_eos(binary: Path, source: Path, result_dir: Path,
     }
     rot_bracket = first_stable_crossing(rotations, target_mass)
     static_bracket = first_stable_crossing(statics, target_mass)
+    # Some upstream RNS density points do not converge. A gap in the
+    # rotating grid must not be misreported as a physical EOS exclusion.
+    # Search independently near the source-matched static target crossing;
+    # each failed trial remains in the machine-readable evidence.
+    if rot_bracket is None and static_bracket is not None:
+        rescue_grid = np.linspace(max(minimum, 0.85 * static_bracket[0]),
+                                  min(maximum, 1.2 * static_bracket[1]), 24)
+        rescue_models, rescue_failed = density_scan(
+            binary, table, OBSERVED_SPIN_HZ, rescue_grid)
+        rotations = sorted(rotations + rescue_models,
+                           key=lambda m: m["central_energy_density_g_cm3"])
+        rejected_rotations.extend(rescue_failed)
+        result["scan"]["rotating_models"] = rotations
+        result["scan"]["rotating_failures"] = rejected_rotations
+        result["scan"]["additional_targeted_rotating_grid_g_cm3"] = [
+            float(x) for x in rescue_grid]
+        rot_bracket = first_stable_crossing(rotations, target_mass)
     if rot_bracket is None or static_bracket is None:
         result["status"] = "NO_VALIDATED_STABLE_CROSSING"
         result["reason"] = "Target gravitational mass not bracketed on both sampled stable branches"
+        result["brackets"] = {"rotating": rot_bracket, "static": static_bracket}
         return result
 
-    rotating, rot_trace = bracketed_rotating_mass_solver(
-        lambda ec: run_rns(binary, table, central_density=ec, spin_hz=OBSERVED_SPIN_HZ),
-        target_mass, *rot_bracket)
-    static, static_trace = bracketed_rotating_mass_solver(
-        lambda ec: run_rns(binary, table, central_density=ec, spin_hz=0.),
-        target_mass, *static_bracket)
-    radius_delta = fixed_gravitational_mass_radius_difference(
-        rotating, static, target_mass)
-    ref_radius = stable_reference_radius_at_mass(source, static["mass_msun"])
-    error_km = static["radius_eq_km"] - ref_radius
+    try:
+        rotating, rot_trace = resilient_mass_root(
+            lambda ec: run_rns(binary, table, central_density=ec,
+                               spin_hz=OBSERVED_SPIN_HZ),
+            target_mass, *rot_bracket)
+        static, static_trace = resilient_mass_root(
+            lambda ec: run_rns(binary, table, central_density=ec, spin_hz=0.),
+            target_mass, *static_bracket)
+        radius_delta = fixed_gravitational_mass_radius_difference(
+            rotating, static, target_mass)
+        ref_radius = stable_reference_radius_at_mass(source, static["mass_msun"])
+        error_km = static["radius_eq_km"] - ref_radius
+    except (RuntimeError, ValueError, NumericalRootError) as exc:
+        result["status"] = "NUMERICAL_ROOT_OR_TOV_VALIDATION_FAILED"
+        result["reason"] = str(exc)[:900]
+        result["error_type"] = type(exc).__name__
+        result["brackets"] = {"rotating": rot_bracket, "static": static_bracket}
+        return result
     result.update({
         "rns_rotating_at_target": rotating,
         "rns_static_at_same_gravitational_mass": static,
