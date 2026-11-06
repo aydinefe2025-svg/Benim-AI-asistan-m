@@ -129,7 +129,9 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.add_excerpt()
         model = QuoteModel([
             {"claim": "Targeted nucleases are powerful genome tools",
-             "doi": DOI.upper(), "quote": QUOTE}])
+             "doi": DOI.upper(), "quote": QUOTE,
+             "comparison": "supports",
+             "rationale": "The exact passage makes the same bounded statement."}])
         result = audit_claim_quotes(self.manager, self.mission_id,
                                     client=model, model="configured-provider")
         self.assertEqual(len(result), 1)
@@ -139,6 +141,13 @@ class ClaimQuoteAuditTests(unittest.TestCase):
                          "https://europepmc.org/articles/PMC1234567")
         self.assertEqual(result[0]["quote"], QUOTE)
         self.assertFalse(result[0]["claim_verified"])
+        self.assertEqual(result[0]["comparison"], "supports")
+        self.assertEqual(result[0]["comparison_status"], "model_suggested")
+        self.assertEqual(
+            result[0]["comparison_rationale"],
+            "The exact passage makes the same bounded statement.")
+        self.assertIn("central testable claim", model.calls[0][1])
+        self.assertIn("secondary to the task", model.calls[0][2])
         self.assertEqual(len(model.calls), 1)
         self.assertIn("abstract_excerpt", model.calls[0][2])
         saved = CollaborativeMission(self.manager.colony).get(self.mission_id)
@@ -147,6 +156,22 @@ class ClaimQuoteAuditTests(unittest.TestCase):
                                    client=model, model="configured-provider")
         self.assertEqual(again, result)
         self.assertEqual(len(model.calls), 1)
+
+
+    def test_unmatched_quote_cannot_present_a_model_relation_as_evidence(self):
+        self.add_excerpt()
+        model = QuoteModel([{
+            "claim": "A claim not supported by this excerpt",
+            "doi": DOI, "quote": "A fabricated quote that is not in the source.",
+            "comparison": "supports",
+            "rationale": "The model says it is supported.",
+        }])
+        got = audit_claim_quotes(self.manager, self.mission_id,
+                                 client=model, model="stub")
+        self.assertEqual(got[0]["status"], "quote_not_found")
+        self.assertEqual(got[0]["comparison"], "insufficient")
+        self.assertEqual(got[0]["comparison_status"], "not_assessed")
+        self.assertFalse(got[0]["claim_verified"])
 
     def test_quote_outside_supplied_excerpt_is_not_cited(self):
         self.manager.inspect_source_documents(
