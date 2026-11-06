@@ -64,8 +64,16 @@ def run_rns(binary: Path, eos_file: Path, *, central_density: float, spin_hz: fl
         raise ValueError("central energy density must be positive")
     if not (math.isfinite(spin_hz) and 0 <= spin_hz < 1000):
         raise ValueError("spin must be in plausible nonnegative frequency range")
-    result = subprocess.run([str(binary.resolve()), "-f", str(eos_file.resolve()), "-e",
+    # SECURITY/PHYSICS: upstream rns.c declares `char eos_file[80]` and uses
+    # unchecked sscanf("%s", eos_file). An absolute path >=80 bytes can
+    # overwrite `eos_type` and silently run the polytrope solver instead.
+    # Run from the EOS directory so -f is a short, explicit relative path.
+    eos_arg = './' + eos_file.name
+    if len(eos_arg.encode('utf-8')) >= 80:
+        raise ValueError('RNS upstream -f EOS basename exceeds its C char[80] safety limit')
+    result = subprocess.run([str(binary.resolve()), "-f", eos_arg, "-e",
                              f"{central_density:.12g}", "-s", f"{spin_hz:.9f}"],
+                            cwd=str(eos_file.resolve().parent),
                             text=True, capture_output=True, timeout=timeout, check=False)
     if result.returncode != 0:
         raise RuntimeError(f"RNS process exit {result.returncode}: {result.stderr[-1500:]}")
