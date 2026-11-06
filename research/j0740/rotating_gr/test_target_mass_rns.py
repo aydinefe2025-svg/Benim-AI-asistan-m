@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from target_mass_rns import bracketed_rotating_mass_solver, source_fit_valid_branch
+from target_mass_rns import bracketed_rotating_mass_solver, source_fit_valid_branch, fixed_gravitational_mass_radius_difference
 
 class TestGRMassRoot(unittest.TestCase):
     def test_target_gravitational_mass_is_solved(self):
@@ -49,5 +49,24 @@ class TestSemiEmpiricalSourceDomain(unittest.TestCase):
     def test_all_out_of_domain_fails(self):
         with self.assertRaisesRegex(ValueError,'Too few'):
             source_fit_valid_branch(np.array([.1,.15,.2]),np.array([160,170,180]),346.536369)
+
+
+class TestFixedGravitationalMassComparison(unittest.TestCase):
+    def test_radius_difference_only_at_same_gravitational_mass(self):
+        rotating={'mass_msun':2.073,'radius_eq_km':12.53}
+        static={'mass_msun':2.073,'radius_eq_km':12.44}
+        self.assertAlmostEqual(fixed_gravitational_mass_radius_difference(rotating,static,2.073),0.09)
+
+    def test_mismatch_rejected_even_if_radius_increases(self):
+        rotating={'mass_msun':2.073,'radius_eq_km':12.53}
+        static={'mass_msun':2.052,'radius_eq_km':12.42}
+        with self.assertRaisesRegex(ValueError,'not validated'):
+            fixed_gravitational_mass_radius_difference(rotating,static,2.073)
+
+    def test_bad_radius_order_rejected(self):
+        rotating={'mass_msun':2.073,'radius_eq_km':12.4}
+        static={'mass_msun':2.073,'radius_eq_km':12.5}
+        with self.assertRaisesRegex(ValueError,'not validated'):
+            fixed_gravitational_mass_radius_difference(rotating,static,2.073)
 
 if __name__=='__main__':unittest.main()
