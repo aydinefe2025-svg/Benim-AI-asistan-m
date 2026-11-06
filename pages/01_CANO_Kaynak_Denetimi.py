@@ -155,13 +155,16 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
         st.code(item["quote"])
         assessment = item.get("machine_assessment")
         if isinstance(assessment, dict):
-            verdict_labels = {
-                "supported": "İkinci AI modeli: pasaj iddiayı doğrudan destekliyor",
-                "contradicted": "İkinci model incelemesi: pasaj iddiayla çelişiyor",
-                "insufficient": "İkinci model incelemesi: pasaj yetersiz veya belirsiz",
-            }
-            st.info(verdict_labels.get(assessment.get("verdict"),
-                                       "İkinci model incelemesi: karar yok"))
+            if assessment.get("available") is False:
+                st.warning("İkinci model incelemesi alınamadı; alıntı eşleşmesi korundu ve iddia doğrulanmış sayılmıyor.")
+            else:
+                verdict_labels = {
+                    "supported": "İkinci AI modeli: pasaj iddiayı doğrudan destekliyor",
+                    "contradicted": "İkinci model incelemesi: pasaj iddiayla çelişiyor",
+                    "insufficient": "İkinci model incelemesi: pasaj yetersiz veya belirsiz",
+                }
+                st.info(verdict_labels.get(assessment.get("verdict"),
+                                           "İkinci model incelemesi: karar yok"))
             st.caption(str(assessment.get("reason", ""))
                        + " Bu model değerlendirmesi otomatik doğrulama değildir.")
         st.link_button("Kaynağı aç", item["citation_url"])

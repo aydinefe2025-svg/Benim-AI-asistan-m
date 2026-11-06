@@ -244,13 +244,27 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
             "direct conflict; otherwise use 'insufficient'. Return one assessment per "
             "index.\n" + json.dumps(candidates, ensure_ascii=False)
         )
-        assessments = _parse_assessments(
-            verifier(model, verifier_system, verifier_prompt), set(valid_indices))
+        try:
+            assessments = _parse_assessments(
+                verifier(model, verifier_system, verifier_prompt), set(valid_indices))
+        except Exception:
+            # The skeptical pass is advisory. A provider outage or malformed
+            # response must not discard a completed deterministic quote audit.
+            assessments = {}
+            review_unavailable = True
+        else:
+            review_unavailable = False
         for index in valid_indices:
-            reviewed[index]["machine_assessment"] = assessments.get(
-                index, {"verdict": "insufficient",
-                        "reason": "İkinci inceleme kullanılabilir bir karar vermedi."})
-            reviewed[index]["machine_assessment"]["method"] = "skeptical_model_pass"
+            assessment = assessments.get(index)
+            if assessment is None:
+                assessment = {
+                    "verdict": "insufficient",
+                    "reason": ("İkinci model incelemesi alınamadı; bu iddia "
+                               "otomatik olarak doğrulanmadı."),
+                    "available": False if review_unavailable else True,
+                }
+            assessment["method"] = "skeptical_model_pass"
+            reviewed[index]["machine_assessment"] = assessment
     with manager.colony._db() as db:
         db.execute("BEGIN IMMEDIATE")
         row = db.execute("SELECT status,stages FROM colony_missions WHERE id=?",

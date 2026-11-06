@@ -215,6 +215,26 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertFalse(result[0]["claim_verified"])
 
 
+    def test_failed_skeptical_pass_keeps_deterministic_quote_audit(self):
+        self.add_excerpt()
+        model = QuoteModel([{
+            "claim": "A claim", "doi": DOI, "quote": QUOTE,
+            "comparison": "supports", "rationale": "proposal",
+        }])
+
+        def unavailable(*_args):
+            raise RuntimeError("provider detail must not leak")
+
+        model.verify = unavailable
+        result = audit_claim_quotes(self.manager, self.mission_id,
+                                    client=model, model="stub")
+        self.assertEqual(result[0]["status"], "quote_found_unverified")
+        self.assertFalse(result[0]["claim_verified"])
+        self.assertFalse(result[0]["machine_assessment"]["available"])
+        saved = CollaborativeMission(self.manager.colony).get(self.mission_id)
+        self.assertEqual(saved["stages"][0]["source_claim_audit"], result)
+
+
     def test_legacy_audit_is_preserved_when_upgraded_and_new_version_is_idempotent(self):
         self.add_excerpt()
         legacy = [{
