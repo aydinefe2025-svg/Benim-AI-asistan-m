@@ -84,13 +84,16 @@ def render_organism_lab_panel(st, *, owner_key=None, database_url=None):
             if verified_key != owner_key:
                 store.verify_schema()
                 st.session_state["_organism_lab_verified_owner"] = owner_key
-        except Exception:
+        except Exception as exc:
             storage_problem = True
             store = None
             logging.getLogger(__name__).warning(
-                "Organism Lab persistence preflight failed")
+                "Organism Lab persistence preflight failed: error_type=%s",
+                type(exc).__name__)
     elif owner_key:
         storage_problem = True
+        logging.getLogger(__name__).warning(
+            "Organism Lab persistence preflight failed: database_url_missing")
 
     def persist(kind, data):
         if store is None:
