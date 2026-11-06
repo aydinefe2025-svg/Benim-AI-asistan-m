@@ -35,14 +35,25 @@ jobs:
           ref: 7ef71a578d2e52dede24bce055839f2b74f43721
           path: eos-upstream
           persist-credentials: false
+      - name: Checkout pinned original JESTER EOS thermodynamic tables
+        uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install EOS-conversion numerical requirements
+        run: python -m pip install numpy
       - name: Unit-test RNS parser and scientific guardrails
         working-directory: research/j0740/rotating_gr
         run: |
           python -m compileall -q .
-          python -m unittest -v test_rns_benchmark
+          python -m unittest -v test_rns_benchmark test_jester_to_rns test_validate_jester_rns
       - name: Compile upstream RNS C relativity solver
         run: make -C rns-upstream rns
       - name: Run original published APR 300 Hz control and J0740-spin 346.536369 Hz simulation
@@ -56,5 +67,28 @@ jobs:
         with:
           name: j0740-rns-apr-independent-gr-benchmark
           path: results/j0740_rns_apr_gr_benchmark.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Convert original JESTER MPA1 thermodynamic EOS into RNS 4-column format
+        run: |
+          python research/j0740/rotating_gr/jester_to_rns.py \
+            jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz \
+            results/eosMPA1_source_matched \
+            --summary results/MPA1_RNS_conversion_summary.json
+      - name: RNS native GR versus JESTER native TOV same-source check at J0740 spin
+        run: |
+          python research/j0740/rotating_gr/validate_jester_rns.py \
+            --rns rns-upstream/rns \
+            --eos results/eosMPA1_source_matched \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz \
+            --ec 1e15 \
+            --out results/JESTER_MPA1_RNS_346Hz_source_matched_validation.json
+      - name: Archive matched-EOS general relativistic rotation check
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-jester-mpa1-rns-source-matched-gr
+          path: |
+            results/MPA1_RNS_conversion_summary.json
+            results/JESTER_MPA1_RNS_346Hz_source_matched_validation.json
           if-no-files-found: error
           retention-days: 30
