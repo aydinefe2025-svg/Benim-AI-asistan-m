@@ -87,9 +87,14 @@ def render_organism_lab_panel(st, *, owner_key=None, database_url=None):
         except Exception as exc:
             storage_problem = True
             store = None
-            logging.getLogger(__name__).warning(
-                "Organism Lab persistence preflight failed: error_type=%s",
-                type(exc).__name__)
+            if all(hasattr(exc, attr) for attr in ("role_name", "can_select", "can_insert")):
+                logging.getLogger(__name__).warning(
+                    "Organism Lab persistence grants incomplete: role=%s select=%s insert=%s",
+                    exc.role_name, exc.can_select, exc.can_insert)
+            else:
+                logging.getLogger(__name__).warning(
+                    "Organism Lab persistence preflight failed: error_type=%s",
+                    type(exc).__name__)
     elif owner_key:
         storage_problem = True
         logging.getLogger(__name__).warning(
