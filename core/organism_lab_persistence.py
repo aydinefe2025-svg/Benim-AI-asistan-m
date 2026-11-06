@@ -17,6 +17,16 @@ class OrganismLabPersistenceError(RuntimeError):
     """A safe, user-presentable persistence failure."""
 
 
+class OrganismLabPermissionsError(RuntimeError):
+    """Non-sensitive runtime grant details for safe operations diagnostics."""
+
+    def __init__(self, role_name, can_select, can_insert):
+        super().__init__("Organism Lab runtime table grants are incomplete")
+        self.role_name = role_name
+        self.can_select = bool(can_select)
+        self.can_insert = bool(can_insert)
+
+
 class OrganismLabStore:
     COLLECTION = "simulation"
     RECORD_PREFIX = "cano-organism-lab-v1-"
@@ -40,14 +50,20 @@ class OrganismLabStore:
     def verify_schema(self):
         """Check only the pre-provisioned table and least required grants."""
         with self._connection() as db, db.cursor() as cur:
-            cur.execute("""SELECT owner_key, collection, record_id, payload, updated_at
-                FROM public.organism_lab_records LIMIT 0""")
-            cur.execute("""SELECT
+            # Check permissions first so a restricted app role can report a
+            # boolean denial instead of leaking a driver error message.
+            cur.execute("""SELECT current_user,
                 has_table_privilege(current_user, 'public.organism_lab_records', 'SELECT'),
                 has_table_privilege(current_user, 'public.organism_lab_records', 'INSERT')""")
-            grants = cur.fetchone()
-            if not grants or not all(grants):
-                raise PermissionError("Organism Lab database grants are incomplete")
+            result = cur.fetchone()
+            if not result:
+                raise OrganismLabPersistenceError("Organism Lab privilege check returned no result")
+            role_name, can_select, can_insert = result
+            if not can_select or not can_insert:
+                raise OrganismLabPermissionsError(role_name, can_select, can_insert)
+            cur.execute("""SELECT owner_key, collection, record_id, payload, updated_at
+                FROM public.organism_lab_records LIMIT 0""")
+            return role_name
 
     @classmethod
     def _record_id(cls, kind: str, raw: bytes) -> tuple[str, str]:
