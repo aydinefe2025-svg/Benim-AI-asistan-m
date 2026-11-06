@@ -12,6 +12,7 @@ class FakeDatabase:
         self.connections = 0
         self.owner_filters = []
         self.history_owner_filters = []
+        self.configured_owners = []
         self.can_select = True
         self.can_insert = True
 
@@ -47,7 +48,10 @@ class FakeCursor:
         return False
 
     def execute(self, sql, params=None):
-        if "has_table_privilege" in sql:
+        if "set_config('cano.owner_key'" in sql:
+            self.database.configured_owners.append(params[0])
+            self.row = (params[0],)
+        elif "has_table_privilege" in sql:
             self.row = ("assistant_test", self.database.can_select, self.database.can_insert)
         elif sql.lstrip().startswith("INSERT INTO"):
             owner, collection, record_id, encoded = params
@@ -104,6 +108,7 @@ class OrganismLabPersistenceTests(unittest.TestCase):
         self.assertEqual(saved["sha256"], hashlib.sha256(raw).hexdigest())
         self.assertEqual(db.connections, 2)
         self.assertEqual(db.owner_filters, [self.OWNER])
+        self.assertEqual(db.configured_owners, [self.OWNER, self.OWNER])
 
     def test_content_addressing_makes_same_run_idempotent(self):
         db = FakeDatabase()
