@@ -155,7 +155,13 @@ if key and st.button("12 vakayı tek model çağrısıyla ölç (1 çağrı)"):
     else:
         st.session_state["cano_claim_review_benchmark_result"] = benchmark
 benchmark = st.session_state.get("cano_claim_review_benchmark_result")
-if isinstance(benchmark, dict):
+if (isinstance(benchmark, dict) and
+        ("unscored" not in benchmark or "coverage" not in benchmark)):
+    # Old in-session reports predate the abstention fix. Do not crash or
+    # silently treat their missing predictions as perfectly complete.
+    st.warning("Bu oturumdaki eski kıyas sonucu yeni ölçüme uygun değil; "
+               "12 vakalık testi yeniden çalıştırın.")
+elif isinstance(benchmark, dict):
     st.metric("Sabit vakalarda doğru", f"{benchmark['correct']} / {benchmark['total']}",
               f"Doğruluk %{benchmark['accuracy'] * 100:.0f}")
     st.caption(f"Cevaplanan vaka: {benchmark['total'] - benchmark['unscored']} / "
