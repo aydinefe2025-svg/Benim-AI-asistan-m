@@ -65,10 +65,20 @@ class QuoteModel:
     def __init__(self, claims):
         self.calls = []
         self.claims = claims
+        self.verdict = "supported"
 
     def chat(self, model, system, prompt):
         self.calls.append((model, system, prompt))
         return json.dumps({"claims": self.claims}, ensure_ascii=False)
+
+    def verify(self, model, system, prompt):
+        self.calls.append((model, system, prompt))
+        candidates = json.loads(prompt.split("\n", 1)[1])
+        return json.dumps({"assessments": [
+            {"index": item["index"], "verdict": self.verdict,
+             "reason": "The passage was checked against the claim."}
+            for item in candidates
+        ]})
 
 
 class ClaimQuoteAuditTests(unittest.TestCase):
@@ -178,14 +188,31 @@ class ClaimQuoteAuditTests(unittest.TestCase):
             "The exact passage makes the same bounded statement.")
         self.assertIn("central testable claim", model.calls[0][1])
         self.assertIn("secondary to the task", model.calls[0][2])
-        self.assertEqual(len(model.calls), 1)
+        self.assertEqual(result[0]["machine_assessment"]["verdict"], "supported")
+        self.assertEqual(len(model.calls), 2)
         self.assertIn("abstract_excerpt", model.calls[0][2])
         saved = CollaborativeMission(self.manager.colony).get(self.mission_id)
         self.assertEqual(saved["stages"][0]["source_claim_audit"], result)
         again = audit_claim_quotes(self.manager, self.mission_id,
                                    client=model, model="configured-provider")
         self.assertEqual(again, result)
-        self.assertEqual(len(model.calls), 1)
+        self.assertEqual(len(model.calls), 2)
+
+
+    def test_skeptical_verdict_never_marks_claim_verified(self):
+        self.add_excerpt()
+        model = QuoteModel([{
+            "claim": "A stronger claim than the cited passage",
+            "doi": DOI, "quote": QUOTE,
+            "comparison": "contradicts",
+            "rationale": "The statement exceeds the passage.",
+        }])
+        model.verdict = "contradicted"
+        result = audit_claim_quotes(self.manager, self.mission_id,
+                                    client=model, model="stub")
+        self.assertEqual(result[0]["machine_assessment"]["verdict"], "contradicted")
+        self.assertEqual(result[0]["status"], "quote_found_unverified")
+        self.assertFalse(result[0]["claim_verified"])
 
 
     def test_legacy_audit_is_preserved_when_upgraded_and_new_version_is_idempotent(self):
@@ -214,13 +241,14 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         upgraded = audit_claim_quotes(self.manager, self.mission_id,
                                       client=model, model="stub")
         saved_stage = self.manager.get(self.mission_id)["stages"][0]
-        self.assertEqual(saved_stage["source_claim_audit_version"], 2)
+        self.assertEqual(saved_stage["source_claim_audit_version"], 3)
         self.assertEqual(saved_stage["source_claim_audit"], upgraded)
         self.assertEqual(
             saved_stage["source_claim_audit_history"],
             [{"version": 1, "claims": legacy}],
         )
         self.assertEqual(upgraded[0]["comparison"], "supports")
+        self.assertEqual(upgraded[0]["machine_assessment"]["verdict"], "supported")
         self.assertFalse(upgraded[0]["claim_verified"])
 
         class MustNotCall:
@@ -232,7 +260,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
                                client=MustNotCall(), model="stub"),
             upgraded,
         )
-        self.assertEqual(len(model.calls), 1)
+        self.assertEqual(len(model.calls), 2)
 
 
     def test_unmatched_quote_can_be_retried_and_previous_audit_is_preserved(self):
@@ -262,11 +290,11 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(second[0]["status"], "quote_found_unverified")
         self.assertEqual(second[0]["comparison"], "supports")
         self.assertFalse(second[0]["claim_verified"])
-        self.assertEqual(stage["source_claim_audit_version"], 2)
+        self.assertEqual(stage["source_claim_audit_version"], 3)
         self.assertEqual(stage["source_claim_audit_history"],
-                         [{"version": 2, "claims": first}])
+                         [{"version": 3, "claims": first}])
         self.assertEqual(len(bad.calls), 1)
-        self.assertEqual(len(retry.calls), 1)
+        self.assertEqual(len(retry.calls), 2)
         self.assertIn("exact words and punctuation", retry.calls[0][1])
 
     def test_unmatched_quote_cannot_present_a_model_relation_as_evidence(self):
