@@ -76,12 +76,41 @@ def source_fit_valid_branch(masses, radii, frequency_hz):
     }
 
 
+
+def fixed_gravitational_mass_radius_difference(rotating, static, target_mass, *, tolerance=0.0015):
+    """Radius difference at the SAME gravitational mass, not same baryon mass.
+
+    RNS prints gravitational mass to 0.001 Msun and radius to 0.01 km.
+    Only compare models whose printed masses both match the requested target.
+    """
+    a=float(rotating['mass_msun']); b=float(static['mass_msun'])
+    ra=float(rotating['radius_eq_km']); rb=float(static['radius_eq_km'])
+    if not all(math.isfinite(v) for v in (a,b,ra,rb,target_mass)):
+        raise ValueError('Non-finite mass or radius in fixed-mass rotation comparison')
+    if (abs(a-target_mass)>tolerance or abs(b-target_mass)>tolerance
+            or ra<=0 or rb<=0 or ra<=rb):
+        raise ValueError('Fixed-gravitational-mass comparison not validated')
+    return float(ra-rb)
+
+
 def calculate(binary:Path,eos:Path,jester_npz:Path,target:float=TARGET_MASS_MSUN):
     if 'MPA1' not in eos.name or 'MPA1' not in jester_npz.name:
         raise ValueError('Source must be exactly matching MPA1 table for this first test')
     fn=lambda ec:run_rns(binary,eos,central_density=ec,spin_hz=OBSERVED_SPIN_HZ)
     rot,trace=bracketed_rotating_mass_solver(fn,target,1.0e15,1.4e15)
     static=run_rns(binary,eos,central_density=rot['central_energy_density_g_cm3'],spin_hz=0)
+    # Additional independent zero-spin solve at the SAME gravitational mass.
+    # The pre-existing fixed-central-density static result has a different mass.
+    static_mass_fn=lambda ec:run_rns(binary,eos,central_density=ec,spin_hz=0)
+    static_at_target,static_target_trace=bracketed_rotating_mass_solver(
+        static_mass_fn,target,1.0e15,1.4e15)
+    same_grav_mass_delta_r=fixed_gravitational_mass_radius_difference(
+        rot,static_at_target,target)
+    static_target_jester_r=stable_reference_radius_at_mass(
+        jester_npz,static_at_target['mass_msun'])
+    static_target_source_diff=static_at_target['radius_eq_km']-static_target_jester_r
+    if abs(static_target_source_diff)>0.25:
+        raise AssertionError('Same-EOS static target-mass TOV validation failed')
     source_static_r=stable_reference_radius_at_mass(jester_npz,static['mass_msun'])
     diff=static['radius_eq_km']-source_static_r
     if abs(diff) > 0.25:
@@ -103,6 +132,11 @@ def calculate(binary:Path,eos:Path,jester_npz:Path,target:float=TARGET_MASS_MSUN
             'requested_mass_msun':target,
             'rns_rotating_GR_at_target':rot,
             'rns_nonrotating_same_central_density':static,
+            'rns_nonrotating_same_gravitational_mass':static_at_target,
+            'rns_equatorial_radius_change_at_fixed_gravitational_mass_km':same_grav_mass_delta_r,
+            'rns_nonrotating_target_mass_jester_reference_radius_km':static_target_jester_r,
+            'rns_nonrotating_target_mass_minus_jester_TOV_km':static_target_source_diff,
+            'static_target_mass_bisection_trace':static_target_trace,
             'jester_source_static_radius_at_static_mass_km':source_static_r,
             'rns_minus_jester_static_TOV_km':diff,
             'F28_2020_empirical_same_baryon_prediction_at_target_mass':empirical,
@@ -113,6 +147,7 @@ def calculate(binary:Path,eos:Path,jester_npz:Path,target:float=TARGET_MASS_MSUN
                            'RNS stdout radius rounded to 0.01 km and mass to 0.001 Msun',
                            'finite EOS pressure interpolation from 836 source points to 196 RNS points',
                            'RNS vs semi-empirical fit comparison is at the same observed rotating mass, but frame-of-reference and crust systematic tests are still required',
+                           'radius change compared at fixed gravitational mass, NOT fixed baryonic mass',
                            'radio mass prior and X-PSI photon likelihood have NOT been used for this fixed-mass point']}
 
 
