@@ -407,7 +407,7 @@ def _research_answer(goal: str) -> str:
         "hypotheses and missing evidence. Treat source links as unreviewed leads; "
         "do not claim you opened them or independently verified them. Return a draft only."
     )
-    prompt = goal[:1200] + " | Sources: " + _research_leads(goal[:1200])
+    prompt = goal[:30000] + "\n\nSource leads: " + _research_leads(goal[:1200])
     router = _new_provider_router()
     return router.chat(aktif_llm_adi, system, prompt)
 
@@ -493,7 +493,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
                     "Henüz model çağrısı veya görev kaydı yapılmadı. Aşağıdaki onay "
                     "kutusunu bu görev için işaretleyip başlat düğmesine basarsanız "
                     "dört model aşaması çalışır; sonuç inceleme bekleyen taslak olur.")
-        if not available_models:
+        if not (GROQ_KEY or globals().get("GOOGLE_KEY") or globals().get("OPENROUTER_KEY") or local_ollama_selected):
             return ("CANO görevini sohbetten dört aşamalı ekibe yönlendiremedim: "
                     "çalışan bir sağlayıcı yapılandırılmamış. Bu istek sıradan sohbet "
                     "yanıtı gibi gösterilmedi.")
