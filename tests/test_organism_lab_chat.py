@@ -57,10 +57,6 @@ class OrganismLabChatTests(unittest.TestCase):
         self.assertIsNone(organism_lab_chat_reply("Genom nedir?"))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
     def test_explicit_run_command_executes_and_reports_persisted_only_after_callback(self):
         from core.organism_lab_chat import execute_organism_lab_request
 
@@ -129,3 +125,7 @@ if __name__ == "__main__":
             with self.subTest(message=message):
                 self.assertIsNone(execute_organism_lab_request(
                     message, run_campaign=lambda: self.fail("must not run")))
+
+
+if __name__ == "__main__":
+    unittest.main()
