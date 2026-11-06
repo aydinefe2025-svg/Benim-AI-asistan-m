@@ -290,7 +290,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(second[0]["status"], "quote_found_unverified")
         self.assertEqual(second[0]["comparison"], "supports")
         self.assertFalse(second[0]["claim_verified"])
-        self.assertEqual(stage["source_claim_audit_version"], 2)
+        self.assertEqual(stage["source_claim_audit_version"], 3)
         self.assertEqual(stage["source_claim_audit_history"],
                          [{"version": 2, "claims": first}])
         self.assertEqual(len(bad.calls), 1)
