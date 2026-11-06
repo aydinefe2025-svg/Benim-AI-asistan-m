@@ -12,6 +12,7 @@ import sqlite3
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.colony_postgres import ColonySnapshotStore
+from core.storage_config import database_provider_label
 from core.browser_colony import (
     browser_colony_component, encode_browser_colony_backup,
     decode_browser_colony_backup, browser_write_confirmed,
@@ -270,6 +271,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
         st.caption("Açıkça başlatılan görevlerin sonuçları hesap sahibine ait PostgreSQL "
                    "sürümlü yedeğine otomatik yazılır. Ani sunucu kapanmalarında "
                    "tam aşama garantisi yoktur; JSON yedeği de alın.")
+        st.caption(f"CANO yedek veritabanı sağlayıcısı: {database_provider_label(database_url)}.")
     st.caption("Uzmanlıklar rol bazlı model çağrılarıdır, ayrı eğitilmiş modeller değildir.")
     if st.button("🚀 CANO ekibini hazırla (1 kurucu + 6 uzman)",
                  key="cano_prepare_team"):
@@ -434,3 +436,4 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             mime="application/json", key="cano_cockpit_backup")
         st.caption("Geri yükleme: yan menü → Öğrenen uzman ajanlar → "
                    "JSON yedekten geri yükle (yalnızca boş oturum).")
+

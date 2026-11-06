@@ -12,7 +12,7 @@ st.set_page_config(layout="wide")
 # Optional fail-closed production login. Keep APP_AUTH_REQUIRED unset locally;
 # enable it on Render only after the Google OIDC secrets file is configured.
 from core.authentication import auth_is_required, render_auth_gate
-from core.storage_config import cano_database_url, memory_database_url
+from core.storage_config import cano_database_url, database_provider_label, memory_database_url
 
 _AUTH_REQUIRED = auth_is_required(os.environ)
 _OWNER_KEY = render_auth_gate(st, os.environ)
@@ -271,6 +271,8 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
         +
         "Gizli anahtar veya hassas kişisel bilgi kaydetmeyin."
     )
+    if _MEMORY_STORE is not None:
+        st.caption(f"Hafıza veritabanı sağlayıcısı: {database_provider_label(_MEMORY_DATABASE_URL)}.")
     memory_upload = st.file_uploader(
         "Kitaplık dosyasını seçin", type=["json"], key="memory_library_upload"
     )
@@ -711,3 +713,4 @@ if isinstance(_chat_pending_task, dict):
                 st.session_state.messages.append({
                     "role": "assistant", "content": _chat_task_result,
                 })
+

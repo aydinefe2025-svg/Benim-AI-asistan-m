@@ -1,6 +1,6 @@
 import unittest
 
-from core.storage_config import cano_database_url, memory_database_url
+from core.storage_config import cano_database_url, database_provider_label, memory_database_url
 
 
 class StorageConfigTests(unittest.TestCase):
@@ -46,6 +46,20 @@ class StorageConfigTests(unittest.TestCase):
         self.assertIsNone(cano_database_url({}))
         self.assertIsNone(memory_database_url({}))
 
+    def test_database_provider_label_never_exposes_url_secrets_or_host(self):
+        self.assertEqual(
+            database_provider_label("postgresql://user:secret@ep-cano.eu.neon.tech/db"),
+            "Neon")
+        self.assertEqual(
+            database_provider_label("postgresql://user:secret@dpg-123.frankfurt-postgres.render.com/db"),
+            "Render")
+        self.assertEqual(database_provider_label("postgresql://user:secret@db.example/db"),
+                         "harici PostgreSQL")
+        self.assertEqual(database_provider_label(None), "yapılandırılmamış")
+        self.assertEqual(database_provider_label("not-a-url-with-secret"),
+                         "tanınmayan PostgreSQL")
+
 
 if __name__ == "__main__":
     unittest.main()
+
