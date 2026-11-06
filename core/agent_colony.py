@@ -188,8 +188,31 @@ class AgentColony:
             "model_weights_updated": False,
         }
 
+
+    def approve_feedback(self, feedback_id, *, approved=False):
+        """Activate one previously pending lesson after an explicit owner action."""
+        if not approved:
+            raise PermissionError("Explicit lesson approval required")
+        if type(feedback_id) is not int or feedback_id <= 0:
+            raise ValueError("Invalid feedback identifier")
+        with self._db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT id,agent_id,accepted FROM colony_feedback WHERE id=?",
+                (feedback_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(feedback_id)
+            if row["accepted"]:
+                return {"id": row["id"], "agent_id": row["agent_id"],
+                        "status": "already_accepted"}
+            db.execute("UPDATE colony_feedback SET accepted=1 WHERE id=?",
+                       (feedback_id,))
+            return {"id": row["id"], "agent_id": row["agent_id"],
+                    "status": "accepted"}
+
     def run(self, agent_id, task, *, client, model, internal_review=False,
-            include_lessons=True):
+            include_lessons=True, additional_lessons=()):
         """Run one bounded draft, optionally without accepted feedback lessons.
 
         The switch exists for controlled paired evaluation. Normal calls keep
@@ -198,6 +221,12 @@ class AgentColony:
         """
         if type(include_lessons) is not bool:
             raise ValueError("include_lessons must be boolean")
+        if (not isinstance(additional_lessons, tuple) or len(additional_lessons) > 1
+                or any(not isinstance(item, str) or not item.strip() or len(item) > 600
+                       for item in additional_lessons)):
+            raise ValueError("At most one bounded candidate lesson is allowed")
+        if additional_lessons and not include_lessons:
+            raise ValueError("Candidate lessons require the baseline memory context")
         agent = self.get(agent_id)
         if agent["state"] != "active":
             raise RuntimeError("Agent is inactive")
@@ -206,6 +235,12 @@ class AgentColony:
         if len(task) > (26000 if internal_review else 3000):
             raise ValueError("Task too long")
         lessons = self.lessons(agent_id) if include_lessons else []
+        if additional_lessons:
+            lessons = [*lessons, {
+                "task": "isolated_candidate_evaluation",
+                "lesson": additional_lessons[0],
+                "evidence": "unapproved; evaluation only",
+            }]
         memory = json.dumps(lessons, ensure_ascii=False)
         prompt = (f"Task: {task.strip()}\n"
                   "Accepted past lessons (not verified facts):\n"
