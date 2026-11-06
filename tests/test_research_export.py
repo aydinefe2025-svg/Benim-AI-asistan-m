@@ -3,6 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from core.task_store import TaskStore
@@ -31,6 +32,20 @@ class ResearchExportTests(unittest.TestCase):
             with patch.object(store, "list", return_value=[{}] * 201):
                 with self.assertRaises(ValueError):
                     export_research_archive(store)
+
+    def test_export_normalizes_postgresql_history_timestamps(self):
+        with tempfile.TemporaryDirectory() as folder:
+            store = TaskStore(Path(folder) / "tasks.sqlite3")
+            task = store.create("Postgres task", "Check datetime export")
+            timestamp = datetime(2026, 11, 6, 13, 0, tzinfo=timezone.utc)
+            with patch.object(store, "history", return_value=[{
+                    "event_id": 1, "task_id": task["id"], "at": timestamp,
+                    "old_status": None, "new_status": "planned", "note": "Created",
+            }]):
+                data = json.loads(export_research_archive(store))
+            self.assertEqual(data["tasks"][0]["history"][0]["at"],
+                             "2026-11-06T13:00:00+00:00")
+            self.assertEqual(data["integrity"]["algorithm"], "sha256")
 
 
 if __name__ == "__main__":
