@@ -17,7 +17,6 @@ class CapabilityTests(unittest.TestCase):
             'os': SimpleNamespace(environ={}),
         }
         exec(compile(ast.Module(body=[fn], type_ignores=[]), str(app), 'exec'), namespace)
-        # No st, model client or network helper exists in this namespace.
         text = namespace['asistani_calistir']('kendini geliştir cano')
         self.assertIn('giriş hesabına bağlı PostgreSQL', text)
 
@@ -48,7 +47,21 @@ class CapabilityTests(unittest.TestCase):
                 self.assertIn('onayladığın dersler', text)
                 self.assertIn('model ağırlıklarını yeniden eğitmez', text)
 
+    def test_general_capability_questions_receive_grounded_answer(self):
+        for query in (
+            'Ne işler yapabilirsin?', 'Neler yapabilirsin CANO?',
+            'Hangi işleri yapabilirsin?', 'Yeteneklerin neler?',
+        ):
+            with self.subTest(query=query):
+                text = capability_reply(query, persistent_memory=True,
+                                        persistent_colony=True)
+                self.assertIn('Komuta Merkezi', text)
+                self.assertIn('geri bildirim', text)
+                self.assertIn('takvim veya hatırlatıcı oluşturamam', text)
+                self.assertIn('PostgreSQL', text)
+
     def test_domain_tasks_are_not_replaced_with_a_capability_answer(self):
         for task in ('Kendini geliştiren robot tasarla', 'CANO için kalıcı hafıza geliştir',
-                     '2+2 kaç?', 'kendini geliştir ve güneş enerjisini araştır'):
+                     '2+2 kaç?', 'kendini geliştir ve güneş enerjisini araştır',
+                     'CANO için araştırma görevi oluştur'):
             self.assertIsNone(capability_reply(task))
