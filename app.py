@@ -554,7 +554,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
 
             result = mission_manager.execute(
                 task_goal, client=_AnswerAdapter(_team_answer),
-                model=("configured-team:" + str(secilen_model)), mission_id=pending["id"],
+                model=("configured-team:" + str(globals().get("secilen_model", "configured-provider"))), mission_id=pending["id"],
                 on_checkpoint=lambda: checkpoint(archive_prior=False) if store else None)
             checkpoint(archive_prior=False)
             st.session_state["cano_cockpit_latest_mission"] = result["id"]
