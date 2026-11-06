@@ -161,6 +161,29 @@ class SourceReadingTests(unittest.TestCase):
             self.assertFalse(data[0]["claim_verified"])
             self.assertNotIn("evil.example", data[0]["url"])
 
+    def test_refresh_reloads_task_doi_even_when_old_excerpt_was_readable(self):
+        with tempfile.TemporaryDirectory() as folder:
+            colony = AgentColony(Path(folder) / "colony.sqlite3")
+            colony.create_founder("research", "Research")
+            colony.grow_specialists(approved=True)
+            missions = CollaborativeMission(colony)
+            record = missions.execute(
+                "Review DOI 10.1136/bmj-2023-075847", client=FakeModel(),
+                model="stub", source_lookup=lambda q, limit=3: [])
+
+            def reader(text):
+                return lambda doi: {
+                    "doi": doi, "url": "https://europepmc.org/articles/PMC1234567",
+                    "status": "full_text_excerpt", "excerpt": text,
+                    "claim_verified": False,
+                }
+
+            initial = missions.inspect_source_documents(record["id"], reader=reader("Old intro"))
+            refreshed = missions.inspect_source_documents(
+                record["id"], reader=reader("New results"), refresh_missing=True)
+            self.assertEqual(initial[0]["excerpt"], "Old intro")
+            self.assertEqual(refreshed[0]["excerpt"], "New results")
+
 
 if __name__ == "__main__":
     unittest.main()
