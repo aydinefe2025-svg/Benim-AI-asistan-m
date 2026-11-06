@@ -1,2 +1,3 @@
 # Optional PostgreSQL adapter; retain SQLite until the live migration is verified.
 psycopg[binary]==3.3.7
+cryptography>=44,<51
