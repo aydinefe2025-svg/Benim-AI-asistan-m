@@ -449,7 +449,7 @@ class CommandCenterTests(unittest.TestCase):
         self.assertIn("PostgreSQL", " ".join(st.messages))
 
 
-def test_cano_prioritizes_both_explicit_dois_over_crossref_candidates(self):
+    def test_cano_prioritizes_both_explicit_dois_over_crossref_candidates(self):
         from core.collaborative_mission import CollaborativeMission
         goal = ("Read DOI 10.1136/bmj-2023-075847; correction DOI "
                 "10.1136/bmj.q1024.")
