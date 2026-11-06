@@ -397,6 +397,17 @@ def _research_answer(goal: str) -> str:
 
 
 def _team_answer(prompt: str) -> str:
+    # Use free local inference only when Ollama was actually detected at startup.
+    # A Render container cannot reach the desktop's loopback listener.
+    if secilen_model.startswith("Ollama (Yerel): "):
+        system = (
+            "You are a bounded Turkish CANO specialist. Keep claims tentative, "
+            "do not invent sources or claim actions/tests that were not run. "
+            "Return a draft for human review; do not change files or data."
+        )
+        return OllamaClient(
+            OLLAMA_URL, timeout=180, max_output_tokens=256, think=False
+        ).chat(aktif_llm_adi, system, prompt)
     # Short, user-triggered specialist calls never start implicit web searches.
     # Provider quota errors leave resumable stage checkpoints.
     return generate_team_stage(prompt, api_key=GROQ_KEY)
@@ -418,7 +429,7 @@ if _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"):
     except Exception:
         logging.getLogger(__name__).warning("CANO authorized queue backup export unavailable")
 render_cano_command_center(
-    st, answer=_team_answer if GROQ_KEY else None,
+    st, answer=_team_answer if (GROQ_KEY or secilen_model.startswith("Ollama (Yerel): ")) else None,
     owner_key=_CANO_OWNER_KEY,
     database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None,
     memories=st.session_state.get("saved_memories"),
