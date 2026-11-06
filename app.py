@@ -405,7 +405,11 @@ render_colony_panel(st, answer=_team_answer if GROQ_KEY else None,
                     owner_key=_CANO_OWNER_KEY,
                     database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None)
 # Explicit bounded simulation; existing login and production tasks stay unchanged.
-render_organism_lab_panel(st)
+render_organism_lab_panel(
+    st,
+    owner_key=_CANO_OWNER_KEY,
+    database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None,
+)
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji, *, approved=False):
