@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 5986)
-Total output lines: 439
-
 """Visible CANO command center with explicitly controlled specialist missions.
 
 The cockpit drives real SQLite-backed role calls and never claims independent
@@ -195,7 +192,83 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
     if st.session_state.pop("_cano_backup_enable_next_run", False):
         st.session_state["cano_local_backup_opt_in"] = True
     elif st.session_state.pop("_cano_backup_disable_next_run", False):
-        st.session_state…986 tokens truncated…
+        st.session_state["cano_local_backup_opt_in"] = False
+
+    # Never reuse shared-browser storage between authenticated accounts.
+    # Signed-in users must use authenticated owner-scoped PostgreSQL storage.
+    browser_backup_enabled = not auth_is_required(os.environ)
+    local_opt_in = (st.checkbox(
+        "Bu tarayıcıda CANO ekibini ve araştırma kayıtlarını otomatik yedekle "
+        "(yalnızca kişisel cihazda; tarayıcı depolaması şifrelenmemiştir)",
+        value=False, key="cano_local_backup_opt_in")
+        if browser_backup_enabled else False)
+    clear_local = (st.button(
+        "Bu tarayıcıdaki CANO yedeğini sil",
+        key="cano_local_backup_clear")
+        if browser_backup_enabled else False)
+    if clear_local:
+        st.session_state["_cano_backup_disable_next_run"] = True
+        local_opt_in = False
+
+    write = None
+    if local_opt_in and status["agents"] and not clear_local:
+        try:
+            write = encode_browser_colony_backup(_snapshot(colony))
+        except (ValueError, TypeError):
+            st.warning("Yerel yedek kapasitesi aşıldı; bu kaydı JSON olarak dışa aktarın.")
+    report = (browser_colony_component(write=write, clear=clear_local)
+              if browser_backup_enabled else None)
+    if isinstance(report, dict) and report.get("status") == "error":
+        st.warning("Tarayıcı yedeğine erişilemiyor; kayıtlar yalnızca bu oturumda.")
+    elif clear_local and isinstance(report, dict) and report.get("ack") == "cleared":
+        st.caption("Bu tarayıcıdaki CANO yedeği silindi.")
+    elif (not clear_local and status["agents"] == 0
+          and isinstance(report, dict) and report.get("payload")):
+        try:
+            recovered = decode_browser_colony_backup(report)
+            count = restore_empty_colony(colony, recovered)
+        except (ValueError, RuntimeError, OSError, sqlite3.Error):
+            st.warning("Tarayıcı yedeği doğrulanamadı; mevcut kayıtlar değiştirilmedi.")
+        else:
+            st.session_state["_cano_backup_enable_next_run"] = True
+            st.success(f"Bu tarayıcının önceki CANO yedeğinden {count} uzman geri yüklendi.")
+            st.rerun()
+            return
+    if local_opt_in and write is not None:
+        if browser_write_confirmed(report, write):
+            st.caption("Tarayıcı yedeği yazılıp geri okunarak doğrulandı. "
+                       "Bu bir hesaplar arası veya sunucu PostgreSQL yedeği değildir.")
+        else:
+            st.caption("Tarayıcı yedeği henüz doğrulanmadı; sayfadan ayrılmadan "
+                       "önce yedek onayının görünmesini kontrol edin.")
+
+    def _checkpoint(*, archive_prior=True):
+        if backup_store is not None:
+            snapshot = _snapshot(colony)
+            backup_store.save_versioned_verified(
+                owner_key, snapshot,
+                expected_prior=st.session_state["_cano_backup_expected"],
+                archive_prior=archive_prior)
+            st.session_state["_cano_backup_expected"] = snapshot
+
+    # Expose only observed counters to the capability/status chat route.
+    # Task text and source evidence remain confined to their dedicated views.
+    st.session_state["_cano_runtime_status"] = {
+        key: status[key]
+        for key in ("agents", "missions", "review_pending", "lessons", "blocked")
+    }
+
+    cols = st.columns(4)
+    for col, label, value in zip(
+        cols, ("Uzman", "Ekip görevleri", "İnceleme bekleyen", "Kabul edilmiş ders"),
+        (status["agents"], status["missions"],
+         status["review_pending"], status["lessons"])):
+        col.metric(label, value)
+
+    if backup_store is None:
+        st.caption("Bu oturumda yalnızca geçici SQLite var; JSON yedeği alın.")
+    else:
+        st.caption("Açıkça başlatılan görevlerin sonuçları hesap sahibine ait PostgreSQL "
                    "sürümlü yedeğine otomatik yazılır. Ani sunucu kapanmalarında "
                    "tam aşama garantisi yoktur; JSON yedeği de alın.")
         st.caption(f"CANO yedek veritabanı sağlayıcısı: {database_provider_label(database_url)}.")
