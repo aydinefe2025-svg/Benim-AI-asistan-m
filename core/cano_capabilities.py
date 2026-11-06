@@ -3,7 +3,7 @@ import re
 
 
 def capability_reply(message, *, persistent_memory=False, persistent_colony=False):
-    normalized = ' '.join(str(message).casefold().replace('i\\u0307', 'i').split())
+    normalized = ' '.join(str(message).casefold().replace('i\u0307', 'i').split())
     normalized = re.sub(r'[.!?,;]+$', '', normalized)
     exact_matches = {
         'kendini geliştir', 'kendini geliştir cano', 'cano kendini geliştir',
@@ -32,7 +32,7 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
         'simüle et', 'başlat', 'oluştur',
     )
     contains_task = any(
-        re.search(rf'\\b{re.escape(verb)}\\b', normalized) for verb in task_verbs
+        re.search(rf'\b{re.escape(verb)}\b', normalized) for verb in task_verbs
     )
     natural_learning_request = (
         len(normalized) <= 240
@@ -57,24 +57,24 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
     )
     growth = (
         'Evet—hedefimiz CANO’nun bilgisini, uzman ekibini ve araştırma kapasitesini '
-        'adım adım büyütmek. Uygulamadaki büyüme döngüsü şöyle:\\n\\n'
-        '1. **Hedef belirle:** Komuta Merkezi görev alanına araştırma ya da geliştirme hedefini yaz.\\n'
-        '2. **Uzmanları çoğalt:** CANO ekibini hazırla; farklı uzman rolleri aynı hedefi kendi bakış açılarından işler.\\n'
-        '3. **Bir çevrimi tamamla:** Ekip görevi planlama, araştırma, eleştiri ve sonuç aşamalarından geçirir.\\n'
+        'adım adım büyütmek. Uygulamadaki büyüme döngüsü şöyle:\n\n'
+        '1. **Hedef belirle:** Komuta Merkezi görev alanına araştırma ya da geliştirme hedefini yaz.\n'
+        '2. **Uzmanları çoğalt:** CANO ekibini hazırla; farklı uzman rolleri aynı hedefi kendi bakış açılarından işler.\n'
+        '3. **Bir çevrimi tamamla:** Ekip görevi planlama, araştırma, eleştiri ve sonuç aşamalarından geçirir.\n'
         '4. **Bilgiyi biriktir:** Kaynakları ve sonuçları gözden geçir; işe yarayan dersi Öğrenen Uzman Ajanlar bölümünde kaydet ve onayla. '
-        'Onaylı dersler sonraki uygun görevlerde bağlam olur.\\n'
-        '5. **Yeni turda genişlet:** Hafıza ve görev kayıtları, mevcut kurulumda sonraki çalışmalara taşınır.\\n\\n'
-        + memory + ' ' + colony + '\\n\\n'
+        'Onaylı dersler sonraki uygun görevlerde bağlam olur.\n'
+        '5. **Yeni turda genişlet:** Hafıza ve görev kayıtları, mevcut kurulumda sonraki çalışmalara taşınır.\n\n'
+        + memory + ' ' + colony + '\n\n'
         'Hemen başlamak için Komuta Merkezi’ne tek bir somut hedef girip “Ekibi çalıştır — 4 aşama” düğmesine basabilirsin. '
         'Organizmalar Laboratuvarı hedeflerinde de simülasyon sorusunu, değişkenleri ve ölçütü açıkça yaz; '
-        'çıktıyı yeni turda iyileştirmek üzere kaydedelim.\\n\\n'
+        'çıktıyı yeni turda iyileştirmek üzere kaydedelim.\n\n'
         'Böylece sistemin bilgi tabanı ve görevlerde kullanabildiği uzman bağlamı büyür. '
         'Bu, temel modelin kendi ağırlıklarını otomatik eğitmesi anlamına gelmez; fiziksel deney yerine dijital simülasyon ve kanıt incelemesi yürütürüz.'
     )
     if general_capability_request:
         return growth
     return (
-        growth + '\\n\\n'
+        growth + '\n\n'
         'Yani “öğrenme”, senin onayladığın dersleri ve kaydedilen araştırma sonuçlarını '
         'sonraki işlerde kullanarak adım adım gelişme demek. Bu açıklama yeni görev başlatmaz; '
         'birlikte başlatmak için yukarıdaki Komuta Merkezi akışını kullan.'
