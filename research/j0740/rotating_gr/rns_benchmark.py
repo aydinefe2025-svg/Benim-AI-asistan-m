@@ -45,7 +45,7 @@ def parse_rns_output(stdout: str, *, central_density: float, requested_spin_hz: 
         if all(math.isfinite(v) for v in values):
             rows.append(values)
     if len(rows) != 1:
-        raise ValueError(f"Expected exactly one finite numeric RNS output row; got {len(rows)}")
+        raise ValueError(f"Expected exactly one finite numeric RNS output row; got {len(rows)}; stdout_tail={stdout[-1200:]!r}")
     e15, mass, radius, freq = rows[0]
     if not (0.5 < mass < 3.5 and 7.0 < radius < 25):
         raise ValueError("Unphysical RNS mass/radius; do not interpret output")
