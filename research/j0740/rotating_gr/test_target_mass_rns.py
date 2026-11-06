@@ -1,5 +1,6 @@
 import unittest
-from target_mass_rns import bracketed_rotating_mass_solver
+import numpy as np
+from target_mass_rns import bracketed_rotating_mass_solver, source_fit_valid_branch
 
 class TestGRMassRoot(unittest.TestCase):
     def test_target_gravitational_mass_is_solved(self):
@@ -20,5 +21,33 @@ class TestGRMassRoot(unittest.TestCase):
             return {'mass_msun':m,'radius_eq_km':12}
         with self.assertRaisesRegex(ValueError,'nonmonotone'):
             bracketed_rotating_mass_solver(fake,2.073,1e15,1.4e15)
+
+
+class TestSemiEmpiricalSourceDomain(unittest.TestCase):
+    def test_low_mass_giant_radius_nodes_are_excluded_without_interpolation(self):
+        m=np.array([0.095,0.11,0.50,1.50,2.00,2.20])
+        r=np.array([156.0,40.0,13.0,12.5,12.4,12.3])
+        valid_m,valid_r,details=source_fit_valid_branch(m,r,346.536369)
+        self.assertEqual(details['excluded_low_mass_nodes_outside_fit_domain'],2)
+        np.testing.assert_array_equal(valid_m,m[2:])
+        np.testing.assert_array_equal(valid_r,r[2:])
+        self.assertLess(details['fit_valid_mass_min_msun'],2.073)
+
+    def test_does_not_cut_already_valid_curve(self):
+        m=np.array([1.5,1.8,2.0,2.2])
+        r=np.array([12.6,12.5,12.4,12.3])
+        a,b,d=source_fit_valid_branch(m,r,346.536369)
+        self.assertEqual(d['excluded_low_mass_nodes_outside_fit_domain'],0)
+        np.testing.assert_array_equal(a,m)
+
+    def test_noncontiguous_valid_domain_is_rejected(self):
+        m=np.array([0.1,0.5,1.1,1.4,2.0,2.3])
+        r=np.array([156,13,12,100,12.4,12.3])
+        with self.assertRaisesRegex(ValueError,'not a contiguous'):
+            source_fit_valid_branch(m,r,346.536369)
+
+    def test_all_out_of_domain_fails(self):
+        with self.assertRaisesRegex(ValueError,'Too few'):
+            source_fit_valid_branch(np.array([.1,.15,.2]),np.array([160,170,180]),346.536369)
 
 if __name__=='__main__':unittest.main()
