@@ -123,8 +123,9 @@ class OrganismPanelTests(unittest.TestCase):
         from pathlib import Path
         app = (Path(__file__).resolve().parents[1] / "app.py").read_text("utf-8")
         self.assertIn("from core.organism_lab_panel import render_organism_lab_panel", app)
-        self.assertIn("render_organism_lab_panel(st)", app)
-        self.assertLess(app.index("render_auth_gate(st"), app.index("render_organism_lab_panel(st)"))
+        call = app.rindex("render_organism_lab_panel(")
+        self.assertIn("owner_key=_CANO_OWNER_KEY", app[call:call + 200])
+        self.assertLess(app.index("render_auth_gate(st"), call)
 
 
 if __name__ == "__main__":
