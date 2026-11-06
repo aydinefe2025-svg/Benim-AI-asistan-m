@@ -53,7 +53,7 @@ jobs:
         working-directory: research/j0740/rotating_gr
         run: |
           python -m compileall -q .
-          python -m unittest -v test_rns_benchmark test_jester_to_rns test_validate_jester_rns
+          python -m unittest -v test_rns_benchmark test_jester_to_rns test_validate_jester_rns test_target_mass_rns
       - name: Compile upstream RNS C relativity solver
         run: make -C rns-upstream rns
       - name: Run original published APR 300 Hz control and J0740-spin 346.536369 Hz simulation
@@ -90,5 +90,20 @@ jobs:
           path: |
             results/MPA1_RNS_conversion_summary.json
             results/JESTER_MPA1_RNS_346Hz_source_matched_validation.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Solve same-source MPA1 fully relativistic rotating star at measured J0740 mass
+        run: |
+          python research/j0740/rotating_gr/target_mass_rns.py \
+            --rns rns-upstream/rns \
+            --eos results/eosMPA1_source_matched \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz \
+            --target-mass 2.073 \
+            --out results/J0740_MPA1_GR_at_observed_mass_2p073.json
+      - name: Archive exact-GR J0740-mass MPA1 result and empirical-fit comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-mpa1-real-gr-at-observed-mass
+          path: results/J0740_MPA1_GR_at_observed_mass_2p073.json
           if-no-files-found: error
           retention-days: 30
