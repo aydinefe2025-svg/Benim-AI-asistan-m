@@ -377,6 +377,15 @@ def _research_leads(goal: str) -> str:
 
 
 def _research_answer(goal: str) -> str:
+    if secilen_model.startswith("Ollama (Yerel): "):
+        system = (
+            "You are a local Turkish research drafting assistant. Distinguish facts, "
+            "hypotheses and missing evidence. Treat source links as unreviewed leads; "
+            "do not claim you opened them or independently verified them. Return a draft only."
+        )
+        return OllamaClient(
+            OLLAMA_URL, timeout=180, max_output_tokens=512, think=False
+        ).chat(aktif_llm_adi, system, goal[:1200] + " | Sources: " + _research_leads(goal[:1200]))
     if not GROQ_KEY:
         raise RuntimeError("Groq key unavailable")
     from groq import Groq
@@ -436,13 +445,14 @@ render_cano_command_center(
     research_tasks=_CANO_RESEARCH_BACKUP,
     authorized_queue_store=_CANO_QUEUE_BACKUP,
 )
-render_task_panel(st, answer=_research_answer if GROQ_KEY else None, store_override=_TASK_STORE)
+_LOCAL_MODEL_SELECTED = secilen_model.startswith("Ollama (Yerel): ")
+render_task_panel(st, answer=_research_answer if (GROQ_KEY or _LOCAL_MODEL_SELECTED) else None, store_override=_TASK_STORE)
 render_authorized_queue_panel(
-    st, answer=_research_answer if GROQ_KEY else None,
+    st, answer=_research_answer if (GROQ_KEY or _LOCAL_MODEL_SELECTED) else None,
     owner_key=_OWNER_KEY if _TASK_STORE is not None else None,
     database_url=os.environ.get("AGENT_TASK_DATABASE_URL") if _TASK_STORE is not None else None,
 )
-render_colony_panel(st, answer=_team_answer if GROQ_KEY else None,
+render_colony_panel(st, answer=_team_answer if (GROQ_KEY or _LOCAL_MODEL_SELECTED) else None,
                     owner_key=_CANO_OWNER_KEY,
                     database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None)
 # Explicit bounded simulation; existing login and production tasks stay unchanged.
@@ -482,9 +492,9 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
                     "Henüz model çağrısı veya görev kaydı yapılmadı. Aşağıdaki onay "
                     "kutusunu bu görev için işaretleyip başlat düğmesine basarsanız "
                     "dört model aşaması çalışır; sonuç inceleme bekleyen taslak olur.")
-        if not GROQ_KEY:
+        if not GROQ_KEY and not secilen_model.startswith("Ollama (Yerel): "):
             return ("CANO görevini sohbetten dört aşamalı ekibe yönlendiremedim: "
-                    "ekip yürütücüsü için Groq anahtarı yapılandırılmamış. "
+                    "ekip yürütücüsü için Groq veya erişilebilir yerel Ollama yapılandırılmamış. "
                     "Bu istek sıradan sohbet yanıtı gibi gösterilmedi.")
         try:
             from core.agent_colony import AgentColony
@@ -543,7 +553,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
 
             result = mission_manager.execute(
                 task_goal, client=_AnswerAdapter(_team_answer),
-                model="configured-groq-team", mission_id=pending["id"],
+                model=("configured-local-ollama-team" if secilen_model.startswith("Ollama (Yerel): ") else "configured-groq-team"), mission_id=pending["id"],
                 on_checkpoint=lambda: checkpoint(archive_prior=False) if store else None)
             checkpoint(archive_prior=False)
             st.session_state["cano_cockpit_latest_mission"] = result["id"]
