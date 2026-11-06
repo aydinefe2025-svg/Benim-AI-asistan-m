@@ -11,6 +11,32 @@ from tests.test_cano_command_center import FakeModel, FakeStreamlit
 
 
 class AuthenticatedBackupGuardTests(unittest.TestCase):
+    def test_authenticated_cockpit_offers_full_encrypted_export_not_plain_json(self):
+        class EmptyQueue:
+            def list(self):
+                return []
+
+            def events(self, _job_id):
+                return []
+
+        with tempfile.TemporaryDirectory() as temp:
+            base = str(Path(temp) / "colony.sqlite3")
+            st = FakeStreamlit(clicks={"cano_prepare_team"})
+            with (patch.dict("os.environ", {
+                    "AGENT_COLONY_DB_PATH": base, "APP_AUTH_REQUIRED": "true"}),
+                  patch("core.cano_command_center.ColonySnapshotStore") as Store):
+                Store.return_value.load.return_value = None
+                Store.return_value.save_versioned_verified.return_value = True
+                render_cano_command_center(
+                    st, answer=FakeModel(), owner_key="owner-123",
+                    database_url="postgresql://synthetic-test", memories=[],
+                    research_tasks=b'{"schema":"research-task-export-v1","tasks":[]}',
+                    authorized_queue_store=EmptyQueue())
+                joined = " ".join(st.messages)
+                self.assertIn("şifreli dış yedek", joined)
+                self.assertNotIn("CANO ajanlarını, görevlerini ve dersleri JSON yedekle", joined)
+                self.assertFalse(st.downloaded)
+
     def test_fresh_authenticated_session_restores_owner_backup_before_team_setup(self):
         with tempfile.TemporaryDirectory() as temp:
             base = str(Path(temp) / "colony.sqlite3")

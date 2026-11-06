@@ -77,13 +77,17 @@ def render_task_panel(st, answer=None, *, store_override=None) -> None:
         st.caption("Kaynak doğrulama mekanizması eklenene kadar görevler Doğrulandı durumuna alınamaz.")
         try:
             archive = export_research_archive(store)
-            st.download_button(
-                "Görevleri ve taslakları yedekle (JSON)",
-                data=archive,
-                file_name="arastirma-gorevleri-yedek.json",
-                mime="application/json",
-                key="download_research_tasks",
-            )
+            if store_override is None:
+                st.download_button(
+                    "Görevleri ve taslakları yedekle (şifrelenmemiş JSON)",
+                    data=archive,
+                    file_name="arastirma-gorevleri-yedek.json",
+                    mime="application/json",
+                    key="download_research_tasks",
+                )
+            else:
+                st.caption("Hesap görevleri ve taslakları CANO Komuta Merkezi'ndeki "
+                           "şifreli dış yedek paketine eklenir.")
         except Exception:
             st.warning("Araştırma yedeği oluşturulamadı.")
         for task in tasks[-30:]:

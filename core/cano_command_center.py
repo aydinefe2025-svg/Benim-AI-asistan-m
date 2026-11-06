@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+from hashlib import sha256
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
@@ -24,6 +25,8 @@ from core.groq_team import TeamRateLimitError
 from core.cano_chat_tasks import stage_execution_notice
 from core.scientific_sources import scientific_sources
 from core.task_panel import _session_database_path
+from core.cano_backup_bundle import create_portable_bundle, export_authorized_queue
+from core.encrypted_backup_ui import render_encrypted_download
 
 
 class _AnswerAdapter:
@@ -92,7 +95,9 @@ def _snapshot(colony):
     return result
 
 
-def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=None):
+def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=None,
+                               memories=None, research_tasks=None,
+                               authorized_queue_store=None):
     """Render a top-level mission cockpit before the legacy sidebar/chat UI."""
     st.header("🚀 CANO Komuta Merkezi")
     st.caption("Uzmanları burada hazırla, gerçek ekip görevi çalıştır, "
@@ -270,7 +275,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
     else:
         st.caption("Açıkça başlatılan görevlerin sonuçları hesap sahibine ait PostgreSQL "
                    "sürümlü yedeğine otomatik yazılır. Ani sunucu kapanmalarında "
-                   "tam aşama garantisi yoktur; JSON yedeği de alın.")
+                   "tam aşama garantisi yoktur; Komuta Merkezi'nden şifreli dış yedek alın.")
         st.caption(f"CANO yedek veritabanı sağlayıcısı: {database_provider_label(database_url)}.")
     st.caption("Uzmanlıklar rol bazlı model çağrılarıdır, ayrı eğitilmiş modeller değildir.")
     if st.button("🚀 CANO ekibini hazırla (1 kurucu + 6 uzman)",
@@ -428,12 +433,44 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
         st.caption("Bu oturumda kayıtlı son ekip görevleri: " +
                    " · ".join(x["task"][:45] + " (" + x["status"] + ")"
                               for x in status["history"][:5]))
-    if status["agents"]:
-        payload = json.dumps(_snapshot(colony), ensure_ascii=False, indent=2)
-        st.download_button(
-            "💾 CANO ajanlarını, görevlerini ve dersleri JSON yedekle",
-            data=payload, file_name="cano-ekip-yedegi.json",
-            mime="application/json", key="cano_cockpit_backup")
-        st.caption("Geri yükleme: yan menü → Öğrenen uzman ajanlar → "
-                   "JSON yedekten geri yükle (yalnızca boş oturum).")
+    if status["agents"] or owner_key:
+        snapshot = _snapshot(colony)
+        if owner_key:
+            secure_key = "_cano_secure_export_" + sha256(
+                owner_key.encode("utf-8")).hexdigest()[:16]
+            previous_secure_key = st.session_state.get("_cano_secure_export_owner")
+            if previous_secure_key and previous_secure_key != secure_key:
+                for suffix in ("_encrypted", "_source_digest", "_error",
+                               "_passphrase", "_confirm", "_download"):
+                    st.session_state.pop(previous_secure_key + suffix, None)
+            st.session_state["_cano_secure_export_owner"] = secure_key
+            if memories is None or research_tasks is None or authorized_queue_store is None:
+                st.error("Şifreli tam yedek hazır değil: hesap hafızası, araştırma görevi "
+                         "veya onaylı kuyruk kaynağına erişim yok. Eksik paketi indirmedim.")
+            else:
+                try:
+                    jobs = export_authorized_queue(authorized_queue_store)
+                    portable = create_portable_bundle(
+                        colony=snapshot, memories=memories,
+                        research_tasks=research_tasks,
+                        authorized_queue=jobs,
+                    )
+                except Exception:
+                    st.error("Şifreli CANO paketi oluşturulamadı; veri değiştirilmedi.")
+                else:
+                    render_encrypted_download(
+                        st, label="💾 Şifreli CANO hesap yedeğini indir",
+                        filename="cano-hesap-yedegi.canoenc",
+                        plaintext=portable, storage_key=secure_key)
+                    st.caption("Paket: ajanlar, ekip görevleri, dersler, hafıza, "
+                               "araştırma görev/taslakları ve onaylı kuyruk kayıtları. "
+                               "Her bölümün kullanılabilirlik durumu manifestte yer alır.")
+        elif status["agents"]:
+            payload = json.dumps(snapshot, ensure_ascii=False, indent=2)
+            st.download_button(
+                "💾 CANO ajanlarını, görevlerini ve dersleri JSON yedekle",
+                data=payload, file_name="cano-ekip-yedegi.json",
+                mime="application/json", key="cano_cockpit_backup")
+            st.caption("Geri yükleme: yan menü → Öğrenen uzman ajanlar → "
+                       "JSON yedekten geri yükle (yalnızca boş oturum).")
 

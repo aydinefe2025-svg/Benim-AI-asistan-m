@@ -578,7 +578,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                                    "kaydedilip geri okundu.")
                     except Exception:
                         st.error("Hesabın yedeği değişmiş olabilir veya kayıt doğrulanamadı; "
-                                 "eski kayıtların üzerine yazılmadı. JSON yedeği indirin.")
+                                 "eski kayıtların üzerine yazılmadı. Komuta Merkezi'ndeki "
+                                 "şifreli dış yedeği alın.")
             if st.button("Kalıcı yedeği kontrol et", key="colony_postgres_check"):
                 try:
                     saved = ColonySnapshotStore(database_url).load(owner_key)
@@ -590,7 +591,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         st.warning("Yedek mevcut ama bu oturumun kayıtlarından farklı; güncel olduğu doğrulanmadı.")
                 except Exception:
                     st.error("Kalıcı yedek okunamadı.")
-        st.download_button("Ajanları ve dersleri JSON yedekle",
-                           data=json.dumps(data, ensure_ascii=False, indent=2),
-                           file_name="ajan-kolonisi-yedek.json",
-                           mime="application/json", key="colony_backup")
+        if not (owner_key and database_url):
+            st.download_button("Ajanları ve dersleri yedekle (şifrelenmemiş JSON)",
+                               data=json.dumps(data, ensure_ascii=False, indent=2),
+                               file_name="ajan-kolonisi-yedek.json",
+                               mime="application/json", key="colony_backup")

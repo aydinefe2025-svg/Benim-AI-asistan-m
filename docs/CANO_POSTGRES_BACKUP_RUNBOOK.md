@@ -1,5 +1,35 @@
 # CANO PostgreSQL backup and isolated restore runbook
 
+## Account-scoped encrypted portable export
+
+The authenticated CANO cockpit offers an on-demand `.canoenc` export that bundles the
+current owner's CANO colony, memory library, research tasks and drafts, and authorized
+queue jobs with their audit events. The queue export omits the owner key and lease token.
+The manifest records each section's availability, byte length, and SHA-256 digest; the
+export is refused if one of the account stores is unavailable. This is a logical
+owner-scoped export, not a raw Neon database dump, provider backup, scheduled backup,
+or proof that every section can be restored automatically.
+
+1. Open the authenticated CANO app and expand **CANO Komuta Merkezi → Taşınabilir şifreli yedek**.
+2. Enter and confirm a unique passphrase of at least 12 characters. The app clears the
+   password fields after preparation and never logs or stores the passphrase.
+3. Download `cano-hesap-yedegi.canoenc`. Save it outside the Neon project and keep the
+   passphrase separately. Losing the passphrase makes the archive unrecoverable.
+4. On a trusted computer with the repository and dependencies installed, extract into a
+   new private directory. The utility prompts interactively; the passphrase is not an
+   argument and plaintext files are written only after authenticated decryption and all
+   manifest checksum checks succeed:
+
+   ```powershell
+   py -m scripts.cano_secure_backup .\cano-hesap-yedegi.canoenc .\cano-yedek-acik
+   ```
+
+The extracted `cano-colony.json`, `memory-library.json`, and `research-tasks.json` use
+the existing JSON import formats. `authorized-queue.json` is preserved for review; the
+app does not automatically requeue archived work. Queue jobs must be checked and
+explicitly re-entered before execution. The archive remains encrypted until the
+operator intentionally extracts it, and extracted files contain private user data.
+
 **Status:** An operator-only disaster-recovery utility; NOT an automatic production backup,
 NOT a completed Render database backup and NOT proof of restored production data.
 
