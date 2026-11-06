@@ -329,13 +329,17 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                     stage_checkpoint_count[0] += 1
                 try:
                     def _lookup_sources(_query, limit=3):
-                        candidates = scientific_sources(_query, limit=limit)
+                        candidates = (scientific_sources(_query, limit=limit)
+                                      if lookup else [])
                         return prioritize_requested_dois(goal, candidates, limit=limit)
 
                     result = manager.execute(
                         goal, client=_AnswerAdapter(answer),
                         model="configured-provider",
-                        source_lookup=_lookup_sources if lookup else None,
+                        source_lookup=(_lookup_sources
+                                       if lookup or prioritize_requested_dois(
+                                           goal, [], limit=1)
+                                       else None),
                         on_checkpoint=_durable_stage_checkpoint if backup_store is not None else None)
                 except TeamRateLimitError:
                     try:
