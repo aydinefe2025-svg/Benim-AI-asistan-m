@@ -243,12 +243,20 @@ class CollaborativeMission:
         if "source_documents" in planner and not refresh_missing:
             return planner["source_documents"]
         from core.doi_priority import requested_doi_leads
-        requested_dois = {item["url"][len("https://doi.org/"):].casefold()
-                          for item in requested_doi_leads(saved["task"], limit=2)}
         existing_documents = planner.get("source_documents", [])
         if not isinstance(existing_documents, list):
             existing_documents = []
-        leads = requested_doi_leads(saved["task"], limit=2) + planner.get("source_leads", [])
+        requested_leads = requested_doi_leads(saved["task"], limit=2)
+        source_leads = planner.get("source_leads", [])
+        # Refresh DOI records already attached to this task first, so an
+        # attached correction cannot be skipped by the two-source read limit.
+        attached_leads = [
+            {"title": item.get("title", ""),
+             "url": "https://doi.org/" + item["doi"]}
+            for item in existing_documents
+            if isinstance(item, dict) and isinstance(item.get("doi"), str)
+        ] if refresh_missing else []
+        leads = attached_leads + requested_leads + source_leads
         if not isinstance(leads, list) or not leads:
             return []
         existing_by_doi = {
@@ -262,8 +270,7 @@ class CollaborativeMission:
                 continue
             doi = url[len("https://doi.org/"):].lower()
             existing = existing_by_doi.get(doi.casefold())
-            if (isinstance(existing, dict) and not (
-                    refresh_missing and doi.casefold() in requested_dois)
+            if (isinstance(existing, dict) and not refresh_missing
                     and existing.get("status") in (
                     "full_text_excerpt", "abstract_excerpt")):
                 documents.append(existing)
