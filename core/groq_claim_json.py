@@ -9,7 +9,7 @@ import json
 
 from core.groq_team import TeamRateLimitError
 
-_MODEL = "openai/gpt-oss-120b"
+_MODEL = "openai/gpt-oss-120b"\n_VERIFICATION_MODEL = "openai/gpt-oss-20b"
 _SCHEMA = {
     "type": "object",
     "properties": {
