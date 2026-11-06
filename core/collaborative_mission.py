@@ -220,7 +220,8 @@ class CollaborativeMission:
                            "WHERE id=? AND status='running'", (mission_id,))
             raise
 
-    def inspect_source_documents(self, mission_id, *, reader=None):
+    def inspect_source_documents(self, mission_id, *, reader=None,
+                                 refresh_missing=False):
         """Read up to two opted-in source documents; checkpoint source excerpts.
 
         This is independent document retrieval, not proof that a particular
@@ -238,17 +239,33 @@ class CollaborativeMission:
         if not isinstance(stages, list) or len(stages) != 4:
             raise ValueError("Invalid completed mission")
         planner = stages[0]
-        if "source_documents" in planner:
+        if "source_documents" in planner and not refresh_missing:
             return planner["source_documents"]
-        leads = planner.get("source_leads", [])
+        from core.doi_priority import requested_doi_leads
+        existing_documents = planner.get("source_documents", [])
+        if not isinstance(existing_documents, list):
+            existing_documents = []
+        leads = requested_doi_leads(saved["task"], limit=2) + planner.get("source_leads", [])
         if not isinstance(leads, list) or not leads:
             return []
+        existing_by_doi = {
+            item["doi"].casefold(): item for item in existing_documents
+            if isinstance(item, dict) and isinstance(item.get("doi"), str)
+        }
         documents = []
         for lead in leads[:2]:
             url = lead.get("url") if isinstance(lead, dict) else None
             if not isinstance(url, str) or not DOI_LEAD_URL.fullmatch(url):
                 continue
             doi = url[len("https://doi.org/"):].lower()
+            existing = existing_by_doi.get(doi.casefold())
+            if isinstance(existing, dict) and existing.get("status") in (
+                    "full_text_excerpt", "abstract_excerpt"):
+                documents.append(existing)
+                continue
+            if existing is not None and not refresh_missing and "source_documents" in planner:
+                documents.append(existing)
+                continue
             try:
                 item = reader(doi)
                 if not isinstance(item, dict):
@@ -279,6 +296,12 @@ class CollaborativeMission:
                     "url": "https://doi.org/" + doi, "status": "unavailable",
                     "excerpt": "", "claim_verified": False,
                 })
+        if refresh_missing:
+            fresh_dois = {item.get("doi", "").casefold() for item in documents
+                          if isinstance(item, dict)}
+            documents.extend(item for item in existing_documents
+                             if isinstance(item, dict)
+                             and item.get("doi", "").casefold() not in fresh_dois)
         with self.colony._db() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
@@ -287,7 +310,7 @@ class CollaborativeMission:
             if row is None or row["status"] != "review_pending":
                 raise RuntimeError("Mission changed while reading sources")
             current = json.loads(row["stages"])
-            if "source_documents" in current[0]:
+            if "source_documents" in current[0] and not refresh_missing:
                 return current[0]["source_documents"]
             if current != stages:
                 raise RuntimeError("Mission stages changed while reading sources")
