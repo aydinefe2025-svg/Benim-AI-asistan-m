@@ -126,7 +126,7 @@ class Client:
     def verify(self, model, system, prompt):
         return generate_claim_verification_json(system, prompt, api_key=key)
 
-if documents and key and st.button("İddiaları çıkar ve kuşkucu incelemeden geçir (en fazla 2 model çağrısı)"):
+if documents and key and st.button("İddiaları çıkar ve ayrı AI modeliyle kuşkucu incele (en fazla 2 çağrı)"):
     try:
         if owner:
             store = ColonySnapshotStore(cano_database_url(os.environ))
@@ -156,7 +156,7 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
         assessment = item.get("machine_assessment")
         if isinstance(assessment, dict):
             verdict_labels = {
-                "supported": "İkinci model incelemesi: pasaj iddiayı doğrudan destekliyor",
+                "supported": "İkinci AI modeli: pasaj iddiayı doğrudan destekliyor",
                 "contradicted": "İkinci model incelemesi: pasaj iddiayla çelişiyor",
                 "insufficient": "İkinci model incelemesi: pasaj yetersiz veya belirsiz",
             }
