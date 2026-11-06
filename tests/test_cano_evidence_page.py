@@ -22,6 +22,8 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("full_text_excerpt", source)
         self.assertIn("İddiaları çıkar ve ayrı AI modeliyle kuşkucu incele", source)
         self.assertIn("generate_claim_verification_json", source)
+        self.assertIn("run_claim_review_benchmark", source)
+        self.assertIn("12 vakayı tek model çağrısıyla ölç", source)
         self.assertIn("Görevdeki DOI kaynaklarını yeniden oku", source)
         self.assertIn("manager.inspect_source_documents(mid, refresh_missing=True)", source)
         self.assertIn("store.verify_schema()", source)
