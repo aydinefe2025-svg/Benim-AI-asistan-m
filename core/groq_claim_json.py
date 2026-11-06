@@ -36,9 +36,47 @@ _SCHEMA = {
     "additionalProperties": False,
 }
 
+_VERIFICATION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "assessments": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "index": {"type": "integer"},
+                    "verdict": {"type": "string", "enum": [
+                        "supported", "contradicted", "insufficient"]},
+                    "reason": {"type": "string"},
+                },
+                "required": ["index", "verdict", "reason"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["assessments"],
+    "additionalProperties": False,
+}
+
 
 def generate_claim_quote_json(system, prompt, *, api_key,
                               client_factory=None, model=_MODEL):
+    """One strict-JSON provider call, no automatic chargeable retries."""
+    return _generate_strict_json(
+        system, prompt, _SCHEMA, "cano_claim_quote_proposals", "claims",
+        api_key=api_key, client_factory=client_factory, model=model)
+
+
+def generate_claim_verification_json(system, prompt, *, api_key,
+                                     client_factory=None, model=_MODEL):
+    """A second skeptical pass; its opinion never sets claim_verified."""
+    return _generate_strict_json(
+        system, prompt, _VERIFICATION_SCHEMA, "cano_claim_evidence_assessments",
+        "assessments", api_key=api_key, client_factory=client_factory, model=model)
+
+
+def _generate_strict_json(system, prompt, schema, schema_name, response_key, *,
+                          api_key, client_factory=None, model=_MODEL):
     """One strict-JSON provider call, no automatic chargeable retries."""
     if (not isinstance(system, str) or not isinstance(prompt, str)
             or not system.strip() or not prompt.strip()
@@ -60,9 +98,9 @@ def generate_claim_quote_json(system, prompt, *, api_key,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
-                    "name": "cano_claim_quote_proposals",
+                    "name": schema_name,
                     "strict": True,
-                    "schema": _SCHEMA,
+                    "schema": schema,
                 },
             },
             reasoning_format="hidden",
@@ -89,6 +127,6 @@ def generate_claim_quote_json(system, prompt, *, api_key,
         parsed = json.loads(raw)
     except (ValueError, TypeError):
         raise ValueError("Invalid claim JSON response") from None
-    if not isinstance(parsed, dict) or not isinstance(parsed.get("claims"), list):
+    if not isinstance(parsed, dict) or not isinstance(parsed.get(response_key), list):
         raise ValueError("Invalid claim JSON shape")
     return raw
