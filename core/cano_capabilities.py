@@ -18,8 +18,6 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
         'neler yaparsın', 'neler yaparsın cano', 'ne iş yaparsın',
         'yeteneklerin neler', 'özelliklerin neler',
     }
-    # Accept natural self-learning questions/statements without routing actual
-    # build or research requests away from their normal handlers.
     self_learning_phrases = (
         'bilgi toplayarak kendini geliştir',
         'bilgi toplayıp kendini geliştir',
@@ -46,40 +44,38 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
             and not general_capability_request):
         return None
     memory = (
-        'Hafıza kitaplığın bu oturumda giriş hesabına bağlı PostgreSQL üzerinden açık.'
+        'Bu oturumda hafıza kitaplığın hesap sahibine bağlı PostgreSQL üzerinde açık; '
+        'kaydettiğin bilgi sonraki oturumlarda da kullanılabilir.'
         if persistent_memory else
-        'Hafıza kitaplığın bu oturumda tarayıcı deposunu kullanıyor; hesaplar ve cihazlar arasında eşitlenmiyor.'
+        'Bu oturumda hafıza kitaplığı tarayıcı deposunu kullanıyor; kalıcı büyüme için '
+        'hesap bağlantılı depolama gerekir.'
     )
     colony = (
-        'Ekip ve görev kayıtları için hesaba bağlı PostgreSQL yedeği yapılandırılmış. '
-        'Ekranda eski yedeğin bulunduğu bildiriliyorsa önce “Kalıcı yedekten boş koloniyi geri yükle” düğmesini kullan.'
+        'Ekip ve görev kayıtları için hesap sahibine bağlı PostgreSQL yedeği yapılandırılmış.'
         if persistent_colony else
-        'Ekip kayıtları bu oturumun SQLite dosyasında; kalıcı hesap yedeği bağlı değil. JSON yedeği al.'
+        'Ekip kayıtları şu an oturumun SQLite dosyasında; JSON yedeğiyle koruyabilirsin.'
+    )
+    growth = (
+        'Evet—hedefimiz CANO’nun bilgisini, uzman ekibini ve araştırma kapasitesini '
+        'adım adım büyütmek. Uygulamadaki büyüme döngüsü şöyle:\n\n'
+        '1. **Hedef belirle:** Komuta Merkezi görev alanına araştırma ya da geliştirme hedefini yaz.\n'
+        '2. **Uzmanları çoğalt:** CANO ekibini hazırla; farklı uzman rolleri aynı hedefi kendi bakış açılarından işler.\n'
+        '3. **Bir çevrimi tamamla:** Ekip görevi planlama, araştırma, eleştiri ve sonuç aşamalarından geçirir.\n'
+        '4. **Bilgiyi biriktir:** Kaynakları ve sonuçları gözden geçir; işe yarayan dersi Öğrenen Uzman Ajanlar bölümünde kaydet ve onayla. '
+        'Onaylı dersler sonraki uygun görevlerde bağlam olur.\n'
+        '5. **Yeni turda genişlet:** Hafıza ve görev kayıtları, mevcut kurulumda sonraki çalışmalara taşınır.\n\n'
+        + memory + ' ' + colony + '\n\n'
+        'Hemen başlamak için Komuta Merkezi’ne tek bir somut hedef girip “Ekibi çalıştır — 4 aşama” düğmesine basabilirsin. '
+        'Organizmalar Laboratuvarı hedeflerinde de simülasyon sorusunu, değişkenleri ve ölçütü açıkça yaz; '
+        'çıktıyı yeni turda iyileştirmek üzere kaydedelim.\n\n'
+        'Böylece sistemin bilgi tabanı ve görevlerde kullanabildiği uzman bağlamı büyür. '
+        'Bu, temel modelin kendi ağırlıklarını otomatik eğitmesi anlamına gelmez; fiziksel deney yerine dijital simülasyon ve kanıt incelemesi yürütürüz.'
     )
     if general_capability_request:
-        return (
-            'Evet, bu uygulamada sohbet etmenin yanında görev ve araştırma iş akışlarını da kullanabilirsin. '
-            'Şu anda yapabildiklerim:\n\n'
-            '- Soruları açıklamak, metinleri özetlemek ve bir hedefi uygulanabilir adımlara dönüştürmek.\n'
-            '- Komuta Merkezi üzerinden uzman ajanlarla görev taslağı hazırlamak; iş akışı planlama, araştırma, eleştiri ve sonuç aşamalarından geçer. '
-            'Üretilen sonuçlar kanıt ve kaynak açısından ayrıca incelenmelidir.\n'
-            '- Uzman ajanlara verdiğin geri bildirimi ders olarak kaydetmek. Onayladığın dersler, uygun olduğunda sonraki görevlerde bağlam olarak kullanılır.\n'
-            '- Açıkça kaydettiğin bilgileri hafıza kitaplığında sonraki oturumlarda kullanmak.\n\n'
-            + memory + '\n\n' + colony + '\n\n'
-            'Sınırlarım: fiziksel deney yapamam, kendi kendime arka planda kesintisiz araştırma çalıştıramam, '
-            'takvim veya hatırlatıcı oluşturamam. Kaydedilen dersler modelin ağırlıklarını eğitmez; '
-            'araştırma çıktıları doğrulanmış keşif değil, incelenmesi gereken aday bulgulardır.'
-        )
+        return growth
     return (
-        'CANO’da gelişim, onayladığın dersleri sonraki görevlere katmak ve sonuçları '
-        'ölçmek üzerinden ilerliyor. Mevcut araçlarım:\n\n'
-        '- **Öğrenen uzman ajanlar:** Kanıt referansıyla eklediğin ve onayladığın dersler '
-        'seçili uzmanın sonraki görevlerine bağlam olur.\n'
-        '- **Komuta Merkezi:** Ekip bir görevi planlama, araştırma, eleştiri ve sonuç '
-        'aşamalarında işler; çıktılar ayrıca doğrulanmalıdır.\n'
-        '- **Hafıza kitaplığı:** Açıkça kaydettiğin notlar sonraki yanıtlarda kullanılır.\n\n'
-        + memory + '\n\n' + colony + '\n\n'
-        'Bu mekanizma model ağırlıklarını yeniden eğitmez. Uygulama kodunu değiştirme '
-        've yeni sürümü yayımlama işi Codex geliştirme akışında yapılır. '
-        'Bu mesaj mevcut yetenekleri bildirir; yeni bir eğitim veya kod yayını başlatmaz.'
+        growth + '\n\n'
+        'Yani “öğrenme”, senin onayladığın dersleri ve kaydedilen araştırma sonuçlarını '
+        'sonraki işlerde kullanarak adım adım gelişme demek. Bu açıklama yeni görev başlatmaz; '
+        'birlikte başlatmak için yukarıdaki Komuta Merkezi akışını kullan.'
     )
