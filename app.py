@@ -92,7 +92,7 @@ except Exception:
     _local_ollama_models = []
 available_models = available_providers(_credentials, _local_ollama_models)
 if not available_models:
-    st.error("Model bağlantısı için GROQ_API_KEY, GOOGLE_API_KEY, OPENROUTER_API_KEY veya erişilebilir yerel Ollama modeli gerekli.")
+    st.error("Streamlit Secrets veya GROQ_API_KEY, GOOGLE_API_KEY, OPENROUTER_API_KEY ya da erişilebilir yerel Ollama modeli gerekli.")
     st.stop()
 
 GOOGLE_KEY = _credentials.get("GOOGLE_API_KEY")
