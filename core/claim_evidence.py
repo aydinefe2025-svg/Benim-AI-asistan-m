@@ -87,7 +87,8 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
     if saved["status"] != "review_pending" or len(saved["stages"]) != 4:
         raise RuntimeError("Only a completed research draft can be quoted")
     stages = saved["stages"]
-    if "source_claim_audit" in stages[0]:
+    if (stages[0].get("source_claim_audit_version", 1) >= 2
+            and isinstance(stages[0].get("source_claim_audit"), list)):
         return stages[0]["source_claim_audit"]
     documents = stages[0].get("source_documents")
     if not isinstance(documents, list) or not any(
@@ -181,11 +182,22 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
         if row is None or row["status"] != "review_pending":
             raise RuntimeError("Mission was modified during quote review")
         current = json.loads(row["stages"])
-        if "source_claim_audit" in current[0]:
+        if (current[0].get("source_claim_audit_version", 1) >= 2
+                and isinstance(current[0].get("source_claim_audit"), list)):
             return current[0]["source_claim_audit"]
         if current != stages:
             raise RuntimeError("Source data changed during quote review; retry explicitly")
+        previous_audit = current[0].get("source_claim_audit")
+        if previous_audit is not None:
+            history = current[0].setdefault("source_claim_audit_history", [])
+            if not isinstance(history, list):
+                raise ValueError("Invalid source claim audit history")
+            history.append({
+                "version": current[0].get("source_claim_audit_version", 1),
+                "claims": previous_audit,
+            })
         current[0]["source_claim_audit"] = reviewed
+        current[0]["source_claim_audit_version"] = 2
         db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
                    (json.dumps(current, ensure_ascii=False), mission_id))
     return reviewed
