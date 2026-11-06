@@ -35,7 +35,7 @@ class OrganismLabChatTests(unittest.TestCase):
 
     def test_empty_archive_does_not_guess(self):
         reply = organism_lab_chat_reply(
-            "simülasyon sonucu ne oldu", load_records=lambda: [])
+            "Organizmalar Laboratuvarı simülasyon sonucu ne oldu", load_records=lambda: [])
         self.assertIn("sonuç uydurmayacağım", reply)
         self.assertNotIn("%85", reply)
 
