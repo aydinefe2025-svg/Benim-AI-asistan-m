@@ -97,6 +97,19 @@ for source in documents:
     st.caption(str(source.get("status", "metadata_only")) + " · " + str(source.get("doi", "")))
     if source.get("excerpt"):
         st.text(source["excerpt"][:900])
+if documents and st.button("Görevdeki DOI kaynaklarını yeniden oku"):
+    try:
+        if owner:
+            store = ColonySnapshotStore(cano_database_url(os.environ))
+            store.verify_schema()
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony))
+        manager.inspect_source_documents(mid, refresh_missing=True)
+        if owner:
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony),
+                                  archive_prior=False)
+        st.rerun()
+    except (ValueError, PermissionError, RuntimeError, OSError, sqlite3.Error):
+        st.warning("Kaynaklar yenilenemedi; önceki okunabilir alıntılar korundu.")
 key = os.environ.get("GROQ_API_KEY")
 if not key:
     try:
