@@ -2,7 +2,8 @@
 import re
 
 
-def capability_reply(message, *, persistent_memory=False, persistent_colony=False):
+def capability_reply(message, *, persistent_memory=False, persistent_colony=False,
+                     runtime_status=None):
     normalized = ' '.join(str(message).casefold().replace('i\u0307', 'i').split())
     normalized = re.sub(r'[.!?,;]+$', '', normalized)
     exact_matches = {
@@ -39,9 +40,24 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
         and any(phrase in normalized for phrase in self_learning_phrases)
         and not contains_task
     )
-    general_capability_request = normalized in capability_questions
+    status_question = any(phrase in normalized for phrase in (
+        'ne durumda', 'şu anki durum', 'son durum', 'durum nedir',
+    ))
+    cano_capability_subject = bool(re.search(r'\bcano\b', normalized))
+    cano_capability_verb = any(phrase in normalized for phrase in (
+        'ne yapar', 'ne yapıyor', 'ne yapabilir', 'neler yapar', 'neler yapıyor',
+        'nasıl gelişir', 'nasıl gelişiyor', 'nasıl gelişecek', 'nasıl öğrenir',
+        'ne işe yarar', 'nedir',
+    ))
+    general_capability_request = (
+        normalized in capability_questions
+        or (cano_capability_subject and cano_capability_verb and len(normalized) <= 220)
+    )
+    status_request = status_question and (
+        cano_capability_subject or normalized.startswith('bizim cano')
+    )
     if (normalized not in exact_matches and not natural_learning_request
-            and not general_capability_request):
+            and not general_capability_request and not status_request):
         return None
     memory = (
         'Bu oturumda hafıza kitaplığın hesap sahibine bağlı PostgreSQL üzerinde açık; '
@@ -71,6 +87,23 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
         'Böylece sistemin bilgi tabanı ve görevlerde kullanabildiği uzman bağlamı büyür. '
         'Bu, temel modelin kendi ağırlıklarını otomatik eğitmesi anlamına gelmez; fiziksel deney yerine dijital simülasyon ve kanıt incelemesi yürütürüz.'
     )
+    if status_request:
+        if isinstance(runtime_status, dict):
+            keys = ('agents', 'missions', 'review_pending', 'lessons', 'blocked')
+            values = {key: runtime_status.get(key) for key in keys}
+            if all(type(value) is int and value >= 0 for value in values.values()):
+                return (
+                    'Şu an bu oturumda görünen CANO kaydı: '
+                    f"{values['agents']} uzman, {values['missions']} ekip görevi, "
+                    f"{values['review_pending']} inceleme bekleyen taslak, "
+                    f"{values['lessons']} onaylı ders ve {values['blocked']} engellenmiş görev.\n\n"
+                    + ('Hesaba bağlı PostgreSQL yedeği yapılandırılmış. '
+                       if persistent_colony else
+                       'Bu sayılar yalnızca mevcut oturumun kayıtlarıdır; hesaplar arası kalıcı yedek bağlı değil. ')
+                    + 'İnceleme bekleyen taslaklar doğrulanmış sonuç sayılmaz. '
+                    'Gelişim, görev sonucunu gözden geçirip kanıt referanslı dersi onaylayınca sonraki uygun görevlerde o dersi kullanmakla ilerler.'
+                )
+        return 'CANO’nun canlı kayıt sayıları bu yanıtta okunamadı. Komuta Merkezi’ndeki sayaçlar mevcut oturumun durumunu gösterir.'
     if general_capability_request:
         return growth
     return (

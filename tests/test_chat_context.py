@@ -25,7 +25,8 @@ class ChatContextTests(unittest.TestCase):
                     return types.SimpleNamespace(text="CANO")
                 namespace = {
                     "st": types.SimpleNamespace(session_state=types.SimpleNamespace(
-                        messages=history, saved_memories=[])),
+                        messages=history, saved_memories=[],
+                        get=lambda key, default=None: default)),
                     "genai": types.SimpleNamespace(Client=lambda **kw:
                         types.SimpleNamespace(models=types.SimpleNamespace(generate_content=generate))),
                     "types": types.SimpleNamespace(GenerateContentConfig=lambda **kw: kw),
@@ -59,6 +60,7 @@ class ChatContextTests(unittest.TestCase):
                 self.chat = types.SimpleNamespace(completions=FakeCompletions())
         fake_st = types.SimpleNamespace(session_state=types.SimpleNamespace(
             saved_memories=[],
+            get=lambda key, default=None: default,
             messages=[
                 {"role": "user", "content": "Önceki soru"},
                 {"role": "assistant", "content": "Önceki yanıt"},

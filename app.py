@@ -518,6 +518,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
         persistent_memory=globals().get("_MEMORY_STORE") is not None,
         persistent_colony=bool(globals().get("_CANO_OWNER_KEY")
                                and cano_database_url(os.environ)),
+        runtime_status=st.session_state.get("_cano_runtime_status"),
     )
     if capability is not None:
         return capability
