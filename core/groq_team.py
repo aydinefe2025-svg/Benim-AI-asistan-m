@@ -5,13 +5,15 @@ within the provider's real quota as far as possible; no automatic retries.
 """
 from __future__ import annotations
 
+from core.retry_policy import retry_transient
+
 
 class TeamRateLimitError(RuntimeError):
     """Provider quota temporarily exceeded; stage checkpoints remain available."""
 
 
 def generate_team_stage(prompt, *, api_key, client_factory=None,
-                        model="openai/gpt-oss-120b"):
+                        model="openai/gpt-oss-120b", sleep=None):
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError("Team stage prompt required")
     if len(prompt) > 9000:
@@ -22,8 +24,8 @@ def generate_team_stage(prompt, *, api_key, client_factory=None,
         from groq import Groq
         client_factory = Groq
     client = client_factory(api_key=api_key, timeout=25.0, max_retries=0)
-    try:
-        result = client.chat.completions.create(
+    def create():
+        return client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content":
@@ -39,6 +41,9 @@ def generate_team_stage(prompt, *, api_key, client_factory=None,
                 {"role": "user", "content": prompt},
             ],
             max_tokens=650, temperature=0.2)
+    try:
+        retry_options = {} if sleep is None else {"sleep": sleep}
+        result = retry_transient(create, **retry_options)
     except Exception as exc:
         if (getattr(exc, "status_code", None) == 429
                 or getattr(getattr(exc, "response", None), "status_code", None) == 429):
