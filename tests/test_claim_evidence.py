@@ -73,7 +73,7 @@ class QuoteModel:
 
     def verify(self, model, system, prompt):
         self.calls.append((model, system, prompt))
-        candidates = json.loads(prompt.split("\\n", 1)[1])
+        candidates = json.loads(prompt.split("\n", 1)[1])
         return json.dumps({"assessments": [
             {"index": item["index"], "verdict": self.verdict,
              "reason": "The passage was checked against the claim."}
