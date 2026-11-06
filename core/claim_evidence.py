@@ -117,9 +117,9 @@ def _audit_has_only_matched_quotes(stages):
 
 
 def audit_claim_quotes(manager, mission_id, *, client, model):
-    """One explicit model call followed by deterministic quote validation.
+    """Extract claims, validate exact quotes, then ask a separate model to critique entailment.
 
-    Idempotent via mission SQLite checkpoint; the model cannot set validation
+    Idempotent via mission SQLite checkpoint. Neither model can set validation
     flags or invent accepted citation URLs. Caller is responsible for user
     approval and optional persistent owner snapshot.
     """
