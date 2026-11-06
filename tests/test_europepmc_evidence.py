@@ -6,7 +6,7 @@ from pathlib import Path
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
-from core.europepmc_evidence import _abstract_excerpt, read_publication_evidence
+from core.europepmc_evidence import _abstract_excerpt, _xml_excerpt, read_publication_evidence
 
 
 class FakeModel:
@@ -90,6 +90,17 @@ class SourceReadingTests(unittest.TestCase):
         self.assertIn("14 170 participants", excerpt)
         self.assertIn("low risk of bias", excerpt)
         self.assertLessEqual(len(excerpt), 900)
+
+    def test_correction_task_prefers_changed_method_and_material_impact(self):
+        xml = (b"<article><body><p>This paper reports its original method. "
+               b"An outdated internal reference standard was used to calculate "
+               b"the effect sizes.</p><p>Effects for each arm were instead "
+               b"standardised using the standard deviation at baseline. This "
+               b"improved comparability and did not lead to material changes "
+               b"in the findings.</p></body></article>")
+        excerpt = _xml_excerpt(xml, query="2024 düzeltmesinin hesabı nasıl etkiledi")
+        self.assertIn("standard deviation at baseline", excerpt)
+        self.assertIn("did not lead to material changes", excerpt)
 
     def test_invalid_doi_rejected_without_any_network_access(self):
         calls = []
