@@ -235,6 +235,40 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 1)
 
 
+    def test_unmatched_quote_can_be_retried_and_previous_audit_is_preserved(self):
+        self.add_excerpt()
+        bad = QuoteModel([{
+            "claim": "In adults with major depression, exercise reduces depression symptoms.",
+            "doi": DOI,
+            "quote": "A fabricated quote that is not in the source.",
+            "comparison": "supports",
+            "rationale": "The model says it is supported.",
+        }])
+        first = audit_claim_quotes(self.manager, self.mission_id, client=bad, model="stub")
+        self.assertEqual(first[0]["status"], "quote_not_found")
+        self.assertEqual(first[0]["comparison"], "insufficient")
+        self.assertFalse(first[0]["claim_verified"])
+
+        retry = QuoteModel([{
+            "claim": "In adults with major depression, exercise reduces depression symptoms.",
+            "doi": DOI,
+            "quote": QUOTE,
+            "comparison": "supports",
+            "rationale": "The exact source passage supports this bounded claim.",
+        }])
+        second = audit_claim_quotes(self.manager, self.mission_id,
+                                    client=retry, model="stub")
+        stage = self.manager.get(self.mission_id)["stages"][0]
+        self.assertEqual(second[0]["status"], "quote_found_unverified")
+        self.assertEqual(second[0]["comparison"], "supports")
+        self.assertFalse(second[0]["claim_verified"])
+        self.assertEqual(stage["source_claim_audit_version"], 2)
+        self.assertEqual(stage["source_claim_audit_history"],
+                         [{"version": 2, "claims": first}])
+        self.assertEqual(len(bad.calls), 1)
+        self.assertEqual(len(retry.calls), 1)
+        self.assertIn("exact words and punctuation", retry.calls[0][1])
+
     def test_unmatched_quote_cannot_present_a_model_relation_as_evidence(self):
         self.add_excerpt()
         model = QuoteModel([{
