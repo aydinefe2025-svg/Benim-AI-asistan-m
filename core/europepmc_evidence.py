@@ -172,6 +172,14 @@ def _xml_excerpt(raw, query=""):
         aliases.update(("walking or jogging", "walking/jogging", "running"))
     if query_words.intersection({"certainty", "confidence", "güven", "guven", "bias", "yanlılık", "yanlilik"}):
         aliases.update(("cinema", "low confidence", "very low", "risk of bias", "blinding"))
+    if query_words.intersection({"düzeltme", "düzeltmesinin", "duzeltme",
+                                 "duzeltmesinin", "correction", "corrected",
+                                 "standart", "standard"}):
+        aliases.update(("effects for each arm were instead standardised",
+                        "effects for each arm were instead standardized",
+                        "standard deviation at baseline",
+                        "did not lead to material changes",
+                        "material changes in the findings"))
     body_paragraphs = []
     if bodies:
         for node in bodies[0].iter():
