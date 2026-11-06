@@ -3,7 +3,7 @@ import hashlib
 import json
 import unittest
 
-from core.organism_lab_persistence import OrganismLabStore
+from core.organism_lab_persistence import OrganismLabPermissionsError, OrganismLabStore
 
 
 class FakeDatabase:
@@ -12,6 +12,8 @@ class FakeDatabase:
         self.connections = 0
         self.owner_filters = []
         self.history_owner_filters = []
+        self.can_select = True
+        self.can_insert = True
 
     def connect(self, *args, **kwargs):
         self.connections += 1
@@ -46,7 +48,7 @@ class FakeCursor:
 
     def execute(self, sql, params=None):
         if "has_table_privilege" in sql:
-            self.row = (True, True)
+            self.row = ("assistant_test", self.database.can_select, self.database.can_insert)
         elif sql.lstrip().startswith("INSERT INTO"):
             owner, collection, record_id, encoded = params
             self.database.records.setdefault(
@@ -80,6 +82,18 @@ class FakeCursor:
 
 class OrganismLabPersistenceTests(unittest.TestCase):
     OWNER = "oidc_" + "a" * 64
+
+    def test_preflight_checks_runtime_grants_without_table_data(self):
+        db = FakeDatabase()
+        store = OrganismLabStore(self.OWNER, "postgresql://test", connect=db.connect)
+        self.assertEqual(store.verify_schema(), "assistant_test")
+        db.can_select = False
+        with self.assertRaises(OrganismLabPermissionsError) as caught:
+            store.verify_schema()
+        self.assertEqual(caught.exception.role_name, "assistant_test")
+        self.assertFalse(caught.exception.can_select)
+        self.assertTrue(caught.exception.can_insert)
+        self.assertNotIn("assistant_test", str(caught.exception))
 
     def test_write_is_committed_then_read_back_on_fresh_connection(self):
         db = FakeDatabase()
