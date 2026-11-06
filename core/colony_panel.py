@@ -8,6 +8,7 @@ from pathlib import Path
 
 from core.agent_colony import AgentColony
 from core.agent_review_loop import AgentReviewLoop
+from core.cano_autonomous_improvement import run_bounded_improvement_cycle
 from core.collaborative_mission import CollaborativeMission
 from core.scientific_sources import scientific_sources
 from core.claim_evidence_comparison import compare_claim_to_sources
@@ -379,23 +380,96 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                          value=st.session_state["colony_last_draft"],
                          height=200, disabled=True)
         if answer is not None and len(agents) >= 2:
+            st.caption(
+                "Sınırlı CANO gelişim döngüsü: 4 inceleme/aday çağrısı + en fazla "
+                "20 kıyas çağrısı. Sağlayıcı kotası veya ücret doğabilir; yalnızca "
+                "aşağıdaki onay kutusu ve düğmeyle çalışır. Aday kazansa bile belleğe "
+                "eklenmesi için ayrıca sen onay verirsin.")
             with st.form("colony_review_form"):
                 reviewer = st.selectbox("Eleştiren uzman",
                                         [a["id"] for a in agents if a["id"] != selected],
                                         format_func=lambda k: labels[k])
-                review_goal = st.text_area("Üç aşamalı inceleme görevi", max_chars=1200)
-                review_run = st.form_submit_button("Taslak → eleştiri → düzeltme çalıştır")
+                review_goal = st.text_area(
+                    "Geliştirme görevi", max_chars=1200)
+                run_improvement = st.checkbox(
+                    "Bir ders adayı üretip beş sabit testte sınamayı onaylıyorum "
+                    "(en fazla 24 model çağrısı)",
+                    value=False, key="cano_bounded_improvement_opt_in")
+                dataset_ref = st.text_input(
+                    "Beş insan etiketli test için sürüm/etiket", max_chars=120)
+                cases_json = st.text_area(
+                    "Beş sabit test (JSON; case_id, prompt, expected)",
+                    max_chars=12000,
+                    placeholder='[{"case_id":"test-1","prompt":"...","expected":"..."}]')
+                review_run = st.form_submit_button(
+                    "CANO incelemesini ve sınırlı döngüyü çalıştır")
             if review_run:
                 try:
-                    saved, record = _persist_mutation(lambda: AgentReviewLoop(colony).execute(
-                        selected, reviewer, review_goal,
-                        client=AnswerAdapter(answer), model="configured-provider"))
-                    if not saved:
-                        return
-                    st.session_state["colony_last_review"] = record
-                    st.success("Üç model çağrısı tamamlandı; inceleme kaydı oluşturuldu.")
-                except (ValueError, RuntimeError, OSError, sqlite3.Error):
-                    st.error("İnceleme döngüsü tamamlanamadı.")
+                    if run_improvement:
+                        saved, result = _persist_mutation(lambda:
+                            run_bounded_improvement_cycle(
+                                colony, selected, reviewer, review_goal, cases_json,
+                                dataset_ref, client=AnswerAdapter(answer),
+                                model="configured-provider"))
+                        if not saved:
+                            return
+                        st.session_state["cano_improvement_cycle"] = result
+                        st.session_state["colony_last_review"] = AgentReviewLoop(colony).get(
+                            result["review_id"])
+                        if result["status"] == "review_pending":
+                            st.success(
+                                "Aday beş testte iyileşme gösterdi; yalnızca inceleme "
+                                "bekleyen ders olarak kaydedildi.")
+                        elif result["status"] == "blocked":
+                            st.warning(
+                                "Döngü tamamlanamadı; biten inceleme arşivlendi, "
+                                "aday etkinleştirilmedi.")
+                        else:
+                            st.info(
+                                "Döngü tamamlandı ancak aday sabit testlerde "
+                                "iyileşme eşiğini geçmedi; aktif hafıza değişmedi.")
+                    else:
+                        saved, record = _persist_mutation(lambda: AgentReviewLoop(colony).execute(
+                            selected, reviewer, review_goal,
+                            client=AnswerAdapter(answer), model="configured-provider"))
+                        if not saved:
+                            return
+                        st.session_state["colony_last_review"] = record
+                        st.success("Üç model çağrısı tamamlandı; inceleme kaydı oluşturuldu.")
+                except (ValueError, RuntimeError, OSError, sqlite3.Error) as exc:
+                    st.error("İnceleme döngüsü tamamlanamadı; aktif dersler değişmedi.")
+            cycle = st.session_state.get("cano_improvement_cycle")
+            if cycle and cycle["status"] == "blocked":
+                st.caption(
+                    "İnceleme kaydı korundu. Model sağlayıcısı veya test işlemi "
+                    "tamamlanamadı; aktif hafızaya hiçbir ders eklenmedi.")
+            elif cycle:
+                st.caption(
+                    f"Test sonucu: aday {cycle['benchmark']['candidate_passed']}/"
+                    f"{cycle['benchmark']['total_cases']}, mevcut bellek "
+                    f"{cycle['benchmark']['baseline_passed']}/"
+                    f"{cycle['benchmark']['total_cases']}; fark "
+                    f"{cycle['benchmark']['delta']:+.0%}. "
+                    f"Tekrar tutarlılığı: {cycle['benchmark']['reproducible']}; "
+                    f"gerileme: {len(cycle['benchmark']['regressed_case_ids'])}.")
+                if cycle["status"] == "review_pending":
+                    st.text_area(
+                        "İnceleme bekleyen ders adayı", value=cycle["lesson"],
+                        disabled=True, key="cano_pending_improvement_lesson")
+                    if st.button("Bu dersi sonraki görevlerde kullanmayı onayla",
+                                 key="cano_approve_improvement_lesson"):
+                        try:
+                            saved, approved = _persist_mutation(lambda:
+                                colony.approve_feedback(
+                                    cycle["feedback_id"], approved=True))
+                            if saved:
+                                st.success(
+                                    "Ders kabul edildi; bu uzmanın sonraki görevlerinde "
+                                    "hafıza bağlamına eklenecek. Model ağırlıkları değişmedi.")
+                                st.session_state.pop("cano_improvement_cycle", None)
+                                st.rerun()
+                        except (KeyError, ValueError, PermissionError, sqlite3.Error):
+                            st.error("Ders onaylanamadı; etkin hafıza değişmedi.")
         if st.session_state.get("colony_last_review"):
             review = st.session_state["colony_last_review"]
             for key, title in (("draft", "İlk taslak"),
