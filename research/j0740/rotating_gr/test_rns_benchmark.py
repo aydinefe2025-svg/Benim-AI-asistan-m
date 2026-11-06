@@ -14,6 +14,11 @@ class TestRNSOutput(unittest.TestCase):
     def test_spin_rounding_is_accepted(self):
         o=parse_rns_output('1 1.454 11.49 346.5\n',central_density=1e15,requested_spin_hz=OBSERVED_SPIN_HZ)
         self.assertEqual(o["requested_spin_hz"],OBSERVED_SPIN_HZ)
+    def test_no_model_result_preserves_solver_diagnostic(self):
+        message="RNS: fatal EOS lookup warning, no finite stellar model"
+        with self.assertRaises(ValueError) as context:
+            parse_rns_output(message,central_density=1e15,requested_spin_hz=346.536369)
+        self.assertIn("fatal EOS lookup",str(context.exception))
     def test_source_density_mismatch_is_rejected(self):
         with self.assertRaisesRegex(ValueError,"central energy density"):
             parse_rns_output(SAMPLE,central_density=2e15,requested_spin_hz=300)
