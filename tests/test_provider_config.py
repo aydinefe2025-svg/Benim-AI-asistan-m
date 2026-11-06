@@ -7,13 +7,19 @@ class ProviderConfigTests(unittest.TestCase):
     def test_only_google_key_is_sufficient(self):
         self.assertEqual(
             available_providers({"GOOGLE_API_KEY": "a-private-value"}),
-            ("Google Gemini (Gelişmiş Mod)",),
+            ("Google Gemini (hesap kotası uygulanır)",),
         )
 
     def test_only_groq_key_is_sufficient(self):
         self.assertEqual(
             available_providers({"GROQ_API_KEY": "a-private-value"}),
-            ("Groq GPT-OSS (Hızlı / Kesintisiz)",),
+            ("Groq GPT-OSS (sağlayıcı kotası uygulanır)",),
+        )
+
+    def test_openrouter_is_listed_only_when_its_key_is_present(self):
+        self.assertEqual(
+            available_providers({"OPENROUTER_API_KEY": "private"}),
+            ("OpenRouter ücretsiz model havuzu (50 istek/gün sınırı)",),
         )
 
     def test_missing_or_blank_keys_are_not_available(self):
@@ -35,3 +41,4 @@ class ProviderConfigTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
