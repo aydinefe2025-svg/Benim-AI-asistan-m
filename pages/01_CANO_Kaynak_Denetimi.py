@@ -11,7 +11,8 @@ from core.task_panel import _session_database_path
 from core.claim_evidence import (
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
 )
-from core.evidence_appraisal import record_claim_evidence_appraisal\nfrom core.groq_team import TeamRateLimitError
+from core.evidence_appraisal import record_claim_evidence_appraisal
+from core.groq_team import TeamRateLimitError
 from core.groq_claim_json import generate_claim_quote_json
 from core.cano_command_center import _snapshot
 from core.colony_postgres import ColonySnapshotStore
