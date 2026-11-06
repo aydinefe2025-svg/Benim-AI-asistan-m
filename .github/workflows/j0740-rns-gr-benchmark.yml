@@ -1,0 +1,109 @@
+name: J0740 independent rotating GR solver benchmark
+
+on:
+  pull_request:
+    paths:
+      - "research/j0740/rotating_gr/**"
+      - ".github/workflows/j0740-rns-gr-benchmark.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/j0740/rotating_gr/**"
+      - ".github/workflows/j0740-rns-gr-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  rns-rotating-gr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout research benchmarks
+        uses: actions/checkout@v4
+      - name: Checkout pinned public RNS solver
+        uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - name: Checkout pinned public tabulated EOS library
+        uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/eos
+          ref: 7ef71a578d2e52dede24bce055839f2b74f43721
+          path: eos-upstream
+          persist-credentials: false
+      - name: Checkout pinned original JESTER EOS thermodynamic tables
+        uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install EOS-conversion numerical requirements
+        run: python -m pip install numpy
+      - name: Unit-test RNS parser and scientific guardrails
+        working-directory: research/j0740/rotating_gr
+        run: |
+          python -m compileall -q .
+          python -m unittest -v test_rns_benchmark test_jester_to_rns test_validate_jester_rns test_target_mass_rns
+      - name: Compile upstream RNS C relativity solver
+        run: make -C rns-upstream rns
+      - name: Run original published APR 300 Hz control and J0740-spin 346.536369 Hz simulation
+        run: |
+          python research/j0740/rotating_gr/rns_benchmark.py \
+            --rns rns-upstream/rns \
+            --eos eos-upstream/eosAPR \
+            --output results/j0740_rns_apr_gr_benchmark.json
+      - name: Archive reproducible RNS GR numerical result
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-rns-apr-independent-gr-benchmark
+          path: results/j0740_rns_apr_gr_benchmark.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Convert original JESTER MPA1 thermodynamic EOS into RNS 4-column format
+        run: |
+          python research/j0740/rotating_gr/jester_to_rns.py \
+            jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz \
+            results/eosMPA1_source_matched \
+            --summary results/MPA1_RNS_conversion_summary.json
+      - name: RNS native GR versus JESTER native TOV same-source check at J0740 spin
+        run: |
+          python research/j0740/rotating_gr/validate_jester_rns.py \
+            --rns rns-upstream/rns \
+            --eos results/eosMPA1_source_matched \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz \
+            --ec 1e15 \
+            --out results/JESTER_MPA1_RNS_346Hz_source_matched_validation.json
+      - name: Archive matched-EOS general relativistic rotation check
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-jester-mpa1-rns-source-matched-gr
+          path: |
+            results/MPA1_RNS_conversion_summary.json
+            results/JESTER_MPA1_RNS_346Hz_source_matched_validation.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Solve same-source MPA1 fully relativistic rotating star at measured J0740 mass
+        run: |
+          python research/j0740/rotating_gr/target_mass_rns.py \
+            --rns rns-upstream/rns \
+            --eos results/eosMPA1_source_matched \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz \
+            --target-mass 2.073 \
+            --out results/J0740_MPA1_GR_at_observed_mass_2p073.json
+      - name: Archive exact-GR J0740-mass MPA1 result and empirical-fit comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-mpa1-real-gr-at-observed-mass
+          path: results/J0740_MPA1_GR_at_observed_mass_2p073.json
+          if-no-files-found: error
+          retention-days: 30
