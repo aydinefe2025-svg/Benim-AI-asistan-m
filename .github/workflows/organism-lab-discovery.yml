@@ -3,7 +3,7 @@ name: Organism Lab bounded discovery
 on:
   workflow_dispatch:
   schedule:
-    - cron: "23 6 * * 1"
+    - cron: "23 6 * * *"
 permissions:
   contents: write
 
@@ -40,4 +40,3 @@ jobs:
             git commit -m "archive: bounded organism lab simulation discovery"
             git push
           fi
-
