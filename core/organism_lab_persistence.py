@@ -7,6 +7,7 @@ and every write is verified through a fresh-connection readback.
 from __future__ import annotations
 
 import base64
+from contextlib import contextmanager
 import hashlib
 import hmac
 import json
@@ -44,8 +45,15 @@ class OrganismLabStore:
         self.database_url = database_url
         self._connect = connect
 
+    @contextmanager
     def _connection(self):
-        return self._connect(self.database_url, connect_timeout=8)
+        with self._connect(self.database_url, connect_timeout=8) as db:
+            # The Neon RLS policies bind all reads/writes in this transaction
+            # to the authenticated HMAC owner key.
+            with db.cursor() as cur:
+                cur.execute("SELECT set_config('cano.owner_key', %s, true)",
+                            (self.owner_key,))
+            yield db
 
     def verify_schema(self):
         """Check only the pre-provisioned table and least required grants."""
