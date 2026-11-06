@@ -14,7 +14,7 @@ class AgentRoleTests(unittest.TestCase):
         for agent_id in AGENT_PROFILES:
             prompt = profile_prompt(agent_id)
             self.assertIn("dijital simülatördür", prompt)
-            self.assertIn("gerçek hücre", prompt)
+            self.assertIn("Gerçek hücre", prompt)
             self.assertIn("Rapor yoksa sonuç uydurma", prompt)
             self.assertIn("TASK_B", prompt)
             self.assertIn("Türkçe ve sade anlat", prompt)
