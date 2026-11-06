@@ -49,7 +49,7 @@ class MutationPersistenceTests(unittest.TestCase):
             if action != 'colony_founder':
                 colony.create_founder('research', 'Research carefully')
             calls = []
-            research_action = action in ('Taslak → eleştiri → düzeltme çalıştır',
+            research_action = action in ('CANO incelemesini ve sınırlı döngüyü çalıştır',
                 'read_mission_sources_mission', 'recover_stale_colony_missions')
             if research_action:
                 colony.grow_specialists(approved=True, batch_size=3)
@@ -110,26 +110,26 @@ class MutationPersistenceTests(unittest.TestCase):
         self.assertTrue(any('JSON' in text for text in st.messages))
 
     def test_review_source_read_and_recovery_persist(self):
-        for action in ('Taslak → eleştiri → düzeltme çalıştır',
+        for action in ('CANO incelemesini ve sınırlı döngüyü çalıştır',
                        'read_mission_sources_mission', 'recover_stale_colony_missions'):
             with self.subTest(action=action):
                 before, after, remote, st = self.exercise(action)
                 self.assertNotEqual(before, after)
                 self.assertEqual(remote.live, after)
                 self.assertEqual(remote.calls, 2)
-                if action.startswith('Taslak'):
+                if action == 'CANO incelemesini ve sınırlı döngüyü çalıştır':
                     self.assertEqual(len(remote.provider_calls), 3)
 
     def test_stale_review_never_calls_provider(self):
         before, after, remote, st = self.exercise(
-            'Taslak → eleştiri → düzeltme çalıştır', stale=True)
+            'CANO incelemesini ve sınırlı döngüyü çalıştır', stale=True)
         self.assertEqual(before, after)
         self.assertEqual(remote.provider_calls, [])
         self.assertFalse(st.successes)
 
     def test_review_save_failure_retains_review_without_success_claim(self):
         before, after, remote, st = self.exercise(
-            'Taslak → eleştiri → düzeltme çalıştır', fail_second=True)
+            'CANO incelemesini ve sınırlı döngüyü çalıştır', fail_second=True)
         self.assertEqual(len(after['reviews']), 1)
         self.assertEqual(remote.live, before)
         self.assertFalse(st.successes)
