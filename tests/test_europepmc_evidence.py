@@ -6,7 +6,7 @@ from pathlib import Path
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
-from core.europepmc_evidence import read_publication_evidence
+from core.europepmc_evidence import _abstract_excerpt, read_publication_evidence
 
 
 class FakeModel:
@@ -55,6 +55,41 @@ class SourceReadingTests(unittest.TestCase):
         self.assertFalse(data["claim_verified"])
         self.assertIn("preliminary abstract", data["excerpt"])
         self.assertEqual(len(calls), 1)
+
+    def test_full_text_excerpt_prefers_task_relevant_results_and_limits(self):
+        xml = (b"<article><front><abstract>"
+               b"<sec><title>Background</title><p>" + b"Opening context " * 45 + b"</p></sec>"
+               b"<sec><title>Design</title><p>Systematic review and network meta-analysis.</p></sec>"
+               b"<sec><title>Results</title><p>218 studies, 14 170 participants; walking or "
+               b"jogging Hedges g -0.62, 95% credible interval -0.80 to -0.45.</p></sec>"
+               b"</abstract></front><body><sec><title>Limitations</title><p>"
+               b"Only one study had low risk of bias; confidence was low for walking or jogging."
+               b"</p></sec></body></article>")
+        evidence = read_publication_evidence(
+            "10.1234/solar", fetch=lambda url: (
+                json.dumps({"resultList": {"result": [{
+                    "doi": "10.1234/solar", "title": "Solar field study",
+                    "pmcid": "PMC1234567", "isOpenAccess": "Y", "inEPMC": "Y",
+                }]}}).encode() if "/search?" in url else xml),
+            query="sample population walking jogging confidence risk of bias",
+        )
+        self.assertIn("Results:", evidence["excerpt"])
+        self.assertIn("14 170 participants", evidence["excerpt"])
+        self.assertIn("-0.80 to -0.45", evidence["excerpt"])
+        self.assertIn("low risk of bias", evidence["excerpt"])
+        self.assertLessEqual(len(evidence["excerpt"]), 900)
+
+    def test_structured_abstract_prioritizes_results_over_objective(self):
+        raw = ("<h4>Objective</h4><p>" + "Opening context " * 45
+               + "</p><h4>Design</h4><p>Systematic review and network meta-analysis.</p>"
+               "<h4>Results</h4><p>218 studies, 14 170 participants; walking or jogging "
+               "Hedges g -0.62, 95% credible interval -0.80 to -0.45. Confidence low.</p>"
+               "<h4>Conclusions</h4><p>Only one study had low risk of bias.</p>")
+        excerpt = _abstract_excerpt(raw)
+        self.assertTrue(excerpt.startswith("Results:"))
+        self.assertIn("14 170 participants", excerpt)
+        self.assertIn("low risk of bias", excerpt)
+        self.assertLessEqual(len(excerpt), 900)
 
     def test_invalid_doi_rejected_without_any_network_access(self):
         calls = []
@@ -129,3 +164,4 @@ class SourceReadingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
