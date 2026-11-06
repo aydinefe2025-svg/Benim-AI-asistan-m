@@ -6,13 +6,15 @@ on:
       - "research/j0740/rotating_gr/seven_eos_sequence.py"
       - "research/j0740/rotating_gr/test_seven_eos_sequence.py"
       - "research/j0740/rotating_gr/resilient_mass_root.py"
-        - "research/j0740/rotating_gr/resilient_mass_root.py"
-        - ".github/workflows/j0740-seven-eos-rns.yml"
+      - "research/j0740/rotating_gr/test_resilient_mass_root.py"
+      - ".github/workflows/j0740-seven-eos-rns.yml"
   push:
     branches: [main]
     paths:
       - "research/j0740/rotating_gr/seven_eos_sequence.py"
       - "research/j0740/rotating_gr/test_seven_eos_sequence.py"
+      - "research/j0740/rotating_gr/resilient_mass_root.py"
+      - "research/j0740/rotating_gr/test_resilient_mass_root.py"
       - ".github/workflows/j0740-seven-eos-rns.yml"
 
 permissions:
