@@ -12,10 +12,18 @@ def _normalize(text: str) -> str:
 def is_organism_lab_question(message: str) -> bool:
     normalized = _normalize(message)
     markers = (
-        "laboratuvar", "organizm", "genom", "simülasyon", "simulasyon",
-        "dijital dünya", "dijital dunya", "dijital deney", "genom karşılaştır",
+        "laboratuvar", "labaratuvar", "organizma laboratuvar", "organizma lab",
+        "organizmalar laboratuvar", "organizmalar lab", "genom karşılaştır",
+        "genom karsilastir", "genom deneyi", "dijital dünya", "dijital dunya",
+        "dijital deney",
     )
-    return any(marker in normalized for marker in markers)
+    if any(marker in normalized for marker in markers):
+        return True
+    # A bare scientific term such as "genom nedir?" stays a normal model question.
+    return (
+        ("simülasyon" in normalized or "simulasyon" in normalized)
+        and any(term in normalized for term in ("laboratuvar", "organizm", "genom", "deney"))
+    )
 
 
 def organism_lab_chat_reply(
