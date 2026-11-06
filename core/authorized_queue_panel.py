@@ -11,6 +11,7 @@ import uuid
 from datetime import datetime, timezone
 
 from core.postgres_authorized_queue import PostgresAuthorizedQueue
+from core.storage_config import database_provider_label
 
 
 _STATE_LABELS = {
@@ -56,7 +57,8 @@ def render_authorized_queue_panel(st, answer=None, *, owner_key=None, database_u
         st.caption(
             "Giriş yaptığınız hesaba ait PostgreSQL iş kuyruğudur. Görev kaydı ve "
             "her model çağrısı için ayrı açık onay gerekir; arka planda ajan çalışmaz. "
-            "Çıktılar doğrulanmamış taslaktır."
+            f"Çıktılar doğrulanmamış taslaktır. Veritabanı sağlayıcısı: "
+            f"{database_provider_label(database_url)}."
         )
         try:
             queue = PostgresAuthorizedQueue(database_url, owner_key=owner_key, max_jobs=100)
@@ -154,3 +156,4 @@ def render_authorized_queue_panel(st, answer=None, *, owner_key=None, database_u
                 st.warning("İşçi veya görev yetkisi doğrulanamadı; model çağrısı tamamlanmadı.")
             except Exception:
                 st.error("Kuyruk çalışması başarısız; hata ayrıntıları veya anahtarlar gösterilmedi.")
+
