@@ -1,0 +1,61 @@
+name: CANO VO-MASD controlled hierarchy CPU audit
+
+on:
+  pull_request:
+    paths:
+      - 'cano/vomasd_cpu_lab/**'
+      - '.github/workflows/cano-vomasd-hierarchy-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'cano/vomasd_cpu_lab/**'
+      - '.github/workflows/cano-vomasd-hierarchy-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hierarchy-cpu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: cano/vomasd_cpu_lab
+    env:
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install bounded CPU PyTorch and NumPy
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch==2.10.0' 'numpy>=2,<3'
+      - name: Run source-parity and hierarchy regression suite
+        run: |
+          python -W error::ResourceWarning -m unittest -q test_vomasd_cpu test_native_parity test_hierarchical_forward test_group_sensitivity test_experiment_cli
+      - name: Run 16-seed hierarchy and 128-case controlled group experiment
+        run: |
+          mkdir -p .hierarchy-evidence
+          python run_hierarchy_experiment.py --output .hierarchy-evidence/hierarchy_experiment.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('.hierarchy-evidence/hierarchy_experiment.json').read_text())
+          assert p['synthetic_only'] is True and p['paper_win_rates_replicated'] is False
+          assert p['group_sensitivity']['cases']==128
+          assert len(p['seeded_gradients'])==16
+          assert all(r['finite'] for r in p['seeded_gradients'])
+          print('CANO_HIERARCHY_FIXTURE_OK',p['group_sensitivity']['cases'])
+          PY
+      - name: Upload controlled evidence; no model weights or secrets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cano-vomasd-hierarchy-${{ github.run_id }}
+          path: cano/vomasd_cpu_lab/.hierarchy-evidence/hierarchy_experiment.json
+          if-no-files-found: warn
+          retention-days: 14
