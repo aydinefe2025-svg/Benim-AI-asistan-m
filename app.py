@@ -556,6 +556,22 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
         from core.organism_lab_persistence import OrganismLabStore
         return OrganismLabStore(_lab_owner, _lab_database_url).list_recent(limit=10)
 
+    from core.organism_lab_chat import execute_organism_lab_request
+    _lab_run = execute_organism_lab_request(
+        kullanici_mesaji,
+        save_campaign=(
+            lambda data: __import__(
+                "core.organism_lab_persistence", fromlist=["OrganismLabStore"]
+            ).OrganismLabStore(_lab_owner, _lab_database_url).save_verified(
+                "campaign", data
+            )
+        ) if _lab_owner and _lab_database_url else None,
+    )
+    if _lab_run is not None:
+        _lab_run_reply, _lab_run_result = _lab_run
+        if _lab_run_result:
+            st.session_state["cano_organism_lab_campaign_result"] = _lab_run_result
+        return _lab_run_reply
     _lab_reply = organism_lab_chat_reply(
         kullanici_mesaji,
         load_records=_load_organism_lab_records if _lab_owner and _lab_database_url else None,

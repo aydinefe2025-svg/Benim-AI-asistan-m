@@ -97,3 +97,65 @@ def organism_lab_chat_reply(
         "Kalıcı deney geçmişinde görünen kayıtlar daha sonra sohbetten açıklanabilir. "
         "Bu araç dijital simülasyon yürütür; gerçek hücre veya robot deneyi yapmaz."
     )
+
+
+def is_organism_lab_run_request(message: str) -> bool:
+    """Require both a clear lab/genome scope and an explicit run verb."""
+    normalized = _normalize(message)
+    scope = any(marker in normalized for marker in (
+        "laboratuvar", "labaratuvar", "organizma lab", "organizmalar lab",
+        "genom karşılaştır", "genom karsilastir", "genom deneyi",
+        "dijital deney", "dijital simülasyon", "dijital simulasyon",
+    ))
+    action = any(verb in normalized for verb in (
+        "çalıştır", "calistir", "başlat", "baslat", "yürüt", "yurut",
+        "koştur", "kostur", "gerçekleştir", "gerceklestir",
+    ))
+    return scope and action
+
+
+def execute_organism_lab_request(
+    message: str,
+    *,
+    run_campaign: Callable[[], Mapping] | None = None,
+    save_campaign: Callable[[bytes], object] | None = None,
+) -> tuple[str, Mapping] | None:
+    """Run only an explicitly requested bounded campaign; never call an LLM."""
+    if not is_organism_lab_run_request(message):
+        return None
+    try:
+        if run_campaign is None:
+            from core.organism_lab_panel import run_checked_campaign
+            run_campaign = run_checked_campaign
+        result = run_campaign()
+        report = result["report"]
+        from core.organism_lab_panel import explain_campaign
+        explanation = explain_campaign(report)
+    except Exception:
+        return (
+            "Dijital genom deneyi tamamlanmadı veya yeniden hesaplamayla doğrulanamadı; "
+            "sonuç üretmedim. Laboratuvar panelinden tekrar deneyebilirsiniz.",
+            {},
+        )
+
+    if save_campaign is None:
+        status = (
+            "Bu sonuç yalnızca mevcut oturumda; kalıcı arşive yazılmadı."
+        )
+    else:
+        try:
+            save_campaign(result["json"])
+            status = "Sonuç kalıcı arşive yazıldı ve geri okunarak doğrulandı."
+        except Exception:
+            status = (
+                "Deney tamamlandı, ancak kalıcı kayıt/geri okuma doğrulanamadı; "
+                "kaydedildiğini söyleyemem."
+            )
+
+    reply = (
+        "Açık isteğiniz üzerine sınırlı dijital genom karşılaştırmasını çalıştırdım.\n\n"
+        + explanation + "\n\n**Kayıt durumu:** " + status
+        + "\n\nBu yazılım simülasyonudur; gerçek hücre, doğa veya robot "
+          "davranışına ilişkin kanıt değildir."
+    )
+    return reply, result
