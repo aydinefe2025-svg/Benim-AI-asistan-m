@@ -21,8 +21,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Run lab regression and discovery tests
+        working-directory: organism_lab_cloud
         env:
-          PYTHONPATH: organism_lab_cloud
+          PYTHONPATH: .
         run: python -m unittest organism_lab.tests.test_discovery_sweep organism_lab.tests.test_adaptation_study organism_lab.tests.test_reproduction_study -v
       - name: Run bounded screen and independent-seed confirmation
         env:
