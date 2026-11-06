@@ -24,6 +24,8 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("generate_claim_verification_json", source)
         self.assertIn("run_claim_review_benchmark", source)
         self.assertIn("12 vakayı tek model çağrısıyla ölç", source)
+        self.assertIn('"unscored" not in benchmark', source)
+        self.assertIn("eski kıyas sonucu yeni ölçüme uygun değil", source)
         self.assertIn("Görevdeki DOI kaynaklarını yeniden oku", source)
         self.assertIn("manager.inspect_source_documents(mid, refresh_missing=True)", source)
         self.assertIn("store.verify_schema()", source)
