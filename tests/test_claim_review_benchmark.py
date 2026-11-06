@@ -44,7 +44,7 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
     def test_partial_model_response_is_counted_as_unscored(self):
         class PartialClient(BenchmarkClient):
             def verify(self, model, system, prompt):
-                cases = json.loads(prompt.split("\\n", 1)[1])
+                cases = json.loads(prompt.split("\n", 1)[1])
                 return json.dumps({"assessments": [
                     {"index": item["index"], "verdict": CASES[item["index"]]["expected"],
                      "reason": "fixture"}
