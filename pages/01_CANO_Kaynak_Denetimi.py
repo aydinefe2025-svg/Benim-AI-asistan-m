@@ -8,7 +8,9 @@ from core.authentication import render_auth_gate
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.task_panel import _session_database_path
-from core.claim_evidence import audit_claim_quotes, record_source_claim_review
+from core.claim_evidence import (
+    audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
+)
 from core.groq_team import TeamRateLimitError
 from core.groq_claim_json import generate_claim_quote_json
 from core.cano_command_center import _snapshot
@@ -30,7 +32,12 @@ base = os.environ.get("AGENT_COLONY_DB_PATH", "data/agent_colony.sqlite3")
 colony = AgentColony(_session_database_path(st, base), max_agents=12)
 manager = CollaborativeMission(colony)
 with colony._db() as db:
-    missions = db.execute("SELECT id,task FROM colony_missions WHERE status=? ORDER BY created_at DESC LIMIT 12", ("review_pending",)).fetchall()
+    candidates = db.execute(
+        "SELECT id,task,stages FROM colony_missions WHERE status=? "
+        "ORDER BY created_at DESC LIMIT 12",
+        ("review_pending",)).fetchall()
+missions = [mission for mission in candidates
+            if has_readable_source_excerpt(mission["stages"])]
 restore_notice = st.session_state.pop("_cano_evidence_restore_notice", None)
 if restore_notice:
     st.warning(restore_notice)
@@ -78,7 +85,7 @@ if not missions:
                         "Özgün yedek, sürüm geçmişine arşivlendi ve korunuyor.")
                 st.rerun()
     else:
-        st.info("Önce ana CANO ekranında araştırma görevi ve kaynak okuma işlemini tamamlayın. Mevcut kayıtların üzerine yedek yüklenmez.")
+        st.info("Bu oturumda okunabilir kaynak metni olan inceleme bekleyen görev yok. Önce ana CANO ekranında kaynaklı araştırma görevini ve kaynak okuma işlemini tamamlayın. Mevcut kayıtların üzerine yedek yüklenmez.")
     st.stop()
 mission_ids = [m["id"] for m in missions]
 labels = {m["id"]: m["task"][:70] for m in missions}
