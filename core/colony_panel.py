@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 import sqlite3
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from core.agent_review_loop import AgentReviewLoop
 from core.collaborative_mission import CollaborativeMission
 from core.scientific_sources import scientific_sources
 from core.claim_evidence_comparison import compare_claim_to_sources
+from core.benchmark_harness import parse_memory_benchmark_cases, run_colony_memory_benchmark
 from core.colony_postgres import ColonySnapshotStore
 from core.cano_command_center import _snapshot
 from core.colony_restore import restore_colony_json_bytes, restore_owner_backup
@@ -260,6 +262,81 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             f"Kanıt çeşitliliği eşiği: {'sağlandı' if learning['retrieval_ready'] else 'henüz sağlanmadı'}. "
             "Bu, model ağırlıklarının eğitildiği veya kanıtların doğrulandığı anlamına gelmez."
         )
+        if answer is not None and learning["accepted_lessons"]:
+            with st.expander("📊 Kabul edilmiş derslerin etkisini ölç", expanded=False):
+                st.caption(
+                    "Aynı insan etiketli testleri önce dersler kapalı, sonra açık çalıştırır. "
+                    "Beş vakaya kadar; her vaka için dört sağlayıcı çağrısı (en fazla 20). "
+                    "Sağlayıcı kotanızdan ücret/kota tüketebilir. Yalnız bu düğmeye bastığınızda çalışır. "
+                    "Tam yanıt eşleşmesi ölçülür; genel doğruluk veya bilimsel geçerlilik değildir."
+                )
+                with st.form("colony_memory_benchmark_form"):
+                    dataset_ref = st.text_input(
+                        "Test takımı etiketi/sürümü (yalnız kayıt etiketi)", max_chars=120)
+                    cases_json = st.text_area(
+                        "İnsan tarafından etiketlenmiş testler (JSON)", max_chars=12_000,
+                        placeholder='[{"case_id":"vaka-1","prompt":"...","expected":"..."}]')
+                    benchmark_run = st.form_submit_button(
+                        "Ders açık/kapalı karşılaştırmasını başlat")
+                if benchmark_run:
+                    try:
+                        cases = parse_memory_benchmark_cases(cases_json)
+                        if not isinstance(dataset_ref, str) or not dataset_ref.strip():
+                            raise ValueError("Test takımı etiketi/sürümü gerekli")
+                        # Persist and read back the current accepted lessons before
+                        # making the explicitly requested provider calls.
+                        _checkpoint(archive_prior=False)
+                        measured = run_colony_memory_benchmark(
+                            colony, selected, cases, client=AnswerAdapter(answer),
+                            model="configured-provider",
+                            source_refs=(dataset_ref.strip(),), safety_pass=False)
+                        st.session_state["cano_memory_benchmark"] = {
+                            "agent_id": selected,
+                            "dataset_ref": dataset_ref.strip(),
+                            "result": measured,
+                        }
+                    except (ValueError, RuntimeError, PermissionError, OSError,
+                            sqlite3.Error) as exc:
+                        st.warning("Karşılaştırma başlatılamadı; sağlayıcı veya test alanlarını kontrol edin.")
+                benchmark = st.session_state.get("cano_memory_benchmark")
+                if benchmark and benchmark.get("agent_id") == selected:
+                    measured = benchmark["result"]
+                    baseline = measured["baseline"]
+                    candidate = measured["candidate"]
+                    st.write(
+                        f"Dersler kapalı: {baseline.passed}/{baseline.total} "
+                        f"({baseline.score:.0%}); açık: {candidate.passed}/{candidate.total} "
+                        f"({candidate.score:.0%}); fark: {measured['delta']:+.0%}."
+                    )
+                    st.caption(
+                        "Tekrar tutarlılığı — kapalı: "
+                        f"{measured['reproducible']['baseline']}; açık: "
+                        f"{measured['reproducible']['candidate']}. "
+                        f"Geriye giden vakalar: {len(measured['regressed_case_ids'])}. "
+                        "Bu küçük test seti CANO'nun genel performansını kanıtlamaz; "
+                        "dersler otomatik etkinleştirilmez. Sonuç bu oturumda tutulur."
+                    )
+                    safe_report = {
+                        "agent_id": selected,
+                        "dataset_ref": benchmark["dataset_ref"],
+                        "baseline_passed": baseline.passed,
+                        "candidate_passed": candidate.passed,
+                        "total_cases": baseline.total,
+                        "delta": measured["delta"],
+                        "reproducible": measured["reproducible"],
+                        "regressed_case_ids": measured["regressed_case_ids"],
+                        "improved_case_ids": measured["improved_case_ids"],
+                        "case_results": measured["case_results"],
+                        "benchmark_sha256": measured["benchmark_sha256"],
+                        "comparison": measured["comparison"],
+                        "model_weights_updated": False,
+                        "safety_pass": False,
+                    }
+                    st.download_button(
+                        "Ölçüm raporunu indir (istemler/yanıtlar içermez)",
+                        data=json.dumps(safe_report, ensure_ascii=False, indent=2),
+                        file_name="cano-ders-etki-olcumu.json",
+                        mime="application/json", key="cano_memory_benchmark_download")
         if answer is None:
             st.warning("Görev yürütmek için model sağlayıcısı gerekli.")
         else:
@@ -490,7 +567,6 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         st.warning("Yedek mevcut ama bu oturumun kayıtlarından farklı; güncel olduğu doğrulanmadı.")
                 except Exception:
                     st.error("Kalıcı yedek okunamadı.")
-        import json
         st.download_button("Ajanları ve dersleri JSON yedekle",
                            data=json.dumps(data, ensure_ascii=False, indent=2),
                            file_name="ajan-kolonisi-yedek.json",
