@@ -1,0 +1,254 @@
+{
+  "interpretation": "EOS-specific STATIC tidal predictions conditional on M posterior mass samples and static EOS causality mass limit; NOT NICER-measured Lambda, likelihood, EOS evidence, or model posterior probability",
+  "models": [
+    {
+      "Lambda_conditional_quantiles_2p5_16_50_84_97p5": [
+        6.529705,
+        7.7501021,
+        10.6912398,
+        15.2038166,
+        21.3001391
+      ],
+      "Lambda_source_at_unconditional_median_mass": 9.3675041,
+      "computed_full_sample_Lambda": false,
+      "fraction": 0.77224,
+      "k2_source_at_unconditional_median_mass": 0.026903765851735637,
+      "mass_quantiles_2p5_16_50_84_97p5_msun": [
+        1.9314871614761981,
+        1.9937624858507585,
+        2.0525540417416854,
+        2.0989731876618287,
+        2.1199734917808146
+      ],
+      "mode": "source_connector_snapshots_only",
+      "model": "APR4_EPP",
+      "radius_conditional_at_mass_quantiles_2p5_16_50_84_97p5_km": [
+        10.9815597,
+        10.8797785,
+        10.7532833,
+        10.6158019,
+        10.5318692
+      ],
+      "source_blob_sha1": "970790a9fd2aeb1f2fccd3ebfdccf206fcd80f89",
+      "source_point_count": 500,
+      "stable_start_idx": 19,
+      "static_causal_mass_cut_msun": 2.1243124457375804,
+      "surviving_mass_samples": 77224,
+      "target_mass_causal_for_model": true
+    },
+    {
+      "Lambda_conditional_quantiles_2p5_16_50_84_97p5": [
+        19.7526736,
+        20.9949223,
+        24.9244196,
+        32.2572395,
+        42.7854667
+      ],
+      "Lambda_source_at_unconditional_median_mass": 17.5337681,
+      "computed_full_sample_Lambda": false,
+      "fraction": 0.40254,
+      "k2_source_at_unconditional_median_mass": 0.03502057888795143,
+      "mass_quantiles_2p5_16_50_84_97p5_msun": [
+        1.9150008754093146,
+        1.969284180728437,
+        2.015037468025236,
+        2.043718103946722,
+        2.0536425646511227
+      ],
+      "mode": "source_connector_snapshots_only",
+      "model": "ENG",
+      "radius_conditional_at_mass_quantiles_2p5_16_50_84_97p5_km": [
+        11.8545748,
+        11.760953,
+        11.6602114,
+        11.586884,
+        11.5598244
+      ],
+      "source_blob_sha1": "d7aada15699c8c5fe297591019150a026e05936b",
+      "source_point_count": 500,
+      "stable_start_idx": 0,
+      "static_causal_mass_cut_msun": 2.0555029533785287,
+      "surviving_mass_samples": 40254,
+      "target_mass_causal_for_model": false
+    },
+    {
+      "Lambda_conditional_quantiles_2p5_16_50_84_97p5": [
+        20.6729961,
+        27.5094395,
+        36.5698926,
+        48.0729806,
+        62.3024368
+      ],
+      "Lambda_source_at_unconditional_median_mass": 36.5698927,
+      "computed_full_sample_Lambda": false,
+      "fraction": 1.0,
+      "k2_source_at_unconditional_median_mass": 0.0492057831101112,
+      "mass_quantiles_2p5_16_50_84_97p5_msun": [
+        1.938544054568924,
+        2.0045271536054967,
+        2.0726268494094584,
+        2.141175214457014,
+        2.2067803280933993
+      ],
+      "mode": "source_connector_snapshots_only",
+      "model": "MPA1",
+      "radius_conditional_at_mass_quantiles_2p5_16_50_84_97p5_km": [
+        12.5162273,
+        12.4896172,
+        12.4517705,
+        12.4004161,
+        12.3348892
+      ],
+      "source_blob_sha1": "9d8677f69046a4c46b85fbbfefe7c642348d9e50",
+      "source_point_count": 491,
+      "stable_start_idx": 0,
+      "static_causal_mass_cut_msun": 2.4686392693496426,
+      "surviving_mass_samples": 100000,
+      "target_mass_causal_for_model": true
+    },
+    {
+      "Lambda_conditional_quantiles_2p5_16_50_84_97p5": [
+        87.4589542,
+        109.7827427,
+        139.0903146,
+        175.9728226,
+        221.2025253
+      ],
+      "Lambda_source_at_unconditional_median_mass": 139.0903149,
+      "computed_full_sample_Lambda": false,
+      "fraction": 1.0,
+      "k2_source_at_unconditional_median_mass": 0.07348282004680656,
+      "mass_quantiles_2p5_16_50_84_97p5_msun": [
+        1.938544054568924,
+        2.0045271536054967,
+        2.0726268494094584,
+        2.141175214457014,
+        2.2067803280933993
+      ],
+      "mode": "source_connector_snapshots_only",
+      "model": "MS1",
+      "radius_conditional_at_mass_quantiles_2p5_16_50_84_97p5_km": [
+        15.0533397,
+        15.035229,
+        15.011767,
+        14.9825704,
+        14.9485749
+      ],
+      "source_blob_sha1": "e64b9fd2f7b8b6decbaca085268784bb628d9d4b",
+      "source_point_count": 455,
+      "stable_start_idx": 0,
+      "static_causal_mass_cut_msun": 2.799082457834451,
+      "surviving_mass_samples": 100000,
+      "target_mass_causal_for_model": true
+    },
+    {
+      "Lambda_conditional_quantiles_2p5_16_50_84_97p5": [
+        82.0297067,
+        102.484527,
+        129.1880818,
+        162.5516257,
+        203.2184147
+      ],
+      "Lambda_source_at_unconditional_median_mass": 129.1880821,
+      "computed_full_sample_Lambda": false,
+      "fraction": 1.0,
+      "k2_source_at_unconditional_median_mass": 0.07382195992040741,
+      "mass_quantiles_2p5_16_50_84_97p5_msun": [
+        1.938544054568924,
+        2.0045271536054967,
+        2.0726268494094584,
+        2.141175214457014,
+        2.2067803280933993
+      ],
+      "mode": "source_connector_snapshots_only",
+      "model": "MS1B",
+      "radius_conditional_at_mass_quantiles_2p5_16_50_84_97p5_km": [
+        14.7908817,
+        14.7871753,
+        14.7780447,
+        14.7627683,
+        14.7416043
+      ],
+      "source_blob_sha1": "89faf11369935426a4706edf4cb64b5158cb0362",
+      "source_point_count": 456,
+      "stable_start_idx": 0,
+      "static_causal_mass_cut_msun": 2.797101204989841,
+      "surviving_mass_samples": 100000,
+      "target_mass_causal_for_model": true
+    },
+    {
+      "Lambda_conditional_quantiles_2p5_16_50_84_97p5": [
+        11.6323847,
+        11.9459003,
+        12.9030853,
+        14.8836575,
+        18.1921559
+      ],
+      "Lambda_source_at_unconditional_median_mass": 5.1445471,
+      "computed_full_sample_Lambda": false,
+      "fraction": 0.03231,
+      "k2_source_at_unconditional_median_mass": 0.021453449177262968,
+      "mass_quantiles_2p5_16_50_84_97p5_msun": [
+        1.8602825115696948,
+        1.8997506437671245,
+        1.9268349460088536,
+        1.941067297721617,
+        1.9459097722413423
+      ],
+      "mode": "source_connector_snapshots_only",
+      "model": "WFF1",
+      "radius_conditional_at_mass_quantiles_2p5_16_50_84_97p5_km": [
+        10.2712359,
+        10.2352305,
+        10.2061026,
+        10.1890631,
+        10.1829617
+      ],
+      "source_blob_sha1": "208dd291ba9c1107dc02920843f6be55ddc07f79",
+      "source_point_count": 500,
+      "stable_start_idx": 4,
+      "static_causal_mass_cut_msun": 1.9464909663550884,
+      "surviving_mass_samples": 3231,
+      "target_mass_causal_for_model": false
+    },
+    {
+      "Lambda_conditional_quantiles_2p5_16_50_84_97p5": [
+        14.0391575,
+        14.5382841,
+        16.0936687,
+        19.4575296,
+        24.3334592
+      ],
+      "Lambda_source_at_unconditional_median_mass": 8.657491,
+      "computed_full_sample_Lambda": false,
+      "fraction": 0.12197,
+      "k2_source_at_unconditional_median_mass": 0.02634915826063734,
+      "mass_quantiles_2p5_16_50_84_97p5_msun": [
+        1.8881632711200762,
+        1.9317823114827342,
+        1.9673997082692993,
+        1.985901990884048,
+        1.9921474919482702
+      ],
+      "mode": "source_connector_snapshots_only",
+      "model": "WFF2",
+      "radius_conditional_at_mass_quantiles_2p5_16_50_84_97p5_km": [
+        10.889855,
+        10.8341993,
+        10.782001,
+        10.7520337,
+        10.7414468
+      ],
+      "source_blob_sha1": "cca4d8c78e20182c18b9c375f486ebac6453e343",
+      "source_point_count": 500,
+      "stable_start_idx": 0,
+      "static_causal_mass_cut_msun": 1.9932095395451292,
+      "surviving_mass_samples": 12197,
+      "target_mass_causal_for_model": false
+    }
+  ],
+  "n": 100000,
+  "n_models": 7,
+  "posterior_sha256": "4587a7d71aca7b561e5cf22623e3f0e2d80a6c54add0ecb7abc0389d705e8d5b",
+  "source_npz_locally_available": false
+}
