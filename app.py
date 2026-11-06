@@ -518,6 +518,23 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
                     "başlatılmadı ve uydurma sonuç gösterilmiyor. Komuta Merkezi'ndeki "
                     "görev geçmişinden engellenen kaydı inceleyip sürdürün; PostgreSQL "
                     "kayıt hatasında tekrar denemeden önce yedek durumunu kontrol edin.")
+    from core.organism_lab_chat import organism_lab_chat_reply
+    _lab_owner = globals().get("_CANO_OWNER_KEY")
+    _lab_database_url = cano_database_url(os.environ) if _lab_owner else None
+
+    def _load_organism_lab_records():
+        if not _lab_owner or not _lab_database_url:
+            return []
+        from core.organism_lab_persistence import OrganismLabStore
+        return OrganismLabStore(_lab_owner, _lab_database_url).list_recent(limit=10)
+
+    _lab_reply = organism_lab_chat_reply(
+        kullanici_mesaji,
+        load_records=_load_organism_lab_records if _lab_owner and _lab_database_url else None,
+        session_result=st.session_state.get("cano_organism_lab_campaign_result"),
+    )
+    if _lab_reply is not None:
+        return _lab_reply
     from core.cano_capabilities import capability_reply
     capability = capability_reply(
         kullanici_mesaji,
