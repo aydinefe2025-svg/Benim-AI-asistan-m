@@ -13,7 +13,9 @@ from core.claim_evidence import (
 )
 from core.evidence_appraisal import record_claim_evidence_appraisal
 from core.groq_team import TeamRateLimitError
-from core.groq_claim_json import generate_claim_quote_json
+from core.groq_claim_json import (
+    generate_claim_quote_json, generate_claim_verification_json,
+)
 from core.cano_command_center import _snapshot
 from core.colony_postgres import ColonySnapshotStore
 from core.storage_config import cano_database_url
@@ -121,7 +123,10 @@ class Client:
     def chat(self, model, system, prompt):
         return generate_claim_quote_json(system, prompt, api_key=key)
 
-if documents and key and st.button("İddiaları kaynak alıntılarıyla karşılaştır (1 model çağrısı)"):
+    def verify(self, model, system, prompt):
+        return generate_claim_verification_json(system, prompt, api_key=key)
+
+if documents and key and st.button("İddiaları çıkar ve kuşkucu incelemeden geçir (en fazla 2 model çağrısı)"):
     try:
         if owner:
             store = ColonySnapshotStore(cano_database_url(os.environ))
@@ -148,6 +153,17 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
         st.success("Alıntı kaynakta bulundu; iddianın doğruluğu henüz incelenmedi.")
         st.caption(item["claim"] + " — " + item["doi"])
         st.code(item["quote"])
+        assessment = item.get("machine_assessment")
+        if isinstance(assessment, dict):
+            verdict_labels = {
+                "supported": "İkinci model incelemesi: pasaj iddiayı doğrudan destekliyor",
+                "contradicted": "İkinci model incelemesi: pasaj iddiayla çelişiyor",
+                "insufficient": "İkinci model incelemesi: pasaj yetersiz veya belirsiz",
+            }
+            st.info(verdict_labels.get(assessment.get("verdict"),
+                                       "İkinci model incelemesi: karar yok"))
+            st.caption(str(assessment.get("reason", ""))
+                       + " Bu model değerlendirmesi otomatik doğrulama değildir.")
         st.link_button("Kaynağı aç", item["citation_url"])
         if item.get("comparison_status") == "model_suggested":
             labels = {
