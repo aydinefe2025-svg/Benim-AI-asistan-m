@@ -104,11 +104,14 @@ def _audit_has_only_matched_quotes(stages):
     """A failed quote match may be retried explicitly; successful audits stay idempotent."""
     audit = stages[0].get("source_claim_audit")
     return (
-        stages[0].get("source_claim_audit_version", 1) >= 2
+        stages[0].get("source_claim_audit_version", 1) >= 3
         and isinstance(audit, list)
         and bool(audit)
         and all(isinstance(item, dict)
                 and item.get("status") == "quote_found_unverified"
+                and isinstance(item.get("machine_assessment"), dict)
+                and item["machine_assessment"].get("verdict")
+                    in {"supported", "contradicted", "insufficient"}
                 for item in audit)
     )
 
@@ -239,7 +242,7 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
             "Review each indexed claim against its retrieved source passage. "
             "Use 'supported' only for direct entailment; use 'contradicted' for a "
             "direct conflict; otherwise use 'insufficient'. Return one assessment per "
-            "index.\\n" + json.dumps(candidates, ensure_ascii=False)
+            "index.\n" + json.dumps(candidates, ensure_ascii=False)
         )
         assessments = _parse_assessments(
             verifier(model, verifier_system, verifier_prompt), set(valid_indices))
@@ -269,7 +272,7 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
                 "claims": previous_audit,
             })
         current[0]["source_claim_audit"] = reviewed
-        current[0]["source_claim_audit_version"] = 2
+        current[0]["source_claim_audit_version"] = 3
         db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
                    (json.dumps(current, ensure_ascii=False), mission_id))
     return reviewed
