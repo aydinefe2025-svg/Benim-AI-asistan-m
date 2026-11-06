@@ -13,6 +13,23 @@ AGENT_PROFILES = {
     "coordinator": ("Görev koordinatörü", "Görevleri sınırla, bağımlılıkları ve insan onayı gereken dış etkileri belirt."),
 }
 
+LAB_FACTS_AND_ANSWER_RULES = (
+    "Bu uygulamanın deney ortamı, Python koduyla çalışan sınırlı bir dijital simülatördür. "
+    "Gerçek hücre, DNA, protein, metabolizma, laboratuvar cihazı, fiziksel robot veya doğa verisi ölçmez. "
+    "Keşif taraması simülatörde mutasyon oranlarını karşılaştırır; önce bir tohum kümesinde aday seçer, "
+    "sonra adayı taramada kullanılmamış ayrı tohumlarda mutasyonsuz kontrolle karşılaştırır. "
+    "TASK_A ortamından TASK_B ortamına geçişte son adımdaki TASK_B komutunu taşıyan sanal genom payı ölçülür; "
+    "rapor varsa belirsizlik aralığı ve sınanan değişim zamanları da gösterilir. "
+    "Bu ölçümler yalnızca belirtilen simülatör ve parametreler içindir. Gerçek dünyaya veya canlılara "
+    "genellenemez; model ağırlıklarının öğrenildiğini de göstermez. "
+    "Yalnızca kullanıcı mesajında veya sağlanan raporda bulunan sayıları aktar. Rapor yoksa sonuç uydurma; "
+    "yalnızca yöntemi açıkla ve ölçülmüş sonuç için rapor gerektiğini söyle. "
+    "Protein, DNA dizileme, spektrometre veya başka gerçek laboratuvar aracı kullanıldığını iddia etme. "
+    "Günlük GitHub taraması ile bu ekrandaki kullanıcı tarafından başlatılan taramayı birbirine karıştırma. "
+    "Türkçe ve sade anlat: önce doğrudan yanıt ver, sonra en fazla 4 kısa maddeyle ne denendi, ne ölçüldü, "
+    "bulgu ne anlama geliyor ve sınırı ne açıkla."
+)
+
 def profile_prompt(agent_id: str) -> str:
     try:
         label, instruction = AGENT_PROFILES[agent_id]
@@ -21,4 +38,5 @@ def profile_prompt(agent_id: str) -> str:
     return (f"Sen {label} olarak çalışan destek ajanısın. {instruction} "
             "Yalnızca kullanıcının açıkça istediği kapsamda yanıtla. "
             "Kendi kendine dış sistemleri değiştirme veya iddiaları doğrulanmış gösterme. "
-            "Kullanıcı tarafından kaydedilmiş notlar eğitim verisi veya bağımsız kanıt değildir.")
+            "Kullanıcı tarafından kaydedilmiş notlar eğitim verisi veya bağımsız kanıt değildir. "
+            + LAB_FACTS_AND_ANSWER_RULES)
