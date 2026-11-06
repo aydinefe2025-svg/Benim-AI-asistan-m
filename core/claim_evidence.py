@@ -76,6 +76,19 @@ def has_readable_source_excerpt(stages):
     return False
 
 
+def _audit_has_only_matched_quotes(stages):
+    """A failed quote match may be retried explicitly; successful audits stay idempotent."""
+    audit = stages[0].get("source_claim_audit")
+    return (
+        stages[0].get("source_claim_audit_version", 1) >= 2
+        and isinstance(audit, list)
+        and bool(audit)
+        and all(isinstance(item, dict)
+                and item.get("status") == "quote_found_unverified"
+                for item in audit)
+    )
+
+
 def audit_claim_quotes(manager, mission_id, *, client, model):
     """One explicit model call followed by deterministic quote validation.
 
@@ -87,8 +100,7 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
     if saved["status"] != "review_pending" or len(saved["stages"]) != 4:
         raise RuntimeError("Only a completed research draft can be quoted")
     stages = saved["stages"]
-    if (stages[0].get("source_claim_audit_version", 1) >= 2
-            and isinstance(stages[0].get("source_claim_audit"), list)):
+    if _audit_has_only_matched_quotes(stages):
         return stages[0]["source_claim_audit"]
     documents = stages[0].get("source_documents")
     if not isinstance(documents, list) or not any(
@@ -122,7 +134,9 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
         "Prioritize the user's central testable claim in the task as the first "
         "item; do not replace it with an easier descriptive fact. If a correction "
         "DOI is provided, separately identify what the correction changes or "
-        "qualifies. Use a short verbatim quote from the same DOI for each item. "
+        "qualifies. Copy each quotation verbatim from the excerpt, preserving "
+        "exact words and punctuation. Do not paraphrase, use ellipses, or "
+        "normalize quotation marks. Use a short quote from the same DOI. "
         "Choose insufficient when the excerpt does not decide the claim. "
         "Do not infer beyond the quoted text. A model comparison is only a "
         "provisional reading aid: it is NOT proof of factual truth, entailment, "
@@ -182,8 +196,7 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
         if row is None or row["status"] != "review_pending":
             raise RuntimeError("Mission was modified during quote review")
         current = json.loads(row["stages"])
-        if (current[0].get("source_claim_audit_version", 1) >= 2
-                and isinstance(current[0].get("source_claim_audit"), list)):
+        if _audit_has_only_matched_quotes(current):
             return current[0]["source_claim_audit"]
         if current != stages:
             raise RuntimeError("Source data changed during quote review; retry explicitly")
