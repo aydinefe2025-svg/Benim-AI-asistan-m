@@ -464,6 +464,7 @@ render_organism_lab_panel(
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji, *, approved=False):
+    local_ollama_selected = str(globals().get("secilen_model", "")).startswith("Ollama (Yerel): ")
     from core.cano_chat_tasks import parse_task_request, format_task_result
     task_goal = parse_task_request(kullanici_mesaji)
     if task_goal is not None:
@@ -492,7 +493,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
                     "Henüz model çağrısı veya görev kaydı yapılmadı. Aşağıdaki onay "
                     "kutusunu bu görev için işaretleyip başlat düğmesine basarsanız "
                     "dört model aşaması çalışır; sonuç inceleme bekleyen taslak olur.")
-        if not GROQ_KEY and not secilen_model.startswith("Ollama (Yerel): "):
+        if not GROQ_KEY and not local_ollama_selected:
             return ("CANO görevini sohbetten dört aşamalı ekibe yönlendiremedim: "
                     "ekip yürütücüsü için Groq veya erişilebilir yerel Ollama yapılandırılmamış. "
                     "Bu istek sıradan sohbet yanıtı gibi gösterilmedi.")
@@ -553,7 +554,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
 
             result = mission_manager.execute(
                 task_goal, client=_AnswerAdapter(_team_answer),
-                model=("configured-local-ollama-team" if secilen_model.startswith("Ollama (Yerel): ") else "configured-groq-team"), mission_id=pending["id"],
+                model=("configured-local-ollama-team" if local_ollama_selected else "configured-groq-team"), mission_id=pending["id"],
                 on_checkpoint=lambda: checkpoint(archive_prior=False) if store else None)
             checkpoint(archive_prior=False)
             st.session_state["cano_cockpit_latest_mission"] = result["id"]
