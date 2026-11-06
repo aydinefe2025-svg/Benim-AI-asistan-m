@@ -16,6 +16,12 @@ from core.storage_config import cano_database_url, database_provider_label, memo
 
 _AUTH_REQUIRED = auth_is_required(os.environ)
 _OWNER_KEY = render_auth_gate(st, os.environ)
+if not _OWNER_KEY and hasattr(st, "session_state"):
+    # Do not retain a prior owner's prepared ciphertext or password widget state
+    # in a shared Streamlit session after logout.
+    for _key in list(st.session_state):
+        if str(_key).startswith("_cano_secure_export_"):
+            st.session_state.pop(_key, None)
 _MEMORY_STORE = None
 _MEMORY_DATABASE_URL = memory_database_url(os.environ)
 if _MEMORY_DATABASE_URL:
@@ -60,10 +66,12 @@ from core.user_memory import export_library, import_library, memory_context, new
 from core.browser_memory import browser_memory_component, decode_snapshot, write_confirmed, explicit_memory_request
 from core.task_panel import render_task_panel
 from core.authorized_queue_panel import render_authorized_queue_panel
+from core.postgres_authorized_queue import PostgresAuthorizedQueue
 from core.colony_panel import render_colony_panel
 from core.organism_lab_panel import render_organism_lab_panel
 from core.cano_command_center import render_cano_command_center
 from core.groq_team import generate_team_stage
+from core.research_export import export_research_archive
 
 _credentials = configured_credentials(st.secrets, os.environ)
 _credential_presence = credential_presence(_credentials)
@@ -297,13 +305,16 @@ with st.sidebar.expander("🧠 Hafıza kitaplığım", expanded=False):
             except Exception:
                 st.error("Kitaplık kaydedilemedi; veritabanı kayıtları değiştirilmedi.")
 
-    st.download_button(
-        "Hafıza kitaplığını indir",
-        data=export_library(st.session_state.saved_memories),
-        file_name="asistan-hafiza-kitapligi.json",
-        mime="application/json",
-        key="download_memory_library",
-    )
+    if _MEMORY_STORE is None:
+        st.download_button(
+            "Hafıza kitaplığını indir (şifrelenmemiş JSON)",
+            data=export_library(st.session_state.saved_memories),
+            file_name="asistan-hafiza-kitapligi.json",
+            mime="application/json",
+            key="download_memory_library",
+        )
+    else:
+        st.caption("Hesap hafızası, CANO Komuta Merkezi'ndeki tek parolalı şifreli yedeğe eklenir.")
     memory_text = st.text_area(
         "Açıkça saklamak istediğiniz not", max_chars=2000, key="memory_text_input"
     )
@@ -392,10 +403,27 @@ def _team_answer(prompt: str) -> str:
 
 
 _CANO_OWNER_KEY = _OWNER_KEY if _AUTH_REQUIRED and _OWNER_KEY else None
+_CANO_RESEARCH_BACKUP = None
+if _TASK_STORE is not None:
+    try:
+        _CANO_RESEARCH_BACKUP = export_research_archive(_TASK_STORE)
+    except Exception:
+        logging.getLogger(__name__).warning("CANO research backup export unavailable")
+_CANO_QUEUE_BACKUP = None
+if _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"):
+    try:
+        _CANO_QUEUE_BACKUP = PostgresAuthorizedQueue(
+            os.environ["AGENT_TASK_DATABASE_URL"], owner_key=_OWNER_KEY, max_jobs=100)
+        _CANO_QUEUE_BACKUP.verify_schema()
+    except Exception:
+        logging.getLogger(__name__).warning("CANO authorized queue backup export unavailable")
 render_cano_command_center(
     st, answer=_team_answer if GROQ_KEY else None,
     owner_key=_CANO_OWNER_KEY,
     database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None,
+    memories=st.session_state.get("saved_memories"),
+    research_tasks=_CANO_RESEARCH_BACKUP,
+    authorized_queue_store=_CANO_QUEUE_BACKUP,
 )
 render_task_panel(st, answer=_research_answer if GROQ_KEY else None, store_override=_TASK_STORE)
 render_authorized_queue_panel(
