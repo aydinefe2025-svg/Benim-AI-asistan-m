@@ -41,17 +41,60 @@ class TeamBudgetTests(unittest.TestCase):
         self.assertIn("Yapılmamış deneyleri yapılmış gibi anlatma",
                       payload["messages"][0]["content"])
 
-    def test_provider_429_is_explicit_without_secrets(self):
+    def test_transient_503_retries_once_then_succeeds(self):
+        class Error503(Exception):
+            status_code = 503
+        client = FakeClient()
+        calls = []
+        delays = []
+        def flaky(**kwargs):
+            calls.append(kwargs)
+            if len(calls) == 1:
+                raise Error503("temporary outage")
+            return FakeResponse()
+        client.chat.completions.create = flaky
+        result = generate_team_stage(
+            "Görev", api_key="private", client_factory=lambda **kw: client,
+            sleep=delays.append)
+        self.assertEqual(result, "Kısa görev cevabı")
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(delays, [1])
+
+    def test_provider_429_is_bounded_and_explicit_without_secrets(self):
         class Error429(Exception):
             status_code = 429
         client = FakeClient()
+        calls = []
+        delays = []
         def reject(**kwargs):
+            calls.append(kwargs)
             raise Error429("secret token and organization id")
         client.chat.completions.create = reject
         with self.assertRaises(TeamRateLimitError) as failure:
-            generate_team_stage("Görev", api_key="private", client_factory=lambda **kw: client)
+            generate_team_stage(
+                "Görev", api_key="private",
+                client_factory=lambda **kw: client, sleep=delays.append)
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(delays, [1, 2])
         self.assertNotIn("secret", str(failure.exception))
         self.assertIn("kota", str(failure.exception).casefold())
+
+    def test_non_transient_auth_error_is_not_retried(self):
+        class Error401(Exception):
+            status_code = 401
+        client = FakeClient()
+        calls = []
+        delays = []
+        def reject(**kwargs):
+            calls.append(kwargs)
+            raise Error401("invalid credentials")
+        client.chat.completions.create = reject
+        with self.assertRaises(Error401):
+            generate_team_stage(
+                "Görev", api_key="private",
+                client_factory=lambda **kw: client, sleep=delays.append)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(delays, [])
 
     def test_short_response_truncation_is_not_silently_hidden(self):
         class ShortResponse:
