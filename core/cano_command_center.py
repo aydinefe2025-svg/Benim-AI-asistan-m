@@ -250,6 +250,13 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                 archive_prior=archive_prior)
             st.session_state["_cano_backup_expected"] = snapshot
 
+    # Expose only observed counters to the capability/status chat route.
+    # Task text and source evidence remain confined to their dedicated views.
+    st.session_state["_cano_runtime_status"] = {
+        key: status[key]
+        for key in ("agents", "missions", "review_pending", "lessons", "blocked")
+    }
+
     cols = st.columns(4)
     for col, label, value in zip(
         cols, ("Uzman", "Ekip görevleri", "İnceleme bekleyen", "Kabul edilmiş ders"),
