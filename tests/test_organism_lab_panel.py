@@ -6,7 +6,7 @@ from contextlib import nullcontext
 from unittest.mock import patch
 
 from core.organism_lab_panel import (
-    json_export, render_organism_lab_panel, run_checked_campaign
+    explain_campaign, json_export, render_organism_lab_panel, run_checked_campaign
 )
 from organism_lab.shared_world import run_shared_world
 
@@ -21,12 +21,16 @@ class FakeStreamlit:
         self.errors = []
         self.successes = []
         self.warnings = []
+        self.markdown_blocks = []
 
     def expander(self, *_args, **_kwargs):
         return nullcontext()
 
     def caption(self, *_args, **_kwargs):
         pass
+
+    def markdown(self, text, **_kwargs):
+        self.markdown_blocks.append(text)
 
     def slider(self, *_args, **_kwargs):
         return 10
@@ -77,6 +81,16 @@ class OrganismPanelTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     run_checked_campaign(seeds=seed_count, steps=steps)
 
+    def test_campaign_explanation_uses_computed_metrics_and_limits_claims(self):
+        report = run_checked_campaign(seeds=3, steps=10)["report"]
+        explanation = explain_campaign(report)
+        self.assertIn("3 aynı başlangıç tohumu", explanation)
+        self.assertIn("En büyük ortalama fark", explanation)
+        self.assertIn("yalnızca dijital model", explanation)
+        self.assertIn("gerçek hücre", explanation)
+        with self.assertRaises(ValueError):
+            explain_campaign({"design": {}, "results": [], "observations": []})
+
     def test_main_app_panel_performs_real_simulation_and_offers_exports(self):
         ui = FakeStreamlit(pressed=("cano_organism_world_run",
                                     "cano_organism_campaign_run"))
@@ -86,6 +100,8 @@ class OrganismPanelTests(unittest.TestCase):
         self.assertEqual(len(ui.downloads), 2)
         self.assertEqual(len(ui.metrics), 3)
         self.assertEqual(ui.session_state["cano_organism_campaign_result"]["observations"], 50)
+        self.assertEqual(len(ui.markdown_blocks), 1)
+        self.assertIn("Ne bulundu?", ui.markdown_blocks[0])
         self.assertTrue(all("json" in item["mime"] for item in ui.downloads))
         self.assertTrue(any("PostgreSQL" in m for m in ui.warnings))
         self.assertEqual(ui.errors, [])
