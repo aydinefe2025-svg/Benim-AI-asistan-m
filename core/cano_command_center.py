@@ -22,6 +22,7 @@ from core.authentication import auth_is_required
 from core.groq_team import TeamRateLimitError
 from core.cano_chat_tasks import stage_execution_notice
 from core.scientific_sources import scientific_sources
+from core.doi_priority import prioritize_requested_doi
 from core.task_panel import _session_database_path
 
 
@@ -312,11 +313,20 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                 def _durable_stage_checkpoint():
                     _checkpoint(archive_prior=(stage_checkpoint_count[0] == 0))
                     stage_checkpoint_count[0] += 1
+                source_lookup = None
+                # A DOI explicitly typed by the user is already a source lead;
+                # it must not be displaced by unrelated Crossref results.
+                # Crossref is contacted only after the checkbox opt-in.
+                if lookup or prioritize_requested_doi(goal, []):
+                    def source_lookup(query, limit=3):
+                        candidates = (scientific_sources(query, limit=limit)
+                                      if lookup else [])
+                        return prioritize_requested_doi(goal, candidates)
                 try:
                     result = manager.execute(
                         goal, client=_AnswerAdapter(answer),
                         model="configured-provider",
-                        source_lookup=scientific_sources if lookup else None,
+                        source_lookup=source_lookup,
                         on_checkpoint=_durable_stage_checkpoint if backup_store is not None else None)
                 except TeamRateLimitError:
                     try:
