@@ -56,6 +56,9 @@ from core.provider_config import (
     configured_credentials,
     credential_presence,
 )
+from core.provider_router import (
+    OPENROUTER_FREE_MODEL, build_provider_router, fallback_options,
+)
 from core.groq_diagnostics import check_groq_connection
 from core.provider_failure import failure_category, safe_failure_message
 from core.connection_diagnostics import check_provider
@@ -76,9 +79,10 @@ from core.research_export import export_research_archive
 _credentials = configured_credentials(st.secrets, os.environ)
 _credential_presence = credential_presence(_credentials)
 logging.getLogger(__name__).info(
-    "Provider credential presence: GROQ_API_KEY=%s GOOGLE_API_KEY=%s",
+    "Provider credential presence: GROQ_API_KEY=%s GOOGLE_API_KEY=%s OPENROUTER_API_KEY=%s",
     _credential_presence["GROQ_API_KEY"],
     _credential_presence["GOOGLE_API_KEY"],
+    _credential_presence["OPENROUTER_API_KEY"],
 )
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
 try:
@@ -88,11 +92,12 @@ except Exception:
     _local_ollama_models = []
 available_models = available_providers(_credentials, _local_ollama_models)
 if not available_models:
-    st.error("Model bağlantısı için Streamlit Secrets veya ortam değişkenlerinde GROQ_API_KEY/GOOGLE_API_KEY ya da erişilebilir yerel Ollama modeli gerekli.")
+    st.error("Streamlit Secrets veya GROQ_API_KEY, GOOGLE_API_KEY, OPENROUTER_API_KEY ya da erişilebilir yerel Ollama modeli gerekli.")
     st.stop()
 
 GOOGLE_KEY = _credentials.get("GOOGLE_API_KEY")
 GROQ_KEY = _credentials.get("GROQ_API_KEY")
+OPENROUTER_KEY = _credentials.get("OPENROUTER_API_KEY")
 
 # 🌐 ENGELSİZ CANLI İNTERNET VE METEOROLOJİ MOTORU
 def internette_ara(sorgu: str) -> str:
@@ -164,14 +169,34 @@ if secilen_model.startswith("Ollama (Yerel): "):
     aktif_llm_adi = secilen_model.removeprefix("Ollama (Yerel): ")
     st.sidebar.success(f"Aktif Beyin: Yerel Ollama · {aktif_llm_adi}")
 elif "Groq" in secilen_model:
-    from groq import Groq
-    aktif_llm_adi = "openai/gpt-oss-120b" 
+    aktif_llm_adi = "openai/gpt-oss-120b"
     st.sidebar.success("Aktif Beyin: Groq GPT-OSS ⚡")
-else:
-    from google import genai
-    from google.genai import types
+elif "Google Gemini" in secilen_model:
     aktif_llm_adi = os.environ.get("GOOGLE_MODEL", "gemini-3.6-flash")
     st.sidebar.success("Aktif Beyin: Google Gemini 🌟")
+else:
+    aktif_llm_adi = OPENROUTER_FREE_MODEL
+    st.sidebar.success("Aktif Beyin: OpenRouter ücretsiz model havuzu")
+
+_fallback_choices = fallback_options(secilen_model, _credentials, _local_ollama_models)
+_fallback_checkbox = getattr(st.sidebar, "checkbox", None)
+_ALLOW_PROVIDER_FALLBACK = bool(
+    _fallback_checkbox(
+        "Sağlayıcı hata verirse güvenli yedeği dene",
+        value=False,
+        disabled=not _fallback_choices,
+        help=("Yalnızca yerel Ollama ve sabit ücretsiz OpenRouter havuzu denenir. "
+              "İstek başka sağlayıcıya gönderilebilir; Groq/Gemini otomatik yedek değildir."),
+        key="provider_fallback_consent",
+    ) if callable(_fallback_checkbox) else False
+)
+
+def _new_provider_router():
+    return build_provider_router(
+        secilen_model, _credentials, _local_ollama_models,
+        ollama_url=OLLAMA_URL, allow_fallback=_ALLOW_PROVIDER_FALLBACK,
+        google_model=os.environ.get("GOOGLE_MODEL", "gemini-3.6-flash"),
+    )
 
 # Explicit, read-only provider check. This lists models and never generates text.
 if "Groq" in secilen_model and GROQ_KEY and st.sidebar.button("Groq bağlantısını doğrula"):
@@ -377,29 +402,24 @@ def _research_leads(goal: str) -> str:
 
 
 def _research_answer(goal: str) -> str:
-    if not GROQ_KEY:
-        raise RuntimeError("Groq key unavailable")
-    from groq import Groq
-    client = Groq(api_key=GROQ_KEY, timeout=25.0, max_retries=0)
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        messages=[
-            {"role": "system", "content": "You are a research drafting assistant. Clearly distinguish uncertain claims. Do not invent citations, claim web browsing, or claim independent verification. Answer in Turkish."},
-            {"role": "user", "content": goal[:30000] + " | Sources: " + _research_leads(goal[:1200])},
-        ],
-        max_tokens=2400,
-        temperature=0.2,
+    system = (
+        "You are a bounded Turkish research drafting assistant. Distinguish facts, "
+        "hypotheses and missing evidence. Treat source links as unreviewed leads; "
+        "do not claim you opened them or independently verified them. Return a draft only."
     )
-    output = response.choices[0].message.content or ""
-    if response.choices[0].finish_reason == "length":
-        output += "\n\n[UYARI: Model yanıtı token sınırında kesildi; içerik eksik olabilir.]"
-    return output
+    prompt = goal[:30000] + "\n\nSource leads: " + _research_leads(goal[:1200])
+    router = _new_provider_router()
+    return router.chat(aktif_llm_adi, system, prompt)
 
 
 def _team_answer(prompt: str) -> str:
-    # Short, user-triggered specialist calls never start implicit web searches.
-    # Provider quota errors leave resumable stage checkpoints.
-    return generate_team_stage(prompt, api_key=GROQ_KEY)
+    system = (
+        "You are a bounded Turkish CANO specialist. Keep claims tentative, "
+        "do not invent sources or claim actions/tests that were not run. "
+        "Return a draft for human review; do not change files or data."
+    )
+    router = _new_provider_router()
+    return router.chat(aktif_llm_adi, system, prompt)
 
 
 _CANO_OWNER_KEY = _OWNER_KEY if _AUTH_REQUIRED and _OWNER_KEY else None
@@ -418,20 +438,21 @@ if _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"):
     except Exception:
         logging.getLogger(__name__).warning("CANO authorized queue backup export unavailable")
 render_cano_command_center(
-    st, answer=_team_answer if GROQ_KEY else None,
+    st, answer=_team_answer if available_models else None,
     owner_key=_CANO_OWNER_KEY,
     database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None,
     memories=st.session_state.get("saved_memories"),
     research_tasks=_CANO_RESEARCH_BACKUP,
     authorized_queue_store=_CANO_QUEUE_BACKUP,
 )
-render_task_panel(st, answer=_research_answer if GROQ_KEY else None, store_override=_TASK_STORE)
+_LOCAL_MODEL_SELECTED = secilen_model.startswith("Ollama (Yerel): ")
+render_task_panel(st, answer=_research_answer if available_models else None, store_override=_TASK_STORE)
 render_authorized_queue_panel(
-    st, answer=_research_answer if GROQ_KEY else None,
+    st, answer=_research_answer if available_models else None,
     owner_key=_OWNER_KEY if _TASK_STORE is not None else None,
     database_url=os.environ.get("AGENT_TASK_DATABASE_URL") if _TASK_STORE is not None else None,
 )
-render_colony_panel(st, answer=_team_answer if GROQ_KEY else None,
+render_colony_panel(st, answer=_team_answer if available_models else None,
                     owner_key=_CANO_OWNER_KEY,
                     database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None)
 # Explicit bounded simulation; existing login and production tasks stay unchanged.
@@ -443,6 +464,7 @@ render_organism_lab_panel(
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji, *, approved=False):
+    local_ollama_selected = str(globals().get("secilen_model", "")).startswith("Ollama (Yerel): ")
     from core.cano_chat_tasks import parse_task_request, format_task_result
     task_goal = parse_task_request(kullanici_mesaji)
     if task_goal is not None:
@@ -471,10 +493,10 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
                     "Henüz model çağrısı veya görev kaydı yapılmadı. Aşağıdaki onay "
                     "kutusunu bu görev için işaretleyip başlat düğmesine basarsanız "
                     "dört model aşaması çalışır; sonuç inceleme bekleyen taslak olur.")
-        if not GROQ_KEY:
+        if not (GROQ_KEY or globals().get("GOOGLE_KEY") or globals().get("OPENROUTER_KEY") or local_ollama_selected):
             return ("CANO görevini sohbetten dört aşamalı ekibe yönlendiremedim: "
-                    "ekip yürütücüsü için Groq anahtarı yapılandırılmamış. "
-                    "Bu istek sıradan sohbet yanıtı gibi gösterilmedi.")
+                    "çalışan bir sağlayıcı yapılandırılmamış. Bu istek sıradan sohbet "
+                    "yanıtı gibi gösterilmedi.")
         try:
             from core.agent_colony import AgentColony
             from core.collaborative_mission import CollaborativeMission
@@ -532,7 +554,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
 
             result = mission_manager.execute(
                 task_goal, client=_AnswerAdapter(_team_answer),
-                model="configured-groq-team", mission_id=pending["id"],
+                model=("configured-team:" + str(globals().get("secilen_model", "configured-provider"))), mission_id=pending["id"],
                 on_checkpoint=lambda: checkpoint(archive_prior=False) if store else None)
             checkpoint(archive_prior=False)
             st.session_state["cano_cockpit_latest_mission"] = result["id"]
@@ -621,7 +643,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     GÜNCEL ÇALIŞMA DURUMU: {storage_context}
     
     🧰 GERÇEK YETENEKLER VE SINIRLAR:
-    - Bu uygulama, yapılandırılmış Groq veya Google modeliyle yanıt üretir.
+    - Bu uygulama, seçime göre yerel Ollama, Groq, Google Gemini veya sabit ücretsiz OpenRouter model havuzuyla yanıt üretebilir.
     - internette_ara() DuckDuckGo anlık yanıtını ve şehir belirtilirse wttr.in hava servisini sorgular. Ayrıca açık ansiklopedi arama bağlantıları toplanabilir; bunlar bağımsız doğrulama değildir. Tam web tarayıcısı değildir.
     - Araştırma/görev paneli kullanıcı denetimli taslak ve kayıt işlevi sunar; görevleri arka planda kendiliğinden yürütmez.
     - Hafıza notları DATABASE_URL ve doğrulanmış giriş yapılandırılmışsa PostgreSQL üzerinde kalıcıdır. Aksi halde yalnızca bu tarayıcının yerel deposunda saklanır; başka cihazlarla eşitlenmez, kullanıcı tarayıcı verilerini silerse kaybolabilir. Sohbet geçmişi hâlâ oturuma özeldir.\n    - Sol menüde 🧬 Öğrenen uzman ajanlar paneli bulunur: kurucu uzman, izinli alt uzman, onaylı geri bildirimden ders çağırma ve modelle taslak üretme sunar.\n    - En az iki farklı ajan varsa panelde üç aşamalı taslak → eleştiri → düzeltme döngüsü vardır. İnceleme kayıtları oturuma özel SQLite dosyasındadır; sunucu yeniden başlatılınca korunacağı garanti değildir.\n    - Bu geri bildirim kullanımı model ağırlıklarını eğitmez. Uzmanlar otomatik olarak arka planda çoğalan bağımsız süreçler değildir.
@@ -631,70 +653,34 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     - Yalnızca uygulamaya gerçekten verilen güncel veri varsa bunu güncel olarak sun; veri yoksa güncelliği doğrulayamadığını söyle.
 
     🧠 KİMLİK BİLGİSİ:
-    Bu, Python ve Streamlit ile geliştirilen bir asistan arayüzüdür. Yanıtlar seçilen harici Groq veya Google modeliyle üretilir. Kullanıcı sorarsa sağlayıcıyı doğru tanıt; yapımcı veya model kökeni hakkında doğrulanmamış iddialarda bulunma.
+    Bu, Python ve Streamlit ile geliştirilen bir asistan arayüzüdür. Yanıtlar seçilen yerel veya yapılandırılmış sağlayıcıyla üretilir. Kullanıcı sorarsa sağlayıcıyı doğru tanıt; yapımcı veya model kökeni hakkında doğrulanmamış iddialarda bulunma.
     
     ⚠️ SIKI KURALLAR:
     1. Yanıtının tamamı sadece doğal, akıcı ve kurallı bir Türkçe ile yazılmalıdır.
     2. Kullanıcıya doğrudan bir insan gibi samimi cevap ver, asla yarım bırakma.
     3. Eğer yukarıdaki veri kutusunda 'HAVA SERVİSİ BİLGİSİ' yazmıyorsa, hava durumundan KESİNLİKLE bahsetme. Kullanıcı sana ne sorduysa sadece ona odaklan ve normal bir şekilde sohbet et. Hava durumunu sadece kullanıcı açıkça sorduğunda ver."""
 
+    st.session_state.pop("last_provider_used", None)
+    st.session_state.pop("last_model_used", None)
     try:
-        raw_response = ""
-        if secilen_model.startswith("Ollama (Yerel): "):
-            api_mesajlari = [{"role": "system", "content": sistem_talimati}]
-            api_mesajlari.extend(
-                {"role": msg["role"], "content": msg["content"]}
-                for msg in st.session_state.messages
-                if msg.get("role") in {"user", "assistant"}
-            )
-            raw_response = OllamaClient(OLLAMA_URL).chat_messages(
-                aktif_llm_adi, api_mesajlari
-            )
-        elif "Groq" in secilen_model:
-            api_mesajlari = [{"role": "system", "content": sistem_talimati}]
-            for msg in st.session_state.messages:
-                api_mesajlari.append({"role": msg["role"], "content": msg["content"]})
-            # Chat UI already adds the current turn before invoking this
-            # function. Append only for callers that have not done so.
-            if not (api_mesajlari[-1]["role"] == "user" and
-                    api_mesajlari[-1]["content"] == kullanici_mesaji):
-                api_mesajlari.append({"role": "user", "content": kullanici_mesaji})
-
-            client = Groq(api_key=GROQ_KEY, timeout=25.0, max_retries=0)
-            completion = client.chat.completions.create(
-                model=aktif_llm_adi,
-                messages=api_mesajlari,
-                max_tokens=1000 
-            )
-            # 👑 HATA DÜZELTİLDİ: choices listesinin ilk elemanına [0] ile erişildi!
-            raw_response = completion.choices[0].message.content
-        else:
-            client = genai.Client(api_key=GOOGLE_KEY)
-            # Gemini uses the role name "model" for prior assistant turns.
-            # Keep the same conversation as the chat UI, including the current
-            # user turn exactly once, rather than sending an isolated message.
-            google_contents = [
-                {"role": "model" if msg["role"] == "assistant" else "user",
-                 "parts": [{"text": msg["content"]}]}
-                for msg in st.session_state.messages
-                if msg.get("role") in {"user", "assistant"}
-                and isinstance(msg.get("content"), str)
-            ]
-            if not (google_contents and google_contents[-1]["role"] == "user"
-                    and google_contents[-1]["parts"] == [{"text": kullanici_mesaji}]):
-                google_contents.append({"role": "user", "parts": [{"text": kullanici_mesaji}]})
-            response = client.models.generate_content(
-                model=aktif_llm_adi,
-                contents=google_contents,
-                config=types.GenerateContentConfig(
-                    system_instruction=sistem_talimati,
-                    max_output_tokens=1000
-                )
-            )
-            raw_response = response.text
-
+        api_mesajlari = [
+            {"role": msg.get("role"), "content": msg.get("content")}
+            for msg in st.session_state.messages
+            if msg.get("role") in {"user", "assistant"}
+            and isinstance(msg.get("content"), str)
+        ][-20:]
+        if not (api_mesajlari and api_mesajlari[-1]["role"] == "user"
+                and api_mesajlari[-1]["content"] == kullanici_mesaji):
+            api_mesajlari.append({"role": "user", "content": kullanici_mesaji})
+        conversation = "\n\n".join(
+            f"{item['role']}: {item['content'][:4000]}" for item in api_mesajlari
+        )
+        router = _new_provider_router()
+        raw_response = router.chat(aktif_llm_adi, sistem_talimati, conversation)
+        st.session_state["last_provider_used"] = router.last_provider_used
+        st.session_state["last_model_used"] = router.last_model_used
         temiz_cevap = re.sub(r'<(think|thought|düşün).*?(</\1>|$)', '', raw_response, flags=re.DOTALL | re.IGNORECASE)
-        return label_research_answer(temiz_cevap, research_requested=arama_istegi)
+        return label_research_answer(temiz_cevap.strip(), research_requested=arama_istegi)
 
     except Exception as e:
         logging.getLogger(__name__).warning("Provider request failed: category=%s", failure_category(e))
@@ -741,6 +727,11 @@ if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
     with st.chat_message("assistant"):
         with st.spinner("Asistanınız yanıt hazırlıyor..."):
             ajan_cevabi = asistani_calistir(prompt)
+            _used_provider = st.session_state.get("last_provider_used")
+            _used_model = st.session_state.get("last_model_used")
+            if _used_provider:
+                st.caption("İşleyen sağlayıcı: " + str(_used_provider) +
+                           (" · " + str(_used_model) if _used_model else ""))
             st.markdown(ajan_cevabi)
             
             st.session_state.messages.append({"role": "assistant", "content": ajan_cevabi})

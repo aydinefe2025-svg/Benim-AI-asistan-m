@@ -12,9 +12,19 @@ class OllamaError(RuntimeError):
 
 
 class OllamaClient:
-    def __init__(self, base_url: str = "http://127.0.0.1:11434", timeout: int = 180) -> None:
+    def __init__(self, base_url: str = "http://127.0.0.1:11434", timeout: int = 180,
+                 max_output_tokens: int | None = None,
+                 think: bool | None = None) -> None:
+        if max_output_tokens is not None and (
+            type(max_output_tokens) is not int or max_output_tokens <= 0
+        ):
+            raise ValueError("max_output_tokens must be a positive integer")
+        if think is not None and type(think) is not bool:
+            raise ValueError("think must be a boolean or None")
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self.max_output_tokens = max_output_tokens
+        self.think = think
 
     def _request(self, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         data = None if payload is None else json.dumps(payload).encode("utf-8")
@@ -63,7 +73,12 @@ class OllamaClient:
                 "model": model,
                 "stream": False,
                 "messages": messages,
-                "options": {"temperature": temperature},
+                **({"think": self.think} if self.think is not None else {}),
+                "options": {
+                    "temperature": temperature,
+                    **({"num_predict": self.max_output_tokens}
+                       if self.max_output_tokens is not None else {}),
+                },
             },
         )
         message = response.get("message", {})

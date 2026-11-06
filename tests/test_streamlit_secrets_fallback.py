@@ -37,6 +37,7 @@ class StreamlitSecretsFallbackTests(unittest.TestCase):
         self.assertEqual(credential_presence(credentials), {
             "GROQ_API_KEY": False,
             "GOOGLE_API_KEY": True,
+            "OPENROUTER_API_KEY": False,
         })
 
     def test_diagnostics_contain_only_presence_flags(self):
@@ -46,6 +47,7 @@ class StreamlitSecretsFallbackTests(unittest.TestCase):
         self.assertEqual(diagnostic, {
             "GROQ_API_KEY": True,
             "GOOGLE_API_KEY": False,
+            "OPENROUTER_API_KEY": False,
         })
         self.assertNotIn("present", repr(diagnostic))
 

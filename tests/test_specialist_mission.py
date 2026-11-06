@@ -54,6 +54,8 @@ class SpecialistMissionTests(unittest.TestCase):
             runner.run("Task", model="qwen3:8b", domain="unrestricted_lab")
         with self.assertRaises(ValueError):
             runner.run("   ", model="qwen3:8b", domain="robotics_simulation")
+        with self.assertRaises(ValueError):
+            runner.run("Review neutron-star research", model="qwen3:8b")
         self.assertEqual(llm.calls, [])
 
     def test_failed_agent_does_not_claim_success_or_archive(self):

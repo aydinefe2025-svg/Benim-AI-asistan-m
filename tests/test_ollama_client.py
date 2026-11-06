@@ -61,6 +61,23 @@ class OllamaClientTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             OllamaClient().chat_messages("qwen3:8b", [{"role": "tool", "content": "x"}])
 
+    def test_optional_output_cap_and_think_disabled_are_sent(self):
+        response = FakeResponse(json.dumps({
+            "message": {"content": "Yanıt"}
+        }).encode())
+        with patch("urllib.request.urlopen", return_value=response) as mocked:
+            OllamaClient(max_output_tokens=128, think=False).chat(
+                "qwen3:8b", "system", "question"
+            )
+        payload = json.loads(mocked.call_args.args[0].data.decode())
+        self.assertEqual(payload["options"]["num_predict"], 128)
+        self.assertIs(payload["think"], False)
+
+    def test_invalid_output_cap_is_rejected(self):
+        for cap in (0, -1, True, 1.5):
+            with self.subTest(cap=cap), self.assertRaises(ValueError):
+                OllamaClient(max_output_tokens=cap)
+
     def test_http_errors_keep_status_and_body(self):
         error = urllib.error.HTTPError(
             "http://127.0.0.1:11434/api/tags", 404, "not found", {}, None
