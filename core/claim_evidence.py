@@ -47,6 +47,35 @@ def _citation_for(doc):
     return None
 
 
+def has_readable_source_excerpt(stages):
+    """Return whether the first-stage record has a safe, readable source excerpt.
+
+    The evidence page uses this to keep source-less drafts out of its review
+    queue. Invalid legacy payloads fail closed and remain untouched.
+    """
+    if isinstance(stages, str):
+        try:
+            stages = json.loads(stages)
+        except (TypeError, ValueError):
+            return False
+    if not isinstance(stages, list) or not stages or not isinstance(stages[0], dict):
+        return False
+    documents = stages[0].get("source_documents")
+    if not isinstance(documents, list):
+        return False
+    for doc in documents[:2]:
+        if not isinstance(doc, dict):
+            continue
+        doi, excerpt = doc.get("doi"), doc.get("excerpt")
+        if (doc.get("status") in _READABLE
+                and isinstance(doi, str) and _DOI.fullmatch(doi)
+                and ".." not in doi
+                and isinstance(excerpt, str) and excerpt.strip()
+                and _citation_for(doc) is not None):
+            return True
+    return False
+
+
 def audit_claim_quotes(manager, mission_id, *, client, model):
     """One explicit model call followed by deterministic quote validation.
 
