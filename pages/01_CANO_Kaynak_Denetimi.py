@@ -149,6 +149,21 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
         st.caption(item["claim"] + " — " + item["doi"])
         st.code(item["quote"])
         st.link_button("Kaynağı aç", item["citation_url"])
+        if item.get("comparison_status") == "model_suggested":
+            labels = {
+                "supports": "Pasaj iddiayı destekliyor olabilir",
+                "contradicts": "Pasaj iddiayla çelişiyor olabilir",
+                "correction_or_context": "Pasaj düzeltme veya önemli bağlam sunuyor",
+                "insufficient": "Pasaj iddiayı değerlendirmek için yetersiz",
+            }
+            label = labels.get(item.get("comparison"), labels["insufficient"])
+            st.info("CANO'nun geçici metin yorumu: " + label)
+            if item.get("comparison_rationale"):
+                st.caption(item["comparison_rationale"])
+            st.caption(
+                "Bu, model önerisidir; bağımsız bilimsel doğrulama veya insan kararı değildir.")
+        else:
+            st.info("İddia ile pasaj arasındaki ilişki değerlendirilmedi; yalnızca alıntı bulundu.")
     else:
         st.warning("Önerilen alıntı ilgili kaynakta bulunmadı.")
         st.caption(item["claim"])
