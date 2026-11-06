@@ -255,7 +255,7 @@ class CommandCenterTests(unittest.TestCase):
                                      "excerpt":"Measured solar output in a real study.",
                                      "claim_verified":False}) as reader:
                 render_cano_command_center(st, answer=FakeModel())
-                reader.assert_called_once_with("10.1234/solar")
+                reader.assert_called_once_with("10.1234/solar", query="Solar study")
             render_cano_command_center(st, answer=FakeModel())
             self.assertIn("Measured solar output", " ".join(st.messages))
             saved = CollaborativeMission(colony).get(mission["id"])

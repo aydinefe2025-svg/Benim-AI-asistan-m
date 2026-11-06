@@ -227,6 +227,7 @@ class CollaborativeMission:
         This is independent document retrieval, not proof that a particular
         draft claim is true. A repeated click returns the cached evidence.
         """
+        use_task_aware_reader = reader is None
         if reader is None:
             from core.europepmc_evidence import read_publication_evidence
             reader = read_publication_evidence
@@ -242,6 +243,8 @@ class CollaborativeMission:
         if "source_documents" in planner and not refresh_missing:
             return planner["source_documents"]
         from core.doi_priority import requested_doi_leads
+        requested_dois = {item["url"][len("https://doi.org/"):].casefold()
+                          for item in requested_doi_leads(saved["task"], limit=2)}
         existing_documents = planner.get("source_documents", [])
         if not isinstance(existing_documents, list):
             existing_documents = []
@@ -259,15 +262,18 @@ class CollaborativeMission:
                 continue
             doi = url[len("https://doi.org/"):].lower()
             existing = existing_by_doi.get(doi.casefold())
-            if isinstance(existing, dict) and existing.get("status") in (
-                    "full_text_excerpt", "abstract_excerpt"):
+            if (isinstance(existing, dict) and not (
+                    refresh_missing and doi.casefold() in requested_dois)
+                    and existing.get("status") in (
+                    "full_text_excerpt", "abstract_excerpt")):
                 documents.append(existing)
                 continue
             if existing is not None and not refresh_missing and "source_documents" in planner:
                 documents.append(existing)
                 continue
             try:
-                item = reader(doi)
+                item = (reader(doi, query=saved["task"])
+                        if use_task_aware_reader else reader(doi))
                 if not isinstance(item, dict):
                     raise ValueError("Invalid evidence response")
                 status = item.get("status")
@@ -282,20 +288,30 @@ class CollaborativeMission:
                         r"https://europepmc\.org/articles/PMC[0-9]{1,14}",
                         source_url)):
                     source_url = "https://doi.org/" + doi
-                documents.append({
+                fresh = {
                     "doi": doi,
                     "title": " ".join(str(lead.get("title", "")).split())[:180],
                     "url": source_url,
                     "status": status,
                     "excerpt": text[:900],
                     "claim_verified": False,
-                })
+                }
+                if (existing is not None and existing.get("status") in (
+                        "full_text_excerpt", "abstract_excerpt")
+                        and status in ("metadata_only", "not_found", "unavailable")):
+                    documents.append(existing)
+                else:
+                    documents.append(fresh)
             except Exception:
-                documents.append({
-                    "doi": doi, "title": str(lead.get("title", ""))[:180],
-                    "url": "https://doi.org/" + doi, "status": "unavailable",
-                    "excerpt": "", "claim_verified": False,
-                })
+                if isinstance(existing, dict) and existing.get("status") in (
+                        "full_text_excerpt", "abstract_excerpt"):
+                    documents.append(existing)
+                else:
+                    documents.append({
+                        "doi": doi, "title": str(lead.get("title", ""))[:180],
+                        "url": "https://doi.org/" + doi, "status": "unavailable",
+                        "excerpt": "", "claim_verified": False,
+                    })
         if refresh_missing:
             fresh_dois = {item.get("doi", "").casefold() for item in documents
                           if isinstance(item, dict)}
@@ -364,3 +380,4 @@ class CollaborativeMission:
         result = dict(row)
         result["stages"] = json.loads(result["stages"])
         return result
+
