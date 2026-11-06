@@ -14,12 +14,12 @@ class MissionChatClient(Protocol):
 
 
 ROLES = (
-    ("planner", "Decompose the mission into falsifiable questions and dependencies."),
-    ("discovery", "Specify primary literature, datasets and provenance to look up; do not invent fetched sources."),
-    ("engineer", "Design a safe computational prototype or simulation plan; never claim hardware was built."),
-    ("skeptic", "Identify contrary evidence, assumptions, confounders, uncertainties, and failure modes."),
-    ("replicator", "Design reproducible tests, controls, metrics, and explicit pass/fail gates."),
-    ("archivist", "Assemble the task outputs and outstanding work into a provenance-aware draft archive."),
+    ("planner", "Return exactly 3 ordered next steps and one dependency for this mission."),
+    ("discovery", "List only missing primary sources or data needed; mark them NOT FETCHED. Never invent sources."),
+    ("engineer", "Give one bounded, reversible software or simulation experiment; do not claim it was implemented."),
+    ("skeptic", "Name the 3 most important failure modes and one uncertainty. Do not repeat the plan."),
+    ("replicator", "Give a compact reproducible test matrix with input, expected result, and pass/fail rule."),
+    ("archivist", "Summarize known facts, unverified claims, and next action in 3 separate short sections."),
 )
 DOMAINS = ("research", "robotics_simulation", "computational_cell_model")
 
@@ -33,6 +33,9 @@ class SpecialistMission:
             raise ValueError("Unsupported specialist mission domain")
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Mission question cannot be empty")
+        blocked_topics = ("neutron star", "neutron-star", "nötron yıldız", "nötron-yıldız")
+        if any(topic in question.casefold() for topic in blocked_topics):
+            raise ValueError("Neutron-star research is outside this workflow")
         if not isinstance(model, str) or not model.strip():
             raise ValueError("Model name cannot be empty")
         question = question.strip()
@@ -52,13 +55,15 @@ class SpecialistMission:
         steps = []
         for role, assignment in ROLES:
             earlier = "\n\n".join(
-                f"{item['role']}: {item['output']}" for item in steps
+                f"{item['role']}: {item['output'][:500]}" for item in steps
             )
             prompt = (
-                f"Domain: {domain}\nMission: {question}\n"
-                f"Assignment: {assignment}\n"
-                f"Prior role outputs (unverified):\n{earlier or '(none)'}\n"
-                "Provide a bounded, auditable Turkish draft with unknowns."
+                f"Domain: {domain}\nMission: {question}\nRole assignment: {assignment}\n"
+                f"Earlier role notes (unverified; use only if relevant):\n{earlier or '(none)'}\n"
+                "Respond only with the deliverable requested for your role in Turkish. "
+                "Use at most 8 concise bullets. Do not repeat other roles' deliverables. "
+                "Do not repeat the whole mission or earlier notes. Do not claim sources, "
+                "measurements, tests, or actions that were not supplied. Mark unknowns."
             )
             output = self.client.chat(
                 model, f"Role: {role}. {rules}", prompt
