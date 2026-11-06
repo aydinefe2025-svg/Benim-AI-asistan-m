@@ -50,6 +50,7 @@ class ChatContextTests(unittest.TestCase):
             "aktif_llm_adi": "openai/gpt-oss-120b",
             "internette_ara": lambda query: "Test verisi",
             "memory_context": lambda items, query: "MEMORY_CONTEXT",
+            "label_research_answer": lambda answer, **kwargs: answer,
             "re": re,
         }
         exec(compile(ast.Module(body=[func], type_ignores=[]), str(APP), "exec"), namespace)
