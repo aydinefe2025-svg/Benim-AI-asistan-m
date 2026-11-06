@@ -60,6 +60,22 @@ class BenchmarkPanelUI:
 
 
 class ColonyMemoryBenchmarkTests(unittest.TestCase):
+    def test_panel_explains_prerequisite_when_no_accepted_lessons_exist(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "colony.sqlite3"
+            colony = AgentColony(path)
+            colony.create_founder("researcher", "Be precise.")
+            ui = BenchmarkPanelUI(run_benchmark=True)
+            provider_prompts = []
+            with patch("core.colony_panel._session_database_path", return_value=path):
+                render_colony_panel(
+                    ui, answer=lambda prompt: provider_prompts.append(prompt) or "answer")
+            self.assertEqual(provider_prompts, [])
+            self.assertNotIn("cano_memory_benchmark", ui.session_state)
+            self.assertTrue(any(
+                "en az bir dersi kabul edip kaydedin" in message
+                for kind, message in ui.calls if kind == "info"))
+
     def test_panel_makes_no_provider_calls_until_user_starts_paired_run(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "colony.sqlite3"

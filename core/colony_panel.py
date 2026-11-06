@@ -262,6 +262,11 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             f"Kanıt çeşitliliği eşiği: {'sağlandı' if learning['retrieval_ready'] else 'henüz sağlanmadı'}. "
             "Bu, model ağırlıklarının eğitildiği veya kanıtların doğrulandığı anlamına gelmez."
         )
+        if answer is not None and not learning["accepted_lessons"]:
+            st.info(
+                "Ders etkisini ölçmek için önce bu uzmanda en az bir dersi "
+                "kabul edip kaydedin; ardından kapalı/açık karşılaştırma burada görünür."
+            )
         if answer is not None and learning["accepted_lessons"]:
             with st.expander("📊 Kabul edilmiş derslerin etkisini ölç", expanded=False):
                 st.caption(
