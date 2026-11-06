@@ -69,6 +69,9 @@ class FakeStreamlit:
     def text_area(self, label, **kw):
         return self.task
 
+    def text_input(self, label, **kw):
+        return self.session_state.get(kw.get("key", ""), "")
+
     def checkbox(self, label, **kw):
         if kw.get("key") == "cano_local_backup_opt_in":
             return self.session_state.get("cano_local_backup_opt_in", self.local_backup)
