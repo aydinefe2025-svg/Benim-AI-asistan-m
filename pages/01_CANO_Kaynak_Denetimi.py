@@ -158,6 +158,11 @@ benchmark = st.session_state.get("cano_claim_review_benchmark_result")
 if isinstance(benchmark, dict):
     st.metric("Sabit vakalarda doğru", f"{benchmark['correct']} / {benchmark['total']}",
               f"Doğruluk %{benchmark['accuracy'] * 100:.0f}")
+    st.caption(f"Cevaplanan vaka: {benchmark['total'] - benchmark['unscored']} / "
+               f"{benchmark['total']} · Kapsam %{benchmark['coverage'] * 100:.0f}")
+    if benchmark["unscored"]:
+        st.warning(f"{benchmark['unscored']} vaka geçerli model cevabı olmadan kaldı; "
+                   "tamamı hata olarak puanlandı.")
     st.caption(benchmark["scope"])
     st.json(benchmark["confusion_matrix"])
     if benchmark["correct"] < benchmark["total"]:
