@@ -53,6 +53,9 @@ class OrganismLabChatTests(unittest.TestCase):
     def test_unrelated_chat_is_left_to_normal_assistant(self):
         self.assertIsNone(organism_lab_chat_reply("Merhaba, nasılsın?"))
 
+    def test_general_genome_question_is_left_to_normal_assistant(self):
+        self.assertIsNone(organism_lab_chat_reply("Genom nedir?"))
+
 
 if __name__ == "__main__":
     unittest.main()
