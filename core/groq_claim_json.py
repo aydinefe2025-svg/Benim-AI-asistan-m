@@ -69,8 +69,8 @@ def generate_claim_quote_json(system, prompt, *, api_key,
 
 
 def generate_claim_verification_json(system, prompt, *, api_key,
-                                     client_factory=None, model=_MODEL):
-    """A second skeptical pass; its opinion never sets claim_verified."""
+                                     client_factory=None, model=_VERIFICATION_MODEL):
+    """A separate model's skeptical pass; it never sets claim_verified."""
     return _generate_strict_json(
         system, prompt, _VERIFICATION_SCHEMA, "cano_claim_evidence_assessments",
         "assessments", api_key=api_key, client_factory=client_factory, model=model)
