@@ -11,6 +11,7 @@ from core.task_panel import _session_database_path
 from core.claim_evidence import (
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
 )
+from core.claim_review_benchmark import run_claim_review_benchmark
 from core.evidence_appraisal import record_claim_evidence_appraisal
 from core.groq_team import TeamRateLimitError
 from core.groq_claim_json import (
@@ -139,6 +140,40 @@ if documents and key and st.button("İddiaları çıkar ve ayrı AI modeliyle ku
         st.rerun()
     except (ValueError, RuntimeError, TeamRateLimitError) as err:
         st.warning("Alıntı denetimi tamamlanamadı; önceki kayıtlar korunuyor.")
+
+st.divider()
+st.subheader("İkinci model için sabit doğruluk testi")
+st.caption(
+    "12 sabit sentetik vaka; her test aynı ikinci modele tek istekte gönderilir. "
+    "CANO görev kayıtları değişmez. Bu test insan karşılaştırması veya gerçek bilimsel doğruluk ölçümü değildir."
+)
+if key and st.button("12 vakayı tek model çağrısıyla ölç (1 çağrı)"):
+    try:
+        benchmark = run_claim_review_benchmark(Client())
+    except (ValueError, RuntimeError, TeamRateLimitError):
+        st.warning("Benchmark tamamlanamadı; vaka verileri ve CANO kayıtları değişmedi.")
+    else:
+        st.session_state["cano_claim_review_benchmark_result"] = benchmark
+benchmark = st.session_state.get("cano_claim_review_benchmark_result")
+if (isinstance(benchmark, dict) and
+        ("unscored" not in benchmark or "coverage" not in benchmark)):
+    # Old in-session reports predate the abstention fix. Do not crash or
+    # silently treat their missing predictions as perfectly complete.
+    st.warning("Bu oturumdaki eski kıyas sonucu yeni ölçüme uygun değil; "
+               "12 vakalık testi yeniden çalıştırın.")
+elif isinstance(benchmark, dict):
+    st.metric("Sabit vakalarda doğru", f"{benchmark['correct']} / {benchmark['total']}",
+              f"Doğruluk %{benchmark['accuracy'] * 100:.0f}")
+    st.caption(f"Cevaplanan vaka: {benchmark['total'] - benchmark['unscored']} / "
+               f"{benchmark['total']} · Kapsam %{benchmark['coverage'] * 100:.0f}")
+    if benchmark["unscored"]:
+        st.warning(f"{benchmark['unscored']} vaka geçerli model cevabı olmadan kaldı; "
+                   "tamamı hata olarak puanlandı.")
+    st.caption(benchmark["scope"])
+    st.json(benchmark["confusion_matrix"])
+    if benchmark["correct"] < benchmark["total"]:
+        st.dataframe([case for case in benchmark["cases"] if not case["passed"]],
+                     hide_index=True, use_container_width=True)
 if not key:
     st.warning("Model bağlantısı yok; yeni iddia denetimi çalıştırılmadı.")
 reviewed_mission = manager.get(mid)
