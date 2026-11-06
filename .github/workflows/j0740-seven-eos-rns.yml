@@ -1,0 +1,61 @@
+name: J0740 seven source-matched rotating GR EOS sequences
+
+on:
+  pull_request:
+    paths:
+      - "research/j0740/rotating_gr/seven_eos_sequence.py"
+      - "research/j0740/rotating_gr/test_seven_eos_sequence.py"
+      - ".github/workflows/j0740-seven-eos-rns.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/j0740/rotating_gr/seven_eos_sequence.py"
+      - "research/j0740/rotating_gr/test_seven_eos_sequence.py"
+      - ".github/workflows/j0740-seven-eos-rns.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  seven-eos-rns:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install numpy
+      - name: Test stable-branch and no-extrapolation safeguards
+        working-directory: research/j0740/rotating_gr
+        run: python -m unittest -v test_seven_eos_sequence test_target_mass_rns test_jester_to_rns test_rns_benchmark
+      - name: Compile pinned upstream general-relativity solver
+        run: make -C rns-upstream rns
+      - name: Compute all seven exact-source EOS tracks at 346.536369 Hz
+        run: |
+          python research/j0740/rotating_gr/seven_eos_sequence.py \
+            --rns rns-upstream/rns \
+            --jester-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --out results/J0740_seven_EOS_full_GR_fixed_spin_mass.json
+      - name: Preserve evidence even if a scientific validation fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-seven-eos-rns-fixed-mass-results
+          path: results/J0740_seven_EOS_full_GR_fixed_spin_mass.json
+          if-no-files-found: warn
+          retention-days: 30
