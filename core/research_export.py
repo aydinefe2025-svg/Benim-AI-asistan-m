@@ -23,7 +23,14 @@ def export_research_archive(store: TaskStore) -> bytes:
         item = dict(task)
         item["draft"] = (store.load_draft(task["id"]) if hasattr(store, "load_draft")
                          else load_draft(store.db_path, task["id"]))
-        item["history"] = store.history(task["id"])
+        # psycopg returns TIMESTAMPTZ columns as datetime objects. SQLite history
+        # is already JSON-safe, but PostgreSQL-backed exports must normalize these
+        # values before calculating the integrity digest and encoding the archive.
+        item["history"] = [
+            {key: value.isoformat() if hasattr(value, "isoformat") else value
+             for key, value in event.items()}
+            for event in store.history(task["id"])
+        ]
         items.append(item)
     payload = {
         "schema": "research-task-export-v1",
