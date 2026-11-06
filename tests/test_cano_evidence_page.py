@@ -21,6 +21,8 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("reviewer_id=owner", source)
         self.assertIn("full_text_excerpt", source)
         self.assertIn("İddiaları kaynak alıntılarıyla karşılaştır", source)
+        self.assertIn("Görevdeki DOI kaynaklarını yeniden oku", source)
+        self.assertIn("manager.inspect_source_documents(mid, refresh_missing=True)", source)
         self.assertIn("store.verify_schema()", source)
         self.assertIn("except LookupError:", source)
         self.assertIn("except PermissionError:", source)
@@ -33,7 +35,7 @@ class EvidencePageSmokeTests(unittest.TestCase):
         path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
         source = path.read_text(encoding="utf-8")
         self.assertIn("from core.storage_config import cano_database_url", source)
-        self.assertEqual(source.count("ColonySnapshotStore(cano_database_url(os.environ))"), 4)
+        self.assertEqual(source.count("ColonySnapshotStore(cano_database_url(os.environ))"), 5)
         self.assertNotIn('os.environ["DATABASE_URL"]', source)
 
 
