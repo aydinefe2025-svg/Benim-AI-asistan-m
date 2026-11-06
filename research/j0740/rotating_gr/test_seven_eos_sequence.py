@@ -28,8 +28,7 @@ class SevenEosSequenceTests(unittest.TestCase):
     def test_unstable_branch_not_used(self):
         points = [mock(0.9e15, 1.8), mock(1e15, 2.10),
                   mock(1.1e15, 2.05), mock(1.2e15, 2.08)]
-        self.assertIsNone(first_stable_crossing(points, 2.073) if False else
-                          first_stable_crossing(points, 2.12))
+        self.assertIsNone(first_stable_crossing(points, 2.12))
 
     def test_density_duplicates_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "duplicate central density"):
