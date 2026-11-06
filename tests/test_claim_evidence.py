@@ -6,12 +6,54 @@ from pathlib import Path
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
-from core.claim_evidence import audit_claim_quotes, record_source_claim_review
+from core.claim_evidence import (
+    audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
+)
 from core.targeted_research import execute_targeted_research
 
 
 DOI = "10.1038/nprot.2013.143"
 QUOTE = "Targeted nucleases are powerful tools for genome engineering."
+
+
+class ReviewQueueFilterTests(unittest.TestCase):
+    def test_includes_only_safe_readable_source_excerpts(self):
+        readable = [{
+            "source_documents": [{
+                "status": "abstract_excerpt",
+                "doi": DOI,
+                "url": "https://europepmc.org/articles/PMC1234567",
+                "excerpt": "An actual abstract excerpt.",
+            }],
+        }]
+        self.assertTrue(has_readable_source_excerpt(readable))
+        self.assertTrue(has_readable_source_excerpt(json.dumps(readable)))
+
+    def test_excludes_metadata_only_missing_and_unsafe_sources(self):
+        cases = [
+            [{"source_documents": [{
+                "status": "metadata_only", "doi": DOI,
+                "url": "https://doi.org/" + DOI, "excerpt": QUOTE,
+            }]}],
+            [{"source_documents": [{
+                "status": "full_text_excerpt", "doi": DOI,
+                "url": "https://doi.org/" + DOI, "excerpt": "  ",
+            }]}],
+            [{"source_documents": [{
+                "status": "full_text_excerpt", "doi": DOI,
+                "url": "http://doi.org/" + DOI, "excerpt": QUOTE,
+            }]}],
+            [{"source_documents": [{
+                "status": "full_text_excerpt", "doi": "not-a-doi",
+                "url": "https://doi.org/not-a-doi", "excerpt": QUOTE,
+            }]}],
+            [{"source_documents": []}],
+            [],
+            "not-json",
+        ]
+        for stages in cases:
+            with self.subTest(stages=stages):
+                self.assertFalse(has_readable_source_excerpt(stages))
 
 
 class DraftModel:
