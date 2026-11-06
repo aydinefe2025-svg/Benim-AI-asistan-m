@@ -42,6 +42,40 @@ def bracketed_rotating_mass_solver(eval_model, target:float, lo:float, hi:float,
     raise RuntimeError(f"Target mass fit did not converge within {max_evaluations} evaluations")
 
 
+
+def source_fit_valid_branch(masses, radii, frequency_hz):
+    """Select the contiguous portion where the published 2020 fit is defined.
+
+    Low-mass TOV sequences may have very large radii. Their fit parameter
+    q=nu/nu_critical can exceed the published singularity threshold 1.07,
+    even though the high-mass J0740 portion is valid. Never extrapolate
+    through invalid nodes; report exactly which source points were removed.
+    """
+    m = np.asarray(masses, dtype=float)
+    r = np.asarray(radii, dtype=float)
+    if (m.ndim != 1 or r.shape != m.shape or m.size < 3
+            or not np.all(np.isfinite(m)) or not np.all(np.isfinite(r))
+            or np.any(m <= 0) or np.any(r <= 0) or np.any(np.diff(m) <= 0)
+            or not math.isfinite(frequency_hz) or frequency_hz < 0):
+        raise ValueError('Invalid source EOS curve or rotation frequency')
+    nu_critical = 1278.0 * np.sqrt(m / 1.4) * (10.0 / r)**1.5
+    q = frequency_hz / nu_critical
+    valid = np.isfinite(q) & (q < 1.07)
+    if np.count_nonzero(valid) < 3:
+        raise ValueError('Too few EOS nodes in semi-empirical fit validity domain')
+    first = int(np.flatnonzero(valid)[0])
+    if not np.all(valid[first:]):
+        raise ValueError('Fit-valid source EOS branch not a contiguous high-mass suffix')
+    return m[first:], r[first:], {
+        'source_nodes': int(m.size),
+        'excluded_low_mass_nodes_outside_fit_domain': first,
+        'fit_valid_nodes': int(m.size - first),
+        'fit_valid_mass_min_msun': float(m[first]),
+        'fit_valid_mass_max_msun': float(m[-1]),
+        'fit_constraint': 'nu/nu_critical < 1.07; no EOS extrapolation',
+    }
+
+
 def calculate(binary:Path,eos:Path,jester_npz:Path,target:float=TARGET_MASS_MSUN):
     if 'MPA1' not in eos.name or 'MPA1' not in jester_npz.name:
         raise ValueError('Source must be exactly matching MPA1 table for this first test')
@@ -59,7 +93,8 @@ def calculate(binary:Path,eos:Path,jester_npz:Path,target:float=TARGET_MASS_MSUN
     import sys
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
     from rotation_same_baryon_audit import eos_at_rotating_mass
-    empirical=eos_at_rotating_mass(masses,radii,target,frequency_hz=OBSERVED_SPIN_HZ)
+    valid_masses, valid_radii, fit_domain = source_fit_valid_branch(masses,radii,OBSERVED_SPIN_HZ)
+    empirical=eos_at_rotating_mass(valid_masses,valid_radii,target,frequency_hz=OBSERVED_SPIN_HZ)
     return {'status':'J0740_MPA1_FIXED_EOS_MATCHED_MASS_FULL_GR_SOLVED_NOT_BAYES',
             'source_eos':'JESTER MPA1 (NOT generic APR)',
             'source_eos_npz_sha256':hashlib.sha256(jester_npz.read_bytes()).hexdigest(),
@@ -71,6 +106,7 @@ def calculate(binary:Path,eos:Path,jester_npz:Path,target:float=TARGET_MASS_MSUN
             'jester_source_static_radius_at_static_mass_km':source_static_r,
             'rns_minus_jester_static_TOV_km':diff,
             'F28_2020_empirical_same_baryon_prediction_at_target_mass':empirical,
+            'F28_2020_fit_source_domain':fit_domain,
             'GR_minus_empirical_same_EOS_eq_radius_km':rot['radius_eq_km']-empirical['R_equatorial_rotating_km'],
             'central_density_bisection_trace':trace,
             'limitations':['single MPA1 EOS, no model-selection evidence or posterior',
