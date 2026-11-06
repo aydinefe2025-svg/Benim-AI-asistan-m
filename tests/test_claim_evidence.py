@@ -95,6 +95,36 @@ class ClaimQuoteAuditTests(unittest.TestCase):
                 "excerpt": QUOTE + " Other methods were evaluated.",
                 "claim_verified": False})
 
+    def test_refresh_missing_sources_adds_requested_dois_without_losing_good_evidence(self):
+        with self.manager.colony._db() as db:
+            row = db.execute("SELECT stages FROM colony_missions WHERE id=?",
+                             (self.mission_id,)).fetchone()
+            stages = json.loads(row[0])
+            stages[0]["source_leads"] = [
+                {"title": "Wrong match", "url": "https://doi.org/10.64239/pi-tr-qt4802"},
+                {"title": "Correction", "url": "https://doi.org/10.1136/bmj.q1024"},
+            ]
+            db.execute("UPDATE colony_missions SET task=?,stages=? WHERE id=?",
+                       ("BMJ paper 10.1136/bmj-2023-075847; correction 10.1136/bmj.q1024",
+                        json.dumps(stages), self.mission_id))
+        old = self.manager.inspect_source_documents(
+            self.mission_id,
+            reader=lambda doi: {"doi": doi, "status": "not_found", "title": "",
+                                "url": "https://doi.org/" + doi, "excerpt": ""})
+        self.assertEqual(old[0]["doi"], "10.1136/bmj-2023-075847")
+        retained = []
+        def reader(doi):
+            retained.append(doi)
+            return {"doi": doi, "status": "full_text_excerpt", "title": "BMJ paper",
+                    "url": "https://europepmc.org/articles/PMC1234567",
+                    "excerpt": "Retrieved paper excerpt.", "claim_verified": False}
+        refreshed = self.manager.inspect_source_documents(
+            self.mission_id, reader=reader, refresh_missing=True)
+        self.assertIn("10.1136/bmj-2023-075847", retained)
+        self.assertEqual(refreshed[0]["status"], "full_text_excerpt")
+        saved = self.manager.get(self.mission_id)["stages"][0]["source_documents"]
+        self.assertEqual(saved, refreshed)
+
     def test_verbatim_excerpt_quote_is_cited_but_never_fact_verified(self):
         self.add_excerpt()
         model = QuoteModel([
