@@ -126,4 +126,4 @@ def record_claim_evidence_appraisal(manager, mission_id, claim_index, *,
         db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
                    (json.dumps(current, ensure_ascii=False), mission_id))
     return manager.get(mission_id)["stages"][0]["source_claim_audit"][claim_index][
-        "evidence_appraisal"
+        "evidence_appraisal"]
