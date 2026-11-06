@@ -6,7 +6,7 @@ from pathlib import Path
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
-from core.europepmc_evidence import _abstract_excerpt, read_publication_evidence
+from core.europepmc_evidence import _abstract_excerpt, _xml_excerpt, read_publication_evidence
 
 
 class FakeModel:
