@@ -16,7 +16,8 @@
 
 ## Not verified / remaining limits
 
-- Groq and Google Gemini model generation was not called. The visible Groq connection control was not used, and no inference request was sent, so provider credentials, quota, and generated output remain unverified.
+- **Groq:** the live app's read-only authenticated model-list check succeeded for the selected model. It sent no prompt and generated no text; inference/quota behavior remains untested.
+- **Google Gemini:** the live provider selector exposes only Groq, so Gemini is not configured/available in this production app. No Google key value was inspected.
 - The local research-dashboard provider fallback in this working copy is not part of the deployed Render commit and is not represented as live.
 - Render auto-deploy is disabled. Future branch changes require the configured deployment path; nothing was deployed as part of this audit.
 - OpenCode's optional local HTTP background service is inactive, while its CLI and Ollama model listing work.
