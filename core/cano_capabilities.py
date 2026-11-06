@@ -3,7 +3,7 @@ import re
 
 
 def capability_reply(message, *, persistent_memory=False, persistent_colony=False):
-    normalized = ' '.join(str(message).casefold().replace('i\\u0307', 'i').split())
+    normalized = ' '.join(str(message).casefold().replace('i\u0307', 'i').split())
     normalized = re.sub(r'[.!?,;]+$', '', normalized)
     exact_matches = {
         'kendini geliştir', 'kendini geliştir cano', 'cano kendini geliştir',
@@ -34,7 +34,7 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
         'simüle et', 'başlat', 'oluştur',
     )
     contains_task = any(
-        re.search(rf'\\b{re.escape(verb)}\\b', normalized) for verb in task_verbs
+        re.search(rf'\b{re.escape(verb)}\b', normalized) for verb in task_verbs
     )
     natural_learning_request = (
         len(normalized) <= 240
@@ -59,26 +59,26 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
     if general_capability_request:
         return (
             'Evet, bu uygulamada sohbet etmenin yanında görev ve araştırma iş akışlarını da kullanabilirsin. '
-            'Şu anda yapabildiklerim:\\n\\n'
-            '- Soruları açıklamak, metinleri özetlemek ve bir hedefi uygulanabilir adımlara dönüştürmek.\\n'
+            'Şu anda yapabildiklerim:\n\n'
+            '- Soruları açıklamak, metinleri özetlemek ve bir hedefi uygulanabilir adımlara dönüştürmek.\n'
             '- Komuta Merkezi üzerinden uzman ajanlarla görev taslağı hazırlamak; iş akışı planlama, araştırma, eleştiri ve sonuç aşamalarından geçer. '
-            'Üretilen sonuçlar kanıt ve kaynak açısından ayrıca incelenmelidir.\\n'
-            '- Uzman ajanlara verdiğin geri bildirimi ders olarak kaydetmek. Onayladığın dersler, uygun olduğunda sonraki görevlerde bağlam olarak kullanılır.\\n'
-            '- Açıkça kaydettiğin bilgileri hafıza kitaplığında sonraki oturumlarda kullanmak.\\n\\n'
-            + memory + '\\n\\n' + colony + '\\n\\n'
+            'Üretilen sonuçlar kanıt ve kaynak açısından ayrıca incelenmelidir.\n'
+            '- Uzman ajanlara verdiğin geri bildirimi ders olarak kaydetmek. Onayladığın dersler, uygun olduğunda sonraki görevlerde bağlam olarak kullanılır.\n'
+            '- Açıkça kaydettiğin bilgileri hafıza kitaplığında sonraki oturumlarda kullanmak.\n\n'
+            + memory + '\n\n' + colony + '\n\n'
             'Sınırlarım: fiziksel deney yapamam, kendi kendime arka planda kesintisiz araştırma çalıştıramam, '
             'takvim veya hatırlatıcı oluşturamam. Kaydedilen dersler modelin ağırlıklarını eğitmez; '
             'araştırma çıktıları doğrulanmış keşif değil, incelenmesi gereken aday bulgulardır.'
         )
     return (
         'CANO’da gelişim, onayladığın dersleri sonraki görevlere katmak ve sonuçları '
-        'ölçmek üzerinden ilerliyor. Mevcut araçlarım:\\n\\n'
+        'ölçmek üzerinden ilerliyor. Mevcut araçlarım:\n\n'
         '- **Öğrenen uzman ajanlar:** Kanıt referansıyla eklediğin ve onayladığın dersler '
-        'seçili uzmanın sonraki görevlerine bağlam olur.\\n'
+        'seçili uzmanın sonraki görevlerine bağlam olur.\n'
         '- **Komuta Merkezi:** Ekip bir görevi planlama, araştırma, eleştiri ve sonuç '
-        'aşamalarında işler; çıktılar ayrıca doğrulanmalıdır.\\n'
-        '- **Hafıza kitaplığı:** Açıkça kaydettiğin notlar sonraki yanıtlarda kullanılır.\\n\\n'
-        + memory + '\\n\\n' + colony + '\\n\\n'
+        'aşamalarında işler; çıktılar ayrıca doğrulanmalıdır.\n'
+        '- **Hafıza kitaplığı:** Açıkça kaydettiğin notlar sonraki yanıtlarda kullanılır.\n\n'
+        + memory + '\n\n' + colony + '\n\n'
         'Bu mekanizma model ağırlıklarını yeniden eğitmez. Uygulama kodunu değiştirme '
         've yeni sürümü yayımlama işi Codex geliştirme akışında yapılır. '
         'Bu mesaj mevcut yetenekleri bildirir; yeni bir eğitim veya kod yayını başlatmaz.'
