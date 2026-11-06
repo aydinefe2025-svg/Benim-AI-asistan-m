@@ -111,25 +111,33 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-20b"):
     raw = client.verify(model, _SYSTEM, prompt)
     predictions = _parse_assessments(raw, set(range(len(CASES))))
     labels = ("supported", "contradicted", "insufficient")
-    matrix = {actual: {predicted: 0 for predicted in labels} for actual in labels}
+    # Omitted, duplicate or invalid model outputs must still count as errors.
+    # Otherwise an unanswered gold case disappears from the confusion matrix,
+    # inflating per-class recall and shrinking its stated support.
+    predictions_allowed = (*labels, "unscored")
+    matrix = {
+        actual: {predicted: 0 for predicted in predictions_allowed}
+        for actual in labels
+    }
     results = []
     correct = 0
     for index, case in enumerate(CASES):
-        prediction = predictions.get(index, {}).get("verdict")
+        prediction = predictions.get(index, {}).get("verdict") or "unscored"
         expected = case["expected"]
-        if prediction in matrix[expected]:
-            matrix[expected][prediction] += 1
+        matrix[expected][prediction] += 1
         passed = prediction == expected
         correct += int(passed)
         results.append({
             "case_id": case["case_id"], "expected": expected,
             "predicted": prediction, "passed": passed,
         })
+    unscored = sum(matrix[label]["unscored"] for label in labels)
     per_class = {}
     for label in labels:
         tp = matrix[label][label]
         fp = sum(matrix[actual][label] for actual in labels if actual != label)
-        fn = sum(matrix[label][predicted] for predicted in labels if predicted != label)
+        fn = sum(matrix[label][predicted]
+                 for predicted in predictions_allowed if predicted != label)
         precision = tp / (tp + fp) if tp + fp else 0.0
         recall = tp / (tp + fn) if tp + fn else 0.0
         per_class[label] = {
@@ -139,8 +147,12 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-20b"):
     return {
         "model": model, "total": len(CASES), "correct": correct,
         "accuracy": round(correct / len(CASES), 3),
+        "coverage": round((len(CASES) - unscored) / len(CASES), 3),
+        "unscored": unscored,
         "confusion_matrix": matrix, "per_class": per_class,
         "cases": results,
-        "scope": "12 fixed synthetic claim-passage fixtures; no human baseline; not real-world scientific accuracy.",
+        "scope": ("12 fixed synthetic claim-passage fixtures; missing/invalid "
+                  "answers count as errors; no human baseline; "
+                  "not real-world scientific accuracy."),
     }
 
