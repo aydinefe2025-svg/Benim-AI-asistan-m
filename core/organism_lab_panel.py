@@ -1,7 +1,7 @@
 """CANO's explicitly triggered, bounded digital-organism lab UI.
 
-No physical robotics, biological experiments, LLM calls, network writes, or
-server-side persistence. The user can download exact results as JSON.
+No physical robotics, biological experiments, or LLM calls. When configured,
+explicit run results are stored in the authenticated archive and can be downloaded.
 """
 from __future__ import annotations
 
