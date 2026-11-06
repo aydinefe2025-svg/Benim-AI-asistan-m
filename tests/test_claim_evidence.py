@@ -125,6 +125,36 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         saved = self.manager.get(self.mission_id)["stages"][0]["source_documents"]
         self.assertEqual(saved, refreshed)
 
+    def test_refresh_reloads_attached_correction_even_when_not_a_task_doi(self):
+        correction = "10.1136/bmj.q1024"
+        with self.manager.colony._db() as db:
+            row = db.execute("SELECT stages FROM colony_missions WHERE id=?",
+                             (self.mission_id,)).fetchone()
+            stages = json.loads(row[0])
+            stages[0]["source_documents"] = [
+                {"doi": DOI, "title": "BMJ article", "url": "https://doi.org/" + DOI,
+                 "status": "full_text_excerpt", "excerpt": "Old article", "claim_verified": False},
+                {"doi": correction, "title": "BMJ correction",
+                 "url": "https://doi.org/" + correction,
+                 "status": "full_text_excerpt", "excerpt": "Old correction", "claim_verified": False},
+            ]
+            stages[0]["source_leads"] = []
+            db.execute("UPDATE colony_missions SET task=?,stages=? WHERE id=?",
+                       ("Review BMJ paper " + DOI, json.dumps(stages), self.mission_id))
+
+        read = []
+        def reader(doi):
+            read.append(doi)
+            return {"doi": doi, "status": "full_text_excerpt", "title": "BMJ",
+                    "url": "https://europepmc.org/articles/PMC1234567",
+                    "excerpt": "Fresh " + doi, "claim_verified": False}
+
+        refreshed = self.manager.inspect_source_documents(
+            self.mission_id, reader=reader, refresh_missing=True)
+        self.assertEqual(read, [DOI, correction])
+        self.assertEqual([item["excerpt"] for item in refreshed],
+                         ["Fresh " + DOI, "Fresh " + correction])
+
     def test_verbatim_excerpt_quote_is_cited_but_never_fact_verified(self):
         self.add_excerpt()
         model = QuoteModel([
