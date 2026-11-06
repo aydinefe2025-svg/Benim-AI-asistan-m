@@ -48,6 +48,41 @@ def benchmark_sha256(cases: Sequence[BenchmarkCase]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def parse_memory_benchmark_cases(raw: str, *, max_cases: int = 5) -> tuple[BenchmarkCase, ...]:
+    """Parse a small user-labeled JSON suite before any provider call.
+
+    The UI caps this at five cases (20 calls per paired run). Prompts and
+    expected answers stay in the caller's session and are not included in the
+    returned benchmark report.
+    """
+    if not isinstance(raw, str) or not raw.strip() or len(raw) > 12_000:
+        raise ValueError("Test takımı boş veya 12.000 karakter sınırını aşıyor")
+    if type(max_cases) is not int or not 1 <= max_cases <= 10:
+        raise ValueError("max_cases 1 ile 10 arasında olmalı")
+    try:
+        payload = json.loads(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Test takımı geçerli JSON değil") from exc
+    if not isinstance(payload, list) or not 1 <= len(payload) <= max_cases:
+        raise ValueError(f"Test takımı 1 ile {max_cases} vaka içermeli")
+    cases = []
+    allowed = {"case_id", "prompt", "expected"}
+    for item in payload:
+        if not isinstance(item, dict) or set(item) != allowed:
+            raise ValueError("Her vaka yalnız case_id, prompt ve expected alanlarını içermeli")
+        if any(not isinstance(item[key], str) or not item[key].strip()
+               for key in allowed):
+            raise ValueError("Her vakanın üç alanı da dolu metin olmalı")
+        if (len(item["case_id"]) > 80 or len(item["prompt"]) > 2_000
+                or len(item["expected"]) > 1_000):
+            raise ValueError("Vaka alanlarından biri izin verilen uzunluğu aşıyor")
+        cases.append(BenchmarkCase(
+            item["case_id"].strip(), item["prompt"].strip(), item["expected"].strip()))
+    if len({case.case_id for case in cases}) != len(cases):
+        raise ValueError("Vaka kimlikleri tekrarlanmamalı")
+    return tuple(cases)
+
+
 def run_benchmark(
     name: str,
     cases: Sequence[BenchmarkCase],
