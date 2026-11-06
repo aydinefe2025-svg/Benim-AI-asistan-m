@@ -1,0 +1,381 @@
+{
+  "status": "SEVEN_FIXED_EOS_POSTERIOR_PRIOR_LIKELIHOOD_RATIO_DIAGNOSTIC_CONDITIONAL_NOT_FINAL",
+  "source_sha256": "4587a7d71aca7b561e5cf22623e3f0e2d80a6c54add0ecb7abc0389d705e8d5b",
+  "source_n": 100000,
+  "xpsi_prior_analytic_acceptance": 0.5780634957515011,
+  "radio_factorization": "pi_source(M,R)=pi_radio(M)*U(R)*I_native_shape_g(M,R)/A_geom; target_mass_prior=pi_radio once; cancels inside q/pi_source ratio, no second independent radio likelihood multiplied",
+  "curve_label_set": [
+    "APR4_EPP",
+    "ENG",
+    "MPA1",
+    "MS1",
+    "MS1B",
+    "WFF1",
+    "WFF2"
+  ],
+  "reproduction": "Direct seven-source-EOS fixed-curve proxy; rotating M-R via empirical same-baryon fit, not full GR",
+  "grid_modes": {
+    "sigma=0.7|boundary=truncate": {
+      "outside_native_prior_KDE_probability_before_clip": 0.0,
+      "inside_KDE_probability_after_clip": 1.0,
+      "scores": {
+        "APR4_EPP": {
+          "relative_likelihood_proxy": 0.6294321347509576,
+          "mass_support_probability": 0.7414371190994469,
+          "conditioned_score_sensitivity": 0.8489352886937586
+        },
+        "ENG": {
+          "relative_likelihood_proxy": 1.1804896134364113,
+          "mass_support_probability": 0.37419518738585594,
+          "conditioned_score_sensitivity": 3.154742907527389
+        },
+        "MPA1": {
+          "relative_likelihood_proxy": 2.2832362398773864,
+          "mass_support_probability": 0.9999981385439095,
+          "conditioned_score_sensitivity": 2.2832404900293026
+        },
+        "MS1": {
+          "relative_likelihood_proxy": 0.21916033635511542,
+          "mass_support_probability": 0.9999972887346457,
+          "conditioned_score_sensitivity": 0.21916093055855346
+        },
+        "MS1B": {
+          "relative_likelihood_proxy": 0.2977617675507071,
+          "mass_support_probability": 0.9999967909557967,
+          "conditioned_score_sensitivity": 0.29776272308444757
+        },
+        "WFF1": {
+          "relative_likelihood_proxy": 0.01898205666755987,
+          "mass_support_probability": 0.029313285141067652,
+          "conditioned_score_sensitivity": 0.6475581490170877
+        },
+        "WFF2": {
+          "relative_likelihood_proxy": 0.2513513873473214,
+          "mass_support_probability": 0.11139267924829606,
+          "conditioned_score_sensitivity": 2.256444400507282
+        }
+      },
+      "ordering_raw": [
+        "MPA1",
+        "ENG",
+        "APR4_EPP",
+        "MS1B",
+        "WFF2",
+        "MS1",
+        "WFF1"
+      ],
+      "ordering_mass_conditioned_sensitivity": [
+        "ENG",
+        "MPA1",
+        "WFF2",
+        "APR4_EPP",
+        "WFF1",
+        "MS1B",
+        "MS1"
+      ]
+    },
+    "sigma=0.7|boundary=reflect": {
+      "outside_native_prior_KDE_probability_before_clip": 0.0,
+      "inside_KDE_probability_after_clip": 1.0,
+      "scores": {
+        "APR4_EPP": {
+          "relative_likelihood_proxy": 0.6293453772551034,
+          "mass_support_probability": 0.7414371190994469,
+          "conditioned_score_sensitivity": 0.8488182760791763
+        },
+        "ENG": {
+          "relative_likelihood_proxy": 1.1803269011802535,
+          "mass_support_probability": 0.37419518738585594,
+          "conditioned_score_sensitivity": 3.1543080749543284
+        },
+        "MPA1": {
+          "relative_likelihood_proxy": 2.2829215310347983,
+          "mass_support_probability": 0.9999981385439095,
+          "conditioned_score_sensitivity": 2.282925780600897
+        },
+        "MS1": {
+          "relative_likelihood_proxy": 0.2191301284884957,
+          "mass_support_probability": 0.9999972887346457,
+          "conditioned_score_sensitivity": 0.21913072261003197
+        },
+        "MS1B": {
+          "relative_likelihood_proxy": 0.29772072569108854,
+          "mass_support_probability": 0.9999967909557967,
+          "conditioned_score_sensitivity": 0.2977216810931234
+        },
+        "WFF1": {
+          "relative_likelihood_proxy": 0.018979440284296743,
+          "mass_support_probability": 0.029313285141067652,
+          "conditioned_score_sensitivity": 0.6474688931301908
+        },
+        "WFF2": {
+          "relative_likelihood_proxy": 0.2513167424416329,
+          "mass_support_probability": 0.11139267924829606,
+          "conditioned_score_sensitivity": 2.2561333845058513
+        }
+      },
+      "ordering_raw": [
+        "MPA1",
+        "ENG",
+        "APR4_EPP",
+        "MS1B",
+        "WFF2",
+        "MS1",
+        "WFF1"
+      ],
+      "ordering_mass_conditioned_sensitivity": [
+        "ENG",
+        "MPA1",
+        "WFF2",
+        "APR4_EPP",
+        "WFF1",
+        "MS1B",
+        "MS1"
+      ]
+    },
+    "sigma=1.2|boundary=truncate": {
+      "outside_native_prior_KDE_probability_before_clip": 0.0,
+      "inside_KDE_probability_after_clip": 1.0,
+      "scores": {
+        "APR4_EPP": {
+          "relative_likelihood_proxy": 0.6350523491471002,
+          "mass_support_probability": 0.7414371190994469,
+          "conditioned_score_sensitivity": 0.8565154519353413
+        },
+        "ENG": {
+          "relative_likelihood_proxy": 1.175939042117037,
+          "mass_support_probability": 0.37419518738585594,
+          "conditioned_score_sensitivity": 3.1425819512329887
+        },
+        "MPA1": {
+          "relative_likelihood_proxy": 2.281341249507008,
+          "mass_support_probability": 0.9999981385439095,
+          "conditioned_score_sensitivity": 2.281345496131476
+        },
+        "MS1": {
+          "relative_likelihood_proxy": 0.21682512666249604,
+          "mass_support_probability": 0.9999972887346457,
+          "conditioned_score_sensitivity": 0.21682571453454377
+        },
+        "MS1B": {
+          "relative_likelihood_proxy": 0.29514769668638885,
+          "mass_support_probability": 0.9999967909557967,
+          "conditioned_score_sensitivity": 0.2951486438314334
+        },
+        "WFF1": {
+          "relative_likelihood_proxy": 0.01869932625259651,
+          "mass_support_probability": 0.029313285141067652,
+          "conditioned_score_sensitivity": 0.6379130200728993
+        },
+        "WFF2": {
+          "relative_likelihood_proxy": 0.2528315236087184,
+          "mass_support_probability": 0.11139267924829606,
+          "conditioned_score_sensitivity": 2.2697319546929373
+        }
+      },
+      "ordering_raw": [
+        "MPA1",
+        "ENG",
+        "APR4_EPP",
+        "MS1B",
+        "WFF2",
+        "MS1",
+        "WFF1"
+      ],
+      "ordering_mass_conditioned_sensitivity": [
+        "ENG",
+        "MPA1",
+        "WFF2",
+        "APR4_EPP",
+        "WFF1",
+        "MS1B",
+        "MS1"
+      ]
+    },
+    "sigma=1.2|boundary=reflect": {
+      "outside_native_prior_KDE_probability_before_clip": 0.0,
+      "inside_KDE_probability_after_clip": 1.0,
+      "scores": {
+        "APR4_EPP": {
+          "relative_likelihood_proxy": 0.6348854717115562,
+          "mass_support_probability": 0.7414371190994469,
+          "conditioned_score_sensitivity": 0.8562903789908592
+        },
+        "ENG": {
+          "relative_likelihood_proxy": 1.1756300318567523,
+          "mass_support_probability": 0.37419518738585594,
+          "conditioned_score_sensitivity": 3.141756151568264
+        },
+        "MPA1": {
+          "relative_likelihood_proxy": 2.2807417644758456,
+          "mass_support_probability": 0.9999981385439095,
+          "conditioned_score_sensitivity": 2.2807460099843966
+        },
+        "MS1": {
+          "relative_likelihood_proxy": 0.21676814990908744,
+          "mass_support_probability": 0.9999972887346457,
+          "conditioned_score_sensitivity": 0.21676873762665566
+        },
+        "MS1B": {
+          "relative_likelihood_proxy": 0.29507013852792235,
+          "mass_support_probability": 0.9999967909557967,
+          "conditioned_score_sensitivity": 0.29507108542407856
+        },
+        "WFF1": {
+          "relative_likelihood_proxy": 0.018694412491367815,
+          "mass_support_probability": 0.029313285141067652,
+          "conditioned_score_sensitivity": 0.6377453909175506
+        },
+        "WFF2": {
+          "relative_likelihood_proxy": 0.25276508518621493,
+          "mass_support_probability": 0.11139267924829606,
+          "conditioned_score_sensitivity": 2.2691355203226373
+        }
+      },
+      "ordering_raw": [
+        "MPA1",
+        "ENG",
+        "APR4_EPP",
+        "MS1B",
+        "WFF2",
+        "MS1",
+        "WFF1"
+      ],
+      "ordering_mass_conditioned_sensitivity": [
+        "ENG",
+        "MPA1",
+        "WFF2",
+        "APR4_EPP",
+        "WFF1",
+        "MS1B",
+        "MS1"
+      ]
+    },
+    "sigma=2.0|boundary=truncate": {
+      "outside_native_prior_KDE_probability_before_clip": 0.0,
+      "inside_KDE_probability_after_clip": 1.0,
+      "scores": {
+        "APR4_EPP": {
+          "relative_likelihood_proxy": 0.6400077489877756,
+          "mass_support_probability": 0.7414371190994469,
+          "conditioned_score_sensitivity": 0.8631989584836703
+        },
+        "ENG": {
+          "relative_likelihood_proxy": 1.1722846621252656,
+          "mass_support_probability": 0.37419518738585594,
+          "conditioned_score_sensitivity": 3.1328159785135075
+        },
+        "MPA1": {
+          "relative_likelihood_proxy": 2.2796742898655338,
+          "mass_support_probability": 0.9999981385439095,
+          "conditioned_score_sensitivity": 2.279678533387024
+        },
+        "MS1": {
+          "relative_likelihood_proxy": 0.21780791971210003,
+          "mass_support_probability": 0.9999972887346457,
+          "conditioned_score_sensitivity": 0.21780851024876774
+        },
+        "MS1B": {
+          "relative_likelihood_proxy": 0.29598950252731826,
+          "mass_support_probability": 0.9999967909557967,
+          "conditioned_score_sensitivity": 0.29599045237376365
+        },
+        "WFF1": {
+          "relative_likelihood_proxy": 0.020140095029549946,
+          "mass_support_probability": 0.029313285141067652,
+          "conditioned_score_sensitivity": 0.6870637300673561
+        },
+        "WFF2": {
+          "relative_likelihood_proxy": 0.25309625673779723,
+          "mass_support_probability": 0.11139267924829606,
+          "conditioned_score_sensitivity": 2.272108530342839
+        }
+      },
+      "ordering_raw": [
+        "MPA1",
+        "ENG",
+        "APR4_EPP",
+        "MS1B",
+        "WFF2",
+        "MS1",
+        "WFF1"
+      ],
+      "ordering_mass_conditioned_sensitivity": [
+        "ENG",
+        "MPA1",
+        "WFF2",
+        "APR4_EPP",
+        "WFF1",
+        "MS1B",
+        "MS1"
+      ]
+    },
+    "sigma=2.0|boundary=reflect": {
+      "outside_native_prior_KDE_probability_before_clip": 0.0,
+      "inside_KDE_probability_after_clip": 1.0000000000000002,
+      "scores": {
+        "APR4_EPP": {
+          "relative_likelihood_proxy": 0.6397234392712107,
+          "mass_support_probability": 0.7414371190994469,
+          "conditioned_score_sensitivity": 0.862815500858956
+        },
+        "ENG": {
+          "relative_likelihood_proxy": 1.1717638998055135,
+          "mass_support_probability": 0.37419518738585594,
+          "conditioned_score_sensitivity": 3.131424292202975
+        },
+        "MPA1": {
+          "relative_likelihood_proxy": 2.2786615934532835,
+          "mass_support_probability": 0.9999981385439095,
+          "conditioned_score_sensitivity": 2.2786658350896802
+        },
+        "MS1": {
+          "relative_likelihood_proxy": 0.21771116321498443,
+          "mass_support_probability": 0.9999972887346457,
+          "conditioned_score_sensitivity": 0.2177117534893189
+        },
+        "MS1B": {
+          "relative_likelihood_proxy": 0.29585801553875785,
+          "mass_support_probability": 0.9999967909557967,
+          "conditioned_score_sensitivity": 0.29585896496325437
+        },
+        "WFF1": {
+          "relative_likelihood_proxy": 0.020131148224267516,
+          "mass_support_probability": 0.029313285141067652,
+          "conditioned_score_sensitivity": 0.6867585167403826
+        },
+        "WFF2": {
+          "relative_likelihood_proxy": 0.252983824153769,
+          "mass_support_probability": 0.11139267924829606,
+          "conditioned_score_sensitivity": 2.271099194856998
+        }
+      },
+      "ordering_raw": [
+        "MPA1",
+        "ENG",
+        "APR4_EPP",
+        "MS1B",
+        "WFF2",
+        "MS1",
+        "WFF1"
+      ],
+      "ordering_mass_conditioned_sensitivity": [
+        "ENG",
+        "MPA1",
+        "WFF2",
+        "APR4_EPP",
+        "WFF1",
+        "MS1B",
+        "MS1"
+      ]
+    }
+  },
+  "statistical_limits": [
+    "Relative likelihood proxy from a KDE of a 100k posterior subsample, not direct event-level X-PSI evaluation or nested-sampler convergence.",
+    "Spin correction uses approximate mass/radius relation, not full rotating GR stellar sequences.",
+    "Model mass/population/selection measure is an explicit choice; EOS stability support and alternative normalization must be compared.",
+    "The native effective gravity Cython formula was transcribed to Python, not executed as compiled original extension.",
+    "Nuisance factorization follows user-extracted STU CustomPrior and assumes no additional hidden M/R-coupled base-prior transformations.",
+    "Relative scores are not universal EOS probabilities and must not be combined with Legred GP 10k posterior as independent data."
+  ]
+}

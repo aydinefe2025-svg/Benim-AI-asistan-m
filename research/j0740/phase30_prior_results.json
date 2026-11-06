@@ -1,0 +1,81 @@
+{
+  "status": "SOURCE_CODE_GROUNDED_MR_PRIOR_FACTORIZATION_XPSI_V121_GRAVITY_PYTHON_TRANSLATION_NOT_NATIVE_EVENT_LIKELIHOOD",
+  "source": {
+    "user_extracted_prior": "CustomPrior_GLS_compressed_scaling_Dfix_source.py",
+    "source_prior_sha256": "5ebcf0a2f11a0f159860ec740e719957066521a501a02c889c5e3da9063207da",
+    "tagged_xpsi_spacetime_blob_sha": "7897203ee59ee06960715f585f95dc6222580fc5",
+    "tagged_xpsi_gravity_kernel_blob_sha": "8774124fbd962aa0e420e0cd72cbe7f1f0330574",
+    "original_prior_written_sha_on_Windows": "ECABB879C38D4E4E343E5E304E1BE39D87A7B0A35D7077454E4677EA1458AA93",
+    "source_caveat": "Original Windows SHA from user-provided console log, not recomputed on C drive this turn."
+  },
+  "source_polar_multiplier": 3.01,
+  "old_F22_multiplier": 3.0,
+  "source_correlation_rho": 0.8,
+  "source_radio_mass_prior": "truncnorm(-5,5,loc=2.082,scale=0.0703), as in original inverse_sample",
+  "source_conditional_cosi_sigma": 0.0018239999999999997,
+  "source_at_M2082": {
+    "mass": 2.082,
+    "root_km": 9.311521272839538,
+    "old_F22_root_km": 9.279848131492113,
+    "root_shift_m": 31.673141347425826
+  },
+  "geometric_only_analytic_source": {
+    "acceptance": 0.5780634957515011,
+    "mean_mass_after_msun": 2.078652961270256,
+    "mass_shift_msun": -0.0033470387297440674,
+    "m_quantile_16_50_84": [
+      2.0088236126209114,
+      2.0786555848993236,
+      2.148482367587625
+    ],
+    "m_grid_min": 1.4,
+    "m_grid_max": 2.76
+  },
+  "geometric_only_analytic_old_F22": {
+    "acceptance": 0.5808012994142133,
+    "mean_mass_after_msun": 2.07868061999227,
+    "mass_shift_msun": -0.0033193800077300217,
+    "m_quantile_16_50_84": [
+      2.008849975544655,
+      2.078683178029558,
+      2.1485114080242362
+    ],
+    "m_grid_min": 1.4,
+    "m_grid_max": 2.76
+  },
+  "support_acceptance_difference_pp": -0.2737803662712257,
+  "geometry_2D_QMC": {
+    "samples": 524288,
+    "acceptance": 0.5780830383300781,
+    "passed": 303082
+  },
+  "independent_hot_region_6D_QMC": {
+    "samples": 524288,
+    "ordered_fraction": 0.5000019073486328,
+    "nonoverlap_conditioned_on_order": 0.4997844704266723,
+    "combined_acceptance": 0.2498931884765625
+  },
+  "distance_truncation_acceptance": 0.9978941970751762,
+  "factorized_star_hot_distance_acceptance_DIAGNOSTIC": 0.14415481143905548,
+  "geometry_grid_check": {
+    "sampled_points": 52000,
+    "failed_tagged_xpsi_gravity_points": 0,
+    "failed_source_shape_ellipticity_points": 0,
+    "warning": "Same published algebra as tagged X-PSI Cython, but Python transcription, not compiled X-PSI runtime; 52k grid samples not a continuum proof."
+  },
+  "posterior": {
+    "sha256": "4587a7d71aca7b561e5cf22623e3f0e2d80a6c54add0ecb7abc0389d705e8d5b",
+    "samples": 100000,
+    "source_reconstructed_support_pass": 100000,
+    "max_polar_log10g": 14.622370786391828,
+    "min_equatorial_log10g": 14.069743187537368,
+    "gravity_evaluator": "exact algebra from X-PSI v1.2.1 effective_gravity_universal.pyx; Python transcription"
+  },
+  "hard_limitations": [
+    "Exact X-PSI v1.2.1 effective-gravity Cython formula transcribed to Python and evaluated at poles/equator; compiled extension not executed, and source CustomPrior must be matched to headline version.",
+    "User console text shows headline CustomPrior and main code; original C: drive files not directly re-opened in this session.",
+    "Nuisance hot region ordering and overlap factor is independent of M,R and hence cancels after normalizing prior, conditional on shown code and base parameter priors.",
+    "This reconstructs prior geometry and marginal factorization, not original event-level photon likelihood nor EOS Bayes factors.",
+    "The source code density(point) is not itself a normalized M,R prior; it calls support via __call__ but omits hot-region Jacobian factors and rejection normalization."
+  ]
+}
