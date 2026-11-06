@@ -70,5 +70,73 @@ class EvidenceAppraisalValidationTests(unittest.TestCase):
             validate_appraisal_profile(item)
 
 
+class _DraftModel:
+    def chat(self, model, system, prompt):
+        return "Unverified research draft."
+
+
+class _QuoteModel:
+    def chat(self, model, system, prompt):
+        import json
+        return json.dumps({"claims": [{
+            "claim": "Example research finding",
+            "doi": "10.1038/nprot.2013.143",
+            "quote": "Targeted nucleases are powerful tools for genome engineering.",
+        }]})
+
+
+class EvidenceAppraisalPersistenceTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        from pathlib import Path
+        from core.agent_colony import AgentColony
+        from core.collaborative_mission import CollaborativeMission
+        from core.claim_evidence import audit_claim_quotes
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        colony = AgentColony(Path(self.tmp.name) / "colony.sqlite3")
+        colony.create_founder("research", "Research")
+        colony.grow_specialists(approved=True)
+        self.manager = CollaborativeMission(colony)
+        record = self.manager.execute(
+            "Read paper DOI 10.1038/nprot.2013.143",
+            client=_DraftModel(), model="stub",
+            source_lookup=lambda q, limit=3: [{
+                "title": "Genome engineering",
+                "url": "https://doi.org/10.1038/nprot.2013.143",
+            }])
+        self.mission_id = record["id"]
+        self.manager.inspect_source_documents(
+            self.mission_id,
+            reader=lambda doi: {
+                "doi": doi, "status": "full_text_excerpt",
+                "title": "Genome engineering",
+                "url": "https://europepmc.org/articles/PMC1234567",
+                "excerpt": "Targeted nucleases are powerful tools for genome engineering. Results follow.",
+                "claim_verified": False,
+            })
+        audit_claim_quotes(self.manager, self.mission_id,
+                           client=_QuoteModel(), model="stub")
+
+    def test_appraisal_is_authenticated_audited_and_does_not_verify_claim(self):
+        from core.evidence_appraisal import record_claim_evidence_appraisal
+        with self.assertRaises(PermissionError):
+            record_claim_evidence_appraisal(
+                self.manager, self.mission_id, 0,
+                reviewer_id="unverified", profile=profile())
+        result = record_claim_evidence_appraisal(
+            self.manager, self.mission_id, 0,
+            reviewer_id="oidc_" + "a" * 64, profile=profile())
+        self.assertEqual(result["profile"]["study_design"], "observational")
+        self.assertEqual(len(result["evidence_digest"]), 64)
+        self.assertEqual(result["interpretation"],
+                         "structured_human_appraisal_no_universal_score")
+        saved = self.manager.get(self.mission_id)
+        claim = saved["stages"][0]["source_claim_audit"][0]
+        self.assertFalse(claim["claim_verified"])
+        self.assertEqual(len(claim["evidence_appraisal_events"]), 1)
+        self.assertEqual(saved["status"], "review_pending")
+
+
 if __name__ == "__main__":
     unittest.main()
