@@ -449,6 +449,51 @@ class CommandCenterTests(unittest.TestCase):
         self.assertIn("PostgreSQL", " ".join(st.messages))
 
 
+def test_cano_prioritizes_both_explicit_dois_over_crossref_candidates(self):
+        from core.collaborative_mission import CollaborativeMission
+        goal = ("Read DOI 10.1136/bmj-2023-075847; correction DOI "
+                "10.1136/bmj.q1024.")
+        unrelated = [{"title": "Unrelated result",
+                      "url": "https://doi.org/10.64239/pi-tr-qt4802"}]
+        st = FakeStreamlit(clicks={"cano_prepare_team"}, task=goal, crossref=True)
+        model = FakeModel()
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            with patch("core.cano_command_center.scientific_sources",
+                       return_value=unrelated) as crossref:
+                render_cano_command_center(st, answer=model)
+                st.submit = True
+                render_cano_command_center(st, answer=model)
+                colony = AgentColony(_session_database_path(st, self.db_base))
+                mission = CollaborativeMission(colony).get(
+                    read_cano_status(colony)["history"][0]["id"])
+        crossref.assert_called_once()
+        self.assertEqual(
+            [x["url"] for x in mission["stages"][0]["source_leads"][:2]],
+            ["https://doi.org/10.1136/bmj-2023-075847",
+             "https://doi.org/10.1136/bmj.q1024"])
+        self.assertEqual(len(model.calls), 4)
+
+    def test_user_supplied_dois_do_not_require_crossref_opt_in(self):
+        from core.collaborative_mission import CollaborativeMission
+        goal = ("Read DOI 10.1136/bmj-2023-075847; correction DOI "
+                "10.1136/bmj.q1024.")
+        st = FakeStreamlit(clicks={"cano_prepare_team"}, task=goal, crossref=False)
+        model = FakeModel()
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            with patch("core.cano_command_center.scientific_sources") as crossref:
+                render_cano_command_center(st, answer=model)
+                st.submit = True
+                render_cano_command_center(st, answer=model)
+                colony = AgentColony(_session_database_path(st, self.db_base))
+                mission = CollaborativeMission(colony).get(
+                    read_cano_status(colony)["history"][0]["id"])
+        crossref.assert_not_called()
+        self.assertEqual(
+            [x["url"] for x in mission["stages"][0]["source_leads"][:2]],
+            ["https://doi.org/10.1136/bmj-2023-075847",
+             "https://doi.org/10.1136/bmj.q1024"])
+        self.assertEqual(len(model.calls), 4)
+
 
 if __name__ == "__main__":
     unittest.main()
