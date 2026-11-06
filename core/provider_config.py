@@ -7,8 +7,9 @@ Never log or return credential values through diagnostics.
 def available_providers(secrets, local_models=()):
     labels = []
     for name, label in (
-        ("GROQ_API_KEY", "Groq GPT-OSS (Hızlı / Kesintisiz)"),
-        ("GOOGLE_API_KEY", "Google Gemini (Gelişmiş Mod)"),
+        ("GROQ_API_KEY", "Groq GPT-OSS (sağlayıcı kotası uygulanır)"),
+        ("GOOGLE_API_KEY", "Google Gemini (hesap kotası uygulanır)"),
+        ("OPENROUTER_API_KEY", "OpenRouter ücretsiz model havuzu (50 istek/gün sınırı)"),
     ):
         try:
             token = secrets[name]
@@ -23,7 +24,7 @@ def available_providers(secrets, local_models=()):
 def configured_credentials(secrets, environ):
     """Read credentials from Streamlit secrets or host environment."""
     credentials = {}
-    for name in ("GROQ_API_KEY", "GOOGLE_API_KEY"):
+    for name in ("GROQ_API_KEY", "GOOGLE_API_KEY", "OPENROUTER_API_KEY"):
         try:
             value = secrets[name]
         except Exception:
@@ -41,5 +42,6 @@ def credential_presence(credentials):
     """Return only booleans for safe diagnostics; never return key contents."""
     return {
         name: bool(isinstance(credentials.get(name), str) and credentials[name].strip())
-        for name in ("GROQ_API_KEY", "GOOGLE_API_KEY")
+        for name in ("GROQ_API_KEY", "GOOGLE_API_KEY", "OPENROUTER_API_KEY")
     }
+
