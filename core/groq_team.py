@@ -1,7 +1,8 @@
 """Short, explicitly triggered model calls for CANO's multi-stage team.
 
 Separate from long-form, source-discovering task drafts. Four calls must fit
-within the provider's real quota as far as possible; no automatic retries.
+within the provider's real quota as far as possible; transient failures receive
+at most three attempts with bounded backoff and SDK retries remain disabled.
 """
 from __future__ import annotations
 
