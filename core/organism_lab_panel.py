@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 
 from organism_lab.reproduction_study import run_study
 from organism_lab.shared_world import run_shared_world
@@ -71,8 +72,38 @@ def run_checked_campaign(*, seeds=10, steps=40):
             "observations": len(report["observations"])}
 
 
-def render_organism_lab_panel(st):
-    """Render only inside app.py, after its existing authentication gate."""
+def render_organism_lab_panel(st, *, owner_key=None, database_url=None):
+    """Render after authentication; persistence is owner-scoped and opt-in by config."""
+    store = None
+    storage_problem = False
+    if owner_key and database_url:
+        try:
+            from core.organism_lab_persistence import OrganismLabStore
+            store = OrganismLabStore(owner_key, database_url)
+            verified_key = st.session_state.get("_organism_lab_verified_owner")
+            if verified_key != owner_key:
+                store.verify_schema()
+                st.session_state["_organism_lab_verified_owner"] = owner_key
+        except Exception:
+            storage_problem = True
+            store = None
+            logging.getLogger(__name__).warning(
+                "Organism Lab persistence preflight failed")
+    elif owner_key:
+        storage_problem = True
+
+    def persist(kind, data):
+        if store is None:
+            return False
+        try:
+            record = store.save_verified(kind, data)
+            st.session_state["_organism_lab_latest_record"] = record["record_id"]
+            return True
+        except Exception:
+            logging.getLogger(__name__).warning(
+                "Organism Lab persistence write/readback failed")
+            return False
+
     with st.sidebar.expander("🧬 Organizmalar Laboratuvarı", expanded=False):
         st.caption(
             "Yalnızca sınırlı dijital simülasyon. Gerçek hücre veya robot çalıştırmaz; "
@@ -90,6 +121,11 @@ def render_organism_lab_panel(st):
                 result = run_shared_world(
                     steps=int(steps), energy=int(energy), materials=int(materials))
                 st.session_state["cano_organism_world_result"] = result
+                if store is not None:
+                    if persist("world", json_export(result)):
+                        st.success("Dijital dünya sonucu kalıcı arşive kaydedildi ve geri okundu.")
+                    else:
+                        st.error("Sonuç hesaplandı fakat kalıcı kayıt doğrulanamadı; indirin veya yeniden kaydedin.")
             except (ValueError, RuntimeError):
                 st.session_state.pop("cano_organism_world_result", None)
                 st.error("Dijital dünya hesaplaması doğrulanamadı.")
@@ -108,13 +144,18 @@ def render_organism_lab_panel(st):
         if st.button("Genom karşılaştırmasını çalıştır", key="cano_organism_campaign_run"):
             st.session_state.pop("cano_organism_campaign_result", None)
             try:
-                st.session_state["cano_organism_campaign_result"] = run_checked_campaign()
+                saved = run_checked_campaign()
+                st.session_state["cano_organism_campaign_result"] = saved
+                if store is not None:
+                    if persist("campaign", saved["json"]):
+                        st.success("Genom sonucu kalıcı arşive kaydedildi ve geri okundu.")
+                    else:
+                        st.error("Deney tamamlandı fakat kalıcı kayıt doğrulanamadı; indirin veya yeniden kaydedin.")
             except (ValueError, RuntimeError):
                 st.error("Genom deneyi yeniden hesaplamayla doğrulanamadı.")
         saved = st.session_state.get("cano_organism_campaign_result")
         if saved is not None:
-            st.success(
-                f"{saved['observations']} dijital gözlem yeniden hesaplanarak doğrulandı.")
+            st.success(f"{saved['observations']} dijital gözlem yeniden hesaplanarak doğrulandı.")
             st.markdown(explain_campaign(saved["report"]))
             st.dataframe(saved["report"]["results"], hide_index=True)
             st.caption("JSON SHA-256: " + saved["sha256"])
@@ -122,8 +163,59 @@ def render_organism_lab_panel(st):
                 "Deney kanıtını JSON indir", data=saved["json"],
                 file_name="cano-genom-karsilastirma.json",
                 mime="application/json", key="cano_organism_campaign_download")
-        st.warning(
-            "Sonuçlar yalnızca bu tarayıcı oturumunda tutulur. "
-            "Sunucunun geçici diskine veya PostgreSQL'e kaydedilmez; "
-            "kalıcı arşiv için JSON dosyasını indirin."
-        )
+
+        if store is not None:
+            if st.button("Oturumdaki sonuçları kalıcı arşive yeniden kaydet",
+                         key="cano_organism_lab_retry_save"):
+                pending_world = st.session_state.get("cano_organism_world_result")
+                pending_campaign = st.session_state.get("cano_organism_campaign_result")
+                all_saved = True
+                if pending_world is not None:
+                    all_saved = persist("world", json_export(pending_world)) and all_saved
+                if pending_campaign is not None:
+                    all_saved = persist("campaign", pending_campaign["json"]) and all_saved
+                if all_saved and (pending_world is not None or pending_campaign is not None):
+                    st.success("Oturum sonuçları kalıcı arşive kaydedildi ve geri okundu.")
+                else:
+                    st.error("En az bir sonuç kaydedilemedi veya oturumda kayıtlı sonuç yok.")
+
+        if store is not None:
+            try:
+                history = store.list_recent(limit=10)
+                st.subheader("Kalıcı deney geçmişi")
+                if not history:
+                    st.caption("Bu hesap için henüz kalıcı laboratuvar sonucu yok.")
+                for record in history:
+                    label = "Genom karşılaştırması" if record["kind"] == "campaign" else "Dijital dünya"
+                    with st.expander(f"{label} · {record['updated_at']} · {record['sha256'][:12]}"):
+                        if record["kind"] == "campaign":
+                            st.markdown(explain_campaign(record["document"]))
+                            st.dataframe(record["document"].get("results", []), hide_index=True)
+                        else:
+                            doc = record["document"]
+                            st.write({
+                                "Sanal robot": doc.get("robots"),
+                                "Sanal organizma": doc.get("organisms"),
+                                "Başarılı sanal rota": doc.get("successful_routes"),
+                                "Adım sayısı": len(doc.get("history", [])),
+                            })
+                        st.download_button(
+                            "Arşivlenen JSON'u indir", data=record["data"],
+                            file_name=f"cano-organism-lab-{record['kind']}-{record['sha256'][:12]}.json",
+                            mime="application/json", key="cano_lab_history_" + record["sha256"])
+            except Exception:
+                st.error("Kalıcı laboratuvar geçmişi okunamadı; arşiv içeriği değiştirilmedi.")
+
+        if storage_problem:
+            st.warning(
+                "Kalıcı laboratuvar arşivi şu anda doğrulanamıyor. Sonuçlar oturumda "
+                "kalabilir; uygulama bunları kaydedilmiş gibi göstermiyor."
+            )
+        elif store is None:
+            st.warning(
+                "Kalıcı arşiv için doğrulanmış giriş ve CANO PostgreSQL bağlantısı gerekir. "
+                "Bu oturumdaki sonuçları JSON olarak indirebilirsiniz."
+            )
+        else:
+            st.caption("Sonuçlar doğrulanmış giriş hesabına özel PostgreSQL arşivine yazılır; "
+                       "her kayıt içerik özetiyle yeni bağlantıdan geri okunur.")
