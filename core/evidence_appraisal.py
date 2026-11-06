@@ -6,7 +6,6 @@ import json
 import re
 from datetime import datetime, timezone
 
-from core.collaborative_mission import DOI_LEAD_URL
 
 _OWNER = re.compile(r"^oidc_[0-9a-f]{64}$")
 _DOI = re.compile(r"^10\.\d{4,9}/[A-Za-z0-9._;()/:+\-]{1,180}$", re.I)
