@@ -11,6 +11,7 @@ from core.task_panel import _session_database_path
 from core.claim_evidence import (
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
 )
+from core.evidence_appraisal import record_claim_evidence_appraisal
 from core.groq_team import TeamRateLimitError
 from core.groq_claim_json import generate_claim_quote_json
 from core.cano_command_center import _snapshot
@@ -159,6 +160,98 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
     )
     if not can_accept:
         st.caption("Kabul için eşleşen alıntı ve alınmış tam metin gerekir; bu kayıt yalnızca reddedilebilir.")
+    if (owner and item.get("status") == "quote_found_unverified"
+            and isinstance(source, dict) and source.get("status") == "full_text_excerpt"):
+        with st.expander("Bilimsel kanıt profilini kaydet (insan değerlendirmesi)", expanded=False):
+            st.caption("Bu kayıt çalışma özelliklerini ve belirsizlikleri görünür kılar; evrensel kalite puanı üretmez ve iddiayı otomatik doğrulamaz.")
+            design_labels = {
+                "Randomize kontrollü çalışma": "randomized_trial",
+                "Gözlemsel çalışma": "observational",
+                "Sistematik derleme / meta-analiz": "systematic_review",
+                "Nitel araştırma": "qualitative",
+                "Olgu sunumu": "case_report",
+                "Hesaplamalı / simülasyon": "computational",
+                "Ön baskı": "preprint",
+                "Diğer": "other",
+                "Belirsiz": "unclear",
+            }
+            with st.form(f"evidence_appraisal_{mid}_{claim_index}"):
+                design_label = st.selectbox("Çalışma tasarımı", list(design_labels))
+                population = st.text_input("Popülasyon / incelenen sistem (bilinmiyorsa 'belirsiz')", max_chars=1000)
+                sample_size = st.text_input("Örneklem ve analiz birimi", max_chars=1000)
+                comparator = st.text_input("Karşılaştırıcı / kontrol", max_chars=1000)
+                outcome = st.text_input("Tam olarak ölçülen sonuç", max_chars=1000)
+                effect_estimate = st.text_input("Etki tahmini ve birim", max_chars=1000)
+                uncertainty = st.text_input("Belirsizlik (CI, aralık, hata ölçüsü veya 'raporlanmamış')", max_chars=1000)
+                preregistration_label = st.selectbox("Ön kayıt / protokol", ["Evet", "Hayır", "Belirsiz", "Uygulanamaz"])
+                replication_label = st.selectbox("Bağımsız tekrar", ["Var", "Yok", "Belirsiz", "Uygulanamaz"])
+                conflicts_label = st.selectbox("Çelişen bulgular", ["Var", "Yok", "Belirsiz", "Uygulanamaz"])
+                limitations = st.text_area("Başlıca sınırlılıklar ve olası yanlılıklar", max_chars=1000)
+                rob = None
+                if design_labels[design_label] == "randomized_trial":
+                    st.caption("RoB 2 yalnızca randomize çalışmanın belirli bir sonucu için; her alanı metindeki gerekçeyle doldurun.")
+                    rob = {}
+                    rob_domains = {
+                        "randomization": "Randomizasyon süreci",
+                        "deviations_from_interventions": "Müdahaleden sapmalar",
+                        "missing_outcome_data": "Eksik sonuç verisi",
+                        "outcome_measurement": "Sonuç ölçümü",
+                        "selective_reporting": "Seçici sonuç raporlama",
+                    }
+                    for domain, label in rob_domains.items():
+                        judgement = st.selectbox(
+                            label + " — endişe düzeyi",
+                            ["Düşük", "Bazı endişeler", "Yüksek", "Belirsiz"],
+                            key=f"rob_judgement_{mid}_{claim_index}_{domain}")
+                        reason = st.text_input(
+                            label + " — metinsel gerekçe",
+                            max_chars=500,
+                            key=f"rob_reason_{mid}_{claim_index}_{domain}")
+                        rob[domain] = {
+                            "judgement": {
+                                "Düşük": "low", "Bazı endişeler": "some_concerns",
+                                "Yüksek": "high", "Belirsiz": "unclear",
+                            }[judgement],
+                            "rationale": reason,
+                        }
+                submitted_appraisal = st.form_submit_button("Kanıt profilini kaydet")
+            if submitted_appraisal:
+                tri = {"Evet": "yes", "Hayır": "no", "Belirsiz": "unclear", "Uygulanamaz": "not_applicable"}
+                profile = {
+                    "study_design": design_labels[design_label],
+                    "population": population, "sample_size": sample_size,
+                    "comparator": comparator, "outcome": outcome,
+                    "effect_estimate": effect_estimate, "uncertainty": uncertainty,
+                    "limitations": limitations,
+                    "preregistration": tri[preregistration_label],
+                    "independent_replication": tri[replication_label],
+                    "conflicting_evidence": tri[conflicts_label],
+                }
+                if rob is not None:
+                    profile["risk_of_bias"] = rob
+                try:
+                    store = ColonySnapshotStore(cano_database_url(os.environ))
+                    store.verify_schema()
+                    save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony))
+                    record_claim_evidence_appraisal(
+                        manager, mid, claim_index, reviewer_id=owner, profile=profile)
+                    save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony),
+                                          archive_prior=False)
+                except (ValueError, PermissionError, RuntimeError, OSError, sqlite3.Error):
+                    st.warning("Kanıt profili kaydedilemedi; önceki kayıtlar korundu.")
+                else:
+                    st.success("Kanıt profili insan değerlendirmesi olarak kaydedildi; iddia durumu otomatik değiştirilmedi.")
+                    st.rerun()
+        appraisal = item.get("evidence_appraisal")
+        if isinstance(appraisal, dict):
+            profile = appraisal.get("profile", {})
+            st.info("Kayıtlı kanıt profili · " + str(profile.get("study_design", "belirsiz"))
+                    + " · tekrar: " + str(profile.get("independent_replication", "belirsiz"))
+                    + " · çelişen bulgular: " + str(profile.get("conflicting_evidence", "belirsiz")))
+            st.caption("Ölçülen sonuç: " + str(profile.get("outcome", ""))
+                       + " · Etki: " + str(profile.get("effect_estimate", ""))
+                       + " · Belirsizlik: " + str(profile.get("uncertainty", "")))
+
     with st.form(f"claim_source_review_{mid}_{claim_index}"):
         decision = st.radio(
             "Kaynak değerlendirmesi",
