@@ -43,11 +43,11 @@ def explain_campaign(report):
     return (
         f"**Ne denendi?** {len(design['seeds'])} aynı başlangıç tohumu, "
         f"{design['steps']} sanal adım ve {len(design['resource_levels_per_tick'])} kaynak düzeyi kullanıldı. "
-        "Kopyalanıp bölünebilen dijital genom, aynı koşullarda bölünmesi kapatılmış kontrolle karşılaştırıldı.\\n\\n"
+        "Kopyalanıp bölünebilen dijital genom, aynı koşullarda bölünmesi kapatılmış kontrolle karşılaştırıldı.\n\n"
         f"**Ne bulundu?** En büyük ortalama fark, adım başına "
         f"{best['resource_per_tick']} sanal kaynak düzeyinde {mean:.2f} organizmaydı "
         f"(yaklaşık %95 aralık {low:.2f} ile {high:.2f}; {best['paired_seeds']} eşlenmiş tohum). "
-        f"{uncertainty}\\n\\n"
+        f"{uncertainty}\n\n"
         f"**Bu ne anlama geliyor?** Bu ayarlarda çoğalma kuralı, simülatör içindeki nüfus sonucunu "
         "kontrole göre değiştirdi. Rapor ve her tohumun ham sonucu JSON dosyasına eklenmiştir. "
         "Bu sonuç yalnızca dijital model içindir; gerçek hücre, doğa veya robot davranışını kanıtlamaz."
