@@ -158,6 +158,53 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 1)
 
 
+    def test_legacy_audit_is_preserved_when_upgraded_and_new_version_is_idempotent(self):
+        self.add_excerpt()
+        legacy = [{
+            "claim": "Legacy descriptive claim",
+            "doi": DOI,
+            "quote": QUOTE,
+            "status": "quote_found_unverified",
+            "citation_url": "https://europepmc.org/articles/PMC1234567",
+            "claim_verified": False,
+        }]
+        stages = self.manager.get(self.mission_id)["stages"]
+        stages[0]["source_claim_audit"] = legacy
+        with self.manager.colony._db() as db:
+            db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
+                       (json.dumps(stages), self.mission_id))
+
+        model = QuoteModel([{
+            "claim": "Targeted nucleases are powerful genome tools",
+            "doi": DOI,
+            "quote": QUOTE,
+            "comparison": "supports",
+            "rationale": "The quoted passage makes this bounded statement.",
+        }])
+        upgraded = audit_claim_quotes(self.manager, self.mission_id,
+                                      client=model, model="stub")
+        saved_stage = self.manager.get(self.mission_id)["stages"][0]
+        self.assertEqual(saved_stage["source_claim_audit_version"], 2)
+        self.assertEqual(saved_stage["source_claim_audit"], upgraded)
+        self.assertEqual(
+            saved_stage["source_claim_audit_history"],
+            [{"version": 1, "claims": legacy}],
+        )
+        self.assertEqual(upgraded[0]["comparison"], "supports")
+        self.assertFalse(upgraded[0]["claim_verified"])
+
+        class MustNotCall:
+            def chat(self, model, system, prompt):
+                raise AssertionError("Version 2 audit should be idempotent")
+
+        self.assertEqual(
+            audit_claim_quotes(self.manager, self.mission_id,
+                               client=MustNotCall(), model="stub"),
+            upgraded,
+        )
+        self.assertEqual(len(model.calls), 1)
+
+
     def test_unmatched_quote_cannot_present_a_model_relation_as_evidence(self):
         self.add_excerpt()
         model = QuoteModel([{
