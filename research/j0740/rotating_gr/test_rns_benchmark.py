@@ -1,6 +1,7 @@
 """Independent numerical-format + safety checks (full RNS integration in CI)."""
 from pathlib import Path
 import tempfile
+import os
 import unittest
 from rns_benchmark import parse_rns_output, run_rns, OBSERVED_SPIN_HZ
 
@@ -33,6 +34,25 @@ class TestRNSOutput(unittest.TestCase):
     def test_two_numeric_rows_rejected(self):
         with self.assertRaisesRegex(ValueError,"exactly one"):
             parse_rns_output('1 1.453 11.48 300.0\n1 1.453 11.48 300.0', central_density=1e15,requested_spin_hz=300)
+    def test_long_eos_path_is_passed_as_short_relative_name(self):
+        # The upstream RNS C code uses char eos_file[80]. A long absolute
+        # -f path corrupts adjacent stack variables (eos_type), silently
+        # causing a spurious polytrope branch and NaN model outputs.
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)/('long_path_segment_'*6)
+            root.mkdir()
+            eos=root/'eosMPA1_source_matched'
+            eos.write_text('example table',encoding='utf-8')
+            binary=Path(td)/'fake_rns.sh'
+            binary.write_text("""#!/bin/sh
+if [ ${#2} -ge 80 ]; then echo path_overflow; exit 13; fi
+if [ ! -f "$2" ]; then echo source_missing; exit 12; fi
+printf "1 1.453 11.48 300.0\n"
+""",encoding='utf-8')
+            binary.chmod(0o755)
+            out=run_rns(binary,eos,central_density=1e15,spin_hz=300)
+            self.assertEqual(out['radius_eq_km'],11.48)
     def test_bad_model_request_without_binary(self):
         with self.assertRaises(ValueError):
             run_rns(Path('/not/an/executable'),Path('/not/an/eos'),central_density=0,spin_hz=300)
