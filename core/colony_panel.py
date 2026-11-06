@@ -18,6 +18,24 @@ from core.colony_restore import restore_colony_json_bytes, restore_owner_backup
 from core.task_panel import _session_database_path
 
 
+def snapshots_match(left, right):
+    """Compare table snapshots without treating row order as data."""
+    def canonical(value):
+        if isinstance(value, dict):
+            return {key: canonical(item) for key, item in value.items()}
+        if isinstance(value, list):
+            rows = [canonical(item) for item in value]
+            if all(isinstance(item, dict) for item in rows):
+                rows.sort(key=lambda item: json.dumps(
+                    item, sort_keys=True, ensure_ascii=False, separators=(",", ":")))
+            return rows
+        return value
+
+    return json.dumps(canonical(left), sort_keys=True, ensure_ascii=False,
+                      separators=(",", ":")) == json.dumps(
+        canonical(right), sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
 class AnswerAdapter:
     def __init__(self, answer):
         self.answer = answer
@@ -564,7 +582,7 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             if st.button("Kalıcı yedeği kontrol et", key="colony_postgres_check"):
                 try:
                     saved = ColonySnapshotStore(database_url).load(owner_key)
-                    if saved == data:
+                    if snapshots_match(saved, data):
                         st.success("Yedek mevcut ve bu oturumun bütün kayıtlarıyla eşleşiyor.")
                     elif saved is None:
                         st.warning("Bu kullanıcı için kalıcı yedek bulunamadı.")
