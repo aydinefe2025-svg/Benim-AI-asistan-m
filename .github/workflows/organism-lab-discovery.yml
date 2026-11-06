@@ -21,15 +21,17 @@ jobs:
         with:
           python-version: "3.12"
       - name: Run lab regression and discovery tests
+        working-directory: organism_lab_cloud
         env:
-          PYTHONPATH: organism_lab_cloud
+          PYTHONPATH: .
         run: python -m unittest organism_lab.tests.test_discovery_sweep organism_lab.tests.test_adaptation_study organism_lab.tests.test_reproduction_study -v
       - name: Run bounded screen and independent-seed confirmation
+        working-directory: organism_lab_cloud
         env:
-          PYTHONPATH: organism_lab_cloud
+          PYTHONPATH: .
         run: |
-          report="research_reports/organism-lab-discoveries/$(date -u +%F).json"
-          python scripts/organism_lab_discovery.py --output "$report"
+          report="../research_reports/organism-lab-discoveries/$(date -u +%F).json"
+          python ../scripts/organism_lab_discovery.py --output "$report"
           python -c 'import json,sys; from organism_lab.discovery_sweep import validate_discovery_sweep; p=sys.argv[1]; d=json.load(open(p, encoding="utf-8")); validate_discovery_sweep(d); print("Validated deterministic recomputation:", d["status"])' "$report"
       - name: Archive the auditable simulation report
         run: |
