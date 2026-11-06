@@ -660,6 +660,8 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     2. Kullanıcıya doğrudan bir insan gibi samimi cevap ver, asla yarım bırakma.
     3. Eğer yukarıdaki veri kutusunda 'HAVA SERVİSİ BİLGİSİ' yazmıyorsa, hava durumundan KESİNLİKLE bahsetme. Kullanıcı sana ne sorduysa sadece ona odaklan ve normal bir şekilde sohbet et. Hava durumunu sadece kullanıcı açıkça sorduğunda ver."""
 
+    st.session_state.pop("last_provider_used", None)
+    st.session_state.pop("last_model_used", None)
     try:
         api_mesajlari = [
             {"role": msg.get("role"), "content": msg.get("content")}
@@ -725,6 +727,11 @@ if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
     with st.chat_message("assistant"):
         with st.spinner("Asistanınız yanıt hazırlıyor..."):
             ajan_cevabi = asistani_calistir(prompt)
+            _used_provider = st.session_state.get("last_provider_used")
+            _used_model = st.session_state.get("last_model_used")
+            if _used_provider:
+                st.caption("İşleyen sağlayıcı: " + str(_used_provider) +
+                           (" · " + str(_used_model) if _used_model else ""))
             st.markdown(ajan_cevabi)
             
             st.session_state.messages.append({"role": "assistant", "content": ajan_cevabi})
