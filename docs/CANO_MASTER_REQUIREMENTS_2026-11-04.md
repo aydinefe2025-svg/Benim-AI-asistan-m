@@ -117,3 +117,12 @@ PR #277 sonrası güvenli sağlayıcı etiketi CANO ana ekranında ve ilgili pan
 - Güncel devam işi: kullanıcı verisini GitHub'a/sohbete taşımadan bağımsız şifreli bir dışa aktarım ve ayrı veritabanına geri yükleme tatbikatı. Yerel ortamda `pg_dump`/`pg_restore` bulunmadığından bu oturumda tamamlanmadı; herhangi bir paket/plan ücreti başlatılmadı.
 
 Bu bulgular, 4 Kasım belgesindeki “Render PostgreSQL kalıcı CANO verisi için P0 bloker” ifadesini güncelliyor: Render Free DB son tarihi gerçek, fakat canlı uygulamadaki üç kalıcı CANO bileşeni Neon'da. Neon free kullanımının 6 saat PITR, tek snapshot ve SLA'sız sınırları ise gerçek yedek riskidir. Resmî Neon sınırları: https://neon.com/docs/introduction/plans .
+
+
+
+## 6 Kasım 2026 — Neon geri yükleme provası doğrulandı
+
+- Mevcut Neon snapshot `pre-cano-autorestore-deploy-2026-11-05` (`snap-bold-bar-b95cb8we`, 5 Kasım 15:07:56 UTC) `cano-restored-snapshot-verified-2026-11-06` adlı ayrı dalda geri yüklendi; Neon `restore_status=restored`, dal durumu `ready` verdi. İzole dalda yalnız tablo ve JSON dizi sayaçları okundu: 2 koloni snapshot satırı, eski snapshot dahil 12 ajan, 7 hafıza satırı, 0 onaylı iş, 0 araştırma görevi ve taslağı, 1 organizma kaydı ve 1 arşiv revizyonu. Kayıt içerikleri okunup raporlanmadı.
+- Güncel 6 Kasım kurtarma noktası `0/2051188` LSN / 09:48:47 UTC'den `cano-current-recovery-verified-2026-11-06` adlı ayrı dal açıldı. Bu dalın yalıtılmış kopyasında aynı sayaçlar doğrulandı. Üretim dalına hiçbir yazım yapılmadı.
+- Doğrulama için açılan iki 0.25 CU endpoint sorgudan sonra durduruldu ve `disabled=true` yapıldı; son durumları `idle`. Neon Free planı korumalı dalı desteklemediği için doğrulama dalları korumasızdır. Ücretli plana geçilmedi.
+- Bu, aynı Neon projesindeki snapshot/kurtarma dalı geri yükleme provasıdır; bağımsız dış yedek değildir. Ayrı taşınabilir şifreli dışa aktarım bu oturumda yapılamadı: uygulama indirme dosyası bu tarayıcı oturumunda yakalanmadı, çalışma ortamında `pg_dump`/`pg_restore` bulunmuyor. Bu sınır açık kalır.
