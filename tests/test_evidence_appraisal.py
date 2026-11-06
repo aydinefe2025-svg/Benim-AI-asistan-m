@@ -55,7 +55,7 @@ class EvidenceAppraisalValidationTests(unittest.TestCase):
 
     def test_refuses_to_apply_rob2_to_other_designs(self):
         item = profile()
-        item["risk_of_bias"] = {}
+        item["risk_of_bias"] = {"randomization": "low"}
         with self.assertRaises(ValueError):
             validate_appraisal_profile(item)
 
