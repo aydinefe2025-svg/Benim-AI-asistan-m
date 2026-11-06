@@ -24,6 +24,7 @@ from core.authentication import auth_is_required
 from core.groq_team import TeamRateLimitError
 from core.cano_chat_tasks import stage_execution_notice
 from core.scientific_sources import scientific_sources
+from core.doi_priority import prioritize_requested_dois
 from core.task_panel import _session_database_path
 from core.cano_backup_bundle import create_portable_bundle, export_authorized_queue
 from core.encrypted_backup_ui import render_encrypted_download
@@ -327,10 +328,14 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                     _checkpoint(archive_prior=(stage_checkpoint_count[0] == 0))
                     stage_checkpoint_count[0] += 1
                 try:
+                    def _lookup_sources(_query, limit=3):
+                        candidates = scientific_sources(_query, limit=limit)
+                        return prioritize_requested_dois(goal, candidates, limit=limit)
+
                     result = manager.execute(
                         goal, client=_AnswerAdapter(answer),
                         model="configured-provider",
-                        source_lookup=scientific_sources if lookup else None,
+                        source_lookup=_lookup_sources if lookup else None,
                         on_checkpoint=_durable_stage_checkpoint if backup_store is not None else None)
                 except TeamRateLimitError:
                     try:
@@ -421,6 +426,20 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                             return
                         except (RuntimeError, ValueError, OSError, sqlite3.Error):
                             st.error("Kaynak okuma başarısız; görev taslağı korunuyor.")
+                    if planner_stage.get("source_documents") and any(
+                            isinstance(doc, dict) and doc.get("status") in (
+                                "not_found", "unavailable", "metadata_only")
+                            for doc in planner_stage["source_documents"]):
+                        if st.button("Eksik DOI kaynaklarını yeniden oku",
+                                     key="cano_retry_sources_" + latest_id):
+                            try:
+                                manager.inspect_source_documents(
+                                    latest_id, refresh_missing=True)
+                                _checkpoint()
+                                st.rerun()
+                                return
+                            except (RuntimeError, ValueError, OSError, sqlite3.Error):
+                                st.error("Eksik kaynak tekrar okunamadı; önceki kanıtlar korundu.")
                     for doc in planner_stage.get("source_documents", []):
                         st.caption(doc.get("title", "Kaynak") + ": " +
                                    doc.get("status", "unavailable") +
