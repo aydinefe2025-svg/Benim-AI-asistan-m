@@ -11,6 +11,7 @@ class FakeDatabase:
         self.records = {}
         self.connections = 0
         self.owner_filters = []
+        self.history_owner_filters = []
 
     def connect(self, *args, **kwargs):
         self.connections += 1
@@ -58,6 +59,7 @@ class FakeCursor:
         elif "record_id LIKE %s" in sql:
             owner, collection, prefix, limit = params
             self.database.owner_filters.append(owner)
+            self.database.history_owner_filters.append(owner)
             found = [
                 (record_id, payload, "2026-11-06T12:00:00Z")
                 for (record_owner, record_collection, record_id), payload
@@ -106,7 +108,7 @@ class OrganismLabPersistenceTests(unittest.TestCase):
         records = first.list_recent()
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0]["document"], {"owner": "first"})
-        self.assertTrue(all(owner == self.OWNER for owner in db.owner_filters))
+        self.assertEqual(db.history_owner_filters, [self.OWNER])
 
     def test_corrupt_history_fails_integrity_check(self):
         db = FakeDatabase()
