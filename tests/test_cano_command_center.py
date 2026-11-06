@@ -182,6 +182,29 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(stats["review_pending"], 1)
             self.assertIn("Uzman", st.metrics)
 
+    def test_explicit_task_dois_precede_crossref_matches_in_the_real_cockpit(self):
+        st = FakeStreamlit(clicks={"cano_prepare_team"}, crossref=True)
+        model = FakeModel()
+        goal = ("BMJ study DOI 10.1136/bmj-2023-075847; correction "
+                "10.1136/bmj.q1024")
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}), \
+                patch("core.cano_command_center.scientific_sources", return_value=[
+                    {"title": "Wrong relevance match",
+                     "url": "https://doi.org/10.64239/pi-tr-qt4802"}]):
+            render_cano_command_center(st, answer=model)
+            st.task, st.submit = goal, True
+            render_cano_command_center(st, answer=model)
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            from core.collaborative_mission import CollaborativeMission
+            mission = CollaborativeMission(colony).get(
+                read_cano_status(colony)["history"][0]["id"])
+        self.assertEqual(
+            [item["url"] for item in mission["stages"][0]["source_leads"]],
+            ["https://doi.org/10.1136/bmj-2023-075847",
+             "https://doi.org/10.1136/bmj.q1024",
+             "https://doi.org/10.64239/pi-tr-qt4802"],
+        )
+
     def test_rate_limit_keeps_stage_checkpoint_and_shows_quota(self):
         from core.groq_team import TeamRateLimitError
         st = FakeStreamlit(clicks={"cano_prepare_team"})
