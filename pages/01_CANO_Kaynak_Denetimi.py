@@ -11,7 +11,9 @@ from core.task_panel import _session_database_path
 from core.claim_evidence import (
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
 )
-from core.claim_review_benchmark import run_claim_review_benchmark
+from core.claim_review_benchmark import (
+    CASES as FIXED_BENCHMARK_CASES, run_claim_review_benchmark,
+)
 from core.evidence_appraisal import record_claim_evidence_appraisal
 from core.groq_team import TeamRateLimitError
 from core.groq_claim_json import (
@@ -32,6 +34,41 @@ st.set_page_config(page_title="CANO Kanıt Denetimi", page_icon="📑")
 owner = render_auth_gate(st, os.environ)
 st.title("CANO Kaynak–İddia Denetimi")
 st.caption("Bilimsel kaynaktan gerçekten okunan alıntıları kontrol eder; alıntı bulunması iddiayı doğrulamaz.")
+st.subheader("Bağımsız CANO modeli testi")
+st.caption(
+    "Bu sabit sentetik test, Groq JSON yanıtını tek çağrıda doğrular. İnsan etiketi "
+    "istemez, CANO görev kayıtlarını değiştirmez ve kör insan karşılaştırmasının "
+    "yerine geçmez. Sonuç gerçek dünya bilimsel doğruluğunu kanıtlamaz."
+)
+runtime_benchmark_key = "cano_claim_review_runtime_smoke_v1"
+if not key:
+    st.info("Canlı model testi için GROQ_API_KEY yapılandırılmalı.")
+elif st.button("CANO modelini 12 sabit vakada test et (1 çağrı)"):
+    try:
+        runtime_result = run_claim_review_benchmark(
+            Client(), cases=FIXED_BENCHMARK_CASES)
+    except TeamRateLimitError:
+        st.warning("Canlı model testi kotaya takıldı; CANO görev kayıtları değiştirilmedi.")
+    except (ValueError, RuntimeError) as err:
+        st.warning(
+            f"Canlı model testi tamamlanamadı ({type(err).__name__}: {err}); "
+            "CANO görev kayıtları değiştirilmedi."
+        )
+    else:
+        st.session_state[runtime_benchmark_key] = runtime_result
+runtime_result = st.session_state.get(runtime_benchmark_key)
+if isinstance(runtime_result, dict):
+    st.metric(
+        "12 vaka · sabit sentetik kümede doğru karar",
+        f"{runtime_result['correct']} / {runtime_result['total']}",
+        f"%{runtime_result['accuracy'] * 100:.0f}",
+    )
+    st.metric("Yanıt kapsamı", f"%{runtime_result['coverage'] * 100:.0f}")
+    st.caption(runtime_result["scope"])
+    st.json(runtime_result["confusion_matrix"])
+    if runtime_result["unscored"]:
+        st.warning(f"{runtime_result['unscored']} vaka yanıtlanmadı; hata olarak sayıldı.")
+
 base = os.environ.get("AGENT_COLONY_DB_PATH", "data/agent_colony.sqlite3")
 colony = AgentColony(_session_database_path(st, base), max_agents=12)
 manager = CollaborativeMission(colony)
@@ -147,43 +184,9 @@ if documents and key and st.button("İddiaları çıkar ve ayrı kuşkucu AI ge�
 st.divider()
 st.subheader("Bağımsız CANO testi ve kör insan karşılaştırması")
 from core.claim_review_benchmark import (
-    CASES as FIXED_BENCHMARK_CASES,
     HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES,
     load_expected_labels, score_labels,
 )
-st.markdown("### 12 vakalık canlı model testi")
-st.caption(
-    "Bu sabit sentetik test, Groq JSON yanıtını tek çağrıda doğrular ve bu küçük "
-    "kümedeki sonucu gösterir. İnsan etiketi istemez, CANO görev kayıtlarını "
-    "değiştirmez ve kör insan karşılaştırmasının yerine geçmez."
-)
-runtime_benchmark_key = "cano_claim_review_runtime_smoke_v1"
-if key and st.button("CANO modelini 12 sabit vakada test et (1 çağrı)"):
-    try:
-        runtime_result = run_claim_review_benchmark(
-            Client(), cases=FIXED_BENCHMARK_CASES)
-    except TeamRateLimitError:
-        st.warning("Canlı model testi kotaya takıldı; CANO görev kayıtları değiştirilmedi.")
-    except (ValueError, RuntimeError) as err:
-        st.warning(
-            f"Canlı model testi tamamlanamadı ({type(err).__name__}: {err}); "
-            "CANO görev kayıtları değiştirilmedi."
-        )
-    else:
-        st.session_state[runtime_benchmark_key] = runtime_result
-runtime_result = st.session_state.get(runtime_benchmark_key)
-if isinstance(runtime_result, dict):
-    st.metric(
-        "12 vaka · sabit sentetik kümede doğru karar",
-        f"{runtime_result['correct']} / {runtime_result['total']}",
-        f"%{runtime_result['accuracy'] * 100:.0f}",
-    )
-    st.metric("Yanıt kapsamı", f"%{runtime_result['coverage'] * 100:.0f}")
-    st.caption(runtime_result["scope"])
-    st.json(runtime_result["confusion_matrix"])
-    if runtime_result["unscored"]:
-        st.warning(f"{runtime_result['unscored']} vaka yanıtlanmadı; hata olarak sayıldı.")
-
 st.caption(
     "8 yayımlanmış makaleden kaynak bağlantılı 24 vaka; 8 destek, 8 çelişki ve 8 yetersiz kanıt. Bunlar 24 ayrı makale değildir. "
     "Önce iddia ve pasajları, beklenen/model kararları gösterilmeden inceleyin. "
