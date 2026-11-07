@@ -2,7 +2,7 @@ import json
 import unittest
 
 from core.claim_review_benchmark import (
-    CASES, HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, load_expected_labels,
+    CASES, HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, load_expected_labels, randomized_case_order,
     run_claim_review_benchmark, score_labels,
 )
 
