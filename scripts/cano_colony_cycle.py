@@ -59,7 +59,7 @@ def main() -> None:
         "virtual_generation": virtual_generation,
         "mode": "bounded_virtual_reproduction_with_held_out_validation",
         "scope": "authorized_github_runner",
-        "note": "Digital organisms reproduce only inside the bounded toy VM. A mutation-rate lesson transfers only after paired development and held-out confirmation. No LLM inference, deployment, or independent software agents are started.",
+        "note": "Digital organisms reproduce only inside the bounded toy VM. A mutation-rate lesson transfers only after paired development and held-out confirmation. Four isolated read-only validation workers run afterward. No LLM inference, deployment, or unrestricted coding agents are started.",
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     # Publish verified reports atomically, avoiding truncated JSON on crash.
