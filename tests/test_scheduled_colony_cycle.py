@@ -104,5 +104,14 @@ class ScheduledColonyCycleTests(unittest.TestCase):
                 [c["role"] for c in second["cycle"]["candidates"]])
             self.assertEqual(second["cycle"]["activated"], 0)
 
+
+    def test_publish_checks_out_existing_branch_before_staging_report(self):
+        workflow = Path(".github/workflows/cano-colony-cycle.yml").read_text(encoding="utf-8")
+        publish = workflow.split("name: Publish only the non-sensitive JSON report", 1)[1]
+        checkout = publish.index("git checkout")
+        stage_report = publish.index("cp ../report/colony-cycle.json colony-cycle.json")
+        self.assertLess(checkout, stage_report)
+        self.assertNotIn("cp report/colony-cycle.json publish/colony-cycle.json", publish)
+
 if __name__ == "__main__":
     unittest.main()

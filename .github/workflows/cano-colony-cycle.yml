@@ -126,7 +126,6 @@ jobs:
               raise SystemExit("specialist results invalid")
           PY
           mkdir publish
-          cp report/colony-cycle.json publish/colony-cycle.json
           cd publish
           git init --quiet
           git config user.name "github-actions[bot]"
