@@ -11,6 +11,17 @@ def fake_star(ratio):
 
 
 class AxisRatioTests(unittest.TestCase):
+    def test_direct_ratio_solver_preserves_gr_mesh_identity(self):
+        from axis_ratio_rns import run_rns_at_ratio
+        from pathlib import Path
+        from types import SimpleNamespace
+        stdout="MDIVxSDIV=151x301\\n1.0000000000 2.073 12.530 346.5\\n"
+        with mock.patch("axis_ratio_rns.subprocess.run",return_value=SimpleNamespace(returncode=0,stdout=stdout,stderr="")):
+            star=run_rns_at_ratio(Path("/tmp/rns"),Path("/tmp/valid.rns"),
+                                  central_density=1e15,ratio=0.96)
+        self.assertIn("151x301",star["raw_stdout_tail"])
+        self.assertEqual(star["solver_mode"],"RNS_C_AXIS_RATIO_DIRECT")
+
     def test_finite_direct_model_at_target_spin(self):
         star,trace=axis_ratio_spin_root(fake_star, 346.536369)
         self.assertLessEqual(abs(star["spin_hz_reported"]-346.536369),.10)
