@@ -55,7 +55,9 @@ st.caption(
     "yerine geçmez. Sonuç gerçek dünya bilimsel doğruluğunu kanıtlamaz."
 )
 runtime_benchmark_key = "cano_claim_review_runtime_smoke_v1"
-if not key:
+if not owner:
+    st.info("Canlı model testi için CANO sahibi olarak giriş yapın.")
+elif not key:
     st.info("Canlı model testi için GROQ_API_KEY yapılandırılmalı.")
 elif st.button("CANO modelini 12 sabit vakada test et (1 çağrı)"):
     try:
