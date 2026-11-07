@@ -16,7 +16,7 @@ def make_fixture(root: Path) -> tuple[Path, Path]:
     with closing(sqlite3.connect(database)) as db:
         with db:
             db.execute("CREATE TABLE virtual_generation (tick_id INTEGER PRIMARY KEY, lesson_status TEXT NOT NULL)")
-        db.execute("INSERT INTO virtual_generation VALUES (1, 'rejected')")
+            db.execute("INSERT INTO virtual_generation VALUES (1, 'rejected')")
     report = {
         "github_run_id": "42",
         "db_integrity": "ok",
