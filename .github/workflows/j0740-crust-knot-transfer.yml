@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install numpy
-      - name: Eight isolated native-to-resampled EOS crust transfer tests
+      - name: Eleven native-to-resampled EOS crust and exact C cubic derivative tests
         working-directory: research/j0740/rotating_gr
         run: python -m unittest -v test_rns_crust_knot_transfer
       - name: Get previously verified seven-EOS RNS model without any solver rerun
@@ -38,7 +38,7 @@ jobs:
           gh run download 42353019033 --repo "$GITHUB_REPOSITORY" \
             --name j0740-seven-eos-rns-fixed-mass-results \
             --dir prior-rns
-      - name: Cross-compare seven source-native crust knots to RNS 196-point EOS secants
+      - name: Cross-check source crust against four-point RNS C p_at_e cubic derivative and input secants
         run: |
           python research/j0740/rotating_gr/rns_crust_knot_transfer.py \
             --rns-json prior-rns/J0740_seven_EOS_full_GR_fixed_spin_mass.json \

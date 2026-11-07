@@ -24,6 +24,73 @@ RHO_CONVERSION_CGS = C**2 / G * 1e-3
 C2_CGS = (C * 100.0)**2
 
 
+def rns_p_at_e_cubic_cs2(rows: np.ndarray, target_rho: float) -> dict:
+    """Exact algebraic derivative of PINNED RNS C four-point log(p) vs log(e) interpolation.
+
+    Mirrors equil.c::p_at_e and equil_util.c::interp, including the 4-point
+    clamped bracket. The actual C solver separately calls e_at_p and p_at_h.
+    """
+    a=np.asarray(rows,dtype=float)
+    if (a.ndim!=2 or a.shape[1]!=4 or len(a)<4
+            or not math.isfinite(target_rho)
+            or not a[0,0]<=target_rho<=a[-1,0]
+            or np.any(np.diff(a[:,0])<=0) or np.any(np.diff(a[:,1])<=0)):
+        raise ValueError("Invalid RNS table for four-point interpolation")
+    x=np.log10(a[:,0])
+    y=np.log10(a[:,1])
+    z=math.log10(target_rho)
+    j=int(np.searchsorted(x,z,side="right")-1)
+    start=max(0,min(j-1,len(x)-4))
+    xp=x[start:start+4]
+    yp=y[start:start+4]
+    value=0.0
+    derivative=0.0
+    for i in range(4):
+        other=[q for q in range(4) if q!=i]
+        denominator=math.prod(float(xp[i]-xp[q]) for q in other)
+        basis=math.prod(float(z-xp[q]) for q in other)/denominator
+        deriv_basis=sum(math.prod(float(z-xp[q]) for q in other if q!=m)
+                        for m in other)/denominator
+        value+=float(yp[i])*basis
+        derivative+=float(yp[i])*deriv_basis
+    pressure=10.0**value
+    cs2=pressure/(target_rho*C2_CGS)*derivative
+    if not all(math.isfinite(v) for v in (pressure,derivative,cs2)):
+        raise ValueError("Nonfinite C-style cubic EOS derivative")
+    return {
+        "cs2_over_c2":float(cs2),
+        "dlogp_dlogrho":float(derivative),
+        "pressure_cgs":float(pressure),
+        "c_interpolation_row_indices":[start,start+1,start+2,start+3],
+    }
+
+
+def profile_c_interpolant(rows: np.ndarray, center_rho: float, per_interval=8) -> dict:
+    """Densely sample RNS C p_at_e derivative below rotating center; no interval proof."""
+    if not 2<=per_interval<=64:
+        raise ValueError("Invalid sampling density")
+    rho=np.asarray(rows)[:,0]
+    if not rho[0]<center_rho<rho[-1]:
+        raise ValueError("Center outside table")
+    stop=int(np.searchsorted(rho,center_rho))
+    points=[]
+    for j in range(stop):
+        lo=float(rho[j])
+        hi=min(float(rho[j+1]),float(center_rho))
+        if hi>lo:
+            points.extend(np.geomspace(lo,hi,per_interval,endpoint=False).tolist())
+    points.append(float(center_rho))
+    values=[rns_p_at_e_cubic_cs2(rows,r)["cs2_over_c2"] for r in points]
+    return {
+        "sample_count":len(values),
+        "min_cs2_over_c2":float(min(values)),
+        "max_cs2_over_c2":float(max(values)),
+        "negative_sample_count":int(sum(v<0 for v in values)),
+        "superluminal_sample_count":int(sum(v>1 for v in values)),
+        "sampling_caveat":"8 samples per table interval plus center. No proof of global bounds between points.",
+    }
+
+
 def analyze_transfer(source_e_geo, source_p_geo, native_cs2, table_rows, center_rho):
     """Separate native analytic derivative from positive RNS INPUT secants.
 
@@ -84,7 +151,18 @@ def analyze_transfer(source_e_geo, source_p_geo, native_cs2, table_rows, center_
         })
     native_supra_idxs = np.flatnonzero((cs2 > 1.0) & (rho <= center_rho))
     rns_supra = np.flatnonzero((dcs2 > 1.0) & in_star)
+    center_cubic=rns_p_at_e_cubic_cs2(rows,center_rho)
+    cubic_profile=profile_c_interpolant(rows,center_rho,per_interval=8)
+    for v in details:
+        knot=rns_p_at_e_cubic_cs2(rows,v["native_rho_g_cm3"])
+        v["rns_c_p_at_e_four_point_cubic_at_native_knot"]=knot
+        v["original_native_p_vs_rns_c_p_at_e_cubic_relative_difference"]=(
+            knot["pressure_cgs"]-v["native_p_dyn_cm2"])/v["native_p_dyn_cm2"]
     return {
+        "rns_p_at_e_four_point_cubic_at_rotating_center":center_cubic,
+        "rns_p_at_e_four_point_cubic_through_center_sample":cubic_profile,
+        "rns_p_at_e_source":"Pinned rns-alberta/rns equil.c p_at_e uses equil_util.c 4-point Lagrange log interpolation",
+        "rns_c_cubic_not_other_rns_e_at_p_or_p_at_h_warning":"The solver separately calls p_at_h and e_at_p; only p_at_e directly differentiated here.",
         "native_negative_cs2_nodes": len(details),
         "native_energy_density_nonincreasing_edges": int(len(source_reversal_edges)),
         "native_nonincreasing_edge_indices": [int(v) for v in source_reversal_edges[:15]],
@@ -98,7 +176,7 @@ def analyze_transfer(source_e_geo, source_p_geo, native_cs2, table_rows, center_
         "native_supraluminal_nodes_below_center": int(len(native_supra_idxs)),
         "native_source_negative_knot_present_but_rns_secants_positive": bool(
             details and all(v["native_negative_derivative_has_positive_rns_secant"] for v in details)),
-        "caveat": "RNS input secants are not the derivatives of the internal C RNS EOS interpolant; positive input secants do NOT establish physical stability, causality or eliminate the original source defect.",
+        "caveat": "Positive input secants alone do not establish stability. The independently differentiated four-point RNS C p_at_e interpolant is one EOS operation, not the full equilibrium p_at_h/e_at_p, and cannot prove causality or eliminate the native source defect.",
     }
 
 

@@ -1,6 +1,8 @@
 import unittest
 import numpy as np
-from rns_crust_knot_transfer import analyze_transfer, C2_CGS, RHO_CONVERSION_CGS, PRESSURE_CONVERSION_CGS
+from rns_crust_knot_transfer import (analyze_transfer, C2_CGS, RHO_CONVERSION_CGS,
+                                   PRESSURE_CONVERSION_CGS, rns_p_at_e_cubic_cs2,
+                                   profile_c_interpolant)
 
 
 def make_source(negative=True):
@@ -44,6 +46,23 @@ class CrustTransferTests(unittest.TestCase):
         r[130:,1]=r[129,1]+2*C2_CGS*(r[130:,0]-r[129,0])
         out=analyze_transfer(e,p,cs,r,1.8e15)
         self.assertGreater(out['rns_input_supraluminal_secants_wholly_below_center'],0)
+
+    def test_c_four_point_cubic_exact_linear_eos(self):
+        rows=make_rows()
+        for rho in (rows[2,0], rows[13,0]*1.11, 1.5e15):
+            diag=rns_p_at_e_cubic_cs2(rows,rho)
+            self.assertAlmostEqual(diag["cs2_over_c2"],.4,places=10)
+            self.assertAlmostEqual(diag["dlogp_dlogrho"],1.,places=10)
+
+    def test_cubic_profile_for_causal_linear_eos(self):
+        diag=profile_c_interpolant(make_rows(),1.5e15,per_interval=4)
+        self.assertEqual(diag["negative_sample_count"],0)
+        self.assertEqual(diag["superluminal_sample_count"],0)
+        self.assertAlmostEqual(diag["max_cs2_over_c2"],.4,places=10)
+
+    def test_cubic_rejects_outside_table(self):
+        with self.assertRaisesRegex(ValueError,"Invalid"):
+            rns_p_at_e_cubic_cs2(make_rows(),1e17)
 
     def test_center_outside_table_refused(self):
         e,p,cs=make_source(False)
