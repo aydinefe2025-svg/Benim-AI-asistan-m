@@ -1,0 +1,61 @@
+name: CANO digital adaptation evidence validation
+
+on:
+  pull_request:
+    paths:
+      - 'organism_lab_cloud/organism_lab/adaptation_validation.py'
+      - 'organism_lab_cloud/organism_lab/tests/test_adaptation_validation.py'
+      - 'research_reports/organism-lab-adaptation/**'
+      - '.github/workflows/cano-adaptation-evidence.yml'
+  push:
+    branches:
+      - feature/cano-adaptation-evidence-20261108
+    paths:
+      - 'organism_lab_cloud/organism_lab/adaptation_validation.py'
+      - 'organism_lab_cloud/organism_lab/tests/test_adaptation_validation.py'
+      - 'research_reports/organism-lab-adaptation/**'
+      - '.github/workflows/cano-adaptation-evidence.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Validate new study, inherited engine, and tampering controls
+        working-directory: organism_lab_cloud
+        run: |
+          python -m compileall -q organism_lab/adaptation_validation.py organism_lab/digital_vm.py
+          python -m unittest organism_lab.tests.test_adaptation_validation organism_lab.tests.test_adaptation_study -v
+      - name: Independent process recomputation of committed experiment
+        working-directory: organism_lab_cloud
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from organism_lab.adaptation_validation import verify_report
+          p=Path('../research_reports/organism-lab-adaptation/validation-2026-11-08.json')
+          doc=verify_report(p)
+          r=doc['report']
+          assert len(r['trials'])==90
+          assert r['negative_control_births_zero']
+          assert r['positive_functional_b_seeds']==4
+          assert r['tied_functional_b_seeds']==26
+          assert r['adaptation_demonstrated'] is False
+          assert r['exact_one_sided_sign_p']==0.0625
+          confirm=verify_report(Path('../research_reports/organism-lab-adaptation/validation-2026-11-08-confirmatory.json'))['report']
+          assert len(confirm['trials'])==90
+          assert confirm['design']['seeds']==list(range(30,60))
+          assert confirm['negative_control_births_zero']
+          assert confirm['positive_functional_b_seeds']==4
+          assert confirm['adaptation_demonstrated'] is False
+          print('READBACK + independently recomputed BOTH seed partitions PASS. Robust adaptation NOT demonstrated.')
+          PY
