@@ -49,6 +49,8 @@ def normalize_source_leads(candidates):
 class CollaborativeMission:
     def __init__(self, colony: AgentColony):
         self.colony = colony
+        # In-memory only: retain safe failure location for the current UI attempt.
+        self.last_failure = None
         with colony._db() as db:
             db.execute("""CREATE TABLE IF NOT EXISTS colony_missions (
                 id TEXT PRIMARY KEY, task TEXT NOT NULL,
@@ -129,6 +131,8 @@ class CollaborativeMission:
 
     def _run(self, mission_id, *, client, model, source_lookup=None, on_checkpoint=None):
         calls = 0
+        phase, role = "mission_setup", None
+        self.last_failure = None
         try:
             planner, researcher, reviewer = self._agents()
             record = self.get(mission_id)
@@ -174,6 +178,7 @@ class CollaborativeMission:
                            "receipts. Reject invented test results in the critique "
                            "and omit them from synthesis. Describe unperformed "
                            "experiments as proposed, never completed.")
+                phase, role = "model_call", STAGE_ROLES[index]
                 result = self.colony.run(agent_id, prompt, client=client, model=model,
                                          internal_review=(index > 0))
                 calls += 1
@@ -193,6 +198,7 @@ class CollaborativeMission:
                         stage["source_leads"] = []
                         stage["source_lookup_status"] = "unavailable"
                 stages.append(stage)
+                phase, role = "sqlite_stage_write", STAGE_ROLES[index]
                 with self.colony._db() as db:
                     cursor = db.execute(
                         "UPDATE colony_missions SET stages=? "
@@ -205,7 +211,9 @@ class CollaborativeMission:
                 # to durably checkpoint this precise prefix. If PostgreSQL
                 # refuses the write, stop without making any further calls.
                 if on_checkpoint is not None:
+                    phase, role = "owner_backup_checkpoint", STAGE_ROLES[index]
                     on_checkpoint()
+            phase, role = "completion_write", "synthesis"
             with self.colony._db() as db:
                 cursor = db.execute(
                     "UPDATE colony_missions SET status='review_pending' "
@@ -214,7 +222,12 @@ class CollaborativeMission:
                     raise RuntimeError("Mission state changed during completion")
             return {"id": mission_id, "task": task, "stages": stages,
                     "status": "review_pending", "model_calls": calls}
-        except Exception:
+        except Exception as exc:
+            self.last_failure = {
+                "phase": phase,
+                "role": role,
+                "exception_type": type(exc).__name__[:80],
+            }
             with self.colony._db() as db:
                 db.execute("UPDATE colony_missions SET status='blocked' "
                            "WHERE id=? AND status='running'", (mission_id,))
