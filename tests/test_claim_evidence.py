@@ -345,12 +345,14 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(assessment["method"], "explicit_confidence_conflict_guard")
         self.assertEqual(assessment["prior_model_verdict"], "supported")
         self.assertEqual(result[0]["machine_assessment_history"][0]["verdict"], "supported")
+        self.assertEqual(result[0]["citation_url"],
+                         "https://europepmc.org/articles/PMC11131084")
         self.assertFalse(result[0]["claim_verified"])
         saved = self.manager.get(self.mission_id)["stages"][0]
         self.assertEqual(saved["source_claim_audit_version"], 6)
         self.assertEqual(saved["source_claim_audit"], result)
 
-    def test_cached_confidence_guard_rejects_unrelated_citation_url(self):
+    def test_cached_confidence_guard_rebinds_legacy_citation_to_trusted_source(self):
         doi = "10.1136/bmj-2023-075847"
         excerpt = (
             "As a result, confidence in accordance with CINeMA was low for "
@@ -388,16 +390,21 @@ class ClaimQuoteAuditTests(unittest.TestCase):
 
         class MustNotCall:
             def chat(self, *_args):
-                raise AssertionError("Invalid cached citation must not call a model")
+                raise AssertionError("Cached correction must not call a model")
             def verify(self, *_args):
-                raise AssertionError("Invalid cached citation must not call a model")
+                raise AssertionError("Cached correction must not call a model")
 
         result = audit_claim_quotes(self.manager, self.mission_id,
                                     client=MustNotCall(), model="stub")
         item = result[0]
-        self.assertEqual(item["machine_assessment"]["verdict"], "supported")
-        self.assertNotIn("machine_assessment_history", item)
+        self.assertEqual(item["machine_assessment"]["verdict"], "contradicted")
+        self.assertEqual(item["machine_assessment"]["method"],
+                         "explicit_confidence_conflict_guard")
+        self.assertEqual(item["citation_url"],
+                         "https://europepmc.org/articles/PMC11131084")
+        self.assertEqual(item["machine_assessment_history"][0]["verdict"], "supported")
         self.assertFalse(item["claim_verified"])
+
 
     def test_explicit_confidence_conflict_overrides_wrong_model_support(self):
         self.manager.inspect_source_documents(
