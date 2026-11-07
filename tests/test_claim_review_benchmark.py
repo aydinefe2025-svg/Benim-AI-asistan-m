@@ -1,7 +1,9 @@
 import json
 import unittest
 
-from core.claim_review_benchmark import (\n    CASES, HUMAN_COMPARISON_CASES, run_claim_review_benchmark, score_labels,\n)
+from core.claim_review_benchmark import (
+    CASES, HUMAN_COMPARISON_CASES, run_claim_review_benchmark, score_labels,
+)
 
 
 class BenchmarkClient:
