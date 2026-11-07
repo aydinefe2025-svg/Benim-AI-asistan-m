@@ -82,3 +82,62 @@ jobs:
             artifacts/colony-cycle.json
             artifacts/colony-cycle.sqlite3
           retention-days: 30
+
+  publish:
+    needs: propose
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download this run's validated artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cano-colony-cycle-${{ github.run_id }}
+          path: report
+      - name: Publish only the non-sensitive JSON report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("report/colony-cycle.json")
+          if not path.is_file() or path.stat().st_size > 1000000:
+              raise SystemExit("bounded report missing or too large")
+          report = json.loads(path.read_text(encoding="utf-8"))
+          if str(report.get("github_run_id")) != os.environ["GITHUB_RUN_ID"]:
+              raise SystemExit("report run id mismatch")
+          if report.get("db_integrity") != "ok" or report.get("mode") != "bounded_virtual_reproduction_with_held_out_validation":
+              raise SystemExit("report validation failed")
+          specialists = report.get("specialist_agents")
+          roles = specialists.get("roles") if isinstance(specialists, dict) else None
+          expected = {"evidence", "generation", "continuity", "security"}
+          if not isinstance(roles, list) or specialists.get("status") != "passed":
+              raise SystemExit("specialist validation failed")
+          if {item.get("role") for item in roles if isinstance(item, dict)} != expected:
+              raise SystemExit("specialist roles invalid")
+          if any(item.get("status") != "passed" or item.get("execution") != "isolated_read_only_subprocess" or item.get("model_calls") != 0 for item in roles):
+              raise SystemExit("specialist results invalid")
+          PY
+          mkdir publish
+          cp report/colony-cycle.json publish/colony-cycle.json
+          cd publish
+          git init --quiet
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          auth_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)"
+          if git -c http.extraheader="$auth_header" fetch --no-tags origin refs/heads/cano-latest:refs/remotes/origin/cano-latest; then
+            git checkout --quiet -b cano-latest refs/remotes/origin/cano-latest
+          else
+            git checkout --quiet --orphan cano-latest
+          fi
+          cp ../report/colony-cycle.json colony-cycle.json
+          git add colony-cycle.json
+          git commit --quiet -m "Publish CANO run $GITHUB_RUN_ID"
+          git -c http.extraheader="$auth_header" push --quiet origin HEAD:refs/heads/cano-latest
