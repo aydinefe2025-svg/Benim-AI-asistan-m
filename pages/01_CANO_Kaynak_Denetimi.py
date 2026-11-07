@@ -396,6 +396,101 @@ if isinstance(v4_saved_labels, dict) and set(v4_saved_labels) == {
                     f"{v4_model_result['unscored']} yanıtsız model kararı hata sayıldı."
                 )
 
+
+st.markdown("### Üçüncü kör kohort · 24 vaka, 8 ek yayın")
+st.caption(
+    "Önceki kohortlardaki makalelerden ayrı sekiz yayın. Her yayından destek, "
+    "çelişki ve yetersiz kanıt vakası bulunur. İnsan etiketleri ve cevap anahtarı "
+    "önceki kohortlardan ayrıdır; bu küçük test genel bilimsel doğruluk veya insan üstünlüğü kanıtı değildir."
+)
+v5_order_key = "cano_claim_review_order_v5"
+v5_order = randomized_case_order(
+    V5_COMPARISON_CASES, previous_ids=st.session_state.get(v5_order_key))
+st.session_state[v5_order_key] = [case["case_id"] for case in v5_order]
+v5_label_key = "cano_claim_review_human_labels_v5"
+v5_model_key = "cano_claim_review_human_benchmark_v5"
+with st.form("cano_blind_human_labels_v5"):
+    v5_human_labels = {}
+    for idx, case in enumerate(v5_order):
+        st.markdown(f"**Üçüncü kohort vaka {idx + 1}.** {case['claim']}")
+        st.caption(case["excerpt"])
+        st.markdown(f"[Kaynağı aç: {case['source_title']}]({case['source_url']})")
+        choice = st.selectbox(
+            "Pasajın iddiaya göre durumu",
+            ["— Seçin —", "Destekliyor", "Çelişiyor", "Kanıt yetersiz"],
+            key=f"cano_human_v5_{case['case_id']}",
+        )
+        v5_human_labels[case["case_id"]] = {
+            "Destekliyor": "supported",
+            "Çelişiyor": "contradicted",
+            "Kanıt yetersiz": "insufficient",
+        }.get(choice, "")
+    v5_labels_submitted = st.form_submit_button("Üçüncü kohort için 24 insan değerlendirmesini kaydet")
+if v5_labels_submitted:
+    if any(not value for value in v5_human_labels.values()):
+        st.warning("Üçüncü kohort karşılaştırması için 24 vakanın tamamını etiketleyin.")
+    else:
+        st.session_state[v5_label_key] = v5_human_labels
+        st.session_state.pop(v5_model_key, None)
+        st.success("Etiketler bu tarayıcı oturumunda saklandı; kaynak cevap anahtarı gösterilmedi.")
+v5_saved_labels = st.session_state.get(v5_label_key)
+try:
+    v5_answer_key = load_expected_labels(
+        os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V5"),
+        V5_COMPARISON_CASES,
+    )
+except (ValueError, RuntimeError):
+    v5_answer_key = None
+if v5_answer_key is None:
+    st.warning("Üçüncü kohortun özel cevap anahtarı ayarlı değil; model puanlama kapalı.")
+elif key and st.button(
+        "Üçüncü kohortta CANO'yu gizli kaynak anahtarıyla çalıştır (24 vaka, 1 çağrı)",
+        key="cano_gold_model_v5"):
+    try:
+        v5_result = run_blind_model_benchmark(
+            Client(), cases=V5_COMPARISON_CASES,
+            answer_key_json=os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V5"))
+    except TeamRateLimitError:
+        st.warning("Model kotası nedeniyle üçüncü kohort tamamlanamadı; insan etiketleri değişmedi.")
+    except (ValueError, RuntimeError) as err:
+        st.warning(f"Üçüncü kohort tamamlanamadı ({type(err).__name__}: {err}); etiketler korundu.")
+    else:
+        st.session_state[v5_model_key] = v5_result
+v5_model_result = st.session_state.get(v5_model_key)
+if isinstance(v5_model_result, dict):
+    st.metric("Üçüncü kohort · kaynak anahtarına uyum",
+              f"{v5_model_result['correct']} / {v5_model_result['total']}",
+              f"%{v5_model_result['accuracy'] * 100:.0f}")
+    st.metric("Üçüncü kohort · yanıt kapsamı", f"%{v5_model_result['coverage'] * 100:.0f}")
+    st.caption(v5_model_result["scope"])
+    st.json(v5_model_result["confusion_matrix"])
+    if v5_model_result["unscored"]:
+        st.warning(f"{v5_model_result['unscored']} cevapsız karar hata sayıldı.")
+if isinstance(v5_saved_labels, dict) and set(v5_saved_labels) == {
+        case["case_id"] for case in V5_COMPARISON_CASES}:
+    if v5_answer_key is None:
+        st.warning("Üçüncü kohortun cevap anahtarı ayarlı değil; insan etiketleri korunuyor, skor kapalı.")
+    else:
+        v5_human_score = score_labels(
+            V5_COMPARISON_CASES, v5_saved_labels, v5_answer_key)
+        st.metric("Üçüncü kohort · insan değerlendiricinin altın etikete uyumu",
+                  f"{v5_human_score['correct']} / {v5_human_score['total']}",
+                  f"%{v5_human_score['accuracy'] * 100:.0f}")
+        st.caption("Tek değerlendirici; vaka başına ikinci bağımsız insan puanlaması yok.")
+        st.json(v5_human_score["confusion_matrix"])
+        if isinstance(v5_model_result, dict):
+            v5_model_by_id = {
+                case["case_id"]: case["predicted"] for case in v5_model_result["cases"]
+            }
+            v5_agreement = sum(
+                v5_saved_labels[case["case_id"]] == v5_model_by_id[case["case_id"]]
+                for case in V5_COMPARISON_CASES
+            )
+            st.metric("Üçüncü kohort · insan–CANO karar uyumu", f"{v5_agreement} / 24")
+            st.caption("Bu karşılaştırma yalnızca verilen pasajın iddiayı destekleyip desteklemediğini ölçer; araştırma veya kaynak bulma başarısını ölçmez.")
+            st.caption("Aynı sağlayıcının modeli, insan kararlarından bağımsız skorlanır; küçük kohort insan üstünlüğünü tek başına kanıtlamaz.")
+            st.caption(v5_model_result["scope"])
+
 if not key:
     st.warning("Model bağlantısı yok; yeni iddia denetimi çalıştırılmadı.")
 reviewed_mission = manager.get(mid)
