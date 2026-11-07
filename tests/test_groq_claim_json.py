@@ -41,10 +41,9 @@ class GroqClaimJsonTests(unittest.TestCase):
         self.assertEqual(json.loads(value), fixture)
         self.assertEqual(client.calls[0]["model"], "openai/gpt-oss-20b")
         self.assertEqual(client.calls[0]["max_completion_tokens"], 2400)
-        schema = client.calls[0]["response_format"]["json_schema"]["schema"]
-        self.assertEqual(
-            schema["properties"]["assessments"]["items"]["properties"]["verdict"]["enum"],
-            ["supported", "contradicted", "insufficient"])
+        self.assertEqual(client.calls[0]["response_format"], {"type": "json_object"})
+        self.assertEqual(client.calls[0]["max_completion_tokens"], 2400)
+        self.assertIn("Output valid JSON only", client.calls[0]["messages"][0]["content"])
     def test_strict_schema_single_json_call_and_no_auto_claim_approval(self):
         fixture = {"claims": [
             {"claim": "A cautious proposal", "doi": "10.1234/test",
