@@ -10,6 +10,9 @@ import subprocess
 
 class NumericalRootError(RuntimeError):
     """A reproducible RNS mass root could not be certified."""
+    def __init__(self, message: str, *, trace=None):
+        super().__init__(message)
+        self.trace = list(trace) if trace is not None else []
 
 
 def resilient_mass_root(eval_model, target: float, lo: float, hi: float,
@@ -84,4 +87,4 @@ def resilient_mass_root(eval_model, target: float, lo: float, hi: float,
             break
     summary = f"no certified root within {tolerance} Msun after {evaluations} evaluations; " \
               f"bracket={lo:.7e},{hi:.7e}; masses={lm},{rm}; rejected={sum(p['status']=='REJECTED' for p in trace)}"
-    raise NumericalRootError(summary)
+    raise NumericalRootError(summary, trace=trace)
