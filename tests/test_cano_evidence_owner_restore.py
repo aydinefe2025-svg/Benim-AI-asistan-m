@@ -1,4 +1,4 @@
-"""Regression checks for the explicit, owner-scoped evidence-page restore gate."""
+"""Regression checks for owner-scoped evidence-page backup recovery."""
 import ast
 import unittest
 from pathlib import Path
@@ -8,7 +8,7 @@ PAGE = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.
 
 
 class EvidencePageOwnerRestoreTests(unittest.TestCase):
-    def test_page_requires_explicit_authenticated_owner_restore(self):
+    def test_empty_authenticated_owner_is_restored_automatically_once(self):
         tree = ast.parse(PAGE.read_text(encoding="utf-8"))
         calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)]
         restores = [node for node in calls
@@ -18,8 +18,9 @@ class EvidencePageOwnerRestoreTests(unittest.TestCase):
         self.assertTrue(any(k.arg == "approved" and isinstance(k.value, ast.Constant)
                             and k.value.value is True for k in restores[0].keywords))
         text = PAGE.read_text(encoding="utf-8")
-        self.assertIn('if owner and not local_agent_count:', text)
-        self.assertIn('if st.button("Hesabıma ait CANO yedeğini geri yükle"', text)
+        self.assertIn('if owner and not local_agent_count and not restore_attempted:', text)
+        self.assertIn('restore_attempt_key = "_cano_evidence_restore_attempted_owner"', text)
+        self.assertIn('if st.button("Hesabıma ait CANO yedeğini yeniden dene"', text)
         self.assertIn('st.rerun()', text)
         self.assertIn('st.stop()', text)
         self.assertIn('render_auth_gate(st, os.environ)', text)
