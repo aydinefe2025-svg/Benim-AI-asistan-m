@@ -176,6 +176,31 @@ def load_latest_colony_status(request_get=None) -> dict:
             pass
         raise ColonyStatusUnavailable(code) from None
 
+
+def _lesson_explanation(report: dict) -> tuple[str, str]:
+    """Translate the measured transfer decision into plain Turkish."""
+    training_low = report["training_ci95_low"]
+    confirmation_low = report["confirmation_ci95_low"]
+    candidate_rate = report["candidate_mutation_rate"]
+    next_rate = report["next_generation_mutation_rate"]
+    if report["lesson_status"] == "transferred":
+        return (
+            "Sanal deneye aktarıldı",
+            f"Aday ayar ({candidate_rate:.3f}) eğitimde ve ayrı doğrulama grubunda "
+            f"olumlu kanıt eşiğini geçti; sonraki sanal nesilde {next_rate:.3f} ayarı "
+            "kullanılacak. Bu sonuç yalnızca basitleştirilmiş dijital simülasyona aittir; "
+            "yapay zekâ modelinin ağırlıkları değişmez."
+        )
+    return (
+        "Aktarılmadı",
+        f"Aday ayar ({candidate_rate:.3f}) yeterli iyileşme kanıtı göstermedi. "
+        f"Eğitim testinin %95 aralık alt sınırı {training_low:.3f}, ayrı doğrulamanın "
+        f"alt sınırı {confirmation_low:.3f}; aktarım için ikisinin de sıfırın üstünde "
+        f"olması gerekir. Bu nedenle sonraki sanal turda {next_rate:.3f} ayarı korundu. "
+        "Sonuç yalnızca toy dijital VM içindir."
+    )
+
+
 def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
     """Render an authenticated app's bounded hourly Actions result summary."""
     cache_key = "_cano_github_cycle_status"
@@ -211,7 +236,9 @@ def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
         a, b, c = st.columns(3)
         a.metric("Dijital çevrim", report["tick_id"])
         b.metric("Sanal nesil", report["generation_id"])
-        c.metric("Ders aktarımı", report["lesson_status"])
+        lesson_label, lesson_detail = _lesson_explanation(report)
+        c.metric("Ders aktarımı", lesson_label)
+        st.info(lesson_detail)
         st.caption(
             f"Aday mutasyon {report['candidate_mutation_rate']:.3f} · "
             f"sonraki nesil {report['next_generation_mutation_rate']:.3f} · "
