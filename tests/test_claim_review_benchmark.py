@@ -71,6 +71,20 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
         self.assertEqual(result["correct"], 24)
         self.assertNotIn("expected", client.calls[0][2])
 
+    def test_blind_review_order_is_shuffled_once_and_restored_by_case_id(self):
+        class Reverse:
+            def shuffle(self, values):
+                values.reverse()
+
+        cases = ({"case_id": "a"}, {"case_id": "b"}, {"case_id": "c"})
+        ordered = randomized_case_order(cases, rng=Reverse())
+        self.assertEqual([case["case_id"] for case in ordered], ["c", "b", "a"])
+        saved_ids = [case["case_id"] for case in ordered]
+        again = randomized_case_order(cases, previous_ids=saved_ids, rng=Reverse())
+        self.assertEqual(again, ordered)
+        reset = randomized_case_order(cases, previous_ids=["a", "a", "c"], rng=Reverse())
+        self.assertEqual([case["case_id"] for case in reset], ["c", "b", "a"])
+
     def test_private_answer_key_parser_rejects_missing_or_wrong_keys(self):
         cases = ({"case_id": "a"}, {"case_id": "b"})
         with self.assertRaises(RuntimeError):
