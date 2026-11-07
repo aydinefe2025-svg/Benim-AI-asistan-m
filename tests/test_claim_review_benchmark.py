@@ -96,6 +96,52 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
         self.assertNotIn("expected", client.calls[0][2])
 
 
+    def test_directional_and_arm_comparison_passages_name_the_groups(self):
+        cases = {
+            case["case_id"]: case
+            for cohort in (SUPPLEMENTAL_COMPARISON_CASES, V5_COMPARISON_CASES,
+                           V6_COMPARISON_CASES)
+            for case in cohort
+        }
+        required_terms = {
+            "v4_04": ("intervention", "control", "5.5"),
+            "v4_07": ("finerenone", "placebo", "0.84"),
+            "v4_08": ("finerenone", "placebo", "8.1%", "8.7%"),
+            "v4_16": ("both groups", "improved", "similar rates"),
+            "v5_05": ("d-plex", "standard care", "9.3%", "12.1%"),
+            "v6_01": ("empagliflozin", "placebo", "0.72"),
+            "v6_04": ("semaglutide", "placebo", "0.76"),
+            "v6_10": ("semaglutide", "placebo", "symptom reduction"),
+            "v6_16": ("dapagliflozin", "placebo", "0.82"),
+            "v6_17": ("dapagliflozin", "placebo", "0.88", "0.74–1.05"),
+            "v6_22": ("empagliflozin", "28-day mortality"),
+            "v6_23": ("empagliflozin", "28-day mortality"),
+            "v4_05": ("control", "151.4", "144.3"),
+            "v4_13": ("semaglutide", "placebo", "579", "668"),
+            "v4_14": ("semaglutide", "placebo", "579", "668"),
+            "v5_04": ("d-plex", "standard care", "8%", "17.5%"),
+            "v5_13": ("liposomal bupivacaine", "standard bupivacaine", "0.6", "1.4"),
+            "v6_07": ("tirzepatide 5 mg", "placebo", "−15.0%", "−3.1%"),
+            "v6_08": ("tirzepatide 5 mg", "placebo", "−15.0%", "−3.1%"),
+            "v6_13": ("bempedoic acid", "placebo", "11.7%", "13.3%"),
+            "v6_19": ("semaglutide", "placebo", "20%"),
+            "v6_21": ("select enrolled people", "established atherosclerotic cardiovascular disease"),
+        }
+        for case_id, terms in required_terms.items():
+            excerpt = cases[case_id]["excerpt"].casefold()
+            for term in terms:
+                self.assertIn(term.casefold(), excerpt, case_id)
+            self.assertNotIn("expected", cases[case_id])
+        for cohort in (SUPPLEMENTAL_COMPARISON_CASES, V5_COMPARISON_CASES,
+                       V6_COMPARISON_CASES):
+            for url in {case["source_url"] for case in cohort}:
+                grouped = [case for case in cohort if case["source_url"] == url]
+                self.assertLessEqual(
+                    sum(len(case["excerpt"].split()) for case in grouped), 25,
+                    url,
+                )
+
+
     def test_fixed_labels_are_hidden_and_perfect_confusion_matrix_is_reported(self):
         client = BenchmarkClient()
         result = run_claim_review_benchmark(client)
