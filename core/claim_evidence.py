@@ -267,8 +267,9 @@ def _reread_cached_source_disagreements(manager, mission_id, stages, *, client, 
 def _display_cached_confidence_conflict(item, doc):
     """Suppress a stale positive AI verdict when its matched excerpt says low confidence.
 
-    This display fallback requires a readable source and an exact quote match,
-    but it can still warn when legacy citation metadata blocks persistence.
+    This display fallback requires a readable excerpt from the claim's DOI,
+    but not an exact quote match: PDF extraction can alter punctuation and
+    spacing. It can still warn when legacy citation metadata blocks persistence.
     It never overrides a human review and never mutates the stored record.
     """
     human_review = item.get("human_review") if isinstance(item, dict) else None
@@ -278,12 +279,12 @@ def _display_cached_confidence_conflict(item, doc):
             or doc.get("status") not in _READABLE
             or not isinstance(doc.get("excerpt"), str)
             or not isinstance(item.get("claim"), str)
-            or not isinstance(item.get("quote"), str)
-            or _normalized_quote(item["quote"]) not in _normalized_quote(doc["excerpt"])):
+            or not isinstance(item.get("doi"), str)
+            or not isinstance(doc.get("doi"), str)
+            or item["doi"].casefold() != doc["doi"].casefold()):
         return None
     assessment = item.get("machine_assessment")
-    if (not isinstance(assessment, dict)
-            or assessment.get("method") == "explicit_confidence_conflict_guard"):
+    if not isinstance(assessment, dict):
         return None
     conflict = _explicit_confidence_conflict(item["claim"], doc["excerpt"])
     if conflict is None:
