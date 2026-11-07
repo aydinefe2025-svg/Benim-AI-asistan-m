@@ -45,7 +45,7 @@ class CanoSourceContextTests(unittest.TestCase):
             root = Path(temporary)
             (root / "core").mkdir()
             (root / "tests").mkdir()
-            source = "header = True\\n" * 500 + "def _run(mission_id):\\n    return 'focused excerpt'\\n"
+            source = "header = True\n" * 500 + "def _run(mission_id):\n    return 'focused excerpt'\n"
             (root / "core/collaborative_mission.py").write_text(source, encoding="utf-8")
             context = build_cano_source_context("review repository code", root)
             self.assertIn("def _run(mission_id):", context)
