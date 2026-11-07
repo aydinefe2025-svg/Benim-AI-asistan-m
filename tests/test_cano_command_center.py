@@ -85,7 +85,8 @@ class FakeStreamlit:
         self.messages.append(url)
 
     def selectbox(self, label, options, **kw):
-        return options[0]
+        self.messages.append(str(label))
+        return self.session_state.get(kw.get("key", ""), options[0])
 
     def download_button(self, label, data, **kw):
         self.downloaded = True
@@ -269,6 +270,7 @@ class CommandCenterTests(unittest.TestCase):
                 })(), model="test",
                 source_lookup=lambda query, limit=3: [
                     {"title":"Solar study", "url":"https://doi.org/10.1234/solar"}])
+            st.session_state["cano_cockpit_latest_mission"] = mission["id"]
             st.clicks.add("cano_read_sources_" + mission["id"])
             with patch("core.europepmc_evidence.read_publication_evidence",
                        return_value={"doi":"10.1234/solar", "title":"Solar study",
@@ -284,6 +286,27 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(saved["stages"][0]["source_documents"][0]["status"],
                              "full_text_excerpt")
             self.assertFalse(saved["stages"][0]["source_documents"][0]["claim_verified"])
+
+    def test_old_task_is_not_presented_as_current_without_user_selection(self):
+        from core.collaborative_mission import CollaborativeMission
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            mission = CollaborativeMission(colony).execute(
+                "Old task", client=type("Client", (), {
+                    "chat": lambda self, model, system, prompt: "Stale draft text"
+                })(), model="test")
+            st.messages.clear()
+            render_cano_command_center(st, answer=FakeModel())
+        self.assertNotIn("Stale draft text", " ".join(st.messages))
+        self.assertNotIn("Bu kayıt model taslağıdır", " ".join(st.messages))
+        self.assertIn("Görev geçmişinden incelenecek taslağı seç", " ".join(st.messages))
+        st.session_state["cano_history_mission"] = mission["id"]
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+        self.assertIn("Stale draft text", " ".join(st.messages))
+        self.assertIn("Bu kayıt model taslağıdır", " ".join(st.messages))
 
     def test_opted_in_browser_backup_survives_new_session_and_no_provider_replay(self):
         st = FakeStreamlit(clicks={"cano_prepare_team"}, local_backup=True)
