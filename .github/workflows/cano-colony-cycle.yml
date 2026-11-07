@@ -13,7 +13,8 @@ on:
       - "tests/test_scheduled_colony_cycle.py"
       - "tests/test_cano_specialist_agents.py"
   schedule:
-    - cron: "17 * * * *"
+    # Keep away from the high-load start of the hour; changing this cron also re-enables a stalled schedule.
+    - cron: "37 * * * *"
   workflow_dispatch:
 
 permissions:
