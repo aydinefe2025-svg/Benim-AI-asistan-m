@@ -6,9 +6,9 @@ from pathlib import Path
 
 
 _CODE_TASK = re.compile(
-    r"\b(code|source|repository|repo|github|pull request|commit|bug|test|"
-    r"kod|dosya|depo|hata|test|mimari|uygulama|geliştir|geliştirme|"
-    r"özellik|bağlantı|sorun|eksik)\b", re.IGNORECASE)
+    r"\b(code|source code|repository|repo|github|pull request|commit|bug|"
+    r"kod|dosya|depo|hata|mimari|uygulama|application|software|yazılım|"
+    r"geliştir|geliştirme|özellik|birim test|otomatik test)\b", re.IGNORECASE)
 _NEUTRON_STAR = re.compile(
     r"neutron\s+star|nötron\s+yıldız|pulsar|J0740|PSR\s+J", re.IGNORECASE)
 
@@ -25,6 +25,10 @@ _FILES = (
 _SECRET_LINE = re.compile(
     r"(?i)(api[_-]?key|client[_-]?secret|password|passwd|token|secret)\s*[:=]")
 _BEARER = re.compile(r"(?i)(authorization\s*[:=]\s*['\"]?bearer\s+)\S+")
+_TOKEN_VALUE = re.compile(
+    r"(?i)\b(?:sk-or-v1-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|"
+    r"gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|"
+    r"AIza[A-Za-z0-9_-]{30,})\b")
 _MAX_FILE_CHARS = 1800
 _MAX_TOTAL_CHARS = 9000
 
@@ -70,6 +74,7 @@ def build_cano_source_context(task: str, repo_root: str | Path) -> str:
                 line = "<redacted configuration/secret assignment>"
             else:
                 line = _BEARER.sub(r"\1<redacted>", line)
+                line = _TOKEN_VALUE.sub("<redacted-token>", line)
             safe_lines.append(line)
         excerpt = "\n".join(safe_lines)[:_MAX_FILE_CHARS]
         if not excerpt or remaining <= len(relative) + 20:
