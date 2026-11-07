@@ -166,6 +166,27 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual([item["excerpt"] for item in refreshed],
                          ["Fresh " + DOI, "Fresh " + correction])
 
+    def test_disagreement_gets_one_reread_and_keeps_both_original_assessments(self):
+        self.add_excerpt()
+        model = QuoteModel([{
+            "claim": "Targeted nucleases are powerful genome tools",
+            "doi": DOI, "quote": QUOTE,
+            "comparison": "insufficient",
+            "rationale": "First pass was unsure.",
+        }])
+        result = audit_claim_quotes(self.manager, self.mission_id,
+                                    client=model, model="stub")
+        assessment = result[0]["machine_assessment"]
+        self.assertEqual(len(model.calls), 3)
+        self.assertIn("Do not choose by majority", model.calls[2][1])
+        self.assertEqual(assessment["method"], "same_model_consistency_reread")
+        self.assertEqual(assessment["verdict"], "supported")
+        self.assertEqual(assessment["disagreement"]["first_verdict"], "insufficient")
+        self.assertEqual(assessment["disagreement"]["skeptical_verdict"], "supported")
+        self.assertEqual(assessment["disagreement"]["adjudication_verdict"], "supported")
+        self.assertTrue(assessment["disagreement"]["resolved"])
+        self.assertFalse(result[0]["claim_verified"])
+
     def test_verbatim_excerpt_quote_is_cited_but_never_fact_verified(self):
         self.add_excerpt()
         model = QuoteModel([
