@@ -707,7 +707,14 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
             and initial_verdict is not None
             and assessment.get("verdict") != initial_verdict
         )
-        if reviews_disagree:
+        if (isinstance(assessment, dict)
+                and assessment.get("method") == "explicit_confidence_conflict_guard"):
+            st.warning(
+                "Kaydedilmiş eski AI kararı kaynak metnindeki açık güven düzeyi "
+                "çelişkisiyle uyuşmadı. Sistem bunu otomatik olarak contradicted "
+                "diye düzeltti; önceki model kararı geçmişte korundu. İnsan incelemesi gerekir."
+            )
+        elif reviews_disagree:
             st.warning(
                 "AI incelemeleri uyuşmuyor; bu kaynak için otomatik karar "
                 "güvenilir değil. İnsan incelemesi gerekir."
@@ -747,7 +754,13 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
             }.get(comparison)
             assessment = item.get("machine_assessment")
             disagreement = assessment.get("disagreement") if isinstance(assessment, dict) else None
-            if isinstance(disagreement, dict):
+            if (isinstance(assessment, dict)
+                    and assessment.get("method") == "explicit_confidence_conflict_guard"):
+                st.warning(
+                    "Önceki üçüncü AI okuması korunuyor ancak kaynakta yazan açık "
+                    "güven düzeyiyle çelişen bu karar geçersiz kılındı."
+                )
+            elif isinstance(disagreement, dict):
                 if disagreement.get("resolved") is True:
                     st.warning(
                         "İlk iki CANO geçişi uyuşmadı. Aynı model kaynak pasajı üçüncü "

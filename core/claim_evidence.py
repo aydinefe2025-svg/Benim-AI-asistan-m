@@ -258,6 +258,81 @@ def _reread_cached_source_disagreements(manager, mission_id, stages, *, client, 
     return manager.get(mission_id)["stages"][0]["source_claim_audit"]
 
 
+
+def _reconcile_cached_confidence_conflicts(manager, mission_id, stages):
+    """Apply the explicit confidence guard to cached legacy AI assessments.
+
+    Preserve the previous model result in bounded history. A deterministic
+    wording guard may revise only the advisory machine assessment; it never
+    creates or overwrites a human review.
+    """
+    if not stages or not isinstance(stages[0], dict):
+        return None
+    audit = stages[0].get("source_claim_audit")
+    documents = stages[0].get("source_documents")
+    if not isinstance(audit, list) or not isinstance(documents, list):
+        return None
+    changes = []
+    for index, item in enumerate(audit):
+        if (not isinstance(item, dict)
+                or item.get("status") != "quote_found_unverified"
+                or isinstance(item.get("human_review"), dict)):
+            continue
+        assessment = item.get("machine_assessment")
+        if (not isinstance(assessment, dict)
+                or assessment.get("method") == "explicit_confidence_conflict_guard"):
+            continue
+        doi = item.get("doi")
+        doc = next((entry for entry in documents
+                    if isinstance(entry, dict)
+                    and isinstance(entry.get("doi"), str)
+                    and isinstance(doi, str)
+                    and entry["doi"].casefold() == doi.casefold()), None)
+        if (not isinstance(doc, dict) or doc.get("status") not in _READABLE
+                or not isinstance(doc.get("excerpt"), str)
+                or not isinstance(item.get("claim"), str)
+                or not isinstance(item.get("quote"), str)
+                or _normalized(item["quote"]) not in _normalized(doc["excerpt"])
+                or doc.get("url") != item.get("citation_url")
+                or _citation_for(doc) is None):
+            continue
+        conflict = _explicit_confidence_conflict(item["claim"], doc["excerpt"])
+        if conflict is None:
+            continue
+        changes.append((index, dict(assessment), conflict))
+
+    if not changes:
+        return None
+    with manager.colony._db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT status,stages FROM colony_missions WHERE id=?",
+                         (mission_id,)).fetchone()
+        if row is None or row["status"] != "review_pending":
+            raise RuntimeError("Mission changed during cached confidence review")
+        current = json.loads(row["stages"])
+        if current != stages:
+            raise RuntimeError("Source data changed during cached confidence review")
+        for index, prior, conflict in changes:
+            item = current[0]["source_claim_audit"][index]
+            history = item.get("machine_assessment_history")
+            if not isinstance(history, list):
+                history = []
+            history.append(prior)
+            item["machine_assessment_history"] = history[-5:]
+            corrected = dict(conflict)
+            corrected["prior_model_verdict"] = prior.get("verdict")
+            corrected["method"] = "explicit_confidence_conflict_guard"
+            item["machine_assessment"] = corrected
+            item["claim_verified"] = False
+        try:
+            old_version = max(1, int(current[0].get("source_claim_audit_version", 1)))
+        except (TypeError, ValueError):
+            old_version = 1
+        current[0]["source_claim_audit_version"] = max(6, old_version)
+        db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
+                   (json.dumps(current, ensure_ascii=False), mission_id))
+    return manager.get(mission_id)["stages"][0]["source_claim_audit"]
+
 def _audit_has_only_matched_quotes(stages):
     """A failed quote match may be retried; current successful audits stay idempotent."""
     audit = stages[0].get("source_claim_audit")
@@ -286,6 +361,10 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
     if saved["status"] != "review_pending" or len(saved["stages"]) != 4:
         raise RuntimeError("Only a completed research draft can be quoted")
     stages = saved["stages"]
+    cached_conflicts = _reconcile_cached_confidence_conflicts(
+        manager, mission_id, stages)
+    if cached_conflicts is not None:
+        stages = manager.get(mission_id)["stages"]
     if _audit_has_only_matched_quotes(stages):
         if _pending_source_disagreements(stages):
             return _reread_cached_source_disagreements(
