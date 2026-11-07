@@ -259,6 +259,7 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
             review_unavailable = True
         else:
             review_unavailable = False
+        missing_assessments = set(valid_indices).difference(assessments)
         for index in valid_indices:
             assessment = assessments.get(index)
             if assessment is None:
@@ -266,7 +267,9 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
                     "verdict": "insufficient",
                     "reason": ("İkinci model incelemesi alınamadı; bu iddia "
                                "otomatik olarak doğrulanmadı."),
-                    "available": False if review_unavailable else True,
+                    "available": not (
+                        review_unavailable or index in missing_assessments
+                    ),
                 }
             assessment["method"] = "skeptical_model_pass"
             reviewed[index]["machine_assessment"] = assessment
