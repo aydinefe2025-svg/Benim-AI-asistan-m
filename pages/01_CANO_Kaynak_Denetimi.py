@@ -34,6 +34,20 @@ st.set_page_config(page_title="CANO Kanıt Denetimi", page_icon="📑")
 owner = render_auth_gate(st, os.environ)
 st.title("CANO Kaynak–İddia Denetimi")
 st.caption("Bilimsel kaynaktan gerçekten okunan alıntıları kontrol eder; alıntı bulunması iddiayı doğrulamaz.")
+key = os.environ.get("GROQ_API_KEY")
+if not key:
+    try:
+        key = st.secrets.get("GROQ_API_KEY")
+    except Exception:
+        key = None
+
+class Client:
+    def chat(self, model, system, prompt):
+        return generate_claim_quote_json(system, prompt, api_key=key)
+
+    def verify(self, model, system, prompt):
+        return generate_claim_verification_json(system, prompt, api_key=key)
+
 st.subheader("Bağımsız CANO modeli testi")
 st.caption(
     "Bu sabit sentetik test, Groq JSON yanıtını tek çağrıda doğrular. İnsan etiketi "
@@ -153,20 +167,6 @@ if documents and st.button("Görevdeki DOI kaynaklarını yeniden oku"):
         st.rerun()
     except (ValueError, PermissionError, RuntimeError, OSError, sqlite3.Error):
         st.warning("Kaynaklar yenilenemedi; önceki okunabilir alıntılar korundu.")
-key = os.environ.get("GROQ_API_KEY")
-if not key:
-    try:
-        key = st.secrets.get("GROQ_API_KEY")
-    except Exception:
-        key = None
-
-class Client:
-    def chat(self, model, system, prompt):
-        return generate_claim_quote_json(system, prompt, api_key=key)
-
-    def verify(self, model, system, prompt):
-        return generate_claim_verification_json(system, prompt, api_key=key)
-
 if documents and key and st.button("İddiaları çıkar ve ayrı kuşkucu AI geçişi çalıştır (en fazla 2 çağrı)"):
     try:
         if owner:
