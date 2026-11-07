@@ -13,6 +13,10 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
+import queue
+import threading
+import time
 import os
 from pathlib import Path
 import secrets
@@ -91,11 +95,15 @@ def _private_receipt(path: Path, payload: dict) -> None:
 
 def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL',
                           key_env: str='CANO_BACKUP_KEY_HEX',
-                          dump_bin: str='pg_dump', max_plaintext_bytes:int=2*1024**3) -> dict:
+                          dump_bin: str='pg_dump', max_plaintext_bytes:int=2*1024**3,
+                          max_seconds:float=1800) -> dict:
     """Stream from pg_dump through AES-256-GCM: no unencrypted archive at rest."""
     key=_key(key_env)
     if not isinstance(max_plaintext_bytes,int) or max_plaintext_bytes<6:
         raise BackupError('Invalid maximum backup size')
+    if (isinstance(max_seconds, bool) or not isinstance(max_seconds, (int, float))
+            or not math.isfinite(max_seconds) or max_seconds<=0 or max_seconds>7200):
+        raise BackupError('Invalid wall-clock backup timeout')
     url=os.getenv(database_env,'')
     if not url: raise BackupError('Database URL environment variable is missing')
     env=_child_env(_libpq_env_from_uri(url,os.environ))
@@ -108,6 +116,8 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
     receipt=destination/(name+'.receipt.json')
     fd,temp=tempfile.mkstemp(prefix='.cano-encrypted-',dir=str(destination))
     process=None
+    pump=None
+    stop_pump=threading.Event()
     try:
         os.chmod(temp,0o600)
         with os.fdopen(fd,'wb') as out:
@@ -121,16 +131,55 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
                 stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,env=env)
             digest=hashlib.sha256();size=0;first=b''
             assert process.stdout is not None
-            with process.stdout as pipe:
-                while True:
-                    data=pipe.read(CHUNK)
-                    if not data:break
-                    if len(first)<5:first+=data[:5-len(first)]
-                    digest.update(data);size+=len(data)
-                    if size>max_plaintext_bytes:
-                        raise BackupError('Encrypted backup exceeded configured size limit')
-                    out.write(ctx.update(data))
-            if process.wait(timeout=1800)!=0 or first!=b'PGDMP' or size<6:
+            # Reading a pipe blocks even when Popen.wait(timeout=...) would not.
+            # A bounded reader queue makes the deadline effective on Windows and
+            # Unix without buffering the plaintext PostgreSQL dump in memory.
+            chunks=queue.Queue(maxsize=4)
+            deadline=time.monotonic()+float(max_seconds)
+
+            def pump_stdout():
+                try:
+                    while not stop_pump.is_set():
+                        data=process.stdout.read(CHUNK)
+                        while not stop_pump.is_set():
+                            try:
+                                chunks.put(data,timeout=0.1)
+                                break
+                            except queue.Full:
+                                continue
+                        if not data:
+                            break
+                except (OSError, ValueError):
+                    # Non-zero exit/invalid input is handled by the parent.
+                    while not stop_pump.is_set():
+                        try:
+                            chunks.put(None,timeout=0.1)
+                            break
+                        except queue.Full:
+                            continue
+
+            pump=threading.Thread(target=pump_stdout,daemon=True,
+                                  name='cano-pgdump-pipe')
+            pump.start()
+            while True:
+                left=deadline-time.monotonic()
+                if left<=0:
+                    raise BackupError('pg_dump exceeded wall-clock time limit')
+                try:
+                    data=chunks.get(timeout=min(left,0.25))
+                except queue.Empty:
+                    continue
+                if not data:
+                    break
+                if len(first)<5:first+=data[:5-len(first)]
+                digest.update(data);size+=len(data)
+                if size>max_plaintext_bytes:
+                    raise BackupError('Encrypted backup exceeded configured size limit')
+                out.write(ctx.update(data))
+            left=deadline-time.monotonic()
+            if left<=0:
+                raise BackupError('pg_dump exceeded wall-clock time limit')
+            if process.wait(timeout=left)!=0 or first!=b'PGDMP' or size<6:
                 raise BackupError('pg_dump did not produce a valid custom-format header')
             out.write(ctx.finalize());out.write(ctx.tag)
             out.flush();os.fsync(out.fileno())
@@ -154,8 +203,15 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
     except (OSError,subprocess.SubprocessError,ValueError) as error:
         raise BackupError('Encrypted PostgreSQL dump failed (details intentionally redacted)') from None
     finally:
-        if process is not None and process.poll() is None:
-            process.kill();process.wait()
+        stop_pump.set()
+        if process is not None:
+            if process.poll() is None:
+                process.kill()
+            process.wait()
+            if process.stdout is not None:
+                process.stdout.close()
+        if pump is not None:
+            pump.join(timeout=1)
         if os.path.exists(temp):os.unlink(temp)
         # If receipt publishing fails, do not leave an untracked encrypted archive.
         if archive.exists() and not receipt.exists():archive.unlink()
@@ -230,11 +286,29 @@ def restore_to_empty_database(path:Path,*,target_db_url_env='CANO_RESTORE_DATABA
     target=unquote(parts.path[1:])
     if not target.startswith('cano_restore_') or not target.replace('_','').isalnum():
         raise BackupError('Target must be a dedicated cano_restore_* database')
-    # Refuse connection to the source DB even if the caller gives it an alias.
-    src=urlsplit(os.getenv('DATABASE_URL',''))
-    if (src.hostname==parts.hostname and src.port==parts.port and
-        unquote(src.path[1:])==target):
-        raise BackupError('Isolated restore target must differ from source')
+    # Never restore into a live CANO source, including alternative environment
+    # names used by separate queue, colony and research persistence modules.
+    # Compare normalized host, default port and database, not credentials.
+    def identity(uri: str):
+        try:
+            p=urlsplit(uri)
+            host=(p.hostname or '').lower()
+            if host in ('localhost','127.0.0.1','::1'):
+                host='localhost'
+            return host, p.port or 5432, unquote(p.path[1:])
+        except ValueError:
+            raise BackupError('Invalid configured database identity') from None
+
+    target_id=identity(url)
+    source_vars=(
+        'DATABASE_URL','AGENT_TASK_DATABASE_URL','COLONY_DATABASE_URL',
+        'OWNER_DATABASE_URL','CANO_DATABASE_URL','RESEARCH_DATABASE_URL',
+        'PERSISTENCE_DATABASE_URL','NEON_DATABASE_URL',
+    )
+    for var in source_vars:
+        source_url=os.getenv(var,'')
+        if source_url and identity(source_url)==target_id:
+            raise BackupError('Isolated restore target matches a configured source')
     # Authentication must succeed BEFORE the destination receives any SQL.
     proof=decrypt_to_sink(path,None)
     env=_child_env(_libpq_env_from_uri(url,os.environ))
