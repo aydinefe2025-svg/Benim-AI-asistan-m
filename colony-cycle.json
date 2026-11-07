@@ -1,0 +1,139 @@
+{
+  "github_run_id": "42374465321",
+  "github_sha": "4d8088a705f51c74599a3cdb855e2728ca2be4e4",
+  "db_integrity": "ok",
+  "stored_ticks": 17,
+  "verified_tick_id": 17,
+  "continuity": {
+    "had_prior_state": true,
+    "previous_tick_id": 16,
+    "previous_tick_count": 16,
+    "increment_verified": true
+  },
+  "timestamp": "2026-11-07T12:53:43.400435+00:00",
+  "cycle": {
+    "tick_id": 17,
+    "state": "proposed",
+    "active_count": 1,
+    "candidates": [
+      {
+        "parent_id": "cano-research-founder",
+        "role": "archive",
+        "generation": 1,
+        "status": "awaiting_validation"
+      },
+      {
+        "parent_id": "cano-research-founder",
+        "role": "simulation",
+        "generation": 1,
+        "status": "awaiting_validation"
+      },
+      {
+        "parent_id": "cano-research-founder",
+        "role": "research",
+        "generation": 1,
+        "status": "awaiting_validation"
+      }
+    ],
+    "activated": 0
+  },
+  "virtual_generation": {
+    "generation_id": 17,
+    "parent_generation_id": 16,
+    "parent_mutation_rate": 0.12,
+    "candidate_mutation_rate": 0.05,
+    "training": {
+      "candidate_mean_births": 86.16666666666667,
+      "candidate_mean_final_population": 9.666666666666666,
+      "candidate_mean_max_generation": 2.8333333333333335,
+      "candidate_mean_score": 1.75,
+      "ci95_high": -0.10000000000000009,
+      "ci95_low": -1.7333333333333332,
+      "mean_paired_difference": -0.9166666666666666,
+      "paired_seeds": 12,
+      "parent_mean_births": 74.0,
+      "parent_mean_final_population": 9.0,
+      "parent_mean_max_generation": 2.5,
+      "parent_mean_score": 2.6666666666666665,
+      "positive_evidence": false
+    },
+    "held_out_confirmation": {
+      "candidate_mean_births": 89.08333333333333,
+      "candidate_mean_final_population": 9.833333333333334,
+      "candidate_mean_max_generation": 3.0,
+      "candidate_mean_score": 1.75,
+      "ci95_high": -0.46800648390474653,
+      "ci95_low": -1.3653268494285866,
+      "mean_paired_difference": -0.9166666666666666,
+      "paired_seeds": 12,
+      "parent_mean_births": 83.25,
+      "parent_mean_final_population": 9.5,
+      "parent_mean_max_generation": 2.9166666666666665,
+      "parent_mean_score": 2.6666666666666665,
+      "positive_evidence": false
+    },
+    "lesson_status": "rejected",
+    "next_generation_mutation_rate": 0.12,
+    "primary_metric": "final surviving unique genome count",
+    "created_at": "2026-11-07T12:53:43.388519+00:00",
+    "offspring_scope": "bounded toy digital VM only",
+    "model_weights_updated": false
+  },
+  "mode": "bounded_virtual_reproduction_with_held_out_validation",
+  "scope": "authorized_github_runner",
+  "note": "Digital organisms reproduce only inside the bounded toy VM. A mutation-rate lesson transfers only after paired development and held-out confirmation. Four isolated read-only validation workers run afterward. No LLM inference, deployment, or unrestricted coding agents are started.",
+  "specialist_agents": {
+    "status": "passed",
+    "launched": 4,
+    "roles": [
+      {
+        "role": "evidence",
+        "label": "Kanıt ve kapsam ajanı",
+        "status": "passed",
+        "checks": [
+          "simulation_scope",
+          "no_model_weight_claim"
+        ],
+        "execution": "isolated_read_only_subprocess",
+        "model_calls": 0
+      },
+      {
+        "role": "generation",
+        "label": "Nesil doğrulama ajanı",
+        "status": "passed",
+        "checks": [
+          "paired_training",
+          "held_out_confirmation",
+          "transfer_gate"
+        ],
+        "execution": "isolated_read_only_subprocess",
+        "model_calls": 0
+      },
+      {
+        "role": "continuity",
+        "label": "Kayıt sürekliliği ajanı",
+        "status": "passed",
+        "checks": [
+          "cycle_increment",
+          "sqlite_readback",
+          "read_only_access"
+        ],
+        "execution": "isolated_read_only_subprocess",
+        "model_calls": 0
+      },
+      {
+        "role": "security",
+        "label": "Güvenlik tarama ajanı",
+        "status": "passed",
+        "checks": [
+          "credential_pattern_scan",
+          "artifact_size_bound"
+        ],
+        "execution": "isolated_read_only_subprocess",
+        "model_calls": 0
+      }
+    ],
+    "started_at": "2026-11-07T12:53:43.551239+00:00",
+    "execution_scope": "four isolated read-only Python subprocesses; no model/network/API access"
+  }
+}
