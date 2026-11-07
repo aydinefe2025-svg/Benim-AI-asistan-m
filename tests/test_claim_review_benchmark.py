@@ -38,13 +38,24 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
         self.assertIn("12 fixed synthetic", result["scope"])
 
 
-    def test_v2_fixtures_contain_no_gold_labels_and_are_interleaved(self):
+    def test_v3_fixtures_are_source_linked_blind_and_interleaved(self):
         self.assertEqual(len(HUMAN_COMPARISON_CASES), 24)
         self.assertTrue(all("expected" not in case for case in HUMAN_COMPARISON_CASES))
+        self.assertTrue(all(case.get("source_url", "").startswith("https://")
+                            and case.get("source_title") for case in HUMAN_COMPARISON_CASES))
+        self.assertEqual(len({case["source_url"] for case in HUMAN_COMPARISON_CASES}), 8)
+        word_counts = {}
+        case_counts = {}
+        for case in HUMAN_COMPARISON_CASES:
+            url = case["source_url"]
+            word_counts[url] = word_counts.get(url, 0) + len(case["excerpt"].split())
+            case_counts[url] = case_counts.get(url, 0) + 1
+        self.assertTrue(all(count == 3 for count in case_counts.values()))
+        self.assertTrue(all(count <= 25 for count in word_counts.values()))
         ids = [case["case_id"] for case in HUMAN_COMPARISON_CASES]
         self.assertEqual(ids, [f"v2_{index:02d}" for index in range(1, 25)])
 
-    def test_v2_model_scoring_uses_external_gold_key_and_hides_it_from_prompt(self):
+    def test_v3_model_scoring_uses_external_gold_key_and_hides_it_from_prompt(self):
         with self.assertRaises(RuntimeError):
             run_claim_review_benchmark(BenchmarkClient(["supported"] * 24),
                                        cases=HUMAN_COMPARISON_CASES)

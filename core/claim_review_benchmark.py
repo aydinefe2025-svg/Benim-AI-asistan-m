@@ -1,8 +1,7 @@
-"""Small, fixed-label benchmark for CANO's skeptical claim reviewer.
+"""Source-grounded benchmark for CANO claim-to-passage review.
 
-The fixtures test narrow claim-to-passage classification, not scientific
-truth or performance against human reviewers. Expected labels are withheld
-from the model prompt and the report includes per-class errors.
+The fixtures test narrow passage-level classification, not scientific truth or
+general performance against human reviewers. Expected labels stay server-side.
 """
 from __future__ import annotations
 
@@ -88,30 +87,30 @@ CASES = (
 
 # Blind comparison cases. Gold labels live only in the server environment.
 HUMAN_COMPARISON_CASES = (
-    {"case_id":"v2_01","claim":"For adults with type 2 diabetes, the program lowered mean HbA1c by 0.3 percentage points versus standard care at week 16.","excerpt":"At week 16, mean HbA1c was 0.3 percentage points lower in the program group than in standard care."},
-    {"case_id":"v2_02","claim":"The treatment shortened median recovery time by four days.","excerpt":"Median recovery was one day longer with treatment than with standard care."},
-    {"case_id":"v2_03","claim":"The supplement prevents fractures in older adults.","excerpt":"The trial measured serum vitamin levels after 12 weeks; fracture outcomes were not collected."},
-    {"case_id":"v2_04","claim":"The trial randomized 560 participants, with 280 assigned to each group.","excerpt":"A total of 560 participants were randomized: 280 to intervention and 280 to control."},
-    {"case_id":"v2_05","claim":"The diagnostic test had 90% sensitivity in validation.","excerpt":"In the validation cohort, sensitivity was 78% (95% CI 72%–84%)."},
-    {"case_id":"v2_06","claim":"The policy reduced emergency visits in rural clinics.","excerpt":"The report gives a combined estimate across all clinics and does not provide rural-clinic results."},
-    {"case_id":"v2_07","claim":"The estimated difference was not statistically conclusive because its interval included zero.","excerpt":"The mean difference was 0.2 points (95% CI −0.1 to 0.5)."},
-    {"case_id":"v2_08","claim":"Participants were followed for 18 months after treatment.","excerpt":"The final follow-up visit occurred six months after treatment ended."},
-    {"case_id":"v2_09","claim":"The algorithm improves survival compared with clinician judgment.","excerpt":"The paper reports discrimination and calibration metrics but no survival comparison with clinicians."},
-    {"case_id":"v2_10","claim":"Investigators used a double-blind, placebo-controlled design.","excerpt":"Participants and investigators were blinded, and the control group received matching placebo."},
-    {"case_id":"v2_11","claim":"The intervention reduced the primary symptom score by 2 points.","excerpt":"The adjusted between-group difference in the primary symptom score was 0.1 points in the direction of worse symptoms."},
-    {"case_id":"v2_12","claim":"The result applies equally to people with severe kidney disease.","excerpt":"People with severe kidney disease were excluded, and no subgroup analysis was reported."},
-    {"case_id":"v2_13","claim":"The study analyzed 1,086 samples after quality-control exclusions.","excerpt":"After quality-control exclusions, 1,086 samples remained for analysis."},
-    {"case_id":"v2_14","claim":"The review included 42 eligible trials.","excerpt":"Forty-two records were screened; only 24 trials met the inclusion criteria."},
-    {"case_id":"v2_15","claim":"The intervention is cost-saving over five years.","excerpt":"The economic analysis reports costs and outcomes through six months only."},
-    {"case_id":"v2_16","claim":"At 12 weeks, the event rate was lower in the intervention group than in control.","excerpt":"By week 12, events occurred in 8% of the intervention group and 13% of controls."},
-    {"case_id":"v2_17","claim":"The intervention increased adherence by 15 percentage points.","excerpt":"Adherence was 61% with the intervention and 68% with usual care."},
-    {"case_id":"v2_18","claim":"The observed biomarker change predicts future relapse.","excerpt":"Biomarker levels were measured at the same visit as current disease activity; relapse was not followed."},
-    {"case_id":"v2_19","claim":"The authors reported no serious treatment-related adverse events.","excerpt":"No serious adverse event was judged related to treatment by the safety committee."},
-    {"case_id":"v2_20","claim":"The study enrolled only adults aged 18 years or older.","excerpt":"Eligibility included adolescents aged 12 to 17 years as well as adults."},
-    {"case_id":"v2_21","claim":"The effect is stronger in women than in men.","excerpt":"Overall treatment effects are reported, but no sex-specific estimates or interaction test are given."},
-    {"case_id":"v2_22","claim":"The intervention was delivered in six weekly group sessions.","excerpt":"Participants attended one group session each week for six weeks."},
-    {"case_id":"v2_23","claim":"The comparator received no active treatment.","excerpt":"The comparator arm received a structured exercise program of the same duration."},
-    {"case_id":"v2_24","claim":"The observed score improvement was caused by the intervention.","excerpt":"Scores improved from baseline, but the study had no comparison group."},
+    {"case_id":"v2_01","claim":"The review included 218 unique studies and 14,170 participants.","excerpt":"218 unique studies ... 14 170 participants","source_title":"Exercise for depression: systematic review and network meta-analysis","source_url":"https://doi.org/10.1136/bmj-2023-075847"},
+    {"case_id":"v2_02","claim":"The exercise review had high confidence in every exercise effect.","excerpt":"confidence ... low for walking or jogging and very low for other treatments","source_title":"Exercise for depression: systematic review and network meta-analysis","source_url":"https://doi.org/10.1136/bmj-2023-075847"},
+    {"case_id":"v2_03","claim":"Exercise reduced suicide mortality in the populations studied.","excerpt":"reductions in depression","source_title":"Exercise for depression: systematic review and network meta-analysis","source_url":"https://doi.org/10.1136/bmj-2023-075847"},
+    {"case_id":"v2_04","claim":"At six months, weight loss was greater with coaching than with the wireless system alone.","excerpt":"WFS alone: −2.8 kg; WFS plus coaching: −4.8 kg","source_title":"Adaptive behavioral intervention for weight loss management","source_url":"https://pmc.ncbi.nlm.nih.gov/articles/PMC11094642/"},
+    {"case_id":"v2_05","claim":"The wireless system alone was noninferior to the system with coaching.","excerpt":"was not noninferior","source_title":"Adaptive behavioral intervention for weight loss management","source_url":"https://pmc.ncbi.nlm.nih.gov/articles/PMC11094642/"},
+    {"case_id":"v2_06","claim":"The weight-loss program was cost-effective over five years.","excerpt":"weight change at six months","source_title":"Adaptive behavioral intervention for weight loss management","source_url":"https://pmc.ncbi.nlm.nih.gov/articles/PMC11094642/"},
+    {"case_id":"v2_07","claim":"The STOP-PASC primary outcome was pooled severity of six symptoms at 10 weeks.","excerpt":"pooled severity of 6 symptoms ... at 10 weeks","source_title":"Nirmatrelvir-ritonavir and symptoms in adults with PASC: STOP-PASC trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/38848477/"},
+    {"case_id":"v2_08","claim":"Nirmatrelvir-ritonavir significantly reduced pooled PASC symptom severity at 10 weeks.","excerpt":"no statistically significant difference ... at 10 weeks","source_title":"Nirmatrelvir-ritonavir and symptoms in adults with PASC: STOP-PASC trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/38848477/"},
+    {"case_id":"v2_09","claim":"The STOP-PASC regimen reduced healthcare costs at one year.","excerpt":"followed up until 15 weeks","source_title":"Nirmatrelvir-ritonavir and symptoms in adults with PASC: STOP-PASC trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/38848477/"},
+    {"case_id":"v2_10","claim":"The ACTIV-6 trial randomized 1,250 participants who received study drug or placebo.","excerpt":"1250 participants were randomized and received study drug or placebo","source_title":"Montelukast vs placebo for sustained recovery: ACTIV-6 trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/39422912/"},
+    {"case_id":"v2_11","claim":"Montelukast reduced the duration of COVID-19 symptoms.","excerpt":"did not reduce duration of COVID-19 symptoms","source_title":"Montelukast vs placebo for sustained recovery: ACTIV-6 trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/39422912/"},
+    {"case_id":"v2_12","claim":"Montelukast reduced hospital mortality in adults with COVID-19.","excerpt":"time to sustained recovery","source_title":"Montelukast vs placebo for sustained recovery: ACTIV-6 trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/39422912/"},
+    {"case_id":"v2_13","claim":"The FYTF-919 trial randomly assigned 1,648 participants.","excerpt":"1648 were randomly assigned","source_title":"FYTF-919 for acute intracerebral haemorrhage: randomized trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/39547249/"},
+    {"case_id":"v2_14","claim":"FYTF-919 improved survival after intracerebral haemorrhage.","excerpt":"showed no effect ... survival","source_title":"FYTF-919 for acute intracerebral haemorrhage: randomized trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/39547249/"},
+    {"case_id":"v2_15","claim":"FYTF-919 reduced hospital costs.","excerpt":"mean scores at 90 days were 0.44 in both groups","source_title":"FYTF-919 for acute intracerebral haemorrhage: randomized trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/39547249/"},
+    {"case_id":"v2_16","claim":"The ivermectin trial randomized 1,206 participants who received medication or placebo.","excerpt":"1206 randomized participants","source_title":"Higher-dose ivermectin vs placebo for COVID-19 recovery","source_url":"https://pubmed.ncbi.nlm.nih.gov/36807465/"},
+    {"case_id":"v2_17","claim":"Higher-dose ivermectin improved time to sustained recovery.","excerpt":"did not improve time to sustained recovery","source_title":"Higher-dose ivermectin vs placebo for COVID-19 recovery","source_url":"https://pubmed.ncbi.nlm.nih.gov/36807465/"},
+    {"case_id":"v2_18","claim":"Ivermectin prevented COVID-19 recurrence at one year.","excerpt":"time to sustained recovery","source_title":"Higher-dose ivermectin vs placebo for COVID-19 recovery","source_url":"https://pubmed.ncbi.nlm.nih.gov/36807465/"},
+    {"case_id":"v2_19","claim":"The placebo analysis assessed seven intervention-control pairs involving 2,684 participants.","excerpt":"7 intervention-control pairs (N = 2684)","source_title":"Matched vs nonmatched placebos in a randomized COVID-19 trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/38767921/"},
+    {"case_id":"v2_20","claim":"Nonmatched and matched placebo groups differed significantly in the primary pooled analysis.","excerpt":"no significant difference","source_title":"Matched vs nonmatched placebos in a randomized COVID-19 trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/38767921/"},
+    {"case_id":"v2_21","claim":"Nonmatched placebo reduced one-year all-cause mortality.","excerpt":"hospitalizations ... PROMIS Global-10 scores","source_title":"Matched vs nonmatched placebos in a randomized COVID-19 trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/38767921/"},
+    {"case_id":"v2_22","claim":"The active-placebo review included 21 trials and 1,462 participants.","excerpt":"21 trials (1462 participants)","source_title":"Active placebo controls in randomized trials: systematic review","source_url":"https://pubmed.ncbi.nlm.nih.gov/36877132/"},
+    {"case_id":"v2_23","claim":"The active-placebo review found a statistically significant primary-analysis difference.","excerpt":"no statistically significant difference ... primary analysis","source_title":"Active placebo controls in randomized trials: systematic review","source_url":"https://pubmed.ncbi.nlm.nih.gov/36877132/"},
+    {"case_id":"v2_24","claim":"Active placebo reduced five-year mortality.","excerpt":"participant-reported outcomes at earliest post-treatment assessment","source_title":"Active placebo controls in randomized trials: systematic review","source_url":"https://pubmed.ncbi.nlm.nih.gov/36877132/"},
 )
 
 
@@ -246,8 +245,12 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CAS
         "unscored": unscored,
         "confusion_matrix": matrix, "per_class": per_class,
         "cases": results,
-        "scope": (f"{len(cases)} fixed synthetic claim-passage fixtures; missing/invalid "
-                  "answers count as errors; same-model skeptical pass; "
-                  "not real-world scientific accuracy."),
+        "scope": (
+            (f"{len(cases)} source-grounded cases from linked publications; "
+             if all(case.get("source_url") for case in cases)
+             else f"{len(cases)} fixed synthetic fixtures; ")
+            + "missing/invalid answers count as errors; same-model skeptical pass; "
+            "not broad scientific accuracy or human superiority."
+        ),
     }
 
