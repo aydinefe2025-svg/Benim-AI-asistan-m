@@ -196,7 +196,7 @@ def main() -> int:
     args = parser.parse_args()
     if args.worker_role:
         result = _worker(args.worker_role, args.report, args.database)
-        print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
+        print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))
         return 0
     results = attach_agent_results(args.report, args.database)
     print(json.dumps({"launched": len(results), "passed": len(results),
