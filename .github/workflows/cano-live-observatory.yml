@@ -1,0 +1,45 @@
+name: CANO live organism observatory tests
+
+on:
+  push:
+    branches: [feature/cano-live-organism-observatory-20261107]
+    paths:
+      - 'web/cano-organism-live/**'
+      - '.github/workflows/cano-live-observatory.yml'
+  pull_request:
+    paths:
+      - 'web/cano-organism-live/**'
+      - '.github/workflows/cano-live-observatory.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check dashboard JavaScript syntax
+        run: node --check web/cano-organism-live/app.js
+      - name: Verify seeded GitHub-style snapshots and tamper rejection
+        run: node web/cano-organism-live/tests/test_dashboard_vm.cjs
+      - name: Verify HTML and build output
+        run: |
+          mkdir -p public
+          cp web/cano-organism-live/index.html web/cano-organism-live/app.js public/
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Parser(HTMLParser):
+              pass
+          doc = Path('public/index.html').read_text(encoding='utf-8')
+          Parser().feed(doc)
+          assert '<script src="app.js" defer></script>' in doc
+          assert 'https://raw.githubusercontent.com/' not in doc or 'genome-state.json' not in doc
+          assert Path('public/app.js').stat().st_size > 1000
+          print('Render static publish payload OK')
+          PY
