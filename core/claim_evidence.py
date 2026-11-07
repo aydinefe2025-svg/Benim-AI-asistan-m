@@ -269,7 +269,6 @@ def _display_cached_confidence_conflict(item, doc):
     human_review = item.get("human_review") if isinstance(item, dict) else None
     if (not isinstance(item, dict)
             or item.get("status") != "quote_found_unverified"
-            or (isinstance(human_review, dict) and bool(human_review))
             or not isinstance(doc, dict)
             or doc.get("status") not in _READABLE
             or not isinstance(doc.get("excerpt"), str)
@@ -288,6 +287,9 @@ def _display_cached_confidence_conflict(item, doc):
     visible["method"] = "explicit_confidence_conflict_guard"
     visible["prior_model_verdict"] = assessment.get("verdict")
     visible["display_only"] = True
+    visible["human_review_present"] = (
+        isinstance(human_review, dict) and bool(human_review)
+    )
     return visible
 
 
