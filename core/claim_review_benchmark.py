@@ -180,6 +180,44 @@ V5_COMPARISON_CASES = (
 )
 
 
+
+# Fourth blind cohort: eight further publications outside v3/v4/v5.
+V6_COMPARISON_CASES = (
+    {"case_id":"v6_01","claim":"Empagliflozin reduced kidney-disease progression or cardiovascular death in EMPA-KIDNEY.","excerpt":"HR 0.72 ... P<0.001","source_title":"Empagliflozin in Patients with Chronic Kidney Disease","source_url":"https://pubmed.ncbi.nlm.nih.gov/36331190/"},
+    {"case_id":"v6_02","claim":"Empagliflozin significantly reduced all-cause death in EMPA-KIDNEY.","excerpt":"no significant ... death from any cause","source_title":"Empagliflozin in Patients with Chronic Kidney Disease","source_url":"https://pubmed.ncbi.nlm.nih.gov/36331190/"},
+    {"case_id":"v6_03","claim":"Empagliflozin lowered mortality over ten years in this trial.","excerpt":"median 2.0 years of follow-up","source_title":"Empagliflozin in Patients with Chronic Kidney Disease","source_url":"https://pubmed.ncbi.nlm.nih.gov/36331190/"},
+
+    {"case_id":"v6_04","claim":"Semaglutide reduced the FLOW primary-outcome risk versus placebo.","excerpt":"HR 0.76 ... P=0.0003","source_title":"Effects of Semaglutide on Chronic Kidney Disease in Patients with Type 2 Diabetes","source_url":"https://pubmed.ncbi.nlm.nih.gov/38785209/"},
+    {"case_id":"v6_05","claim":"The FLOW primary outcome occurred more often with semaglutide than placebo.","excerpt":"331 vs. 410 first events; HR 0.76","source_title":"Effects of Semaglutide on Chronic Kidney Disease in Patients with Type 2 Diabetes","source_url":"https://pubmed.ncbi.nlm.nih.gov/38785209/"},
+    {"case_id":"v6_06","claim":"Semaglutide reduced fracture risk over ten years in the FLOW trial.","excerpt":"kidney failure ... or death from kidney or CV causes","source_title":"Effects of Semaglutide on Chronic Kidney Disease in Patients with Type 2 Diabetes","source_url":"https://pubmed.ncbi.nlm.nih.gov/38785209/"},
+
+    {"case_id":"v6_07","claim":"At 72 weeks, tirzepatide 5 mg reduced mean weight more than placebo in SURMOUNT-1.","excerpt":"-15.0% ... versus -3.1% ... P<0.001","source_title":"Tirzepatide Once Weekly for the Treatment of Obesity","source_url":"https://pubmed.ncbi.nlm.nih.gov/35658024/"},
+    {"case_id":"v6_08","claim":"In SURMOUNT-1, 5-mg tirzepatide did not reduce weight more than placebo.","excerpt":"-15.0% ... versus -3.1%","source_title":"Tirzepatide Once Weekly for the Treatment of Obesity","source_url":"https://pubmed.ncbi.nlm.nih.gov/35658024/"},
+    {"case_id":"v6_09","claim":"Tirzepatide reduced cardiovascular mortality over five years in SURMOUNT-1.","excerpt":"weight change at week 72","source_title":"Tirzepatide Once Weekly for the Treatment of Obesity","source_url":"https://pubmed.ncbi.nlm.nih.gov/35658024/"},
+
+    {"case_id":"v6_10","claim":"Semaglutide improved symptoms and exercise function in STEP-HFpEF participants with obesity.","excerpt":"larger reductions in symptoms ... greater improvements in exercise function","source_title":"Semaglutide in Patients with Heart Failure with Preserved Ejection Fraction and Obesity","source_url":"https://pubmed.ncbi.nlm.nih.gov/37622681/"},
+    {"case_id":"v6_11","claim":"STEP-HFpEF found no improvement in symptoms or exercise function with semaglutide.","excerpt":"improved symptoms ... and exercise function","source_title":"Semaglutide in Patients with Heart Failure with Preserved Ejection Fraction and Obesity","source_url":"https://pubmed.ncbi.nlm.nih.gov/37622681/"},
+    {"case_id":"v6_12","claim":"Semaglutide reduced five-year cardiovascular mortality in STEP-HFpEF.","excerpt":"treatment ... 52 weeks","source_title":"Semaglutide in Patients with Heart Failure with Preserved Ejection Fraction and Obesity","source_url":"https://pubmed.ncbi.nlm.nih.gov/37622681/"},
+
+    {"case_id":"v6_13","claim":"Bempedoic acid lowered the primary MACE event rate versus placebo in CLEAR Outcomes.","excerpt":"11.7% vs. 13.3%; HR 0.87; P=0.004","source_title":"Bempedoic Acid and Cardiovascular Outcomes in Statin-Intolerant Patients","source_url":"https://pubmed.ncbi.nlm.nih.gov/36876740/"},
+    {"case_id":"v6_14","claim":"Bempedoic acid significantly reduced death from any cause in CLEAR Outcomes.","excerpt":"no significant effects ... death from any cause","source_title":"Bempedoic Acid and Cardiovascular Outcomes in Statin-Intolerant Patients","source_url":"https://pubmed.ncbi.nlm.nih.gov/36876740/"},
+    {"case_id":"v6_15","claim":"Bempedoic acid reduced MACE over ten years in statin-intolerant patients.","excerpt":"median follow-up of 40.6 months","source_title":"Bempedoic Acid and Cardiovascular Outcomes in Statin-Intolerant Patients","source_url":"https://pubmed.ncbi.nlm.nih.gov/36876740/"},
+
+    {"case_id":"v6_16","claim":"Dapagliflozin reduced the combined risk of worsening heart failure or cardiovascular death in DELIVER.","excerpt":"HR 0.82 ... P<0.001","source_title":"Dapagliflozin in Heart Failure with Mildly Reduced or Preserved Ejection Fraction","source_url":"https://pubmed.ncbi.nlm.nih.gov/36027570/"},
+    {"case_id":"v6_17","claim":"Dapagliflozin significantly reduced cardiovascular death alone in DELIVER.","excerpt":"CV death ... HR 0.88 ... 95% CI 0.74 to 1.05","source_title":"Dapagliflozin in Heart Failure with Mildly Reduced or Preserved Ejection Fraction","source_url":"https://pubmed.ncbi.nlm.nih.gov/36027570/"},
+    {"case_id":"v6_18","claim":"DELIVER showed a ten-year reduction in all-cause mortality.","excerpt":"median of 2.3 years","source_title":"Dapagliflozin in Heart Failure with Mildly Reduced or Preserved Ejection Fraction","source_url":"https://pubmed.ncbi.nlm.nih.gov/36027570/"},
+
+    {"case_id":"v6_19","claim":"In SELECT, semaglutide reduced MACE by 20% versus placebo.","excerpt":"primary end point ... reduced by 20%","source_title":"Semaglutide and Cardiovascular Outcomes by Baseline HbA1c and Change in HbA1c in People With Overweight or Obesity but Without Diabetes in SELECT","source_url":"https://pubmed.ncbi.nlm.nih.gov/38907684/"},
+    {"case_id":"v6_20","claim":"SELECT showed different cardiovascular risk reduction across baseline HbA1c groups.","excerpt":"not shown to be different across baseline HbA1c groups","source_title":"Semaglutide and Cardiovascular Outcomes by Baseline HbA1c and Change in HbA1c in People With Overweight or Obesity but Without Diabetes in SELECT","source_url":"https://pubmed.ncbi.nlm.nih.gov/38907684/"},
+    {"case_id":"v6_21","claim":"SELECT demonstrated MACE reduction in people without established cardiovascular disease.","excerpt":"established atherosclerotic cardiovascular disease","source_title":"Semaglutide and Cardiovascular Outcomes by Baseline HbA1c and Change in HbA1c in People With Overweight or Obesity but Without Diabetes in SELECT","source_url":"https://pubmed.ncbi.nlm.nih.gov/38907684/"},
+
+    {"case_id":"v6_22","claim":"In hospitalized adults with COVID-19, empagliflozin did not reduce 28-day mortality.","excerpt":"not associated with reductions in 28-day mortality","source_title":"Empagliflozin in patients admitted to hospital with COVID-19 (RECOVERY)","source_url":"https://pubmed.ncbi.nlm.nih.gov/37865101/"},
+    {"case_id":"v6_23","claim":"Empagliflozin significantly reduced 28-day mortality versus usual care in RECOVERY.","excerpt":"not associated with reductions in 28-day mortality","source_title":"Empagliflozin in patients admitted to hospital with COVID-19 (RECOVERY)","source_url":"https://pubmed.ncbi.nlm.nih.gov/37865101/"},
+    {"case_id":"v6_24","claim":"Empagliflozin lowered one-year death among hospitalized COVID-19 patients in RECOVERY.","excerpt":"completed follow-up at day 28","source_title":"Empagliflozin in patients admitted to hospital with COVID-19 (RECOVERY)","source_url":"https://pubmed.ncbi.nlm.nih.gov/37865101/"},
+)
+
+
+
 _SYSTEM = (
     "You are a cautious claim-to-passage reviewer. Assess only whether each "
     "exact claim is directly supported, directly contradicted, or not established "
