@@ -425,7 +425,7 @@ def _team_answer(prompt: str) -> str:
     source_context = build_cano_source_context(
         task_goal, os.path.dirname(os.path.abspath(__file__)))
     if source_context:
-        prompt += "\\n\\n" + source_context
+        prompt += "\n\n" + source_context
     router = _new_provider_router()
     return router.chat(aktif_llm_adi, system, prompt)
 
