@@ -84,6 +84,11 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
         self.assertEqual(again, ordered)
         reset = randomized_case_order(cases, previous_ids=["a", "a", "c"], rng=Reverse())
         self.assertEqual([case["case_id"] for case in reset], ["c", "b", "a"])
+        # Old sessions stored the source-grouped order, which must not be
+        # considered a valid stable order after the shuffle fix ships.
+        reset_legacy = randomized_case_order(
+            cases, previous_ids=["a", "b", "c"], rng=Reverse())
+        self.assertEqual([case["case_id"] for case in reset_legacy], ["c", "b", "a"])
 
     def test_private_answer_key_parser_rejects_missing_or_wrong_keys(self):
         cases = ({"case_id": "a"}, {"case_id": "b"})
