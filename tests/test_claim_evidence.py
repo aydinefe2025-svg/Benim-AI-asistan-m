@@ -335,7 +335,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertFalse(second[0]["claim_verified"])
         self.assertEqual(stage["source_claim_audit_version"], 4)
         self.assertEqual(stage["source_claim_audit_history"],
-                         [{"version": 3, "claims": first}])
+                         [{"version": 4, "claims": first}])
         self.assertEqual(len(bad.calls), 1)
         self.assertEqual(len(retry.calls), 2)
         self.assertIn("exact words and punctuation", retry.calls[0][1])
