@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import re
 
 SOURCE_POSTERIOR_SHA256 = "4587a7d71aca7b561e5cf22623e3f0e2d80a6c54add0ecb7abc0389d705e8d5b"
 SOURCE_POSTERIOR_MEMBER = "mr_samples_and_contours/J0740_gamma_NxX_lp40k_se001_mrsamples_post_equal_weights.dat"
@@ -92,8 +93,9 @@ def verify_matched_run_manifest(manifest_path: str | Path) -> dict:
 
     The manifest is from an explicitly matched gamma NxX run. The evidence
     files must exist locally and their current contents must hash to what the
-    manifest records. Crucially, a legacy STU file name and a gamma label alone
-    are not evidence of a shared sampling run.
+    manifest records. Run-specific inference version must be extracted from an
+    original SHA-verified out_ log: the README covers v0.7.10–v1.2.1,
+    so hardcoding v1.2.1 would be misleading. Mere ST-U names are insufficient.
     """
     path = Path(manifest_path)
     m = json.loads(path.read_text(encoding="utf-8"))
@@ -104,13 +106,12 @@ def verify_matched_run_manifest(manifest_path: str | Path) -> dict:
         "posterior_run": SOURCE_POSTERIOR_RUN,
         "full_archive_md5": SOURCE_FULL_ARCHIVE_MD5,
         "source_archive_md5": SOURCE_POSTERIOR_ARCHIVE_MD5,
-        "xpsi_version": "v1.2.1",
         "verified_run_identity": "exact_gamma_NxX_lp40k_se001_source_and_prior",
     }
     for k, value in must.items():
         if m.get(k) != value:
             raise RunLineageNotProven(f"Source-run manifest {k} missing/mismatched; refusing proxy inference")
-    for key in ("matching_prior", "matching_runner", "matching_sampler_config"):
+    for key in ("matching_prior", "matching_runner", "matching_sampler_config", "matching_run_log"):
         ent = m.get(key)
         if not isinstance(ent, dict):
             raise RunLineageNotProven(f"Missing exact source entry {key}")
@@ -129,10 +130,31 @@ def verify_matched_run_manifest(manifest_path: str | Path) -> dict:
     config = Path(m["matching_sampler_config"]["local_path"]).read_text(encoding="utf-8")
     if SOURCE_POSTERIOR_RUN not in config:
         raise RunLineageNotProven("Sampler configuration does not name the exact posterior run")
+    # The Zenodo README explicitly says inference versions vary by RUN and that
+    # the original out_ header, not the main.py comment or publication headline,
+    # records the version. Require source bytes and a checked log artifact.
+    log_entry = m["matching_run_log"]
+    log_member = log_entry["original_archive_member"].replace("\\", "/")
+    if not (log_member.startswith(PUBLISHED_HEADLINE_OUTPUT_DIR)
+            and Path(log_member).name.startswith("out_")):
+        raise RunLineageNotProven("Run log must be an original headline ST-U out_ member")
+    run_log = Path(log_entry["local_path"]).read_text(encoding="utf-8", errors="replace")
+    match = re.search(r"(?im)\bX[\s-]?PSI\b[^\r\n]{0,90}?\bv?(\d+\.\d+\.\d+)\b", run_log)
+    if not match:
+        raise RunLineageNotProven("Cannot find X-PSI version in authenticated out_ run log")
+    observed = "v" + match.group(1)
+    ver = tuple(int(t) for t in match.group(1).split("."))
+    if not ((0, 7, 10) <= ver <= (1, 2, 1)):
+        raise RunLineageNotProven("X-PSI version outside official Salmi README range")
+    if m.get("xpsi_version") != observed:
+        raise RunLineageNotProven(
+            "Manifest X-PSI version does not match authenticated out_ log: " + observed)
     return {
         "status": "BYTE_IDENTITIES_AND_EXPLICIT_CONFIG_RUN_LABEL_VERIFIED",
         "caution": "Not a native X-PSI photon-likelihood or EOS evidence verification",
         "run": SOURCE_POSTERIOR_RUN,
+        "xpsi_version_from_verified_out_log": observed,
+        "out_log_sha256": log_entry["sha256"],
     }
 
 
