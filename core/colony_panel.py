@@ -45,6 +45,27 @@ class AnswerAdapter:
         return self.answer(system + "\n\n" + prompt)
 
 
+def mission_failure_message(exc, failure=None):
+    """Show failure location without exposing raw provider/database exception text."""
+    failure = failure if isinstance(failure, dict) else {}
+    phase_labels = {
+        "mission_setup": "görev hazırlığı",
+        "model_call": "model sağlayıcı çağrısı",
+        "sqlite_stage_write": "yerel aşama kaydı",
+        "owner_backup_checkpoint": "hesap PostgreSQL yedek kontrolü",
+        "completion_write": "görev tamamlama kaydı",
+    }
+    phase = phase_labels.get(failure.get("phase"), "başlangıç/ön kontrol")
+    role = failure.get("role")
+    role_text = f", {role} rolü" if isinstance(role, str) and role else ""
+    error_type = failure.get("exception_type")
+    if not isinstance(error_type, str) or not error_type:
+        error_type = type(exc).__name__[:80]
+    return (f"Görev durdu: {phase}{role_text} başarısız oldu "
+            f"(hata türü: {error_type}). Görev tamamlanmadı; kaydedilmiş aşamalar korundu. "
+            "Hassas olabilecek hata metni güvenlik için gösterilmedi.")
+
+
 def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
     expand_restore = bool(st.session_state.pop("_cano_restore_panel_open_requested", False))
     with st.sidebar.expander("🧬 Öğrenen uzman ajanlar", expanded=expand_restore):
@@ -489,7 +510,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 try:
                     # Refuse model charges when the owner backup is stale or unavailable.
                     _checkpoint()
-                    mission = CollaborativeMission(colony).execute(
+                    mission_manager = CollaborativeMission(colony)
+                    mission = mission_manager.execute(
                         mission_goal, client=AnswerAdapter(answer),
                         model="configured-provider",
                         source_lookup=scientific_sources if crossref_opt_in else None,
@@ -498,9 +520,9 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                     _checkpoint(archive_prior=False)
                     st.session_state["colony_last_mission"] = mission
                     st.success("Dört aşamalı ekip görevi tamamlandı; bağımsız doğrulama bekliyor.")
-                except (ValueError, RuntimeError, OSError, sqlite3.Error):
-                    st.error("Ekip görevi durduruldu; PostgreSQL aşama yedeğini, ajanları "
-                             "ve modeli kontrol edin. Doğrulanmamış kayıt tamamlandı sayılmaz.")
+                except (ValueError, RuntimeError, OSError, sqlite3.Error) as exc:
+                    st.error(mission_failure_message(
+                        exc, getattr(mission_manager, "last_failure", None)))
         if st.session_state.get("colony_last_mission"):
             mission = st.session_state["colony_last_mission"]
             st.caption("4 model çağrısı: plan, araştırma, eleştiri, sentez. "
@@ -598,9 +620,9 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                                 st.success("Kayıtlı aşamalar korunarak görev sürdürüldü.")
                                 st.rerun()
                             except (RuntimeError, ValueError, KeyError,
-                                    OSError, sqlite3.Error):
-                                st.error("Görev durduruldu; son doğrulanmış PostgreSQL "
-                                         "aşama yedeği korunur, kayıtları kontrol edin.")
+                                    OSError, sqlite3.Error) as exc:
+                                st.error(mission_failure_message(
+                                    exc, getattr(mission_manager, "last_failure", None)))
                 if any(item["status"] == "running" for item in interrupted):
                     if st.button("1 saatten eski yarım görevleri kurtarmaya aç",
                                  key="recover_stale_colony_missions"):
