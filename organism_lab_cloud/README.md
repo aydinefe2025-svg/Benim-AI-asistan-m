@@ -48,6 +48,12 @@ approval. No old session data is migrated automatically.
 All colony and evolution results are digital simulations, not biological or
 physical-system control. Assistant conversations do not train model weights.
 
+The on-demand colony resilience study compares bounded open-broadcast and
+segmented/validated message-passing simulations under one injected bad-message
+fault. It records paired deterministic trials and versioned JSON output. This
+abstract scenario is not a penetration test, production security control, or
+guarantee that real agents/networks will resist attacks.
+
 ## Bounded automated discovery
 
 `.github/workflows/organism-lab-discovery.yml` runs a weekly simulation sweep
