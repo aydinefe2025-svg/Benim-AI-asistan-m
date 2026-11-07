@@ -23,6 +23,10 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("İddiaları çıkar ve ayrı kuşkucu AI geçişi çalıştır", source)
         self.assertIn("generate_claim_verification_json", source)
         self.assertIn("run_claim_review_benchmark", source)
+        self.assertIn("CASES as FIXED_BENCHMARK_CASES", source)
+        self.assertIn("CANO modelini 12 sabit vakada test et (1 çağrı)", source)
+        self.assertIn("cases=FIXED_BENCHMARK_CASES", source)
+        self.assertIn("cano_claim_review_runtime_smoke_v1", source)
         self.assertIn("HUMAN_COMPARISON_CASES", source)
         self.assertIn("Kaynağı aç:", source)
         self.assertIn("source_url", source)
@@ -41,6 +45,16 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("except PermissionError:", source)
         self.assertIn("except RuntimeError:", source)
         self.assertNotIn("store.initialize()", source)
+
+
+    def test_fixed_runtime_benchmark_is_not_gated_by_blind_human_form(self):
+        path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
+        source = path.read_text(encoding="utf-8")
+        runtime_button = source.index("CANO modelini 12 sabit vakada test et (1 çağrı)")
+        human_form = source.index('st.form("cano_blind_human_labels_v2")')
+        self.assertLess(runtime_button, human_form)
+        self.assertIn("CANO görev kayıtlarını ", source)
+        self.assertIn("değiştirmez ve kör insan karşılaştırmasının", source)
 
 
     def test_evidence_restore_uses_cano_only_database_url(self):
