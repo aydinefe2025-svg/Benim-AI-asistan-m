@@ -1,0 +1,250 @@
+"""Read-only, public GitHub Actions results for the Render colony panel.
+
+Only small, non-sensitive simulation reports are read from a public repository.
+No GitHub token, database credential, or user data is used by this bridge.
+"""
+from __future__ import annotations
+
+from io import BytesIO
+import hashlib
+import json
+import math
+import re
+import zipfile
+
+
+REPOSITORY = "aydinefe2025-svg/Benim-AI-asistan-m"
+WORKFLOW_FILE = "cano-colony-cycle.yml"
+MAX_ARCHIVE_BYTES = 8_000_000
+MAX_REPORT_BYTES = 1_000_000
+EXPECTED_AGENTS = {"evidence", "generation", "continuity", "security"}
+RUNS_URL = (
+    f"https://api.github.com/repos/{REPOSITORY}/actions/workflows/"
+    f"{WORKFLOW_FILE}/runs?branch=main&per_page=5"
+)
+
+
+class ColonyStatusUnavailable(RuntimeError):
+    """Safe, user-facing category; raw response bodies are never surfaced."""
+
+
+def _get_json(request_get, url: str) -> dict:
+    response = request_get(
+        url,
+        headers={"Accept": "application/vnd.github+json",
+                 "User-Agent": "organism-lab-readonly-colony-panel"},
+        timeout=8,
+    )
+    response.raise_for_status()
+    value = response.json()
+    if not isinstance(value, dict):
+        raise ColonyStatusUnavailable("invalid_github_response")
+    return value
+
+
+def _bounded_download(request_get, url: str) -> bytes:
+    response = request_get(
+        url,
+        headers={"Accept": "application/vnd.github+json",
+                 "User-Agent": "organism-lab-readonly-colony-panel"},
+        timeout=12,
+        stream=True,
+    )
+    response.raise_for_status()
+    declared = response.headers.get("Content-Length")
+    if declared and int(declared) > MAX_ARCHIVE_BYTES:
+        raise ColonyStatusUnavailable("artifact_too_large")
+    body = bytearray()
+    for chunk in response.iter_content(chunk_size=64_000):
+        if not chunk:
+            continue
+        body.extend(chunk)
+        if len(body) > MAX_ARCHIVE_BYTES:
+            raise ColonyStatusUnavailable("artifact_too_large")
+    return bytes(body)
+
+
+def _validate_report(report: object, run_id: int) -> dict:
+    if not isinstance(report, dict):
+        raise ColonyStatusUnavailable("invalid_cycle_report")
+    cycle = report.get("cycle")
+    generation = report.get("virtual_generation")
+    specialists = report.get("specialist_agents")
+    if (str(report.get("github_run_id")) != str(run_id)
+            or report.get("db_integrity") != "ok"
+            or not isinstance(report.get("continuity"), dict)
+            or report["continuity"].get("increment_verified") is not True
+            or report.get("mode") != "bounded_virtual_reproduction_with_held_out_validation"
+            or not isinstance(cycle, dict)
+            or type(cycle.get("tick_id")) is not int
+            or not isinstance(generation, dict)
+            or generation.get("generation_id") != cycle["tick_id"]
+            or generation.get("offspring_scope") != "bounded toy digital VM only"
+            or generation.get("model_weights_updated") is not False):
+        raise ColonyStatusUnavailable("cycle_integrity_check_failed")
+    if not isinstance(specialists, dict) or specialists.get("status") != "passed":
+        raise ColonyStatusUnavailable("specialist_agents_not_passed")
+    roles = specialists.get("roles")
+    if (not isinstance(roles, list)
+            or not all(isinstance(item, dict) for item in roles)
+            or specialists.get("launched") != len(EXPECTED_AGENTS)
+            or {item.get("role") for item in roles if isinstance(item, dict)} != EXPECTED_AGENTS
+            or any(item.get("status") != "passed"
+                   or item.get("execution") != "isolated_read_only_subprocess"
+                   or item.get("model_calls") != 0
+                   for item in roles if isinstance(item, dict))):
+        raise ColonyStatusUnavailable("specialist_agent_results_invalid")
+    if generation.get("lesson_status") not in {"transferred", "rejected"}:
+        raise ColonyStatusUnavailable("generation_decision_invalid")
+    measured = (
+        generation.get("candidate_mutation_rate"),
+        generation.get("next_generation_mutation_rate"),
+        generation.get("training", {}).get("ci95_low"),
+        generation.get("held_out_confirmation", {}).get("ci95_low"),
+        generation.get("training", {}).get("candidate_mean_births"),
+        generation.get("training", {}).get("candidate_mean_final_population"),
+    )
+    if any(type(item) not in (int, float) or not math.isfinite(item) for item in measured):
+        raise ColonyStatusUnavailable("generation_metrics_invalid")
+    # Only fixed, measured fields are returned to the UI.
+    return {
+        "tick_id": cycle["tick_id"],
+        "generation_id": generation["generation_id"],
+        "lesson_status": generation.get("lesson_status"),
+        "candidate_mutation_rate": generation.get("candidate_mutation_rate"),
+        "next_generation_mutation_rate": generation.get("next_generation_mutation_rate"),
+        "training_ci95_low": generation.get("training", {}).get("ci95_low"),
+        "confirmation_ci95_low": generation.get("held_out_confirmation", {}).get("ci95_low"),
+        "births": generation.get("training", {}).get("candidate_mean_births"),
+        "population": generation.get("training", {}).get("candidate_mean_final_population"),
+        "specialist_agents": roles,
+        "timestamp": report.get("timestamp"),
+    }
+
+
+def load_latest_colony_status(request_get=None) -> dict:
+    """Fetch the latest successful run report, with no credentials or writes."""
+    if request_get is None:
+        import requests
+        request_get = requests.get
+    try:
+        payload = _get_json(request_get, RUNS_URL)
+        runs = payload.get("workflow_runs")
+        if not isinstance(runs, list):
+            raise ColonyStatusUnavailable("invalid_workflow_run_list")
+        if not runs:
+            return {"state": "no_runs"}
+        latest = runs[0]
+        latest_id = latest.get("id")
+        if type(latest_id) is not int:
+            raise ColonyStatusUnavailable("invalid_workflow_run")
+        previous_success = next((
+            run for run in runs
+            if run.get("status") == "completed" and run.get("conclusion") == "success"
+            and type(run.get("id")) is int
+        ), None)
+        if previous_success is None:
+            return {
+                "state": latest.get("status", "unknown"),
+                "conclusion": latest.get("conclusion"),
+                "run_id": latest_id,
+            }
+        run_id = previous_success["id"]
+        artifacts_url = (
+            f"https://api.github.com/repos/{REPOSITORY}/actions/runs/{run_id}/artifacts"
+        )
+        artifacts = _get_json(request_get, artifacts_url).get("artifacts")
+        if not isinstance(artifacts, list):
+            raise ColonyStatusUnavailable("invalid_artifact_list")
+        expected_name = f"cano-colony-cycle-{run_id}"
+        artifact = next((item for item in artifacts
+                         if isinstance(item, dict) and item.get("name") == expected_name
+                         and item.get("expired") is False and type(item.get("id")) is int), None)
+        if artifact is None or artifact.get("size_in_bytes", MAX_ARCHIVE_BYTES + 1) > MAX_ARCHIVE_BYTES:
+            raise ColonyStatusUnavailable("cycle_artifact_missing")
+        archive_url = (
+            f"https://api.github.com/repos/{REPOSITORY}/actions/artifacts/"
+            f"{artifact['id']}/zip"
+        )
+        archive = _bounded_download(request_get, archive_url)
+        digest = artifact.get("digest")
+        if not isinstance(digest, str) or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest):
+            raise ColonyStatusUnavailable("artifact_digest_missing")
+        if hashlib.sha256(archive).hexdigest() != digest.removeprefix("sha256:"):
+            raise ColonyStatusUnavailable("artifact_digest_mismatch")
+        with zipfile.ZipFile(BytesIO(archive)) as bundle:
+            info = next((item for item in bundle.infolist()
+                         if item.filename == "colony-cycle.json"), None)
+            if info is None or info.file_size > MAX_REPORT_BYTES:
+                raise ColonyStatusUnavailable("cycle_report_missing_or_too_large")
+            raw = bundle.read(info)
+        report = json.loads(raw.decode("utf-8"))
+        summary = _validate_report(report, run_id)
+        return {
+            "state": "success",
+            "run_id": run_id,
+            "run_url": f"https://github.com/{REPOSITORY}/actions/runs/{run_id}",
+            "latest_run_state": latest.get("status"),
+            "latest_run_conclusion": latest.get("conclusion"),
+            "generated_at": summary.pop("timestamp"),
+            "report": summary,
+        }
+    except ColonyStatusUnavailable:
+        raise
+    except Exception:
+        raise ColonyStatusUnavailable("github_cycle_unavailable") from None
+
+
+def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
+    """Render an authenticated app's bounded hourly Actions result summary."""
+    cache_key = "_cano_github_cycle_status"
+    now = __import__("time").time()
+    cached = st.session_state.get(cache_key)
+    if st.button("Actions sonuçlarını yenile", key="refresh_github_colony_status"):
+        st.session_state.pop(cache_key, None)
+        cached = None
+    with st.expander("⏱ Otomatik döngü ve bağımsız yazılım ajanları", expanded=True):
+        st.caption(
+            "Bu panel, GitHub Actions'taki son doğrulanmış dijital çevrimi gösterir. "
+            "Dört ajan ayrı salt-okunur süreçlerde çalışır; LLM çağırmaz, kod veya "
+            "üretim verisi değiştirmez."
+        )
+        if not isinstance(cached, dict) or now - cached.get("fetched_at", 0) >= 300:
+            try:
+                cached = {"fetched_at": now, "value": loader()}
+                st.session_state[cache_key] = cached
+            except ColonyStatusUnavailable:
+                st.warning("GitHub Actions raporu şu anda okunamıyor; daha sonra yenile.")
+                return
+        value = cached["value"]
+        if value.get("state") == "no_runs":
+            st.info("Henüz tamamlanmış CANO Actions çevrimi bulunmuyor.")
+            return
+        if value.get("state") != "success":
+            st.info(f"Son otomatik çevrim durumu: {value.get('state', 'bilinmiyor')}.")
+            return
+        report = value["report"]
+        if value.get("latest_run_state") != "completed" or value.get("latest_run_conclusion") != "success":
+            st.warning("En son Actions çalışması henüz başarıyla tamamlanmadı; aşağıda son başarılı rapor gösteriliyor.")
+        a, b, c = st.columns(3)
+        a.metric("Dijital çevrim", report["tick_id"])
+        b.metric("Sanal nesil", report["generation_id"])
+        c.metric("Ders aktarımı", report["lesson_status"])
+        st.caption(
+            f"Aday mutasyon {report['candidate_mutation_rate']:.3f} · "
+            f"sonraki nesil {report['next_generation_mutation_rate']:.3f} · "
+            f"eğitim alt sınırı {report['training_ci95_low']:.3f} · "
+            f"ayrılmış doğrulama alt sınırı {report['confirmation_ci95_low']:.3f}"
+        )
+        if isinstance(report.get("births"), (int, float)):
+            st.caption(f"Deneme ortalaması: {report['births']:.1f} sanal doğum; "
+                       f"son nüfus {report['population']:.1f}. Bunlar yalnızca toy VM ölçümleridir.")
+        st.markdown(f"[Actions çalışmasını aç]({value['run_url']})")
+        agents = report["specialist_agents"]
+        st.write("Bağımsız doğrulama ajanları")
+        st.dataframe(
+            [{"Ajan": agent["label"], "Durum": "Geçti",
+              "Denetimler": ", ".join(agent["checks"])} for agent in agents],
+            width="stretch", hide_index=True,
+        )
+        st.caption("Bu ajanlar ayrı Python süreçleridir; sohbet modeli veya otonom kod geliştirici değildir.")
