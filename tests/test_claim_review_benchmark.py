@@ -3,7 +3,7 @@ import unittest
 
 from core.claim_review_benchmark import (
     CASES, HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, load_expected_labels, randomized_case_order,
-    run_claim_review_benchmark, score_labels,
+    run_blind_model_benchmark, run_claim_review_benchmark, score_labels,
 )
 
 
@@ -176,6 +176,28 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
         self.assertEqual(
             [case["case_id"] for case in SUPPLEMENTAL_COMPARISON_CASES],
             [f"v4_{index:02d}" for index in range(1, 25)])
+
+
+    def test_blind_model_run_uses_private_gold_key_without_human_labels(self):
+        cases = (
+            {"case_id": "gold_a", "claim": "Claim A", "excerpt": "Excerpt A",
+             "source_url": "https://pubmed.ncbi.nlm.nih.gov/1/"},
+            {"case_id": "gold_b", "claim": "Claim B", "excerpt": "Excerpt B",
+             "source_url": "https://pubmed.ncbi.nlm.nih.gov/2/"},
+        )
+        gold = {"gold_a": "supported", "gold_b": "insufficient"}
+        client = BenchmarkClient(["supported", "contradicted"])
+        result = run_blind_model_benchmark(
+            client, cases=cases, answer_key_json=json.dumps(gold))
+        self.assertEqual(len(client.calls), 1)
+        self.assertEqual(result["total"], 2)
+        self.assertEqual(result["correct"], 1)
+        self.assertEqual(result["confusion_matrix"]["insufficient"]["contradicted"], 1)
+        self.assertNotIn(json.dumps(gold), client.calls[0][2])
+        self.assertNotIn("gold_a", client.calls[0][2])
+        with self.assertRaises(RuntimeError):
+            run_blind_model_benchmark(client, cases=cases, answer_key_json="")
+        self.assertEqual(len(client.calls), 1)
 
 
 if __name__ == "__main__":
