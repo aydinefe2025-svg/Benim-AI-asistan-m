@@ -7,6 +7,7 @@ import tempfile
 from unittest.mock import patch
 from streamlit.testing.v1 import AppTest
 from organism_lab.providers import trained_local_ready
+from organism_lab.colony_resilience import run_colony_resilience_study
 
 DASHBOARD = Path(__file__).resolve().parents[1] / "dashboard.py"
 
@@ -42,7 +43,7 @@ class DashboardAppTests(unittest.TestCase):
     def test_simulation_button_and_metrics(self):
         app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
         self.assertFalse(app.exception)
-        self.assertEqual(len(app.button), 7)
+        self.assertEqual(len(app.button), 8)
         next(button for button in app.button if button.label == "Simülasyonu çalıştır").click().run()
         self.assertFalse(app.exception)
         self.assertEqual(len(app.metric), 3)
@@ -70,7 +71,7 @@ class DashboardAppTests(unittest.TestCase):
                 patch("organism_lab.reproduction_study.summarize_with_local_model",
                       side_effect=AssertionError("UI campaign must not call a model")):
             app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
-            self.assertEqual(len(app.button), 7)
+            self.assertEqual(len(app.button), 8)
             next(button for button in app.button if button.label == "Araştırma kampanyasını çalıştır").click().run()
             self.assertFalse(app.exception)
             self.assertTrue(any("Kayıt tamamlandı" in item.value for item in app.success))
@@ -97,6 +98,21 @@ class DashboardAppTests(unittest.TestCase):
             self.assertTrue(any("ayrı tohumlarda doğrulanmadı" in item.value for item in app.info))
             target = Path(tmp) / "organism_lab_output" / "discovery-sweep-latest.json"
             self.assertTrue(target.exists())
+
+    def test_colony_resilience_study_is_saved_explained_and_downloadable(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.dict(os.environ, {"ORGANISM_LAB_OUTPUT_DIR": str(Path(tmp) / "organism_lab_output")}), \
+                patch("organism_lab.colony_resilience.run_colony_resilience_study",
+                      return_value=run_colony_resilience_study(seeds=3)):
+            app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
+            next(button for button in app.button if button.key == "run_colony_resilience").click().run()
+            self.assertFalse(app.exception)
+            self.assertTrue(any("sürümlü arşive kaydedildi" in item.value for item in app.success))
+            self.assertTrue(any("Bu modelde bölme" in item.value for item in app.markdown))
+            target = Path(tmp) / "organism_lab_output" / "colony-resilience-latest.json"
+            self.assertTrue(target.exists())
+            self.assertTrue(any(item.key == "download_colony_resilience"
+                                for item in app.get("download_button")))
 
     def test_environment_shift_campaign_persists_without_external_model(self):
         with tempfile.TemporaryDirectory() as tmp, \
