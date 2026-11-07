@@ -95,6 +95,22 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("cevap anahtarı gösterilmedi", source)
 
 
+    def test_v6_cohort_is_blind_and_keyless_when_no_gold_key_exists(self):
+        path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
+        source = path.read_text(encoding="utf-8")
+        self.assertIn("### Dördüncü kör kohort", source)
+        self.assertIn("V6_COMPARISON_CASES", source)
+        self.assertIn("cano_claim_review_human_labels_v6", source)
+        self.assertIn("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V6", source)
+        self.assertIn("run_claim_review_predictions(", source)
+        self.assertIn("v6_labels_complete =", source)
+        self.assertIn("elif key and not v6_labels_complete:", source)
+        self.assertIn("CANO'yu 24 vakada çalıştır ve insanla karşılaştır", source)
+        self.assertIn("v6_agreement", source)
+        self.assertIn("Bu CANO çalışması altın anahtara göre puanlanmadı.", source)
+        self.assertIn("altın etikete göre doğruluk puanı gösterilmez", source)
+
+
     def test_gold_model_runs_require_complete_human_labels(self):
         path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
         source = path.read_text(encoding="utf-8")
