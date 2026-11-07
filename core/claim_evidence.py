@@ -289,33 +289,17 @@ def _reconcile_cached_confidence_conflicts(manager, mission_id, stages):
                     and isinstance(doi, str)
                     and entry["doi"].casefold() == doi.casefold()), None)
         trusted_url = _citation_for(doc) if isinstance(doc, dict) else None
-        citation_url = item.get("citation_url") if isinstance(item, dict) else None
-        doi_url = "https://doi.org/" + doi if isinstance(doi, str) else None
-        citation_matches = (
-            isinstance(citation_url, str)
-            and trusted_url is not None
-            and (
-                citation_url == trusted_url
-                or (
-                    isinstance(doi, str)
-                    and _DOI.fullmatch(doi) is not None
-                    and ".." not in doi
-                    and DOI_LEAD_URL.fullmatch(citation_url) is not None
-                    and citation_url.casefold() == doi_url.casefold()
-                )
-            )
-        )
         if (not isinstance(doc, dict) or doc.get("status") not in _READABLE
                 or not isinstance(doc.get("excerpt"), str)
                 or not isinstance(item.get("claim"), str)
                 or not isinstance(item.get("quote"), str)
                 or _normalized(item["quote"]) not in _normalized(doc["excerpt"])
-                or not citation_matches):
+                or trusted_url is None):
             continue
         conflict = _explicit_confidence_conflict(item["claim"], doc["excerpt"])
         if conflict is None:
             continue
-        changes.append((index, dict(assessment), conflict))
+        changes.append((index, dict(assessment), conflict, trusted_url))
 
     if not changes:
         return None
@@ -328,7 +312,7 @@ def _reconcile_cached_confidence_conflicts(manager, mission_id, stages):
         current = json.loads(row["stages"])
         if current != stages:
             raise RuntimeError("Source data changed during cached confidence review")
-        for index, prior, conflict in changes:
+        for index, prior, conflict, trusted_url in changes:
             item = current[0]["source_claim_audit"][index]
             history = item.get("machine_assessment_history")
             if not isinstance(history, list):
@@ -339,6 +323,7 @@ def _reconcile_cached_confidence_conflicts(manager, mission_id, stages):
             corrected["prior_model_verdict"] = prior.get("verdict")
             corrected["method"] = "explicit_confidence_conflict_guard"
             item["machine_assessment"] = corrected
+            item["citation_url"] = trusted_url
             item["claim_verified"] = False
         try:
             old_version = max(1, int(current[0].get("source_claim_audit_version", 1)))
