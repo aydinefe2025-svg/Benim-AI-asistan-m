@@ -14,6 +14,7 @@ import os
 import re
 import gzip
 import tarfile
+from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 
 
@@ -132,8 +133,14 @@ class PostgresArchive:
             connect = psycopg.connect
         self._connect = connect
 
+    @contextmanager
     def _connection(self):
-        return self._connect(self.database_url, connect_timeout=8)
+        """Set the transaction-local RLS identity before any archive query."""
+        with self._connect(self.database_url, connect_timeout=8) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT set_config('organism.owner_key', %s, true)",
+                            (self.owner_key,))
+            yield conn
 
     def check(self):
         with self._connection() as conn, conn.cursor() as cur:
@@ -194,4 +201,5 @@ def restore_snapshot_json(value: dict, root: str | Path) -> None:
     if not hmac.compare_digest(digest, value.get("sha256", "")):
         raise ValueError("Backup integrity check failed")
     unpack_directory(data, root)
+
 
