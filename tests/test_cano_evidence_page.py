@@ -63,15 +63,24 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertNotIn("store.initialize()", source)
 
 
-    def test_fixed_runtime_benchmark_is_not_gated_by_blind_human_form(self):
+    def test_fixed_runtime_benchmark_is_not_gated_by_tasks_or_blind_human_form(self):
         path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
         source = path.read_text(encoding="utf-8")
         runtime_button = source.index("CANO modelini 12 sabit vakada test et (1 çağrı)")
+        key_setup = source.index('key = os.environ.get("GROQ_API_KEY")')
+        client_setup = source.index("class Client:")
+        owner_gate = source.index("if not owner:", client_setup)
         human_form = source.index('st.form("cano_blind_human_labels_v3")')
+        no_missions_gate = source.index("if not missions:")
+        self.assertLess(key_setup, runtime_button)
+        self.assertLess(client_setup, runtime_button)
+        self.assertLess(owner_gate, runtime_button)
+        self.assertLess(runtime_button, no_missions_gate)
+        stop_after_no_missions = source.index("st.stop()", no_missions_gate)
+        self.assertLess(runtime_button, stop_after_no_missions)
         self.assertLess(runtime_button, human_form)
         self.assertIn("CANO görev kayıtlarını ", source)
         self.assertIn("değiştirmez ve kör insan karşılaştırmasının", source)
-
 
     def test_evidence_restore_uses_cano_only_database_url(self):
         """The second page must use the least-privilege CANO database URL."""
