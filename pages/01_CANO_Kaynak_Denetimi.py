@@ -149,7 +149,7 @@ st.divider()
 st.subheader("Bağımsız CANO testi ve kör insan karşılaştırması")
 from core.claim_review_benchmark import (
     CASES as FIXED_BENCHMARK_CASES,
-    HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES,
+    HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, V5_COMPARISON_CASES,
     load_expected_labels, randomized_case_order, run_blind_model_benchmark, score_labels,
 )
 st.markdown("### 12 vakalık canlı model testi")
