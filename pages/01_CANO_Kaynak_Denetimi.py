@@ -46,48 +46,51 @@ restore_notice = st.session_state.pop("_cano_evidence_restore_notice", None)
 if restore_notice:
     st.warning(restore_notice)
 if not missions:
-    # A new Streamlit session creates a fresh, isolated SQLite file. Never
-    # silently import another owner's data or overwrite a nonempty colony.
-    # Recovery is explicit, authenticated and read back transactionally.
+    # Each new Streamlit session gets an isolated SQLite database. Restore only
+    # the signed-in owner's backup, and only into an empty local colony.
     with colony._db() as db:
         local_agent_count = db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0]
-    if owner and not local_agent_count:
-        st.info("Bu oturumda kaynak denetimi görevi yok. Hesabınızın kalıcı yedeğini güvenli biçimde geri yükleyebilirsiniz.")
-        if st.button("Hesabıma ait CANO yedeğini geri yükle", key="cano_evidence_restore"):
-            try:
-                if st.session_state.get("_cano_backup_owner_key") not in (None, owner):
-                    raise PermissionError("Session belongs to a different owner")
-                store = ColonySnapshotStore(cano_database_url(os.environ))
-                store.verify_schema()
-                restore_result = restore_owner_backup(
-                    colony, store, owner, approved=True,
-                    archive_incomplete_missions=True)
-                restored = restore_result["agent_count"]
-                skipped = restore_result["archived_incomplete_missions"]
-                bind_restored_owner_baseline(store, owner, st.session_state)
-            except ValueError:
-                st.warning(
-                    "Eski CANO yedeğinde geri yükleme için gerekli alanlar eksik; "
-                    "mevcut kayıtlar ve kalıcı yedek korunuyor.")
-            except KeyError:
-                st.warning("Yedek kaydının beklenen alanı eksik; mevcut kayıtlar ve kalıcı yedek korundu.")
-            except LookupError:
-                st.warning("Bu hesap için eşleşen kalıcı yedek bulunamadı; başka hesapların kayıtları açılmadı.")
-            except PermissionError:
-                st.warning("Kalıcı yedek erişim izni doğrulanamadı; hiçbir kayıt değiştirilmedi.")
-            except RuntimeError:
-                st.warning("Geri yükleme güvenli biçimde durdu; mevcut kayıtlar ve kalıcı yedek korundu.")
-            except OSError:
-                st.warning("Yerel oturum depolaması kullanılamadı; kalıcı yedek değiştirilmedi.")
-            except Exception:
-                st.error("Kalıcı yedek servisi kullanılamıyor; hiçbir kayıt değiştirilmedi.")
-            else:
-                st.success(f"{restored} CANO rol kaydı geri yüklendi; kaynak denetimi görevleri yeniden okunuyor.")
-                if skipped:
-                    st.session_state["_cano_evidence_restore_notice"] = (
-                        f"{skipped} eksik eski görev kaydı mevcut görev tablosuna alınamadı. "
-                        "Özgün yedek, sürüm geçmişine arşivlendi ve korunuyor.")
-                st.rerun()
+    restore_attempt_key = "_cano_evidence_restore_attempted_owner"
+    restore_attempted = st.session_state.get(restore_attempt_key) == owner
+    if owner and not local_agent_count and not restore_attempted:
+        st.session_state[restore_attempt_key] = owner
+        try:
+            if st.session_state.get("_cano_backup_owner_key") not in (None, owner):
+                raise PermissionError("Session belongs to a different owner")
+            store = ColonySnapshotStore(cano_database_url(os.environ))
+            store.verify_schema()
+            restore_result = restore_owner_backup(
+                colony, store, owner, approved=True,
+                archive_incomplete_missions=True)
+            restored = restore_result["agent_count"]
+            skipped = restore_result["archived_incomplete_missions"]
+            bind_restored_owner_baseline(store, owner, st.session_state)
+        except ValueError:
+            st.warning("Eski CANO yedeğinde gerekli alanlar eksik; mevcut kayıtlar ve kalıcı yedek korundu.")
+        except KeyError:
+            st.warning("Yedek kaydının beklenen alanı eksik; mevcut kayıtlar ve kalıcı yedek korundu.")
+        except LookupError:
+            st.info("Bu hesap için eşleşen CANO yedeği bulunamadı. Yeni görevler ana CANO ekranından oluşturulabilir.")
+        except PermissionError:
+            st.warning("Kalıcı yedek erişim izni doğrulanamadı; hiçbir kayıt değiştirilmedi.")
+        except RuntimeError:
+            st.warning("Geri yükleme güvenli biçimde durdu; mevcut kayıtlar ve kalıcı yedek korundu.")
+        except OSError:
+            st.warning("Yerel oturum depolaması kullanılamadı; kalıcı yedek değiştirilmedi.")
+        except Exception:
+            st.error("Kalıcı yedek servisi kullanılamıyor; hiçbir kayıt değiştirilmedi.")
+        else:
+            st.success(f"{restored} CANO rol kaydı güvenli biçimde geri yüklendi.")
+            if skipped:
+                st.session_state["_cano_evidence_restore_notice"] = (
+                    f"{skipped} eksik eski görev kaydı mevcut görev tablosuna alınamadı. "
+                    "Özgün yedek, sürüm geçmişine arşivlendi ve korundu.")
+            st.rerun()
+    elif owner and not local_agent_count and restore_attempted:
+        st.info("Bu oturumda kaynak denetimi görevi yok. Hesabın yedeği otomatik kontrol edildi.")
+        if st.button("Hesabıma ait CANO yedeğini yeniden dene", key="cano_evidence_restore_retry"):
+            st.session_state.pop(restore_attempt_key, None)
+            st.rerun()
     else:
         st.info("Bu oturumda okunabilir kaynak metni olan inceleme bekleyen görev yok. Önce ana CANO ekranında kaynaklı araştırma görevini ve kaynak okuma işlemini tamamlayın. Mevcut kayıtların üzerine yedek yüklenmez.")
     st.stop()
