@@ -244,7 +244,7 @@ elif key and st.button("Kaynak anahtarıyla CANO'yu çalıştır (24 vaka, 1 ça
         st.session_state[model_key] = result
 v3_model_result = st.session_state.get(model_key)
 if isinstance(v3_model_result, dict):
-    st.metric("CANO · v3 gizli kaynak anahtarına uyum",
+    st.metric("CANO kuşkucu geçişi · v3 kaynak anahtarına uyum",
               f"{v3_model_result['correct']} / {v3_model_result['total']}",
               f"%{v3_model_result['accuracy'] * 100:.0f}")
     st.metric("CANO v3 yanıt kapsamı", f"%{v3_model_result['coverage'] * 100:.0f}")
@@ -275,6 +275,7 @@ if isinstance(saved_human_labels, dict) and set(saved_human_labels) == {
                       f"{model_result['correct']} / {model_result['total']}",
                       f"%{model_result['accuracy'] * 100:.0f}")
             st.metric("İnsan–CANO karar uyumu", f"{agreement} / {len(HUMAN_COMPARISON_CASES)}")
+            st.caption("Bu karşılaştırma sabit iddia–pasaj çiftlerinde yalnızca kuşkucu pasaj sınıflandırmasını ölçer; iddia çıkarımı ve kaynak bulma başarısını ölçmez.")
             st.caption("Öneri ve denetim aynı Groq model sağlayıcısını kullanıyor; ikinci geçiş bağımsız model kanıtı değildir.")
             st.caption(model_result["scope"])
             st.json(model_result["confusion_matrix"])
@@ -344,7 +345,7 @@ elif key and st.button("Ek kohortta CANO'yu gizli kaynak anahtarıyla çalışt�
         st.session_state[v4_model_key] = v4_result
 v4_model_result = st.session_state.get(v4_model_key)
 if isinstance(v4_model_result, dict):
-    st.metric("CANO · v4 gizli kaynak anahtarına uyum",
+    st.metric("CANO kuşkucu geçişi · v4 kaynak anahtarına uyum",
               f"{v4_model_result['correct']} / {v4_model_result['total']}",
               f"%{v4_model_result['accuracy'] * 100:.0f}")
     st.metric("CANO v4 yanıt kapsamı", f"%{v4_model_result['coverage'] * 100:.0f}")
@@ -461,7 +462,22 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
                 "insufficient": "insufficient",
             }.get(comparison)
             assessment = item.get("machine_assessment")
-            if (comparison_verdict is not None and isinstance(assessment, dict)
+            disagreement = assessment.get("disagreement") if isinstance(assessment, dict) else None
+            if isinstance(disagreement, dict):
+                if disagreement.get("resolved") is True:
+                    st.warning(
+                        "İlk iki CANO geçişi uyuşmadı. Aynı model kaynak pasajı üçüncü "
+                        "kez okudu ve geçici kararını "
+                        + str(disagreement.get("adjudication_verdict", "belirsiz"))
+                        + " olarak verdi. Bu ek okuma bağımsız doğrulama değildir; "
+                        "tam metni inceleyin."
+                    )
+                else:
+                    st.warning(
+                        "İlk iki CANO geçişi uyuşmadı ve yeniden okuma sonuç vermedi. "
+                        "Karar belirsiz; otomatik sonucu kabul etmeyin, tam metni inceleyin."
+                    )
+            elif (comparison_verdict is not None and isinstance(assessment, dict)
                     and assessment.get("available") is not False
                     and assessment.get("verdict") in {"supported", "contradicted", "insufficient"}
                     and comparison_verdict != assessment.get("verdict")):
