@@ -2,7 +2,7 @@ const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),cryp
 const base=path.resolve(__dirname);const src=fs.readFileSync(path.join(base,'../app.js'),'utf8');
 const state=JSON.parse(fs.readFileSync(path.join(base,'fixture/genome-state.json'),'utf8'));
 const report=JSON.parse(fs.readFileSync(path.join(base,'fixture/2026-11-07.json'),'utf8'));
-class E{constructor(id=''){this.id=id;this.textContent='';this.dataset={};this.style={};this.hidden=false;this.className='';this.children=[];this.attrs={};this.listeners={};this.disabled=false;}addEventListener(k,f){this.listeners[k]=f;}appendChild(x){this.children.push(x);return x;}replaceChildren(){this.children=[];}setAttribute(k,v){this.attrs[k]=v;}getAttribute(k){return this.attrs[k]} }
+class E{constructor(id=''){this.id=id;this.textContent='';this.dataset={};this.style={};this.hidden=false;this.className='';this.children=[];this.attrs={};this.listeners={};this.disabled=false;}addEventListener(k,f){this.listeners[k]=f;}appendChild(x){this.children.push(x);return x;}replaceChildren(){this.children=[];}setAttribute(k,v){this.attrs[k]=v;if(k==='hidden')this.hidden=true;}removeAttribute(k){delete this.attrs[k];if(k==='hidden')this.hidden=false;}getAttribute(k){return this.attrs[k]} }
 function test(broken){let nodes=new Map();let logs=[];let dayReqs=0;let stateReqs=0;
  const get=id=>{if(!nodes.has(id))nodes.set(id,new E(id));return nodes.get(id)};
  const doc={getElementById:get,createElementNS(ns,tag){return new E(tag)},hidden:false};
