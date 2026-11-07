@@ -9,7 +9,8 @@ from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.task_panel import _session_database_path
 from core.claim_evidence import (
-    _display_cached_confidence_conflict, _reconcile_cached_confidence_conflicts,
+    _display_cached_confidence_conflict, _display_cached_disagreement,
+    _reconcile_cached_confidence_conflicts,
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
     retry_unavailable_skeptical_pass,
 )
@@ -729,6 +730,10 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
         display_conflict = _display_cached_confidence_conflict(item, source)
         if display_conflict is not None:
             assessment = display_conflict
+        else:
+            display_disagreement = _display_cached_disagreement(item)
+            if display_disagreement is not None:
+                assessment = display_disagreement
         initial_verdict = {
             "supports": "supported",
             "contradicts": "contradicted",
@@ -818,11 +823,10 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
             elif isinstance(disagreement, dict):
                 if disagreement.get("resolved") is True:
                     st.warning(
-                        "İlk iki CANO geçişi uyuşmadı. Aynı model kaynak pasajı üçüncü "
-                        "kez okudu ve geçici kararını "
+                        "İlk CANO okumaları uyuşmadı. Üçüncü okuma "
                         + str(disagreement.get("adjudication_verdict", "belirsiz"))
-                        + " olarak verdi. Bu ek okuma bağımsız doğrulama değildir; "
-                        "tam metni inceleyin."
+                        + " dese de aynı modelin ek okuması bağımsız hakem değildir. "
+                        "Otomatik sonuç kanıt yetersiz olarak tutuldu; insan incelemesi gerekir."
                     )
                 else:
                     st.warning(
