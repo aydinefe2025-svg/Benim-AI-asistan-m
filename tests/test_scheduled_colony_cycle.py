@@ -23,12 +23,14 @@ class ScheduledColonyCycleTests(unittest.TestCase):
             )
             self.assertEqual(json.loads(result.stdout)["activated"], 0)
             data = json.loads(output.read_text(encoding="utf-8"))
-            self.assertEqual(data["mode"], "proposal_only")
+            self.assertEqual(data["mode"], "bounded_virtual_reproduction_with_held_out_validation")
             self.assertEqual(data["db_integrity"], "ok")
             self.assertEqual(data["stored_ticks"], 1)
             self.assertEqual(data["verified_tick_id"], data["cycle"]["tick_id"])
             self.assertEqual(len(data["cycle"]["candidates"]), 3)
             self.assertEqual(data["cycle"]["activated"], 0)
+            self.assertEqual(data["virtual_generation"]["generation_id"], data["verified_tick_id"])
+            self.assertIn(data["virtual_generation"]["lesson_status"], {"transferred", "rejected"})
 
 
     def test_rejects_tampered_exact_tick_record(self):
