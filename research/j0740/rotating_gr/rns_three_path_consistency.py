@@ -85,6 +85,8 @@ def at_pressure(rows: np.ndarray, target_p: float) -> dict:
         "e_at_p_dloge_dlogp":energy["dlogy_dlogx"],
         "e_at_p_effective_cs2_over_c2":float(cs2),
         "h_at_p_erg_per_g":h_at_p["value"],
+        "p_at_e_roundtrip_pressure_dyn_cm2":p_back_e["value"],
+        "p_at_h_roundtrip_pressure_dyn_cm2":p_back_h["value"],
         "h_at_p_dlogh_dlogp":h_at_p["dlogy_dlogx"],
         "p_at_e_roundtrip_relative_error": (p_back_e["value"]-target_p)/target_p,
         "p_at_h_roundtrip_relative_error": (p_back_h["value"]-target_p)/target_p,
@@ -122,8 +124,14 @@ def table_profile(rows: np.ndarray, target_center_rho:float, samples_per_interva
     h_slopes=np.asarray([x["h_at_p_dlogh_dlogp"] for x in sample])
     pe=np.asarray([x["p_at_e_roundtrip_relative_error_abs"] for x in sample])
     ph=np.asarray([x["p_at_h_roundtrip_relative_error_abs"] for x in sample])
+    worst_e = int(np.argmax(pe))
+    worst_h = int(np.argmax(ph))
     return {
         "sample_count": len(pts),
+        "low_surface_input_h_cgs": float(rows[0,2]),
+        "second_input_h_cgs": float(rows[1,2]),
+        "first_four_h_cgs": [float(z) for z in rows[:4,2]],
+        "first_four_p_dyn_cm2": [float(z) for z in rows[:4,1]],
         "source_input_nodes": len(ps),
         "max_sample_pressure_dyn_cm2": p_from_center,
         "e_at_p_effective_cs2_center": float(sound[-1]),
@@ -135,6 +143,12 @@ def table_profile(rows: np.ndarray, target_center_rho:float, samples_per_interva
         "h_at_p_negative_dlogh_dlogp_count":int((h_slopes<0).sum()),
         "max_p_at_e_roundtrip_relative_error": float(pe.max()),
         "max_p_at_h_roundtrip_relative_error": float(ph.max()),
+        "max_p_at_h_inverse_error_input_pressure": float(pts[worst_h]),
+        "max_p_at_h_inverse_error_reconstructed_pressure": float(sample[worst_h]["p_at_h_roundtrip_pressure_dyn_cm2"]),
+        "max_p_at_h_inverse_error_input_h": float(sample[worst_h]["h_at_p_erg_per_g"]),
+        "max_p_at_h_inverse_error_input_rho": float(sample[worst_h]["e_at_p_density_g_cm3"]),
+        "max_p_at_e_inverse_error_input_pressure": float(pts[worst_e]),
+        "max_p_at_e_inverse_error_input_rho": float(sample[worst_e]["e_at_p_density_g_cm3"]),
         "e_at_p_density_out_of_support_samples":sum(int(z["e_at_p_intermediate_density_outside_input_support"]) for z in sample),
         "h_at_p_enthalpy_out_of_support_samples":sum(int(z["h_at_p_intermediate_enthalpy_outside_input_support"]) for z in sample),
         "max_p_at_e_extrapolation_decades":max(z["p_at_e_extrapolation_log10_decades"] for z in sample),

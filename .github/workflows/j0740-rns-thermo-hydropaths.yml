@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install numpy
-      - name: Validate 11 interpolation and physical-path guards
+      - name: Validate 10 interpolation and physical-path guards
         working-directory: research/j0740/rotating_gr
         run: python -m unittest -v test_rns_three_path_consistency
       - name: Reuse prior pinned seven EOS full GR artifact without RNS rerun
@@ -47,7 +47,9 @@ jobs:
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: j0740-rns-four-lookup-paths-sixteen-comparisons
-          path: results/J0740_RNS_four_lookup_paths_full_source.json
+          name: j0740-rns-four-lookup-paths-seven-eos-two-eos-tables
+          path: |
+            results/J0740_RNS_four_lookup_paths_full_source.json
+            results/*.rns
           if-no-files-found: warn
           retention-days: 30
