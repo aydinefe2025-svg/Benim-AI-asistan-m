@@ -44,8 +44,9 @@ class Tests(unittest.TestCase):
         self.assertNotIn("api.github.com", calls[0][0])
         self.assertNotIn("Authorization", calls[0][1]["headers"])
 
-    def test_run_id_and_agent_validation(self):
-        with self.assertRaises(ColonyStatusUnavailable): self.load_report(fixture(999))
+    def test_report_integrity_and_agent_validation(self):
+        bad_id = fixture(); bad_id["github_run_id"] = "../invalid"
+        with self.assertRaises(ColonyStatusUnavailable): self.load_report(bad_id)
         bad = fixture(); bad["specialist_agents"]["roles"].pop()
         with self.assertRaises(ColonyStatusUnavailable): self.load_report(bad)
 
