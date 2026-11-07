@@ -2,7 +2,8 @@ import json
 import unittest
 
 from core.claim_review_benchmark import (
-    CASES, HUMAN_COMPARISON_CASES, run_claim_review_benchmark, score_labels,
+    CASES, HUMAN_COMPARISON_CASES, load_expected_labels,
+    run_claim_review_benchmark, score_labels,
 )
 
 
@@ -37,30 +38,52 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
         self.assertIn("12 fixed synthetic", result["scope"])
 
 
-    def test_v2_is_new_balanced_set_and_hidden_from_model_prompt(self):
+    def test_v2_fixtures_contain_no_gold_labels_and_are_interleaved(self):
         self.assertEqual(len(HUMAN_COMPARISON_CASES), 24)
-        self.assertTrue(set(c["case_id"] for c in CASES).isdisjoint(
-            c["case_id"] for c in HUMAN_COMPARISON_CASES))
-        self.assertEqual(
-            {label: sum(c["expected"] == label for c in HUMAN_COMPARISON_CASES)
-             for label in ("supported", "contradicted", "insufficient")},
-            {"supported": 8, "contradicted": 8, "insufficient": 8})
-        labels = [c["expected"] for c in HUMAN_COMPARISON_CASES]
-        self.assertTrue(all(a != b for a, b in zip(labels, labels[1:])))
-        client = BenchmarkClient([c["expected"] for c in HUMAN_COMPARISON_CASES])
-        result = run_claim_review_benchmark(client, cases=HUMAN_COMPARISON_CASES)
+        self.assertTrue(all("expected" not in case for case in HUMAN_COMPARISON_CASES))
+        ids = [case["case_id"] for case in HUMAN_COMPARISON_CASES]
+        self.assertEqual(ids, [f"v2_{index:02d}" for index in range(1, 25)])
+
+    def test_v2_model_scoring_uses_external_gold_key_and_hides_it_from_prompt(self):
+        with self.assertRaises(RuntimeError):
+            run_claim_review_benchmark(BenchmarkClient(["supported"] * 24),
+                                       cases=HUMAN_COMPARISON_CASES)
+        answer_key = {case["case_id"]: "supported"
+                      for case in HUMAN_COMPARISON_CASES}
+        client = BenchmarkClient(["supported"] * 24)
+        result = run_claim_review_benchmark(
+            client, cases=HUMAN_COMPARISON_CASES, expected_labels=answer_key)
         self.assertEqual(result["total"], 24)
         self.assertEqual(result["correct"], 24)
         self.assertNotIn("expected", client.calls[0][2])
 
-    def test_human_scoring_requires_complete_valid_labels(self):
-        labels = {c["case_id"]: c["expected"] for c in HUMAN_COMPARISON_CASES}
-        self.assertEqual(score_labels(HUMAN_COMPARISON_CASES, labels)["correct"], 24)
+    def test_private_answer_key_parser_rejects_missing_or_wrong_keys(self):
+        cases = ({"case_id": "a"}, {"case_id": "b"})
+        with self.assertRaises(RuntimeError):
+            load_expected_labels("", cases)
         with self.assertRaises(ValueError):
-            score_labels(HUMAN_COMPARISON_CASES, {})
-        labels[next(iter(labels))] = "unknown"
+            load_expected_labels('{"a":"supported"}', cases)
+        self.assertEqual(
+            load_expected_labels(
+                '{"a":"supported","b":"insufficient"}', cases),
+            {"a": "supported", "b": "insufficient"})
+
+    def test_human_scoring_requires_complete_valid_labels_and_reports_classes(self):
+        cases = (
+            {"case_id": "a", "expected": "supported"},
+            {"case_id": "b", "expected": "contradicted"},
+            {"case_id": "c", "expected": "insufficient"},
+        )
+        gold = {case["case_id"]: case["expected"] for case in cases}
+        human = {"a": "supported", "b": "supported", "c": "insufficient"}
+        scored = score_labels(cases, human, gold)
+        self.assertEqual(scored["correct"], 2)
+        self.assertEqual(scored["confusion_matrix"]["contradicted"]["supported"], 1)
         with self.assertRaises(ValueError):
-            score_labels(HUMAN_COMPARISON_CASES, labels)
+            score_labels(cases, {}, gold)
+        human["a"] = "unknown"
+        with self.assertRaises(ValueError):
+            score_labels(cases, human, gold)
 
     def test_wrong_verdict_is_counted_in_the_correct_confusion_cell(self):
         verdicts = [case["expected"] for case in CASES]

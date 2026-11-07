@@ -143,7 +143,9 @@ if documents and key and st.button("İddiaları çıkar ve ayrı kuşkucu AI ge�
 
 st.divider()
 st.subheader("Bağımsız CANO testi ve kör insan karşılaştırması")
-from core.claim_review_benchmark import HUMAN_COMPARISON_CASES, score_labels
+from core.claim_review_benchmark import (
+    HUMAN_COMPARISON_CASES, load_expected_labels, score_labels,
+)
 st.caption(
     "24 yeni, dengeli sentetik vaka (8 destek, 8 çelişki, 8 yetersiz kanıt). "
     "Önce iddia ve pasajları, beklenen/model kararları gösterilmeden inceleyin. "
@@ -177,40 +179,50 @@ if labels_submitted:
         st.session_state.pop(model_key, None)
         st.success("Etiketler bu tarayıcı oturumunda saklandı; beklenen cevaplar etiketleme sırasında gösterilmedi.")
 saved_human_labels = st.session_state.get(label_key)
+try:
+    human_answer_key = load_expected_labels(
+        os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY"))
+except (ValueError, RuntimeError):
+    human_answer_key = None
 if isinstance(saved_human_labels, dict) and set(saved_human_labels) == {
         case["case_id"] for case in HUMAN_COMPARISON_CASES}:
-    human_score = score_labels(HUMAN_COMPARISON_CASES, saved_human_labels)
-    st.metric("İnsan değerlendirici · altın etikete uyum",
-              f"{human_score['correct']} / {human_score['total']}",
-              f"%{human_score['accuracy'] * 100:.0f}")
-    st.caption("Tek insan değerlendirici; vaka başına bağımsız ikinci insan puanlaması yok.")
-    st.caption("İnsan etiketlerinin sınıf bazlı sonuçları")
-    st.json(human_score["confusion_matrix"])
-    if key and st.button("Etiketlerden sonra CANO modelini çalıştır (24 vaka, 1 çağrı)"):
-        try:
-            result = run_claim_review_benchmark(
-                Client(), cases=HUMAN_COMPARISON_CASES)
-        except TeamRateLimitError:
-            st.warning("Model kotası nedeniyle test tamamlanamadı; insan etiketleri bu oturumda korundu.")
-        except (ValueError, RuntimeError) as err:
-            st.warning(f"Model testi tamamlanamadı ({type(err).__name__}: {err}); insan etiketleri korundu.")
-        else:
-            st.session_state[model_key] = result
-    model_result = st.session_state.get(model_key)
-    if isinstance(model_result, dict):
-        human_by_id = saved_human_labels
-        model_by_id = {case["case_id"]: case["predicted"] for case in model_result["cases"]}
-        agreement = sum(human_by_id[c["case_id"]] == model_by_id[c["case_id"]]
-                        for c in HUMAN_COMPARISON_CASES)
-        st.metric("CANO modeli · aynı 24 vakanın altın etiketine uyum",
-                  f"{model_result['correct']} / {model_result['total']}",
-                  f"%{model_result['accuracy'] * 100:.0f}")
-        st.metric("İnsan–CANO karar uyumu", f"{agreement} / {len(HUMAN_COMPARISON_CASES)}")
-        st.caption("Öneri ve denetim aynı Groq model sağlayıcısını kullanıyor; ikinci geçiş bağımsız model kanıtı değildir.")
-        st.caption(model_result["scope"])
-        st.json(model_result["confusion_matrix"])
-        if model_result["unscored"]:
-            st.warning(f"{model_result['unscored']} cevaplanmayan vaka hata sayıldı.")
+    if human_answer_key is None:
+        st.warning("Kör karşılaştırmanın sunucu cevap anahtarı ayarlı değil; etiketler bu oturumda korunuyor, skor ve model testi kapalı.")
+    else:
+        human_score = score_labels(
+            HUMAN_COMPARISON_CASES, saved_human_labels, human_answer_key)
+        st.metric("İnsan değerlendirici · altın etikete uyum",
+                  f"{human_score['correct']} / {human_score['total']}",
+                  f"%{human_score['accuracy'] * 100:.0f}")
+        st.caption("Tek insan değerlendirici; vaka başına bağımsız ikinci insan puanlaması yok.")
+        st.caption("İnsan etiketlerinin sınıf bazlı sonuçları")
+        st.json(human_score["confusion_matrix"])
+        if key and st.button("Etiketlerden sonra CANO modelini çalıştır (24 vaka, 1 çağrı)"):
+            try:
+                result = run_claim_review_benchmark(
+                    Client(), cases=HUMAN_COMPARISON_CASES,
+                    expected_labels=human_answer_key)
+            except TeamRateLimitError:
+                st.warning("Model kotası nedeniyle test tamamlanamadı; insan etiketleri bu oturumda korundu.")
+            except (ValueError, RuntimeError) as err:
+                st.warning(f"Model testi tamamlanamadı ({type(err).__name__}: {err}); insan etiketleri korundu.")
+            else:
+                st.session_state[model_key] = result
+        model_result = st.session_state.get(model_key)
+        if isinstance(model_result, dict):
+            human_by_id = saved_human_labels
+            model_by_id = {case["case_id"]: case["predicted"] for case in model_result["cases"]}
+            agreement = sum(human_by_id[c["case_id"]] == model_by_id[c["case_id"]]
+                            for c in HUMAN_COMPARISON_CASES)
+            st.metric("CANO modeli · aynı 24 vakanın altın etiketine uyum",
+                      f"{model_result['correct']} / {model_result['total']}",
+                      f"%{model_result['accuracy'] * 100:.0f}")
+            st.metric("İnsan–CANO karar uyumu", f"{agreement} / {len(HUMAN_COMPARISON_CASES)}")
+            st.caption("Öneri ve denetim aynı Groq model sağlayıcısını kullanıyor; ikinci geçiş bağımsız model kanıtı değildir.")
+            st.caption(model_result["scope"])
+            st.json(model_result["confusion_matrix"])
+            if model_result["unscored"]:
+                st.warning(f"{model_result['unscored']} cevaplanmayan vaka hata sayıldı.")
 elif isinstance(st.session_state.get("cano_claim_review_benchmark_result"), dict):
     st.info("Önceki 12 vakalık sonuç yalnızca aynı küçük sabit kümenin testidir; bağımsız 24 vaka ve insan karşılaştırması yerine geçmez.")
 if not key:
