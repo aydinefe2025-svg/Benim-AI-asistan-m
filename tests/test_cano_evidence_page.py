@@ -95,16 +95,23 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("cevap anahtarı gösterilmedi", source)
 
 
-    def test_gold_model_runs_are_available_before_human_labels(self):
+    def test_gold_model_runs_require_complete_human_labels(self):
         path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
         source = path.read_text(encoding="utf-8")
         self.assertIn("run_blind_model_benchmark", source)
         self.assertIn("cano_gold_model_v3", source)
         self.assertIn("cano_gold_model_v4", source)
-        self.assertLess(source.index("cano_gold_model_v3"),
-                        source.index("if isinstance(saved_human_labels, dict)"))
-        self.assertLess(source.index("cano_gold_model_v4"),
-                        source.index("if isinstance(v4_saved_labels, dict)"))
+        self.assertLess(source.index("v3_labels_complete ="),
+                        source.index("cano_gold_model_v3"))
+        self.assertLess(source.index("elif not v3_labels_complete:"),
+                        source.index("cano_gold_model_v3"))
+        self.assertLess(source.index("v4_labels_complete ="),
+                        source.index("cano_gold_model_v4"))
+        self.assertLess(source.index("elif not v4_labels_complete:"),
+                        source.index("cano_gold_model_v4"))
+        self.assertIn("if v3_labels_complete and isinstance(v3_model_result, dict):", source)
+        self.assertIn("if v4_labels_complete and isinstance(v4_model_result, dict):", source)
+        self.assertIn("Kör değerlendirmeyi korumak için CANO tahminleri", source)
         self.assertIn("v3 kaynak anahtarına uyum", source)
         self.assertIn("v4 kaynak anahtarına uyum", source)
         self.assertIn("2 çağrı; uyuşmazlıkta 1 ek okuma", source)

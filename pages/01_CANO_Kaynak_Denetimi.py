@@ -224,6 +224,13 @@ if labels_submitted:
         st.session_state.pop(model_key, None)
         st.success("Etiketler bu tarayıcı oturumunda saklandı; beklenen cevaplar etiketleme sırasında gösterilmedi.")
 saved_human_labels = st.session_state.get(label_key)
+v3_case_ids = {case["case_id"] for case in HUMAN_COMPARISON_CASES}
+v3_labels_complete = (
+    isinstance(saved_human_labels, dict)
+    and set(saved_human_labels) == v3_case_ids
+    and all(saved_human_labels.get(case_id) in {"supported", "contradicted", "insufficient"}
+            for case_id in v3_case_ids)
+)
 try:
     human_answer_key = load_expected_labels(
         os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY"))
@@ -231,6 +238,8 @@ except (ValueError, RuntimeError):
     human_answer_key = None
 if human_answer_key is None:
     st.warning("Kaynak-temelli v3 altın cevap anahtarı ayarlı değil; model puanlama kapalı.")
+elif not v3_labels_complete:
+    st.caption("Kör değerlendirmeyi korumak için CANO tahminleri, 24 insan etiketi kaydedilene kadar gizlidir.")
 elif key and st.button("Kaynak anahtarıyla CANO'yu çalıştır (24 vaka, 1 çağrı)",
                        key="cano_gold_model_v3"):
     try:
@@ -244,7 +253,7 @@ elif key and st.button("Kaynak anahtarıyla CANO'yu çalıştır (24 vaka, 1 ça
     else:
         st.session_state[model_key] = result
 v3_model_result = st.session_state.get(model_key)
-if isinstance(v3_model_result, dict):
+if v3_labels_complete and isinstance(v3_model_result, dict):
     st.metric("CANO kuşkucu geçişi · v3 kaynak anahtarına uyum",
               f"{v3_model_result['correct']} / {v3_model_result['total']}",
               f"%{v3_model_result['accuracy'] * 100:.0f}")
@@ -323,6 +332,13 @@ if v4_labels_submitted:
         st.session_state.pop(v4_model_key, None)
         st.success("Ek kohort etiketleri bu tarayıcı oturumunda saklandı; cevap anahtarı gösterilmedi.")
 v4_saved_labels = st.session_state.get(v4_label_key)
+v4_case_ids = {case["case_id"] for case in SUPPLEMENTAL_COMPARISON_CASES}
+v4_labels_complete = (
+    isinstance(v4_saved_labels, dict)
+    and set(v4_saved_labels) == v4_case_ids
+    and all(v4_saved_labels.get(case_id) in {"supported", "contradicted", "insufficient"}
+            for case_id in v4_case_ids)
+)
 try:
     v4_answer_key = load_expected_labels(
         os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V4"),
@@ -332,6 +348,8 @@ except (ValueError, RuntimeError):
     v4_answer_key = None
 if v4_answer_key is None:
     st.warning("Ek kohortun v4 altın cevap anahtarı ayarlı değil; model puanlama kapalı.")
+elif not v4_labels_complete:
+    st.caption("Kör değerlendirmeyi korumak için ek kohort CANO tahminleri, 24 insan etiketi kaydedilene kadar gizlidir.")
 elif key and st.button("Ek kohortta CANO'yu gizli kaynak anahtarıyla çalıştır (24 vaka, 1 çağrı)",
                        key="cano_gold_model_v4"):
     try:
@@ -345,7 +363,7 @@ elif key and st.button("Ek kohortta CANO'yu gizli kaynak anahtarıyla çalışt�
     else:
         st.session_state[v4_model_key] = v4_result
 v4_model_result = st.session_state.get(v4_model_key)
-if isinstance(v4_model_result, dict):
+if v4_labels_complete and isinstance(v4_model_result, dict):
     st.metric("CANO kuşkucu geçişi · v4 kaynak anahtarına uyum",
               f"{v4_model_result['correct']} / {v4_model_result['total']}",
               f"%{v4_model_result['accuracy'] * 100:.0f}")
