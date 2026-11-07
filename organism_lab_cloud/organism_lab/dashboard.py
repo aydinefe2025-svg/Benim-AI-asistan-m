@@ -18,6 +18,9 @@ from organism_lab.explanations import (explain_shared_world, explain_reproductio
 from organism_lab.reproduction_study import run_study, save_study
 from organism_lab.adaptation_study import run_adaptation_study, save_adaptation_study
 from organism_lab import discovery_sweep
+from organism_lab.colony_resilience import (run_colony_resilience_study,
+                                             save_colony_resilience_study,
+                                             explain_colony_resilience)
 from organism_lab.literature_search import list_records, save_records, search_openalex
 from organism_lab.persistent_memory import (augment_with_memory, list_memories,
                                             retrieve_memories, save_memory)
@@ -478,6 +481,55 @@ if "organism_discovery_report" in st.session_state:
         if discovery.get("run_id"):
             st.caption("Bu çalışma ayrıca değiştirilemez sürümlü arşive kaydedildi · " +
                        f"discovery-sweeps/discovery-sweep-{discovery['run_id']}.json")
+
+st.divider()
+st.subheader("Sanal koloni iletişimi ve hata yalıtımı")
+st.caption(
+    "Sınırlı dijital stres testi: aynı sanal ajanlar açık yayın ağıyla ve bölümlenmiş, "
+    "geçersiz mesajları reddeden ağ geçitleriyle karşılaştırılır. Tek bir ajanın hatalı "
+    "mesaj göndermesi simüle edilir. Bu gerçek siber güvenlik denetimi veya güvenlik garantisi değildir."
+)
+if st.button("Koloni iletişimi ve yalıtım testini çalıştır", key="run_colony_resilience"):
+    try:
+        with st.spinner("Eşlenmiş sanal ağlar ve hata senaryosu karşılaştırılıyor…"):
+            report = run_colony_resilience_study()
+            saved = save_colony_resilience_study(
+                report, OUTPUT_DIR / "colony-resilience-latest.json")
+        st.session_state["colony_resilience_report"] = saved
+        st.success("Simülasyon raporu doğrulanıp sürümlü arşive kaydedildi.")
+    except (OSError, ValueError, RuntimeError) as exc:
+        st.error(f"Koloni testi tamamlanamadı ({type(exc).__name__}); önceki arşiv korunuyor.")
+if "colony_resilience_report" not in st.session_state:
+    try:
+        saved_path = OUTPUT_DIR / "colony-resilience-latest.json"
+        if saved_path.exists():
+            st.session_state["colony_resilience_report"] = json.loads(
+                saved_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        st.info("Önceki koloni testi okunamadı; yeni deneme mevcut dosyanın üstüne yazılmadı.")
+if "colony_resilience_report" in st.session_state:
+    colony_report = st.session_state["colony_resilience_report"]
+    try:
+        st.markdown(explain_colony_resilience(colony_report))
+        open_arm = colony_report["arms"]["open_broadcast"]
+        protected_arm = colony_report["arms"]["segmented_validated"]
+        st.dataframe([
+            {"Düzen": "Açık yayın", "Sağlıklı ve göreve hazır sanal ajan": open_arm["mean_healthy_ready"],
+             "Etkilenmiş sanal ajan": open_arm["mean_compromised_nodes"],
+             "Tam hazır sanal bölme": open_arm["mean_fully_ready_compartments"]},
+            {"Düzen": "Bölümlenmiş ve doğrulanan", "Sağlıklı ve göreve hazır sanal ajan": protected_arm["mean_healthy_ready"],
+             "Etkilenmiş sanal ajan": protected_arm["mean_compromised_nodes"],
+             "Tam hazır sanal bölme": protected_arm["mean_fully_ready_compartments"],
+             "Reddedilen hatalı mesaj": protected_arm["mean_rejected_bad_packets"]},
+        ], width="stretch", hide_index=True)
+        st.caption("Kanıt sınırı: yalnızca seçilen sayısal ağ modelinin simülasyon sonucu; gerçek saldırı veya gerçek ajan dayanıklılığı doğrulanmadı.")
+        st.download_button(
+            "Koloni iletişim testinin JSON raporunu indir",
+            data=json.dumps(colony_report, ensure_ascii=False, indent=2, allow_nan=False),
+            file_name="organism-lab-colony-resilience.json", mime="application/json",
+            key="download_colony_resilience")
+    except (KeyError, TypeError, ValueError):
+        st.warning("Koloni raporu doğrulanamadı; hatalı sonuç gösterilmiyor.")
 
 with st.expander("Kayıtlı araştırmaların otomatik özeti"):
     summary_path = OUTPUT_DIR / "research_summary.json"

@@ -1,0 +1,218 @@
+"""Bounded digital study of colony communication and fault containment.
+
+This is an abstract network simulation. It does not control biological agents,
+robots, or production security systems and cannot establish real-world safety.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import random
+from datetime import datetime, timezone
+from pathlib import Path
+from uuid import uuid4
+
+
+SCHEMA = "organism-lab-colony-resilience-v1"
+MAX_SEEDS = 50
+MAX_TICKS = 40
+MAX_POPULATION = 32
+
+
+def _simulate(seed: int, *, ticks: int, population: int, compartments: int,
+              fault_tick: int, protected: bool) -> dict:
+    """Simulate a useful protocol spreading before one sender emits a bad packet."""
+    rng = random.Random(seed)
+    group_size = population // compartments
+    groups = [i // group_size for i in range(population)]
+    knowledge = [i == 0 for i in range(population)]
+    compromised = [False] * population
+    faulted_node = rng.randrange(population)
+    rejected_packets = 0
+
+    for tick in range(ticks):
+        if tick == fault_tick:
+            compromised[faulted_node] = True
+            knowledge[faulted_node] = False
+
+        previous_knowledge = knowledge[:]
+        previous_compromised = compromised[:]
+        new_knowledge = knowledge[:]
+        new_compromised = compromised[:]
+
+        for receiver in range(population):
+            if previous_compromised[receiver]:
+                continue
+            for sender in range(population):
+                if sender == receiver:
+                    continue
+                if protected:
+                    same_compartment = groups[sender] == groups[receiver]
+                    # Cross-compartment traffic uses a narrow, alternate-tick gateway.
+                    gateway_open = tick % 2 == 1
+                    if not same_compartment and not gateway_open:
+                        continue
+                    if previous_compromised[sender]:
+                        rejected_packets += 1
+                        continue
+                if previous_compromised[sender]:
+                    new_compromised[receiver] = True
+                    new_knowledge[receiver] = False
+                    break
+                if previous_knowledge[sender]:
+                    new_knowledge[receiver] = True
+        knowledge, compromised = new_knowledge, new_compromised
+
+    healthy_ready = sum(knowledge[i] and not compromised[i] for i in range(population))
+    contained_groups = sum(
+        all(knowledge[i] and not compromised[i]
+            for i in range(population) if groups[i] == group)
+        for group in range(compartments)
+    )
+    return {
+        "seed": seed,
+        "faulted_node": faulted_node,
+        "healthy_ready": healthy_ready,
+        "compromised_nodes": sum(compromised),
+        "fully_ready_compartments": contained_groups,
+        "rejected_bad_packets": rejected_packets,
+    }
+
+
+def _mean(rows: list[dict], key: str) -> float:
+    return sum(row[key] for row in rows) / len(rows)
+
+
+def run_colony_resilience_study(*, seeds=30, ticks=10, population=16,
+                                compartments=4, fault_tick=3) -> dict:
+    """Compare open broadcast with segmented, allow-listed communication.
+
+    Both arms use paired seeds and the same simulated single-node fault.
+    Resource bounds keep this inexpensive enough for an on-demand free service.
+    """
+    values = (seeds, ticks, population, compartments, fault_tick)
+    if any(type(value) is not int for value in values):
+        raise ValueError("Study parameters must be integers")
+    if not 2 <= seeds <= MAX_SEEDS:
+        raise ValueError("Seed count outside the bounded study budget")
+    if not 4 <= population <= MAX_POPULATION:
+        raise ValueError("Population outside the bounded study budget")
+    if not 1 <= compartments <= population or population % compartments:
+        raise ValueError("Population must divide evenly into compartments")
+    if not 3 <= ticks <= MAX_TICKS or not 1 <= fault_tick < ticks - 1:
+        raise ValueError("Invalid tick or fault timing")
+
+    paired_seeds = list(range(seeds))
+    open_network = [
+        _simulate(seed, ticks=ticks, population=population,
+                  compartments=compartments, fault_tick=fault_tick,
+                  protected=False)
+        for seed in paired_seeds
+    ]
+    protected_network = [
+        _simulate(seed, ticks=ticks, population=population,
+                  compartments=compartments, fault_tick=fault_tick,
+                  protected=True)
+        for seed in paired_seeds
+    ]
+    report = {
+        "schema": SCHEMA,
+        "status": "simulation_only",
+        "design": {
+            "paired_seeds": paired_seeds,
+            "ticks": ticks,
+            "population": population,
+            "compartments": compartments,
+            "simulated_fault_tick": fault_tick,
+            "fault_model": "one virtual node begins emitting an invalid message",
+        },
+        "arms": {
+            "open_broadcast": {
+                "description": "All nodes accept messages from every other node.",
+                "mean_healthy_ready": _mean(open_network, "healthy_ready"),
+                "mean_compromised_nodes": _mean(open_network, "compromised_nodes"),
+                "mean_fully_ready_compartments": _mean(open_network, "fully_ready_compartments"),
+                "trials": open_network,
+            },
+            "segmented_validated": {
+                "description": "Messages stay within compartments or pass an alternate-tick gateway; invalid senders are rejected.",
+                "mean_healthy_ready": _mean(protected_network, "healthy_ready"),
+                "mean_compromised_nodes": _mean(protected_network, "compromised_nodes"),
+                "mean_fully_ready_compartments": _mean(protected_network, "fully_ready_compartments"),
+                "mean_rejected_bad_packets": _mean(protected_network, "rejected_bad_packets"),
+                "trials": protected_network,
+            },
+        },
+        "interpretation": {
+            "summary": "Sonuçlar yalnızca bu basitleştirilmiş ağ simülatörüne aittir.",
+            "limits": [
+                "Bu bir gerçek siber güvenlik testi veya güvenlik garantisi değildir.",
+                "Sanal ajanlar gerçek biyolojik organizmalar veya robotlar değildir.",
+                "Sonuçlar seçilen topoloji, doğrulama kuralı ve tek hata senaryosuyla sınırlıdır.",
+            ],
+        },
+    }
+    canonical = json.dumps(report, sort_keys=True, ensure_ascii=False,
+                           separators=(",", ":"), allow_nan=False).encode("utf-8")
+    report["sha256"] = hashlib.sha256(canonical).hexdigest()
+    return report
+
+
+def explain_colony_resilience(report: dict) -> str:
+    """Make the paired experiment legible without an LLM call."""
+    if report.get("schema") != SCHEMA or report.get("status") != "simulation_only":
+        raise ValueError("Unrecognized colony resilience report")
+    arms = report.get("arms", {})
+    open_arm = arms.get("open_broadcast", {})
+    protected = arms.get("segmented_validated", {})
+    required = ("mean_healthy_ready", "mean_compromised_nodes",
+                "mean_fully_ready_compartments")
+    if any(type(arm.get(key)) not in (int, float)
+           for arm in (open_arm, protected) for key in required):
+        raise ValueError("Incomplete colony resilience report")
+    return (
+        f"**Ne denendi?** {report['design']['population']} sanal ajanı "
+        f"{report['design']['compartments']} bölmeye ayırdık ve aynı "
+        f"{len(report['design']['paired_seeds'])} başlangıçta iki iletişim düzenini karşılaştırdık. "
+        f"{report['design']['simulated_fault_tick']}. adımda tek bir sanal ajanın geçersiz mesaj göndermesini modelledik.\n\n"
+        f"**Ne ölçtük?** Açık ağda son durumda ortalama "
+        f"{open_arm['mean_healthy_ready']:.1f}/{report['design']['population']} ajan hazır, "
+        f"{open_arm['mean_compromised_nodes']:.1f} ajan etkilenmişti. Bölümlenmiş ve doğrulanan ağda "
+        f"{protected['mean_healthy_ready']:.1f}/{report['design']['population']} ajan hazır, "
+        f"{protected['mean_compromised_nodes']:.1f} ajan etkilenmişti; ortalama "
+        f"{protected.get('mean_rejected_bad_packets', 0):.1f} geçersiz paket reddedildi.\n\n"
+        "**Anlamı:** Bu modelde bölme ve mesaj doğrulama, tek bir sanal arızanın yayılmasını sınırladı. "
+        "Bu bir gerçek güvenlik garantisi değildir; gerçek saldırılar, kimlik doğrulama, anahtar yönetimi "
+        "ve uygulama kodu ayrıca denetlenmelidir."
+    )
+
+
+def save_colony_resilience_study(report: dict, path) -> dict:
+    """Write a versioned result and latest pointer atomically with read-back."""
+    explanation = explain_colony_resilience(report)
+    if not explanation:
+        raise ValueError("Study report failed validation")
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    run_id = uuid4().hex
+    document = {**report, "generated_at": datetime.now(timezone.utc).isoformat(),
+                "run_id": run_id}
+    payload = json.dumps(document, sort_keys=True, ensure_ascii=False,
+                         indent=2, allow_nan=False) + "\n"
+    history = target.parent / "colony-resilience-runs"
+    history.mkdir(parents=True, exist_ok=True)
+
+    def write_verified(destination: Path) -> None:
+        temporary = destination.with_name(destination.name + f".{uuid4().hex}.tmp")
+        try:
+            temporary.write_text(payload, encoding="utf-8")
+            temporary.replace(destination)
+            if json.loads(destination.read_text(encoding="utf-8")) != document:
+                raise OSError("Study result failed read-back verification")
+        finally:
+            temporary.unlink(missing_ok=True)
+
+    write_verified(history / f"colony-resilience-{run_id}.json")
+    write_verified(target)
+    return document
+
