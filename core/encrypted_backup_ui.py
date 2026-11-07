@@ -22,9 +22,12 @@ def render_encrypted_download(st, *, label: str, filename: str,
 
     with st.expander("🔐 Taşınabilir şifreli yedek", expanded=False):
         st.caption(
-            "Yedek bu düğmeyle yalnızca bu cihaza indirilir. Parola CANO'ya gönderilmez "
-            "ve saklanmaz. En az 12 karakter kullanın; parola kaybolursa dosya açılamaz. "
-            "İndirdiğiniz .canoenc dosyasını CANO/Neon dışında güvenli bir yerde saklayın."
+            "Yedek bu düğmeyle hazırlanıp bu cihaza indirilir. "
+            "Parola şifreleme için CANO sunucusuna iletilir ve işlemden sonra "
+            "form alanlarından temizlenir. Şifreli dosya geçici oturumda tutulur; "
+            "bağımsız otomatik yedek oluşturulmaz. En az 12 karakter kullanın; "
+            "parola kaybolursa dosya açılamaz. İndirdiğiniz .canoenc dosyasını "
+            "CANO/Neon dışında güvenli bir yerde saklayın."
         )
         with st.form(storage_key + "_form"):
             st.text_input("Yedek parolası", type="password",
