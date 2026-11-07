@@ -452,8 +452,23 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
                 "correction_or_context": "Pasaj düzeltme veya önemli bağlam sunuyor",
                 "insufficient": "Pasaj iddiayı değerlendirmek için yetersiz",
             }
-            label = labels.get(item.get("comparison"), labels["insufficient"])
-            st.info("CANO'nun geçici metin yorumu: " + label)
+            comparison = item.get("comparison")
+            label = labels.get(comparison, labels["insufficient"])
+            st.info("CANO'nun ilk metin yorumu: " + label)
+            comparison_verdict = {
+                "supports": "supported",
+                "contradicts": "contradicted",
+                "insufficient": "insufficient",
+            }.get(comparison)
+            assessment = item.get("machine_assessment")
+            if (comparison_verdict is not None and isinstance(assessment, dict)
+                    and assessment.get("available") is not False
+                    and assessment.get("verdict") in {"supported", "contradicted", "insufficient"}
+                    and comparison_verdict != assessment.get("verdict")):
+                st.warning(
+                    "CANO'nun iki değerlendirmesi uyuşmuyor. Kaynağa dayalı karar "
+                    "belirsiz; otomatik sonucu kabul etmeyin ve tam metni inceleyin."
+                )
             if item.get("comparison_rationale"):
                 st.caption(item["comparison_rationale"])
             st.caption(
