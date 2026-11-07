@@ -26,7 +26,9 @@ jobs:
       - name: Check dashboard JavaScript syntax
         run: node --check web/cano-organism-live/app.js
       - name: Verify seeded GitHub-style snapshots and tamper rejection
-        run: node web/cano-organism-live/tests/test_dashboard_vm.cjs
+        run: |
+          node web/cano-organism-live/tests/test_dashboard_vm.cjs
+          node web/cano-organism-live/tests/test_calendar_freshness.cjs
       - name: Verify HTML and build output
         run: |
           mkdir -p public
@@ -80,6 +82,9 @@ jobs:
                       assert page.locator('#lineage').is_visible(), 'lineage SVG is hidden'
                       assert page.locator('#lineage circle').count()==2*population, 'lineage circles are not rendered'
                       assert page.locator('#integrity').inner_text().startswith('✓ SHA-256')
+                      assert page.locator('#cadenceStatus').get_attribute('data-status') in ('current','pending'), 'Archive date is overdue, future or invalid'
+                      assert page.locator('#requiredDay').inner_text().startswith('2026-')
+                      assert 'Türkiye saati' in page.locator('#scheduledNext').inner_text()
                       assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+2'), 'page horizontal overflow'
                       assert not errors,(name,errors)
                       page.screenshot(path=f'cano-live-browser-proof/{name}.png',full_page=True)
