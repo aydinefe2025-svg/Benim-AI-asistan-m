@@ -5,6 +5,7 @@ import os
 import stat
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -115,6 +116,25 @@ class EncryptedBackupTests(unittest.TestCase):
     def test_archive_limit_prevents_unbounded_output_and_cleans_up(self):
         with self.assertRaises(BackupError):
             make_encrypted_backup(self.target,dump_bin=self.fake,max_plaintext_bytes=1024)
+        self.assertEqual(list(self.target.iterdir()),[])
+
+    def test_hung_dump_must_timeout_and_remove_unpublished_files(self):
+        """A real pg_dump can stall after first bytes: pipe.read must not hang forever."""
+        hanging=self.root/'hang_dump.py'
+        hanging.write_text('#!'+sys.executable+'\nimport sys,time\n'
+            'sys.stdout.buffer.write(b"PGDMP synthetic partial")\n'
+            'sys.stdout.buffer.flush()\n'
+            'time.sleep(6)\n', encoding='utf8')
+        hanging.chmod(hanging.stat().st_mode|stat.S_IXUSR)
+        exe=str(hanging)
+        if os.name=='nt':
+            wrapper=hanging.with_suffix('.cmd')
+            wrapper.write_text('@echo off\r\n"'+sys.executable+'" "'+str(hanging)+'" %*\r\n')
+            exe=str(wrapper)
+        start=time.monotonic()
+        with self.assertRaises(BackupError):
+            make_encrypted_backup(self.target,dump_bin=exe,max_seconds=0.4)
+        self.assertLess(time.monotonic()-start,5.0)
         self.assertEqual(list(self.target.iterdir()),[])
 
     def test_receipt_archive_name_cannot_traverse(self):
