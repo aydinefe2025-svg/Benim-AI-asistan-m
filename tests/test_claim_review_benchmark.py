@@ -24,8 +24,9 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
         client = BenchmarkClient()
         result = run_claim_review_benchmark(client)
         self.assertEqual(len(client.calls), 1)
-        model, _system, prompt = client.calls[0]
+        model, system, prompt = client.calls[0]
         self.assertEqual(model, "openai/gpt-oss-120b")
+        self.assertIn("Merely reporting adults", system)
         self.assertNotIn("expected", prompt)
         self.assertEqual(result["total"], 12)
         self.assertEqual(result["correct"], 12)
