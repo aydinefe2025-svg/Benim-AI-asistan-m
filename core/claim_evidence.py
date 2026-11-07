@@ -19,6 +19,11 @@ def _normalized(value):
     return " ".join(value.split()).casefold()
 
 
+def _normalized_quote(value):
+    """Ignore extraction whitespace inserted immediately before punctuation."""
+    return re.sub(r"\\s+([,.;:!?])", r"\\1", _normalized(value))
+
+
 
 def _explicit_confidence_conflict(claim, passage):
     """Catch an explicit high/low evidence-confidence mismatch conservatively."""
@@ -178,7 +183,7 @@ def _reread_cached_source_disagreements(manager, mission_id, stages, *, client, 
                     and entry["doi"].casefold() == str(item.get("doi", "")).casefold()), None)
         if (not isinstance(doc, dict) or doc.get("status") not in _READABLE
                 or not isinstance(doc.get("excerpt"), str)
-                or _normalized(item.get("quote", "")) not in _normalized(doc["excerpt"])
+                or _normalized_quote(item.get("quote", "")) not in _normalized(doc["excerpt"])
                 or doc.get("url") != item.get("citation_url")
                 or _citation_for(doc) is None):
             raise ValueError("Previously matched source quote changed; reload evidence")
@@ -275,7 +280,7 @@ def _display_cached_confidence_conflict(item, doc):
             or not isinstance(doc.get("excerpt"), str)
             or not isinstance(item.get("claim"), str)
             or not isinstance(item.get("quote"), str)
-            or _normalized(item["quote"]) not in _normalized(doc["excerpt"])):
+            or _normalized_quote(item["quote"]) not in _normalized(doc["excerpt"])):
         return None
     assessment = item.get("machine_assessment")
     if (not isinstance(assessment, dict)
@@ -331,7 +336,7 @@ def _reconcile_cached_confidence_conflicts(manager, mission_id, stages):
                 or not isinstance(doc.get("excerpt"), str)
                 or not isinstance(item.get("claim"), str)
                 or not isinstance(item.get("quote"), str)
-                or _normalized(item["quote"]) not in _normalized(doc["excerpt"])
+                or _normalized_quote(item["quote"]) not in _normalized(doc["excerpt"])
                 or trusted_url is None):
             continue
         conflict = _explicit_confidence_conflict(item["claim"], doc["excerpt"])
@@ -496,7 +501,7 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
             isinstance(doc, dict)
             and doc.get("status") in _READABLE
             and isinstance(doc.get("excerpt"), str)
-            and _normalized(quote) in _normalized(doc["excerpt"])
+            and _normalized_quote(quote) in _normalized(doc["excerpt"])
             and _citation_for(doc) is not None)
         reviewed.append({
             "claim": claim, "doi": doi, "quote": quote,
@@ -706,7 +711,7 @@ def retry_unavailable_skeptical_pass(manager, mission_id, *, client, model):
                     and d["doi"].casefold() == str(item.get("doi", "")).casefold()), None)
         if (not isinstance(doc, dict) or doc.get("status") not in _READABLE
                 or not isinstance(doc.get("excerpt"), str)
-                or _normalized(item.get("quote", "")) not in _normalized(doc["excerpt"])
+                or _normalized_quote(item.get("quote", "")) not in _normalized(doc["excerpt"])
                 or doc.get("url") != item.get("citation_url")
                 or _citation_for(doc) is None):
             raise ValueError("Previously matched source quote changed; reload source evidence")
@@ -825,7 +830,7 @@ def record_source_claim_review(manager, mission_id, claim_index, *, reviewer_id,
             and doc.get("url") != item.get("citation_url")):
         raise ValueError("Claim citation does not match the retrieved source")
     if item.get("status") == "quote_found_unverified":
-        if _normalized(item.get("quote", "")) not in _normalized(doc["excerpt"]):
+        if _normalized_quote(item.get("quote", "")) not in _normalized(doc["excerpt"]):
             raise ValueError("Quoted passage is not present in the retrieved excerpt")
     elif supported:
         raise ValueError("An unmatched quote cannot be accepted")
