@@ -434,6 +434,18 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(reviewed_display["verdict"], "contradicted")
         self.assertFalse(human_reviewed["human_review"]["supported"])
 
+        # PDF extraction may insert whitespace before punctuation. Preserve
+        # the exact words while still recognizing that formatting-only change.
+        spaced_source = {
+            **source,
+            "excerpt": excerpt.replace("result,", "result ,").replace(
+                "confidence in", "confidence  in"
+            ),
+        }
+        spaced_display = _display_cached_confidence_conflict(item, spaced_source)
+        self.assertEqual(spaced_display["verdict"], "contradicted")
+        self.assertTrue(spaced_display["display_only"])
+
     def test_explicit_confidence_conflict_overrides_wrong_model_support(self):
         self.manager.inspect_source_documents(
             self.mission_id,
