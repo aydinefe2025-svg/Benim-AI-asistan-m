@@ -51,7 +51,7 @@ class EvidencePageSmokeTests(unittest.TestCase):
         path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
         source = path.read_text(encoding="utf-8")
         runtime_button = source.index("CANO modelini 12 sabit vakada test et (1 çağrı)")
-        human_form = source.index('st.form("cano_blind_human_labels_v2")')
+        human_form = source.index('st.form("cano_blind_human_labels_v3")')
         self.assertLess(runtime_button, human_form)
         self.assertIn("CANO görev kayıtlarını ", source)
         self.assertIn("değiştirmez ve kör insan karşılaştırmasının", source)
