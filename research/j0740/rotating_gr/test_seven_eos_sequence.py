@@ -68,6 +68,29 @@ class StableSourceReferenceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"nonmonotone"):
                 stable_source_radius_at_mass(p, 2.073)
 
+    def test_original_order_low_mass_turnback_is_excluded(self):
+        # Matches the source-data diagnosis: APR4_EPP and WFF1 first
+        # descend to a minimum then strictly increase through M=2.073.
+        masses=np.r_[[.5,.3,.2,.1], np.linspace(.13,2.15,32)]
+        radii=np.linspace(15.0,10.0,len(masses))
+        with tempfile.TemporaryDirectory() as td:
+            p=Path(td)/"APR4_EPP.npz"
+            self.write_npz(p,masses,radii)
+            radius,meta=stable_source_radius_at_mass(p,2.073)
+            self.assertTrue(10 < radius < 15)
+            self.assertEqual(meta["source_mass_minimum_index"],3)
+            self.assertEqual(meta["discarded_pre_minimum_nodes"],3)
+            self.assertEqual(meta["discarded_post_maximum_nodes"],0)
+
+    def test_low_mass_source_prefix_must_be_strictly_descending(self):
+        masses=np.r_[[.5,.3,.4,.1],np.linspace(.13,2.15,32)]
+        radii=np.linspace(15.0,10.0,len(masses))
+        with tempfile.TemporaryDirectory() as td:
+            p=Path(td)/"APR4_EPP.npz"
+            self.write_npz(p,masses,radii)
+            with self.assertRaisesRegex(ValueError,"nonmonotone"):
+                stable_source_radius_at_mass(p,2.073)
+
     def test_no_target_extrapolation(self):
         masses=np.linspace(0.7, 2.1, 20)
         radii=np.linspace(12,10,20)

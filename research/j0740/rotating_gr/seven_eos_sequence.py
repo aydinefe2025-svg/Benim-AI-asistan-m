@@ -28,9 +28,11 @@ JESTER_COMMIT = "e6768650ce992abfd1153a6833857572fe5cd230"
 def stable_source_radius_at_mass(source: Path, mass: float) -> tuple[float, dict]:
     """Use only the ascending *first* TOV stable branch, never its turnback.
 
-    A JESTER input may include an unstable extension after maximum mass.
-    Never sort mass-radius pairs, extrapolate, or silently smooth upstream
-    non-monotonic points within the pre-turning stable branch.
+    The pinned APR4_EPP and WFF1 arrays have an initial low-mass descending
+    prefix before their minimum mass; some source arrays may also extend past
+    a high-density mass maximum. Select only the strictly ascending segment
+    from minimum to maximum in original source order. Never sort, extrapolate,
+    or ignore a reversal *inside* that selected branch.
     """
     with np.load(source, allow_pickle=False) as data:
         masses = np.asarray(data["masses_EOS"], dtype=float)
@@ -40,19 +42,29 @@ def stable_source_radius_at_mass(source: Path, mass: float) -> tuple[float, dict
             or np.any(masses <= 0) or np.any(radii <= 0)):
         raise ValueError("JESTER TOV reference M/R arrays invalid")
     peak = int(np.argmax(masses))
-    stable_m = masses[:peak + 1]
-    stable_r = radii[:peak + 1]
-    if len(stable_m) < 10 or np.any(np.diff(stable_m) <= 0):
-        raise ValueError("Source TOV has nonmonotone mass before first stable maximum; reject")
+    # The pinned JESTER APR4_EPP and WFF1 tables begin with an ordered
+    # low-mass descending branch before their first mass minimum. That
+    # prefix must NOT be included in the stable ascending TOV interpolation.
+    # Determine turning points in *source index order*, never sort by M.
+    low = int(np.argmin(masses[:peak + 1]))
+    pre = masses[:low + 1]
+    stable_m = masses[low:peak + 1]
+    stable_r = radii[low:peak + 1]
+    if (len(stable_m) < 10 or np.any(np.diff(pre) >= 0)
+            or np.any(np.diff(stable_m) <= 0)):
+        raise ValueError("Source TOV has nonmonotone mass within selected stable branch; reject")
     if not (stable_m[0] <= mass <= stable_m[-1]):
         raise ValueError("Target mass outside source TOV ascending stable branch")
     return float(np.interp(mass, stable_m, stable_r)), {
         "total_source_nodes": int(len(masses)),
+        "source_mass_minimum_index": low,
+        "source_mass_minimum_msun": float(stable_m[0]),
+        "discarded_pre_minimum_nodes": low,
         "first_maximum_index": peak,
         "first_maximum_mass_msun": float(stable_m[-1]),
         "stable_branch_nodes": int(len(stable_m)),
-        "discarded_post_maximum_nodes": int(len(masses) - len(stable_m)),
-        "selection": "ascending original sequence through first global mass maximum; never sort",
+        "discarded_post_maximum_nodes": int(len(masses) - peak - 1),
+        "selection": "pinned source sequence from first low-mass minimum to maximum; strictly ascending, never sort or extrapolate",
     }
 
 
