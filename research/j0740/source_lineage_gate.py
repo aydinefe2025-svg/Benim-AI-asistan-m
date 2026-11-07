@@ -20,6 +20,36 @@ KNOWN_STU_PRIOR_SHA256 = "5ebcf0a2f11a0f159860ec740e719957066521a501a02c889c5e3d
 STU_SOURCE_DIRECTORY = "J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules"
 
 
+
+PUBLISHED_HEADLINE_RUNNER = "STU/STU_NICER_XMM_hr/STU_modules/main_lp40k_Xse001_Dfix.py"
+PUBLISHED_HEADLINE_PRIOR = "STU/STU_NICER_XMM_hr/STU_modules/CustomPrior_GLS_compressed_scaling_Dfix.py"
+PUBLISHED_HEADLINE_OUTPUT_DIR = "STU/STU_NICER_XMM_hr/STU_outputs/run1_lp40k_Xse001_Dfix/"
+PUBLISHED_README = "https://zenodo.org/records/10519473/files/README.md?download=1"
+PUBLISHED_README_MD5 = "ed363c6d252a0a6ef177f8d45757e50e"
+
+
+def documented_headline_mapping() -> dict:
+    """Original Zenodo 10519473 README, 'Analysis scripts' + 'Posterior samples'.
+
+    'gamma_NxX' is the GAMMA/NICER dataset label; the original Salmi 2024
+    headline source code is the ST-U geometry run in STU_NICER_XMM_hr.
+    Documentary run identity does not by itself check original file bytes.
+    """
+    return {
+        "source": PUBLISHED_README,
+        "readme_md5": PUBLISHED_README_MD5,
+        "posterior_source": SOURCE_POSTERIOR_MEMBER,
+        "runner_member": PUBLISHED_HEADLINE_RUNNER,
+        "prior_member": PUBLISHED_HEADLINE_PRIOR,
+        "output_directory": PUBLISHED_HEADLINE_OUTPUT_DIR,
+        "emission_geometry": "ST-U two circular uniform-temperature hot regions",
+        "run_mapping": "PUBLISHED_README_HEADLINE_RUN_DIRECTORY_CONFIRMED",
+        "exact_original_prior_bytes_verified": False,
+        "run_specific_xpsi_version_verified": False,
+        "native_likelihood_verified": False,
+    }
+
+
 class RunLineageNotProven(ValueError):
     """No verified source-run identity; never report EOS evidence."""
 
@@ -43,15 +73,16 @@ def inspect_legacy_pair(posterior_metadata: dict, *, prior_source_sha256=KNOWN_S
         "posterior_subset_sha256": SOURCE_POSTERIOR_SHA256,
         "prior_source_sha256": prior_source_sha256,
         "prior_source_archive_directory": STU_SOURCE_DIRECTORY,
+        "posterior_prior_same_run_directory_documented": True,
+        "posterior_prior_exact_original_file_bytes_verified": False,
         "posterior_prior_exact_run_link_proven": False,
-        "source_run_match_status": "BLOCKED_UNVERIFIED_GAMMA_POSTERIOR_VS_STU_PRIOR_RUN",
+        "source_run_match_status": "PUBLISHED_README_CONFIRMS_GAMMA_NXX_IS_STU_HEADLINE_RUN_FILE_BYTES_PENDING",
+        "published_mapping": documented_headline_mapping(),
         "scientific_use": "Historical sensitivity proxy only; never normalize into EOS posterior or Bayes factors",
         "needed_evidence": [
-            "Exact gamma NxX lp40k_se001 sampler configuration from locally verified 12.9GB archive",
-            "Exact matching CustomPrior source path and its SHA256 from same run",
-            "Exact sampling main source path and its SHA256 from same run",
-            "X-PSI engine version and calibration/likelihood input-file paths for this run",
-            "Proof the weighted/equal-weight output member belongs to this main and prior",
+            "SHA256-verify original published STU headline runner and CustomPrior bytes from already-owned 12.9GB tar",
+            "Check original out_ run header for the actual inference X-PSI version (README lists versions v0.7.10–v1.2.1)",
+            "Check effective prior nuisance calibration/likelihood input files in that run before using any Bayes evidence",
         ],
     }
 
@@ -114,7 +145,9 @@ def require_proven_lineage(manifest_path=None, *, historical_proxy_only=False) -
             "caution": "No matched 15D X-PSI source prior, not EOS Bayes evidence",
         }
     raise RunLineageNotProven(
-        "Source gamma NxX posterior and STU_NICER_XMM_hr prior are not confirmed "
-        "as the same sampling run. Supply a verified source-run manifest. "
+        "Published Salmi 2024 README confirms gamma NxX outputs map to "
+        "STU_NICER_XMM_hr headline run, but original prior/runner byte identity "
+        "and run-specific X-PSI version are not yet verified. "
+        "Supply a source-byte-verified manifest. "
         "For explicitly labelled archived nonfinal proxy only use historical_proxy_only=True."
     )

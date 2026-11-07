@@ -11,8 +11,17 @@ from source_lineage_gate import (
 
 
 class RunLineageGateTests(unittest.TestCase):
+    def test_primary_zenodo_readme_links_gamma_to_stu_headline(self):
+        from source_lineage_gate import documented_headline_mapping
+        m= documented_headline_mapping()
+        self.assertEqual(m["run_mapping"], "PUBLISHED_README_HEADLINE_RUN_DIRECTORY_CONFIRMED")
+        self.assertTrue(m["runner_member"].endswith("main_lp40k_Xse001_Dfix.py"))
+        self.assertTrue(m["output_directory"].endswith("run1_lp40k_Xse001_Dfix/"))
+        self.assertFalse(m["exact_original_prior_bytes_verified"])
+
+
     def test_default_blocks_unverified_gamma_vs_stu(self):
-        with self.assertRaisesRegex(RunLineageNotProven, "not confirmed"):
+        with self.assertRaisesRegex(RunLineageNotProven, "not yet verified"):
             require_proven_lineage()
 
     def test_historical_proxy_explicitly_nonfinal(self):
@@ -24,7 +33,9 @@ class RunLineageGateTests(unittest.TestCase):
         x = inspect_legacy_pair({"source_file": Path(SOURCE_POSTERIOR_MEMBER).name,
                                  "settings": "lp40k_se001", "source_archive_md5": SOURCE_POSTERIOR_ARCHIVE_MD5})
         self.assertFalse(x["posterior_prior_exact_run_link_proven"])
-        self.assertEqual(len(x["needed_evidence"]), 5)
+        self.assertTrue(x["posterior_prior_same_run_directory_documented"])
+        self.assertFalse(x["posterior_prior_exact_original_file_bytes_verified"])
+        self.assertEqual(len(x["needed_evidence"]), 3)
 
     def test_posterior_mismatch_rejected(self):
         with self.assertRaisesRegex(RunLineageNotProven, "Unexpected"):

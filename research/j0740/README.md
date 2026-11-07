@@ -1,8 +1,14 @@
 # PSR J0740+6620 — source-grounded conditional EOS calculation
 
+### New primary-source correction — 7 November 2026
+
+The **original Salmi 2024 Zenodo README** explicitly maps the headline mass-radius file `J0740_gamma_NxX_lp40k_se001_mrsamples_post_equal_weights.dat` to the `STU/STU_NICER_XMM_hr/STU_modules/main_lp40k_Xse001_Dfix.py` main script and `STU/STU_NICER_XMM_hr/STU_outputs/run1_lp40k_Xse001_Dfix/` nested-sampling directory. The `gamma` prefix indicates the new GAMMA NICER dataset, **not an incompatible hot-spot geometry**; the paper uses the ST-U two circular-hot-region model. Earlier speculation that these were necessarily separate sampling runs has been corrected. Source: https://zenodo.org/records/10519473/files/README.md?download=1, README MD5 `ed363c6d252a0a6ef177f8d45757e50e`.
+
+**What remains:** The mapping is documented by the original publication but original prior and runner *bytes* have not yet been checked directly against the local 12.9GB archive in this runtime; the exact inference X-PSI version must be read from the run's `out_` header (README reports versions ranging v0.7.10–v1.2.1). Until those checks and a native likelihood are complete, the historical F30 proxy is NOT a normalized EOS posterior.
+
 ## Critical source-run identity protection (7 Nov 2026)
 
-The 100,000-row observational subset comes from `J0740_gamma_NxX_lp40k_se001_mrsamples_post_equal_weights.dat` (Salmi 2024). The archived `CustomPrior_GLS_compressed_scaling_Dfix_source.py` prior and main runner were recovered from `J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules/`. These two products **are not proven to be one sampling run**. Neither matching gamma in a folder name nor compatible ST-U physics is sufficient.
+The 100,000-row observational subset comes from `J0740_gamma_NxX_lp40k_se001_mrsamples_post_equal_weights.dat` (Salmi 2024). The archived `CustomPrior_GLS_compressed_scaling_Dfix_source.py` prior and main runner were recovered from `J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules/`. The original Zenodo README documents that they originate from the **same headline run directory**; exact local module SHA256 identities and native X-PSI prior/likelihood evaluation remain unverified.
 
 The former phase30 seven-EOS scores are historical KDE/posterior-to-prior **conditional proxies**, NOT verified NICER likelihood values, and MUST NOT be normalized into EOS model posterior probabilities. They also use an empirical rotation fit, not the now-validated RNS 7-EOS GR model. The original legacy JSON remains available unmodified for historical reproducibility.
 
