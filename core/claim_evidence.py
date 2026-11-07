@@ -269,7 +269,7 @@ def _display_cached_confidence_conflict(item, doc):
     """
     if (not isinstance(item, dict)
             or item.get("status") != "quote_found_unverified"
-            or isinstance(item.get("human_review"), dict)
+            or bool(item.get("human_review"))
             or not isinstance(doc, dict)
             or doc.get("status") not in _READABLE
             or not isinstance(doc.get("excerpt"), str)
