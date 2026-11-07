@@ -23,7 +23,7 @@ def profile(e,p,cs2):
     cs2=np.asarray(cs2,float)
     if (e.ndim!=1 or e.size<100 or e.shape!=p.shape or e.shape!=cs2.shape
             or not np.all(np.isfinite(e+p+cs2))
-            or np.any(e<=0) or np.any(p<=0) or np.any(cs2<0)
+            or np.any(e<=0) or np.any(p<=0)
             or np.any(np.diff(p)<=0)):
         raise ValueError(
             "Native source e,p,cs2 arrays invalid: "
@@ -34,18 +34,32 @@ def profile(e,p,cs2):
             f"source e range={float(np.nanmin(e)):.6g},{float(np.nanmax(e)):.6g}, "
             f"cs2 range={float(np.nanmin(cs2)):.6g},{float(np.nanmax(cs2)):.6g}")
     bad=np.where(cs2>1.+1e-8)[0]
+    neg=np.where(cs2<0)[0]
     i=int(bad[0]) if len(bad) else None
+    k=int(neg[0]) if len(neg) else None
+    if len(neg) and len(bad):
+        status="SOURCE_NATIVE_CS2_NEGATIVE_AND_SUPERLUMINAL"
+    elif len(neg):
+        status="SOURCE_NATIVE_CS2_NEGATIVE_NODES_PRESENT_NOT_CLEAN_CAUSAL"
+    elif len(bad):
+        status="SOURCE_NATIVE_CS2_SUPERLUMINAL"
+    else:
+        status="SOURCE_NATIVE_CS2_SCREEN_PASS"
     return {
         "native_cs2_max":float(np.max(cs2)),
         "source_cs2_max":float(np.max(cs2)),
         "source_nodes":int(len(e)),
         "raw_energy_nonincreasing_segments":int(np.count_nonzero(np.diff(e)<=0)),
+        "native_negative_cs2_node_count":int(len(neg)),
+        "first_negative_cs2_index":k,
+        "first_negative_cs2_rho_g_cm3":float(e[k]*C*C/G*1e-3) if k is not None else None,
+        "native_cs2_min":float(np.min(cs2)),
         "native_superluminal_node_count":int(len(bad)),
         "first_superluminal_index":i,
         "first_superluminal_central_density_g_cm3":float(e[i]*C*C/G*1e-3) if i is not None else None,
-        "status":"SOURCE_NATIVE_CS2_SCREEN_PASS" if i is None else "SOURCE_NATIVE_CS2_SUPERLUMINAL",
+        "status":status,
         "method":"Pinned JESTER source cs2 array, native geometric energy density e[m^-2] converted to equivalent mass density g/cm^3",
-        "caveat":"Compare source sound speed threshold with each actual rotating-model central density; static mass threshold cannot simply be reused. Not full likelihood or EOS posterior."
+        "caveat":"All native cs2<0 nodes are flagged as nonphysical/source irregularity, NOT silently clipped. Compare onset with actual rotating-model central density; static mass threshold is not interchangeable. Not an EOS posterior."
     }
 
 def diagnose(file):
@@ -63,13 +77,22 @@ def main():
     p.add_argument("--jester-dir",type=Path,required=True)
     p.add_argument("--out",type=Path,required=True)
     a=p.parse_args()
-    rows={name:diagnose(a.jester_dir/(name+".npz")) for name in EOS_NAMES}
-    output={"schema":"source-native-jester-eos-cs2-v1","jester_commit":JESTER_COMMIT,
+    rows={}
+    for name in EOS_NAMES:
+        try:
+            rows[name]=diagnose(a.jester_dir/(name+".npz"))
+        except (ValueError, KeyError, OSError) as err:
+            rows[name]={"eos":name,"status":"SOURCE_NATIVE_CS2_DIAGNOSTIC_FAILED",
+                        "error_type":type(err).__name__,"reason":str(err)[:1300]}
+    output={"schema":"source-native-jester-eos-cs2-v2","jester_commit":JESTER_COMMIT,
             "interpretation":"screen of exact source-native cs2, not GR or Bayesian inference","eos":rows}
     a.out.parent.mkdir(parents=True,exist_ok=True)
     a.out.write_text(json.dumps(output,indent=2,sort_keys=True)+"\n")
     for name,r in rows.items():
-        print(name,r["status"],"cs2_max",r["source_cs2_max"],
-              "first_superluminal_rho",r["first_superluminal_central_density_g_cm3"],flush=True)
+        print(name,r["status"],"cs2_max",r.get("source_cs2_max"),
+              "first_superluminal_rho",r.get("first_superluminal_central_density_g_cm3"),
+              "negative_cs2",r.get("native_negative_cs2_node_count"),flush=True)
+    if any(r["status"]=="SOURCE_NATIVE_CS2_DIAGNOSTIC_FAILED" for r in rows.values()):
+        raise SystemExit("Some source-native EOS arrays were invalid; detailed JSON preserved")
 
 if __name__=="__main__":main()
