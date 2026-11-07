@@ -45,6 +45,8 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
             {label: sum(c["expected"] == label for c in HUMAN_COMPARISON_CASES)
              for label in ("supported", "contradicted", "insufficient")},
             {"supported": 8, "contradicted": 8, "insufficient": 8})
+        labels = [c["expected"] for c in HUMAN_COMPARISON_CASES]
+        self.assertTrue(all(a != b for a, b in zip(labels, labels[1:])))
         client = BenchmarkClient([c["expected"] for c in HUMAN_COMPARISON_CASES])
         result = run_claim_review_benchmark(client, cases=HUMAN_COMPARISON_CASES)
         self.assertEqual(result["total"], 24)
