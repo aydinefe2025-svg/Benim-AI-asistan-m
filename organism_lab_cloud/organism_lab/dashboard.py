@@ -28,6 +28,7 @@ from organism_lab.providers import (GROQ_MODEL_OPTIONS, ProviderError, diagnose_
                                     generate, groq_active_key, groq_test_key, trained_local_ready)
 from organism_lab.agent_roles import AGENT_PROFILES, profile_prompt
 from organism_lab.cloud_runtime import default_provider, session_output_dir
+from organism_lab.automation_status import render_colony_status_panel
 
 CLOUD_MODE = os.environ.get("ORGANISM_LAB_CLOUD_MODE", "").strip() == "1"
 st.set_page_config(page_title="Organizma Laboratuvarı", layout="wide")
@@ -85,6 +86,8 @@ else:
     )).resolve()
 st.title("Organizma Laboratuvarı")
 st.caption("Yalnızca dijital simülasyon. Fiziksel robot veya biyolojik organizma kontrolü içermez.")
+if CLOUD_MODE:
+    render_colony_status_panel(st)
 if CLOUD_MODE:
     st.caption(
         "Hesap başına kalıcı laboratuvar arşivi etkin. Her kayıt Neon PostgreSQL'de "
