@@ -88,7 +88,11 @@ class EvidencePageSmokeTests(unittest.TestCase):
         path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
         source = path.read_text(encoding="utf-8")
         self.assertIn("from core.storage_config import cano_database_url", source)
-        self.assertEqual(source.count("ColonySnapshotStore(cano_database_url(os.environ))"), 6)
+        self.assertGreater(source.count("ColonySnapshotStore("), 0)
+        self.assertEqual(
+            source.count("ColonySnapshotStore("),
+            source.count("ColonySnapshotStore(cano_database_url(os.environ))"),
+        )
         self.assertNotIn('os.environ["DATABASE_URL"]', source)
 
 
