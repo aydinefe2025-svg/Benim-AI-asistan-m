@@ -141,9 +141,24 @@ def score_labels(cases, labels):
     allowed = {"supported", "contradicted", "insufficient"}
     if any(labels[case["case_id"]] not in allowed for case in cases):
         raise ValueError("Invalid label")
-    correct = sum(labels[c["case_id"]] == c["expected"] for c in cases)
-    return {"total": len(cases), "correct": correct,
-            "accuracy": round(correct / len(cases), 3) if cases else 0.0}
+    allowed_labels = ("supported", "contradicted", "insufficient")
+    matrix = {gold: {label: 0 for label in allowed_labels}
+              for gold in allowed_labels}
+    for case in cases:
+        matrix[case["expected"]][labels[case["case_id"]]] += 1
+    correct = sum(matrix[label][label] for label in allowed_labels)
+    per_class = {}
+    for label in allowed_labels:
+        support = sum(matrix[label].values())
+        per_class[label] = {
+            "recall": round(matrix[label][label] / support, 3) if support else 0.0,
+            "support": support,
+        }
+    return {
+        "total": len(cases), "correct": correct,
+        "accuracy": round(correct / len(cases), 3) if cases else 0.0,
+        "confusion_matrix": matrix, "per_class": per_class,
+    }
 
 
 def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CASES):
