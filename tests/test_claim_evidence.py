@@ -308,7 +308,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
             stages[0]["source_documents"] = [{
                 "doi": doi, "status": "full_text_excerpt",
                 "title": "Exercise for depression",
-                "url": "https://europepmc.org/articles/PMC11131084",
+                "url": "https://www.bmj.com/content/384/bmj-2023-075847.full",
                 "excerpt": excerpt, "claim_verified": False,
             }]
             stages[0]["source_claim_audit"] = [{
@@ -344,7 +344,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(assessment["verdict"], "contradicted")
         self.assertEqual(assessment["method"], "explicit_confidence_conflict_guard")
         self.assertEqual(assessment["prior_model_verdict"], "supported")
-        self.assertEqual(result[0]["citation_url"], "https://europepmc.org/articles/PMC11131084")
+        self.assertEqual(result[0]["citation_url"], "https://doi.org/" + doi)
         self.assertEqual(result[0]["machine_assessment_history"][0]["verdict"], "supported")
         self.assertFalse(result[0]["claim_verified"])
         saved = self.manager.get(self.mission_id)["stages"][0]

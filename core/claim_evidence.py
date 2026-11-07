@@ -289,6 +289,11 @@ def _reconcile_cached_confidence_conflicts(manager, mission_id, stages):
                     and isinstance(doi, str)
                     and entry["doi"].casefold() == doi.casefold()), None)
         trusted_url = _citation_for(doc) if isinstance(doc, dict) else None
+        if (trusted_url is None and isinstance(doi, str)
+                and _DOI.fullmatch(doi) and ".." not in doi):
+            doi_url = "https://doi.org/" + doi
+            if DOI_LEAD_URL.fullmatch(doi_url):
+                trusted_url = doi_url
         if (not isinstance(doc, dict) or doc.get("status") not in _READABLE
                 or not isinstance(doc.get("excerpt"), str)
                 or not isinstance(item.get("claim"), str)
