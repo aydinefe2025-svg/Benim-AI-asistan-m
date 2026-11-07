@@ -105,6 +105,17 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
         }
         required_terms = {
             "v4_04": ("intervention", "control", "5.5"),
+            "v4_07": ("finerenone", "placebo", "0.84"),
+            "v4_08": ("finerenone", "placebo", "8.1%", "8.7%"),
+            "v4_16": ("both groups", "improved", "similar rates"),
+            "v5_05": ("d-plex", "standard care", "9.3%", "12.1%"),
+            "v6_01": ("empagliflozin", "placebo", "0.72"),
+            "v6_04": ("semaglutide", "placebo", "0.76"),
+            "v6_10": ("semaglutide", "placebo", "symptom reduction"),
+            "v6_16": ("dapagliflozin", "placebo", "0.82"),
+            "v6_17": ("dapagliflozin", "placebo", "0.88", "0.74–1.05"),
+            "v6_22": ("empagliflozin", "28-day mortality"),
+            "v6_23": ("empagliflozin", "28-day mortality"),
             "v4_05": ("control", "151.4", "144.3"),
             "v4_13": ("semaglutide", "placebo", "579", "668"),
             "v4_14": ("semaglutide", "placebo", "579", "668"),
