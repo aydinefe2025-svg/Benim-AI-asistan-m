@@ -18,7 +18,7 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("st", imports)
         self.assertIn("audit_claim_quotes", source)
         self.assertIn("record_source_claim_review", source)
-        self.assertIn("retry_unavailable_skeptical_pass", source)
+        self.assertIn("    retry_unavailable_skeptical_pass,", source)
         self.assertIn("Kuşkucu geçişi yeniden dene (1 çağrı)", source)
         self.assertIn("Güvenli hata ayrıntısı:", source)
         self.assertIn("reviewer_id=owner", source)
