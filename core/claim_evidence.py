@@ -369,7 +369,7 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
                 "Reassess every indexed disagreement. Return exactly one JSON object "
                 "with an assessments array; each item must have integer index, verdict "
                 "(supported, contradicted, or insufficient), and concise reason. "
-                "Include every input index exactly once.\\n"
+                "Include every input index exactly once.\n"
                 + json.dumps(disagreements, ensure_ascii=False)
             )
             try:
