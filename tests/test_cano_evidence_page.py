@@ -26,7 +26,7 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("HUMAN_COMPARISON_CASES", source)
         self.assertIn("CANO_HUMAN_BENCHMARK_ANSWER_KEY", source)
         self.assertIn("load_expected_labels", source)
-        self.assertIn("human_answer_key=human_answer_key", source)
+        self.assertIn("expected_labels=human_answer_key", source)
         self.assertIn("24 insan değerlendirmesini kaydet", source)
         self.assertIn("Etiketlerden sonra CANO modelini çalıştır", source)
         self.assertIn("cano_claim_review_human_labels_v2", source)
