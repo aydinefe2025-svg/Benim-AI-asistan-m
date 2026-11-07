@@ -314,7 +314,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
             stages[0]["source_claim_audit"] = [{
                 "claim": "The review had high confidence in every exercise effect.",
                 "doi": doi, "quote": excerpt, "status": "quote_found_unverified",
-                "citation_url": "https://doi.org/" + doi,
+                "citation_url": "",
                 "comparison": "insufficient", "comparison_status": "model_suggested",
                 "claim_verified": False,
                 "machine_assessment": {
@@ -344,6 +344,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(assessment["verdict"], "contradicted")
         self.assertEqual(assessment["method"], "explicit_confidence_conflict_guard")
         self.assertEqual(assessment["prior_model_verdict"], "supported")
+        self.assertEqual(result[0]["citation_url"], "https://doi.org/" + doi)
         self.assertEqual(result[0]["machine_assessment_history"][0]["verdict"], "supported")
         self.assertFalse(result[0]["claim_verified"])
         saved = self.manager.get(self.mission_id)["stages"][0]
