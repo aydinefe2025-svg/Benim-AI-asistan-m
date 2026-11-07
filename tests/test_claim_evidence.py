@@ -199,6 +199,29 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 2)
 
 
+    def test_administrative_doi_and_api_commentary_is_not_saved_as_a_claim(self):
+        self.add_excerpt()
+        model = QuoteModel([
+            {
+                "claim": "Both DOI 10.1136/bmj-2023-075847 and correction DOI are listed in the task.",
+                "doi": DOI, "quote": QUOTE, "comparison": "supports",
+                "rationale": "This is task metadata.",
+            },
+            {
+                "claim": "Crossref API is inaccessible so metadata cannot be retrieved.",
+                "doi": DOI, "quote": QUOTE, "comparison": "supports",
+                "rationale": "This is a tool status.",
+            },
+        ])
+        result = audit_claim_quotes(
+            self.manager, self.mission_id, client=model, model="stub")
+        self.assertEqual(result, [])
+        self.assertEqual(len(model.calls), 1)
+        self.assertIn("return claims: []", model.calls[0][1])
+        saved = self.manager.get(self.mission_id)["stages"][0]
+        self.assertEqual(saved["source_claim_audit"], [])
+        self.assertEqual(saved["source_claim_audit_version"], 4)
+
     def test_skeptical_verdict_never_marks_claim_verified(self):
         self.add_excerpt()
         model = QuoteModel([{
@@ -261,7 +284,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         upgraded = audit_claim_quotes(self.manager, self.mission_id,
                                       client=model, model="stub")
         saved_stage = self.manager.get(self.mission_id)["stages"][0]
-        self.assertEqual(saved_stage["source_claim_audit_version"], 3)
+        self.assertEqual(saved_stage["source_claim_audit_version"], 4)
         self.assertEqual(saved_stage["source_claim_audit"], upgraded)
         self.assertEqual(
             saved_stage["source_claim_audit_history"],
@@ -273,7 +296,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
 
         class MustNotCall:
             def chat(self, model, system, prompt):
-                raise AssertionError("Version 2 audit should be idempotent")
+                raise AssertionError("Version 4 audit should be idempotent")
 
         self.assertEqual(
             audit_claim_quotes(self.manager, self.mission_id,
@@ -310,7 +333,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(second[0]["status"], "quote_found_unverified")
         self.assertEqual(second[0]["comparison"], "supports")
         self.assertFalse(second[0]["claim_verified"])
-        self.assertEqual(stage["source_claim_audit_version"], 3)
+        self.assertEqual(stage["source_claim_audit_version"], 4)
         self.assertEqual(stage["source_claim_audit_history"],
                          [{"version": 3, "claims": first}])
         self.assertEqual(len(bad.calls), 1)
