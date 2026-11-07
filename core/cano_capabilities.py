@@ -6,6 +6,18 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
                      runtime_status=None):
     normalized = ' '.join(str(message).casefold().replace('i\u0307', 'i').split())
     normalized = re.sub(r'[.!?,;]+$', '', normalized)
+    identity_question = bool(re.match(
+        r'^(?:sen|cano)\s+(?:kimsin|nesin|bir sohbet modeli misin|'
+        r'kendini tanıt|kendini tanit|kendini nasıl tanımlarsın)', normalized
+    ))
+    if identity_question:
+        return (
+            'Ben CANO’yum: bu uygulamadaki yapay zekâ asistanı ve görev arayüzüyüm. '
+            'Yanıtlarım seçili Groq veya Google modelinden gelir; tek başıma insan '
+            'değilim ve temel model ağırlıklarını burada eğitmiyorum. Araştırma ve '
+            'ekip görevlerini yalnızca sen başlattığında çalıştırır, kaynakları '
+            'okunmadıkça veya ayrıca incelenmedikçe doğrulanmış saymam.'
+        )
     exact_matches = {
         'kendini geliştir', 'kendini geliştir cano', 'cano kendini geliştir',
         'kendini geliştirebilir misin', 'kendini geliştirebilir misin cano',

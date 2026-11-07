@@ -6,6 +6,15 @@ from core.cano_capabilities import capability_reply
 
 
 class CapabilityTests(unittest.TestCase):
+    def test_identity_questions_are_answered_as_cano_without_provider_guessing(self):
+        for query in ('Sen kimsin?', 'CANO nesin?', 'Sen bir sohbet modeli misin?',
+                      'CANO kendini nasıl tanımlarsın?'):
+            with self.subTest(query=query):
+                text = capability_reply(query)
+                self.assertIn('Ben CANO’yum', text)
+                self.assertIn('seçili Groq veya Google modelinden', text)
+                self.assertNotIn('Ben bir sohbet modeliyim', text)
+
     def test_app_answers_runtime_capabilities_without_any_model_or_network_call(self):
         app = Path(__file__).resolve().parents[1] / 'app.py'
         tree = ast.parse(app.read_text(encoding='utf-8'))
