@@ -150,8 +150,10 @@ st.caption(
 if key and st.button("12 vakayı tek model çağrısıyla ölç (1 çağrı)"):
     try:
         benchmark = run_claim_review_benchmark(Client())
-    except (ValueError, RuntimeError, TeamRateLimitError):
-        st.warning("Benchmark tamamlanamadı; vaka verileri ve CANO kayıtları değişmedi.")
+    except TeamRateLimitError:
+        st.warning("Benchmark model kotası nedeniyle tamamlanamadı; CANO kayıtları değişmedi.")
+    except (ValueError, RuntimeError) as err:
+        st.warning(f"Benchmark tamamlanamadı ({type(err).__name__}: {err}); CANO kayıtları değişmedi.")
     else:
         st.session_state["cano_claim_review_benchmark_result"] = benchmark
 benchmark = st.session_state.get("cano_claim_review_benchmark_result")

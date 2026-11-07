@@ -105,7 +105,7 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-20b"):
     prompt = (
         "Classify every indexed claim. Use supported only for direct entailment; "
         "contradicted only for a direct conflict; otherwise insufficient. "
-        "Return a concise reason and one assessment per index.\n"
+        "Return one assessment per index with a reason of at most eight words.\n"
         + json.dumps(prompt_cases, ensure_ascii=False)
     )
     raw = client.verify(model, _SYSTEM, prompt)
