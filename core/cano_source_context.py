@@ -22,6 +22,15 @@ _FILES = (
     "tests/test_provider_router.py",
     "tests/test_openrouter_free_client.py",
 )
+_ANCHORS = {
+    "core/cano_command_center.py": ("class _AnswerAdapter", "manager.execute(", "goal = st.text_area"),
+    "core/collaborative_mission.py": ("def execute(", "def _run(", "def resume("),
+    "core/provider_router.py": ("def build_provider_router(", "def chat("),
+    "core/openrouter_free_client.py": ("class OpenRouterFreeClient", "def chat("),
+    "tests/test_collaborative_mission.py": ("def test_",),
+    "tests/test_provider_router.py": ("def test_",),
+    "tests/test_openrouter_free_client.py": ("def test_",),
+}
 _SECRET_LINE = re.compile(
     r"(?i)(api[_-]?key|client[_-]?secret|password|passwd|token|secret)\s*[:=]")
 _BEARER = re.compile(r"(?i)(authorization\s*[:=]\s*['\"]?bearer\s+)\S+")
@@ -49,6 +58,26 @@ def is_cano_code_task(task: str) -> bool:
     if not isinstance(task, str) or _NEUTRON_STAR.search(task):
         return False
     return bool(_CODE_TASK.search(task))
+
+
+def _select_excerpt(relative: str, text: str) -> str:
+    lines = text.splitlines()
+    anchors = _ANCHORS.get(relative, ())
+    windows = []
+    for index, line in enumerate(lines):
+        if any(anchor in line for anchor in anchors):
+            windows.append((max(0, index - 3), min(len(lines), index + 24)))
+    if not windows:
+        windows = [(0, min(len(lines), 40))]
+    selected = []
+    last_end = -1
+    for start, end in windows:
+        if start > last_end:
+            selected.append(f"[lines {start + 1}-{end}]")
+        selected.extend(f"{number}: {lines[number - 1]}"
+                        for number in range(max(start + 1, last_end + 1), end + 1))
+        last_end = max(last_end, end)
+    return "\\n".join(selected)[:_MAX_FILE_CHARS]
 
 
 def build_cano_source_context(task: str, repo_root: str | Path) -> str:
