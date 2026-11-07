@@ -18,6 +18,7 @@ from jester_to_rns import from_jester_npz, write_rns
 from rns_benchmark import OBSERVED_SPIN_HZ, RNS_COMMIT, run_rns, sha256_file
 from target_mass_rns import TARGET_MASS_MSUN, fixed_gravitational_mass_radius_difference
 from resilient_mass_root import resilient_mass_root, NumericalRootError
+from axis_ratio_rns import run_rns_at_spin_with_ratio_fallback
 
 
 EOS_NAMES = ("APR4_EPP", "ENG", "MPA1", "MS1", "MS1B", "WFF1", "WFF2")
@@ -151,8 +152,8 @@ def solve_eos(binary: Path, source: Path, result_dir: Path,
     try:
         root_stage = "rotating"
         rotating, rot_trace = resilient_mass_root(
-            lambda ec: run_rns(binary, table, central_density=ec,
-                               spin_hz=OBSERVED_SPIN_HZ, spin_tolerance_hz=0.25),
+            lambda ec: run_rns_at_spin_with_ratio_fallback(
+                binary, table, central_density=ec, spin_hz=OBSERVED_SPIN_HZ),
             target_mass, *rot_bracket)
         root_stage = "static"
         static, static_trace = resilient_mass_root(

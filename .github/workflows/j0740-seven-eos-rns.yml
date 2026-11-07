@@ -7,6 +7,8 @@ on:
       - "research/j0740/rotating_gr/test_seven_eos_sequence.py"
       - "research/j0740/rotating_gr/resilient_mass_root.py"
       - "research/j0740/rotating_gr/test_resilient_mass_root.py"
+      - "research/j0740/rotating_gr/axis_ratio_rns.py"
+      - "research/j0740/rotating_gr/test_axis_ratio_rns.py"
       - ".github/workflows/j0740-seven-eos-rns.yml"
   push:
     branches: [main]
@@ -15,6 +17,8 @@ on:
       - "research/j0740/rotating_gr/test_seven_eos_sequence.py"
       - "research/j0740/rotating_gr/resilient_mass_root.py"
       - "research/j0740/rotating_gr/test_resilient_mass_root.py"
+      - "research/j0740/rotating_gr/axis_ratio_rns.py"
+      - "research/j0740/rotating_gr/test_axis_ratio_rns.py"
       - ".github/workflows/j0740-seven-eos-rns.yml"
 
 concurrency:
@@ -50,7 +54,7 @@ jobs:
       - run: python -m pip install numpy
       - name: Test stable-branch and no-extrapolation safeguards
         working-directory: research/j0740/rotating_gr
-        run: python -m unittest -v test_seven_eos_sequence test_resilient_mass_root test_target_mass_rns test_jester_to_rns test_rns_benchmark
+        run: python -m unittest -v test_axis_ratio_rns test_seven_eos_sequence test_resilient_mass_root test_target_mass_rns test_jester_to_rns test_rns_benchmark
       - name: Compile pinned upstream general-relativity solver
         run: make -C rns-upstream rns
       - name: Compute all seven exact-source EOS tracks at 346.536369 Hz
