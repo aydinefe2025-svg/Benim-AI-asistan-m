@@ -161,7 +161,7 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CAS
         + json.dumps(prompt_cases, ensure_ascii=False)
     )
     raw = client.verify(model, _SYSTEM, prompt)
-    predictions = _parse_assessments(raw, set(range(len(CASES))))
+    predictions = _parse_assessments(raw, set(range(len(cases))))
     labels = ("supported", "contradicted", "insufficient")
     # Omitted, duplicate or invalid model outputs must still count as errors.
     # Otherwise an unanswered gold case disappears from the confusion matrix,
@@ -197,9 +197,9 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CAS
             "support": sum(matrix[label].values()),
         }
     return {
-        "model": model, "total": len(CASES), "correct": correct,
-        "accuracy": round(correct / len(CASES), 3),
-        "coverage": round((len(CASES) - unscored) / len(CASES), 3),
+        "model": model, "total": len(cases), "correct": correct,
+        "accuracy": round(correct / len(cases), 3),
+        "coverage": round((len(cases) - unscored) / len(cases), 3),
         "unscored": unscored,
         "confusion_matrix": matrix, "per_class": per_class,
         "cases": results,
