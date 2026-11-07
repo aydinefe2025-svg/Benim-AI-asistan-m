@@ -40,6 +40,17 @@ class CanoSourceContextTests(unittest.TestCase):
         self.assertFalse(is_cano_code_task(extract_cano_task(research_prompt)))
         self.assertEqual(extract_cano_task("No goal is present"), "")
 
+    def test_context_selects_relevant_code_even_when_it_is_beyond_file_prefix(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "core").mkdir()
+            (root / "tests").mkdir()
+            source = "header = True\\n" * 500 + "def _run(mission_id):\\n    return 'focused excerpt'\\n"
+            (root / "core/collaborative_mission.py").write_text(source, encoding="utf-8")
+            context = build_cano_source_context("review repository code", root)
+            self.assertIn("def _run(mission_id):", context)
+            self.assertIn("[lines", context)
+
     def test_context_is_bounded_and_symlinks_cannot_escape_repository(self):
         with tempfile.TemporaryDirectory() as temporary, tempfile.TemporaryDirectory() as outside:
             root = Path(temporary)
