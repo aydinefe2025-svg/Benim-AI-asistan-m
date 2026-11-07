@@ -375,9 +375,22 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
     if status["blocked"]:
         st.warning(f"{status['blocked']} yarım kalmış görev var. "
                    "Yan menüdeki 'Öğrenen uzman ajanlar' alanından sürdürebilirsiniz.")
-    latest_id = st.session_state.get("cano_cockpit_latest_mission")
-    if not latest_id and status["history"]:
-        latest_id = status["history"][0]["id"]
+    history = status["history"]
+    history_tasks = {item["id"]: item["task"] for item in history}
+    history_labels = {item["id"]: f"{item['task'][:100]} ({item['status']})"
+                      for item in history}
+    selected_history_id = st.selectbox(
+        "Görev geçmişinden incelenecek taslağı seç",
+        options=[""] + list(history_tasks),
+        format_func=lambda mission_id: (
+            "— Sonuç seç —" if not mission_id else history_labels[mission_id]
+        ),
+        key="cano_history_mission",
+    ) if history else ""
+    # Previously saved model prose is never reintroduced as the current result
+    # merely because it happens to be the newest row after a page reload.
+    latest_id = (st.session_state.get("cano_cockpit_latest_mission")
+                 or selected_history_id)
     if latest_id:
         try:
             latest = manager.get(latest_id)
@@ -389,6 +402,9 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             st.caption("Görev: " + latest["task"])
             st.caption("Durum: " + latest["status"] +
                        " — 'review_pending' bağımsız doğrulama yapıldığı anlamına gelmez.")
+            st.warning("Bu kayıt model taslağıdır. İçindeki ‘doğrulanmış’ başlıkları, "
+                       "DOI’leri ve sonuçları CANO bağımsız olarak doğrulamamıştır; "
+                       "kaynak belgeleri ayrıca incelenmeden doğru kabul etmeyin.")
             names = {"planner": "1 · Planlama", "researcher": "2 · Araştırma",
                      "reviewer": "3 · Eleştirel inceleme",
                      "synthesis": "4 · Düzeltilmiş sonuç"}
