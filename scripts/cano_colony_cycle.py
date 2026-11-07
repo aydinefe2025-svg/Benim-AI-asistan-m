@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.continuous_colony import ContinuousColony
+from core.virtual_generation import run_virtual_generation
 
 
 def main() -> None:
@@ -23,6 +24,7 @@ def main() -> None:
     with closing(sqlite3.connect(db_path)) as db:
         previous_tick_count = db.execute("SELECT COUNT(*) FROM colony_tick").fetchone()[0]
     result = colony.tick([founder])
+    virtual_generation = run_virtual_generation(db_path, result["tick_id"])
     with closing(sqlite3.connect(db_path)) as db:
         integrity = db.execute("PRAGMA integrity_check").fetchone()[0]
         stored = db.execute("SELECT COUNT(*) FROM colony_tick").fetchone()[0]
@@ -30,9 +32,15 @@ def main() -> None:
             "SELECT active_count,candidates,state FROM colony_tick WHERE tick_id=?",
             (result["tick_id"],),
         ).fetchone()
+        generation_row = db.execute(
+            "SELECT lesson_status FROM virtual_generation WHERE tick_id=?",
+            (result["tick_id"],),
+        ).fetchone()
     if (integrity != "ok" or stored != previous_tick_count + 1
             or row is None or row[0] != result["active_count"]
-            or json.loads(row[1]) != result["candidates"] or row[2] != result["state"]):
+            or json.loads(row[1]) != result["candidates"] or row[2] != result["state"]
+            or generation_row is None
+            or generation_row[0] != virtual_generation["lesson_status"]):
         raise RuntimeError("Colony audit database failed integrity/readback check")
     record = {
         "github_run_id": os.environ.get("GITHUB_RUN_ID"),
@@ -48,9 +56,10 @@ def main() -> None:
         },
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "cycle": result,
-        "mode": "proposal_only",
+        "virtual_generation": virtual_generation,
+        "mode": "bounded_virtual_reproduction_with_held_out_validation",
         "scope": "authorized_github_runner",
-        "note": "No LLM inference, deployment, or active agents are started by this job.",
+        "note": "Digital organisms reproduce only inside the bounded toy VM. A mutation-rate lesson transfers only after paired development and held-out confirmation. No LLM inference, deployment, or independent software agents are started.",
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     # Publish verified reports atomically, avoiding truncated JSON on crash.
@@ -69,7 +78,10 @@ def main() -> None:
         if tmp_path is not None:
             tmp_path.unlink(missing_ok=True)
     print(json.dumps({"tick_id": result["tick_id"], "proposed": len(result["candidates"]),
-                      "activated": result["activated"], "artifact": str(output)}))
+                      "activated": result["activated"],
+                      "virtual_generation": virtual_generation["generation_id"],
+                      "lesson_status": virtual_generation["lesson_status"],
+                      "artifact": str(output)}))
 
 
 if __name__ == "__main__":
