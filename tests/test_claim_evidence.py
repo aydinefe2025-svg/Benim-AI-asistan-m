@@ -192,7 +192,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
 
             def verify(self, model, system, prompt):
                 self.calls.append((model, system, prompt))
-                cases = json.loads(prompt.split("\\n", 1)[1])
+                cases = json.loads(prompt.split("\n", 1)[1])
                 return json.dumps({"assessments": [
                     {"index": item["index"], "verdict": "supported",
                      "reason": "The exact supplied sentence entails this claim."}
