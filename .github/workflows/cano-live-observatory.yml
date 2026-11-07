@@ -77,6 +77,8 @@ jobs:
                       assert births>=0
                       assert int(page.locator('#controlBirths').inner_text())==0
                       assert page.locator('#lineage g').count()==population
+                      assert page.locator('#lineage').is_visible(), 'lineage SVG is hidden'
+                      assert page.locator('#lineage circle').count()==2*population, 'lineage circles are not rendered'
                       assert page.locator('#integrity').inner_text().startswith('✓ SHA-256')
                       assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+2'), 'page horizontal overflow'
                       assert not errors,(name,errors)
