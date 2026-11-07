@@ -19,6 +19,14 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("audit_claim_quotes", source)
         self.assertIn("record_source_claim_review", source)
         self.assertIn("retry_unavailable_skeptical_pass", source)
+        claim_evidence_imports = {
+            alias.name
+            for node in tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "core.claim_evidence"
+            for alias in node.names
+        }
+        self.assertIn("retry_unavailable_skeptical_pass", claim_evidence_imports)
         self.assertIn("Kuşkucu geçişi yeniden dene (1 çağrı)", source)
         self.assertIn("reviewer_id=owner", source)
         self.assertIn("full_text_excerpt", source)
