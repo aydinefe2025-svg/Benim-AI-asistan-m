@@ -132,6 +132,19 @@ _SYSTEM = (
 )
 
 
+def score_labels(cases, labels):
+    """Score submitted human labels against the hidden fixture key."""
+    cases = tuple(cases)
+    if set(labels) != {case["case_id"] for case in cases}:
+        raise ValueError("A label is required for every case, with no extras")
+    allowed = {"supported", "contradicted", "insufficient"}
+    if any(labels[case["case_id"]] not in allowed for case in cases):
+        raise ValueError("Invalid label")
+    correct = sum(labels[c["case_id"]] == c["expected"] for c in cases)
+    return {"total": len(cases), "correct": correct,
+            "accuracy": round(correct / len(cases), 3) if cases else 0.0}
+
+
 def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CASES):
     """Run a fixed case set in one reviewer call and return a bounded scorecard."""
     cases = tuple(cases)
