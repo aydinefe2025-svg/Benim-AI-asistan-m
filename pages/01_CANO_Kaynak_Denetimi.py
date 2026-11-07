@@ -142,42 +142,75 @@ if documents and key and st.button("İddiaları çıkar ve ayrı kuşkucu AI ge�
         st.warning("Alıntı denetimi tamamlanamadı; önceki kayıtlar korunuyor.")
 
 st.divider()
-st.subheader("Kuşkucu AI geçişi için sabit doğruluk testi")
+st.subheader("Bağımsız CANO testi ve kör insan karşılaştırması")
+from core.claim_review_benchmark import HUMAN_COMPARISON_CASES, score_labels
 st.caption(
-    "12 sabit sentetik vaka; denetim adımı tek istekte çalışır. Bu dağıtımda "
-    "iddia önerisi ve kuşkucu denetim aynı Groq modelini kullanır; denetim ayrı bir AI geçişidir. "
-    "CANO görev kayıtları değişmez. Bu test insan karşılaştırması veya gerçek bilimsel doğruluk ölçümü değildir."
+    "24 yeni, dengeli sentetik vaka (8 destek, 8 çelişki, 8 yetersiz kanıt). "
+    "Önce iddia ve pasajları, beklenen/model kararları gösterilmeden inceleyin. "
+    "Tüm insan etiketleri gönderilmeden model testi çalışmaz. Sonuç yalnızca bu "
+    "küçük sentetik kümeye ve tek insan değerlendiriciye aittir; gerçek dünya "
+    "bilimsel doğruluğu veya genel insan üstünlüğünü kanıtlamaz."
 )
-if key and st.button("12 vakayı denetim modeliyle ölç (1 çağrı)"):
-    try:
-        benchmark = run_claim_review_benchmark(Client())
-    except TeamRateLimitError:
-        st.warning("Benchmark model kotası nedeniyle tamamlanamadı; CANO kayıtları değişmedi.")
-    except (ValueError, RuntimeError) as err:
-        st.warning(f"Benchmark tamamlanamadı ({type(err).__name__}: {err}); CANO kayıtları değişmedi.")
+label_key = "cano_claim_review_human_labels_v2"
+model_key = "cano_claim_review_human_benchmark_v2"
+with st.form("cano_blind_human_labels_v2"):
+    human_labels = {}
+    for idx, case in enumerate(HUMAN_COMPARISON_CASES):
+        st.markdown(f"**Vaka {idx + 1}.** {case['claim']}")
+        st.caption(case["excerpt"])
+        choice = st.selectbox(
+            "Pasajın iddiaya göre durumu",
+            ["— Seçin —", "Destekliyor", "Çelişiyor", "Kanıt yetersiz"],
+            key=f"cano_human_v2_{case['case_id']}",
+        )
+        human_labels[case["case_id"]] = {
+            "Destekliyor": "supported",
+            "Çelişiyor": "contradicted",
+            "Kanıt yetersiz": "insufficient",
+        }.get(choice, "")
+    labels_submitted = st.form_submit_button("24 insan değerlendirmesini kaydet")
+if labels_submitted:
+    if any(not value for value in human_labels.values()):
+        st.warning("Karşılaştırma için 24 vakanın tamamını etiketleyin.")
     else:
-        st.session_state["cano_claim_review_benchmark_result"] = benchmark
-benchmark = st.session_state.get("cano_claim_review_benchmark_result")
-if (isinstance(benchmark, dict) and
-        ("unscored" not in benchmark or "coverage" not in benchmark)):
-    # Old in-session reports predate the abstention fix. Do not crash or
-    # silently treat their missing predictions as perfectly complete.
-    st.warning("Bu oturumdaki eski kıyas sonucu yeni ölçüme uygun değil; "
-               "12 vakalık testi yeniden çalıştırın.")
-elif isinstance(benchmark, dict):
-    st.metric("Sabit vakalarda doğru", f"{benchmark['correct']} / {benchmark['total']}",
-              f"Doğruluk %{benchmark['accuracy'] * 100:.0f}")
-    st.caption(f"Cevaplanan vaka: {benchmark['total'] - benchmark['unscored']} / "
-               f"{benchmark['total']} · Kapsam %{benchmark['coverage'] * 100:.0f}")
-    if benchmark["unscored"]:
-        st.warning(f"{benchmark['unscored']} vaka geçerli model cevabı olmadan kaldı; "
-                   "tamamı hata olarak puanlandı.")
-    st.caption("Denetim modeli: " + benchmark["model"])
-    st.caption(benchmark["scope"])
-    st.json(benchmark["confusion_matrix"])
-    if benchmark["correct"] < benchmark["total"]:
-        st.dataframe([case for case in benchmark["cases"] if not case["passed"]],
-                     hide_index=True, use_container_width=True)
+        st.session_state[label_key] = human_labels
+        st.session_state.pop(model_key, None)
+        st.success("Etiketler bu tarayıcı oturumunda saklandı; beklenen cevaplar artık körlüğü koruyamaz.")
+saved_human_labels = st.session_state.get(label_key)
+if isinstance(saved_human_labels, dict) and set(saved_human_labels) == {
+        case["case_id"] for case in HUMAN_COMPARISON_CASES}:
+    human_score = score_labels(HUMAN_COMPARISON_CASES, saved_human_labels)
+    st.metric("İnsan değerlendirici · altın etikete uyum",
+              f"{human_score['correct']} / {human_score['total']}",
+              f"%{human_score['accuracy'] * 100:.0f}")
+    st.caption("Tek insan değerlendirici; vaka başına bağımsız ikinci insan puanlaması yok.")
+    if key and st.button("Etiketlerden sonra CANO modelini çalıştır (24 vaka, 1 çağrı)"):
+        try:
+            result = run_claim_review_benchmark(
+                Client(), cases=HUMAN_COMPARISON_CASES)
+        except TeamRateLimitError:
+            st.warning("Model kotası nedeniyle test tamamlanamadı; insan etiketleri bu oturumda korundu.")
+        except (ValueError, RuntimeError) as err:
+            st.warning(f"Model testi tamamlanamadı ({type(err).__name__}: {err}); insan etiketleri korundu.")
+        else:
+            st.session_state[model_key] = result
+    model_result = st.session_state.get(model_key)
+    if isinstance(model_result, dict):
+        human_by_id = saved_human_labels
+        model_by_id = {case["case_id"]: case["predicted"] for case in model_result["cases"]}
+        agreement = sum(human_by_id[c["case_id"]] == model_by_id[c["case_id"]]
+                        for c in HUMAN_COMPARISON_CASES)
+        st.metric("CANO modeli · aynı 24 vakanın altın etiketine uyum",
+                  f"{model_result['correct']} / {model_result['total']}",
+                  f"%{model_result['accuracy'] * 100:.0f}")
+        st.metric("İnsan–CANO karar uyumu", f"{agreement} / {len(HUMAN_COMPARISON_CASES)}")
+        st.caption("Öneri ve denetim aynı Groq model sağlayıcısını kullanıyor; ikinci geçiş bağımsız model kanıtı değildir.")
+        st.caption(model_result["scope"])
+        st.json(model_result["confusion_matrix"])
+        if model_result["unscored"]:
+            st.warning(f"{model_result['unscored']} cevaplanmayan vaka hata sayıldı.")
+elif isinstance(st.session_state.get("cano_claim_review_benchmark_result"), dict):
+    st.info("Önceki 12 vakalık sonuç yalnızca aynı küçük sabit kümenin testidir; bağımsız 24 vaka ve insan karşılaştırması yerine geçmez.")
 if not key:
     st.warning("Model bağlantısı yok; yeni iddia denetimi çalıştırılmadı.")
 reviewed_mission = manager.get(mid)
