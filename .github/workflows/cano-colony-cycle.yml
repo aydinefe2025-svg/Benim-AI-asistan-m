@@ -36,7 +36,9 @@ jobs:
       - name: Install secure backup dependency
         run: python -m pip install "cryptography>=44,<51"
       - name: Check colony regressions before writing state
-        run: python -m unittest discover -s tests -p "test_*colony*.py" -q
+        run: |
+          python -m unittest discover -s tests -p "test_*colony*.py" -q
+          python -m unittest tests.test_cano_specialist_agents -q
       - name: Restore prior verified colony database
         id: colony_cache
         uses: actions/cache@v4
