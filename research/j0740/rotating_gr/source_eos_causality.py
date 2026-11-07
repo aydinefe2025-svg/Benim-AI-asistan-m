@@ -25,7 +25,14 @@ def profile(e,p,cs2):
             or not np.all(np.isfinite(e+p+cs2))
             or np.any(e<=0) or np.any(p<=0) or np.any(cs2<0)
             or np.any(np.diff(p)<=0)):
-        raise ValueError("Native source e,p,cs2 arrays invalid, refuse to infer causality")
+        raise ValueError(
+            "Native source e,p,cs2 arrays invalid: "
+            f"shapes e={e.shape},p={p.shape},cs2={cs2.shape}; "
+            f"negative e={int(np.count_nonzero(e<=0))},p={int(np.count_nonzero(p<=0))},cs2={int(np.count_nonzero(cs2<0))}; "
+            f"nonfinite={int(np.count_nonzero(~np.isfinite(e)))},{int(np.count_nonzero(~np.isfinite(p)))},{int(np.count_nonzero(~np.isfinite(cs2)))}, "
+            f"pressure nonincreasing={int(np.count_nonzero(np.diff(p)<=0))}, "
+            f"source e range={float(np.nanmin(e)):.6g},{float(np.nanmax(e)):.6g}, "
+            f"cs2 range={float(np.nanmin(cs2)):.6g},{float(np.nanmax(cs2)):.6g}")
     bad=np.where(cs2>1.+1e-8)[0]
     i=int(bad[0]) if len(bad) else None
     return {
