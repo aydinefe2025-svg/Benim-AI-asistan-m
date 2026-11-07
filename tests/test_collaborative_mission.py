@@ -233,7 +233,7 @@ class CollaborativeMissionTests(unittest.TestCase):
         self.assertIn("model sağlayıcı çağrısı", message)
         self.assertIn("reviewer rolü", message)
         self.assertIn("RuntimeError", message)
-        self.assertIn("kaydedilmiş aşamalar korundu", message)
+        self.assertIn("son kayıtlı aşamaları arayüzde kontrol edin", message)
         self.assertNotIn("do-not-display", message)
         self.assertNotIn("provider request failed", message)
 
