@@ -112,6 +112,7 @@ def _audit_has_only_matched_quotes(stages):
                 and isinstance(item.get("machine_assessment"), dict)
                 and item["machine_assessment"].get("verdict")
                     in {"supported", "contradicted", "insufficient"}
+                and item["machine_assessment"].get("available") is not False
                 for item in audit)
     )
 
