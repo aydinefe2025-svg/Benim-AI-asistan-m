@@ -21,6 +21,7 @@ from j0740_eos_phase25 import posterior_grid, integrate_eos_curve
 from rotation_same_baryon_audit import fit_forward
 from phase28_7eos_integrated_mass_radius_diagnostic import eos_curves,restrict_static_curve,load_causal,SPIN
 from phase30_prior_core import star_support,R_MIN_KM,R_MAX_KM,geometric_analytic,POSTERIOR_SHA,MASS_MU,MASS_STD
+from source_lineage_gate import require_proven_lineage
 
 D_PATH=Path(os.environ.get('J0740_POSTERIOR','/mnt/data/j0740_inputs/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz'))
 
@@ -34,7 +35,11 @@ def source_effective_prior_grid(mg,rg,geometry_acceptance):
     return (source_mass_pdf(mg)[:,None]/(R_MAX_KM-R_MIN_KM)/geometry_acceptance)*ok,ok
 
 
-def run(path=D_PATH):
+def run(path=D_PATH, *, lineage_manifest=None, historical_proxy_only=False):
+    # Fail closed: the gamma NxX posterior and archived STU_NICER_XMM_hr
+    # source prior have not been proven to describe the same sampling run.
+    # Legacy reproduction can be requested explicitly, but remains nonfinal.
+    lineage=require_proven_lineage(lineage_manifest,historical_proxy_only=historical_proxy_only)
     path=Path(path)
     sha=hashlib.sha256(path.read_bytes()).hexdigest()
     if sha!=POSTERIOR_SHA:raise ValueError('unexpected Salmi SHA256')
@@ -43,7 +48,9 @@ def run(path=D_PATH):
     curves=eos_curves();causal=load_causal()
     acceptance=geometric_analytic()['acceptance']
     output={'status':'SEVEN_FIXED_EOS_POSTERIOR_PRIOR_LIKELIHOOD_RATIO_DIAGNOSTIC_CONDITIONAL_NOT_FINAL',
-        'source_sha256':sha,'source_n':len(m),'xpsi_prior_analytic_acceptance':acceptance,
+        'source_sha256':sha,'source_n':len(m),
+        'posterior_prior_source_run_lineage':lineage,
+        'lineage_warning':'Original gamma NxX run-specific prior is not proven identical to STU_NICER_XMM_hr unless an exact source-run manifest was provided.','xpsi_prior_analytic_acceptance':acceptance,
         'radio_factorization':'pi_source(M,R)=pi_radio(M)*U(R)*I_native_shape_g(M,R)/A_geom; target_mass_prior=pi_radio once; cancels inside q/pi_source ratio, no second independent radio likelihood multiplied',
         'curve_label_set':list(curves),'reproduction':'Direct seven-source-EOS fixed-curve proxy; rotating M-R via empirical same-baryon fit, not full GR',
         'grid_modes':{},'statistical_limits':[
@@ -81,8 +88,23 @@ def run(path=D_PATH):
     return output
 
 if __name__=='__main__':
-    o=run()
-    (ROOT/'phase30_seven_eos_prior_corrected_proxy.json').write_text(json.dumps(o,ensure_ascii=False,indent=2)+'\n')
+    import argparse
+    parser=argparse.ArgumentParser(description='Conditional gamma J0740 source-prior KDE proxy, NOT EOS evidence')
+    parser.add_argument('--posterior',type=Path,default=D_PATH)
+    parser.add_argument('--lineage-manifest',type=Path,help='Exact gamma-NxX source-run-linked prior and config byte identities')
+    parser.add_argument('--historical-proxy-only',action='store_true',
+        help='Opt in to archival STU/gamma unverified-run comparison; never interpret as evidence')
+    parser.add_argument('--out',type=Path,help='Explicit destination JSON path')
+    args=parser.parse_args()
+    o=run(args.posterior,lineage_manifest=args.lineage_manifest,
+          historical_proxy_only=args.historical_proxy_only)
+    default_name='phase30_seven_eos_prior_corrected_proxy_RUN_MATCHED_NOT_FINAL.json'
+    if args.historical_proxy_only:
+        default_name='phase30_seven_eos_prior_corrected_proxy_UNVERIFIED_LINEAGE_NOT_FINAL.json'
+    destination=args.out or ROOT/default_name
+    destination.write_text(json.dumps(o,ensure_ascii=False,indent=2)+'\n')
+    print('SOURCE_RUN_LINEAGE',o['posterior_prior_source_run_lineage']['status'])
+    print('OUTPUT',destination)
     for mode,x in o['grid_modes'].items():
         print(mode,'KDE clipped %',x['outside_native_prior_KDE_probability_before_clip']*100,
               'RATIO-SCORE order',x['ordering_raw'], 'MASS-conditioned order',x['ordering_mass_conditioned_sensitivity'])

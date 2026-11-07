@@ -1,5 +1,21 @@
 # PSR J0740+6620 — source-grounded conditional EOS calculation
 
+## Critical source-run identity protection (7 Nov 2026)
+
+The 100,000-row observational subset comes from `J0740_gamma_NxX_lp40k_se001_mrsamples_post_equal_weights.dat` (Salmi 2024). The archived `CustomPrior_GLS_compressed_scaling_Dfix_source.py` prior and main runner were recovered from `J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules/`. These two products **are not proven to be one sampling run**. Neither matching gamma in a folder name nor compatible ST-U physics is sufficient.
+
+The former phase30 seven-EOS scores are historical KDE/posterior-to-prior **conditional proxies**, NOT verified NICER likelihood values, and MUST NOT be normalized into EOS model posterior probabilities. They also use an empirical rotation fit, not the now-validated RNS 7-EOS GR model. The original legacy JSON remains available unmodified for historical reproducibility.
+
+`source_lineage_gate.py` enforces a **fail-closed default**. To run the historical old analysis deliberately (clearly marked nonfinal), use:
+
+```bash
+python phase30_prior_corrected_eos.py --posterior /existing/path/100k.npz --historical-proxy-only
+```
+
+To run a source-run-matched sensitivity analysis, supply `--lineage-manifest /verified/path/matched_run.json`. That manifest must bind the exact gamma NxX sampling run, the verified 12.9 GB source archive identity, and SHA256-verified matching prior, runner and configuration files from that same local archive. This gate establishes a **reproducible run mapping only**; it does not supply the native photon event likelihood or normalize EOS evidence. No large archive downloads occur.
+
+
+
 This directory makes the existing audited **F30** numerical science code available as version-controlled, inspectable Python rather than only in a ZIP and Notion narrative. It is **not** a complete neutron-star EOS inference, an exact NICER/XMM event-level photon likelihood, or a general-relativistic rotating-star solver.
 
 ## Reproduce with an already available Salmi 100,000-draw source file
@@ -9,10 +25,10 @@ Requirements: Python 3.11+, NumPy and SciPy. No automatic downloads, paid servic
 ```bash
 python -m pip install numpy scipy
 python -m unittest -v test_j0740_science
-J0740_POSTERIOR="/existing/path/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz" python phase30_prior_corrected_eos.py
+J0740_POSTERIOR="/existing/path/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz" python phase30_prior_corrected_eos.py --historical-proxy-only
 ```
 
-On PowerShell, set `$env:J0740_POSTERIOR = 'C:\path\to\existing\J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz'` and then run `py -3 phase30_prior_corrected_eos.py`. The program **verifies the source NPZ SHA-256** before running.
+On PowerShell, set `$env:J0740_POSTERIOR = 'C:\path\to\existing\J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz'` and then run `py -3 phase30_prior_corrected_eos.py`. The program **verifies the source NPZ SHA-256** before running but also enforces source-run provenance; default inference without a matching manifest fails closed.
 
 The script writes `phase30_seven_eos_prior_corrected_proxy.json` in its directory. Existing reference JSON files are included to make old results inspectable; change only through a reproducible code/fixture update. For auditing code without 100k source file, run the tests; no data are silently downloaded.
 
