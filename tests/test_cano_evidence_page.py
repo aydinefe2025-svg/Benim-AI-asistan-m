@@ -105,7 +105,9 @@ class EvidencePageSmokeTests(unittest.TestCase):
                         source.index("if isinstance(saved_human_labels, dict)"))
         self.assertLess(source.index("cano_gold_model_v4"),
                         source.index("if isinstance(v4_saved_labels, dict)"))
-        self.assertIn("gizli kaynak anahtarına uyum", source)
+        self.assertIn("v3 kaynak anahtarına uyum", source)
+        self.assertIn("v4 kaynak anahtarına uyum", source)
+        self.assertIn("yalnızca kuşkucu pasaj sınıflandırmasını ölçer", source)
 
 
 if __name__ == "__main__":
