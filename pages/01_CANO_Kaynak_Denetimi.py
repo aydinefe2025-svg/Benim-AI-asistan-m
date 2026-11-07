@@ -127,7 +127,7 @@ class Client:
     def verify(self, model, system, prompt):
         return generate_claim_verification_json(system, prompt, api_key=key)
 
-if documents and key and st.button("İddiaları çıkar ve ayrı AI modeliyle kuşkucu incele (en fazla 2 çağrı)"):
+if documents and key and st.button("İddiaları çıkar ve ayrı kuşkucu AI geçişi çalıştır (en fazla 2 çağrı)"):
     try:
         if owner:
             store = ColonySnapshotStore(cano_database_url(os.environ))
@@ -142,12 +142,13 @@ if documents and key and st.button("İddiaları çıkar ve ayrı AI modeliyle ku
         st.warning("Alıntı denetimi tamamlanamadı; önceki kayıtlar korunuyor.")
 
 st.divider()
-st.subheader("İkinci model için sabit doğruluk testi")
+st.subheader("Kuşkucu AI geçişi için sabit doğruluk testi")
 st.caption(
-    "12 sabit sentetik vaka; her test aynı ikinci modele tek istekte gönderilir. "
+    "12 sabit sentetik vaka; denetim adımı tek istekte çalışır. Bu dağıtımda "
+    "iddia önerisi ve kuşkucu denetim aynı Groq modelini kullanır; denetim ayrı bir AI geçişidir. "
     "CANO görev kayıtları değişmez. Bu test insan karşılaştırması veya gerçek bilimsel doğruluk ölçümü değildir."
 )
-if key and st.button("12 vakayı tek model çağrısıyla ölç (1 çağrı)"):
+if key and st.button("12 vakayı denetim modeliyle ölç (1 çağrı)"):
     try:
         benchmark = run_claim_review_benchmark(Client())
     except TeamRateLimitError:
@@ -171,6 +172,7 @@ elif isinstance(benchmark, dict):
     if benchmark["unscored"]:
         st.warning(f"{benchmark['unscored']} vaka geçerli model cevabı olmadan kaldı; "
                    "tamamı hata olarak puanlandı.")
+    st.caption("Denetim modeli: " + benchmark["model"])
     st.caption(benchmark["scope"])
     st.json(benchmark["confusion_matrix"])
     if benchmark["correct"] < benchmark["total"]:
@@ -193,12 +195,12 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
         assessment = item.get("machine_assessment")
         if isinstance(assessment, dict):
             if assessment.get("available") is False:
-                st.warning("İkinci model incelemesi alınamadı; alıntı eşleşmesi korundu ve iddia doğrulanmış sayılmıyor.")
+                st.warning("Kuşkucu AI geçişi alınamadı; alıntı eşleşmesi korundu ve iddia doğrulanmış sayılmıyor.")
             else:
                 verdict_labels = {
-                    "supported": "İkinci AI modeli: pasaj iddiayı doğrudan destekliyor",
-                    "contradicted": "İkinci model incelemesi: pasaj iddiayla çelişiyor",
-                    "insufficient": "İkinci model incelemesi: pasaj yetersiz veya belirsiz",
+                    "supported": "Kuşkucu AI geçişi: pasaj iddiayı doğrudan destekliyor",
+                    "contradicted": "Kuşkucu AI geçişi: pasaj iddiayla çelişiyor",
+                    "insufficient": "Kuşkucu AI geçişi: pasaj yetersiz veya belirsiz",
                 }
                 st.info(verdict_labels.get(assessment.get("verdict"),
                                            "İkinci model incelemesi: karar yok"))
