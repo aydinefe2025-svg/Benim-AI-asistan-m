@@ -89,9 +89,30 @@ class PersistentStoreTests(unittest.TestCase):
         store = PostgresArchive("a" * 64, "postgresql://private", connect=lambda *a, **k: Connection())
         with self.assertRaises(PersistenceConflict):
             store.save(b"next", expected_digest="stale")
-        self.assertIn("WHERE public.organism_lab_records.payload->>'sha256'=%s", statements[0][0])
+        self.assertIn("set_config('organism.owner_key'", statements[0][0])
+        self.assertEqual(statements[0][1], ("a" * 64,))
+        archive_write = next(sql for sql, _ in statements if "ON CONFLICT (owner_key" in sql)
+        self.assertIn("WHERE public.organism_lab_records.payload->>'sha256'=%s", archive_write)
+
+    def test_every_connection_sets_transaction_local_owner_for_rls(self):
+        statements = []
+        class Cursor:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def execute(self, sql, params=()): statements.append((sql, params))
+        class Connection:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def cursor(self): return Cursor()
+        store = PostgresArchive("b" * 64, "postgresql://private",
+                                connect=lambda *a, **k: Connection())
+        store.check()
+        self.assertEqual(statements[0][0], "SELECT set_config('organism.owner_key', %s, true)")
+        self.assertEqual(statements[0][1], ("b" * 64,))
+        self.assertIn("organism_lab_records", statements[1][0])
 
 
 if __name__ == "__main__":
     unittest.main()
+
 
