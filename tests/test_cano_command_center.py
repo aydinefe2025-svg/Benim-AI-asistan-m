@@ -254,9 +254,43 @@ class CommandCenterTests(unittest.TestCase):
         messages = " ".join(st.messages)
         self.assertIn("Görev durdu: model sağlayıcı çağrısı, researcher rolü", messages)
         self.assertIn("RuntimeError", messages)
-        self.assertIn("1 yarım kalmış görev var", messages)
+        self.assertIn("1 yarım kalmış görev kayıtlı", messages)
         self.assertNotIn("private provider detail", messages)
         self.assertEqual(len(calls), 2)
+
+    def test_cockpit_resumes_a_blocked_mission_without_repeating_saved_stages(self):
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        calls = []
+        def fail_once(prompt):
+            calls.append(prompt)
+            if len(calls) == 4:
+                raise RuntimeError("temporary provider interruption")
+            return f"Stage {len(calls)}"
+
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            st.task = "Resume safely from the cockpit"
+            st.submit = True
+            render_cano_command_center(st, answer=fail_once)
+
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            from core.collaborative_mission import CollaborativeMission
+            mission = CollaborativeMission(colony).interrupted()[0]
+            saved = CollaborativeMission(colony).get(mission["id"])
+            self.assertEqual(saved["status"], "blocked")
+            self.assertEqual([stage["role"] for stage in saved["stages"]],
+                             ["planner", "researcher", "reviewer"])
+
+            # Recovery is available in the cockpit without navigating to the sidebar.
+            st.clicks.add("cano_resume_partial_" + mission["id"])
+            render_cano_command_center(st, answer=fail_once)
+
+            finished = CollaborativeMission(colony).get(mission["id"])
+            self.assertEqual(finished["status"], "review_pending")
+            self.assertEqual([stage["role"] for stage in finished["stages"]],
+                             ["planner", "researcher", "reviewer", "synthesis"])
+            self.assertEqual(len(calls), 5)
+            self.assertIn("kaldığı yerden tamamlandı", " ".join(st.messages))
 
     def test_evidence_read_button_shows_saved_source_excerpt(self):
         from core.collaborative_mission import CollaborativeMission

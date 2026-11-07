@@ -373,8 +373,34 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
     # Refresh before rendering counts: a task may have become blocked above.
     status = read_cano_status(colony)
     if status["blocked"]:
-        st.warning(f"{status['blocked']} yarım kalmış görev var. "
-                   "Yan menüdeki 'Öğrenen uzman ajanlar' alanından sürdürebilirsiniz.")
+        st.warning(f"{status['blocked']} yarım kalmış görev kayıtlı. "
+                   "Kayıtlı aşamalar korunuyor; aşağıdan kaldığınız yerden sürdürebilirsiniz.")
+        for item in manager.interrupted(limit=10):
+            if item["status"] != "blocked":
+                continue
+            saved = manager.get(item["id"])
+            completed = len(saved["stages"])
+            st.caption(f"{item['task'][:160]} — {completed}/4 aşama kayıtlı")
+            if st.button("↻ Görevi kaldığı yerden sürdür: " + item["id"][:8],
+                         key="cano_resume_partial_" + item["id"]):
+                try:
+                    _checkpoint()
+                    checkpoint_count = [0]
+                    def _resume_checkpoint():
+                        _checkpoint(archive_prior=(checkpoint_count[0] == 0))
+                        checkpoint_count[0] += 1
+                    result = manager.resume(
+                        item["id"], client=_AnswerAdapter(answer),
+                        model="configured-provider",
+                        on_checkpoint=_resume_checkpoint if backup_store is not None else None)
+                    _checkpoint(archive_prior=False)
+                    st.session_state["cano_cockpit_latest_mission"] = result["id"]
+                    st.success("Kayıtlı aşamalar korundu; görev kaldığı yerden tamamlandı.")
+                    st.rerun()
+                    return
+                except (RuntimeError, ValueError, KeyError, OSError, sqlite3.Error) as exc:
+                    st.error(mission_failure_message(
+                        exc, getattr(manager, "last_failure", None)))
     history = status["history"]
     history_tasks = {item["id"]: item["task"] for item in history}
     history_labels = {item["id"]: f"{item['task'][:100]} ({item['status']})"
