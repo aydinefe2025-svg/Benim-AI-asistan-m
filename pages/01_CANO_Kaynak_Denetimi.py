@@ -184,6 +184,8 @@ if isinstance(saved_human_labels, dict) and set(saved_human_labels) == {
               f"{human_score['correct']} / {human_score['total']}",
               f"%{human_score['accuracy'] * 100:.0f}")
     st.caption("Tek insan değerlendirici; vaka başına bağımsız ikinci insan puanlaması yok.")
+    st.caption("İnsan etiketlerinin sınıf bazlı sonuçları")
+    st.json(human_score["confusion_matrix"])
     if key and st.button("Etiketlerden sonra CANO modelini çalıştır (24 vaka, 1 çağrı)"):
         try:
             result = run_claim_review_benchmark(
