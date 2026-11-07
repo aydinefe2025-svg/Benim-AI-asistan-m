@@ -85,6 +85,22 @@ class EncryptedBackupTests(unittest.TestCase):
         with patch.dict(os.environ,{'RESTORE_URL':'postgresql://user:other@localhost/cano_restore_test'}):
             with self.assertRaises(BackupError):restore_to_empty_database(Path(result['archive']),target_db_url_env='RESTORE_URL',confirm=False)
 
+    def test_restore_never_targets_active_memory_or_queue_database(self):
+        # The app uses MEMORY_DATABASE_URL and AGENT_TASK_DATABASE_URL,
+        # which can differ from the generic DATABASE_URL variable.
+        target_url='postgresql://user:secret@localhost:5432/cano_restore_guard'
+        for live_env in ('MEMORY_DATABASE_URL','AGENT_TASK_DATABASE_URL'):
+            with self.subTest(active_db=live_env):
+                with patch.dict(os.environ,{
+                        'DATABASE_URL':'postgresql://user:secret@localhost/different_db',
+                        live_env:'postgresql://user:secret@localhost/cano_restore_guard',
+                        'RESTORE_URL':target_url}):
+                    with patch('cano_encrypted_backup.decrypt_to_sink',
+                               side_effect=AssertionError('attempted to decrypt before rejecting live database')):
+                        with self.assertRaises(BackupError):
+                            restore_to_empty_database(self.root/'nonexistent.canoenc',
+                                target_db_url_env='RESTORE_URL',confirm=True)
+
     def test_failing_pg_dump_removes_partial_ciphertext(self):
         bad=self.root/'bad.py'
         bad.write_text('#!'+sys.executable+'\nimport sys\nsys.stdout.buffer.write(b"PGDMP partial")\nsys.exit(2)\n')
