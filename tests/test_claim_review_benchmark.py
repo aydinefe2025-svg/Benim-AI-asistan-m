@@ -24,6 +24,20 @@ class BenchmarkClient:
 
 
 class ClaimReviewBenchmarkTests(unittest.TestCase):
+    def test_v6_flow_contradiction_names_each_treatment_arm(self):
+        case = next(case for case in V6_COMPARISON_CASES
+                    if case["case_id"] == "v6_05")
+        self.assertIn("semaglutide", case["excerpt"].casefold())
+        self.assertIn("placebo", case["excerpt"].casefold())
+        self.assertIn("331", case["excerpt"])
+        self.assertIn("410", case["excerpt"])
+        self.assertLessEqual(
+            sum(len(item["excerpt"].split()) for item in V6_COMPARISON_CASES
+                if item["source_url"] == case["source_url"]),
+            25,
+        )
+        self.assertNotIn("expected", case)
+
     def test_v5_has_24_blind_cases_from_eight_new_source_publications(self):
         self.assertEqual(len(V5_COMPARISON_CASES), 24)
         self.assertTrue(all("expected" not in case for case in V5_COMPARISON_CASES))
