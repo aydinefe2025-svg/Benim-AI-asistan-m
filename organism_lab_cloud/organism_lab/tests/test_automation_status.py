@@ -109,6 +109,28 @@ class AutomationStatusTests(unittest.TestCase):
         )
         self.assertEqual(value["state"], "no_runs")
 
+    def test_rejects_artifact_digest_mismatch(self):
+        archive = zipped_report(fixture_report())
+        calls = 0
+
+        def get(url, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return FakeResponse({"workflow_runs": [{
+                    "id": 11, "status": "completed", "conclusion": "success",
+                }]})
+            if calls == 2:
+                return FakeResponse({"artifacts": [{
+                    "id": 42, "name": "cano-colony-cycle-11",
+                    "expired": False, "size_in_bytes": len(archive),
+                    "digest": "sha256:" + "0" * 64,
+                }]})
+            return FakeResponse(content=archive)
+
+        with self.assertRaises(ColonyStatusUnavailable):
+            load_latest_colony_status(get)
+
     def test_no_credentials_are_sent(self):
         _, calls = self._load(fixture_report())
         self.assertTrue(all("Authorization" not in call[1]["headers"] for call in calls))
