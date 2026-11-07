@@ -5,6 +5,7 @@ import os
 import stat
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -100,6 +101,37 @@ class EncryptedBackupTests(unittest.TestCase):
         with self.assertRaises(BackupError):
             make_encrypted_backup(self.target,dump_bin=self.fake,max_plaintext_bytes=1024)
         self.assertEqual(list(self.target.iterdir()),[])
+
+
+    def test_hung_dump_must_timeout_and_remove_unpublished_files(self):
+        """A real pg_dump can stall after first bytes: pipe.read must not hang forever."""
+        hanging=self.root/'hang_dump.py'
+        hanging.write_text('#!'+sys.executable+'\nimport sys,time\n'
+            'sys.stdout.buffer.write(b"PGDMP synthetic partial")\n'
+            'sys.stdout.buffer.flush()\n'
+            'time.sleep(6)\n', encoding='utf8')
+        hanging.chmod(hanging.stat().st_mode|stat.S_IXUSR)
+        exe=str(hanging)
+        if os.name=='nt':
+            wrapper=hanging.with_suffix('.cmd')
+            wrapper.write_text('@echo off\r\n"'+sys.executable+'" "'+str(hanging)+'" %*\r\n')
+            exe=str(wrapper)
+        start=time.monotonic()
+        with self.assertRaises(BackupError):
+            make_encrypted_backup(self.target,dump_bin=exe,max_seconds=0.4)
+        self.assertLess(time.monotonic()-start,5.0)
+        self.assertEqual(list(self.target.iterdir()),[])
+
+    def test_restore_refuses_owner_database_alias_before_decryption(self):
+        """A production source may use AGENT_TASK_DATABASE_URL, not DATABASE_URL."""
+        result=make_encrypted_backup(self.target,dump_bin=self.fake)
+        unsafe='postgresql://user:second@localhost:5432/cano_restore_owned'
+        with patch.dict(os.environ,{'AGENT_TASK_DATABASE_URL':unsafe,
+                                     'CANO_RESTORE_DATABASE_URL':unsafe}):
+            with patch('cano_encrypted_backup.decrypt_to_sink',
+                       side_effect=AssertionError('source database must not be touched')):
+                with self.assertRaises(BackupError):
+                    restore_to_empty_database(Path(result['archive']),confirm=True)
 
     def test_receipt_archive_name_cannot_traverse(self):
         self.target.mkdir();receipt=self.target/'evil.receipt.json'
