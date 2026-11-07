@@ -107,6 +107,7 @@ class EvidencePageSmokeTests(unittest.TestCase):
                         source.index("if isinstance(v4_saved_labels, dict)"))
         self.assertIn("v3 kaynak anahtarına uyum", source)
         self.assertIn("v4 kaynak anahtarına uyum", source)
+        self.assertIn("2 çağrı; uyuşmazlıkta 1 ek okuma", source)
         self.assertIn("yalnızca kuşkucu pasaj sınıflandırmasını ölçer", source)
 
 
