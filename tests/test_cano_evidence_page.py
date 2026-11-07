@@ -66,5 +66,18 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertNotIn('os.environ["DATABASE_URL"]', source)
 
 
+    def test_supplemental_cohort_is_separate_and_uses_private_answer_key(self):
+        path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
+        source = path.read_text(encoding="utf-8")
+        self.assertIn("SUPPLEMENTAL_COMPARISON_CASES", source)
+        self.assertIn("cano_claim_review_human_labels_v4", source)
+        self.assertIn("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V4", source)
+        self.assertIn("Ek 24 insan değerlendirmesini kaydet", source)
+        self.assertIn("Ek kohortta CANO modelini çalıştır (24 vaka, 1 çağrı)", source)
+        self.assertIn("expected_labels=v4_answer_key", source)
+        self.assertIn("v4_agreement", source)
+        self.assertIn("cevap anahtarı gösterilmedi", source)
+
+
 if __name__ == "__main__":
     unittest.main()
