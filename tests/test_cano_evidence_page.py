@@ -51,8 +51,12 @@ class EvidencePageSmokeTests(unittest.TestCase):
         path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
         source = path.read_text(encoding="utf-8")
         runtime_button = source.index("CANO modelini 12 sabit vakada test et (1 çağrı)")
+        key_setup = source.index('key = os.environ.get("GROQ_API_KEY")')
+        client_setup = source.index("class Client:")
         human_form = source.index('st.form("cano_blind_human_labels_v3")')
         no_missions_gate = source.index("if not missions:")
+        self.assertLess(key_setup, runtime_button)
+        self.assertLess(client_setup, runtime_button)
         stop_after_no_missions = source.index("st.stop()", no_missions_gate)
         self.assertLess(runtime_button, no_missions_gate)
         self.assertLess(runtime_button, stop_after_no_missions)
