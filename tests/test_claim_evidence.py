@@ -7,7 +7,7 @@ from pathlib import Path
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.claim_evidence import (
-    audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
+    _display_cached_confidence_conflict, audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
     retry_unavailable_skeptical_pass,
 )
 from core.targeted_research import execute_targeted_research
@@ -349,6 +349,30 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         saved = self.manager.get(self.mission_id)["stages"][0]
         self.assertEqual(saved["source_claim_audit_version"], 6)
         self.assertEqual(saved["source_claim_audit"], result)
+
+    def test_cached_confidence_conflict_suppresses_stale_support_at_display(self):
+        doi = "10.1136/bmj-2023-075847"
+        excerpt = (
+            "As a result, confidence in accordance with CINeMA was low for "
+            "walking or jogging and very low for other treatments."
+        )
+        item = {
+            "status": "quote_found_unverified",
+            "claim": "The exercise review had high confidence in every exercise effect.",
+            "quote": excerpt,
+            "human_review": None,
+            "machine_assessment": {"verdict": "supported", "method": "legacy_third_pass"},
+        }
+        source = {"doi": doi, "status": "full_text_excerpt", "excerpt": excerpt}
+        display = _display_cached_confidence_conflict(item, source)
+        self.assertEqual(display["verdict"], "contradicted")
+        self.assertTrue(display["display_only"])
+        self.assertEqual(display["prior_model_verdict"], "supported")
+        self.assertEqual(item["machine_assessment"]["verdict"], "supported")
+        self.assertIsNone(_display_cached_confidence_conflict(
+            {**item, "quote": "This quote is not present."}, source))
+        self.assertIsNone(_display_cached_confidence_conflict(
+            {**item, "human_review": {"supported": False}}, source))
 
     def test_explicit_confidence_conflict_overrides_wrong_model_support(self):
         self.manager.inspect_source_documents(
