@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   restore-rehearsal:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -54,14 +54,20 @@ jobs:
           python-version: '3.13'
       - name: Install a matching PostgreSQL client for each tested server
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq curl ca-certificates
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
-          . /etc/os-release
-          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq "postgresql-client-${PG_MAJOR}"
+          sudo apt-get update -qq -o Acquire::Retries=3
+          if [[ "${PG_MAJOR}" == "16" ]]; then
+            # Ubuntu 24.04 ships PG16; do not depend on a separate signing-key host.
+            sudo apt-get install -y -qq postgresql-client-16
+          else
+            # PG18 needs PGDG; retry transient key-download failures without disabling TLS.
+            sudo apt-get install -y -qq curl ca-certificates
+            sudo install -d /usr/share/postgresql-common/pgdg
+            sudo curl --retry 4 --retry-all-errors --retry-delay 2 --connect-timeout 15 --max-time 90 -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+            . /etc/os-release
+            echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+            sudo apt-get update -qq -o Acquire::Retries=3
+            sudo apt-get install -y -qq "postgresql-client-${PG_MAJOR}"
+          fi
           export PATH="/usr/lib/postgresql/${PG_MAJOR}/bin:${PATH}"
           echo "/usr/lib/postgresql/${PG_MAJOR}/bin" >> "$GITHUB_PATH"
           pg_dump --version
