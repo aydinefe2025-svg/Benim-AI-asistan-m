@@ -150,7 +150,8 @@ st.subheader("Bağımsız CANO testi ve kör insan karşılaştırması")
 from core.claim_review_benchmark import (
     CASES as FIXED_BENCHMARK_CASES,
     HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, V5_COMPARISON_CASES,
-    load_expected_labels, randomized_case_order, run_blind_model_benchmark, score_labels,
+    load_expected_labels, randomized_case_order, run_blind_model_benchmark,
+    run_claim_review_predictions, score_labels,
 )
 st.markdown("### 12 vakalık canlı model testi")
 st.caption(
@@ -434,6 +435,13 @@ if v5_labels_submitted:
         st.session_state.pop(v5_model_key, None)
         st.success("Etiketler bu tarayıcı oturumunda saklandı; kaynak cevap anahtarı gösterilmedi.")
 v5_saved_labels = st.session_state.get(v5_label_key)
+v5_case_ids = {case["case_id"] for case in V5_COMPARISON_CASES}
+v5_labels_complete = (
+    isinstance(v5_saved_labels, dict)
+    and set(v5_saved_labels) == v5_case_ids
+    and all(v5_saved_labels.get(case_id) in {"supported", "contradicted", "insufficient"}
+            for case_id in v5_case_ids)
+)
 try:
     v5_answer_key = load_expected_labels(
         os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V5"),
@@ -442,35 +450,46 @@ try:
 except (ValueError, RuntimeError):
     v5_answer_key = None
 if v5_answer_key is None:
-    st.warning("Üçüncü kohortun özel cevap anahtarı ayarlı değil; model puanlama kapalı.")
-elif key and st.button(
-        "Üçüncü kohortta CANO'yu gizli kaynak anahtarıyla çalıştır (24 vaka, 1 çağrı)",
+    st.info(
+        "Üçüncü kohortun gizli altın anahtarı ayarlı değil. CANO kararları gerçek "
+        "insan etiketleriyle karşılaştırılabilir; altın etikete göre doğruluk puanı gösterilmez."
+    )
+if key and v5_labels_complete and st.button(
+        "CANO'yu 24 vakada çalıştır ve insanla karşılaştır (1 çağrı)",
         key="cano_gold_model_v5"):
     try:
-        v5_result = run_blind_model_benchmark(
-            Client(), cases=V5_COMPARISON_CASES,
-            answer_key_json=os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V5"))
+        if v5_answer_key is not None:
+            v5_result = run_blind_model_benchmark(
+                Client(), cases=V5_COMPARISON_CASES,
+                answer_key_json=os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V5"))
+            v5_result["gold_scored"] = True
+        else:
+            v5_result = run_claim_review_predictions(
+                Client(), cases=V5_COMPARISON_CASES)
+            v5_result["gold_scored"] = False
     except TeamRateLimitError:
         st.warning("Model kotası nedeniyle üçüncü kohort tamamlanamadı; insan etiketleri değişmedi.")
     except (ValueError, RuntimeError) as err:
         st.warning(f"Üçüncü kohort tamamlanamadı ({type(err).__name__}: {err}); etiketler korundu.")
     else:
         st.session_state[v5_model_key] = v5_result
+elif key and not v5_labels_complete:
+    st.caption("CANO karşılaştırmasını açmak için önce 24 insan etiketinin tamamını kaydedin.")
 v5_model_result = st.session_state.get(v5_model_key)
 if isinstance(v5_model_result, dict):
-    st.metric("Üçüncü kohort · kaynak anahtarına uyum",
-              f"{v5_model_result['correct']} / {v5_model_result['total']}",
-              f"%{v5_model_result['accuracy'] * 100:.0f}")
+    if v5_model_result.get("gold_scored"):
+        st.metric("Üçüncü kohort · gizli altın etikete CANO uyumu",
+                  f"{v5_model_result['correct']} / {v5_model_result['total']}",
+                  f"%{v5_model_result['accuracy'] * 100:.0f}")
+        st.json(v5_model_result["confusion_matrix"])
+    else:
+        st.caption("Bu CANO çalışması altın anahtara göre puanlanmadı.")
     st.metric("Üçüncü kohort · yanıt kapsamı", f"%{v5_model_result['coverage'] * 100:.0f}")
     st.caption(v5_model_result["scope"])
-    st.json(v5_model_result["confusion_matrix"])
     if v5_model_result["unscored"]:
         st.warning(f"{v5_model_result['unscored']} cevapsız karar hata sayıldı.")
-if isinstance(v5_saved_labels, dict) and set(v5_saved_labels) == {
-        case["case_id"] for case in V5_COMPARISON_CASES}:
-    if v5_answer_key is None:
-        st.warning("Üçüncü kohortun cevap anahtarı ayarlı değil; insan etiketleri korunuyor, skor kapalı.")
-    else:
+if v5_labels_complete:
+    if v5_answer_key is not None:
         v5_human_score = score_labels(
             V5_COMPARISON_CASES, v5_saved_labels, v5_answer_key)
         st.metric("Üçüncü kohort · insan değerlendiricinin altın etikete uyumu",
@@ -478,18 +497,25 @@ if isinstance(v5_saved_labels, dict) and set(v5_saved_labels) == {
                   f"%{v5_human_score['accuracy'] * 100:.0f}")
         st.caption("Tek değerlendirici; vaka başına ikinci bağımsız insan puanlaması yok.")
         st.json(v5_human_score["confusion_matrix"])
-        if isinstance(v5_model_result, dict):
-            v5_model_by_id = {
-                case["case_id"]: case["predicted"] for case in v5_model_result["cases"]
-            }
-            v5_agreement = sum(
-                v5_saved_labels[case["case_id"]] == v5_model_by_id[case["case_id"]]
-                for case in V5_COMPARISON_CASES
-            )
-            st.metric("Üçüncü kohort · insan–CANO karar uyumu", f"{v5_agreement} / 24")
-            st.caption("Bu karşılaştırma yalnızca verilen pasajın iddiayı destekleyip desteklemediğini ölçer; araştırma veya kaynak bulma başarısını ölçmez.")
-            st.caption("Aynı sağlayıcının modeli, insan kararlarından bağımsız skorlanır; küçük kohort insan üstünlüğünü tek başına kanıtlamaz.")
-            st.caption(v5_model_result["scope"])
+    if isinstance(v5_model_result, dict):
+        v5_model_by_id = {
+            case["case_id"]: case["predicted"]
+            for case in v5_model_result["cases"]
+        }
+        v5_compared = [
+            case for case in V5_COMPARISON_CASES
+            if v5_model_by_id.get(case["case_id"]) in {"supported", "contradicted", "insufficient"}
+        ]
+        v5_agreement = sum(
+            v5_saved_labels[case["case_id"]] == v5_model_by_id[case["case_id"]]
+            for case in v5_compared
+        )
+        st.metric(
+            "Üçüncü kohort · insan–CANO karar uyumu",
+            f"{v5_agreement} / {len(v5_compared)}",
+            f"%{(100 * v5_agreement / len(v5_compared)):.0f}" if v5_compared else "karşılaştırılabilir yanıt yok",
+        )
+        st.caption("Bu ölçüm yalnızca kaynak pasajının sabit iddiayı sınıflandırmasını karşılaştırır; genel bilimsel başarı veya insan üstünlüğü kanıtı değildir.")
 
 if not key:
     st.warning("Model bağlantısı yok; yeni iddia denetimi çalıştırılmadı.")

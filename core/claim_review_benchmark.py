@@ -279,6 +279,55 @@ def run_blind_model_benchmark(client, *, cases, answer_key_json,
         client, model=model, cases=cases, expected_labels=expected_labels)
 
 
+def run_claim_review_predictions(client, *, cases, model="openai/gpt-oss-120b"):
+    """Return passage-level predictions without requiring or exposing a gold key."""
+    cases = tuple(cases)
+    if not cases:
+        raise ValueError("Benchmark case set must not be empty")
+    case_ids = [case.get("case_id") for case in cases]
+    if any(not isinstance(case_id, str) or not case_id for case_id in case_ids):
+        raise ValueError("Every benchmark case must have a stable case_id")
+    if len(set(case_ids)) != len(case_ids):
+        raise ValueError("Benchmark case identifiers must be unique")
+    prompt_cases = [
+        {"index": index, "claim": case["claim"], "source_excerpt": case["excerpt"]}
+        for index, case in enumerate(cases)
+    ]
+    prompt = (
+        'Classify every indexed claim. Use supported only for direct entailment; '
+        'contradicted only for a direct conflict; otherwise insufficient. '
+        'Return a single JSON object with an "assessments" array. Include exactly one '
+        'object per input index, each with integer "index", "verdict" set to '
+        '"supported", "contradicted", or "insufficient", and a "reason" of at '
+        'most eight words. Do not add other top-level keys.\n'
+        + json.dumps(prompt_cases, ensure_ascii=False)
+    )
+    raw = client.verify(model, _SYSTEM, prompt)
+    predictions = _parse_assessments(raw, set(range(len(cases))))
+    results = []
+    for index, case in enumerate(cases):
+        assessment = predictions.get(index, {})
+        results.append({
+            "case_id": case_ids[index],
+            "predicted": assessment.get("verdict") or "unscored",
+            "reason": assessment.get("reason", ""),
+        })
+    unscored = sum(item["predicted"] == "unscored" for item in results)
+    source_grounded = all(case.get("source_url") for case in cases)
+    return {
+        "model": model,
+        "total": len(cases),
+        "unscored": unscored,
+        "coverage": round((len(cases) - unscored) / len(cases), 3),
+        "cases": results,
+        "scope": (
+            (f"{len(cases)} source-grounded cases from linked publications; "
+             if source_grounded else f"{len(cases)} fixed cases; ")
+            + "passage classification only; predictions are not gold-scored."
+        ),
+    }
+
+
 def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CASES, expected_labels=None):
     """Run a fixed case set in one reviewer call and return a bounded scorecard."""
     cases = tuple(cases)
