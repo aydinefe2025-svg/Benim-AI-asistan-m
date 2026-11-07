@@ -264,6 +264,39 @@ def _reread_cached_source_disagreements(manager, mission_id, stages, *, client, 
 
 
 
+def _display_cached_disagreement(item):
+    """Keep same-model disagreement inconclusive in the user-facing assessment."""
+    if not isinstance(item, dict):
+        return None
+    human_review = item.get("human_review")
+    if isinstance(human_review, dict) and human_review:
+        return None
+    assessment = item.get("machine_assessment")
+    if not isinstance(assessment, dict):
+        return None
+    disagreement = assessment.get("disagreement")
+    if not isinstance(disagreement, dict):
+        return None
+    first = disagreement.get("first_verdict")
+    skeptical = disagreement.get("skeptical_verdict")
+    if first not in {"supported", "contradicted", "insufficient"}:
+        return None
+    if skeptical not in {"supported", "contradicted", "insufficient"} or first == skeptical:
+        return None
+    visible = dict(assessment)
+    visible.update({
+        "verdict": "insufficient",
+        "reason": (
+            "AI okumaları uyuşmadı. Aynı modelin ek okuması bağımsız hakem "
+            "olmadığından otomatik karar yetersiz bırakıldı; insan incelemesi gerekir."
+        ),
+        "method": "same_model_disagreement_guard",
+        "prior_model_verdict": assessment.get("verdict"),
+        "display_only": True,
+    })
+    return visible
+
+
 def _display_cached_confidence_conflict(item, doc):
     """Suppress a stale positive AI verdict when its matched excerpt says low confidence.
 
