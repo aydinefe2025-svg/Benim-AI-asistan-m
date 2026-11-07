@@ -8,6 +8,7 @@ from __future__ import annotations
 from io import BytesIO
 import hashlib
 import json
+import math
 import re
 import zipfile
 
@@ -85,6 +86,7 @@ def _validate_report(report: object, run_id: int) -> dict:
         raise ColonyStatusUnavailable("specialist_agents_not_passed")
     roles = specialists.get("roles")
     if (not isinstance(roles, list)
+            or not all(isinstance(item, dict) for item in roles)
             or specialists.get("launched") != len(EXPECTED_AGENTS)
             or {item.get("role") for item in roles if isinstance(item, dict)} != EXPECTED_AGENTS
             or any(item.get("status") != "passed"
@@ -92,6 +94,18 @@ def _validate_report(report: object, run_id: int) -> dict:
                    or item.get("model_calls") != 0
                    for item in roles if isinstance(item, dict))):
         raise ColonyStatusUnavailable("specialist_agent_results_invalid")
+    if generation.get("lesson_status") not in {"transferred", "rejected"}:
+        raise ColonyStatusUnavailable("generation_decision_invalid")
+    measured = (
+        generation.get("candidate_mutation_rate"),
+        generation.get("next_generation_mutation_rate"),
+        generation.get("training", {}).get("ci95_low"),
+        generation.get("held_out_confirmation", {}).get("ci95_low"),
+        generation.get("training", {}).get("candidate_mean_births"),
+        generation.get("training", {}).get("candidate_mean_final_population"),
+    )
+    if any(type(item) not in (int, float) or not math.isfinite(item) for item in measured):
+        raise ColonyStatusUnavailable("generation_metrics_invalid")
     # Only fixed, measured fields are returned to the UI.
     return {
         "tick_id": cycle["tick_id"],
@@ -154,9 +168,10 @@ def load_latest_colony_status(request_get=None) -> dict:
         )
         archive = _bounded_download(request_get, archive_url)
         digest = artifact.get("digest")
-        if isinstance(digest, str) and re.fullmatch(r"sha256:[a-f0-9]{64}", digest):
-            if hashlib.sha256(archive).hexdigest() != digest.removeprefix("sha256:"):
-                raise ColonyStatusUnavailable("artifact_digest_mismatch")
+        if not isinstance(digest, str) or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest):
+            raise ColonyStatusUnavailable("artifact_digest_missing")
+        if hashlib.sha256(archive).hexdigest() != digest.removeprefix("sha256:"):
+            raise ColonyStatusUnavailable("artifact_digest_mismatch")
         with zipfile.ZipFile(BytesIO(archive)) as bundle:
             info = next((item for item in bundle.infolist()
                          if item.filename == "colony-cycle.json"), None)
