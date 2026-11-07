@@ -175,7 +175,7 @@ if labels_submitted:
     else:
         st.session_state[label_key] = human_labels
         st.session_state.pop(model_key, None)
-        st.success("Etiketler bu tarayıcı oturumunda saklandı; beklenen cevaplar artık körlüğü koruyamaz.")
+        st.success("Etiketler bu tarayıcı oturumunda saklandı; beklenen cevaplar etiketleme sırasında gösterilmedi.")
 saved_human_labels = st.session_state.get(label_key)
 if isinstance(saved_human_labels, dict) and set(saved_human_labels) == {
         case["case_id"] for case in HUMAN_COMPARISON_CASES}:
