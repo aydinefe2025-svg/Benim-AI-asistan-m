@@ -7,7 +7,7 @@ from pathlib import Path
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.claim_evidence import (
-    _display_cached_confidence_conflict,
+    _display_cached_confidence_conflict, _display_cached_disagreement,
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
     retry_unavailable_skeptical_pass,
 )
@@ -445,6 +445,30 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         spaced_display = _display_cached_confidence_conflict(item, spaced_source)
         self.assertEqual(spaced_display["verdict"], "contradicted")
         self.assertTrue(spaced_display["display_only"])
+
+    def test_same_model_reread_cannot_resolve_disagreement_as_supported(self):
+        item = {
+            "status": "quote_found_unverified",
+            "human_review": None,
+            "machine_assessment": {
+                "verdict": "supported",
+                "method": "same_model_consistency_reread",
+                "disagreement": {
+                    "first_verdict": "insufficient",
+                    "skeptical_verdict": "supported",
+                    "adjudication_verdict": "supported",
+                    "resolved": True,
+                },
+            },
+        }
+        display = _display_cached_disagreement(item)
+        self.assertEqual(display["verdict"], "insufficient")
+        self.assertEqual(display["prior_model_verdict"], "supported")
+        self.assertTrue(display["display_only"])
+        self.assertEqual(item["machine_assessment"]["verdict"], "supported")
+        self.assertIsNone(_display_cached_disagreement({
+            **item, "human_review": {"supported": False},
+        }))
 
     def test_explicit_confidence_conflict_overrides_wrong_model_support(self):
         self.manager.inspect_source_documents(
