@@ -714,6 +714,18 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
         st.caption(item["claim"] + " — " + item["doi"])
         st.code(item["quote"])
         assessment = item.get("machine_assessment")
+        human_review = item.get("human_review")
+        if isinstance(human_review, dict) and human_review:
+            if human_review.get("supported") is True:
+                human_label = "İnsan incelemesi: kaynak iddiayı destekliyor."
+            elif human_review.get("supported") is False:
+                human_label = "İnsan incelemesi: kaynak iddiayı desteklemiyor."
+            else:
+                human_label = "İnsan incelemesi kaydı mevcut; sonuç alanı okunamadı."
+            st.info(human_label)
+            rationale = human_review.get("rationale")
+            if isinstance(rationale, str) and rationale.strip():
+                st.caption("İnsan inceleme gerekçesi: " + rationale)
         display_conflict = _display_cached_confidence_conflict(item, source)
         if display_conflict is not None:
             assessment = display_conflict
@@ -785,11 +797,19 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
             if (isinstance(assessment, dict)
                     and assessment.get("method") == "explicit_confidence_conflict_guard"):
                 if assessment.get("display_only"):
-                    st.warning(
-                        "Kaynakta düşük güven düzeyi yazarken üçüncü AI okuması "
-                        "'supported' demiş. Bu eski karar geçersiz; ekranda koruyucu "
-                        "'contradicted' yorumu gösteriliyor. İnsan incelemesi gerekir."
-                    )
+                    if assessment.get("human_review_present"):
+                        st.warning(
+                            "Kaynakta düşük güven düzeyi yazarken eski AI okuması "
+                            "'supported' demiş. Bu makine önerisi geçerli değil; ekranda "
+                            "koruyucu 'contradicted' yorumu gösteriliyor. Kaydedilmiş "
+                            "insan incelemesi yukarıda ayrıca gösterilir ve değiştirilmez."
+                        )
+                    else:
+                        st.warning(
+                            "Kaynakta düşük güven düzeyi yazarken eski AI okuması "
+                            "'supported' demiş. Bu makine önerisi geçerli değil; ekranda "
+                            "koruyucu 'contradicted' yorumu gösteriliyor. İnsan incelemesi gerekir."
+                        )
                 else:
                     st.warning(
                         "Önceki üçüncü AI okuması korunuyor ancak kaynakta yazan açık "

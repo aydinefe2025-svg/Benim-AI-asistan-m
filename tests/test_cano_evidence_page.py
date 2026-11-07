@@ -18,6 +18,10 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("st", imports)
         self.assertIn("audit_claim_quotes", source)
         self.assertIn("record_source_claim_review", source)
+        self.assertIn("human_review = item.get(\"human_review\")", source)
+        self.assertIn("human_review.get(\"supported\") is True", source)
+        self.assertIn("human_review.get(\"supported\") is False", source)
+        self.assertIn("İnsan incelemesi:", source)
         self.assertIn("retry_unavailable_skeptical_pass", source)
         claim_evidence_imports = {
             alias.name

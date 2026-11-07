@@ -424,8 +424,15 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(item["machine_assessment"]["verdict"], "supported")
         self.assertIsNone(_display_cached_confidence_conflict(
             {**item, "quote": "This quote is not present."}, source))
-        self.assertIsNone(_display_cached_confidence_conflict(
-            {**item, "human_review": {"supported": False}}, source))
+        empty_review_display = _display_cached_confidence_conflict(
+            {**item, "human_review": {}}, source)
+        self.assertEqual(empty_review_display["verdict"], "contradicted")
+        self.assertFalse(empty_review_display["human_review_present"])
+        human_reviewed = {**item, "human_review": {"supported": False}}
+        reviewed_display = _display_cached_confidence_conflict(human_reviewed, source)
+        self.assertTrue(reviewed_display["human_review_present"])
+        self.assertEqual(reviewed_display["verdict"], "contradicted")
+        self.assertFalse(human_reviewed["human_review"]["supported"])
 
     def test_explicit_confidence_conflict_overrides_wrong_model_support(self):
         self.manager.inspect_source_documents(
