@@ -157,6 +157,10 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
                             break
                         except queue.Full:
                             continue
+                finally:
+                    # Closing from the blocked reader thread avoids Windows
+                    # ReadFile deadlock when a shell grandchild retains the pipe.
+                    process.stdout.close()
 
             pump=threading.Thread(target=pump_stdout,daemon=True,
                                   name='cano-pgdump-pipe')
@@ -208,10 +212,12 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
             if process.poll() is None:
                 process.kill()
             process.wait()
-            if process.stdout is not None:
-                process.stdout.close()
         if pump is not None:
-            pump.join(timeout=1)
+            # A Windows .cmd wrapper can leave a child holding stdout after
+            # the wrapper exits; do not close while another thread reads.
+            pump.join(timeout=0.35)
+        if process is not None and process.stdout is not None and (pump is None or not pump.is_alive()):
+            process.stdout.close()
         if os.path.exists(temp):os.unlink(temp)
         # If receipt publishing fails, do not leave an untracked encrypted archive.
         if archive.exists() and not receipt.exists():archive.unlink()
