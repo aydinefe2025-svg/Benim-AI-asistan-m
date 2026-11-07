@@ -290,7 +290,11 @@ def _reconcile_cached_confidence_conflicts(manager, mission_id, stages):
                     and entry["doi"].casefold() == doi.casefold()), None)
         if (not isinstance(doc, dict) or doc.get("status") not in _READABLE
                 or not isinstance(doc.get("excerpt"), str)
-                or not isinstance(item.get("claim"), str)):
+                or not isinstance(item.get("claim"), str)
+                or not isinstance(item.get("quote"), str)
+                or _normalized(item["quote"]) not in _normalized(doc["excerpt"])
+                or doc.get("url") != item.get("citation_url")
+                or _citation_for(doc) is None):
             continue
         conflict = _explicit_confidence_conflict(item["claim"], doc["excerpt"])
         if conflict is None:
