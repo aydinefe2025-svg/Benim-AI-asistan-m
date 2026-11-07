@@ -129,6 +129,39 @@ class OrganismLabPersistenceTests(unittest.TestCase):
         self.assertEqual(records[0]["document"], {"owner": "first"})
         self.assertEqual(db.history_owner_filters, [self.OWNER])
 
+    def test_backup_exports_all_owner_experiments_without_history_truncation(self):
+        db = FakeDatabase()
+        mine = OrganismLabStore(self.OWNER, "postgresql://test", connect=db.connect)
+        other = OrganismLabStore("oidc_" + "b" * 64, "postgresql://test",
+                                 connect=db.connect)
+        for i in range(24):
+            mine.save_verified("world", json.dumps({"tick": i}).encode("utf-8"))
+        other.save_verified("world", b'{"private":"other-owner"}')
+        exported = mine.export_for_backup()
+        self.assertEqual(len(exported), 24)
+        self.assertEqual(len({item["record_id"] for item in exported}), 24)
+        self.assertEqual(db.history_owner_filters[-1], self.OWNER)
+        self.assertEqual({item["kind"] for item in exported}, {"world"})
+        for item in exported:
+            raw = base64.b64decode(item["data_b64"], validate=True)
+            self.assertEqual(hashlib.sha256(raw).hexdigest(), item["sha256"])
+            self.assertNotIn("owner_key", item)
+            self.assertNotIn(b"other-owner", raw)
+
+    def test_backup_must_fail_instead_of_silently_truncating_experiments(self):
+        db = FakeDatabase()
+        mine = OrganismLabStore(self.OWNER, "postgresql://test", connect=db.connect)
+        for i in range(1001):
+            data = json.dumps({"tick": i}).encode("utf-8")
+            digest = hashlib.sha256(data).hexdigest()
+            rec_id = f"cano-organism-lab-v1-world-{digest}"
+            db.records[(self.OWNER, "simulation", rec_id)] = {
+                "format": 1, "sha256": digest,
+                "data_b64": base64.b64encode(data).decode("ascii")
+            }
+        with self.assertRaisesRegex(ValueError, "limit"):
+            mine.export_for_backup()
+
     def test_corrupt_history_fails_integrity_check(self):
         db = FakeDatabase()
         store = OrganismLabStore(self.OWNER, "postgresql://test", connect=db.connect)
