@@ -254,7 +254,7 @@ class CommandCenterTests(unittest.TestCase):
         messages = " ".join(st.messages)
         self.assertIn("Görev durdu: model sağlayıcı çağrısı, researcher rolü", messages)
         self.assertIn("RuntimeError", messages)
-        self.assertIn("1 yarım kalmış görev var", messages)
+        self.assertIn("1 yarım kalmış görev kayıtlı", messages)
         self.assertNotIn("private provider detail", messages)
         self.assertEqual(len(calls), 2)
 
