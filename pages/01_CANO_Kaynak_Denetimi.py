@@ -9,6 +9,7 @@ from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.task_panel import _session_database_path
 from core.claim_evidence import (
+    _reconcile_cached_confidence_conflicts,
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
     retry_unavailable_skeptical_pass,
 )
@@ -662,6 +663,23 @@ if v6_labels_complete:
 
 if not key:
     st.warning("Model bağlantısı yok; yeni iddia denetimi çalıştırılmadı.")
+
+# Reconcile already-saved machine-only decisions before showing them. This
+# deterministic guard uses the cached, validated excerpt and makes no provider
+# call; owner snapshots are updated so a later restore does not resurrect it.
+try:
+    cached_conflicts = _reconcile_cached_confidence_conflicts(
+        manager, mid, manager.get(mid)["stages"])
+    if cached_conflicts is not None and owner:
+        store = ColonySnapshotStore(cano_database_url(os.environ))
+        store.verify_schema()
+        save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony))
+except (ValueError, PermissionError, RuntimeError, OSError, sqlite3.Error) as err:
+    st.warning(
+        "Kaydedilmiş eski karar otomatik olarak yeniden değerlendirilemedi; "
+        "önceki kayıtlar korundu."
+    )
+    st.caption(f"Güvenli hata ayrıntısı: {type(err).__name__}")
 reviewed_mission = manager.get(mid)
 unavailable_passes = [
     index for index, item in enumerate(reviewed_mission["stages"][0].get("source_claim_audit", []))
