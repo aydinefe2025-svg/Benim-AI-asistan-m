@@ -1,10 +1,9 @@
 name: J0740 source-absolute pseudoenthalpy full GR seven EOS sensitivity
+# Science negative control: restoring source absolute H alone in unchanged
+# upstream RNS C has confirmed 0/7 convergence because MakeSphere surface
+# enthalpy/pressure/energy bounds are inconsistent. Keep reproducible manually,
+# not an always-failing PR CI gate. Corrected C surface test is separate.
 on:
-  pull_request:
-    paths:
-      - "research/j0740/rotating_gr/j0740_absolute_enthalpy_gr.py"
-      - "research/j0740/rotating_gr/test_j0740_absolute_enthalpy_gr.py"
-      - ".github/workflows/j0740-source-absolute-h-gr.yml"
   workflow_dispatch:
 permissions:
   contents: read
