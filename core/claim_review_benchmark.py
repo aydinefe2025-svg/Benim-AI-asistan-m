@@ -246,8 +246,9 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CAS
         "confusion_matrix": matrix, "per_class": per_class,
         "cases": results,
         "scope": (
-            f"{len(cases)} cases; "
-            + ("source-grounded excerpts from linked publications; " if all(case.get("source_url") for case in cases) else "fixed synthetic fixtures; ")
+            (f"{len(cases)} source-grounded cases from linked publications; "
+             if all(case.get("source_url") for case in cases)
+             else f"{len(cases)} fixed synthetic fixtures; ")
             + "missing/invalid answers count as errors; same-model skeptical pass; "
             "not broad scientific accuracy or human superiority."
         ),
