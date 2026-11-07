@@ -237,6 +237,19 @@ def score_labels(cases, labels, expected_labels):
     }
 
 
+def run_blind_model_benchmark(client, *, cases, answer_key_json,
+                               model="openai/gpt-oss-120b"):
+    """Score the model against a private source-reviewed key without human labels.
+
+    Parse the key server-side and never include it in the model prompt. UI callers
+    must render aggregate metrics only, not per-case expected labels.
+    """
+    cases = tuple(cases)
+    expected_labels = load_expected_labels(answer_key_json, cases)
+    return run_claim_review_benchmark(
+        client, model=model, cases=cases, expected_labels=expected_labels)
+
+
 def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CASES, expected_labels=None):
     """Run a fixed case set in one reviewer call and return a bounded scorecard."""
     cases = tuple(cases)

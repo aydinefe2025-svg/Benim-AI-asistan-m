@@ -150,7 +150,7 @@ st.subheader("Bağımsız CANO testi ve kör insan karşılaştırması")
 from core.claim_review_benchmark import (
     CASES as FIXED_BENCHMARK_CASES,
     HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES,
-    load_expected_labels, randomized_case_order, score_labels,
+    load_expected_labels, randomized_case_order, run_blind_model_benchmark, score_labels,
 )
 st.markdown("### 12 vakalık canlı model testi")
 st.caption(
@@ -228,6 +228,30 @@ try:
         os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY"))
 except (ValueError, RuntimeError):
     human_answer_key = None
+if human_answer_key is None:
+    st.warning("Kaynak-temelli v3 altın cevap anahtarı ayarlı değil; model puanlama kapalı.")
+elif key and st.button("Kaynak anahtarıyla CANO'yu çalıştır (24 vaka, 1 çağrı)",
+                       key="cano_gold_model_v3"):
+    try:
+        result = run_blind_model_benchmark(
+            Client(), cases=HUMAN_COMPARISON_CASES,
+            answer_key_json=os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY"))
+    except TeamRateLimitError:
+        st.warning("Model kotası nedeniyle v3 testi tamamlanamadı; etiketleme değişmedi.")
+    except (ValueError, RuntimeError) as err:
+        st.warning(f"v3 test tamamlanamadı ({type(err).__name__}: {err}); etiketleme değişmedi.")
+    else:
+        st.session_state[model_key] = result
+v3_model_result = st.session_state.get(model_key)
+if isinstance(v3_model_result, dict):
+    st.metric("CANO · v3 gizli kaynak anahtarına uyum",
+              f"{v3_model_result['correct']} / {v3_model_result['total']}",
+              f"%{v3_model_result['accuracy'] * 100:.0f}")
+    st.metric("CANO v3 yanıt kapsamı", f"%{v3_model_result['coverage'] * 100:.0f}")
+    st.caption(v3_model_result["scope"])
+    st.json(v3_model_result["confusion_matrix"])
+    if v3_model_result["unscored"]:
+        st.warning(f"{v3_model_result['unscored']} cevapsız karar hata sayıldı.")
 if isinstance(saved_human_labels, dict) and set(saved_human_labels) == {
         case["case_id"] for case in HUMAN_COMPARISON_CASES}:
     if human_answer_key is None:
@@ -241,17 +265,6 @@ if isinstance(saved_human_labels, dict) and set(saved_human_labels) == {
         st.caption("Tek insan değerlendirici; vaka başına bağımsız ikinci insan puanlaması yok.")
         st.caption("İnsan etiketlerinin sınıf bazlı sonuçları")
         st.json(human_score["confusion_matrix"])
-        if key and st.button("Etiketlerden sonra CANO modelini çalıştır (24 vaka, 1 çağrı)"):
-            try:
-                result = run_claim_review_benchmark(
-                    Client(), cases=HUMAN_COMPARISON_CASES,
-                    expected_labels=human_answer_key)
-            except TeamRateLimitError:
-                st.warning("Model kotası nedeniyle test tamamlanamadı; insan etiketleri bu oturumda korundu.")
-            except (ValueError, RuntimeError) as err:
-                st.warning(f"Model testi tamamlanamadı ({type(err).__name__}: {err}); insan etiketleri korundu.")
-            else:
-                st.session_state[model_key] = result
         model_result = st.session_state.get(model_key)
         if isinstance(model_result, dict):
             human_by_id = saved_human_labels
@@ -315,6 +328,30 @@ try:
     )
 except (ValueError, RuntimeError):
     v4_answer_key = None
+if v4_answer_key is None:
+    st.warning("Ek kohortun v4 altın cevap anahtarı ayarlı değil; model puanlama kapalı.")
+elif key and st.button("Ek kohortta CANO'yu gizli kaynak anahtarıyla çalıştır (24 vaka, 1 çağrı)",
+                       key="cano_gold_model_v4"):
+    try:
+        v4_result = run_blind_model_benchmark(
+            Client(), cases=SUPPLEMENTAL_COMPARISON_CASES,
+            answer_key_json=os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V4"))
+    except TeamRateLimitError:
+        st.warning("Model kotası nedeniyle v4 testi tamamlanamadı; etiketleme değişmedi.")
+    except (ValueError, RuntimeError) as err:
+        st.warning(f"v4 test tamamlanamadı ({type(err).__name__}: {err}); etiketleme değişmedi.")
+    else:
+        st.session_state[v4_model_key] = v4_result
+v4_model_result = st.session_state.get(v4_model_key)
+if isinstance(v4_model_result, dict):
+    st.metric("CANO · v4 gizli kaynak anahtarına uyum",
+              f"{v4_model_result['correct']} / {v4_model_result['total']}",
+              f"%{v4_model_result['accuracy'] * 100:.0f}")
+    st.metric("CANO v4 yanıt kapsamı", f"%{v4_model_result['coverage'] * 100:.0f}")
+    st.caption(v4_model_result["scope"])
+    st.json(v4_model_result["confusion_matrix"])
+    if v4_model_result["unscored"]:
+        st.warning(f"{v4_model_result['unscored']} cevapsız karar hata sayıldı.")
 if isinstance(v4_saved_labels, dict) and set(v4_saved_labels) == {
         case["case_id"] for case in SUPPLEMENTAL_COMPARISON_CASES}:
     if v4_answer_key is None:
@@ -332,22 +369,6 @@ if isinstance(v4_saved_labels, dict) and set(v4_saved_labels) == {
         )
         st.caption("Tek değerlendirici; vaka başına ikinci bağımsız insan puanlaması yok.")
         st.json(v4_human_score["confusion_matrix"])
-        if key and st.button("Ek kohortta CANO modelini çalıştır (24 vaka, 1 çağrı)"):
-            try:
-                v4_result = run_claim_review_benchmark(
-                    Client(), cases=SUPPLEMENTAL_COMPARISON_CASES,
-                    expected_labels=v4_answer_key,
-                )
-            except TeamRateLimitError:
-                st.warning("Model kotası nedeniyle ek test tamamlanamadı; insan etiketleri korundu.")
-            except (ValueError, RuntimeError) as err:
-                st.warning(
-                    f"Ek model testi tamamlanamadı ({type(err).__name__}: {err}); "
-                    "insan etiketleri korundu."
-                )
-            else:
-                st.session_state[v4_model_key] = v4_result
-        v4_model_result = st.session_state.get(v4_model_key)
         if isinstance(v4_model_result, dict):
             v4_model_by_id = {
                 case["case_id"]: case["predicted"]

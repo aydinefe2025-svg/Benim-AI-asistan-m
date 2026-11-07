@@ -39,13 +39,18 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("cases=FIXED_BENCHMARK_CASES", source)
         self.assertIn("cano_claim_review_runtime_smoke_v1", source)
         self.assertIn("HUMAN_COMPARISON_CASES", source)
+        self.assertIn("run_blind_model_benchmark", source)
+        self.assertIn("cano_gold_model_v3", source)
+        self.assertIn("cano_gold_model_v4", source)
+        self.assertLess(source.index("cano_gold_model_v3"), source.index("if isinstance(saved_human_labels, dict)"))
+        self.assertLess(source.index("cano_gold_model_v4"), source.index("if isinstance(v4_saved_labels, dict)"))
         self.assertIn("Kaynağı aç:", source)
         self.assertIn("source_url", source)
         self.assertIn("CANO_HUMAN_BENCHMARK_ANSWER_KEY", source)
         self.assertIn("load_expected_labels", source)
-        self.assertIn("expected_labels=human_answer_key", source)
+        self.assertIn('answer_key_json=os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY")', source)
         self.assertIn("24 insan değerlendirmesini kaydet", source)
-        self.assertIn("Etiketlerden sonra CANO modelini çalıştır", source)
+        self.assertIn("Kaynak anahtarıyla CANO'yu çalıştır (24 vaka, 1 çağrı)", source)
         self.assertIn("cano_claim_review_human_labels_v3", source)
         self.assertIn("score_labels(\n            HUMAN_COMPARISON_CASES, saved_human_labels, human_answer_key)", source)
         self.assertIn("gerçek dünya", source)
@@ -84,10 +89,23 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("cano_claim_review_human_labels_v4", source)
         self.assertIn("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V4", source)
         self.assertIn("Ek 24 insan değerlendirmesini kaydet", source)
-        self.assertIn("Ek kohortta CANO modelini çalıştır (24 vaka, 1 çağrı)", source)
-        self.assertIn("expected_labels=v4_answer_key", source)
+        self.assertIn("Ek kohortta CANO'yu gizli kaynak anahtarıyla çalıştır (24 vaka, 1 çağrı)", source)
+        self.assertIn('answer_key_json=os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V4")', source)
         self.assertIn("v4_agreement", source)
         self.assertIn("cevap anahtarı gösterilmedi", source)
+
+
+    def test_gold_model_runs_are_available_before_human_labels(self):
+        path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
+        source = path.read_text(encoding="utf-8")
+        self.assertIn("run_blind_model_benchmark", source)
+        self.assertIn("cano_gold_model_v3", source)
+        self.assertIn("cano_gold_model_v4", source)
+        self.assertLess(source.index("cano_gold_model_v3"),
+                        source.index("if isinstance(saved_human_labels, dict)"))
+        self.assertLess(source.index("cano_gold_model_v4"),
+                        source.index("if isinstance(v4_saved_labels, dict)"))
+        self.assertIn("gizli kaynak anahtarına uyum", source)
 
 
 if __name__ == "__main__":
