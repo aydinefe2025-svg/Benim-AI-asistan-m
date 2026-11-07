@@ -87,6 +87,65 @@ class CanoBackupBundleTests(unittest.TestCase):
             restored = json.loads((root / "restored" / "organism-lab-records.json").read_text())
             self.assertEqual(restored["records"], records)
 
+    def test_v2_export_rejects_lab_record_larger_than_store_limit(self):
+        import base64
+        import hashlib
+        from core.organism_lab_persistence import OrganismLabStore
+
+        limit = OrganismLabStore.MAX_RECORD_BYTES
+        raw = b'{"payload":"' + b"x" * limit + b'"}'
+        self.assertGreater(len(raw), limit)
+        digest = hashlib.sha256(raw).hexdigest()
+        oversized = [{
+            "record_id": "cano-organism-lab-v1-world-" + digest,
+            "kind": "world",
+            "sha256": digest,
+            "data_b64": base64.b64encode(raw).decode("ascii"),
+        }]
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        with self.assertRaisesRegex(ValueError, "size limit"):
+            create_portable_bundle(
+                colony=colony, memories=[], research_tasks=b"{}",
+                authorized_queue=[], organism_records=oversized,
+            )
+
+    def test_v2_verified_archive_rejects_oversized_lab_record_even_with_valid_manifest(self):
+        import base64
+        import hashlib
+        from core.organism_lab_persistence import OrganismLabStore
+
+        raw = b'{"payload":"' + b"x" * OrganismLabStore.MAX_RECORD_BYTES + b'"}'
+        digest = hashlib.sha256(raw).hexdigest()
+        oversized = {
+            "record_id": "cano-organism-lab-v1-world-" + digest,
+            "kind": "world",
+            "sha256": digest,
+            "data_b64": base64.b64encode(raw).decode("ascii"),
+        }
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        good = create_portable_bundle(
+            colony=colony, memories=[], research_tasks=b"{}",
+            authorized_queue=[], organism_records=[],
+        )
+        with ZipFile(BytesIO(good), "r") as archive:
+            files = {name: archive.read(name) for name in archive.namelist()}
+        lab = json.dumps({
+            "schema": "cano-organism-lab-export-v1", "records": [oversized],
+        }, separators=(",", ":")).encode("utf-8")
+        files["organism-lab-records.json"] = lab
+        manifest = json.loads(files["manifest.json"])
+        manifest["components"]["organism-lab-records.json"] = {
+            "sha256": hashlib.sha256(lab).hexdigest(),
+            "size_bytes": len(lab),
+        }
+        files["manifest.json"] = json.dumps(manifest, separators=(",", ":")).encode()
+        forged = BytesIO()
+        with ZipFile(forged, "w", compression=ZIP_DEFLATED) as archive:
+            for name, data in files.items():
+                archive.writestr(name, data)
+        with self.assertRaisesRegex(ValueError, "size limit"):
+            verify_portable_bundle(forged.getvalue())
+
     def test_bundle_rejects_tampered_component_and_unexpected_files(self):
         colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
         bundle = create_portable_bundle(
