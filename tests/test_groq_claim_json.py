@@ -39,7 +39,7 @@ class GroqClaimJsonTests(unittest.TestCase):
             "Skeptically review", "Untrusted claim and excerpt",
             api_key="dummy-key", client_factory=lambda **kw: client)
         self.assertEqual(json.loads(value), fixture)
-        self.assertEqual(client.calls[0]["model"], "openai/gpt-oss-20b")
+        self.assertEqual(client.calls[0]["model"], "openai/gpt-oss-120b")
         self.assertEqual(client.calls[0]["max_completion_tokens"], 2400)
         schema = client.calls[0]["response_format"]["json_schema"]["schema"]
         self.assertEqual(
