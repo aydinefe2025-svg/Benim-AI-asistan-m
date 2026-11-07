@@ -8,6 +8,7 @@ from organism_lab.colony_resilience import (
     explain_colony_resilience,
     run_colony_resilience_study,
     save_colony_resilience_study,
+    validate_colony_resilience_report,
 )
 
 
@@ -54,6 +55,14 @@ class ColonyResilienceTests(unittest.TestCase):
     def test_explanation_rejects_unknown_report(self):
         with self.assertRaises(ValueError):
             explain_colony_resilience({"schema": "fake"})
+
+    def test_tampering_is_detected_before_display_or_save(self):
+        report = run_colony_resilience_study(seeds=3)
+        report["arms"]["open_broadcast"]["mean_compromised_nodes"] = 0
+        with self.assertRaisesRegex(ValueError, "integrity"):
+            validate_colony_resilience_report(report)
+        with self.assertRaisesRegex(ValueError, "integrity"):
+            explain_colony_resilience(report)
 
 
 if __name__ == "__main__":

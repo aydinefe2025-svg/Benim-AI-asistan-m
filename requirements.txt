@@ -1,5 +1,0 @@
-google-genai
-groq
-requests
-streamlit>=1.42,<2.0
-psycopg[binary]>=3.2,<4

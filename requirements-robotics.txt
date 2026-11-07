@@ -1,2 +1,0 @@
-# Optional headless physics validation; never installed in the hosted chat app.
-mujoco==3.17.0

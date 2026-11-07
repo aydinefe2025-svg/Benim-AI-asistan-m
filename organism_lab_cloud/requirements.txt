@@ -1,2 +1,0 @@
-streamlit[auth]==1.66.1
-psycopg[binary]==3.3.7

@@ -83,6 +83,26 @@ def _mean(rows: list[dict], key: str) -> float:
     return sum(row[key] for row in rows) / len(rows)
 
 
+def _report_digest(report: dict) -> str:
+    payload = {key: value for key, value in report.items()
+               if key not in {"sha256", "generated_at", "run_id"}}
+    canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False,
+                           separators=(",", ":"), allow_nan=False).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def validate_colony_resilience_report(report: dict) -> bool:
+    """Reject malformed or altered report content before display or persistence."""
+    if not isinstance(report, dict) or report.get("schema") != SCHEMA:
+        raise ValueError("Unrecognized colony resilience report")
+    if report.get("status") != "simulation_only":
+        raise ValueError("Colony report status is invalid")
+    digest = report.get("sha256")
+    if not isinstance(digest, str) or digest != _report_digest(report):
+        raise ValueError("Colony resilience report integrity check failed")
+    return True
+
+
 def run_colony_resilience_study(*, seeds=30, ticks=10, population=16,
                                 compartments=4, fault_tick=3) -> dict:
     """Compare open broadcast with segmented, allow-listed communication.
@@ -152,16 +172,13 @@ def run_colony_resilience_study(*, seeds=30, ticks=10, population=16,
             ],
         },
     }
-    canonical = json.dumps(report, sort_keys=True, ensure_ascii=False,
-                           separators=(",", ":"), allow_nan=False).encode("utf-8")
-    report["sha256"] = hashlib.sha256(canonical).hexdigest()
+    report["sha256"] = _report_digest(report)
     return report
 
 
 def explain_colony_resilience(report: dict) -> str:
     """Make the paired experiment legible without an LLM call."""
-    if report.get("schema") != SCHEMA or report.get("status") != "simulation_only":
-        raise ValueError("Unrecognized colony resilience report")
+    validate_colony_resilience_report(report)
     arms = report.get("arms", {})
     open_arm = arms.get("open_broadcast", {})
     protected = arms.get("segmented_validated", {})
@@ -207,7 +224,9 @@ def save_colony_resilience_study(report: dict, path) -> dict:
         try:
             temporary.write_text(payload, encoding="utf-8")
             temporary.replace(destination)
-            if json.loads(destination.read_text(encoding="utf-8")) != document:
+            restored = json.loads(destination.read_text(encoding="utf-8"))
+            validate_colony_resilience_report(restored)
+            if restored != document:
                 raise OSError("Study result failed read-back verification")
         finally:
             temporary.unlink(missing_ok=True)
