@@ -1,0 +1,13 @@
+{
+  "files": {
+    ".github/workflows/cano-adaptation-evidence.yml": "d7bdbc838491f12771d95171d8009da2d3586c6ffd60706cd43b665d3967b418",
+    "docs/CANO_ADAPTATION_EXPLORATORY_2026-11-08.md": "ef0fa6c23476510b92baba59008ad55833e64246fc1052fc3b36ac8286fa9f0c",
+    "organism_lab_cloud/organism_lab/adaptation_validation.py": "3864f67a37108afe8153dff44cccb01d921135150f31b46387d033210bbc0059",
+    "organism_lab_cloud/organism_lab/tests/test_adaptation_validation.py": "954c8def03f17da2d9cd7c9e44c5bb024d9b1e65b1d3ab244336f3d912d1fe2c",
+    "research_reports/organism-lab-adaptation/validation-2026-11-08-confirmatory.json": "8186e73192cfd153244c728e2dd26f1a571b7b22908a5e2b6719264de2ab2d11",
+    "research_reports/organism-lab-adaptation/validation-2026-11-08.json": "8a42dd299fbce6664f17399d242744f313c5feaf9a4d5b96674462331427d828"
+  },
+  "issue": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/413",
+  "schema": "cano-adaptation-evidence-v1",
+  "scope": "offline deterministic toy simulation, not AI learning, no claim of robust adaptation"
+}
