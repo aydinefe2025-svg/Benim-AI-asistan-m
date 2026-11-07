@@ -262,8 +262,7 @@ def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
         )
         if not isinstance(cached, dict) or now - cached.get("fetched_at", 0) >= 300:
             try:
-                fetch_status = (lambda: loader(force_refresh=force_refresh)) if loader is load_latest_colony_status else loader
-                cached = {"fetched_at": now, "value": _load_process_cached(fetch_status, force_refresh=force_refresh)}
+                cached = {"fetched_at": now, "value": _load_process_cached(loader, force_refresh=force_refresh)}
                 st.session_state[cache_key] = cached
             except ColonyStatusUnavailable as exc:
                 st.warning(f"GitHub Actions raporu okunamadı (tanı kodu: {exc}). Daha sonra yenile.")
