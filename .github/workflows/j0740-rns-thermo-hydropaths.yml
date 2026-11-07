@@ -1,0 +1,53 @@
+name: J0740 RNS real C four thermodynamic lookup paths audit
+on:
+  pull_request:
+    paths:
+      - "research/j0740/rotating_gr/rns_three_path_consistency.py"
+      - "research/j0740/rotating_gr/test_rns_three_path_consistency.py"
+      - ".github/workflows/j0740-rns-thermo-hydropaths.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify-rns-thermo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install numpy
+      - name: Validate 10 interpolation and physical-path guards
+        working-directory: research/j0740/rotating_gr
+        run: python -m unittest -v test_rns_three_path_consistency
+      - name: Reuse prior pinned seven EOS full GR artifact without RNS rerun
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p prior-rns
+          gh run download 42353019033 --repo "$GITHUB_REPOSITORY" \
+            --name j0740-seven-eos-rns-fixed-mass-results \
+            --dir prior-rns
+      - name: Audit e_at_p h_at_p and inverse p_at_e p_at_h on seven EOS at 196 and 200 nodes
+        run: |
+          python research/j0740/rotating_gr/rns_three_path_consistency.py \
+            --rns-json prior-rns/J0740_seven_EOS_full_GR_fixed_spin_mass.json \
+            --jester-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --out results/J0740_RNS_four_lookup_paths_full_source.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-rns-four-lookup-paths-sixteen-comparisons
+          path: results/J0740_RNS_four_lookup_paths_full_source.json
+          if-no-files-found: warn
+          retention-days: 30
