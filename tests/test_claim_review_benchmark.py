@@ -33,12 +33,12 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
         for url in sources:
             grouped = [case for case in V5_COMPARISON_CASES if case["source_url"] == url]
             self.assertEqual(len(grouped), 3)
-            self.assertEqual(sum(len(case["excerpt"].split()) for case in grouped), 
-                             sum(len(case["excerpt"].split()) for case in grouped))
+            self.assertLessEqual(
+                sum(len(case["excerpt"].split()) for case in grouped), 25)
+        labels = ("supported", "contradicted", "insufficient")
         private_key = {
-            case["case_id"]: ("supported", "contradicted", "insufficient")[
-                int(case["case_id"].split("_")[1]) % 3]
-            for case in V5_COMPARISON_CASES
+            case["case_id"]: labels[index % 3]
+            for index, case in enumerate(V5_COMPARISON_CASES)
         }
         parsed = load_expected_labels(json.dumps(private_key), V5_COMPARISON_CASES)
         self.assertEqual(set(parsed), {case["case_id"] for case in V5_COMPARISON_CASES})
