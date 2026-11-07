@@ -257,6 +257,24 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         saved = CollaborativeMission(self.manager.colony).get(self.mission_id)
         self.assertEqual(saved["stages"][0]["source_claim_audit"], result)
 
+        # An unavailable advisory pass is not a final audit: an explicit retry
+        # may recover while preserving the failed assessment in audit history.
+        recovered = QuoteModel([{
+            "claim": "A claim", "doi": DOI, "quote": QUOTE,
+            "comparison": "supports", "rationale": "proposal",
+        }])
+        retried = audit_claim_quotes(self.manager, self.mission_id,
+                                     client=recovered, model="stub")
+        self.assertEqual(len(recovered.calls), 2)
+        self.assertEqual(retried[0]["machine_assessment"]["verdict"], "supported")
+        saved = self.manager.get(self.mission_id)["stages"][0]
+        self.assertEqual(saved["source_claim_audit"], retried)
+        self.assertEqual(
+            saved["source_claim_audit_history"][0]["claims"][0]
+                 ["machine_assessment"]["available"],
+            False,
+        )
+
 
     def test_legacy_audit_is_preserved_when_upgraded_and_new_version_is_idempotent(self):
         self.add_excerpt()
