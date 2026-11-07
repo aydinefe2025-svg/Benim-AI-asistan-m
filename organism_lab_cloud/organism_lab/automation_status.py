@@ -191,8 +191,29 @@ def load_latest_colony_status(request_get=None) -> dict:
         }
     except ColonyStatusUnavailable:
         raise
-    except Exception:
-        raise ColonyStatusUnavailable("github_cycle_unavailable") from None
+    except Exception as exc:
+        # Expose only a fixed diagnostic code; never show URLs, response bodies,
+        # headers, credentials, or arbitrary exception text in the app.
+        code = "github_cycle_unavailable"
+        try:
+            import requests
+            if isinstance(exc, requests.Timeout):
+                code = "github_timeout"
+            elif isinstance(exc, requests.HTTPError):
+                status = getattr(getattr(exc, "response", None), "status_code", None)
+                code = {
+                    401: "github_http_401",
+                    403: "github_http_403_or_rate_limit",
+                    404: "github_http_404",
+                    429: "github_http_429",
+                }.get(status, "github_http_5xx" if isinstance(status, int) and status >= 500 else "github_http_error")
+            elif isinstance(exc, zipfile.BadZipFile):
+                code = "artifact_not_a_valid_zip"
+            elif isinstance(exc, json.JSONDecodeError):
+                code = "artifact_json_invalid"
+        except Exception:
+            pass
+        raise ColonyStatusUnavailable(code) from None
 
 
 def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
@@ -213,8 +234,8 @@ def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
             try:
                 cached = {"fetched_at": now, "value": loader()}
                 st.session_state[cache_key] = cached
-            except ColonyStatusUnavailable:
-                st.warning("GitHub Actions raporu şu anda okunamıyor; daha sonra yenile.")
+            except ColonyStatusUnavailable as exc:
+                st.warning(f"GitHub Actions raporu okunamadı (tanı kodu: {exc}). Daha sonra yenile.")
                 return
         value = cached["value"]
         if value.get("state") == "no_runs":
