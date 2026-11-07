@@ -235,6 +235,28 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(resumed["status"], "review_pending")
             self.assertEqual(len(resumed["stages"]), 4)
 
+    def test_generic_mission_failure_shows_safe_location_and_fresh_blocked_count(self):
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        calls = []
+        def fail_during_research(prompt):
+            calls.append(prompt)
+            if len(calls) == 2:
+                raise RuntimeError("private provider detail")
+            return f"Stage {len(calls)}"
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            st.task = "Safe diagnostics test"
+            st.submit = True
+            render_cano_command_center(st, answer=fail_during_research)
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            self.assertEqual(read_cano_status(colony)["blocked"], 1)
+        messages = " ".join(st.messages)
+        self.assertIn("Görev durdu: model sağlayıcı çağrısı, researcher rolü", messages)
+        self.assertIn("RuntimeError", messages)
+        self.assertIn("1 yarım kalmış görev var", messages)
+        self.assertNotIn("private provider detail", messages)
+        self.assertEqual(len(calls), 2)
+
     def test_evidence_read_button_shows_saved_source_excerpt(self):
         from core.collaborative_mission import CollaborativeMission
         st = FakeStreamlit(clicks={"cano_prepare_team"})

@@ -350,12 +350,15 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                         st.error("Kısmi görev PostgreSQL'e kaydedilemedi; JSON yedeği alın.")
                     st.warning("Groq kotası doldu. Kısmi aşamalar yerel SQLite'da korundu; "
                                "kota yenilendiğinde kaldığınız yerden sürdürün.")
-                except (RuntimeError, ValueError, OSError, sqlite3.Error):
+                except (RuntimeError, ValueError, OSError, sqlite3.Error) as exc:
                     try:
                         _checkpoint(archive_prior=(stage_checkpoint_count[0] == 0))
                     except Exception:
                         st.error("Kısmi görev PostgreSQL'e kaydedilemedi; JSON yedeği alın.")
-                    st.error("Görev tamamlanamadı; yerel kayıt ve kısmi aşamalar korundu.")
+                    # Import lazily: colony_panel imports _snapshot from this module.
+                    # The helper exposes only phase, role, and exception class, never raw text.
+                    from core.colony_panel import mission_failure_message
+                    st.error(mission_failure_message(exc, manager.last_failure))
                 else:
                     try:
                         _checkpoint(archive_prior=False)
@@ -367,12 +370,11 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                     st.rerun()
                     return
 
+    # Refresh before rendering counts: a task may have become blocked above.
+    status = read_cano_status(colony)
     if status["blocked"]:
         st.warning(f"{status['blocked']} yarım kalmış görev var. "
                    "Yan menüdeki 'Öğrenen uzman ajanlar' alanından sürdürebilirsiniz.")
-
-    # Refresh after a button-triggered task so results are visible on this run.
-    status = read_cano_status(colony)
     latest_id = st.session_state.get("cano_cockpit_latest_mission")
     if not latest_id and status["history"]:
         latest_id = status["history"][0]["id"]
