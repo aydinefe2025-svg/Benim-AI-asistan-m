@@ -20,7 +20,7 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("record_source_claim_review", source)
         self.assertIn("reviewer_id=owner", source)
         self.assertIn("full_text_excerpt", source)
-        self.assertIn("İddiaları çıkar ve ayrı AI modeliyle kuşkucu incele", source)
+        self.assertIn("İddiaları çıkar ve ayrı kuşkucu AI geçişi çalıştır", source)
         self.assertIn("generate_claim_verification_json", source)
         self.assertIn("run_claim_review_benchmark", source)
         self.assertIn("12 vakayı tek model çağrısıyla ölç", source)
