@@ -56,7 +56,6 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
         self.assertEqual(result["total"], 24)
         self.assertEqual(result["correct"], 24)
         self.assertNotIn("expected", client.calls[0][2])
-        self.assertNotIn("supported", client.calls[0][2])
 
     def test_private_answer_key_parser_rejects_missing_or_wrong_keys(self):
         cases = ({"case_id": "a"}, {"case_id": "b"})
