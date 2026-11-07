@@ -40,7 +40,9 @@ jobs:
         run: |
           make -C rns-upstream rns
           cp rns-upstream/rns rns-upstream/rns_151x301
-          make -C rns-upstream clean
+          # Upstream rns makefile has no 'clean' target: erase ONLY generated
+          # object files/working binary, preserving the saved baseline executable.
+          rm -f rns-upstream/*.o rns-upstream/rns
           make -C rns-upstream HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
           cp rns-upstream/rns rns-upstream/rns_201x401
       - name: Reuse pinned original seven-EOS model without rerunning mass roots
