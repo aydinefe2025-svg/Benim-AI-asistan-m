@@ -86,36 +86,32 @@ CASES = (
     },
 )
 
-# New blind v2 set; labels are withheld until a reviewer submits judgments.
-HUMAN_COMPARISON_CASES = tuple(
-    {"case_id": case_id, "claim": claim, "excerpt": excerpt, "expected": expected}
-    for case_id, claim, excerpt, expected in (
-        ("s2_a", "Among adults with type 2 diabetes, the program lowered HbA1c by 0.4 percentage points versus usual care.", "In adults with type 2 diabetes, mean HbA1c fell 0.4 percentage points more with the program than with usual care.", "supported"),
-        ("c2_a", "The drug reduced hospital admissions by 30%.", "Hospital admission rates were similar between groups (relative risk 0.98, 95% CI 0.80–1.20).", "contradicted"),
-        ("i2_a", "The intervention reduced cardiovascular mortality.", "The report describes changes in systolic blood pressure but provides no mortality outcome.", "insufficient"),
-        ("s2_b", "The vaccine was 92% effective against symptomatic disease.", "Estimated vaccine effectiveness against symptomatic disease was 92% (95% CI 88–95%).", "supported"),
-        ("c2_b", "All enrolled participants completed the 24-week follow-up.", "Twenty-three of 120 participants were lost to follow-up before week 24.", "contradicted"),
-        ("i2_b", "The treatment is safe during pregnancy.", "The trial enrolled nonpregnant adults and reports no pregnancy exposure.", "insufficient"),
-        ("s2_c", "No serious adverse events were reported during the study.", "No serious adverse events were reported among the 63 participants.", "supported"),
-        ("c2_c", "The study was a randomized controlled trial.", "This was a retrospective cohort study using routinely collected records.", "contradicted"),
-        ("i2_c", "The benefit lasts at least two years.", "Outcomes were assessed immediately after the 10-week program; later follow-up was not reported.", "insufficient"),
-        ("s2_d", "The intervention improved memory at six months.", "Memory scores were higher in the intervention group at the six-month assessment than at baseline.", "supported"),
-        ("c2_d", "The intervention group received an extra counseling session beyond controls.", "Both groups received the same counseling session at baseline.", "contradicted"),
-        ("i2_d", "The new device is better than the standard device.", "The study describes device usability but includes no comparison group.", "insufficient"),
-        ("s2_e", "The model had an AUROC of 0.81 in external validation.", "External validation yielded an area under the ROC curve of 0.81.", "supported"),
-        ("c2_e", "The assay had 95% sensitivity.", "Sensitivity was 85% (95% CI 79–90%) in the validation sample.", "contradicted"),
-        ("i2_e", "The intervention is cost-effective.", "The paper reports clinical outcomes and does not include an economic analysis.", "insufficient"),
-        ("s2_f", "The pooled estimate favored treatment, but its confidence interval included no effect.", "The pooled risk ratio was 0.91 (95% CI 0.72–1.15).", "supported"),
-        ("c2_f", "The prespecified primary outcome showed a statistically significant benefit.", "The prespecified primary outcome did not differ significantly between groups (p=0.41).", "contradicted"),
-        ("i2_f", "The effect is larger in women than in men.", "Overall results are reported, but no sex-stratified estimates or interaction test are provided.", "insufficient"),
-        ("s2_g", "The trial randomized 340 participants equally between two arms.", "A total of 340 participants were randomized, 170 to each study arm.", "supported"),
-        ("c2_g", "The analysis included 1,240 patients.", "The analysis included 1,204 patients after exclusions.", "contradicted"),
-        ("i2_g", "The policy reduced traffic injuries in rural areas.", "The evaluation reports citywide traffic injury totals without rural subgroup results.", "insufficient"),
-        ("s2_h", "The intervention was delivered remotely by telephone.", "Study staff delivered the intervention through scheduled telephone calls.", "supported"),
-        ("c2_h", "Anxiety scores were lower in the intervention group at end of treatment.", "Anxiety scores were higher in the intervention group at the end of treatment.", "contradicted"),
-        ("i2_h", "The biomarker predicts disease onset.", "Biomarker concentrations were measured in patients after diagnosis; prospective prediction was not evaluated.", "insufficient")
-
-    )
+# Blind comparison cases. Gold labels live only in the server environment.
+HUMAN_COMPARISON_CASES = (
+    {"case_id": "v2_01", "claim": "Among adults with type 2 diabetes, the program lowered HbA1c by 0.4 percentage points versus usual care.", "In adults with type 2 diabetes, mean HbA1c fell 0.4 percentage points more with the program than with usual care.", "excerpt": },
+    {"case_id": "v2_02", "claim": "The drug reduced hospital admissions by 30%.", "Hospital admission rates were similar between groups (relative risk 0.98, 95% CI 0.80–1.20).", "excerpt": },
+    {"case_id": "v2_03", "claim": "The intervention reduced cardiovascular mortality.", "The report describes changes in systolic blood pressure but provides no mortality outcome.", "excerpt": },
+    {"case_id": "v2_04", "claim": "The vaccine was 92% effective against symptomatic disease.", "Estimated vaccine effectiveness against symptomatic disease was 92% (95% CI 88–95%).", "excerpt": },
+    {"case_id": "v2_05", "claim": "All enrolled participants completed the 24-week follow-up.", "Twenty-three of 120 participants were lost to follow-up before week 24.", "excerpt": },
+    {"case_id": "v2_06", "claim": "The treatment is safe during pregnancy.", "The trial enrolled nonpregnant adults and reports no pregnancy exposure.", "excerpt": },
+    {"case_id": "v2_07", "claim": "No serious adverse events were reported during the study.", "No serious adverse events were reported among the 63 participants.", "excerpt": },
+    {"case_id": "v2_08", "claim": "The study was a randomized controlled trial.", "This was a retrospective cohort study using routinely collected records.", "excerpt": },
+    {"case_id": "v2_09", "claim": "The benefit lasts at least two years.", "Outcomes were assessed immediately after the 10-week program; later follow-up was not reported.", "excerpt": },
+    {"case_id": "v2_10", "claim": "The intervention improved memory at six months.", "Memory scores were higher in the intervention group at the six-month assessment than at baseline.", "excerpt": },
+    {"case_id": "v2_11", "claim": "The intervention group received an extra counseling session beyond controls.", "Both groups received the same counseling session at baseline.", "excerpt": },
+    {"case_id": "v2_12", "claim": "The new device is better than the standard device.", "The study describes device usability but includes no comparison group.", "excerpt": },
+    {"case_id": "v2_13", "claim": "The model had an AUROC of 0.81 in external validation.", "External validation yielded an area under the ROC curve of 0.81.", "excerpt": },
+    {"case_id": "v2_14", "claim": "The assay had 95% sensitivity.", "Sensitivity was 85% (95% CI 79–90%) in the validation sample.", "excerpt": },
+    {"case_id": "v2_15", "claim": "The intervention is cost-effective.", "The paper reports clinical outcomes and does not include an economic analysis.", "excerpt": },
+    {"case_id": "v2_16", "claim": "The pooled estimate favored treatment, but its confidence interval included no effect.", "The pooled risk ratio was 0.91 (95% CI 0.72–1.15).", "excerpt": },
+    {"case_id": "v2_17", "claim": "The prespecified primary outcome showed a statistically significant benefit.", "The prespecified primary outcome did not differ significantly between groups (p=0.41).", "excerpt": },
+    {"case_id": "v2_18", "claim": "The effect is larger in women than in men.", "Overall results are reported, but no sex-stratified estimates or interaction test are provided.", "excerpt": },
+    {"case_id": "v2_19", "claim": "The trial randomized 340 participants equally between two arms.", "A total of 340 participants were randomized, 170 to each study arm.", "excerpt": },
+    {"case_id": "v2_20", "claim": "The analysis included 1,240 patients.", "The analysis included 1,204 patients after exclusions.", "excerpt": },
+    {"case_id": "v2_21", "claim": "The policy reduced traffic injuries in rural areas.", "The evaluation reports citywide traffic injury totals without rural subgroup results.", "excerpt": },
+    {"case_id": "v2_22", "claim": "The intervention was delivered remotely by telephone.", "Study staff delivered the intervention through scheduled telephone calls.", "excerpt": },
+    {"case_id": "v2_23", "claim": "Anxiety scores were lower in the intervention group at end of treatment.", "Anxiety scores were higher in the intervention group at the end of treatment.", "excerpt": },
+    {"case_id": "v2_24", "claim": "The biomarker predicts disease onset.", "Biomarker concentrations were measured in patients after diagnosis; prospective prediction was not evaluated.", "excerpt": },
 )
 
 
@@ -133,19 +129,38 @@ _SYSTEM = (
 )
 
 
-def score_labels(cases, labels):
-    """Score submitted human labels against the hidden fixture key."""
-    cases = tuple(cases)
-    if set(labels) != {case["case_id"] for case in cases}:
-        raise ValueError("A label is required for every case, with no extras")
+def load_expected_labels(raw, cases=HUMAN_COMPARISON_CASES):
+    """Parse and validate the private server-side benchmark answer key."""
+    if not raw:
+        raise RuntimeError("Private benchmark answer key is not configured")
+    try:
+        answer_key = json.loads(raw)
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise ValueError("Private benchmark answer key is invalid JSON") from exc
+    case_ids = {case["case_id"] for case in cases}
     allowed = {"supported", "contradicted", "insufficient"}
-    if any(labels[case["case_id"]] not in allowed for case in cases):
-        raise ValueError("Invalid label")
+    if not isinstance(answer_key, dict) or set(answer_key) != case_ids:
+        raise ValueError("Private benchmark answer key does not match fixture set")
+    if any(value not in allowed for value in answer_key.values()):
+        raise ValueError("Private benchmark answer key contains invalid labels")
+    return answer_key
+
+
+def score_labels(cases, labels, expected_labels):
+    """Score submitted human labels against server-provided hidden labels."""
+    cases = tuple(cases)
+    case_ids = {case["case_id"] for case in cases}
+    if set(labels) != case_ids or set(expected_labels) != case_ids:
+        raise ValueError("A human and gold label are required for every case")
     allowed_labels = ("supported", "contradicted", "insufficient")
+    if any(labels[case["case_id"]] not in allowed_labels or
+           expected_labels[case["case_id"]] not in allowed_labels for case in cases):
+        raise ValueError("Invalid label")
     matrix = {gold: {label: 0 for label in allowed_labels}
               for gold in allowed_labels}
     for case in cases:
-        matrix[case["expected"]][labels[case["case_id"]]] += 1
+        case_id = case["case_id"]
+        matrix[expected_labels[case_id]][labels[case_id]] += 1
     correct = sum(matrix[label][label] for label in allowed_labels)
     per_class = {}
     for label in allowed_labels:
@@ -161,11 +176,18 @@ def score_labels(cases, labels):
     }
 
 
-def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CASES):
+def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CASES, expected_labels=None):
     """Run a fixed case set in one reviewer call and return a bounded scorecard."""
     cases = tuple(cases)
     if not cases:
         raise ValueError("Benchmark case set must not be empty")
+    if expected_labels is None:
+        if not all("expected" in case for case in cases):
+            raise RuntimeError("Expected labels must be supplied outside the fixture source")
+        expected_labels = {case["case_id"]: case["expected"] for case in cases}
+    case_ids = {case["case_id"] for case in cases}
+    if set(expected_labels) != case_ids:
+        raise ValueError("Expected labels do not match benchmark fixtures")
     prompt_cases = [
         {"index": index, "claim": case["claim"], "source_excerpt": case["excerpt"]}
         for index, case in enumerate(cases)
@@ -191,7 +213,7 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CAS
     correct = 0
     for index, case in enumerate(cases):
         prediction = predictions.get(index, {}).get("verdict") or "unscored"
-        expected = case["expected"]
+        expected = expected_labels[case["case_id"]]
         matrix[expected][prediction] += 1
         passed = prediction == expected
         correct += int(passed)
