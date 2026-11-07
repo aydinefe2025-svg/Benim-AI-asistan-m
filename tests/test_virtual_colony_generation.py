@@ -22,6 +22,12 @@ class VirtualGenerationTests(unittest.TestCase):
             self.assertEqual(first["offspring_scope"], "bounded toy digital VM only")
             self.assertFalse(first["model_weights_updated"])
             self.assertIn(first["lesson_status"], {"transferred", "rejected"})
+            self.assertGreater(first["training"]["candidate_mean_births"], 0)
+            self.assertGreater(first["training"]["candidate_mean_max_generation"], 0)
+            self.assertIn(first["primary_metric"], {
+                "held-out task-B genome share",
+                "final surviving unique genome count",
+            })
             if first["lesson_status"] == "transferred":
                 self.assertTrue(first["training"]["positive_evidence"])
                 self.assertTrue(first["held_out_confirmation"]["positive_evidence"])
