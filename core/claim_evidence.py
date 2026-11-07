@@ -261,7 +261,7 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
             "object with an \"assessments\" array. Include exactly one object per "
             "input index; each object must contain integer \"index\", \"verdict\" "
             "with one allowed verdict, and a concise string \"reason\". Do not add "
-            "other top-level keys.\\n" + json.dumps(candidates, ensure_ascii=False)
+            "other top-level keys.\n" + json.dumps(candidates, ensure_ascii=False)
         )
         try:
             assessments = _parse_assessments(
