@@ -1,0 +1,15 @@
+{
+  "name": "cano-mastra-mcp-validation",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "description": "Isolated test-only Mastra MCP pinned version and storage registration smoke; never production agent code",
+  "engines": { "node": ">=22.22.0" },
+  "scripts": { "test": "node --test ./smoke.test.mjs" },
+  "dependencies": {
+    "@mastra/core": "1.81.0",
+    "@mastra/mcp": "2.7.0",
+    "@mastra/libsql": "1.28.0",
+    "zod": "4.2.1"
+  }
+}
