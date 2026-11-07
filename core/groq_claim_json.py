@@ -65,7 +65,7 @@ _VERIFICATION_SCHEMA = {
 def generate_claim_quote_json(system, prompt, *, api_key,
                               client_factory=None, model=_MODEL):
     """One strict-JSON provider call, no automatic chargeable retries."""
-    return _generate_strict_json(
+    return _generate_json_response(
         system, prompt, _SCHEMA, "cano_claim_quote_proposals", "claims",
         api_key=api_key, client_factory=client_factory, model=model,
         max_completion_tokens=_CLAIM_COMPLETION_LIMIT)
@@ -74,16 +74,17 @@ def generate_claim_quote_json(system, prompt, *, api_key,
 def generate_claim_verification_json(system, prompt, *, api_key,
                                      client_factory=None, model=_VERIFICATION_MODEL):
     """A separate model's skeptical pass; it never sets claim_verified."""
-    return _generate_strict_json(
+    return _generate_json_response(
         system, prompt, _VERIFICATION_SCHEMA, "cano_claim_evidence_assessments",
         "assessments", api_key=api_key, client_factory=client_factory, model=model,
-        max_completion_tokens=_REVIEW_COMPLETION_LIMIT)
+        max_completion_tokens=_REVIEW_COMPLETION_LIMIT, json_object_mode=True)
 
 
-def _generate_strict_json(system, prompt, schema, schema_name, response_key, *,
-                          api_key, client_factory=None, model=_MODEL,
-                          max_completion_tokens=_CLAIM_COMPLETION_LIMIT):
-    """One strict-JSON provider call, no automatic chargeable retries."""
+def _generate_json_response(system, prompt, schema, schema_name, response_key, *,
+                            api_key, client_factory=None, model=_MODEL,
+                            max_completion_tokens=_CLAIM_COMPLETION_LIMIT,
+                            json_object_mode=False):
+    """One bounded JSON provider call, validated locally, with no retries."""
     if (not isinstance(system, str) or not isinstance(prompt, str)
             or not system.strip() or not prompt.strip()
             or len(system) + len(prompt) > 9000):
@@ -94,6 +95,16 @@ def _generate_strict_json(system, prompt, schema, schema_name, response_key, *,
         from groq import Groq
         client_factory = Groq
     client = client_factory(api_key=api_key, timeout=25.0, max_retries=0)
+    response_format = (
+        {"type": "json_object"} if json_object_mode else {
+            "type": "json_schema",
+            "json_schema": {
+                "name": schema_name,
+                "strict": True,
+                "schema": schema,
+            },
+        }
+    )
     try:
         result = client.chat.completions.create(
             model=model,
@@ -101,14 +112,7 @@ def _generate_strict_json(system, prompt, schema, schema_name, response_key, *,
                 {"role": "system", "content": system + "\nOutput valid JSON only."},
                 {"role": "user", "content": prompt},
             ],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": schema_name,
-                    "strict": True,
-                    "schema": schema,
-                },
-            },
+            response_format=response_format,
             reasoning_format="hidden",
             reasoning_effort="low",
             max_completion_tokens=max_completion_tokens,
