@@ -315,6 +315,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
                 "claim": "The review had high confidence in every exercise effect.",
                 "doi": doi, "quote": excerpt, "status": "quote_found_unverified",
                 "citation_url": "",
+                "human_review": {},
                 "comparison": "insufficient", "comparison_status": "model_suggested",
                 "claim_verified": False,
                 "machine_assessment": {
