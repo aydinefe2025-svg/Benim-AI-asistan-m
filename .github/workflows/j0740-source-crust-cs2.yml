@@ -1,0 +1,44 @@
+name: J0740 pinned source low-density negative cs2 forensic audit
+on:
+  pull_request:
+    paths:
+      - "research/j0740/rotating_gr/source_crust_cs2_audit.py"
+      - "research/j0740/rotating_gr/test_source_crust_cs2_audit.py"
+      - ".github/workflows/j0740-source-crust-cs2.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-crust-forensics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+            jesterTOV/tabulated_eos/generate_lalsuite_eos.py
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install numpy
+      - name: Unit test derivative identity and unmodified negative source knots
+        working-directory: research/j0740/rotating_gr
+        run: python -m unittest -v test_source_crust_cs2_audit
+      - name: Audit original LALSuite analytic dlog energy derivatives at all seven EOS crust knots
+        run: |
+          python research/j0740/rotating_gr/source_crust_cs2_audit.py \
+            --source-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --output results/J0740_seven_EOS_source_crust_negative_cs2_forensics.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-source-crust-negative-cs2-forensic-evidence
+          path: results/J0740_seven_EOS_source_crust_negative_cs2_forensics.json
+          if-no-files-found: warn
+          retention-days: 30
