@@ -62,7 +62,7 @@ def mission_failure_message(exc, failure=None):
     if not isinstance(error_type, str) or not error_type:
         error_type = type(exc).__name__[:80]
     return (f"Görev durdu: {phase}{role_text} başarısız oldu "
-            f"(hata türü: {error_type}). Görev tamamlanmadı; kaydedilmiş aşamalar korundu. "
+            f"(hata türü: {error_type}). Görev tamamlanmadı; son kayıtlı aşamaları arayüzde kontrol edin. "
             "Hassas olabilecek hata metni güvenlik için gösterilmedi.")
 
 
@@ -507,6 +507,7 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                     key="colony_crossref_opt_in")
                 mission_run = st.form_submit_button("CANO ekibini birlikte çalıştır (4 aşama)")
             if mission_run:
+                mission_manager = None
                 try:
                     # Refuse model charges when the owner backup is stale or unavailable.
                     _checkpoint()
