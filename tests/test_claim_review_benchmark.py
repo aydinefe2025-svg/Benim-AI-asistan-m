@@ -40,8 +40,17 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
             case["case_id"]: labels[index % 3]
             for index, case in enumerate(V5_COMPARISON_CASES)
         }
-        parsed = load_expected_labels(json.dumps(private_key), V5_COMPARISON_CASES)
+        answer_key_json = json.dumps(private_key)
+        parsed = load_expected_labels(answer_key_json, V5_COMPARISON_CASES)
         self.assertEqual(set(parsed), {case["case_id"] for case in V5_COMPARISON_CASES})
+        predictions = [parsed[case["case_id"]] for case in V5_COMPARISON_CASES]
+        client = BenchmarkClient(predictions)
+        result = run_blind_model_benchmark(
+            client, cases=V5_COMPARISON_CASES, answer_key_json=answer_key_json)
+        self.assertEqual(result["correct"], 24)
+        self.assertEqual(result["coverage"], 1.0)
+        self.assertEqual(len(client.calls), 1)
+        self.assertNotIn(answer_key_json, client.calls[0][2])
 
     def test_fixed_labels_are_hidden_and_perfect_confusion_matrix_is_reported(self):
         client = BenchmarkClient()
