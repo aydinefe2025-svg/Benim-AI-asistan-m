@@ -16,6 +16,41 @@ function assert(c,message){if(!c)throw new Error(message)}
 function setStatus(state,message){el('statusPill').dataset.status=state;el('statusText').textContent=message;el('footerStatus').textContent=message}
 function shortHash(s){return typeof s==='string'?s.slice(0,9)+'…': '—'}
 function formatDate(date){try{return new Intl.DateTimeFormat('tr-TR',{dateStyle:'medium',timeZone:'UTC'}).format(new Date(date+'T12:00:00Z'))}catch{return date}}
+// Distinguish integrity (cryptographic record check) from timely scheduled execution.
+// GitHub Actions runs at 05:47 UTC; allow up to two hours for a delayed runner.
+const ONE_DAY_MS=86400000;
+const SCHEDULE_OFFSET_MS=(5*60+47)*60000;
+const SCHEDULE_GRACE_MS=2*60*60000;
+const SIMULATION_EPOCH_MS=Date.UTC(2026,10,7);
+function calendarWindow(recordDay,nowMs=Date.now()){
+  assert(typeof recordDay==='string' && /^\d{4}-\d{2}-\d{2}$/.test(recordDay), 'Invalid report day');
+  assert(Number.isFinite(nowMs) && nowMs>=SIMULATION_EPOCH_MS,'Invalid clock');
+  const dayStart=Math.floor(nowMs/ONE_DAY_MS)*ONE_DAY_MS;
+  const reportStart=Date.parse(recordDay+'T00:00:00Z');
+  assert(Number.isFinite(reportStart) && new Date(reportStart).toISOString().slice(0,10)===recordDay,'Invalid record date');
+  const planned=dayStart+SCHEDULE_OFFSET_MS;
+  const nextRun=nowMs < planned ? planned : planned+ONE_DAY_MS;
+  const requiredStart=Math.max(SIMULATION_EPOCH_MS,nowMs >= planned+SCHEDULE_GRACE_MS ? dayStart : dayStart-ONE_DAY_MS);
+  let level='current';
+  if(reportStart>dayStart || (reportStart===dayStart && nowMs<planned && reportStart!==SIMULATION_EPOCH_MS))level='future';
+  else if(reportStart<requiredStart)level='stale';
+  else if(nowMs>=planned && nowMs<planned+SCHEDULE_GRACE_MS && reportStart<dayStart)level='pending';
+  return {level,requiredDay:new Date(requiredStart).toISOString().slice(0,10),nextRunISO:new Date(nextRun).toISOString()};
+}
+function renderCadence(day){
+  const health=calendarWindow(day);
+  const desc={
+    current:'Son günlük kayıt beklenen zaman penceresinde; gerçek görev çalışması ayrıca doğrulanmalıdır.',
+    pending:'Yeni günlük koşu penceresi açıldı; GitHub Actions çalışması ve yeni kayıt bekleniyor.',
+    stale:'UYARI: Beklenen yeni günlük kayıt henüz yok. Veri sağlam olabilir ancak çoğalma görevinin devamı doğrulanmadı.',
+    future:'UYARI: Kayıt takvimde geleceğe ait görünüyor; canlı süreç kanıtı değildir.'
+  };
+  el('cadenceStatus').dataset.status=health.level;
+  el('cadenceStatus').textContent=desc[health.level];
+  el('scheduledNext').textContent=new Intl.DateTimeFormat('tr-TR',{timeZone:'Europe/Istanbul',dateStyle:'medium',timeStyle:'short'}).format(new Date(health.nextRunISO))+' (Türkiye saati)';
+  el('requiredDay').textContent=health.requiredDay;
+  return health.level;
+}
 async function fetchJSON(url){const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),14000);try{const response=await fetch(url,{cache:'no-cache',signal:controller.signal});if(!response.ok)throw new Error('GitHub HTTP '+response.status);return await response.json()}finally{clearTimeout(timeout)}}
 async function load(){
   el('refresh').disabled=true;el('errorDetail').textContent='';setStatus('loading','Kaynak doğrulanıyor');
@@ -43,13 +78,13 @@ async function load(){
     assert(report.division_disabled_control?.births===0,'Kontrol grubunda beklenmeyen doğum');
     const ids=new Set(state.state.organisms.map(x=>x.identifier));assert(ids.size===state.state.organisms.length,'Tekrarlı birey kimliği');
     for(const organism of state.state.organisms){assert(Number.isInteger(organism.generation)&&organism.generation>=0,'Nesil değeri geçersiz')}
-    populate(state,report,day);setStatus('verified','GitHub kaydı doğrulandı');
+    populate(state,report,day);const cadence=renderCadence(day);setStatus(cadence==='stale'||cadence==='future'?'stale':'verified',cadence==='stale'?'Kayıt sağlam; günlük koşu gecikti':cadence==='future'?'Gelecek gün kaydı; işlem doğrulanmadı':'GitHub kaydı doğrulandı');
     el('validation').textContent='GitHub’dan okunan genom kontrol noktası ve günlük kayıt, ayrı SHA-256 özetleri, ölçüm tutarlılığı, nüfus kotası ve çoğalması kapalı kontrol grubu ile tarayıcıda denetlendi. Bu denetim bilimsel bağımsız yeniden oynatma değildir.';
     el('integrity').textContent='✓ SHA-256 ve kayıt tutarlı';el('integrity').className='verified-label';
   }catch(err){
     setStatus('error','Doğrulanmış kayıt yok');el('errorDetail').textContent=err?.name==='AbortError'?'Kaynak bağlantısı zaman aşımına uğradı':String(err.message||err);
     el('integrity').textContent='Doğrulama başarısız';el('integrity').className='error-label';
-    el('validation').textContent='Kaynak bütünlüğü doğrulanamadı. Eski değerler yeni sonuçmuş gibi kullanılmaz.';
+    el('validation').textContent='Kaynak bütünlüğü doğrulanamadı. Eski değerler yeni sonuçmuş gibi kullanılmaz.';el('cadenceStatus').dataset.status='error';el('cadenceStatus').textContent='Güncel koşu değerlendirilemedi: kaynak bütünlüğü doğrulanmadı.';el('requiredDay').textContent='—';el('scheduledNext').textContent='—';
     for(const id of ['population','births','generation','ticks','expBirths','controlBirths'])el(id).textContent='—';el('lineage').setAttribute('hidden','');el('chartEmpty').hidden=false;el('chartEmpty').textContent='Doğrulanmış veriye erişilemedi; hayalî bir nüfus gösterilmiyor.';
   }finally{el('lastRefresh').textContent=new Date().toLocaleTimeString('tr-TR',{timeZone:'Europe/Istanbul'});el('refresh').disabled=false}
 }
