@@ -61,7 +61,7 @@ def main():
             for binary in ('pg_dump','pg_restore','psql'):
                 file=root/('docker-'+binary)
                 file.write_text('#!/bin/sh\nset -eu\n'
-                      'exec docker run --rm --network host '
+                      'exec docker run --rm -i --network host '
                       '-e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE '
                       'postgres:'+major+' '+binary+' "$@"\n')
                 file.chmod(file.stat().st_mode|stat.S_IXUSR)
