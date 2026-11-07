@@ -150,7 +150,7 @@ st.subheader("Bağımsız CANO testi ve kör insan karşılaştırması")
 from core.claim_review_benchmark import (
     CASES as FIXED_BENCHMARK_CASES,
     HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES,
-    load_expected_labels, score_labels,
+    load_expected_labels, randomized_case_order, score_labels,
 )
 st.markdown("### 12 vakalık canlı model testi")
 st.caption(
@@ -192,11 +192,15 @@ st.caption(
     "küçük kaynak-temelli kümeye ve tek insan değerlendiriciye aittir; gerçek dünya "
     "genel bilimsel doğruluğu veya insan üstünlüğünü kanıtlamaz."
 )
+v3_order_key = "cano_claim_review_order_v3"
+v3_order = randomized_case_order(
+    HUMAN_COMPARISON_CASES, previous_ids=st.session_state.get(v3_order_key))
+st.session_state[v3_order_key] = [case["case_id"] for case in v3_order]
 label_key = "cano_claim_review_human_labels_v3"
 model_key = "cano_claim_review_human_benchmark_v3"
 with st.form("cano_blind_human_labels_v3"):
     human_labels = {}
-    for idx, case in enumerate(HUMAN_COMPARISON_CASES):
+    for idx, case in enumerate(v3_order):
         st.markdown(f"**Vaka {idx + 1}.** {case['claim']}")
         st.caption(case["excerpt"])
         st.markdown(f"[Kaynağı aç: {case['source_title']}]({case['source_url']})")
@@ -273,11 +277,15 @@ st.caption(
     "ek kohort için ayrı tutulur. Bu küçük küme genel bilimsel doğruluğu veya "
     "insan üstünlüğünü kanıtlamaz."
 )
+v4_order_key = "cano_claim_review_order_v4"
+v4_order = randomized_case_order(
+    SUPPLEMENTAL_COMPARISON_CASES, previous_ids=st.session_state.get(v4_order_key))
+st.session_state[v4_order_key] = [case["case_id"] for case in v4_order]
 v4_label_key = "cano_claim_review_human_labels_v4"
 v4_model_key = "cano_claim_review_human_benchmark_v4"
 with st.form("cano_blind_human_labels_v4"):
     v4_human_labels = {}
-    for idx, case in enumerate(SUPPLEMENTAL_COMPARISON_CASES):
+    for idx, case in enumerate(v4_order):
         st.markdown(f"**Ek vaka {idx + 1}.** {case['claim']}")
         st.caption(case["excerpt"])
         st.markdown(f"[Kaynağı aç: {case['source_title']}]({case['source_url']})")

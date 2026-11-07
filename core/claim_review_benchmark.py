@@ -165,6 +165,20 @@ _SYSTEM = (
 )
 
 
+def randomized_case_order(cases, *, previous_ids=None, rng=None):
+    """Return a stable per-review shuffled order without exposing labels."""
+    cases = tuple(cases)
+    by_id = {case["case_id"]: case for case in cases}
+    if (isinstance(previous_ids, list) and len(previous_ids) == len(cases)
+            and len(set(previous_ids)) == len(previous_ids)
+            and set(previous_ids) == set(by_id)):
+        return tuple(by_id[case_id] for case_id in previous_ids)
+    import random
+    shuffled = list(cases)
+    (rng or random.SystemRandom()).shuffle(shuffled)
+    return tuple(shuffled)
+
+
 def load_expected_labels(raw, cases=HUMAN_COMPARISON_CASES):
     """Parse and validate the private server-side benchmark answer key."""
     if not raw:
