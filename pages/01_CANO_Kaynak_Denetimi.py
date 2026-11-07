@@ -150,23 +150,24 @@ from core.claim_review_benchmark import (
     HUMAN_COMPARISON_CASES, load_expected_labels, score_labels,
 )
 st.caption(
-    "24 yeni, dengeli sentetik vaka (8 destek, 8 çelişki, 8 yetersiz kanıt). "
+    "8 yayımlanmış makaleden kaynak bağlantılı 24 vaka; 8 destek, 8 çelişki ve 8 yetersiz kanıt. Bunlar 24 ayrı makale değildir. "
     "Önce iddia ve pasajları, beklenen/model kararları gösterilmeden inceleyin. "
     "Tüm insan etiketleri gönderilmeden model testi çalışmaz. Sonuç yalnızca bu "
-    "küçük sentetik kümeye ve tek insan değerlendiriciye aittir; gerçek dünya "
-    "bilimsel doğruluğu veya genel insan üstünlüğünü kanıtlamaz."
+    "küçük kaynak-temelli kümeye ve tek insan değerlendiriciye aittir; gerçek dünya "
+    "genel bilimsel doğruluğu veya insan üstünlüğünü kanıtlamaz."
 )
-label_key = "cano_claim_review_human_labels_v2"
-model_key = "cano_claim_review_human_benchmark_v2"
-with st.form("cano_blind_human_labels_v2"):
+label_key = "cano_claim_review_human_labels_v3"
+model_key = "cano_claim_review_human_benchmark_v3"
+with st.form("cano_blind_human_labels_v3"):
     human_labels = {}
     for idx, case in enumerate(HUMAN_COMPARISON_CASES):
         st.markdown(f"**Vaka {idx + 1}.** {case['claim']}")
         st.caption(case["excerpt"])
+        st.markdown(f"[Kaynağı aç: {case['source_title']}]({case['source_url']})")
         choice = st.selectbox(
             "Pasajın iddiaya göre durumu",
             ["— Seçin —", "Destekliyor", "Çelişiyor", "Kanıt yetersiz"],
-            key=f"cano_human_v2_{case['case_id']}",
+            key=f"cano_human_v3_{case['case_id']}",
         )
         human_labels[case["case_id"]] = {
             "Destekliyor": "supported",
