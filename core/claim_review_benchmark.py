@@ -86,6 +86,38 @@ CASES = (
     },
 )
 
+# New blind v2 set; labels are withheld until a reviewer submits judgments.
+HUMAN_COMPARISON_CASES = tuple(
+    {"case_id": case_id, "claim": claim, "excerpt": excerpt, "expected": expected}
+    for case_id, claim, excerpt, expected in (
+        ("s2_a", "Among adults with type 2 diabetes, the program lowered HbA1c by 0.4 percentage points versus usual care.", "In adults with type 2 diabetes, mean HbA1c fell 0.4 percentage points more with the program than with usual care.", "supported"),
+        ("s2_b", "The vaccine was 92% effective against symptomatic disease.", "Estimated vaccine effectiveness against symptomatic disease was 92% (95% CI 88–95%).", "supported"),
+        ("s2_c", "No participants experienced a serious adverse event.", "No serious adverse events were reported among the 63 participants.", "supported"),
+        ("s2_d", "The intervention improved memory at six months.", "Memory scores were higher in the intervention group at the six-month assessment than at baseline.", "supported"),
+        ("s2_e", "The model had an AUROC of 0.81 in external validation.", "External validation yielded an area under the ROC curve of 0.81.", "supported"),
+        ("s2_f", "The pooled estimate favored treatment, but its confidence interval included no effect.", "The pooled risk ratio was 0.91 (95% CI 0.72–1.15).", "supported"),
+        ("s2_g", "The trial randomized 340 participants equally between two arms.", "A total of 340 participants were randomized, 170 to each study arm.", "supported"),
+        ("s2_h", "The intervention was delivered remotely by telephone.", "Study staff delivered the intervention through scheduled telephone calls.", "supported"),
+        ("c2_a", "The drug reduced hospital admissions by 30%.", "Hospital admission rates were similar between groups (relative risk 0.98, 95% CI 0.80–1.20).", "contradicted"),
+        ("c2_b", "All enrolled participants completed the 24-week follow-up.", "Twenty-three of 120 participants were lost to follow-up before week 24.", "contradicted"),
+        ("c2_c", "The study was a randomized controlled trial.", "This was a retrospective cohort study using routinely collected records.", "contradicted"),
+        ("c2_d", "The intervention group received no additional counseling.", "Both groups received the same counseling session at baseline.", "contradicted"),
+        ("c2_e", "The assay had 95% sensitivity.", "Sensitivity was 85% (95% CI 79–90%) in the validation sample.", "contradicted"),
+        ("c2_f", "The findings showed a statistically significant benefit.", "The prespecified primary outcome did not differ significantly between groups (p=0.41).", "contradicted"),
+        ("c2_g", "The study included 1,240 patients.", "The analysis included 1,204 patients after exclusions.", "contradicted"),
+        ("c2_h", "The intervention reduced anxiety symptoms.", "Anxiety scores were higher in the intervention group at the end of treatment.", "contradicted"),
+        ("i2_a", "The intervention reduced cardiovascular mortality.", "The report describes changes in systolic blood pressure but provides no mortality outcome.", "insufficient"),
+        ("i2_b", "The treatment is safe during pregnancy.", "The trial enrolled nonpregnant adults and reports no pregnancy exposure.", "insufficient"),
+        ("i2_c", "The benefit lasts at least two years.", "Outcomes were assessed immediately after the 10-week program; later follow-up was not reported.", "insufficient"),
+        ("i2_d", "The new device is better than the standard device.", "The study describes device usability but includes no comparison group.", "insufficient"),
+        ("i2_e", "The intervention is cost-effective.", "The paper reports clinical outcomes and does not include an economic analysis.", "insufficient"),
+        ("i2_f", "The effect is larger in women than in men.", "Overall results are reported, but no sex-stratified estimates or interaction test are provided.", "insufficient"),
+        ("i2_g", "The policy reduced traffic injuries in rural areas.", "The evaluation reports citywide traffic injury totals without rural subgroup results.", "insufficient"),
+        ("i2_h", "The biomarker predicts disease onset.", "Biomarker concentrations were measured in patients after diagnosis; prospective prediction was not evaluated.", "insufficient")
+    )
+)
+
+
 _SYSTEM = (
     "You are a cautious claim-to-passage reviewer. Assess only whether each "
     "exact claim is directly supported, directly contradicted, or not established "
@@ -100,11 +132,14 @@ _SYSTEM = (
 )
 
 
-def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b"):
-    """Run all fixed cases in one reviewer call and return a bounded scorecard."""
+def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CASES):
+    """Run a fixed case set in one reviewer call and return a bounded scorecard."""
+    cases = tuple(cases)
+    if not cases:
+        raise ValueError("Benchmark case set must not be empty")
     prompt_cases = [
         {"index": index, "claim": case["claim"], "source_excerpt": case["excerpt"]}
-        for index, case in enumerate(CASES)
+        for index, case in enumerate(cases)
     ]
     prompt = (
         "Classify every indexed claim. Use supported only for direct entailment; "
@@ -125,7 +160,7 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b"):
     }
     results = []
     correct = 0
-    for index, case in enumerate(CASES):
+    for index, case in enumerate(cases):
         prediction = predictions.get(index, {}).get("verdict") or "unscored"
         expected = case["expected"]
         matrix[expected][prediction] += 1
@@ -155,8 +190,8 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b"):
         "unscored": unscored,
         "confusion_matrix": matrix, "per_class": per_class,
         "cases": results,
-        "scope": ("12 fixed synthetic claim-passage fixtures; missing/invalid "
-                  "answers count as errors; no human baseline; "
+        "scope": (f"{len(cases)} fixed synthetic claim-passage fixtures; missing/invalid "
+                  "answers count as errors; same-model skeptical pass; "
                   "not real-world scientific accuracy."),
     }
 
