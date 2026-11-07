@@ -27,6 +27,7 @@ from core.scientific_sources import scientific_sources
 from core.doi_priority import prioritize_requested_dois
 from core.task_panel import _session_database_path
 from core.cano_backup_bundle import create_portable_bundle, export_authorized_queue
+from core.organism_lab_persistence import OrganismLabStore
 from core.encrypted_backup_ui import render_encrypted_download
 
 
@@ -513,16 +514,21 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                                "_passphrase", "_confirm", "_download"):
                     st.session_state.pop(previous_secure_key + suffix, None)
             st.session_state["_cano_secure_export_owner"] = secure_key
-            if memories is None or research_tasks is None or authorized_queue_store is None:
+            if (memories is None or research_tasks is None
+                    or authorized_queue_store is None or not database_url):
                 st.error("Şifreli tam yedek hazır değil: hesap hafızası, araştırma görevi "
-                         "veya onaylı kuyruk kaynağına erişim yok. Eksik paketi indirmedim.")
+                         "onaylı kuyruk veya laboratuvar veritabanına erişim yok. "
+                         "Eksik paketi indirmedim.")
             else:
                 try:
                     jobs = export_authorized_queue(authorized_queue_store)
+                    lab_records = OrganismLabStore(
+                        owner_key, database_url).export_for_backup()
                     portable = create_portable_bundle(
                         colony=snapshot, memories=memories,
                         research_tasks=research_tasks,
                         authorized_queue=jobs,
+                        organism_records=lab_records,
                     )
                 except Exception:
                     st.error("Şifreli CANO paketi oluşturulamadı; veri değiştirilmedi.")
@@ -532,7 +538,8 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                         filename="cano-hesap-yedegi.canoenc",
                         plaintext=portable, storage_key=secure_key)
                     st.caption("Paket: ajanlar, ekip görevleri, dersler, hafıza, "
-                               "araştırma görev/taslakları ve onaylı kuyruk kayıtları. "
+                               "araştırma görev/taslakları, laboratuvar deneyleri "
+                               "ve onaylı kuyruk kayıtları. "
                                "Her bölümün kullanılabilirlik durumu manifestte yer alır.")
         elif status["agents"]:
             payload = json.dumps(snapshot, ensure_ascii=False, indent=2)

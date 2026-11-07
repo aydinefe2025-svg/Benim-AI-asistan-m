@@ -129,6 +129,44 @@ class OrganismLabStore:
                 (self.owner_key, self.COLLECTION, record_id))
             return cur.fetchone()
 
+    def export_for_backup(self) -> list[dict]:
+        """Read every verified experiment for this owner; never truncate silently.
+
+        A bounded export refuses >1000 rows so the encrypted account backup
+        cannot claim completeness while quietly omitting older experiments.
+        RLS and the explicit owner/collection filters both remain in force.
+        """
+        max_records = 1000
+        with self._connection() as db, db.cursor() as cur:
+            cur.execute("""SELECT record_id, payload, updated_at
+                FROM public.organism_lab_records
+                WHERE owner_key=%s AND collection=%s AND record_id LIKE %s
+                ORDER BY record_id LIMIT %s""",
+                (self.owner_key, self.COLLECTION, self.RECORD_PREFIX + "%",
+                 max_records + 1))
+            rows = cur.fetchall()
+        if len(rows) > max_records:
+            raise ValueError("Organism Lab backup limit exceeded; no partial backup")
+        exported = []
+        for record_id, payload, _updated_at in rows:
+            raw, digest = self._decode_payload(payload)
+            kind = record_id[len(self.RECORD_PREFIX):].split("-", 1)[0]
+            if (not record_id.startswith(self.RECORD_PREFIX)
+                    or kind not in {"world", "campaign"}
+                    or not hmac.compare_digest(record_id, f"{self.RECORD_PREFIX}{kind}-{digest}")):
+                raise ValueError("Organism Lab backup record identifier mismatch")
+            try:
+                document = json.loads(raw.decode("utf-8"))
+            except (UnicodeError, json.JSONDecodeError):
+                raise ValueError("Organism Lab backup record is not valid JSON") from None
+            if not isinstance(document, dict):
+                raise ValueError("Organism Lab backup record must be an object")
+            exported.append({
+                "record_id": record_id, "kind": kind, "sha256": digest,
+                "data_b64": base64.b64encode(raw).decode("ascii"),
+            })
+        return exported
+
     def list_recent(self, limit: int = 10) -> list[dict]:
         if type(limit) is not int or not 1 <= limit <= 20:
             raise ValueError("Invalid Organism Lab history limit")

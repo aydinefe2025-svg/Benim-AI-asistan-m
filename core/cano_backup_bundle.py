@@ -1,6 +1,7 @@
 """Create a single owner-scoped, portable CANO account backup archive."""
 from __future__ import annotations
 
+import base64
 from datetime import datetime, timezone
 from hashlib import sha256
 from io import BytesIO
@@ -17,6 +18,41 @@ _ALLOWED_FILES = {
     "cano-colony.json", "memory-library.json", "research-tasks.json",
     "authorized-queue.json", "manifest.json",
 }
+_V2_FILES = _ALLOWED_FILES | {"organism-lab-records.json"}
+_MAX_LAB_RECORDS = 1000
+
+
+def _validate_organism_records(records: list) -> None:
+    """Validate lab export items before encryption and after decryption."""
+    if not isinstance(records, list) or len(records) > _MAX_LAB_RECORDS:
+        raise ValueError("Organism Lab backup list exceeds its limit")
+    seen = set()
+    for item in records:
+        if not isinstance(item, dict) or set(item) != {
+            "record_id", "kind", "sha256", "data_b64"
+        }:
+            raise ValueError("Invalid Organism Lab backup record shape")
+        kind, expected, record_id = (
+            item["kind"], item["sha256"], item["record_id"])
+        if kind not in ("world", "campaign") or not isinstance(expected, str):
+            raise ValueError("Invalid Organism Lab backup record type")
+        if not isinstance(record_id, str) or record_id in seen:
+            raise ValueError("Invalid or duplicate Organism Lab backup identifier")
+        seen.add(record_id)
+        if record_id != f"cano-organism-lab-v1-{kind}-{expected}":
+            raise ValueError("Organism Lab backup identifier checksum mismatch")
+        encoded = item["data_b64"]
+        if not isinstance(encoded, str):
+            raise ValueError("Invalid Organism Lab backup data")
+        try:
+            raw = base64.b64decode(encoded, validate=True)
+            document = json.loads(raw.decode("utf-8"))
+        except (ValueError, UnicodeError, json.JSONDecodeError):
+            raise ValueError("Invalid Organism Lab backup JSON") from None
+        if not isinstance(document, dict) or sha256(raw).hexdigest() != expected:
+            raise ValueError("Organism Lab backup record checksum mismatch")
+
+
 
 
 def _encode(value) -> bytes:
@@ -47,7 +83,7 @@ def export_authorized_queue(queue) -> list[dict]:
 
 
 def create_portable_bundle(*, colony, memories, research_tasks,
-                           authorized_queue) -> bytes:
+                           authorized_queue, organism_records=None) -> bytes:
     """Bundle only records already scoped to the signed-in owner/session.
 
     ``research_tasks`` and ``authorized_queue`` can be ``None`` when their
@@ -74,10 +110,17 @@ def create_portable_bundle(*, colony, memories, research_tasks,
             "jobs": authorized_queue if authorized_queue is not None else [],
         }),
     }
+    if organism_records is not None:
+        _validate_organism_records(organism_records)
+        components["organism-lab-records.json"] = _encode({
+            "schema": "cano-organism-lab-export-v1",
+            "records": organism_records,
+        })
     if any(len(data) > MAX_COMPONENT_BYTES for data in components.values()):
         raise ValueError("One CANO backup section exceeds the 10 MiB limit")
     manifest = {
-        "schema": "cano-portable-backup-v1",
+        "schema": ("cano-portable-backup-v2" if organism_records is not None
+                   else "cano-portable-backup-v1"),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "warning": "Agent and model outputs are unverified drafts unless explicitly reviewed.",
         "sources_available": {
@@ -85,6 +128,7 @@ def create_portable_bundle(*, colony, memories, research_tasks,
             "memory_library": memories is not None,
             "research_tasks": research_tasks is not None,
             "authorized_queue": authorized_queue is not None,
+            "organism_lab": organism_records is not None,
         },
         "components": {
             name: {"sha256": sha256(data).hexdigest(), "size_bytes": len(data)}
@@ -110,7 +154,8 @@ def verify_portable_bundle(bundle: bytes) -> dict[str, bytes]:
         with ZipFile(BytesIO(bundle), "r") as archive:
             infos = archive.infolist()
             names = [info.filename for info in infos]
-            if len(names) != len(set(names)) or set(names) != _ALLOWED_FILES:
+            if len(names) != len(set(names)) or set(names) not in (
+                    _ALLOWED_FILES, _V2_FILES):
                 raise ValueError("Portable backup file list is invalid")
             if any(info.is_dir() or info.file_size > MAX_COMPONENT_BYTES
                    for info in infos):
@@ -125,10 +170,23 @@ def verify_portable_bundle(bundle: bytes) -> dict[str, bytes]:
     if not isinstance(manifest, dict):
         raise ValueError("Portable backup manifest is invalid")
     components = manifest.get("components")
-    if manifest.get("schema") != "cano-portable-backup-v1" or not isinstance(components, dict):
+    schema = manifest.get("schema")
+    expected = (_ALLOWED_FILES if schema == "cano-portable-backup-v1"
+                else _V2_FILES if schema == "cano-portable-backup-v2" else None)
+    if expected is None or not isinstance(components, dict):
         raise ValueError("Portable backup manifest is unsupported")
-    if set(components) != _ALLOWED_FILES - {"manifest.json"}:
+    if set(files) != expected or set(components) != expected - {"manifest.json"}:
         raise ValueError("Portable backup manifest entries are invalid")
+    if schema == "cano-portable-backup-v2":
+        try:
+            lab = json.loads(files["organism-lab-records.json"].decode("utf-8"))
+        except (UnicodeError, json.JSONDecodeError):
+            raise ValueError("Invalid Organism Lab backup JSON") from None
+        if (not isinstance(lab, dict)
+                or set(lab) != {"schema", "records"}
+                or lab["schema"] != "cano-organism-lab-export-v1"):
+            raise ValueError("Unsupported Organism Lab backup format")
+        _validate_organism_records(lab["records"])
     for name, item in components.items():
         data = files[name]
         if (not isinstance(item, dict)
