@@ -257,8 +257,11 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
         verifier_prompt = (
             "Review each indexed claim against its retrieved source passage. "
             "Use 'supported' only for direct entailment; use 'contradicted' for a "
-            "direct conflict; otherwise use 'insufficient'. Return one assessment per "
-            "index.\n" + json.dumps(candidates, ensure_ascii=False)
+            "direct conflict; otherwise use 'insufficient'. Return a single JSON "
+            "object with an \"assessments\" array. Include exactly one object per "
+            "input index; each object must contain integer \"index\", \"verdict\" "
+            "with one allowed verdict, and a concise string \"reason\". Do not add "
+            "other top-level keys.\n" + json.dumps(candidates, ensure_ascii=False)
         )
         try:
             assessments = _parse_assessments(
