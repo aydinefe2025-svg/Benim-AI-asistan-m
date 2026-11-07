@@ -1,0 +1,46 @@
+name: J0740 F30 empirical vs actual seven-EOS full-GR radii
+on:
+  pull_request:
+    paths:
+      - "research/j0740/j0740_empirical_gr_comparison.py"
+      - "research/j0740/test_j0740_empirical_gr_comparison.py"
+      - ".github/workflows/j0740-f30-empirical-vs-rns-gr.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  f30-vs-gr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install only required numeric library
+        run: python -m pip install numpy
+      - name: Test source identities, baryon fit model, physical pairing and unsafe-path guards
+        working-directory: research/j0740
+        run: python -m unittest -v test_j0740_empirical_gr_comparison
+      - name: Reuse original already-computed verified seven EOS full-GR artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p prior-rns
+          gh run download 42375488704 --repo "$GITHUB_REPOSITORY" \
+            --name j0740-seven-eos-rns-fixed-mass-results \
+            --dir prior-rns
+      - name: Audit all seven source EOS radii at 2.073 solar masses with NO RNS solver rerun
+        run: |
+          python research/j0740/j0740_empirical_gr_comparison.py \
+            --source-knots research/j0740/eos_jester_exact_source_adaptive_knots.json \
+            --rns-json prior-rns/J0740_seven_EOS_full_GR_fixed_spin_mass.json \
+            --out results/J0740_F30_Approx_vs_7EOS_RNS_FullGR_20261107.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-f30-empirical-vs-rns-full-gr-seven-eos-evidence
+          path: results/J0740_F30_Approx_vs_7EOS_RNS_FullGR_20261107.json
+          if-no-files-found: warn
+          retention-days: 30
