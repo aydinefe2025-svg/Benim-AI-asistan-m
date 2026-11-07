@@ -11,6 +11,8 @@ import json
 import math
 import re
 import zipfile
+import threading
+import time
 
 
 REPOSITORY = "aydinefe2025-svg/Benim-AI-asistan-m"
@@ -26,6 +28,33 @@ RUNS_URL = (
 
 class ColonyStatusUnavailable(RuntimeError):
     """Safe, user-facing category; raw response bodies are never surfaced."""
+
+_STATUS_CACHE_LOCK = threading.Lock()
+_STATUS_CACHE_VALUE = None
+_STATUS_CACHE_UNTIL = 0.0
+_STATUS_CACHE_ERROR = None
+
+
+def _load_process_cached(loader, *, force_refresh=False):
+    """Share the public result across Streamlit sessions on this one process."""
+    global _STATUS_CACHE_VALUE, _STATUS_CACHE_UNTIL, _STATUS_CACHE_ERROR
+    now = time.monotonic()
+    with _STATUS_CACHE_LOCK:
+        if not force_refresh and now < _STATUS_CACHE_UNTIL:
+            if _STATUS_CACHE_ERROR is not None:
+                raise ColonyStatusUnavailable(_STATUS_CACHE_ERROR)
+            return _STATUS_CACHE_VALUE
+        try:
+            value = loader()
+        except ColonyStatusUnavailable as exc:
+            _STATUS_CACHE_VALUE = None
+            _STATUS_CACHE_ERROR = str(exc)
+            _STATUS_CACHE_UNTIL = now + 30
+            raise
+        _STATUS_CACHE_VALUE = value
+        _STATUS_CACHE_ERROR = None
+        _STATUS_CACHE_UNTIL = now + 300
+        return value
 
 
 def _get_json(request_get, url: str) -> dict:
@@ -221,7 +250,8 @@ def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
     cache_key = "_cano_github_cycle_status"
     now = __import__("time").time()
     cached = st.session_state.get(cache_key)
-    if st.button("Actions sonuçlarını yenile", key="refresh_github_colony_status"):
+    force_refresh = st.button("Actions sonuçlarını yenile", key="refresh_github_colony_status")
+    if force_refresh:
         st.session_state.pop(cache_key, None)
         cached = None
     with st.expander("⏱ Otomatik döngü ve bağımsız yazılım ajanları", expanded=True):
@@ -232,7 +262,7 @@ def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
         )
         if not isinstance(cached, dict) or now - cached.get("fetched_at", 0) >= 300:
             try:
-                cached = {"fetched_at": now, "value": loader()}
+                cached = {"fetched_at": now, "value": _load_process_cached(loader, force_refresh=force_refresh)}
                 st.session_state[cache_key] = cached
             except ColonyStatusUnavailable as exc:
                 st.warning(f"GitHub Actions raporu okunamadı (tanı kodu: {exc}). Daha sonra yenile.")
