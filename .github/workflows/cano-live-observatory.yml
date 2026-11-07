@@ -43,3 +43,57 @@ jobs:
           assert Path('public/app.js').stat().st_size > 1000
           print('Render static publish payload OK')
           PY
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright Chromium (free public UI test)
+        run: |
+          python -m pip install 'playwright>=1.55,<2'
+          python -m playwright install --with-deps chromium
+      - name: Browser smoke against deployed public site
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          url='https://cano-digital-organism-observatory.onrender.com'
+          results=[]
+          Path('cano-live-browser-proof').mkdir(exist_ok=True)
+          with sync_playwright() as pw:
+              browser=pw.chromium.launch(headless=True, args=['--no-sandbox'])
+              try:
+                  for name, width, height in [('desktop',1320,850), ('mobile',390,844)]:
+                      page=browser.new_page(viewport={'width':width,'height':height}, locale='tr-TR')
+                      errors=[]
+                      page.on('pageerror', lambda e: errors.append(str(e)))
+                      response=page.goto(url,wait_until='domcontentloaded',timeout=100000)
+                      assert response is not None and response.status==200,(name,'http',response.status if response else None)
+                      page.wait_for_function("document.getElementById('statusPill').dataset.status !== 'loading'",timeout=45000)
+                      status=page.locator('#statusPill').get_attribute('data-status')
+                      assert status=='verified',(name,status,page.locator('#errorDetail').inner_text())
+                      population=int(page.locator('#population').inner_text())
+                      births=int(page.locator('#births').inner_text())
+                      assert 0<population<=24,(name,population)
+                      assert births>=0
+                      assert int(page.locator('#controlBirths').inner_text())==0
+                      assert page.locator('#lineage g').count()==population
+                      assert page.locator('#integrity').inner_text().startswith('✓ SHA-256')
+                      assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+2'), 'page horizontal overflow'
+                      assert not errors,(name,errors)
+                      page.screenshot(path=f'cano-live-browser-proof/{name}.png',full_page=True)
+                      page.locator('#refresh').click()
+                      page.wait_for_function("document.getElementById('statusPill').dataset.status !== 'loading'",timeout=45000)
+                      assert page.locator('#statusPill').get_attribute('data-status')=='verified'
+                      results.append({'name':name,'population':population,'births':births,'js_errors':len(errors),'sha_verified':True})
+                      page.close()
+              finally:
+                  browser.close()
+          print(json.dumps({'live_ui':results},ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: cano-live-browser-proof
+          path: cano-live-browser-proof/*.png
+          retention-days: 7
+          if-no-files-found: error
