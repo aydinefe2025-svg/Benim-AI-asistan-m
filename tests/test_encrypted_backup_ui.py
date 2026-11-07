@@ -12,6 +12,7 @@ class FakeSt:
         self.submit = submit
         self.download = None
         self.errors = []
+        self.captions = []
 
     def expander(self, *args, **kwargs):
         return nullcontext()
@@ -33,7 +34,7 @@ class FakeSt:
         self.errors.append(message)
 
     def caption(self, message):
-        pass
+        self.captions.append(message)
 
     def download_button(self, label, **kwargs):
         self.download = kwargs
@@ -43,6 +44,18 @@ class FakeSt:
 
 
 class EncryptedBackupUiTests(unittest.TestCase):
+    def test_discloses_server_side_passphrase_processing_and_export_limit(self):
+        st = FakeSt()
+        render_encrypted_download(st, label="Backup",
+                                  filename="cano.canoenc",
+                                  plaintext=b"test private records",
+                                  storage_key="backup")
+        display = " ".join(st.captions)
+        self.assertIn("CANO sunucusuna iletilir", display)
+        self.assertIn("bağımsız otomatik yedek oluşturulmaz", display)
+        self.assertNotIn("Parola CANO'ya gönderilmez", display)
+
+
     def test_matching_password_produces_authenticated_download_and_clears_secret(self):
         password = "correct-horse-staple-cano-backup"
         st = FakeSt(passphrase=password, confirm=password, submit=True)
