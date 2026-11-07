@@ -48,7 +48,7 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("source_url", source)
         self.assertIn("CANO_HUMAN_BENCHMARK_ANSWER_KEY", source)
         self.assertIn("load_expected_labels", source)
-        self.assertIn("expected_labels=human_answer_key", source)
+        self.assertIn('answer_key_json=os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY")', source)
         self.assertIn("24 insan değerlendirmesini kaydet", source)
         self.assertIn("Kaynak anahtarıyla CANO'yu çalıştır (24 vaka, 1 çağrı)", source)
         self.assertIn("cano_claim_review_human_labels_v3", source)
@@ -90,7 +90,7 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V4", source)
         self.assertIn("Ek 24 insan değerlendirmesini kaydet", source)
         self.assertIn("Ek kohortta CANO'yu gizli kaynak anahtarıyla çalıştır (24 vaka, 1 çağrı)", source)
-        self.assertIn("expected_labels=v4_answer_key", source)
+        self.assertIn('answer_key_json=os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V4")', source)
         self.assertIn("v4_agreement", source)
         self.assertIn("cevap anahtarı gösterilmedi", source)
 
