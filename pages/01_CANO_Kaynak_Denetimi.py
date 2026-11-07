@@ -147,8 +147,42 @@ if documents and key and st.button("İddiaları çıkar ve ayrı kuşkucu AI ge�
 st.divider()
 st.subheader("Bağımsız CANO testi ve kör insan karşılaştırması")
 from core.claim_review_benchmark import (
+    CASES as FIXED_BENCHMARK_CASES,
     HUMAN_COMPARISON_CASES, load_expected_labels, score_labels,
 )
+st.markdown("### 12 vakalık canlı model testi")
+st.caption(
+    "Bu sabit sentetik test, Groq JSON yanıtını tek çağrıda doğrular ve bu küçük "
+    "kümedeki sonucu gösterir. İnsan etiketi istemez, CANO görev kayıtlarını "
+    "değiştirmez ve kör insan karşılaştırmasının yerine geçmez."
+)
+runtime_benchmark_key = "cano_claim_review_runtime_smoke_v1"
+if key and st.button("CANO modelini 12 sabit vakada test et (1 çağrı)"):
+    try:
+        runtime_result = run_claim_review_benchmark(
+            Client(), cases=FIXED_BENCHMARK_CASES)
+    except TeamRateLimitError:
+        st.warning("Canlı model testi kotaya takıldı; CANO görev kayıtları değiştirilmedi.")
+    except (ValueError, RuntimeError) as err:
+        st.warning(
+            f"Canlı model testi tamamlanamadı ({type(err).__name__}: {err}); "
+            "CANO görev kayıtları değiştirilmedi."
+        )
+    else:
+        st.session_state[runtime_benchmark_key] = runtime_result
+runtime_result = st.session_state.get(runtime_benchmark_key)
+if isinstance(runtime_result, dict):
+    st.metric(
+        "12 vaka · sabit sentetik kümede doğru karar",
+        f"{runtime_result['correct']} / {runtime_result['total']}",
+        f"%{runtime_result['accuracy'] * 100:.0f}",
+    )
+    st.metric("Yanıt kapsamı", f"%{runtime_result['coverage'] * 100:.0f}")
+    st.caption(runtime_result["scope"])
+    st.json(runtime_result["confusion_matrix"])
+    if runtime_result["unscored"]:
+        st.warning(f"{runtime_result['unscored']} vaka yanıtlanmadı; hata olarak sayıldı.")
+
 st.caption(
     "24 yeni, dengeli sentetik vaka (8 destek, 8 çelişki, 8 yetersiz kanıt). "
     "Önce iddia ve pasajları, beklenen/model kararları gösterilmeden inceleyin. "
