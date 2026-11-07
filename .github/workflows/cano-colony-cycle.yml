@@ -1,16 +1,17 @@
 name: CANO scheduled colony cycle
 
 on:
-  # One main-branch run on this workflow's next approved update.
-  # Does not loop on artifacts or cache writes.
+  # Run on relevant updates, on a fixed hourly schedule, or manually.
   push:
     branches: [main]
     paths:
       - ".github/workflows/cano-colony-cycle.yml"
       - "core/virtual_generation.py"
       - "scripts/cano_colony_cycle.py"
+      - "scripts/cano_specialist_agents.py"
       - "tests/test_virtual_colony_generation.py"
       - "tests/test_scheduled_colony_cycle.py"
+      - "tests/test_cano_specialist_agents.py"
   schedule:
     - cron: "17 * * * *"
   workflow_dispatch:
@@ -26,7 +27,7 @@ concurrency:
 jobs:
   propose:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,7 +36,9 @@ jobs:
       - name: Install secure backup dependency
         run: python -m pip install "cryptography>=44,<51"
       - name: Check colony regressions before writing state
-        run: python -m unittest discover -s tests -p "test_*colony*.py" -q
+        run: |
+          python -m unittest discover -s tests -p "test_*colony*.py" -q
+          python -m unittest tests.test_cano_specialist_agents -q
       - name: Restore prior verified colony database
         id: colony_cache
         uses: actions/cache@v4
@@ -64,12 +67,14 @@ jobs:
           if [[ -e artifacts/colony-cycle.sqlite3 ]]; then
             python -m scripts.verify_cano_restore
           fi
-      - name: Run bounded cycle
+      - name: Run bounded virtual organism cycle
         env:
           CANO_CYCLE_OUTPUT: artifacts/colony-cycle.json
           CANO_CYCLE_DB: artifacts/colony-cycle.sqlite3
         run: python -m scripts.cano_colony_cycle
-      - name: Upload verifiable cycle audit
+      - name: Launch independent bounded validation agents
+        run: python -m scripts.cano_specialist_agents --report artifacts/colony-cycle.json --database artifacts/colony-cycle.sqlite3
+      - name: Upload verifiable cycle, agent results, and restart state
         uses: actions/upload-artifact@v4
         with:
           name: cano-colony-cycle-${{ github.run_id }}
