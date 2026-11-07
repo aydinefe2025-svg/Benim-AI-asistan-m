@@ -29,4 +29,4 @@ jobs:
         working-directory: research/j0740
         run: |
           python -m compileall -q .
-          python -m unittest -v test_j0740_science test_source_lineage_gate
+          python -m unittest -v test_j0740_science test_source_lineage_gate test_original_salmi_run_probe
