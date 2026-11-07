@@ -9,6 +9,7 @@ import json
 import math
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 
 
 REPOSITORY = "aydinefe2025-svg/Benim-AI-asistan-m"
@@ -17,6 +18,32 @@ RAW_REPORT_URL = (
 )
 MAX_REPORT_BYTES = 1_000_000
 EXPECTED_AGENTS = {"evidence", "generation", "continuity", "security"}
+MAX_REPORT_AGE_SECONDS = 2 * 60 * 60
+
+
+def _parse_report_timestamp(value: object) -> datetime:
+    """Require a timezone-aware ISO timestamp and normalize it to UTC."""
+    if not isinstance(value, str) or not value or len(value) > 64:
+        raise ColonyStatusUnavailable("cycle_timestamp_invalid")
+    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        raise ColonyStatusUnavailable("cycle_timestamp_invalid") from None
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ColonyStatusUnavailable("cycle_timestamp_invalid")
+    parsed = parsed.astimezone(timezone.utc)
+    if parsed > datetime.now(timezone.utc) + timedelta(minutes=5):
+        raise ColonyStatusUnavailable("cycle_timestamp_invalid")
+    return parsed
+
+
+def _report_timestamp_display(value: object, *, now: datetime | None = None) -> tuple[str, bool]:
+    """Return a safe UTC label and whether an hourly report is stale."""
+    parsed = _parse_report_timestamp(value)
+    current = now or datetime.now(timezone.utc)
+    age_seconds = max(0.0, (current.astimezone(timezone.utc) - parsed).total_seconds())
+    return parsed.strftime("%Y-%m-%d %H:%M:%S UTC"), age_seconds > MAX_REPORT_AGE_SECONDS
 
 
 class ColonyStatusUnavailable(RuntimeError):
@@ -81,6 +108,7 @@ def _get_report(request_get) -> dict:
 def _validate_report(report: object, run_id: int) -> dict:
     if not isinstance(report, dict):
         raise ColonyStatusUnavailable("invalid_cycle_report")
+    timestamp = _parse_report_timestamp(report.get("timestamp"))
     cycle = report.get("cycle")
     generation = report.get("virtual_generation")
     specialists = report.get("specialist_agents")
@@ -132,7 +160,7 @@ def _validate_report(report: object, run_id: int) -> dict:
         "births": generation.get("training", {}).get("candidate_mean_births"),
         "population": generation.get("training", {}).get("candidate_mean_final_population"),
         "specialist_agents": roles,
-        "timestamp": report.get("timestamp"),
+        "timestamp": timestamp.isoformat(timespec="seconds").replace("+00:00", "Z"),
     }
 
 
@@ -231,6 +259,10 @@ def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
             st.info(f"Son otomatik çevrim durumu: {value.get('state', 'bilinmiyor')}.")
             return
         report = value["report"]
+        timestamp_label, report_is_stale = _report_timestamp_display(value.get("generated_at"))
+        st.caption(f"Son doğrulanmış rapor zamanı: {timestamp_label}")
+        if report_is_stale:
+            st.warning("Son doğrulanmış rapor 2 saatten eski. Saatlik çevrim gecikmiş olabilir; Actions çalışmasını ve zamanlamayı kontrol et.")
         if value.get("latest_run_state") != "completed" or value.get("latest_run_conclusion") != "success":
             st.warning("En son Actions çalışması henüz başarıyla tamamlanmadı; aşağıda son başarılı rapor gösteriliyor.")
         a, b, c = st.columns(3)

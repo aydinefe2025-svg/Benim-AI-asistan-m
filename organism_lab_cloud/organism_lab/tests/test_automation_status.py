@@ -70,6 +70,26 @@ class AutomationStatusTests(unittest.TestCase):
         self.assertTrue(calls[0][1]["stream"])
         self.assertNotIn("Authorization", calls[0][1]["headers"])
 
+    def test_timestamp_is_normalized_and_displayed_in_utc(self):
+        from datetime import datetime, timezone
+        from organism_lab.automation_status import _report_timestamp_display
+        value, _ = self._load(fixture_report())
+        self.assertEqual(value["generated_at"], "2026-11-07T00:00:00Z")
+        label, stale = _report_timestamp_display(
+            "2026-11-07T02:00:00+02:00",
+            now=datetime(2026, 11, 7, 0, 30, tzinfo=timezone.utc),
+        )
+        self.assertEqual(label, "2026-11-07 00:00:00 UTC")
+        self.assertFalse(stale)
+
+    def test_rejects_missing_naive_and_malformed_timestamps(self):
+        for timestamp in (None, "not-a-timestamp", "2026-11-07T00:00:00"):
+            report = fixture_report()
+            report["timestamp"] = timestamp
+            with self.subTest(timestamp=timestamp):
+                with self.assertRaises(ColonyStatusUnavailable):
+                    self._load(report)
+
     def test_rejects_report_with_invalid_run_id(self):
         report = fixture_report()
         report["github_run_id"] = "not-a-run"
