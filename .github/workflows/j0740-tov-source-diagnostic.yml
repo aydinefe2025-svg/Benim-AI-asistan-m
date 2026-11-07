@@ -1,0 +1,50 @@
+name: J0740 pinned JESTER source TOV diagnosis
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/j0740-tov-source-diagnostic.yml"
+      - "research/j0740/rotating_gr/source_tov_diagnostic.py"
+      - "research/j0740/rotating_gr/source_eos_causality.py"
+      - "research/j0740/rotating_gr/test_source_eos_causality.py"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install numpy
+      - name: Test causal and acausal thermodynamic source fixtures
+        working-directory: research/j0740/rotating_gr
+        run: python -m unittest -v test_source_eos_causality
+      - name: Screen all seven native JESTER thermodynamic source sound speeds
+        run: |
+          python research/j0740/rotating_gr/source_eos_causality.py \
+            --jester-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --out results/J0740_source_EOS_causality_screen.json
+      - name: Inspect JESTER source mass-radius array order at target
+        run: |
+          python research/j0740/rotating_gr/source_tov_diagnostic.py \
+            --jester-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --out results/J0740_source_TOV_diagnostic.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-source-tov-diagnostic
+          path: |
+            results/J0740_source_TOV_diagnostic.json
+            results/J0740_source_EOS_causality_screen.json
+          if-no-files-found: warn
