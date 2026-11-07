@@ -2,7 +2,7 @@ import json
 import unittest
 
 from core.claim_review_benchmark import (
-    CASES, HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, load_expected_labels, randomized_case_order,
+    CASES, HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, V5_COMPARISON_CASES, load_expected_labels, randomized_case_order,
     run_blind_model_benchmark, run_claim_review_benchmark, score_labels,
 )
 
@@ -23,6 +23,26 @@ class BenchmarkClient:
 
 
 class ClaimReviewBenchmarkTests(unittest.TestCase):
+    def test_v5_has_24_blind_cases_from_eight_new_source_publications(self):
+        self.assertEqual(len(V5_COMPARISON_CASES), 24)
+        self.assertTrue(all("expected" not in case for case in V5_COMPARISON_CASES))
+        self.assertTrue(all(case.get("source_url", "").startswith("https://")
+                            and case.get("source_title") for case in V5_COMPARISON_CASES))
+        sources = {case["source_url"] for case in V5_COMPARISON_CASES}
+        self.assertEqual(len(sources), 8)
+        for url in sources:
+            grouped = [case for case in V5_COMPARISON_CASES if case["source_url"] == url]
+            self.assertEqual(len(grouped), 3)
+            self.assertEqual(sum(len(case["excerpt"].split()) for case in grouped), 
+                             sum(len(case["excerpt"].split()) for case in grouped))
+        private_key = {
+            case["case_id"]: ("supported", "contradicted", "insufficient")[
+                int(case["case_id"].split("_")[1]) % 3]
+            for case in V5_COMPARISON_CASES
+        }
+        parsed = load_expected_labels(json.dumps(private_key), V5_COMPARISON_CASES)
+        self.assertEqual(set(parsed), {case["case_id"] for case in V5_COMPARISON_CASES})
+
     def test_fixed_labels_are_hidden_and_perfect_confusion_matrix_is_reported(self):
         client = BenchmarkClient()
         result = run_claim_review_benchmark(client)
