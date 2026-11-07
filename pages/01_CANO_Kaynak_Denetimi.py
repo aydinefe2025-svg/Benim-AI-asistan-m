@@ -149,7 +149,8 @@ st.divider()
 st.subheader("Bağımsız CANO testi ve kör insan karşılaştırması")
 from core.claim_review_benchmark import (
     CASES as FIXED_BENCHMARK_CASES,
-    HUMAN_COMPARISON_CASES, load_expected_labels, score_labels,
+    HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES,
+    load_expected_labels, score_labels,
 )
 st.markdown("### 12 vakalık canlı model testi")
 st.caption(
@@ -264,6 +265,107 @@ if isinstance(saved_human_labels, dict) and set(saved_human_labels) == {
                 st.warning(f"{model_result['unscored']} cevaplanmayan vaka hata sayıldı.")
 elif isinstance(st.session_state.get("cano_claim_review_benchmark_result"), dict):
     st.info("Önceki 12 vakalık sonuç yalnızca aynı küçük sabit kümenin testidir; bağımsız 24 vaka ve insan karşılaştırması yerine geçmez.")
+
+st.markdown("### Ek kör kohort · 24 vaka, 8 yeni yayın")
+st.caption(
+    "Önceki 24 vakadan farklı sekiz yayın. Her yayından bir destek, bir çelişki "
+    "ve bir yetersiz kanıt vakası var. İnsan yanıtları ve altın etiketler bu "
+    "ek kohort için ayrı tutulur. Bu küçük küme genel bilimsel doğruluğu veya "
+    "insan üstünlüğünü kanıtlamaz."
+)
+v4_label_key = "cano_claim_review_human_labels_v4"
+v4_model_key = "cano_claim_review_human_benchmark_v4"
+with st.form("cano_blind_human_labels_v4"):
+    v4_human_labels = {}
+    for idx, case in enumerate(SUPPLEMENTAL_COMPARISON_CASES):
+        st.markdown(f"**Ek vaka {idx + 1}.** {case['claim']}")
+        st.caption(case["excerpt"])
+        st.markdown(f"[Kaynağı aç: {case['source_title']}]({case['source_url']})")
+        choice = st.selectbox(
+            "Pasajın iddiaya göre durumu",
+            ["— Seçin —", "Destekliyor", "Çelişiyor", "Kanıt yetersiz"],
+            key=f"cano_human_v4_{case['case_id']}",
+        )
+        v4_human_labels[case["case_id"]] = {
+            "Destekliyor": "supported",
+            "Çelişiyor": "contradicted",
+            "Kanıt yetersiz": "insufficient",
+        }.get(choice, "")
+    v4_labels_submitted = st.form_submit_button("Ek 24 insan değerlendirmesini kaydet")
+if v4_labels_submitted:
+    if any(not value for value in v4_human_labels.values()):
+        st.warning("Ek kohort için 24 vakanın tamamını etiketleyin.")
+    else:
+        st.session_state[v4_label_key] = v4_human_labels
+        st.session_state.pop(v4_model_key, None)
+        st.success("Ek kohort etiketleri bu tarayıcı oturumunda saklandı; cevap anahtarı gösterilmedi.")
+v4_saved_labels = st.session_state.get(v4_label_key)
+try:
+    v4_answer_key = load_expected_labels(
+        os.environ.get("CANO_HUMAN_BENCHMARK_ANSWER_KEY_V4"),
+        SUPPLEMENTAL_COMPARISON_CASES,
+    )
+except (ValueError, RuntimeError):
+    v4_answer_key = None
+if isinstance(v4_saved_labels, dict) and set(v4_saved_labels) == {
+        case["case_id"] for case in SUPPLEMENTAL_COMPARISON_CASES}:
+    if v4_answer_key is None:
+        st.warning(
+            "Ek kohortun özel cevap anahtarı ayarlı değil; etiketler korunuyor, "
+            "skor ve model testi kapalı."
+        )
+    else:
+        v4_human_score = score_labels(
+            SUPPLEMENTAL_COMPARISON_CASES, v4_saved_labels, v4_answer_key)
+        st.metric(
+            "Ek kohort · insan değerlendiricinin altın etikete uyumu",
+            f"{v4_human_score['correct']} / {v4_human_score['total']}",
+            f"%{v4_human_score['accuracy'] * 100:.0f}",
+        )
+        st.caption("Tek değerlendirici; vaka başına ikinci bağımsız insan puanlaması yok.")
+        st.json(v4_human_score["confusion_matrix"])
+        if key and st.button("Ek kohortta CANO modelini çalıştır (24 vaka, 1 çağrı)"):
+            try:
+                v4_result = run_claim_review_benchmark(
+                    Client(), cases=SUPPLEMENTAL_COMPARISON_CASES,
+                    expected_labels=v4_answer_key,
+                )
+            except TeamRateLimitError:
+                st.warning("Model kotası nedeniyle ek test tamamlanamadı; insan etiketleri korundu.")
+            except (ValueError, RuntimeError) as err:
+                st.warning(
+                    f"Ek model testi tamamlanamadı ({type(err).__name__}: {err}); "
+                    "insan etiketleri korundu."
+                )
+            else:
+                st.session_state[v4_model_key] = v4_result
+        v4_model_result = st.session_state.get(v4_model_key)
+        if isinstance(v4_model_result, dict):
+            v4_model_by_id = {
+                case["case_id"]: case["predicted"]
+                for case in v4_model_result["cases"]
+            }
+            v4_agreement = sum(
+                v4_saved_labels[case["case_id"]] == v4_model_by_id[case["case_id"]]
+                for case in SUPPLEMENTAL_COMPARISON_CASES
+            )
+            st.metric(
+                "Ek kohort · CANO'nun altın etikete uyumu",
+                f"{v4_model_result['correct']} / {v4_model_result['total']}",
+                f"%{v4_model_result['accuracy'] * 100:.0f}",
+            )
+            st.metric("Ek kohort · insan–CANO karar uyumu", f"{v4_agreement} / 24")
+            st.caption(
+                "İddia denetimi ve benchmark aynı Groq sağlayıcısını kullanır; "
+                "bu sonuç bağımsız model doğrulaması değildir."
+            )
+            st.caption(v4_model_result["scope"])
+            st.json(v4_model_result["confusion_matrix"])
+            if v4_model_result["unscored"]:
+                st.warning(
+                    f"{v4_model_result['unscored']} yanıtsız model kararı hata sayıldı."
+                )
+
 if not key:
     st.warning("Model bağlantısı yok; yeni iddia denetimi çalıştırılmadı.")
 reviewed_mission = manager.get(mid)

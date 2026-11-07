@@ -2,7 +2,7 @@ import json
 import unittest
 
 from core.claim_review_benchmark import (
-    CASES, HUMAN_COMPARISON_CASES, load_expected_labels,
+    CASES, HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, load_expected_labels,
     run_claim_review_benchmark, score_labels,
 )
 
@@ -140,6 +140,28 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
             self.assertEqual(result["per_class"][label]["support"], 4)
             self.assertEqual(result["per_class"][label]["recall"], 0.0)
             self.assertEqual(result["confusion_matrix"][label]["unscored"], 4)
+
+
+    def test_v4_adds_24_blind_cases_from_eight_distinct_new_publications(self):
+        self.assertEqual(len(SUPPLEMENTAL_COMPARISON_CASES), 24)
+        self.assertTrue(all("expected" not in case
+                            for case in SUPPLEMENTAL_COMPARISON_CASES))
+        self.assertTrue(all(case["source_url"].startswith("https://pubmed.ncbi.nlm.nih.gov/")
+                            for case in SUPPLEMENTAL_COMPARISON_CASES))
+        by_source = {}
+        for case in SUPPLEMENTAL_COMPARISON_CASES:
+            by_source.setdefault(case["source_url"], []).append(case)
+        self.assertEqual(len(by_source), 8)
+        self.assertTrue(all(len(cases) == 3 for cases in by_source.values()))
+        self.assertTrue(all(
+            sum(len(case["excerpt"].split()) for case in cases) <= 25
+            for cases in by_source.values()))
+        self.assertFalse(
+            {case["source_url"] for case in SUPPLEMENTAL_COMPARISON_CASES}
+            & {case["source_url"] for case in HUMAN_COMPARISON_CASES})
+        self.assertEqual(
+            [case["case_id"] for case in SUPPLEMENTAL_COMPARISON_CASES],
+            [f"v4_{index:02d}" for index in range(1, 25)])
 
 
 if __name__ == "__main__":

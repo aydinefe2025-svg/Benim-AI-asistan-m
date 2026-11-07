@@ -114,6 +114,43 @@ HUMAN_COMPARISON_CASES = (
 )
 
 
+
+# Second blind cohort adds eight new publications and keeps the previous cohort and
+# its private answer key unchanged. Curator labels stay only in Render env.
+SUPPLEMENTAL_COMPARISON_CASES = (
+    {"case_id":"v4_01","claim":"RELIEVE-HF randomized 508 patients: 250 to shunt and 258 to placebo procedure.","excerpt":"508 randomized ... shunt n=250, placebo n=258","source_title":"Interatrial Shunt Treatment for Heart Failure: The Randomized RELIEVE-HF Trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/39308371/"},
+    {"case_id":"v4_02","claim":"The interatrial shunt significantly improved the 2-year primary effectiveness outcome.","excerpt":"no difference ... win ratio 0.86, P=0.20","source_title":"Interatrial Shunt Treatment for Heart Failure: The Randomized RELIEVE-HF Trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/39308371/"},
+    {"case_id":"v4_03","claim":"Shunt treatment significantly reduced 5-year all-cause mortality.","excerpt":"primary effectiveness outcome at 2 years","source_title":"Interatrial Shunt Treatment for Heart Failure: The Randomized RELIEVE-HF Trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/39308371/"},
+
+    {"case_id":"v4_04","claim":"The smartphone app lowered systolic blood pressure versus control by 5.5 mmHg.","excerpt":"difference 5.5 mmHg; p=0.011","source_title":"A Smartphone-Guided Digital Health Application for Hypertension: The Randomized Controlled HELP Trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/40305376/"},
+    {"case_id":"v4_05","claim":"Systolic blood pressure increased in the control group during the HELP trial.","excerpt":"fell from 151.4 ... to 144.3 mmHg","source_title":"A Smartphone-Guided Digital Health Application for Hypertension: The Randomized Controlled HELP Trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/40305376/"},
+    {"case_id":"v4_06","claim":"The HELP app reduced cardiovascular mortality over five years.","excerpt":"therapy adherence, heart rate","source_title":"A Smartphone-Guided Digital Health Application for Hypertension: The Randomized Controlled HELP Trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/40305376/"},
+
+    {"case_id":"v4_07","claim":"Finerenone reduced the primary composite event rate versus placebo.","excerpt":"rate ratio, 0.84 ... P = 0.007","source_title":"Finerenone in Heart Failure with Mildly Reduced or Preserved Ejection Fraction","source_url":"https://pubmed.ncbi.nlm.nih.gov/39225278/"},
+    {"case_id":"v4_08","claim":"Cardiovascular deaths were more frequent with finerenone than with placebo.","excerpt":"8.1% and 8.7%, respectively","source_title":"Finerenone in Heart Failure with Mildly Reduced or Preserved Ejection Fraction","source_url":"https://pubmed.ncbi.nlm.nih.gov/39225278/"},
+    {"case_id":"v4_09","claim":"Finerenone significantly reduced all-cause mortality over five years.","excerpt":"median follow-up of 32 months","source_title":"Finerenone in Heart Failure with Mildly Reduced or Preserved Ejection Fraction","source_url":"https://pubmed.ncbi.nlm.nih.gov/39225278/"},
+
+    {"case_id":"v4_10","claim":"Coronary sinus reducer treatment lowered daily angina episodes versus placebo.","excerpt":"daily angina episodes was reduced with CSR compared with placebo","source_title":"Coronary sinus reducer for the treatment of refractory angina (ORBITA-COSMIC)","source_url":"https://pubmed.ncbi.nlm.nih.gov/38604209/"},
+    {"case_id":"v4_11","claim":"The coronary sinus reducer improved myocardial blood flow in ischemic segments.","excerpt":"did not improve with CSR compared with placebo","source_title":"Coronary sinus reducer for the treatment of refractory angina (ORBITA-COSMIC)","source_url":"https://pubmed.ncbi.nlm.nih.gov/38604209/"},
+    {"case_id":"v4_12","claim":"The coronary sinus reducer reduced stroke incidence over five years.","excerpt":"no acute coronary syndrome events or deaths","source_title":"Coronary sinus reducer for the treatment of refractory angina (ORBITA-COSMIC)","source_url":"https://pubmed.ncbi.nlm.nih.gov/38604209/"},
+
+    {"case_id":"v4_13","claim":"Oral semaglutide had fewer primary-outcome events than placebo.","excerpt":"12.0% ... versus 13.8%","source_title":"Oral Semaglutide and Cardiovascular Outcomes in High-Risk Type 2 Diabetes","source_url":"https://pubmed.ncbi.nlm.nih.gov/40162642/"},
+    {"case_id":"v4_14","claim":"Primary-outcome events were more common with oral semaglutide than placebo.","excerpt":"579 ... 668","source_title":"Oral Semaglutide and Cardiovascular Outcomes in High-Risk Type 2 Diabetes","source_url":"https://pubmed.ncbi.nlm.nih.gov/40162642/"},
+    {"case_id":"v4_15","claim":"Oral semaglutide significantly reduced all-cause mortality by itself.","excerpt":"composite of death ... MI or stroke","source_title":"Oral Semaglutide and Cardiovascular Outcomes in High-Risk Type 2 Diabetes","source_url":"https://pubmed.ncbi.nlm.nih.gov/40162642/"},
+
+    {"case_id":"v4_16","claim":"Cognitive scores improved similarly over time in both vortioxetine trial groups.","excerpt":"improved over time at similar rates","source_title":"Vortioxetine for the treatment of post-COVID-19 condition: a randomized controlled trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/37936330/"},
+    {"case_id":"v4_17","claim":"Vortioxetine had a significant primary-endpoint advantage in overall cognitive function.","excerpt":"no significant group or treatment × time effects","source_title":"Vortioxetine for the treatment of post-COVID-19 condition: a randomized controlled trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/37936330/"},
+    {"case_id":"v4_18","claim":"Vortioxetine prevented cognitive relapse for one year after treatment.","excerpt":"for 8 weeks of treatment","source_title":"Vortioxetine for the treatment of post-COVID-19 condition: a randomized controlled trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/37936330/"},
+
+    {"case_id":"v4_19","claim":"PAX-LC enrolled 100 people: 49 assigned drug and 51 placebo.","excerpt":"100 enrolled: 49 drug, 51 placebo","source_title":"Nirmatrelvir-ritonavir versus placebo-ritonavir in individuals with long COVID in the USA (PAX LC)","source_url":"https://pubmed.ncbi.nlm.nih.gov/40188838/"},
+    {"case_id":"v4_20","claim":"Nirmatrelvir-ritonavir significantly improved long-COVID health outcomes by day 28.","excerpt":"did not significantly improve ... day 28","source_title":"Nirmatrelvir-ritonavir versus placebo-ritonavir in individuals with long COVID in the USA (PAX LC)","source_url":"https://pubmed.ncbi.nlm.nih.gov/40188838/"},
+    {"case_id":"v4_21","claim":"The treatment prevented hospital admissions over one year in PAX-LC.","excerpt":"safety follow-up to week 6","source_title":"Nirmatrelvir-ritonavir versus placebo-ritonavir in individuals with long COVID in the USA (PAX LC)","source_url":"https://pubmed.ncbi.nlm.nih.gov/40188838/"},
+
+    {"case_id":"v4_22","claim":"The FAVID trial randomized 44 patients: 23 to favipiravir and 21 to placebo.","excerpt":"44 randomized: 23 favipiravir, 21 placebo","source_title":"Safety and efficacy of favipiravir in COVID-19 patients with pneumonia: FAVID trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/38402214/"},
+    {"case_id":"v4_23","claim":"Favipiravir shortened median time to clinical improvement versus placebo.","excerpt":"not different: 10 days in both groups","source_title":"Safety and efficacy of favipiravir in COVID-19 patients with pneumonia: FAVID trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/38402214/"},
+    {"case_id":"v4_24","claim":"Favipiravir reduced mortality over one year in COVID-19 pneumonia.","excerpt":"primary endpoint ... up to 28 days","source_title":"Safety and efficacy of favipiravir in COVID-19 patients with pneumonia: FAVID trial","source_url":"https://pubmed.ncbi.nlm.nih.gov/38402214/"},
+)
+
 _SYSTEM = (
     "You are a cautious claim-to-passage reviewer. Assess only whether each "
     "exact claim is directly supported, directly contradicted, or not established "
