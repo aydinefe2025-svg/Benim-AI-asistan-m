@@ -230,11 +230,22 @@ def restore_to_empty_database(path:Path,*,target_db_url_env='CANO_RESTORE_DATABA
     target=unquote(parts.path[1:])
     if not target.startswith('cano_restore_') or not target.replace('_','').isalnum():
         raise BackupError('Target must be a dedicated cano_restore_* database')
-    # Refuse connection to the source DB even if the caller gives it an alias.
-    src=urlsplit(os.getenv('DATABASE_URL',''))
-    if (src.hostname==parts.hostname and src.port==parts.port and
-        unquote(src.path[1:])==target):
-        raise BackupError('Isolated restore target must differ from source')
+    # CANO persists owner memory and authorized queue in separately configured
+    # databases. Check EVERY active source, not only the generic DATABASE_URL.
+    # Normalize the default PostgreSQL port so :5432 cannot bypass this guard.
+    for source_env in ('DATABASE_URL', 'MEMORY_DATABASE_URL', 'AGENT_TASK_DATABASE_URL'):
+        source_url=os.getenv(source_env,'')
+        if not source_url:
+            continue
+        try:
+            src=urlsplit(source_url)
+            same_source=(src.hostname==parts.hostname and
+                         (src.port or 5432)==(parts.port or 5432) and
+                         unquote(src.path[1:])==target)
+        except ValueError:
+            raise BackupError('Invalid configured source database URL') from None
+        if same_source:
+            raise BackupError('Isolated restore target must differ from all active source databases')
     # Authentication must succeed BEFORE the destination receives any SQL.
     proof=decrypt_to_sink(path,None)
     env=_child_env(_libpq_env_from_uri(url,os.environ))
