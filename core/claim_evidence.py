@@ -274,9 +274,10 @@ def _reconcile_cached_confidence_conflicts(manager, mission_id, stages):
         return None
     changes = []
     for index, item in enumerate(audit):
+        human_review = item.get("human_review") if isinstance(item, dict) else None
         if (not isinstance(item, dict)
                 or item.get("status") != "quote_found_unverified"
-                or isinstance(item.get("human_review"), dict)):
+                or (isinstance(human_review, dict) and bool(human_review))):
             continue
         assessment = item.get("machine_assessment")
         if (not isinstance(assessment, dict)
