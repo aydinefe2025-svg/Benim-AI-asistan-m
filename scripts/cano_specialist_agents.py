@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
-import hashlib
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -93,7 +93,7 @@ def _worker(role: str, report_path: str, database_path: str) -> dict:
                 != report.get("stored_ticks")):
             raise ValueError("reported cycle continuity is inconsistent")
         uri = Path(database_path).resolve().as_uri() + "?mode=ro"
-        with sqlite3.connect(uri, uri=True, timeout=5) as db:
+        with closing(sqlite3.connect(uri, uri=True, timeout=5)) as db:
             if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                 raise ValueError("SQLite read-only integrity check failed")
             row = db.execute(
