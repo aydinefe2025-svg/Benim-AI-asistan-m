@@ -69,7 +69,7 @@ def audit(rns,source_dir:Path,workdir:Path):
         write_rns(dst,rows)
         table_sha=hashlib.sha256(dst.read_bytes()).hexdigest()
         if table_sha!=model["rns_table_sha256"]:
-            raise ValueError(f"{name}: regenerated 196pt EOS table SHA mismatch")
+            raise ValueError(f"{name}: regenerated 196pt EOS table SHA mismatch: expected={model['rns_table_sha256']} actual={table_sha} source={src.name} numpy={np.__version__} firstrow={rows[0].tolist()}")
         rho=float(model["rns_rotating_at_target"]["central_energy_density_g_cm3"])
         vals=eos_table_slopes(rows,rho)
         vals.update({"eos":name,"source_npz_sha256":srcsha,

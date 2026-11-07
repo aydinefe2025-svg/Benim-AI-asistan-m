@@ -66,7 +66,7 @@ def audit(prior,rns_bin,source_dir,output_dir):
             write_rns(outpath,table)
             table_sha=hashlib.sha256(outpath.read_bytes()).hexdigest()
             if table_sha!=row['rns_table_sha256']:
-                raise ValueError('196pt EOS table SHA256 differs from validated model')
+                raise ValueError(f'196pt EOS table SHA256 differs from validated model: expected={row["rns_table_sha256"]} actual={table_sha} npz={sha} numpy={np.__version__}')
             base_rot=row['rns_rotating_at_target']
             base_static=row['rns_static_at_same_gravitational_mass']
             rot=run_rns_at_spin_with_ratio_fallback(rns_bin,outpath,central_density=float(base_rot['central_energy_density_g_cm3']),spin_hz=float(prior['spin_hz']))
