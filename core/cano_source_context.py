@@ -77,7 +77,7 @@ def _select_excerpt(relative: str, text: str) -> str:
         selected.extend(f"{number}: {lines[number - 1]}"
                         for number in range(max(start + 1, last_end + 1), end + 1))
         last_end = max(last_end, end)
-    return "\\n".join(selected)[:_MAX_FILE_CHARS]
+    return "\n".join(selected)[:_MAX_FILE_CHARS]
 
 
 def build_cano_source_context(task: str, repo_root: str | Path) -> str:
