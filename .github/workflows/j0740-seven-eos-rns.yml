@@ -17,6 +17,10 @@ on:
       - "research/j0740/rotating_gr/test_resilient_mass_root.py"
       - ".github/workflows/j0740-seven-eos-rns.yml"
 
+concurrency:
+  group: j0740-seven-eos-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
