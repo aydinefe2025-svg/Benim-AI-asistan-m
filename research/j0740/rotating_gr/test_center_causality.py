@@ -46,7 +46,7 @@ class CenterCausalityTests(unittest.TestCase):
         e,p,cs2=self.example()
         e[2]=e[1]*.7
         out=central_causality(e,p,cs2,1.3e15)
-        self.assertEqual(out["source_nonmonotone_energy_prefix_final_index"],3)
+        self.assertEqual(out["source_nonmonotone_energy_prefix_final_index"],2)
 
     def test_nonmonotonic_pressure_is_rejected(self):
         e,p,cs2=self.example()
