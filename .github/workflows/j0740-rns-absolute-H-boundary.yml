@@ -1,0 +1,73 @@
+name: J0740 pinned RNS absolute H and C surface-boundary diagnostic
+on:
+  pull_request:
+    paths:
+      - "research/j0740/rotating_gr/rns_surface_boundary_probe.py"
+      - "research/j0740/rotating_gr/test_rns_surface_boundary_probe.py"
+      - ".github/workflows/j0740-rns-absolute-H-boundary.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  two-surface-conditions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install numpy
+      - name: Six static tests for pinned C patch scope and refusal
+        working-directory: research/j0740/rotating_gr
+        run: python -m unittest -v test_rns_surface_boundary_probe
+      - name: Compile two isolated pinned C versions with different EOS boundary assumptions
+        run: |
+          cp -a rns-upstream rns-hmin
+          cp -a rns-upstream rns-hmin-surface
+          python research/j0740/rotating_gr/rns_surface_boundary_probe.py \
+            --patch hmin --original-c rns-upstream/findmodel.c \
+            --patched-c rns-hmin/findmodel.c
+          python research/j0740/rotating_gr/rns_surface_boundary_probe.py \
+            --patch hmin_surface --original-c rns-upstream/findmodel.c \
+            --patched-c rns-hmin-surface/findmodel.c
+          make -C rns-hmin rns
+          make -C rns-hmin-surface rns
+      - name: Retrieve original seven GR models without repeating old 12.9GB archive
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: |
+          mkdir -p prior-rns
+          gh run download 42353019033 --repo "$GITHUB_REPOSITORY" \
+            --name j0740-seven-eos-rns-fixed-mass-results \
+            --dir prior-rns
+      - name: Diagnostic C GR static and conditional rotating models using absolute H
+        run: |
+          python research/j0740/rotating_gr/rns_surface_boundary_probe.py \
+            --rns-json prior-rns/J0740_seven_EOS_full_GR_fixed_spin_mass.json \
+            --source-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --hmin-binary rns-hmin/rns --surface-binary rns-hmin-surface/rns \
+            --out results/J0740_absoluteH_C_surface_boundary_diagnostic.json
+      - name: Retain full successful and unsuccessful physical controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-absoluteH-pinned-C-surface-boundary-evidence
+          path: results/J0740_absoluteH_C_surface_boundary_diagnostic.json
+          if-no-files-found: warn
+          retention-days: 30
