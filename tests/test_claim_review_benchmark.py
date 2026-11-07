@@ -2,7 +2,7 @@ import json
 import unittest
 
 from core.claim_review_benchmark import (
-    CASES, HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, load_expected_labels, randomized_case_order,
+    CASES, HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, V5_COMPARISON_CASES, load_expected_labels, randomized_case_order,
     run_blind_model_benchmark, run_claim_review_benchmark, score_labels,
 )
 
@@ -23,6 +23,35 @@ class BenchmarkClient:
 
 
 class ClaimReviewBenchmarkTests(unittest.TestCase):
+    def test_v5_has_24_blind_cases_from_eight_new_source_publications(self):
+        self.assertEqual(len(V5_COMPARISON_CASES), 24)
+        self.assertTrue(all("expected" not in case for case in V5_COMPARISON_CASES))
+        self.assertTrue(all(case.get("source_url", "").startswith("https://")
+                            and case.get("source_title") for case in V5_COMPARISON_CASES))
+        sources = {case["source_url"] for case in V5_COMPARISON_CASES}
+        self.assertEqual(len(sources), 8)
+        for url in sources:
+            grouped = [case for case in V5_COMPARISON_CASES if case["source_url"] == url]
+            self.assertEqual(len(grouped), 3)
+            self.assertLessEqual(
+                sum(len(case["excerpt"].split()) for case in grouped), 25)
+        labels = ("supported", "contradicted", "insufficient")
+        private_key = {
+            case["case_id"]: labels[index % 3]
+            for index, case in enumerate(V5_COMPARISON_CASES)
+        }
+        answer_key_json = json.dumps(private_key)
+        parsed = load_expected_labels(answer_key_json, V5_COMPARISON_CASES)
+        self.assertEqual(set(parsed), {case["case_id"] for case in V5_COMPARISON_CASES})
+        predictions = [parsed[case["case_id"]] for case in V5_COMPARISON_CASES]
+        client = BenchmarkClient(predictions)
+        result = run_blind_model_benchmark(
+            client, cases=V5_COMPARISON_CASES, answer_key_json=answer_key_json)
+        self.assertEqual(result["correct"], 24)
+        self.assertEqual(result["coverage"], 1.0)
+        self.assertEqual(len(client.calls), 1)
+        self.assertNotIn(answer_key_json, client.calls[0][2])
+
     def test_fixed_labels_are_hidden_and_perfect_confusion_matrix_is_reported(self):
         client = BenchmarkClient()
         result = run_claim_review_benchmark(client)
