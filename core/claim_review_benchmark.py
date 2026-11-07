@@ -166,16 +166,25 @@ _SYSTEM = (
 
 
 def randomized_case_order(cases, *, previous_ids=None, rng=None):
-    """Return a stable per-review shuffled order without exposing labels."""
+    """Return a stable shuffled order, invalidating the historical source order."""
     cases = tuple(cases)
-    by_id = {case["case_id"]: case for case in cases}
-    if (isinstance(previous_ids, list) and len(previous_ids) == len(cases)
-            and len(set(previous_ids)) == len(previous_ids)
-            and set(previous_ids) == set(by_id)):
+    canonical_ids = [case["case_id"] for case in cases]
+    by_id = {case_id: case for case_id, case in zip(canonical_ids, cases)}
+    valid_previous = (
+        isinstance(previous_ids, list)
+        and len(previous_ids) == len(cases)
+        and len(set(previous_ids)) == len(previous_ids)
+        and set(previous_ids) == set(by_id)
+    )
+    # Prior releases saved the source-grouped list. Treat it as stale rather
+    # than restoring it, so an existing browser session is randomized too.
+    if valid_previous and previous_ids != canonical_ids:
         return tuple(by_id[case_id] for case_id in previous_ids)
     import random
     shuffled = list(cases)
     (rng or random.SystemRandom()).shuffle(shuffled)
+    if len(shuffled) > 1 and [case["case_id"] for case in shuffled] == canonical_ids:
+        shuffled = shuffled[1:] + shuffled[:1]
     return tuple(shuffled)
 
 
