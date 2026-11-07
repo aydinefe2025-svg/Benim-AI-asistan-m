@@ -1,0 +1,64 @@
+name: CANO bounded digital organism calendar cycle
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '47 5 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cano-bounded-organism-calendar-cycle
+  cancel-in-progress: false
+
+jobs:
+  evolve-and-persist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    env:
+      STATE_BRANCH: experiment/cano-digital-state-20261107
+    steps:
+      - name: Checkout source at the trusted default branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prove regression, restart and tamper protection
+        run: |
+          python -m unittest organism_lab.tests.test_calendar_cycle organism_lab.tests.test_genome_checkpoint -v
+      - name: Load existing separate state branch or fail closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/heads/${STATE_BRANCH}:refs/remotes/origin/${STATE_BRANCH}"
+          git worktree add --detach "$RUNNER_TEMP/cano-state" "refs/remotes/origin/${STATE_BRANCH}"
+      - name: Advance just this UTC day and independently validate readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          export STATE_DIR="$RUNNER_TEMP/cano-state/research_reports/cano-digital-continuity"
+          export UTC_DAY="$(date -u +%F)"
+          python -m organism_lab.calendar_cycle --state-dir "$STATE_DIR" --day "$UTC_DAY"
+          python -m organism_lab.calendar_cycle --state-dir "$STATE_DIR" --day "$UTC_DAY"
+          python -m organism_lab.genome_checkpoint verify "$STATE_DIR/genome-state.json"
+      - name: Persist only changed evidence to dedicated simulation state branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/cano-state"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research_reports/cano-digital-continuity/genome-state.json research_reports/cano-digital-continuity/daily/
+          if git diff --cached --quiet; then
+            echo 'Same UTC day already verified: no duplicate commit.'
+            exit 0
+          fi
+          git commit -m "archive: bounded digital organism continuity $(date -u +%F)"
+          # Fail rather than force pushing or overwriting a concurrently modified branch.
+          git push origin "HEAD:refs/heads/${STATE_BRANCH}"
