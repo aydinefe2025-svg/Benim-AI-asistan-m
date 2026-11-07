@@ -5,12 +5,8 @@ No GitHub token, database credential, or user data is used by this bridge.
 """
 from __future__ import annotations
 
-from io import BytesIO
-import hashlib
 import json
 import math
-import re
-import zipfile
 import threading
 import time
 
@@ -20,10 +16,7 @@ WORKFLOW_FILE = "cano-colony-cycle.yml"
 MAX_ARCHIVE_BYTES = 8_000_000
 MAX_REPORT_BYTES = 1_000_000
 EXPECTED_AGENTS = {"evidence", "generation", "continuity", "security"}
-RUNS_URL = (
-    f"https://api.github.com/repos/{REPOSITORY}/actions/workflows/"
-    f"{WORKFLOW_FILE}/runs?branch=main&per_page=5"
-)
+REPORT_URL = f"https://raw.githubusercontent.com/{REPOSITORY}/cano-latest/colony-cycle.json"
 
 
 class ColonyStatusUnavailable(RuntimeError):
@@ -152,97 +145,57 @@ def _validate_report(report: object, run_id: int) -> dict:
 
 
 def load_latest_colony_status(request_get=None) -> dict:
-    """Fetch the latest successful run report, with no credentials or writes."""
+    """Read the latest validated public summary without the GitHub REST API."""
     if request_get is None:
         import requests
         request_get = requests.get
+    url = f"{REPORT_URL}?v={int(time.time())}"
     try:
-        payload = _get_json(request_get, RUNS_URL)
-        runs = payload.get("workflow_runs")
-        if not isinstance(runs, list):
-            raise ColonyStatusUnavailable("invalid_workflow_run_list")
-        if not runs:
-            return {"state": "no_runs"}
-        latest = runs[0]
-        latest_id = latest.get("id")
-        if type(latest_id) is not int:
-            raise ColonyStatusUnavailable("invalid_workflow_run")
-        previous_success = next((
-            run for run in runs
-            if run.get("status") == "completed" and run.get("conclusion") == "success"
-            and type(run.get("id")) is int
-        ), None)
-        if previous_success is None:
-            return {
-                "state": latest.get("status", "unknown"),
-                "conclusion": latest.get("conclusion"),
-                "run_id": latest_id,
-            }
-        run_id = previous_success["id"]
-        artifacts_url = (
-            f"https://api.github.com/repos/{REPOSITORY}/actions/runs/{run_id}/artifacts"
+        response = request_get(
+            url,
+            headers={"Accept": "application/json",
+                     "User-Agent": "organism-lab-readonly-colony-panel"},
+            timeout=8,
         )
-        artifacts = _get_json(request_get, artifacts_url).get("artifacts")
-        if not isinstance(artifacts, list):
-            raise ColonyStatusUnavailable("invalid_artifact_list")
-        expected_name = f"cano-colony-cycle-{run_id}"
-        artifact = next((item for item in artifacts
-                         if isinstance(item, dict) and item.get("name") == expected_name
-                         and item.get("expired") is False and type(item.get("id")) is int), None)
-        if artifact is None or artifact.get("size_in_bytes", MAX_ARCHIVE_BYTES + 1) > MAX_ARCHIVE_BYTES:
-            raise ColonyStatusUnavailable("cycle_artifact_missing")
-        archive_url = (
-            f"https://api.github.com/repos/{REPOSITORY}/actions/artifacts/"
-            f"{artifact['id']}/zip"
-        )
-        archive = _bounded_download(request_get, archive_url)
-        digest = artifact.get("digest")
-        if not isinstance(digest, str) or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest):
-            raise ColonyStatusUnavailable("artifact_digest_missing")
-        if hashlib.sha256(archive).hexdigest() != digest.removeprefix("sha256:"):
-            raise ColonyStatusUnavailable("artifact_digest_mismatch")
-        with zipfile.ZipFile(BytesIO(archive)) as bundle:
-            info = next((item for item in bundle.infolist()
-                         if item.filename == "colony-cycle.json"), None)
-            if info is None or info.file_size > MAX_REPORT_BYTES:
-                raise ColonyStatusUnavailable("cycle_report_missing_or_too_large")
-            raw = bundle.read(info)
-        report = json.loads(raw.decode("utf-8"))
+        response.raise_for_status()
+        raw = getattr(response, "content", None)
+        if raw is not None and len(raw) > MAX_REPORT_BYTES:
+            raise ColonyStatusUnavailable("cycle_report_too_large")
+        report = response.json()
+        run_value = report.get("github_run_id") if isinstance(report, dict) else None
+        if not isinstance(run_value, (int, str)) or not str(run_value).isdigit():
+            raise ColonyStatusUnavailable("invalid_cycle_run_id")
+        run_id = int(run_value)
         summary = _validate_report(report, run_id)
         return {
             "state": "success",
             "run_id": run_id,
             "run_url": f"https://github.com/{REPOSITORY}/actions/runs/{run_id}",
-            "latest_run_state": latest.get("status"),
-            "latest_run_conclusion": latest.get("conclusion"),
+            "latest_run_state": "completed",
+            "latest_run_conclusion": "success",
             "generated_at": summary.pop("timestamp"),
             "report": summary,
         }
     except ColonyStatusUnavailable:
         raise
     except Exception as exc:
-        # Expose only a fixed diagnostic code; never show URLs, response bodies,
-        # headers, credentials, or arbitrary exception text in the app.
-        code = "github_cycle_unavailable"
+        code = "colony_report_unavailable"
         try:
             import requests
             if isinstance(exc, requests.Timeout):
-                code = "github_timeout"
+                code = "report_timeout"
             elif isinstance(exc, requests.HTTPError):
                 status = getattr(getattr(exc, "response", None), "status_code", None)
                 code = {
-                    401: "github_http_401",
-                    403: "github_http_403_or_rate_limit",
-                    404: "github_http_404",
-                    429: "github_http_429",
-                }.get(status, "github_http_5xx" if isinstance(status, int) and status >= 500 else "github_http_error")
-            elif isinstance(exc, zipfile.BadZipFile):
-                code = "artifact_not_a_valid_zip"
+                    404: "report_not_published",
+                    429: "report_rate_limited",
+                }.get(status, "report_http_5xx" if isinstance(status, int) and status >= 500 else "report_http_error")
             elif isinstance(exc, json.JSONDecodeError):
-                code = "artifact_json_invalid"
+                code = "report_json_invalid"
         except Exception:
             pass
         raise ColonyStatusUnavailable(code) from None
+
 
 
 def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
