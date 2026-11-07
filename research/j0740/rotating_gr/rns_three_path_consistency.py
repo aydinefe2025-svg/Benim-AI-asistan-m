@@ -26,7 +26,7 @@ RNS_JSON_SHA256 = "d8e1bca98238f1d02e093c8455a18b7588ac7a2aac178571d579edc0865dd
 C2_CGS = (299792458.0*100)**2
 
 
-def interp_four_log(table_x: np.ndarray, table_y: np.ndarray, target: float) -> dict:
+def interp_four_log(table_x: np.ndarray, table_y: np.ndarray, target: float, *, allow_extrapolation=False) -> dict:
     """C equil_util.c::interp Lagrange 4-pt log10 interpolation and dlogy/dlogx.
 
     The exact floating-point binary interpolation order is not guaranteed,
@@ -37,7 +37,7 @@ def interp_four_log(table_x: np.ndarray, table_y: np.ndarray, target: float) -> 
             or not math.isfinite(target) or target <= 0
             or not np.all(np.isfinite(x)) or not np.all(np.isfinite(y))
             or np.any(x <= 0) or np.any(y <= 0)
-            or np.any(np.diff(x) <= 0) or target < x[0] or target > x[-1]):
+            or np.any(np.diff(x) <= 0) or (not allow_extrapolation and (target < x[0] or target > x[-1]))):
         raise ValueError("Invalid C tabulated EOS inputs or out-of-support query")
     xp = np.log10(x); yp = np.log10(y); z = math.log10(target)
     j = int(np.searchsorted(xp, z, side="right")-1)
@@ -52,11 +52,16 @@ def interp_four_log(table_x: np.ndarray, table_y: np.ndarray, target: float) -> 
                         for m in others)/denominator
         value += float(ys[i])*valbasis
         slope += float(ys[i])*gradbasis
+    beyond = bool(target < x[0] or target > x[-1])
+    log_beyond = (math.log10(float(x[0]/target)) if target < x[0] else
+                  (math.log10(float(target/x[-1])) if target > x[-1] else 0.0))
     out = 10.0**value
     if not math.isfinite(out) or not math.isfinite(slope) or out <= 0:
         raise ValueError("C tabular interpolation nonfinite/negative")
     return {"value": float(out), "dlogy_dlogx":float(slope),
-            "source_table_four_row_indices": [start,start+1,start+2,start+3]}
+            "source_table_four_row_indices": [start,start+1,start+2,start+3],
+            "outside_tabulated_support":beyond,
+            "extrapolation_log10_decades":log_beyond}
 
 
 def at_pressure(rows: np.ndarray, target_p: float) -> dict:
@@ -70,8 +75,11 @@ def at_pressure(rows: np.ndarray, target_p: float) -> dict:
     if not energy["dlogy_dlogx"]:
         raise ValueError("Zero de/dp slope in RNS e_at_p")
     cs2 = target_p/(energy["value"]*C2_CGS*energy["dlogy_dlogx"])
-    p_back_e = interp_four_log(e,p,energy["value"])
-    p_back_h = interp_four_log(h,p,h_at_p["value"])
+    # Upstream RNS C::interp permits four-point polynomial extrapolation.
+    # The overrun here is a diagnostic, not permission to silently call the
+    # resulting EOS physically causal or observationally validated.
+    p_back_e = interp_four_log(e,p,energy["value"],allow_extrapolation=True)
+    p_back_h = interp_four_log(h,p,h_at_p["value"],allow_extrapolation=True)
     return {
         "e_at_p_density_g_cm3":energy["value"],
         "e_at_p_dloge_dlogp":energy["dlogy_dlogx"],
@@ -80,6 +88,10 @@ def at_pressure(rows: np.ndarray, target_p: float) -> dict:
         "h_at_p_dlogh_dlogp":h_at_p["dlogy_dlogx"],
         "p_at_e_roundtrip_relative_error": (p_back_e["value"]-target_p)/target_p,
         "p_at_h_roundtrip_relative_error": (p_back_h["value"]-target_p)/target_p,
+        "e_at_p_intermediate_density_outside_input_support":p_back_e["outside_tabulated_support"],
+        "h_at_p_intermediate_enthalpy_outside_input_support":p_back_h["outside_tabulated_support"],
+        "p_at_e_extrapolation_log10_decades":p_back_e["extrapolation_log10_decades"],
+        "p_at_h_extrapolation_log10_decades":p_back_h["extrapolation_log10_decades"],
         "p_at_e_roundtrip_relative_error_abs": abs(p_back_e["value"]-target_p)/target_p,
         "p_at_h_roundtrip_relative_error_abs": abs(p_back_h["value"]-target_p)/target_p,
     }
@@ -123,10 +135,14 @@ def table_profile(rows: np.ndarray, target_center_rho:float, samples_per_interva
         "h_at_p_negative_dlogh_dlogp_count":int((h_slopes<0).sum()),
         "max_p_at_e_roundtrip_relative_error": float(pe.max()),
         "max_p_at_h_roundtrip_relative_error": float(ph.max()),
+        "e_at_p_density_out_of_support_samples":sum(int(z["e_at_p_intermediate_density_outside_input_support"]) for z in sample),
+        "h_at_p_enthalpy_out_of_support_samples":sum(int(z["h_at_p_intermediate_enthalpy_outside_input_support"]) for z in sample),
+        "max_p_at_e_extrapolation_decades":max(z["p_at_e_extrapolation_log10_decades"] for z in sample),
+        "max_p_at_h_extrapolation_decades":max(z["p_at_h_extrapolation_log10_decades"] for z in sample),
         "rho_at_min_e_at_p_cs2_g_cm3": float(sample[int(np.argmin(sound))]["e_at_p_density_g_cm3"]),
         "p_at_min_e_at_p_cs2_dyn_cm2": float(pts[int(np.argmin(sound))]),
         "rho_at_max_e_at_p_cs2_g_cm3": float(sample[int(np.argmax(sound))]["e_at_p_density_g_cm3"]),
-        "sample_caveat":"8 values/pressure-bin plus star center; no proof between samples or full GR interior eigenstability",
+        "sample_caveat":"8 values/pressure-bin plus star center; C 4-point polynomial can extrapolate outside density/enthalpy table. No global proof between samples or full GR eigenstability",
     }
 
 

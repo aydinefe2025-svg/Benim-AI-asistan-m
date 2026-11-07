@@ -11,6 +11,13 @@ def synthetic(n=196):
     return np.column_stack([rho,p,h,n0])
 
 class CThreePathTests(unittest.TestCase):
+    def test_upstream_c_extrapolates_and_reports_support_violation(self):
+        x=np.geomspace(1,1000,196)
+        d=interp_four_log(x,x*2,0.998,allow_extrapolation=True)
+        self.assertTrue(d["outside_tabulated_support"])
+        self.assertGreater(d["extrapolation_log10_decades"],0)
+        self.assertAlmostEqual(d["value"],1.996,places=7)
+
     def test_exact_polytropic_e_at_p(self):
         rows=synthetic()
         for p in (rows[3,1],rows[60,1]*1.06,rows[-8,1]):
