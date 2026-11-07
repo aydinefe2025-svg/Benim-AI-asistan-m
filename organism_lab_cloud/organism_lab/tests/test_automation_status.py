@@ -123,7 +123,7 @@ class AutomationStatusTests(unittest.TestCase):
         self.assertIn("yeterli iyileşme kanıtı göstermedi", detail)
         self.assertIn("-1.733", detail)
         self.assertIn("-1.365", detail)
-        self.assertIn("0.12 ayarı korundu", detail)
+        self.assertIn("0.120 ayarı korundu", detail)
 
     def test_transferred_lesson_is_marked_as_simulation_only(self):
         report = {
