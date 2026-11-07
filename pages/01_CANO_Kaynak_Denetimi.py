@@ -9,7 +9,7 @@ from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.task_panel import _session_database_path
 from core.claim_evidence import (
-    _reconcile_cached_confidence_conflicts,
+    _display_cached_confidence_conflict, _reconcile_cached_confidence_conflicts,
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
     retry_unavailable_skeptical_pass,
 )
@@ -714,6 +714,9 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
         st.caption(item["claim"] + " — " + item["doi"])
         st.code(item["quote"])
         assessment = item.get("machine_assessment")
+        display_conflict = _display_cached_confidence_conflict(item, source)
+        if display_conflict is not None:
+            assessment = display_conflict
         initial_verdict = {
             "supports": "supported",
             "contradicts": "contradicted",
@@ -727,11 +730,19 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
         )
         if (isinstance(assessment, dict)
                 and assessment.get("method") == "explicit_confidence_conflict_guard"):
-            st.warning(
-                "Kaydedilmiş eski AI kararı kaynak metnindeki açık güven düzeyi "
-                "çelişkisiyle uyuşmadı. Sistem bunu otomatik olarak contradicted "
-                "diye düzeltti; önceki model kararı geçmişte korundu. İnsan incelemesi gerekir."
-            )
+            if assessment.get("display_only"):
+                st.warning(
+                    "Kaynak alıntısı iddiadaki yüksek güven düzeyiyle açıkça çelişiyor. "
+                    "Eski AI 'supported' kararı geçerli sayılmıyor; CANO'nun güncel "
+                    "otomatik yorumu 'contradicted'. Bu koruyucu gösterim insan "
+                    "incelemesinin yerini tutmaz."
+                )
+            else:
+                st.warning(
+                    "Kaydedilmiş eski AI kararı kaynak metnindeki açık güven düzeyi "
+                    "çelişkisiyle uyuşmadı. Sistem bunu otomatik olarak contradicted "
+                    "diye düzeltti; önceki model kararı geçmişte korundu. İnsan incelemesi gerekir."
+                )
         elif reviews_disagree:
             st.warning(
                 "AI incelemeleri uyuşmuyor; bu kaynak için otomatik karar "
@@ -770,14 +781,20 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
                 "contradicts": "contradicted",
                 "insufficient": "insufficient",
             }.get(comparison)
-            assessment = item.get("machine_assessment")
             disagreement = assessment.get("disagreement") if isinstance(assessment, dict) else None
             if (isinstance(assessment, dict)
                     and assessment.get("method") == "explicit_confidence_conflict_guard"):
-                st.warning(
-                    "Önceki üçüncü AI okuması korunuyor ancak kaynakta yazan açık "
-                    "güven düzeyiyle çelişen bu karar geçersiz kılındı."
-                )
+                if assessment.get("display_only"):
+                    st.warning(
+                        "Kaynakta düşük güven düzeyi yazarken üçüncü AI okuması "
+                        "'supported' demiş. Bu eski karar geçersiz; ekranda koruyucu "
+                        "'contradicted' yorumu gösteriliyor. İnsan incelemesi gerekir."
+                    )
+                else:
+                    st.warning(
+                        "Önceki üçüncü AI okuması korunuyor ancak kaynakta yazan açık "
+                        "güven düzeyiyle çelişen bu karar geçersiz kılındı."
+                    )
             elif isinstance(disagreement, dict):
                 if disagreement.get("resolved") is True:
                     st.warning(
