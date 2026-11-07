@@ -308,7 +308,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
             stages[0]["source_documents"] = [{
                 "doi": doi, "status": "full_text_excerpt",
                 "title": "Exercise for depression",
-                "url": "https://doi.org/" + doi,
+                "url": "https://europepmc.org/articles/PMC11131084",
                 "excerpt": excerpt, "claim_verified": False,
             }]
             stages[0]["source_claim_audit"] = [{
@@ -349,6 +349,56 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         saved = self.manager.get(self.mission_id)["stages"][0]
         self.assertEqual(saved["source_claim_audit_version"], 6)
         self.assertEqual(saved["source_claim_audit"], result)
+
+    def test_cached_confidence_guard_rejects_unrelated_citation_url(self):
+        doi = "10.1136/bmj-2023-075847"
+        excerpt = (
+            "As a result, confidence in accordance with CINeMA was low for "
+            "walking or jogging and very low for other treatments."
+        )
+        with self.manager.colony._db() as db:
+            row = db.execute("SELECT stages FROM colony_missions WHERE id=?",
+                             (self.mission_id,)).fetchone()
+            stages = json.loads(row["stages"])
+            stages[0]["source_documents"] = [{
+                "doi": doi, "status": "full_text_excerpt",
+                "title": "Exercise for depression",
+                "url": "https://europepmc.org/articles/PMC11131084",
+                "excerpt": excerpt, "claim_verified": False,
+            }]
+            stages[0]["source_claim_audit"] = [{
+                "claim": "The review had high confidence in every exercise effect.",
+                "doi": doi, "quote": excerpt, "status": "quote_found_unverified",
+                "citation_url": "https://example.com/unrelated",
+                "comparison": "insufficient", "comparison_status": "model_suggested",
+                "claim_verified": False,
+                "machine_assessment": {
+                    "verdict": "supported", "reason": "Legacy model result.",
+                    "method": "same_model_consistency_reread", "available": True,
+                    "disagreement": {
+                        "first_verdict": "insufficient",
+                        "skeptical_verdict": "supported",
+                        "adjudication_verdict": "supported", "resolved": True,
+                    },
+                },
+            }]
+            stages[0]["source_claim_audit_version"] = 5
+            db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
+                       (json.dumps(stages), self.mission_id))
+
+        class MustNotCall:
+            def chat(self, *_args):
+                raise AssertionError("Invalid cached citation must not call a model")
+            def verify(self, *_args):
+                raise AssertionError("Invalid cached citation must not call a model")
+
+        with self.assertRaises(AssertionError):
+            audit_claim_quotes(self.manager, self.mission_id,
+                               client=MustNotCall(), model="stub")
+        item = self.manager.get(self.mission_id)["stages"][0]["source_claim_audit"][0]
+        self.assertEqual(item["machine_assessment"]["verdict"], "supported")
+        self.assertNotIn("machine_assessment_history", item)
+        self.assertFalse(item["claim_verified"])
 
     def test_explicit_confidence_conflict_overrides_wrong_model_support(self):
         self.manager.inspect_source_documents(
