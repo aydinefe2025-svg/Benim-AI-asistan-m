@@ -392,10 +392,9 @@ class ClaimQuoteAuditTests(unittest.TestCase):
             def verify(self, *_args):
                 raise AssertionError("Invalid cached citation must not call a model")
 
-        with self.assertRaises(AssertionError):
-            audit_claim_quotes(self.manager, self.mission_id,
-                               client=MustNotCall(), model="stub")
-        item = self.manager.get(self.mission_id)["stages"][0]["source_claim_audit"][0]
+        result = audit_claim_quotes(self.manager, self.mission_id,
+                                    client=MustNotCall(), model="stub")
+        item = result[0]
         self.assertEqual(item["machine_assessment"]["verdict"], "supported")
         self.assertNotIn("machine_assessment_history", item)
         self.assertFalse(item["claim_verified"])
