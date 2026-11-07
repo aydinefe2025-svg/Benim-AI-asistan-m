@@ -413,6 +413,27 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertFalse(item["claim_verified"])
         self.assertNotIn("machine_assessment_history", item)
 
+    def test_missing_skeptical_assessment_is_not_reported_as_a_verdict(self):
+        self.add_excerpt()
+        model = QuoteModel([{
+            "claim": "A claim", "doi": DOI, "quote": QUOTE,
+            "comparison": "supports", "rationale": "proposal",
+        }])
+
+        def omit_assessment(*_args):
+            return json.dumps({"assessments": []})
+
+        model.verify = omit_assessment
+        result = audit_claim_quotes(self.manager, self.mission_id,
+                                    client=model, model="stub")
+        assessment = result[0]["machine_assessment"]
+        self.assertFalse(assessment["available"])
+        self.assertEqual(assessment["verdict"], "insufficient")
+        self.assertIn("alınamadı", assessment["reason"])
+        self.assertEqual(result[0]["status"], "quote_found_unverified")
+        self.assertFalse(result[0]["claim_verified"])
+
+
     def test_legacy_audit_is_preserved_when_upgraded_and_new_version_is_idempotent(self):
         self.add_excerpt()
         legacy = [{
