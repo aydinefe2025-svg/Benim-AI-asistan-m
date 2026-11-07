@@ -96,7 +96,7 @@ _SYSTEM = (
 )
 
 
-def run_claim_review_benchmark(client, *, model="openai/gpt-oss-20b"):
+def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b"):
     """Run all fixed cases in one reviewer call and return a bounded scorecard."""
     prompt_cases = [
         {"index": index, "claim": case["claim"], "source_excerpt": case["excerpt"]}

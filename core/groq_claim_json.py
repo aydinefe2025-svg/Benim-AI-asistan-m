@@ -10,7 +10,7 @@ import json
 from core.groq_team import TeamRateLimitError
 
 _MODEL = "openai/gpt-oss-120b"
-_VERIFICATION_MODEL = "openai/gpt-oss-20b"
+_VERIFICATION_MODEL = "openai/gpt-oss-120b"
 _CLAIM_COMPLETION_LIMIT = 1100
 _REVIEW_COMPLETION_LIMIT = 2400
 _SCHEMA = {
