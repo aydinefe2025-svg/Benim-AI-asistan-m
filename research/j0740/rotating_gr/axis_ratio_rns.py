@@ -57,6 +57,10 @@ def run_rns_at_ratio(binary: Path, eos_file: Path, *,
     model = parse_rns_output(proc.stdout,
                              central_density=central_density,
                              requested_spin_hz=reported_freq)
+    # Preserve the actual C solver stdout for cross-mesh identity checks.
+    # Unlike run_rns(-s), this -r path previously dropped raw_stdout_tail;
+    # thus WFF2 frequency-refined models failed a valid 151x301 grid guard.
+    model["raw_stdout_tail"] = proc.stdout[-1100:]
     model["axis_ratio"] = ratio
     model["solver_mode"] = "RNS_C_AXIS_RATIO_DIRECT"
     return model
