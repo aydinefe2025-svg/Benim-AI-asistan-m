@@ -320,8 +320,11 @@ def _reconcile_cached_confidence_conflicts(manager, mission_id, stages):
             corrected["method"] = "explicit_confidence_conflict_guard"
             item["machine_assessment"] = corrected
             item["claim_verified"] = False
-        current[0]["source_claim_audit_version"] = max(
-            6, int(current[0].get("source_claim_audit_version", 1)))
+        try:
+            old_version = max(1, int(current[0].get("source_claim_audit_version", 1)))
+        except (TypeError, ValueError):
+            old_version = 1
+        current[0]["source_claim_audit_version"] = max(6, old_version)
         db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
                    (json.dumps(current, ensure_ascii=False), mission_id))
     return manager.get(mission_id)["stages"][0]["source_claim_audit"]
