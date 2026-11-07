@@ -259,6 +259,38 @@ def _reread_cached_source_disagreements(manager, mission_id, stages, *, client, 
 
 
 
+def _display_cached_confidence_conflict(item, doc):
+    """Suppress a stale positive AI verdict when its matched excerpt says low confidence.
+
+    This display fallback requires a readable source and an exact quote match,
+    but it can still warn when legacy citation metadata blocks persistence.
+    It never overrides a human review and never mutates the stored record.
+    """
+    human_review = item.get("human_review") if isinstance(item, dict) else None
+    if (not isinstance(item, dict)
+            or item.get("status") != "quote_found_unverified"
+            or (isinstance(human_review, dict) and bool(human_review))
+            or not isinstance(doc, dict)
+            or doc.get("status") not in _READABLE
+            or not isinstance(doc.get("excerpt"), str)
+            or not isinstance(item.get("claim"), str)
+            or not isinstance(item.get("quote"), str)
+            or _normalized(item["quote"]) not in _normalized(doc["excerpt"])):
+        return None
+    assessment = item.get("machine_assessment")
+    if (not isinstance(assessment, dict)
+            or assessment.get("method") == "explicit_confidence_conflict_guard"):
+        return None
+    conflict = _explicit_confidence_conflict(item["claim"], doc["excerpt"])
+    if conflict is None:
+        return None
+    visible = dict(conflict)
+    visible["method"] = "explicit_confidence_conflict_guard"
+    visible["prior_model_verdict"] = assessment.get("verdict")
+    visible["display_only"] = True
+    return visible
+
+
 def _reconcile_cached_confidence_conflicts(manager, mission_id, stages):
     """Apply the explicit confidence guard to cached legacy AI assessments.
 
