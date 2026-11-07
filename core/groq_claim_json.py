@@ -11,6 +11,8 @@ from core.groq_team import TeamRateLimitError
 
 _MODEL = "openai/gpt-oss-120b"
 _VERIFICATION_MODEL = "openai/gpt-oss-20b"
+_CLAIM_COMPLETION_LIMIT = 1100
+_REVIEW_COMPLETION_LIMIT = 2400
 _SCHEMA = {
     "type": "object",
     "properties": {
@@ -65,7 +67,8 @@ def generate_claim_quote_json(system, prompt, *, api_key,
     """One strict-JSON provider call, no automatic chargeable retries."""
     return _generate_strict_json(
         system, prompt, _SCHEMA, "cano_claim_quote_proposals", "claims",
-        api_key=api_key, client_factory=client_factory, model=model)
+        api_key=api_key, client_factory=client_factory, model=model,
+        max_completion_tokens=_CLAIM_COMPLETION_LIMIT)
 
 
 def generate_claim_verification_json(system, prompt, *, api_key,
@@ -73,11 +76,13 @@ def generate_claim_verification_json(system, prompt, *, api_key,
     """A separate model's skeptical pass; it never sets claim_verified."""
     return _generate_strict_json(
         system, prompt, _VERIFICATION_SCHEMA, "cano_claim_evidence_assessments",
-        "assessments", api_key=api_key, client_factory=client_factory, model=model)
+        "assessments", api_key=api_key, client_factory=client_factory, model=model,
+        max_completion_tokens=_REVIEW_COMPLETION_LIMIT)
 
 
 def _generate_strict_json(system, prompt, schema, schema_name, response_key, *,
-                          api_key, client_factory=None, model=_MODEL):
+                          api_key, client_factory=None, model=_MODEL,
+                          max_completion_tokens=_CLAIM_COMPLETION_LIMIT):
     """One strict-JSON provider call, no automatic chargeable retries."""
     if (not isinstance(system, str) or not isinstance(prompt, str)
             or not system.strip() or not prompt.strip()
@@ -106,7 +111,7 @@ def _generate_strict_json(system, prompt, schema, schema_name, response_key, *,
             },
             reasoning_format="hidden",
             reasoning_effort="low",
-            max_completion_tokens=1100,
+            max_completion_tokens=max_completion_tokens,
             temperature=0.2,
         )
     except Exception as exc:
