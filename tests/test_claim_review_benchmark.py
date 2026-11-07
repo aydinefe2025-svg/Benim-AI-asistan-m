@@ -3,7 +3,8 @@ import unittest
 
 from core.claim_review_benchmark import (
     CASES, HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, V5_COMPARISON_CASES, load_expected_labels, randomized_case_order,
-    run_blind_model_benchmark, run_claim_review_benchmark, score_labels,
+    run_blind_model_benchmark, run_claim_review_benchmark,
+    run_claim_review_predictions, score_labels,
 )
 
 
@@ -233,6 +234,42 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
             run_blind_model_benchmark(client, cases=cases, answer_key_json="")
         self.assertEqual(len(client.calls), 1)
 
+
+    def test_unscored_predictions_need_no_gold_key_and_keep_case_ids(self):
+        cases = (
+            {"case_id": "human_a", "claim": "Claim A", "excerpt": "Excerpt A",
+             "source_url": "https://pubmed.ncbi.nlm.nih.gov/1/"},
+            {"case_id": "human_b", "claim": "Claim B", "excerpt": "Excerpt B",
+             "source_url": "https://pubmed.ncbi.nlm.nih.gov/2/"},
+        )
+        client = BenchmarkClient(["supported", "insufficient"])
+        result = run_claim_review_predictions(client, cases=cases)
+        self.assertEqual(len(client.calls), 1)
+        self.assertEqual(result["coverage"], 1.0)
+        self.assertEqual([item["case_id"] for item in result["cases"]],
+                         ["human_a", "human_b"])
+        self.assertEqual([item["predicted"] for item in result["cases"]],
+                         ["supported", "insufficient"])
+        self.assertNotIn("expected", client.calls[0][2])
+        self.assertNotIn("human_a", client.calls[0][2])
+        self.assertNotIn("gold", result)
+
+    def test_unscored_predictions_count_missing_answers_as_unscored(self):
+        class PartialClient(BenchmarkClient):
+            def verify(self, model, system, prompt):
+                return json.dumps({"assessments": [
+                    {"index": 1, "verdict": "contradicted", "reason": "direct conflict"}
+                ]})
+
+        cases = (
+            {"case_id": "human_a", "claim": "A", "excerpt": "A"},
+            {"case_id": "human_b", "claim": "B", "excerpt": "B"},
+        )
+        result = run_claim_review_predictions(PartialClient(["supported"]), cases=cases)
+        self.assertEqual(result["unscored"], 1)
+        self.assertEqual(result["coverage"], 0.5)
+        self.assertEqual(result["cases"][0]["predicted"], "unscored")
+        self.assertEqual(result["cases"][1]["predicted"], "contradicted")
 
 if __name__ == "__main__":
     unittest.main()
