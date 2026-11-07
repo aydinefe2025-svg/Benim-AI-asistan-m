@@ -36,9 +36,13 @@ jobs:
       - name: Run seven independent scientific spatial-mesh safeguard tests
         working-directory: research/j0740/rotating_gr
         run: python -m unittest -v test_rns_151_vs_201_spatial_grid
-      - name: Compile pinned real RNS C source at larger 201x401 spacetime mesh
+      - name: Compile BOTH actual RNS C mesh binaries from one pinned source
         run: |
+          make -C rns-upstream rns
+          cp rns-upstream/rns rns-upstream/rns_151x301
+          make -C rns-upstream clean
           make -C rns-upstream HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+          cp rns-upstream/rns rns-upstream/rns_201x401
       - name: Reuse pinned original seven-EOS model without rerunning mass roots
         env:
           GH_TOKEN: ${{ github.token }}
@@ -51,7 +55,8 @@ jobs:
         run: |
           python research/j0740/rotating_gr/rns_151_vs_201_spatial_grid.py \
             --rns-json prior-rns/J0740_seven_EOS_full_GR_fixed_spin_mass.json \
-            --binary rns-upstream/rns \
+            --binary rns-upstream/rns_201x401 \
+            --baseline-binary rns-upstream/rns_151x301 \
             --jester-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
             --out results/J0740_seven_EOS_RNS_151x301_vs_201x401_spatial_grid.json
       - name: Preserve all validated or failed model results as evidence

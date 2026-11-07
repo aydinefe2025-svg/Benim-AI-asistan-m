@@ -23,6 +23,11 @@ class SpatialMeshTests(unittest.TestCase):
  def test_incomplete_model_fails(self):
   with self.assertRaisesRegex(ValueError,'missing'):
    compare({'mass_msun':2.0},star(),'rotating')
+ def test_original_baseline_spatial_identity_accepted_without_archived_byte_digest(self):
+  # Physical comparison is based on the actual same file supplied to both
+  # compiled GR binaries; old cross-run textual hashes are only diagnostics.
+  x=compare(star(grid='151x301'),star(2.074,12.54,grid='201x401'),'rotating')
+  self.assertTrue(x['screen_pass'])
  def test_partial_source_refused(self):
   with self.assertRaisesRegex(ValueError,'identity'):
    audit({'status':'PARTIAL_NOT_FINAL'},None,None,None)
