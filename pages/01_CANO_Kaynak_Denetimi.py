@@ -266,6 +266,26 @@ elif isinstance(st.session_state.get("cano_claim_review_benchmark_result"), dict
 if not key:
     st.warning("Model bağlantısı yok; yeni iddia denetimi çalıştırılmadı.")
 reviewed_mission = manager.get(mid)
+unavailable_passes = [
+    index for index, item in enumerate(reviewed_mission["stages"][0].get("source_claim_audit", []))
+    if item.get("status") == "quote_found_unverified"
+    and isinstance(item.get("machine_assessment"), dict)
+    and item["machine_assessment"].get("available") is False
+]
+if unavailable_passes and key and st.button("Kuşkucu geçişi yeniden dene (1 çağrı)", key="cano_retry_skeptical_pass"):
+    try:
+        if owner:
+            store = ColonySnapshotStore(cano_database_url(os.environ))
+            store.verify_schema()
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony))
+        retry_unavailable_skeptical_pass(
+            manager, mid, client=Client(), model="configured-provider")
+        if owner:
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony),
+                                  archive_prior=False)
+        st.rerun()
+    except (ValueError, RuntimeError, TeamRateLimitError) as err:
+        st.warning("Kuşkucu geçiş tamamlanamadı; önceki alıntı ve inceleme kaydı korundu.")
 for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_claim_audit", [])):
     docs = reviewed_mission["stages"][0].get("source_documents", [])
     source = next((doc for doc in docs
