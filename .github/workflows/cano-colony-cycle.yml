@@ -7,6 +7,10 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/cano-colony-cycle.yml"
+      - "core/virtual_generation.py"
+      - "scripts/cano_colony_cycle.py"
+      - "tests/test_virtual_colony_generation.py"
+      - "tests/test_scheduled_colony_cycle.py"
   schedule:
     - cron: "17 * * * *"
   workflow_dispatch:
