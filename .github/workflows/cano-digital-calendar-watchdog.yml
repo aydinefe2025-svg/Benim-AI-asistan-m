@@ -1,0 +1,51 @@
+name: CANO digital organism daily watchdog
+
+on:
+  pull_request:
+    paths:
+      - 'organism_lab/calendar_health.py'
+      - 'organism_lab/tests/test_calendar_health.py'
+      - '.github/workflows/cano-digital-calendar-watchdog.yml'
+  workflow_dispatch:
+  schedule:
+    # 05:47 UTC generator + 02:30 allowance. GitHub can still run cron late.
+    - cron: '17 8 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cano-digital-organism-daily-watchdog
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test missing, stale, tampered and correct synthetic records
+        run: python -m unittest organism_lab.tests.test_calendar_health organism_lab.tests.test_calendar_cycle organism_lab.tests.test_genome_checkpoint -v
+      - name: Read authoritative simulation state branch without writing
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE_BRANCH='experiment/cano-digital-state-20261107'
+          git fetch --no-tags origin "refs/heads/${STATE_BRANCH}:refs/remotes/origin/${STATE_BRANCH}"
+          git worktree add --detach "$RUNNER_TEMP/cano-watch-state" "refs/remotes/origin/${STATE_BRANCH}"
+      - name: Verify scheduled UTC day and report independently
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          DAY="$(date -u +%F)"
+          DIR="$RUNNER_TEMP/cano-watch-state/research_reports/cano-digital-continuity"
+          python -m organism_lab.calendar_health --state-dir "$DIR" --day "$DAY"
+          # Independent readback: same command must verify without touching the archive.
+          python -m organism_lab.calendar_health --state-dir "$DIR" --day "$DAY"
+          test -z "$(git -C "$RUNNER_TEMP/cano-watch-state" status --porcelain)"
+          echo "CANO $DAY daily digital organism archive checked (read only)" >> "$GITHUB_STEP_SUMMARY"
