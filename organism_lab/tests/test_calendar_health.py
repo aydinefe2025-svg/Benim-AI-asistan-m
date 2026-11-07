@@ -1,4 +1,5 @@
 """Freshness and tamper regression tests for the read-only calendar watchdog."""
+import hashlib
 import json
 import tempfile
 import unittest
@@ -6,6 +7,7 @@ from pathlib import Path
 
 from organism_lab.calendar_cycle import run_day
 from organism_lab.calendar_health import inspect_day
+from organism_lab.genome_checkpoint import _serialize
 
 
 class CalendarHealthTests(unittest.TestCase):
@@ -39,6 +41,8 @@ class CalendarHealthTests(unittest.TestCase):
             path = root / "daily" / "2026-11-07.json"
             obj = json.loads(path.read_text(encoding="utf-8"))
             obj["observed"]["births"] = 99
+            body = {k: v for k, v in obj.items() if k != "sha256"}
+            obj["sha256"] = hashlib.sha256(_serialize(body)).hexdigest()
             path.write_text(json.dumps(obj), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "deterministic replay"):
                 inspect_day(root, day="2026-11-07")
