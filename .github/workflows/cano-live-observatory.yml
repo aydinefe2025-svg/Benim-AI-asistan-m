@@ -49,6 +49,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install Playwright Chromium (free public UI test)
+        if: github.event_name == 'push'
         run: |
           python -m pip install 'playwright>=1.55,<2'
           python -m playwright install --with-deps chromium
@@ -107,7 +108,7 @@ jobs:
           print(json.dumps({'live_ui':results},ensure_ascii=False))
           PY
       - uses: actions/upload-artifact@v4
-        if: success()
+        if: github.event_name == 'push' && success()
         with:
           name: cano-live-browser-proof
           path: cano-live-browser-proof/*.png
