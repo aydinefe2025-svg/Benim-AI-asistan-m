@@ -50,7 +50,7 @@ async function load(){
     setStatus('error','Doğrulanmış kayıt yok');el('errorDetail').textContent=err?.name==='AbortError'?'Kaynak bağlantısı zaman aşımına uğradı':String(err.message||err);
     el('integrity').textContent='Doğrulama başarısız';el('integrity').className='error-label';
     el('validation').textContent='Kaynak bütünlüğü doğrulanamadı. Eski değerler yeni sonuçmuş gibi kullanılmaz.';
-    for(const id of ['population','births','generation','ticks','expBirths','controlBirths'])el(id).textContent='—';el('lineage').hidden=true;el('chartEmpty').hidden=false;el('chartEmpty').textContent='Doğrulanmış veriye erişilemedi; hayalî bir nüfus gösterilmiyor.';
+    for(const id of ['population','births','generation','ticks','expBirths','controlBirths'])el(id).textContent='—';el('lineage').setAttribute('hidden','');el('chartEmpty').hidden=false;el('chartEmpty').textContent='Doğrulanmış veriye erişilemedi; hayalî bir nüfus gösterilmiyor.';
   }finally{el('lastRefresh').textContent=new Date().toLocaleTimeString('tr-TR',{timeZone:'Europe/Istanbul'});el('refresh').disabled=false}
 }
 function dateForTick(tick){if(!Number.isInteger(tick)||tick<8||tick%8!==0)return null;const start=Date.UTC(2026,10,7);return new Date(start+((tick/8)-1)*86400000).toISOString().slice(0,10)}
@@ -66,7 +66,7 @@ function populate(state,report,day){
 function svgNode(tag,attrs={}){const n=document.createElementNS(SVG,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));return n}
 function drawLineage(organisms){
   const svg=el('lineage');svg.replaceChildren();
-  if(!organisms.length){svg.hidden=true;el('chartEmpty').hidden=false;el('chartEmpty').textContent='Bu durumda yaşayan dijital organizma bulunamadı.';return}
+  if(!organisms.length){svg.setAttribute('hidden','');el('chartEmpty').hidden=false;el('chartEmpty').textContent='Bu durumda yaşayan dijital organizma bulunamadı.';return}
   const gens=new Map();for(const o of organisms){const a=gens.get(o.generation)||[];a.push(o);gens.set(o.generation,a)}
   const generationValues=[...gens.keys()].sort((a,b)=>a-b),maxGen=Math.max(...generationValues),minGen=Math.min(...generationValues);
   const points=new Map();let largest=0;
@@ -74,7 +74,7 @@ function drawLineage(organisms){
   for(const o of organisms){if(o.parent===null||!points.has(o.parent))continue;const a=points.get(o.parent),b=points.get(o.identifier);svg.appendChild(svgNode('path',{d:`M ${a.x} ${a.y} C ${(a.x+b.x)/2} ${a.y}, ${(a.x+b.x)/2} ${b.y}, ${b.x} ${b.y}`,fill:'none',stroke:'#4b8383','stroke-width':1.8,opacity:.8}))}
   for(const gen of generationValues){const p=points.get(gens.get(gen)[0].identifier);const x=p.x;const label=svgNode('text',{x,y:24,'text-anchor':'middle',fill:'#8eabb0','font-size':13});label.textContent='Nesil '+gen;svg.appendChild(label)}
   for(const [id,p] of points){const g=svgNode('g');g.appendChild(svgNode('circle',{cx:p.x,cy:p.y,r:20,fill:'#0d3940',stroke:'#62e8d0','stroke-width':1.8}));g.appendChild(svgNode('circle',{cx:p.x,cy:p.y,r:6,fill:'#96ffe5'}));const title=svgNode('title');title.textContent=`Dijital organizma #${id}, nesil ${p.o.generation}, enerji ${p.o.energy}`;g.appendChild(title);const label=svgNode('text',{x:p.x,y:p.y+34,'text-anchor':'middle',fill:'#b6d0cf','font-size':11});label.textContent='#'+id;g.appendChild(label);svg.appendChild(g)}
-  svg.hidden=false;el('chartEmpty').hidden=true;
+  svg.removeAttribute('hidden');el('chartEmpty').hidden=true;
 }
 el('refresh').addEventListener('click',load);
 load();setInterval(()=>{if(!document.hidden)load()},90000);
