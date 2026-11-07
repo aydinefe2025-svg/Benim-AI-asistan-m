@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from core.agent_colony import AgentColony
+from core.colony_panel import mission_failure_message
 from core.collaborative_mission import CollaborativeMission
 
 
@@ -102,6 +103,11 @@ class CollaborativeMissionTests(unittest.TestCase):
                 on_checkpoint=checkpoint)
         self.assertEqual(len(client.calls), 2)
         self.assertEqual(seen, [1, 2])
+        self.assertEqual(self.missions.last_failure, {
+            "phase": "owner_backup_checkpoint",
+            "role": "researcher",
+            "exception_type": "RuntimeError",
+        })
         interrupted = self.missions.interrupted()
         self.assertEqual(len(interrupted), 1)
         self.assertEqual(len(self.missions.get(interrupted[0]["id"])["stages"]), 2)
@@ -179,6 +185,11 @@ class CollaborativeMissionTests(unittest.TestCase):
         partial = self.missions.get(interrupted[0]["id"])
         self.assertEqual([s["role"] for s in partial["stages"]],
                          ["planner", "researcher"])
+        self.assertEqual(self.missions.last_failure, {
+            "phase": "model_call",
+            "role": "reviewer",
+            "exception_type": "RuntimeError",
+        })
         result = self.missions.resume(partial["id"], client=client, model="fake")
         self.assertEqual(result["status"], "review_pending")
         self.assertEqual(result["model_calls"], 2)
@@ -212,6 +223,19 @@ class CollaborativeMissionTests(unittest.TestCase):
         self.assertEqual(self.missions.recover_stale(), [])
         with self.assertRaises(ValueError):
             self.missions.recover_stale(older_than_seconds=30)
+
+    def test_failure_notice_identifies_phase_without_exposing_raw_exception(self):
+        exc = RuntimeError("secret=do-not-display; provider request failed")
+        message = mission_failure_message(exc, {
+            "phase": "model_call", "role": "reviewer",
+            "exception_type": "RuntimeError",
+        })
+        self.assertIn("model sağlayıcı çağrısı", message)
+        self.assertIn("reviewer rolü", message)
+        self.assertIn("RuntimeError", message)
+        self.assertIn("kaydedilmiş aşamalar korundu", message)
+        self.assertNotIn("do-not-display", message)
+        self.assertNotIn("provider request failed", message)
 
 
 if __name__ == "__main__":
