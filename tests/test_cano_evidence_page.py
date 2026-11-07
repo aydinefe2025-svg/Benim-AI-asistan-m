@@ -50,7 +50,7 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertIn("load_expected_labels", source)
         self.assertIn("expected_labels=human_answer_key", source)
         self.assertIn("24 insan değerlendirmesini kaydet", source)
-        self.assertIn("Etiketlerden sonra CANO modelini çalıştır", source)
+        self.assertIn("Kaynak anahtarıyla CANO'yu çalıştır (24 vaka, 1 çağrı)", source)
         self.assertIn("cano_claim_review_human_labels_v3", source)
         self.assertIn("score_labels(\n            HUMAN_COMPARISON_CASES, saved_human_labels, human_answer_key)", source)
         self.assertIn("gerçek dünya", source)
