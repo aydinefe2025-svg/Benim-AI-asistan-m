@@ -84,6 +84,15 @@ class GroqClaimJsonTests(unittest.TestCase):
                                       client_factory=lambda **kw: client)
         self.assertNotIn("some-secret", str(err.exception))
 
+    def test_provider_http_status_is_reported_without_leaking_body(self):
+        class BadRequest(Exception):
+            status_code = 400
+        client = Client(failure=BadRequest("private response body"))
+        with self.assertRaisesRegex(RuntimeError, "HTTP 400") as err:
+            generate_claim_verification_json("JSON", "Benchmark", api_key="dummy",
+                                            client_factory=lambda **kw: client)
+        self.assertNotIn("private response body", str(err.exception))
+
     def test_truncated_response_is_rejected(self):
         client = Client(finish_reason="length")
         with self.assertRaisesRegex(RuntimeError, "truncated"):
