@@ -10,6 +10,7 @@ import zlib
 from zipfile import BadZipFile, ZIP_DEFLATED, ZipFile
 
 from core.backup_encryption import MAX_PLAINTEXT_BYTES
+from core.organism_lab_persistence import OrganismLabStore
 from core.user_memory import export_library
 
 
@@ -49,6 +50,8 @@ def _validate_organism_records(records: list) -> None:
             document = json.loads(raw.decode("utf-8"))
         except (ValueError, UnicodeError, json.JSONDecodeError):
             raise ValueError("Invalid Organism Lab backup JSON") from None
+        if len(raw) > OrganismLabStore.MAX_RECORD_BYTES:
+            raise ValueError("Organism Lab backup record exceeds persistence size limit")
         if not isinstance(document, dict) or sha256(raw).hexdigest() != expected:
             raise ValueError("Organism Lab backup record checksum mismatch")
 
