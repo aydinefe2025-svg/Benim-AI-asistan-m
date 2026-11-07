@@ -18,10 +18,41 @@ from jester_to_rns import from_jester_npz, write_rns
 from rns_benchmark import OBSERVED_SPIN_HZ, RNS_COMMIT, run_rns, sha256_file
 from target_mass_rns import TARGET_MASS_MSUN, fixed_gravitational_mass_radius_difference
 from resilient_mass_root import resilient_mass_root, NumericalRootError
-from validate_jester_rns import stable_reference_radius_at_mass
+
 
 EOS_NAMES = ("APR4_EPP", "ENG", "MPA1", "MS1", "MS1B", "WFF1", "WFF2")
 JESTER_COMMIT = "e6768650ce992abfd1153a6833857572fe5cd230"
+
+
+def stable_source_radius_at_mass(source: Path, mass: float) -> tuple[float, dict]:
+    """Use only the ascending *first* TOV stable branch, never its turnback.
+
+    A JESTER input may include an unstable extension after maximum mass.
+    Never sort mass-radius pairs, extrapolate, or silently smooth upstream
+    non-monotonic points within the pre-turning stable branch.
+    """
+    with np.load(source, allow_pickle=False) as data:
+        masses = np.asarray(data["masses_EOS"], dtype=float)
+        radii = np.asarray(data["radii_EOS"], dtype=float)
+    if (masses.ndim != 1 or radii.shape != masses.shape or len(masses) < 10
+            or not np.all(np.isfinite(masses)) or not np.all(np.isfinite(radii))
+            or np.any(masses <= 0) or np.any(radii <= 0)):
+        raise ValueError("JESTER TOV reference M/R arrays invalid")
+    peak = int(np.argmax(masses))
+    stable_m = masses[:peak + 1]
+    stable_r = radii[:peak + 1]
+    if len(stable_m) < 10 or np.any(np.diff(stable_m) <= 0):
+        raise ValueError("Source TOV has nonmonotone mass before first stable maximum; reject")
+    if not (stable_m[0] <= mass <= stable_m[-1]):
+        raise ValueError("Target mass outside source TOV ascending stable branch")
+    return float(np.interp(mass, stable_m, stable_r)), {
+        "total_source_nodes": int(len(masses)),
+        "first_maximum_index": peak,
+        "first_maximum_mass_msun": float(stable_m[-1]),
+        "stable_branch_nodes": int(len(stable_m)),
+        "discarded_post_maximum_nodes": int(len(masses) - len(stable_m)),
+        "selection": "ascending original sequence through first global mass maximum; never sort",
+    }
 
 
 def first_stable_crossing(models: list[dict], target: float) -> tuple[float, float] | None:
@@ -51,7 +82,8 @@ def density_scan(binary: Path, table: Path, spin_hz: float,
     successes, failures = [], []
     for ec in density_grid:
         try:
-            model = run_rns(binary, table, central_density=float(ec), spin_hz=spin_hz)
+            model = run_rns(binary, table, central_density=float(ec), spin_hz=spin_hz,
+                            spin_tolerance_hz=0.25 if spin_hz else 0.10)
             # Store concise measurement data; full RNS stdout is not needed at every scan point.
             successes.append({k: v for k, v in model.items() if k != "raw_stdout_tail"})
         except (RuntimeError, ValueError, TimeoutError) as exc:
@@ -117,21 +149,28 @@ def solve_eos(binary: Path, source: Path, result_dir: Path,
         return result
 
     try:
+        root_stage = "rotating"
         rotating, rot_trace = resilient_mass_root(
             lambda ec: run_rns(binary, table, central_density=ec,
-                               spin_hz=OBSERVED_SPIN_HZ),
+                               spin_hz=OBSERVED_SPIN_HZ, spin_tolerance_hz=0.25),
             target_mass, *rot_bracket)
+        root_stage = "static"
         static, static_trace = resilient_mass_root(
             lambda ec: run_rns(binary, table, central_density=ec, spin_hz=0.),
             target_mass, *static_bracket)
         radius_delta = fixed_gravitational_mass_radius_difference(
             rotating, static, target_mass)
-        ref_radius = stable_reference_radius_at_mass(source, static["mass_msun"])
+        root_stage = "source_TOV"
+        ref_radius, source_stable_branch = stable_source_radius_at_mass(
+            source, static["mass_msun"])
         error_km = static["radius_eq_km"] - ref_radius
     except (RuntimeError, ValueError, NumericalRootError) as exc:
         result["status"] = "NUMERICAL_ROOT_OR_TOV_VALIDATION_FAILED"
         result["reason"] = str(exc)[:900]
         result["error_type"] = type(exc).__name__
+        result["failed_stage"] = locals().get("root_stage", "unknown")
+        if isinstance(exc, NumericalRootError):
+            result["failed_root_trace"] = exc.trace
         result["brackets"] = {"rotating": rot_bracket, "static": static_bracket}
         return result
     result.update({
@@ -139,11 +178,13 @@ def solve_eos(binary: Path, source: Path, result_dir: Path,
         "rns_static_at_same_gravitational_mass": static,
         "delta_radius_at_same_gravitational_mass_km": radius_delta,
         "jester_static_tov_radius_km": ref_radius,
+        "jester_reference_stable_branch_selection": source_stable_branch,
         "rns_minus_jester_static_tov_km": error_km,
         "rotating_bisection_trace": rot_trace,
         "static_bisection_trace": static_trace,
         "target_mass_msun": target_mass,
         "target_mass_tolerance_msun": 0.0015,
+        "rotating_spin_numerical_residual_limit_hz": 0.25,
         "static_tov_radius_tolerance_km": 0.25,
     })
     if abs(error_km) > 0.25:
@@ -180,6 +221,7 @@ def compute_all(binary: Path, source_dir: Path, result_dir: Path,
         "rns_executable_sha256": sha256_file(binary),
         "jester_upstream_commit": JESTER_COMMIT,
         "spin_hz": OBSERVED_SPIN_HZ,
+        "rotating_spin_numerical_residual_limit_hz": 0.25,
         "target_gravitational_mass_msun": target_mass,
         "limitations": [
             "Discrete seven-EOS test only, not a continuous EOS posterior",
