@@ -105,7 +105,7 @@ def build_cano_source_context(task: str, repo_root: str | Path) -> str:
                 line = _BEARER.sub(r"\1<redacted>", line)
                 line = _TOKEN_VALUE.sub("<redacted-token>", line)
             safe_lines.append(line)
-        excerpt = "\n".join(safe_lines)[:_MAX_FILE_CHARS]
+        excerpt = _select_excerpt(relative, "\n".join(safe_lines))
         if not excerpt or remaining <= len(relative) + 20:
             break
         excerpt = excerpt[: max(0, remaining - len(relative) - 20)]
