@@ -57,6 +57,9 @@ class CrustTransferTests(unittest.TestCase):
     def test_cubic_profile_for_causal_linear_eos(self):
         diag=profile_c_interpolant(make_rows(),1.5e15,per_interval=4)
         self.assertEqual(diag["negative_sample_count"],0)
+        self.assertIsNone(diag["negative_cs2_rho_range_g_cm3"])
+        self.assertGreaterEqual(diag["min_cs2_rho_g_cm3"],3e9)
+        self.assertLessEqual(diag["min_cs2_rho_g_cm3"],1.5e15)
         self.assertEqual(diag["superluminal_sample_count"],0)
         self.assertAlmostEqual(diag["max_cs2_over_c2"],.4,places=10)
 

@@ -81,11 +81,17 @@ def profile_c_interpolant(rows: np.ndarray, center_rho: float, per_interval=8) -
             points.extend(np.geomspace(lo,hi,per_interval,endpoint=False).tolist())
     points.append(float(center_rho))
     values=[rns_p_at_e_cubic_cs2(rows,r)["cs2_over_c2"] for r in points]
+    min_idx=int(np.argmin(values))
+    max_idx=int(np.argmax(values))
+    negative_rhos=[float(rho) for rho,v in zip(points,values) if v<0]
     return {
         "sample_count":len(values),
         "min_cs2_over_c2":float(min(values)),
         "max_cs2_over_c2":float(max(values)),
-        "negative_sample_count":int(sum(v<0 for v in values)),
+        "min_cs2_rho_g_cm3":float(points[min_idx]),
+        "max_cs2_rho_g_cm3":float(points[max_idx]),
+        "negative_cs2_rho_range_g_cm3":[min(negative_rhos),max(negative_rhos)] if negative_rhos else None,
+        "negative_sample_count":int(len(negative_rhos)),
         "superluminal_sample_count":int(sum(v>1 for v in values)),
         "sampling_caveat":"8 samples per table interval plus center. No proof of global bounds between points.",
     }
@@ -202,6 +208,14 @@ def audit(previous_rns, source_dir: Path, output_dir: Path):
             e, p, cs2 = (raw[k] for k in ("e", "p", "cs2"))
         center = record["rns_rotating_at_target"]["central_energy_density_g_cm3"]
         outcome = analyze_transfer(e, p, cs2, rows, center)
+        # 200pt representation check uses same pinned source and historical
+        # star central density. NO new C/GR solver call is made here.
+        rows200,meta200=from_jester_npz(source,points=200)
+        out200=analyze_transfer(e,p,cs2,rows200,center)
+        table200=output_dir/f"{name}_source_200pt.rns"
+        write_rns(table200,rows200)
+        outcome["comparison_200pt_input_without_new_GR_run"]=out200
+        outcome["rns_200pt_input_sha256"]=hashlib.sha256(table200.read_bytes()).hexdigest()
         outcome.update({
             "source_npz_sha256": digest,
             "rns_input_sha256_regenerated_this_run": hashlib.sha256(table.read_bytes()).hexdigest(),
@@ -216,7 +230,7 @@ def audit(previous_rns, source_dir: Path, output_dir: Path):
               "star_inner_supraluminal", outcome["rns_input_supraluminal_secants_wholly_below_center"],
               flush=True)
     return {
-        "schema": "j0740-native-eos-crust-negative-node-rns-input-transfer-v1",
+        "schema": "j0740-native-eos-crust-negative-node-rns-input-transfer-v2",
         "status": "PINNED_SEVEN_EOS_RAW_VS_RNS_INPUT_CRUST_KNOT_TRANSFER_CHECK_COMPLETE_NOT_BAYES",
         "source_jester_commit": JESTER_SHA,
         "source_full_GR_run": RNS_RUN,
@@ -225,7 +239,19 @@ def audit(previous_rns, source_dir: Path, output_dir: Path):
         "source_models_with_negative_native_cs2": sum(v["native_negative_cs2_nodes"] > 0 for v in data.values()),
         "rns_models_with_nonpositive_input_secants": sum(v["rns_input_nonpositive_secant_count"] > 0 for v in data.values()),
         "rns_models_with_supraluminal_input_secants_below_center": sum(v["rns_input_supraluminal_secants_wholly_below_center"] > 0 for v in data.values()),
-        "numerical_scope": "Strictly observed EOS table *secants*, not derivative of RNS internal spline or physical EOS model Bayes evidence",
+        "models_with_negative_c_p_at_e_samples_196":sum(
+            v["rns_p_at_e_four_point_cubic_through_center_sample"]["negative_sample_count"]>0
+            for v in data.values()),
+        "models_with_negative_c_p_at_e_samples_200":sum(
+            v["comparison_200pt_input_without_new_GR_run"]["rns_p_at_e_four_point_cubic_through_center_sample"]["negative_sample_count"]>0
+            for v in data.values()),
+        "models_with_superluminal_c_p_at_e_at_center_196":sum(
+            v["rns_p_at_e_four_point_cubic_at_rotating_center"]["cs2_over_c2"]>1
+            for v in data.values()),
+        "models_with_superluminal_c_p_at_e_at_center_200":sum(
+            v["comparison_200pt_input_without_new_GR_run"]["rns_p_at_e_four_point_cubic_at_rotating_center"]["cs2_over_c2"]>1
+            for v in data.values()),
+        "numerical_scope":"Pinned C/RNS four-point p_at_e interpolation derivative sampled below center, compared for 196 and 200 thermodynamic input points; not a new GR solve, full e_at_p/p_at_h proof, or EOS Bayes evidence",
         "eos": data,
     }
 
