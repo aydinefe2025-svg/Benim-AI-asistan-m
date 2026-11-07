@@ -56,6 +56,37 @@ class CanoBackupBundleTests(unittest.TestCase):
         self.assertNotIn("lease_token", queue_payload["jobs"][0])
         self.assertTrue(json.loads(files["manifest.json"])["sources_available"]["authorized_queue"])
 
+    def test_v2_portable_backup_preserves_lab_experiments_through_offline_restore(self):
+        import base64
+        import hashlib
+        raw = b'{"robots":2,"checked":true}'
+        digest = hashlib.sha256(raw).hexdigest()
+        records = [{
+            "record_id": "cano-organism-lab-v1-world-" + digest,
+            "kind": "world", "sha256": digest,
+            "data_b64": base64.b64encode(raw).decode("ascii")
+        }]
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        bundle = create_portable_bundle(
+            colony=colony, memories=[], research_tasks=b"{}",
+            authorized_queue=[], organism_records=records)
+        contents = verify_portable_bundle(bundle)
+        self.assertIn("organism-lab-records.json", contents)
+        self.assertEqual(json.loads(contents["organism-lab-records.json"])["records"],
+                         records)
+        manifest = json.loads(contents["manifest.json"])
+        self.assertEqual(manifest["schema"], "cano-portable-backup-v2")
+        self.assertTrue(manifest["sources_available"]["organism_lab"])
+        password = "correct-horse-staple-cano-backup"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "account.canoenc"
+            source.write_bytes(encrypt_backup(bundle, password))
+            files = restore_to_new_directory(source, root / "restored", password)
+            self.assertIn("organism-lab-records.json", files)
+            restored = json.loads((root / "restored" / "organism-lab-records.json").read_text())
+            self.assertEqual(restored["records"], records)
+
     def test_bundle_rejects_tampered_component_and_unexpected_files(self):
         colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
         bundle = create_portable_bundle(
