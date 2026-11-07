@@ -199,7 +199,10 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CAS
     prompt = (
         "Classify every indexed claim. Use supported only for direct entailment; "
         "contradicted only for a direct conflict; otherwise insufficient. "
-        "Return one assessment per index with a reason of at most eight words.\n"
+        "Return a single JSON object with an \"assessments\" array. Include exactly one "
+        "object per input index, each with integer \"index\", \"verdict\" set to "
+        "\"supported\", \"contradicted\", or \"insufficient\", and a \"reason\" of at "
+        "most eight words. Do not add other top-level keys.\n"
         + json.dumps(prompt_cases, ensure_ascii=False)
     )
     raw = client.verify(model, _SYSTEM, prompt)
