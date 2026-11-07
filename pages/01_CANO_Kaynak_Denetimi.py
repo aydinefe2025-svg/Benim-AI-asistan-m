@@ -131,7 +131,7 @@ class Client:
     def verify(self, model, system, prompt):
         return generate_claim_verification_json(system, prompt, api_key=key)
 
-if documents and key and st.button("İddiaları çıkar ve ayrı kuşkucu AI geçişi çalıştır (en fazla 2 çağrı)"):
+if documents and key and st.button("İddiaları çıkar ve ayrı kuşkucu AI geçişi çalıştır (2 çağrı; uyuşmazlıkta 1 ek okuma)"):
     try:
         if owner:
             store = ColonySnapshotStore(cano_database_url(os.environ))
