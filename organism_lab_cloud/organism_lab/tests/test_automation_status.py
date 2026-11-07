@@ -4,6 +4,7 @@ import unittest
 
 from organism_lab.automation_status import (
     ColonyStatusUnavailable, RAW_REPORT_URL, load_latest_colony_status,
+    _lesson_explanation,
 )
 
 
@@ -108,3 +109,31 @@ class AutomationStatusTests(unittest.TestCase):
 
         with self.assertRaises(ColonyStatusUnavailable):
             load_latest_colony_status(lambda url, **kwargs: UnboundedResponse())
+
+    def test_rejected_lesson_is_explained_in_plain_turkish(self):
+        report = {
+            "lesson_status": "rejected",
+            "candidate_mutation_rate": 0.05,
+            "next_generation_mutation_rate": 0.12,
+            "training_ci95_low": -1.733,
+            "confirmation_ci95_low": -1.365,
+        }
+        label, detail = _lesson_explanation(report)
+        self.assertEqual(label, "Aktarılmadı")
+        self.assertIn("yeterli iyileşme kanıtı göstermedi", detail)
+        self.assertIn("-1.733", detail)
+        self.assertIn("-1.365", detail)
+        self.assertIn("0.120 ayarı korundu", detail)
+
+    def test_transferred_lesson_is_marked_as_simulation_only(self):
+        report = {
+            "lesson_status": "transferred",
+            "candidate_mutation_rate": 0.05,
+            "next_generation_mutation_rate": 0.05,
+            "training_ci95_low": 0.2,
+            "confirmation_ci95_low": 0.1,
+        }
+        label, detail = _lesson_explanation(report)
+        self.assertEqual(label, "Sanal deneye aktarıldı")
+        self.assertIn("yapay zekâ modelinin ağırlıkları değişmez", detail)
+
