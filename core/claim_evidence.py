@@ -21,7 +21,7 @@ def _normalized(value):
 
 def _normalized_quote(value):
     """Ignore extraction whitespace inserted immediately before punctuation."""
-    return re.sub(r"\\s+([,.;:!?])", r"\\1", _normalized(value))
+    return re.sub(r"\s+([,.;:!?])", r"\1", _normalized(value))
 
 
 
