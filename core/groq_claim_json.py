@@ -119,7 +119,14 @@ def _generate_strict_json(system, prompt, schema, schema_name, response_key, *,
                 or getattr(getattr(exc, "response", None), "status_code", None) == 429):
             raise TeamRateLimitError("Claim model request hit quota") from None
         # Never echo provider exceptions, which can contain URLs or credentials.
-        raise RuntimeError("Claim JSON provider request failed") from None
+        status = getattr(exc, "status_code", None)
+        if status is None:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+        if isinstance(status, int) and 400 <= status <= 599:
+            detail = f"HTTP {status}"
+        else:
+            detail = type(exc).__name__
+        raise RuntimeError(f"Claim JSON provider request failed ({detail})") from None
     choices = getattr(result, "choices", None)
     if not choices:
         raise RuntimeError("Claim JSON provider returned no choices")
