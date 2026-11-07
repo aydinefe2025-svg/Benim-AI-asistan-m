@@ -166,6 +166,53 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual([item["excerpt"] for item in refreshed],
                          ["Fresh " + DOI, "Fresh " + correction])
 
+    def test_cached_unresolved_disagreement_is_reread_without_reextracting_claims(self):
+        self.add_excerpt()
+        original = QuoteModel([{
+            "claim": "Targeted nucleases are powerful genome tools",
+            "doi": DOI, "quote": QUOTE,
+            "comparison": "supports",
+            "rationale": "Directly matches the supplied passage.",
+        }])
+        audit_claim_quotes(self.manager, self.mission_id,
+                           client=original, model="stub")
+        with self.manager.colony._db() as db:
+            row = db.execute("SELECT stages FROM colony_missions WHERE id=?",
+                             (self.mission_id,)).fetchone()
+            stages = json.loads(row["stages"])
+            item = stages[0]["source_claim_audit"][0]
+            item["comparison"] = "insufficient"
+            item["comparison_rationale"] = "The earlier pass was uncertain."
+            db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
+                       (json.dumps(stages), self.mission_id))
+
+        class RereadOnlyClient:
+            def __init__(self):
+                self.calls = []
+
+            def verify(self, model, system, prompt):
+                self.calls.append((model, system, prompt))
+                cases = json.loads(prompt.split("\n", 1)[1])
+                return json.dumps({"assessments": [
+                    {"index": item["index"], "verdict": "supported",
+                     "reason": "The exact supplied sentence entails this claim."}
+                    for item in cases
+                ]})
+
+        rereader = RereadOnlyClient()
+        result = audit_claim_quotes(self.manager, self.mission_id,
+                                    client=rereader, model="stub")
+        assessment = result[0]["machine_assessment"]
+        self.assertEqual(len(rereader.calls), 1)
+        self.assertIn("Do not choose by majority", rereader.calls[0][1])
+        self.assertEqual(assessment["method"], "same_model_consistency_reread")
+        self.assertEqual(assessment["disagreement"]["first_verdict"], "insufficient")
+        self.assertEqual(assessment["disagreement"]["skeptical_verdict"], "supported")
+        self.assertEqual(assessment["verdict"], "supported")
+        self.assertFalse(result[0]["claim_verified"])
+        self.assertEqual(
+            self.manager.get(self.mission_id)["stages"][0]["source_claim_audit_version"], 5)
+
     def test_disagreement_gets_one_reread_and_keeps_both_original_assessments(self):
         self.add_excerpt()
         model = QuoteModel([{
