@@ -19,6 +19,39 @@ def _normalized(value):
     return " ".join(value.split()).casefold()
 
 
+
+def _explicit_confidence_conflict(claim, passage):
+    """Catch an explicit high/low evidence-confidence mismatch conservatively."""
+    claim_text = _normalized(claim)
+    passage_text = _normalized(passage)
+
+    def level(text):
+        confidence = re.search(
+            r"\b(?:confidence|certainty)\b.{0,100}?\b(very\s+low|low|very\s+high|high)\b"
+            r"|\b(very\s+low|low|very\s+high|high)\b.{0,100}?\b(?:confidence|certainty)\b",
+            text,
+        )
+        if not confidence:
+            return None
+        value = next((group for group in confidence.groups() if group), "")
+        return "high" if "high" in value else "low"
+
+    claim_level = level(claim_text)
+    passage_level = level(passage_text)
+    if claim_level and passage_level and claim_level != passage_level:
+        return {
+            "verdict": "contradicted",
+            "reason": (
+                "Deterministic wording check: the claim says "
+                f"{claim_level} confidence, while the quoted passage says "
+                f"{passage_level} confidence."
+            ),
+            "method": "explicit_confidence_conflict_guard",
+            "available": True,
+        }
+    return None
+
+
 def _parse_proposals(raw):
     if not isinstance(raw, str) or not raw.strip() or len(raw) > 6000:
         raise ValueError("Invalid or oversized claim proposal response")
@@ -282,7 +315,13 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
                                "otomatik olarak doğrulanmadı."),
                     "available": False if review_unavailable else True,
                 }
-            assessment["method"] = "skeptical_model_pass"
+            passage = sources[reviewed[index]["doi"]]["excerpt"]
+            confidence_conflict = _explicit_confidence_conflict(
+                reviewed[index]["claim"], passage)
+            if confidence_conflict is not None:
+                assessment = confidence_conflict
+            else:
+                assessment["method"] = "skeptical_model_pass"
             reviewed[index]["machine_assessment"] = assessment
     with manager.colony._db() as db:
         db.execute("BEGIN IMMEDIATE")

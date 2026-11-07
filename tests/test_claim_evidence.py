@@ -227,6 +227,29 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(saved["source_claim_audit"], [])
         self.assertEqual(saved["source_claim_audit_version"], 4)
 
+    def test_explicit_confidence_conflict_overrides_wrong_model_support(self):
+        self.manager.inspect_source_documents(
+            self.mission_id,
+            reader=lambda doi: {
+                "doi": doi, "status": "full_text_excerpt",
+                "title": "Research article",
+                "url": "https://europepmc.org/articles/PMC1234567",
+                "excerpt": "Confidence was low for one outcome and very low for others.",
+                "claim_verified": False})
+        model = QuoteModel([{
+            "claim": "The study had high confidence in every outcome.",
+            "doi": DOI,
+            "quote": "Confidence was low for one outcome and very low for others.",
+        }])
+        model.verdict = "supported"
+        result = audit_claim_quotes(self.manager, self.mission_id,
+                                    client=model, model="stub")
+        assessment = result[0]["machine_assessment"]
+        self.assertEqual(assessment["verdict"], "contradicted")
+        self.assertEqual(assessment["method"], "explicit_confidence_conflict_guard")
+        self.assertIn("claim says high confidence", assessment["reason"])
+        self.assertFalse(result[0]["claim_verified"])
+
     def test_skeptical_verdict_never_marks_claim_verified(self):
         self.add_excerpt()
         model = QuoteModel([{
