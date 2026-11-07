@@ -1,8 +1,9 @@
-name: J0740 exact 196pt EOS resampling causality sensitivity
+name: J0740 source-verified 196pt EOS numeric sound speed sensitivity
 on:
   pull_request:
     paths:
       - "research/j0740/rotating_gr/rns_eos_resampling_sound_speed.py"
+      - "research/j0740/rotating_gr/center_causality.py"
       - "research/j0740/rotating_gr/test_rns_eos_resampling_sound_speed.py"
       - ".github/workflows/j0740-rns-eos-resampling-sound-speed.yml"
   workflow_dispatch:
@@ -38,7 +39,7 @@ jobs:
           gh run download 42353019033 --repo "$GITHUB_REPOSITORY" \
             --name j0740-seven-eos-rns-fixed-mass-results \
             --dir prior-rns
-      - name: Regenerate exact RNS 196pt EOS input SHA and calculate model-center sound-speed sensitivity
+      - name: Compare regenerated 196pt EOS physical slope to pinned source-native cs2; retain SHA mismatch
         run: |
           python research/j0740/rotating_gr/rns_eos_resampling_sound_speed.py \
             --rns-json prior-rns/J0740_seven_EOS_full_GR_fixed_spin_mass.json \
