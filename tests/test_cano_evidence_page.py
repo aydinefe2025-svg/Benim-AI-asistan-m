@@ -53,6 +53,8 @@ class EvidencePageSmokeTests(unittest.TestCase):
         runtime_button = source.index("CANO modelini 12 sabit vakada test et (1 çağrı)")
         key_setup = source.index('key = os.environ.get("GROQ_API_KEY")')
         client_setup = source.index("class Client:")
+        owner_gate = source.index("if not owner:", client_setup)
+        self.assertLess(owner_gate, runtime_button)
         human_form = source.index('st.form("cano_blind_human_labels_v3")')
         no_missions_gate = source.index("if not missions:")
         self.assertLess(key_setup, runtime_button)
