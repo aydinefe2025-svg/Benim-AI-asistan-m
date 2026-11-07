@@ -6,14 +6,16 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from contextlib import closing
 
 from scripts.cano_specialist_agents import attach_agent_results, run_agents
 
 
 def make_fixture(root: Path) -> tuple[Path, Path]:
     database = root / "colony.sqlite3"
-    with sqlite3.connect(database) as db:
-        db.execute("CREATE TABLE virtual_generation (tick_id INTEGER PRIMARY KEY, lesson_status TEXT NOT NULL)")
+    with closing(sqlite3.connect(database)) as db:
+        with db:
+            db.execute("CREATE TABLE virtual_generation (tick_id INTEGER PRIMARY KEY, lesson_status TEXT NOT NULL)")
         db.execute("INSERT INTO virtual_generation VALUES (1, 'rejected')")
     report = {
         "github_run_id": "42",
