@@ -1,0 +1,71 @@
+name: J0740 RNS C first-enthalpy-bin bounded inverse GR seven EOS
+on:
+  pull_request:
+    paths:
+      - "research/j0740/rotating_gr/rns_boundary_patch.py"
+      - "research/j0740/rotating_gr/test_rns_boundary_patch.py"
+      - "research/j0740/rotating_gr/j0740_boundary_patch_gr.py"
+      - ".github/workflows/j0740-boundary-patched-c-gr.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  patched-c-seven-eos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install numpy
+      - name: Run seven source-guard and invertible first surface EOS bin tests
+        working-directory: research/j0740/rotating_gr
+        run: python -m unittest -v test_rns_boundary_patch
+      - name: Patch only two pinned C/RNS first-H-bin interpolation branches
+        run: |
+          python research/j0740/rotating_gr/rns_boundary_patch.py \
+            rns-upstream/equil.c \
+            --manifest patch-manifest.json
+          make -C rns-upstream rns
+      - name: Reuse existing original GR seven-star evidence without RNS repetition
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p prior-rns
+          gh run download 42353019033 --repo "$GITHUB_REPOSITORY" \
+            --name j0740-seven-eos-rns-fixed-mass-results \
+            --dir prior-rns
+      - name: Compare patched 7 rotating and 7 static GR stars and independent source TOV
+        run: |
+          python research/j0740/rotating_gr/j0740_boundary_patch_gr.py \
+            --prior prior-rns/J0740_seven_EOS_full_GR_fixed_spin_mass.json \
+            --patched-rns rns-upstream/rns \
+            --jester-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --patch-manifest patch-manifest.json \
+            --out results/J0740_patched_C_first_enthalpy_GR_sevenEOS.json
+      - name: Preserve successful or failed GR and C patch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-boundary-patched-C-seven-eos-GR-evidence
+          path: |
+            patch-manifest.json
+            results/J0740_patched_C_first_enthalpy_GR_sevenEOS.json
+          if-no-files-found: warn
+          retention-days: 30
