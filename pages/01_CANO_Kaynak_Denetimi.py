@@ -286,6 +286,7 @@ if unavailable_passes and key and st.button("Kuşkucu geçişi yeniden dene (1 �
         st.rerun()
     except (ValueError, RuntimeError, TeamRateLimitError) as err:
         st.warning("Kuşkucu geçiş tamamlanamadı; önceki alıntı ve inceleme kaydı korundu.")
+        st.caption(f"Güvenli hata ayrıntısı: {type(err).__name__}: {err}")
 for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_claim_audit", [])):
     docs = reviewed_mission["stages"][0].get("source_documents", [])
     source = next((doc for doc in docs
