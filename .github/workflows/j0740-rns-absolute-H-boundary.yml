@@ -4,6 +4,8 @@ on:
     paths:
       - "research/j0740/rotating_gr/rns_surface_boundary_probe.py"
       - "research/j0740/rotating_gr/test_rns_surface_boundary_probe.py"
+      - "research/j0740/rotating_gr/rns_absoluteH_fixed_mass.py"
+      - "research/j0740/rotating_gr/test_rns_absoluteH_fixed_mass.py"
       - ".github/workflows/j0740-rns-absolute-H-boundary.yml"
   workflow_dispatch:
 permissions:
@@ -36,6 +38,9 @@ jobs:
       - name: Six static tests for pinned C patch scope and refusal
         working-directory: research/j0740/rotating_gr
         run: python -m unittest -v test_rns_surface_boundary_probe
+      - name: Test fixed-mass root guards for corrected source H
+        working-directory: research/j0740/rotating_gr
+        run: python -m unittest -v test_rns_absoluteH_fixed_mass
       - name: Compile two isolated pinned C versions with different EOS boundary assumptions
         run: |
           cp -a rns-upstream rns-hmin
@@ -63,11 +68,16 @@ jobs:
             --source-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
             --hmin-binary rns-hmin/rns --surface-binary rns-hmin-surface/rns \
             --out results/J0740_absoluteH_C_surface_boundary_diagnostic.json
+      - name: Fixed-M corrected H real seven EOS C GR and independent source TOV verification
+        run: |
+          python research/j0740/rotating_gr/rns_absoluteH_fixed_mass.py             --original-GR prior-rns/J0740_seven_EOS_full_GR_fixed_spin_mass.json             --binary rns-hmin-surface/rns             --jester-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite             --out results/J0740_absoluteH_corrected_surface_fixed_mass_TOV.json
       - name: Retain full successful and unsuccessful physical controls
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: j0740-absoluteH-pinned-C-surface-boundary-evidence
-          path: results/J0740_absoluteH_C_surface_boundary_diagnostic.json
+          path: |
+            results/J0740_absoluteH_C_surface_boundary_diagnostic.json
+            results/J0740_absoluteH_corrected_surface_fixed_mass_TOV.json
           if-no-files-found: warn
           retention-days: 30
