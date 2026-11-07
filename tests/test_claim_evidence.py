@@ -240,7 +240,8 @@ class ClaimQuoteAuditTests(unittest.TestCase):
             "claim": "The study had high confidence in every outcome.",
             "doi": DOI,
             "quote": "Confidence was low for one outcome and very low for others.",
-        }], verdict="supported")
+        }])
+        model.verdict = "supported"
         result = audit_claim_quotes(self.manager, self.mission_id,
                                     client=model, model="stub")
         assessment = result[0]["machine_assessment"]
