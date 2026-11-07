@@ -299,6 +299,8 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
     else:
         st.caption("Bir görev dört sıralı model çağrısı yapar; yalnızca açıkça "
                    "başlattığınızda çalışır. Ek maliyet sağlayıcı kotanıza bağlıdır.")
+        st.caption("Yazılım görevlerinde yalnızca izin listesindeki sınırlı kaynak kodu "
+                   "seçili sağlayıcıya inceleme bağlamı olarak gönderilir; kod çalıştırılmaz.")
         with st.form("cano_cockpit_mission_form"):
             goal = st.text_area(
                 "CANO'ya ekip görevi ver", max_chars=1200,

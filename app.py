@@ -73,6 +73,7 @@ from core.postgres_authorized_queue import PostgresAuthorizedQueue
 from core.colony_panel import render_colony_panel
 from core.organism_lab_panel import render_organism_lab_panel
 from core.cano_command_center import render_cano_command_center
+from core.cano_source_context import build_cano_source_context, extract_cano_task
 from core.groq_team import generate_team_stage
 from core.research_export import export_research_archive
 
@@ -418,6 +419,13 @@ def _team_answer(prompt: str) -> str:
         "do not invent sources or claim actions/tests that were not run. "
         "Return a draft for human review; do not change files or data."
     )
+    # Attach repository evidence only to explicit software tasks. Research missions,
+    # especially neutron-star work, receive no source-code context.
+    task_goal = extract_cano_task(prompt)
+    source_context = build_cano_source_context(
+        task_goal, os.path.dirname(os.path.abspath(__file__)))
+    if source_context:
+        prompt += "\n\n" + source_context
     router = _new_provider_router()
     return router.chat(aktif_llm_adi, system, prompt)
 
