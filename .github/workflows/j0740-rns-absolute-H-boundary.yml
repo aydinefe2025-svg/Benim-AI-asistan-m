@@ -50,7 +50,7 @@ jobs:
           make -C rns-hmin-surface rns
       - name: Retrieve original seven GR models without repeating old 12.9GB archive
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p prior-rns
           gh run download 42353019033 --repo "$GITHUB_REPOSITORY" \
