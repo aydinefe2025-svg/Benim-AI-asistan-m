@@ -412,6 +412,7 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         item = {
             "status": "quote_found_unverified",
             "claim": "The exercise review had high confidence in every exercise effect.",
+            "doi": doi,
             "quote": excerpt,
             "human_review": None,
             "machine_assessment": {"verdict": "supported", "method": "legacy_third_pass"},
@@ -422,8 +423,23 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertTrue(display["display_only"])
         self.assertEqual(display["prior_model_verdict"], "supported")
         self.assertEqual(item["machine_assessment"]["verdict"], "supported")
+        # Render the explicit confidence conflict even when PDF extraction
+        # prevents a literal quote match; the excerpt is still DOI-matched.
+        self.assertEqual(_display_cached_confidence_conflict(
+            {**item, "quote": "This quote is not present."}, source)["verdict"],
+            "contradicted")
         self.assertIsNone(_display_cached_confidence_conflict(
-            {**item, "quote": "This quote is not present."}, source))
+            {**item, "doi": "10.9999/unrelated"}, source))
+        # A stale stored guard method must not hide a contradictory cached label.
+        prior_guard = {
+            **item,
+            "machine_assessment": {
+                "verdict": "supported",
+                "method": "explicit_confidence_conflict_guard",
+            },
+        }
+        self.assertEqual(_display_cached_confidence_conflict(
+            prior_guard, source)["verdict"], "contradicted")
         empty_review_display = _display_cached_confidence_conflict(
             {**item, "human_review": {}}, source)
         self.assertEqual(empty_review_display["verdict"], "contradicted")
