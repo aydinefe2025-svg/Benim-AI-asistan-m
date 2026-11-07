@@ -1,0 +1,53 @@
+name: J0740 exact 196pt EOS resampling causality sensitivity
+on:
+  pull_request:
+    paths:
+      - "research/j0740/rotating_gr/rns_eos_resampling_sound_speed.py"
+      - "research/j0740/rotating_gr/test_rns_eos_resampling_sound_speed.py"
+      - ".github/workflows/j0740-rns-eos-resampling-sound-speed.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  rns-eos-slope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install numpy
+      - name: Test RNS pressure-energy slope and EOS identity guards
+        working-directory: research/j0740/rotating_gr
+        run: python -m unittest -v test_rns_eos_resampling_sound_speed
+      - name: Retrieve completed source-matched seven EOS RNS evidence (no solver execution)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p prior-rns
+          gh run download 42353019033 --repo "$GITHUB_REPOSITORY" \
+            --name j0740-seven-eos-rns-fixed-mass-results \
+            --dir prior-rns
+      - name: Regenerate exact RNS 196pt EOS input SHA and calculate model-center sound-speed sensitivity
+        run: |
+          python research/j0740/rotating_gr/rns_eos_resampling_sound_speed.py \
+            --rns-json prior-rns/J0740_seven_EOS_full_GR_fixed_spin_mass.json \
+            --jester-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --out results/J0740_RNS_196pt_vs_native_EOS_slopes.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-rns-exact-196pt-eos-slope-evidence
+          path: results/J0740_RNS_196pt_vs_native_EOS_slopes.json
+          if-no-files-found: warn
+          retention-days: 30
