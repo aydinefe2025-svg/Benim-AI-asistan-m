@@ -139,7 +139,9 @@ def load_expected_labels(raw, cases=HUMAN_COMPARISON_CASES):
         raise ValueError("Private benchmark answer key is invalid JSON") from exc
     case_ids = {case["case_id"] for case in cases}
     allowed = {"supported", "contradicted", "insufficient"}
-    if not isinstance(answer_key, dict) or set(answer_key) != case_ids:
+    if not isinstance(answer_key, dict):
+        raise ValueError("Private benchmark answer key must be an object")
+    if set(answer_key) != case_ids:
         raise ValueError("Private benchmark answer key does not match fixture set")
     if any(value not in allowed for value in answer_key.values()):
         raise ValueError("Private benchmark answer key contains invalid labels")
@@ -188,6 +190,9 @@ def run_claim_review_benchmark(client, *, model="openai/gpt-oss-120b", cases=CAS
     case_ids = {case["case_id"] for case in cases}
     if set(expected_labels) != case_ids:
         raise ValueError("Expected labels do not match benchmark fixtures")
+    if any(value not in {"supported", "contradicted", "insufficient"}
+           for value in expected_labels.values()):
+        raise ValueError("Expected labels contain invalid verdicts")
     prompt_cases = [
         {"index": index, "claim": case["claim"], "source_excerpt": case["excerpt"]}
         for index, case in enumerate(cases)
