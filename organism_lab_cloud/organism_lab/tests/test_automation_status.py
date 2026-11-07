@@ -1,13 +1,9 @@
-"""Safety and validation tests for reading the public scheduled colony artifact."""
-import hashlib
-import io
+"""Safety and validation tests for reading the published colony report."""
 import json
-import zipfile
 import unittest
-from unittest.mock import Mock
 
 from organism_lab.automation_status import (
-    ColonyStatusUnavailable, RUNS_URL, load_latest_colony_status,
+    ColonyStatusUnavailable, RAW_REPORT_URL, load_latest_colony_status,
 )
 
 
@@ -39,24 +35,13 @@ def fixture_report(run_id=11):
     }
 
 
-def zipped_report(report):
-    memory = io.BytesIO()
-    with zipfile.ZipFile(memory, "w", zipfile.ZIP_DEFLATED) as bundle:
-        bundle.writestr("colony-cycle.json", json.dumps(report).encode("utf-8"))
-    return memory.getvalue()
-
-
 class FakeResponse:
-    def __init__(self, data=None, content=None):
-        self.data = data
+    def __init__(self, content):
         self.content = content
-        self.headers = {"Content-Length": str(len(content))} if content is not None else {}
+        self.headers = {"Content-Length": str(len(content))}
 
     def raise_for_status(self):
         return None
-
-    def json(self):
-        return self.data
 
     def iter_content(self, chunk_size):
         yield self.content
@@ -64,38 +49,38 @@ class FakeResponse:
 
 class AutomationStatusTests(unittest.TestCase):
     def _load(self, report):
-        run_id = 11
-        archive = zipped_report(report)
-        digest = "sha256:" + hashlib.sha256(archive).hexdigest()
+        content = json.dumps(report).encode("utf-8")
         calls = []
 
         def get(url, **kwargs):
             calls.append((url, kwargs))
-            if url == RUNS_URL:
-                return FakeResponse({"workflow_runs": [{
-                    "id": run_id, "status": "completed", "conclusion": "success",
-                }]})
-            if url.endswith(f"/actions/runs/{run_id}/artifacts"):
-                return FakeResponse({"artifacts": [{
-                    "id": 42, "name": f"cano-colony-cycle-{run_id}",
-                    "expired": False, "size_in_bytes": len(archive), "digest": digest,
-                }]})
-            return FakeResponse(content=archive)
+            if url != RAW_REPORT_URL:
+                raise AssertionError("The panel must use the published raw report only")
+            return FakeResponse(content)
 
         return load_latest_colony_status(get), calls
 
-    def test_reads_latest_report_and_four_independent_agent_results(self):
+    def test_reads_published_report_and_four_independent_agent_results(self):
         value, calls = self._load(fixture_report())
         self.assertEqual(value["report"]["tick_id"], 7)
         self.assertEqual(len(value["report"]["specialist_agents"]), 4)
         self.assertEqual(value["state"], "success")
-        self.assertEqual(len(calls), 3)
-        self.assertTrue(calls[-1][1]["stream"])
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(calls[0][1]["stream"])
+        self.assertNotIn("Authorization", calls[0][1]["headers"])
 
-    def test_rejects_report_from_a_different_run(self):
-        report = fixture_report(run_id=999)
+    def test_rejects_report_with_invalid_run_id(self):
+        report = fixture_report()
+        report["github_run_id"] = "not-a-run"
         with self.assertRaises(ColonyStatusUnavailable):
             self._load(report)
+
+    def test_rejects_report_from_wrong_mode_or_corrupt_state(self):
+        for field, value in (("mode", "unbounded"), ("db_integrity", "failed")):
+            report = fixture_report()
+            report[field] = value
+            with self.assertRaises(ColonyStatusUnavailable):
+                self._load(report)
 
     def test_rejects_missing_or_unpassed_agents(self):
         report = fixture_report()
@@ -103,34 +88,23 @@ class AutomationStatusTests(unittest.TestCase):
         with self.assertRaises(ColonyStatusUnavailable):
             self._load(report)
 
-    def test_no_actions_run_returns_clear_empty_state(self):
-        value = load_latest_colony_status(
-            lambda url, **kwargs: FakeResponse({"workflow_runs": []})
-        )
-        self.assertEqual(value["state"], "no_runs")
-
-    def test_rejects_artifact_digest_mismatch(self):
-        archive = zipped_report(fixture_report())
-        calls = 0
+    def test_rejects_oversized_report_before_parsing(self):
+        content = b" " * 1_000_001
 
         def get(url, **kwargs):
-            nonlocal calls
-            calls += 1
-            if calls == 1:
-                return FakeResponse({"workflow_runs": [{
-                    "id": 11, "status": "completed", "conclusion": "success",
-                }]})
-            if calls == 2:
-                return FakeResponse({"artifacts": [{
-                    "id": 42, "name": "cano-colony-cycle-11",
-                    "expired": False, "size_in_bytes": len(archive),
-                    "digest": "sha256:" + "0" * 64,
-                }]})
-            return FakeResponse(content=archive)
+            return FakeResponse(content)
 
         with self.assertRaises(ColonyStatusUnavailable):
             load_latest_colony_status(get)
 
-    def test_no_credentials_are_sent(self):
-        _, calls = self._load(fixture_report())
-        self.assertTrue(all("Authorization" not in call[1]["headers"] for call in calls))
+    def test_rejects_report_exceeding_stream_limit(self):
+        class UnboundedResponse(FakeResponse):
+            def __init__(self):
+                super().__init__(b"{}")
+                self.headers = {}
+
+            def iter_content(self, chunk_size):
+                yield b" " * 1_000_001
+
+        with self.assertRaises(ColonyStatusUnavailable):
+            load_latest_colony_status(lambda url, **kwargs: UnboundedResponse())
