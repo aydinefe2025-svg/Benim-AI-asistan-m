@@ -288,13 +288,29 @@ def _reconcile_cached_confidence_conflicts(manager, mission_id, stages):
                     and isinstance(entry.get("doi"), str)
                     and isinstance(doi, str)
                     and entry["doi"].casefold() == doi.casefold()), None)
+        trusted_url = _citation_for(doc) if isinstance(doc, dict) else None
+        citation_url = item.get("citation_url") if isinstance(item, dict) else None
+        doi_url = "https://doi.org/" + doi if isinstance(doi, str) else None
+        citation_matches = (
+            isinstance(citation_url, str)
+            and trusted_url is not None
+            and (
+                citation_url == trusted_url
+                or (
+                    isinstance(doi, str)
+                    and _DOI.fullmatch(doi) is not None
+                    and ".." not in doi
+                    and DOI_LEAD_URL.fullmatch(citation_url) is not None
+                    and citation_url.casefold() == doi_url.casefold()
+                )
+            )
+        )
         if (not isinstance(doc, dict) or doc.get("status") not in _READABLE
                 or not isinstance(doc.get("excerpt"), str)
                 or not isinstance(item.get("claim"), str)
                 or not isinstance(item.get("quote"), str)
                 or _normalized(item["quote"]) not in _normalized(doc["excerpt"])
-                or doc.get("url") != item.get("citation_url")
-                or _citation_for(doc) is None):
+                or not citation_matches):
             continue
         conflict = _explicit_confidence_conflict(item["claim"], doc["excerpt"])
         if conflict is None:
