@@ -691,7 +691,27 @@ for claim_index, item in enumerate(reviewed_mission["stages"][0].get("source_cla
         st.caption(item["claim"] + " — " + item["doi"])
         st.code(item["quote"])
         assessment = item.get("machine_assessment")
-        if isinstance(assessment, dict):
+        initial_verdict = {
+            "supports": "supported",
+            "contradicts": "contradicted",
+            "insufficient": "insufficient",
+        }.get(item.get("comparison"))
+        reviews_disagree = (
+            isinstance(assessment, dict)
+            and assessment.get("available") is not False
+            and initial_verdict is not None
+            and assessment.get("verdict") != initial_verdict
+        )
+        if reviews_disagree:
+            st.warning(
+                "AI incelemeleri uyuşmuyor; bu kaynak için otomatik karar "
+                "güvenilir değil. İnsan incelemesi gerekir."
+            )
+            st.caption(
+                "İlk geçiş: " + str(initial_verdict)
+                + " · kuşkucu geçiş: " + str(assessment.get("verdict"))
+            )
+        elif isinstance(assessment, dict):
             if assessment.get("available") is False:
                 st.warning("Kuşkucu AI geçişi alınamadı; alıntı eşleşmesi korundu ve iddia doğrulanmış sayılmıyor.")
             else:
