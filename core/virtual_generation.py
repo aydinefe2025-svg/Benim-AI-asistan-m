@@ -39,11 +39,11 @@ def _vm_types():
         return COPY_REST, DIVIDE, TASK_A, TASK_B, GenomeWorld
 
 
-def _scores(rate: float, seeds: tuple[int, ...]) -> list[float]:
+def _scores(rate: float, seeds: tuple[int, ...]) -> list[dict]:
     copy_rest, divide, task_a, task_b, world_type = _vm_types()
     values = []
     for seed in seeds:
-        options = {"seed": seed, "capacity": _CAPACITY, "resources_per_tick": 1,
+        options = {"seed": seed, "capacity": _CAPACITY, "resources_per_tick": 10,
                    "mutation_rate": rate, "initial_genome":
                    (copy_rest, task_a, divide) if task_a is not None else (copy_rest, divide)}
         if task_a is not None:
@@ -55,32 +55,42 @@ def _scores(rate: float, seeds: tuple[int, ...]) -> list[float]:
             metrics = world.step()
         population = world.organisms
         if task_a is not None:
-            values.append(sum(task_b in organism.genome for organism in population) / len(population)
-                          if population else 0.0)
+            score = (sum(task_b in organism.genome for organism in population) / len(population)
+                     if population else 0.0)
         else:
             # Main-branch VM measures diversity only; no engineered task/reward
             # behavior is assumed. Births and generation counts remain simulator
             # outputs, not claims about biological learning.
-            values.append(float(metrics["unique_genomes"]))
+            score = float(metrics["unique_genomes"])
+        values.append({"score": score, "births": metrics["births"],
+                       "max_generation": metrics["max_generation"],
+                       "final_population": metrics["population"]})
     return values
 
 
-def _paired_summary(candidate: list[float], parent: list[float]) -> dict:
+def _paired_summary(candidate: list, parent: list) -> dict:
     if len(candidate) != len(parent) or len(candidate) < 2:
         raise ValueError("Paired evaluation requires at least two matching seeds")
-    differences = [left - right for left, right in zip(candidate, parent)]
+    candidate_scores = [row["score"] if isinstance(row, dict) else row for row in candidate]
+    parent_scores = [row["score"] if isinstance(row, dict) else row for row in parent]
+    differences = [left - right for left, right in zip(candidate_scores, parent_scores)]
     mean = sum(differences) / len(differences)
     variance = sum((value - mean) ** 2 for value in differences) / (len(differences) - 1)
     margin = 1.96 * math.sqrt(variance / len(differences))
-    return {
+    summary = {
         "paired_seeds": len(differences),
-        "candidate_mean_score": sum(candidate) / len(candidate),
-        "parent_mean_score": sum(parent) / len(parent),
+        "candidate_mean_score": sum(candidate_scores) / len(candidate_scores),
+        "parent_mean_score": sum(parent_scores) / len(parent_scores),
         "mean_paired_difference": mean,
         "ci95_low": mean - margin,
         "ci95_high": mean + margin,
         "positive_evidence": mean - margin > 0,
     }
+    if isinstance(candidate[0], dict):
+        for key in ("births", "max_generation", "final_population"):
+            summary[f"candidate_mean_{key}"] = sum(row[key] for row in candidate) / len(candidate)
+            summary[f"parent_mean_{key}"] = sum(row[key] for row in parent) / len(parent)
+    return summary
 
 
 def run_virtual_generation(database_path: str | Path, tick_id: int) -> dict:
