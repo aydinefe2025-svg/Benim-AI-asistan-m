@@ -27,6 +27,10 @@ class EncryptedBackupTests(unittest.TestCase):
             'sys.stdout.buffer.write(b"PGDMP-PRIVATE-DATABASE-CONTENTS\\x00\\x01"*1200)\n')
         self.dump.chmod(self.dump.stat().st_mode|stat.S_IXUSR)
         self.fake=str(self.dump)
+        if os.name=='nt':
+            wrapper=self.root/'fake_pg_dump.cmd'
+            wrapper.write_text('@echo off\r\n"'+sys.executable+'" "'+str(self.dump)+'" %*\r\n')
+            self.fake=str(wrapper)
         self.key='1f'*32
         self.env=patch.dict(os.environ,{
             'CANO_BACKUP_KEY_HEX':self.key,
@@ -85,6 +89,10 @@ class EncryptedBackupTests(unittest.TestCase):
         bad=self.root/'bad.py'
         bad.write_text('#!'+sys.executable+'\nimport sys\nsys.stdout.buffer.write(b"PGDMP partial")\nsys.exit(2)\n')
         bad.chmod(bad.stat().st_mode|stat.S_IXUSR)
+        if os.name=='nt':
+            wrapper=self.root/'bad_pg_dump.cmd'
+            wrapper.write_text('@echo off\r\n"'+sys.executable+'" "'+str(bad)+'" %*\r\n')
+            bad=wrapper
         with self.assertRaises(BackupError):make_encrypted_backup(self.target,dump_bin=str(bad))
         self.assertEqual(list(self.target.iterdir()),[])
 
