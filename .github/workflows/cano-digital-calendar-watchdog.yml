@@ -8,8 +8,10 @@ on:
       - '.github/workflows/cano-digital-calendar-watchdog.yml'
   workflow_dispatch:
   schedule:
-    # 05:47 UTC generator + 02:30 allowance. GitHub can still run cron late.
+    # Allow the 05:47 UTC generator and 07:31 UTC backup to finish.
     - cron: '17 8 * * *'
+    # Second read-only watchdog attempt if GitHub skips the first schedule.
+    - cron: '43 9 * * *'
 
 permissions:
   contents: read
