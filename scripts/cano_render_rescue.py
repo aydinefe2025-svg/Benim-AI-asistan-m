@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 import json
 import os
 import re
+import tempfile
 from pathlib import Path
 
 from scripts.cano_pg_backup import _libpq_env_from_uri
@@ -137,6 +138,35 @@ def backup_configured(destination: Path) -> dict:
     }
 
 
+
+def _assert_persistent_private_destination(destination: Path) -> None:
+    """Refuse temporary, repository or redirected storage before any export.
+
+    The operator is responsible for selecting private persistent storage and
+    copying the encrypted output to an *independent* provider afterward.
+    """
+    candidate = Path(destination).expanduser().absolute()
+    for part in (candidate, *candidate.parents):
+        if part.is_symlink() or (hasattr(part, "is_junction") and part.is_junction()):
+            raise BackupError("Backup destination passes through redirected storage")
+
+    resolved = candidate.resolve(strict=False)
+    checkout = Path(__file__).resolve().parents[1]
+    if resolved == checkout or checkout in resolved.parents:
+        raise BackupError("Backup destination cannot be inside the code repository")
+
+    transient = {tempfile.gettempdir(), os.getenv("TMPDIR"),
+                 os.getenv("TMP"), os.getenv("TEMP")}
+    if os.name != "nt":
+        transient.update(("/tmp", "/var/tmp", "/dev/shm"))
+    for root in transient:
+        if not root:
+            continue
+        temporary = Path(root).expanduser().resolve(strict=False)
+        if resolved == temporary or temporary in resolved.parents:
+            raise BackupError("Backup destination must not use temporary storage")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Encrypted owner-only backups of all configured CANO PostgreSQL URLs"
@@ -148,6 +178,7 @@ def main() -> int:
                 "CANO_REQUIRED_RENDER_DATABASE",
                 "CANO_REQUIRED_RENDER_HOST_PREFIX")):
             raise BackupError("The operator CLI requires the Render source identity")
+        _assert_persistent_private_destination(args.private_destination)
         result = backup_configured(args.private_destination)
     except (BackupError, OSError, ValueError, KeyError, TypeError):
         # Do not put connection strings, raw subprocess stderr or secrets on stdout.

@@ -8,3 +8,11 @@ __pycache__/
 .streamlit/secrets.toml
 /mujoco*_result.json
 /private-backups/
+
+# Operator-only disaster-recovery artifacts: do not accidentally stage user data.
+# Git ignores are a safety net, not a guarantee against 'git add -f'.
+*.canoenc
+*.dump
+*.receipt.json
+cano-rescue-manifest.json
+.pgpass
