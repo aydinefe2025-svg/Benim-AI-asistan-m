@@ -1,0 +1,43 @@
+name: CANO offline account backup audit
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/cano_account_backup_audit.py'
+      - 'tests/test_cano_account_backup_audit.py'
+      - '.github/workflows/cano-account-backup-audit.yml'
+      - 'core/backup_encryption.py'
+      - 'core/cano_backup_bundle.py'
+  push:
+    branches:
+      - main
+      - fix/sqlite-backup-restore-20261031
+    paths:
+      - 'scripts/cano_account_backup_audit.py'
+      - 'tests/test_cano_account_backup_audit.py'
+      - '.github/workflows/cano-account-backup-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Account backup coverage - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install audit crypto dependency
+        run: python -m pip install 'cryptography>=44,<51'
+      - name: Verify real CANO encryption and portable bundle contracts
+        run: python -W error::ResourceWarning -m unittest discover -s tests -p 'test_cano_account_backup_audit.py' -v
+      - name: Syntax and import sanity
+        run: python -m compileall -q scripts/cano_account_backup_audit.py tests/test_cano_account_backup_audit.py
