@@ -6,6 +6,10 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
+
+import original_salmi_run_probe as source_probe
+import source_lineage_gate as lineage_gate
 
 from original_salmi_run_probe import (
     canonical_member, classify, discover_archive, discover_directory,
@@ -62,17 +66,67 @@ class OriginalRunScannerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             p=Path(td)
             tar_from_dict(p/'small.tar.gz',make_members(extra={PREFIX+'BULK_DATA.bin':b'0'*8192}))
-            found=discover_archive(p/'small.tar.gz')
+            archive=p/'small.tar.gz'
+            expected_md5=hashlib.md5(archive.read_bytes()).hexdigest()
+            expected_sha256=hashlib.sha256(archive.read_bytes()).hexdigest()
+            found=discover_archive(archive)
             self.assertEqual(len(found),4)
-            report=build_report(found,p/'out',actual_archive=True,
-                   expected_runner_sha256=hashlib.sha256(RUNNER).hexdigest(),
-                   expected_prior_sha256=hashlib.sha256(PRIOR).hexdigest())
+            self.assertEqual(found.observed_archive_md5, expected_md5)
+            self.assertEqual(found.observed_archive_sha256, expected_sha256)
+            # A synthetic fixture has a different digest from the real 12.9GB
+            # source. Patch BOTH published checksum constants for the success
+            # test only. Default behavior must reject unrecognized archives.
+            with (patch.object(source_probe, 'SOURCE_FULL_ARCHIVE_MD5', expected_md5),
+                  patch.object(lineage_gate, 'SOURCE_FULL_ARCHIVE_MD5', expected_md5)):
+                report=build_report(found,p/'out',actual_archive=True,
+                       expected_runner_sha256=hashlib.sha256(RUNNER).hexdigest(),
+                       expected_prior_sha256=hashlib.sha256(PRIOR).hexdigest())
             self.assertEqual(report['issues'],[])
+            self.assertTrue(report['compressed_archive_checksum_verified'])
+            self.assertEqual(report['source_full_archive_sha256_observed_this_scan'], expected_sha256)
             self.assertTrue(report['strict_lineage_verified'])
             m=json.loads((p/'out/matched_run_manifest_candidate.json').read_text())
             self.assertEqual(m['xpsi_version'],'v1.2.0')
             self.assertEqual(m['matching_run_log']['sha256'],hashlib.sha256(LOG).hexdigest())
             self.assertNotIn('BULK_DATA.bin',repr(m))
+
+    def test_untrusted_tar_with_identical_four_source_members_is_not_original(self):
+        with tempfile.TemporaryDirectory() as td:
+            p=Path(td)
+            archive=p/'lookalike.tar.gz'
+            tar_from_dict(archive,make_members())
+            self.assertNotEqual(hashlib.md5(archive.read_bytes()).hexdigest(),
+                                source_probe.SOURCE_FULL_ARCHIVE_MD5)
+            report=build_report(discover_archive(archive),p/'out',actual_archive=True,
+                 expected_runner_sha256=hashlib.sha256(RUNNER).hexdigest(),
+                 expected_prior_sha256=hashlib.sha256(PRIOR).hexdigest())
+            self.assertIn('original_archive_md5_mismatch',report['issues'])
+            self.assertFalse(report['compressed_archive_checksum_verified'])
+            self.assertFalse(report['strict_lineage_verified'])
+            self.assertFalse((p/'out/matched_run_manifest_candidate.json').exists())
+
+    def test_extra_bytes_after_tar_end_marker_change_archive_digest(self):
+        with tempfile.TemporaryDirectory() as td:
+            p=Path(td); archive=p/'test.tar.gz'
+            tar_from_dict(archive,make_members())
+            with archive.open('ab') as raw:
+                raw.write(b'garbage-after-gzip-trailer-should-not-be-ignored')
+            found=discover_archive(archive)
+            self.assertEqual(found.observed_archive_md5,hashlib.md5(archive.read_bytes()).hexdigest())
+            self.assertEqual(found.observed_archive_sha256,hashlib.sha256(archive.read_bytes()).hexdigest())
+            self.assertEqual(len(found),4)
+
+    def test_archive_claim_without_actual_tar_scan_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            p=Path(td)
+            for name,data in make_members().items():
+                q=p/name; q.parent.mkdir(parents=True,exist_ok=True); q.write_bytes(data)
+            extracted=discover_directory(p)
+            report=build_report(extracted,p/'out',actual_archive=True,
+                 expected_runner_sha256=hashlib.sha256(RUNNER).hexdigest(),
+                 expected_prior_sha256=hashlib.sha256(PRIOR).hexdigest())
+            self.assertIn('original_archive_md5_not_computed',report['issues'])
+            self.assertFalse(report['strict_lineage_verified'])
 
     def test_source_mismatch_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
