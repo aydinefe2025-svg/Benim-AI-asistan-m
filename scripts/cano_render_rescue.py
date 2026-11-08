@@ -11,6 +11,7 @@ import argparse
 from datetime import datetime, timezone
 import json
 import os
+import re
 from pathlib import Path
 
 from scripts.cano_pg_backup import _libpq_env_from_uri
@@ -38,15 +39,37 @@ def backup_configured(destination: Path) -> dict:
     if os.environ.get("RENDER_SERVICE_ID"):
         raise BackupError("Refusing an ephemeral Render service as backup destination")
     _key()  # Validate key before touching the filesystem.
+    render_db = os.environ.get("CANO_REQUIRED_RENDER_DATABASE", "").strip()
+    render_host_prefix = os.environ.get("CANO_REQUIRED_RENDER_HOST_PREFIX", "").strip().lower()
+    identity_required = ("CANO_REQUIRED_RENDER_DATABASE" in os.environ
+                         or "CANO_REQUIRED_RENDER_HOST_PREFIX" in os.environ)
+    if identity_required and (
+            not re.fullmatch(r"[A-Za-z0-9_]+", render_db)
+            or not re.fullmatch(r"dpg-[a-z0-9-]+", render_host_prefix)):
+        raise BackupError("The expected Render source identity is incomplete or invalid")
+
+    required_source_matched = False
+    matched_render_urls: set[str] = set()
     groups: dict[str, list[str]] = {}
     for env_name in SOURCE_ENV_NAMES:
         url = os.environ.get(env_name, "").strip()
         if url:
             # Validate *all* endpoints before producing partial backups.
-            _libpq_env_from_uri(url, os.environ)
+            parsed = _libpq_env_from_uri(url, os.environ)
+            hostname = parsed["PGHOST"].lower().rstrip(".")
+            is_render_hostname = (
+                hostname == render_host_prefix
+                or (hostname.startswith(render_host_prefix + ".")
+                    and hostname.endswith(".render.com")))
+            if identity_required and (
+                    parsed["PGDATABASE"] == render_db and is_render_hostname):
+                required_source_matched = True
+                matched_render_urls.add(url)
             groups.setdefault(url, []).append(env_name)
     if not groups:
         raise BackupError("No configured PostgreSQL sources to back up")
+    if identity_required and not required_source_matched:
+        raise BackupError("Expected Render database source was not configured")
 
     destination = Path(destination)
     if destination.is_symlink():
@@ -59,6 +82,7 @@ def backup_configured(destination: Path) -> dict:
     _private_directory(destination)
 
     manifest_entries = []
+    matched_source_numbers = []
     for ordinal, (_url, env_names) in enumerate(groups.items(), start=1):
         folder = destination / f"source-{ordinal:02d}"
         result = make_encrypted_backup(folder, database_env=env_names[0])
@@ -73,6 +97,8 @@ def backup_configured(destination: Path) -> dict:
         if (proof.get("authenticated") is not True
                 or proof.get("archive_sha256") != result.get("archive_sha256")):
             raise BackupError("Authenticated backup readback mismatch")
+        if _url in matched_render_urls:
+            matched_source_numbers.append(ordinal)
         manifest_entries.append({
             "source_number": ordinal,
             "env_aliases": env_names,
@@ -93,6 +119,8 @@ def backup_configured(destination: Path) -> dict:
         "covered_env_names": covered,
         "entries": manifest_entries,
         "local_authenticated_readback": True,
+        "required_render_source_matched": required_source_matched,
+        "required_render_source_numbers": matched_source_numbers,
         "offsite_verified": False,
         "isolated_restore_verified": False,
         "coverage_limit": "Configured URLs only; discover all other provider DBs separately.",
@@ -102,6 +130,8 @@ def backup_configured(destination: Path) -> dict:
         "manifest": str(manifest),
         "verified_source_count": len(manifest_entries),
         "covered_env_names": covered,
+        "required_render_source_matched": required_source_matched,
+        "required_render_source_numbers": matched_source_numbers,
         "offsite_verified": False,
         "isolated_restore_verified": False,
     }
@@ -114,6 +144,10 @@ def main() -> int:
     parser.add_argument("private_destination", type=Path)
     args = parser.parse_args()
     try:
+        if not all(os.environ.get(name, "").strip() for name in (
+                "CANO_REQUIRED_RENDER_DATABASE",
+                "CANO_REQUIRED_RENDER_HOST_PREFIX")):
+            raise BackupError("The operator CLI requires the Render source identity")
         result = backup_configured(args.private_destination)
     except (BackupError, OSError, ValueError, KeyError, TypeError):
         # Do not put connection strings, raw subprocess stderr or secrets on stdout.

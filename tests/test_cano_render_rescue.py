@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts.cano_encrypted_backup import BackupError
-from scripts.cano_render_rescue import backup_configured
+from scripts.cano_render_rescue import backup_configured, main
 
 
 class RenderRescueCoverageTests(unittest.TestCase):
@@ -101,6 +101,67 @@ class RenderRescueCoverageTests(unittest.TestCase):
                     self.assertTrue(real_verify(receipt)["authenticated"])
         self.assertEqual(len(list(self.destination.glob("source-*/*.canoenc"))), 2)
         self.assertEqual(len(list(self.destination.rglob("*.dump"))), 0)
+
+    def test_required_render_source_absent_fails_before_backup(self):
+        """A verified Neon dump must not count as an expiring Render DB dump."""
+        e = {**self.env,
+             "CANO_REQUIRED_RENDER_DATABASE": "research_library_persistent_db",
+             "CANO_REQUIRED_RENDER_HOST_PREFIX": "dpg-dbkfp5bm8hqs73bba7u0-a"}
+        with patch.dict(os.environ, e, clear=True):
+            with patch("scripts.cano_render_rescue.make_encrypted_backup",
+                       side_effect=self._mock_export) as exporter:
+                with patch("scripts.cano_render_rescue.verify_encrypted_backup",
+                           return_value={"authenticated": True,
+                                         "archive_sha256": "1" * 64}):
+                    with self.assertRaises(BackupError):
+                        backup_configured(self.destination)
+                exporter.assert_not_called()
+        self.assertFalse(self.destination.exists())
+
+    def test_partial_render_identity_requirement_fails_closed(self):
+        e = {**self.env,
+             "CANO_REQUIRED_RENDER_DATABASE": "research_library_persistent_db"}
+        with patch.dict(os.environ, e, clear=True):
+            with self.assertRaises(BackupError):
+                backup_configured(self.destination)
+        self.assertFalse(self.destination.exists())
+
+    def test_matching_render_source_is_covered_without_host_disclosure(self):
+        render_url = (
+            "postgresql://owner:SECRET_RENDER@"
+            "dpg-dbkfp5bm8hqs73bba7u0-a.frankfurt-postgres.render.com/"
+            "research_library_persistent_db?sslmode=require"
+        )
+        e = {**self.env, "DATABASE_URL": render_url,
+             "CANO_REQUIRED_RENDER_DATABASE": "research_library_persistent_db",
+             "CANO_REQUIRED_RENDER_HOST_PREFIX": "dpg-dbkfp5bm8hqs73bba7u0-a"}
+        with patch.dict(os.environ, e, clear=True):
+            with patch("scripts.cano_render_rescue.make_encrypted_backup",
+                       side_effect=self._mock_export) as exporter:
+                with patch("scripts.cano_render_rescue.verify_encrypted_backup",
+                           return_value={"authenticated": True,
+                                         "archive_sha256": "1" * 64}):
+                    result = backup_configured(self.destination)
+        self.assertEqual(result["verified_source_count"], 3)
+        self.assertEqual(exporter.call_count, 3)
+        self.assertEqual(result["required_render_source_numbers"], [2])
+        manifest = (self.destination / "cano-rescue-manifest.json").read_text("utf-8")
+        self.assertEqual(json.loads(manifest)["required_render_source_numbers"], [2])
+        self.assertIn('"required_render_source_matched": true', manifest)
+        self.assertNotIn("SECRET_RENDER", manifest)
+        self.assertNotIn("dpg-dbkfp5bm8hqs73bba7u0-a", manifest)
+        self.assertNotIn("research_library_persistent_db", manifest)
+
+    def test_cli_requires_explicit_render_identity_before_export(self):
+        """The operator CLI must never silently run in generic Neon-only mode."""
+        with patch.dict(os.environ, self.env, clear=True):
+            with patch.object(sys, "argv", ["cano_render_rescue",
+                                            str(self.destination)]):
+                with patch("scripts.cano_render_rescue.backup_configured",
+                           return_value={"verified_source_count": 2}) as exporter:
+                    self.assertEqual(main(), 1)
+                    exporter.assert_not_called()
+        self.assertFalse(self.destination.exists())
 
     def test_no_configured_urls_fails_before_writing(self):
         with patch.dict(os.environ, {"CANO_BACKUP_KEY_HEX": "ab" * 32},

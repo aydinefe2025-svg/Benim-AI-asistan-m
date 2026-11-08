@@ -37,11 +37,26 @@ Only on the owner's persistent private Windows/Linux host:
   execution is claimed here.
 
 Run, from the repository root, choosing a **fresh, empty private directory**
-on the owner's persistent disk (not a free Render web filesystem):
+on the owner's persistent disk (not a free Render web filesystem).
+**Set both non-secret Render identity guards** before the export. This makes
+the run refuse to publish a complete manifest if only the Neon URLs are
+configured or the expired Render database's connection URI is missing.
+The hostname check accepts the exact Render service hostname or its
+`.render.com` subdomain, not a lookalike domain.
 
 ```powershell
+$env:CANO_REQUIRED_RENDER_DATABASE = "research_library_persistent_db"
+$env:CANO_REQUIRED_RENDER_HOST_PREFIX = "dpg-dbkfp5bm8hqs73bba7u0-a"
 python -m scripts.cano_render_rescue "D:\CANO_PRIVATE\rescue_20261108"
 ```
+
+If the command returns an error, **do not remove these guards to force a
+success**. Confirm the owner-only actual Render source connection is present.
+These identifiers are not connection credentials and do not grant access.
+The entry `required_render_source_matched: true` merely records that at
+least one *configured URI* had the expected host prefix and database name.
+It does not prove the server's operator identity or the archive's actual
+contents until encrypted dump and independent restore/readback complete.
 
 This calls the existing direct-to-AES-256-GCM `pg_dump` path for each distinct
 configured URI and verifies each receipt. Identical full URIs are deduplicated
@@ -65,14 +80,19 @@ key out of the backup provider. Do not publish an archive in public GitHub.
 
 ## 3. Restore into the already-provisioned empty Neon PG18 database
 
-After real Render export and independent encrypted readback, supply the owner's
-Neon restore URI only through `CANO_RESTORE_DATABASE_URL`; leave active source
-URLs in their own environment variables so the restore source-identity guards
-can reject accidental source overwrite. **Restore only one compatible source
-archive per empty database**:
+After real Render export and independent encrypted readback, inspect
+`cano-rescue-manifest.json`: `required_render_source_numbers` is an
+explicit list such as `[2]` identifying the encrypted archive directory
+created from the expected Render connection, **not necessarily source-01**.
+Match that number with its entry `archive` relative path and authenticated
+receipt. Never guess the source number, and fail if the required source list
+is absent or empty. Supply the owner's separate Neon restore URI only through
+`CANO_RESTORE_DATABASE_URL`; leave active source URLs in their own environment
+variables so the restore guards can reject accidental source overwrite.
+**Restore only one compatible source archive per empty database**:
 
 ```powershell
-python -m scripts.cano_encrypted_backup restore-isolated "D:\CANO_PRIVATE\rescue_20261108\source-01\<actual-encrypted-filename>.canoenc" --confirm-empty-isolated-target
+python -m scripts.cano_encrypted_backup restore-isolated "<exact archive path from verified Render manifest>" --confirm-empty-isolated-target
 ```
 
 The database name must start with `cano_restore_` and be genuinely empty.
