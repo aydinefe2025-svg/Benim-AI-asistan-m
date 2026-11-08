@@ -140,6 +140,66 @@ class EncryptedBackupTests(unittest.TestCase):
         self.assertEqual(b''.join(fake_restore.stdin.chunks), expected)
         self.assertTrue(fake_restore.stdin.closed)
 
+    def test_bad_tag_never_reaches_any_encrypted_restore_sink(self):
+        """No tentative plaintext may cross the sink boundary before GCM finalize."""
+        result = make_encrypted_backup(self.target, dump_bin=self.fake)
+        archive = Path(result["archive"])
+        modified = bytearray(archive.read_bytes())
+        modified[-1] ^= 1
+        archive.write_bytes(modified)
+        forwarded = []
+        with self.assertRaises(BackupError):
+            decrypt_to_sink(archive, forwarded.append)
+        self.assertEqual(forwarded, [], "bad-tag plaintext crossed the sink boundary")
+
+    def test_changed_valid_snapshot_never_reaches_restore_child_before_proof(self):
+        """The existing private ciphertext snapshot still needs auth-before-write."""
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+        from types import SimpleNamespace
+        from cano_encrypted_backup import _decrypt_from_file
+        result = make_encrypted_backup(self.target, dump_bin=self.fake)
+        archive = Path(result["archive"])
+        nonce = bytes(range(12))
+        header = b"CANOENC1" + nonce
+        cipher = Cipher(algorithms.AES(bytes.fromhex(self.key)), modes.GCM(nonce)).encryptor()
+        cipher.authenticate_additional_data(header)
+        replacement = b"PGDMP-authenticated-but-different-synthetic-payload" * 100
+        second = header + cipher.update(replacement) + cipher.finalize() + cipher.tag
+        sent = []
+        class Pipe:
+            def write(self, data):
+                sent.append(bytes(data))
+                return len(data)
+            def close(self):
+                pass
+        child = SimpleNamespace(stdin=Pipe(), wait=lambda timeout: 0, poll=lambda: 0)
+        changed = [False]
+        def change_private_snapshot_after_first_proof(inp, sink, **kwargs):
+            proof = _decrypt_from_file(inp, sink, **kwargs)
+            if sink is None and not changed[0]:
+                changed[0] = True
+                inp.seek(0)
+                inp.truncate()
+                inp.write(second)
+                inp.flush()
+            return proof
+        with patch.dict(os.environ, {
+            "RESTORE_URL": "postgresql://user:other@localhost/cano_restore_snapshot_guard",
+        }):
+            with patch("cano_encrypted_backup._decrypt_from_file",
+                       side_effect=change_private_snapshot_after_first_proof):
+                with patch("cano_encrypted_backup.shutil.which", return_value="/synthetic/psql"):
+                    with patch("cano_encrypted_backup.subprocess.run",
+                               return_value=SimpleNamespace(returncode=0, stdout=b"0")):
+                        with patch("cano_encrypted_backup.subprocess.Popen", return_value=child):
+                            with self.assertRaises(BackupError):
+                                restore_to_empty_database(
+                                    archive, target_db_url_env="RESTORE_URL",
+                                    confirm=True,
+                                )
+        self.assertTrue(changed[0])
+        self.assertEqual(sent, [], "unverified modified snapshot reached restore child")
+
     def test_restore_requires_separate_safe_target_without_process_call(self):
         result=make_encrypted_backup(self.target,dump_bin=self.fake)
         with patch.dict(os.environ,{'RESTORE_URL':'postgresql://user:other@localhost/production'}):
