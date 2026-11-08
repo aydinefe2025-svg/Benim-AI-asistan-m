@@ -177,6 +177,31 @@ class CanoBackupBundleTests(unittest.TestCase):
         self.assertFalse(manifest["sources_available"]["research_tasks"])
         self.assertFalse(manifest["sources_available"]["authorized_queue"])
 
+    def test_offline_restore_retains_verified_manifest_for_later_audit(self):
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        bundle = create_portable_bundle(
+            colony=colony, memories=[], research_tasks=b"{}",
+            authorized_queue=[], organism_records=[],
+        )
+        expected_manifest = verify_portable_bundle(bundle)["manifest.json"]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            encrypted_path = root / "archive.canoenc"
+            encrypted_path.write_bytes(
+                encrypt_backup(bundle, "correct-horse-staple-cano-backup"))
+            extracted = root / "private"
+            files = restore_to_new_directory(
+                encrypted_path, extracted, "correct-horse-staple-cano-backup")
+            self.assertIn("manifest.json", files)
+            self.assertEqual((extracted / "manifest.json").read_bytes(),
+                             expected_manifest)
+            manifest = json.loads((extracted / "manifest.json").read_text())
+            for filename, entry in manifest["components"].items():
+                import hashlib
+                self.assertEqual(
+                    hashlib.sha256((extracted / filename).read_bytes()).hexdigest(),
+                    entry["sha256"])
+
     def test_offline_restore_authenticates_and_writes_only_validated_files(self):
         colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
         bundle = create_portable_bundle(
@@ -190,7 +215,7 @@ class CanoBackupBundleTests(unittest.TestCase):
             files = restore_to_new_directory(source, destination, password)
             self.assertEqual(files, sorted([
                 "cano-colony.json", "memory-library.json", "research-tasks.json",
-                "authorized-queue.json",
+                "authorized-queue.json", "manifest.json",
             ]))
             self.assertEqual(set(path.name for path in destination.iterdir()), set(files))
             with self.assertRaises(ValueError):
