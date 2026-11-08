@@ -1,0 +1,55 @@
+name: CANO composition holdout censoring forensics
+
+on:
+  pull_request:
+    paths:
+      - 'organism_lab_cloud/organism_lab/holdout_censoring_audit.py'
+      - 'organism_lab_cloud/organism_lab/tests/test_holdout_censoring_audit.py'
+      - 'research_reports/organism-lab-holdout-forensics/**'
+      - '.github/workflows/cano-holdout-censoring-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  forensic-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Unit tests — boundary, tamper, all three cohorts, idempotence
+        working-directory: organism_lab_cloud
+        run: |
+          python -m compileall -q organism_lab/holdout_censoring_audit.py
+          python -m unittest organism_lab.tests.test_holdout_censoring_audit -v
+      - name: Recompute locked three-cohort forensic and compare committed readback
+        working-directory: organism_lab_cloud
+        run: |
+          set -euo pipefail
+          python -m organism_lab.holdout_censoring_audit \
+            --source-dir ../research_reports/organism-lab-transfer \
+            --output "$RUNNER_TEMP/replay.json"
+          cmp "$RUNNER_TEMP/replay.json" \
+            ../research_reports/organism-lab-holdout-forensics/holdout-capacity-audit-2026-11-08.json
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          doc=json.loads(Path('../research_reports/organism-lab-holdout-forensics/holdout-capacity-audit-2026-11-08.json').read_text())
+          r=doc['report']
+          assert r['classification']=='posthoc_forensic_not_new_experiment'
+          assert r['source_simulations']==450 and r['paired_seeds']==90
+          assert r['pooled']['final_population_ties']==87
+          assert r['pooled']['both_at_capacity']==65
+          assert r['pooled']['both_at_floor']==19
+          assert r['pooled']['task_share_gain_hidden_by_population_tie']==55
+          assert r['adaptation_proven'] is False
+          print('450 stored simulation records cross-checked, no new simulation generated')
+          PY
