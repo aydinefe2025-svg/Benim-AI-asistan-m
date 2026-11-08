@@ -106,6 +106,31 @@ def audit_arrays(p:np.ndarray,e:np.ndarray,source_cs2:np.ndarray) -> dict:
     }
 
 
+def audit_one_model(p:np.ndarray,e:np.ndarray,source_cs2:np.ndarray) -> dict:
+    """Always preserve source anomalies as explicit rejected EOS records."""
+    p=np.asarray(p,float);e=np.asarray(e,float);source_cs2=np.asarray(source_cs2,float)
+    if p.shape==e.shape==source_cs2.shape and e.ndim==1 and len(e)>=4:
+        bad=np.flatnonzero(np.diff(e)<=0)
+        if len(bad):
+            # Reject the interpolant, *not* the evidence file. No reordering,
+            # clipping, dropping knots, or extending partial valid ranges.
+            return {
+                "status":"SOURCE_E_NONMONOTONIC_REJECTED_NO_PHYSICAL_REPAIR",
+                "source_points":int(len(p)),
+                "source_energy_nonmonotonic_edges":int(len(bad)),
+                "first_source_energy_nonmonotonic_edge_index":int(bad[0]),
+                "first_source_energy_nonmonotonic_edge_values":[float(e[bad[0]]),float(e[bad[0]+1])],
+                "source_negative_cs2_knot_count":int(np.count_nonzero(source_cs2<0)),
+                "source_superluminal_cs2_knot_count":int(np.count_nonzero(source_cs2>1)),
+                "pchip_exact_interval_derivative_positive":None,
+                "pchip_entire_table_causality_screen":False,
+                "warning":"No PCHIP candidate attempted; pinned source has nonincreasing e(P) nodes, and replacing these would change EOS physics."
+            }
+    out=audit_arrays(p,e,source_cs2)
+    out['status']='PCHIP_INDEPENDENT_CANDIDATE_CONTINUOUS_BOUNDS_COMPUTED'
+    out['source_energy_nonmonotonic_edges']=0
+    return out
+
 def audit_pinned(source_dir:Path, pinned_rns_json:Path) -> dict:
     raw=pinned_rns_json.read_bytes()
     if hashlib.sha256(raw).hexdigest()!=PINNED_RNS_JSON_SHA256:
@@ -120,15 +145,18 @@ def audit_pinned(source_dir:Path, pinned_rns_json:Path) -> dict:
         if digest!=previous['eos'][name]['source_npz_sha256']:
             raise ValueError(f"{name}: original JESTER EOS source SHA mismatch")
         with np.load(path,allow_pickle=False) as z:
-            results[name]=audit_arrays(z['p'],z['e'],z['cs2'])
+            results[name]=audit_one_model(z['p'],z['e'],z['cs2'])
         results[name]['source_npz_sha256']=digest
     return {"schema":"j0740-continuous-monotone-eos-independent-candidate-v1",
             "pinned_jester_commit":PINNED_JESTER,
             "rns_reference_json_sha256":PINNED_RNS_JSON_SHA256,
             "eos":results,
             "count_source_negative_cs2":sum(v['source_negative_cs2_knot_count']>0 for v in results.values()),
-            "count_pchip_nonpositive_derivative":sum(not v['pchip_exact_interval_derivative_positive'] for v in results.values()),
-            "count_pchip_superluminal_or_unstable":sum(not v['pchip_entire_table_causality_screen'] for v in results.values()),
+            "count_source_energy_nonmonotonic_rejected":sum(v['status'].startswith('SOURCE_E_NONMONOTONIC') for v in results.values()),
+            "count_pchip_nonpositive_derivative":sum(v['pchip_exact_interval_derivative_positive'] is False for v in results.values()),
+            "count_pchip_superluminal_or_unstable":sum(
+                v['status'].startswith('PCHIP_') and not v['pchip_entire_table_causality_screen']
+                for v in results.values()),
             "caveats":["Does NOT reproduce original LAL natural-cubic derivative: candidate changes interpolation model",
                       "Strict derivative extrema are exact for polynomial representation; roots are numerical float64, not formally interval arithmetic",
                       "No P->0 low-pressure physical crust completion, no RNS rotating star, no EOS likelihood, no Bayes evidence"]}
@@ -145,8 +173,8 @@ def main():
     args.out.write_text(json.dumps(report,ensure_ascii=False,indent=2,sort_keys=True)+'\n',encoding='utf-8')
     for name,record in report['eos'].items():
         print(name,'SOURCE_neg',record['source_negative_cs2_knot_count'],
-              'PCHIP_dloge_min',record['pchip_continuous_dloge_dlogp_min'],
-              'PCHIP_cs2_max',record['pchip_continuous_cs2_max'],
+              'PCHIP_dloge_min',record.get('pchip_continuous_dloge_dlogp_min'),
+              'PCHIP_cs2_max',record.get('pchip_continuous_cs2_max'),
               'PCHIP_full_causality',record['pchip_entire_table_causality_screen'],flush=True)
     print('PCHIP candidate is not a physical EOS proof, not an EOS posterior',flush=True)
 

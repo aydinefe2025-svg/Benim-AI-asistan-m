@@ -2,7 +2,7 @@
 import unittest
 import numpy as np
 from scipy.interpolate import CubicSpline, PchipInterpolator
-from pchip_continuous_eos import audit_arrays, extrema_on_interval
+from pchip_continuous_eos import audit_arrays, audit_one_model, extrema_on_interval
 
 class ContinuousCandidateTests(unittest.TestCase):
     def test_power_law_exact_full_interval_derivative_and_sound_speed(self):
@@ -49,6 +49,16 @@ class ContinuousCandidateTests(unittest.TestCase):
         p=np.geomspace(.1,10.,35);e=p**1.3;e[12]=e[11]*.9
         with self.assertRaisesRegex(ValueError,'not strictly monotonic'):
             audit_arrays(p,e,np.ones_like(p))
+
+    def test_native_nonmonotone_source_is_explicitly_rejected_but_audit_continues(self):
+        p=np.geomspace(.1,10.,35);e=p**1.3;e[12]=e[11]*.9
+        record=audit_one_model(p,e,np.ones_like(p))
+        self.assertEqual(record['status'],'SOURCE_E_NONMONOTONIC_REJECTED_NO_PHYSICAL_REPAIR')
+        self.assertEqual(record['source_energy_nonmonotonic_edges'],1)
+        self.assertEqual(record['first_source_energy_nonmonotonic_edge_index'],11)
+        self.assertIsNone(record['pchip_exact_interval_derivative_positive'])
+        self.assertFalse(record['pchip_entire_table_causality_screen'])
+        self.assertEqual(record['first_source_energy_nonmonotonic_edge_values'],[e[11],e[12]])
 
     def test_overfast_eos_remains_flagged_without_clipping(self):
         p=np.geomspace(.1,10.,55);e=.12*p**.4
