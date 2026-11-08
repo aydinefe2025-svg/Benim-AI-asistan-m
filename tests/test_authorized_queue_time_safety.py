@@ -75,6 +75,18 @@ class PostgresQueueTimeSafetyTests(unittest.TestCase):
             self.queue._require_lease(
                 _LeaseCursor(), "task", "synthetic-token", 105.0)
 
+    def test_production_rejects_finite_clock_override_before_connect(self):
+        # CI may inject clocks only through an explicit test-only construction.
+        for operation in (
+            lambda: self.queue.claim("worker", approved=True, now=100),
+            lambda: self.queue.complete("task", "token", "draft", now=100),
+            lambda: self.queue.fail("task", "token", now=100),
+            lambda: self.queue.recover_expired(now=100),
+        ):
+            with self.subTest(operation=operation):
+                with self.assertRaises(PermissionError):
+                    operation()
+
     def test_nonfinite_time_fails_before_database_connection(self):
         for bad in (math.nan, math.inf, -math.inf):
             with self.subTest(value=str(bad)):
