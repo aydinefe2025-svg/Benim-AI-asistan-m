@@ -27,8 +27,8 @@ def restore_to_new_directory(source: Path, destination: Path, passphrase: str) -
     destination.mkdir(mode=0o700, parents=False, exist_ok=False)
     try:
         for name, data in files.items():
-            if name == "manifest.json":
-                continue
+            # Keep the authenticated manifest as the durable checksum receipt.
+            # The ZIP verifier has already checked every entry and checksum.
             output = destination / name
             with output.open("xb") as stream:
                 stream.write(data)
@@ -49,7 +49,7 @@ def restore_to_new_directory(source: Path, destination: Path, passphrase: str) -
             child.unlink(missing_ok=True)
         destination.rmdir()
         raise ValueError("Backup extraction failed; partial output was removed") from None
-    return sorted(name for name in files if name != "manifest.json")
+    return sorted(files)
 
 
 def main() -> int:
