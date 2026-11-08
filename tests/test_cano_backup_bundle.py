@@ -177,6 +177,50 @@ class CanoBackupBundleTests(unittest.TestCase):
         self.assertFalse(manifest["sources_available"]["research_tasks"])
         self.assertFalse(manifest["sources_available"]["authorized_queue"])
 
+    def test_reject_malformed_research_tasks_at_backup_creation(self):
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        with self.assertRaisesRegex(ValueError, "research tasks JSON"):
+            create_portable_bundle(
+                colony=colony, memories=[],
+                research_tasks=b"{this is not valid JSON",
+                authorized_queue=[],
+            )
+
+    def test_offline_recovery_rejects_malformed_research_even_with_matching_checksums(self):
+        import hashlib
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        original = create_portable_bundle(
+            colony=colony, memories=[], research_tasks=b"{}",
+            authorized_queue=[],
+        )
+        with ZipFile(BytesIO(original), "r") as archive:
+            files = {name: archive.read(name) for name in archive.namelist()}
+        corrupted = b'{"tasks": invalid}'
+        files["research-tasks.json"] = corrupted
+        manifest = json.loads(files["manifest.json"])
+        manifest["components"]["research-tasks.json"] = {
+            "sha256": hashlib.sha256(corrupted).hexdigest(),
+            "size_bytes": len(corrupted),
+        }
+        files["manifest.json"] = json.dumps(
+            manifest, separators=(",", ":")).encode("utf-8")
+        forged = BytesIO()
+        with ZipFile(forged, "w", compression=ZIP_DEFLATED) as archive:
+            for name, data in files.items():
+                archive.writestr(name, data)
+        with self.assertRaisesRegex(ValueError, "research tasks JSON"):
+            verify_portable_bundle(forged.getvalue())
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "account.canoenc"
+            source.write_bytes(encrypt_backup(
+                forged.getvalue(), "correct-horse-staple-cano-backup"))
+            destination = root / "restored"
+            with self.assertRaisesRegex(ValueError, "research tasks JSON"):
+                restore_to_new_directory(
+                    source, destination, "correct-horse-staple-cano-backup")
+            self.assertFalse(destination.exists())
+
     def test_offline_restore_retains_verified_manifest_for_later_audit(self):
         colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
         bundle = create_portable_bundle(
