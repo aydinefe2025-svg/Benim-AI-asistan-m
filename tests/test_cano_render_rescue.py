@@ -81,16 +81,21 @@ class RenderRescueCoverageTests(unittest.TestCase):
         self.assertFalse(self.destination.exists())
 
     def test_cannot_publish_success_on_second_export_failure(self):
+        seen = []
+        def fail_second(destination, *, database_env):
+            seen.append(database_env)
+            if len(seen) == 2:
+                raise BackupError("synthetic second source failed")
+            return self._mock_export(destination, database_env=database_env)
         with patch.dict(os.environ, self.env, clear=True):
             with patch("scripts.cano_render_rescue.make_encrypted_backup",
-                       side_effect=[{"archive": "/fake/one.canoenc",
-                                     "receipt": "/fake/one.receipt.json"},
-                                    BackupError("synthetic second source failed")]):
+                       side_effect=fail_second):
                 with patch("scripts.cano_render_rescue.verify_encrypted_backup",
                            return_value={"authenticated": True,
                                          "archive_sha256": "1" * 64}):
                     with self.assertRaises(BackupError):
                         backup_configured(self.destination)
+        self.assertEqual(len(seen), 2, "second configured source must be attempted")
         self.assertFalse((self.destination / "cano-rescue-manifest.json").exists())
 
     def test_refuses_ephemeral_render_web_service_storage(self):
