@@ -8,6 +8,7 @@ Owner keys and approval MUST be supplied by an authenticated calling layer.
 from __future__ import annotations
 
 import hashlib
+import math
 import secrets
 import sqlite3
 import time
@@ -15,6 +16,17 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable
+
+
+def _finite_now(now):
+    """Reject NaN and infinite test-clock overrides before reading or writing DB."""
+    try:
+        when = time.time() if now is None else float(now)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("Finite clock value required") from exc
+    if not math.isfinite(when):
+        raise ValueError("Finite clock value required")
+    return when
 
 
 class AuthorizedQueue:
@@ -142,7 +154,7 @@ class AuthorizedQueue:
             raise ValueError("Invalid worker identity")
         if type(lease_seconds) is not int or not 1 <= lease_seconds <= 3600:
             raise ValueError("Invalid lease duration")
-        when = time.time() if now is None else float(now)
+        when = _finite_now(now)
         with self._db() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
@@ -167,14 +179,14 @@ class AuthorizedQueue:
             raise KeyError(task_id)
         if (row["state"] != "running" or not isinstance(token, str)
                 or not secrets.compare_digest(row["lease_token"] or "", token)
-                or when > row["lease_until"]):
+                or when >= row["lease_until"]):
             raise PermissionError("Work lease lost or expired")
         return row
 
     def complete(self, task_id, lease_token, draft, *, now: float | None = None):
         if not isinstance(draft, str) or not draft.strip():
             raise ValueError("Empty research draft")
-        when = time.time() if now is None else float(now)
+        when = _finite_now(now)
         clean = draft.strip()[:12000]
         with self._db() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -187,7 +199,7 @@ class AuthorizedQueue:
         return {"id": task_id, "status": "review_pending", "draft": clean, "verified": False}
 
     def fail(self, task_id, lease_token, *, now: float | None = None):
-        when = time.time() if now is None else float(now)
+        when = _finite_now(now)
         with self._db() as db:
             db.execute("BEGIN IMMEDIATE")
             row = self._check_lease(db, task_id, lease_token, when)
@@ -207,11 +219,11 @@ class AuthorizedQueue:
 
     def recover_expired(self, *, now: float | None = None):
         """Stop expired jobs; an external provider call may already have occurred."""
-        when = time.time() if now is None else float(now)
+        when = _finite_now(now)
         with self._db() as db:
             db.execute("BEGIN IMMEDIATE")
             rows = db.execute("SELECT id FROM authorized_jobs WHERE owner_key=? "
-                              "AND state='running' AND lease_until<?",
+                              "AND state='running' AND lease_until<=?",
                               (self.owner_key, when)).fetchall()
             for row in rows:
                 db.execute("UPDATE authorized_jobs SET state='blocked',lease_token=NULL, "
