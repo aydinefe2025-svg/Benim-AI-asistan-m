@@ -37,6 +37,13 @@ class LocalQueueTimeSafetyTests(unittest.TestCase):
             self.queue.complete(job["id"], lease["lease_token"], "Draft", now=105)
         self.assertEqual(self.queue.get(job["id"])["state"], "running")
 
+    def test_exact_expiry_recovery_blocks_lease(self):
+        job = self.queue.enqueue("recover-equal", "Synthetic", approved=True)
+        lease = self.queue.claim("worker", approved=True, now=100, lease_seconds=5)
+        self.assertEqual(job["id"], lease["id"])
+        self.assertEqual(self.queue.recover_expired(now=105), 1)
+        self.assertEqual(self.queue.get(job["id"])["state"], "blocked")
+
     def test_nonfinite_time_cannot_claim_or_complete(self):
         job = self.queue.enqueue("nonfinite", "Synthetic", approved=True)
         for bad in (math.nan, math.inf, -math.inf):
