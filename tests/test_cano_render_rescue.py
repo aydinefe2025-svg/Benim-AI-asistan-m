@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts.cano_encrypted_backup import BackupError
-from scripts.cano_render_rescue import backup_configured
+from scripts.cano_render_rescue import backup_configured, main
 
 
 class RenderRescueCoverageTests(unittest.TestCase):
@@ -151,6 +151,17 @@ class RenderRescueCoverageTests(unittest.TestCase):
         self.assertNotIn("SECRET_RENDER", manifest)
         self.assertNotIn("dpg-dbkfp5bm8hqs73bba7u0-a", manifest)
         self.assertNotIn("research_library_persistent_db", manifest)
+
+    def test_cli_requires_explicit_render_identity_before_export(self):
+        """The operator CLI must never silently run in generic Neon-only mode."""
+        with patch.dict(os.environ, self.env, clear=True):
+            with patch.object(sys, "argv", ["cano_render_rescue",
+                                            str(self.destination)]):
+                with patch("scripts.cano_render_rescue.backup_configured",
+                           return_value={"verified_source_count": 2}) as exporter:
+                    self.assertEqual(main(), 1)
+                    exporter.assert_not_called()
+        self.assertFalse(self.destination.exists())
 
     def test_no_configured_urls_fails_before_writing(self):
         with patch.dict(os.environ, {"CANO_BACKUP_KEY_HEX": "ab" * 32},
