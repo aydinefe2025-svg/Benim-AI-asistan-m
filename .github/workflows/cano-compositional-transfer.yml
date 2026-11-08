@@ -1,0 +1,65 @@
+name: CANO novel task compositional-transfer evidence
+
+on:
+  pull_request:
+    paths:
+      - 'organism_lab_cloud/organism_lab/compositional_transfer_study.py'
+      - 'organism_lab_cloud/organism_lab/tests/test_compositional_transfer_study.py'
+      - 'research_reports/organism-lab-transfer/**'
+      - '.github/workflows/cano-compositional-transfer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Pin the original unchanged bounded simulation VM
+        run: |
+          actual="$(git hash-object organism_lab_cloud/organism_lab/digital_vm.py)"
+          test "$actual" = '0ced308713956ebd43fa58ef29bb31502101d001'
+      - name: Unit and tamper protection with the real inherited engine
+        working-directory: organism_lab_cloud
+        run: |
+          python -m compileall -q organism_lab/compositional_transfer_study.py organism_lab/digital_vm.py
+          python -m unittest organism_lab.tests.test_compositional_transfer_study -v
+      - name: Deterministically replay all three archived 30-seed partitions
+        working-directory: organism_lab_cloud
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          from organism_lab.compositional_transfer_study import verify_report, _encode
+          folder=Path('../research_reports/organism-lab-transfer')
+          names=['energy-reset-seeds-0-29.json','energy-reset-seeds-100-129.json',
+                 'forward-test-seeds-200-229.json']
+          expected=[list(range(30)),list(range(100,130)),list(range(200,230))]
+          positives=[19,20,19]
+          gates=[True,False,False]
+          for file,seeds,positive,gate in zip(names,expected,positives,gates):
+              doc=verify_report(folder/file)
+              result=doc['report']
+              assert result['design']['seeds']==seeds
+              assert result['positive_seeds']==positive
+              assert len(result['trials'])==150
+              assert result['generalization_demonstrated'] is gate
+              assert all(result['negative_controls'].values())
+              assert result['paired_novel_task_gain']['ci95_low']>0
+              print(file,'verified',doc['sha256'],'gate',gate)
+          manifest=json.loads((folder/'EVIDENCE_MANIFEST.json').read_text())
+          for name,digest in manifest['file_sha256'].items():
+              assert hashlib.sha256((folder.parent.parent/name).read_bytes()).hexdigest()==digest,name
+          assert manifest['combined_gate_all_three'] is False
+          print('Three independent replay checks, source file manifest, strict combined failure: PASS')
+          PY

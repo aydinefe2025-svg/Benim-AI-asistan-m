@@ -1,0 +1,51 @@
+{
+  "schema": "cano-compositional-task-transfer-manifest-v1",
+  "issue": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/413",
+  "code_status": "tested_locally_pending_official_GitHub_CI",
+  "implementation_path": "organism_lab_cloud/organism_lab/compositional_transfer_study.py",
+  "original_vm_git_blob_sha": "0ced308713956ebd43fa58ef29bb31502101d001",
+  "python_local": "3.13",
+  "local_test_command": "python -m unittest organism_lab.tests.test_compositional_transfer_study -v",
+  "local_tests_passed": 8,
+  "simulated_runs": 450,
+  "partition_status": [
+    {
+      "file": "research_reports/organism-lab-transfer/energy-reset-seeds-0-29.json",
+      "seed_start": 0,
+      "positive": 19,
+      "negative": 2,
+      "ties": 9,
+      "strict_gate": true,
+      "body_sha256": "17a6141db8949e30aaccc335bf3010c5e91b2d17a18b97f379c7ca29741e1ec8"
+    },
+    {
+      "file": "research_reports/organism-lab-transfer/energy-reset-seeds-100-129.json",
+      "seed_start": 100,
+      "positive": 20,
+      "negative": 2,
+      "ties": 8,
+      "strict_gate": false,
+      "body_sha256": "8f20ceba1d3c9bf83a6220e83bc95c8307a74461923bd00a7465ccfccd89d526"
+    },
+    {
+      "file": "research_reports/organism-lab-transfer/forward-test-seeds-200-229.json",
+      "seed_start": 200,
+      "positive": 19,
+      "negative": 1,
+      "ties": 10,
+      "strict_gate": false,
+      "body_sha256": "54230779ada3d306f06c915129f84c1012dfff24d0538b2421db22367ac50d59"
+    }
+  ],
+  "combined_gate_all_three": false,
+  "file_sha256": {
+    "organism_lab_cloud/organism_lab/compositional_transfer_study.py": "62bc701716ba546230f7774a9c01d613f1ad971ec2172bf916f8e88b457e2e50",
+    "organism_lab_cloud/organism_lab/tests/test_compositional_transfer_study.py": "dcd9701d08c25eba737180a6ce1b8cd9f899e28ae6c1f6f3cf7d99496cee5262",
+    ".github/workflows/cano-compositional-transfer.yml": "7abac80677c11832fdfb9cec9ed02910c50a5d70fa5fa48ff34285d3f751e7db",
+    "docs/CANO_COMPOSITION_TRANSFER_2026-11-08.md": "6fd60f855450dcfc043dab0310cbc735c3cd329b0d5253bddf41976314f59c33",
+    "research_reports/organism-lab-transfer/energy-reset-seeds-0-29.json": "f0c4edaf4ba6b7ef5adc7894be63020ec769549f823261956570cf661cbf541a",
+    "research_reports/organism-lab-transfer/energy-reset-seeds-100-129.json": "8b41b2de69aae86fbd627bc6b655389b40dadfbb0b49701118e9f12920d71d45",
+    "research_reports/organism-lab-transfer/forward-test-seeds-200-229.json": "8be2262421ce09ecb3948ebbf391fe77fa43d2e96bc4d2d3dbe2287a554e1d39"
+  },
+  "caveat": "Initial holdout pilot saturated due accumulated training energy; valid reported holdouts reset energy to 3. First two seed groups had been inspected before reset; the third cohort was run afterward. No external preregistration."
+}
