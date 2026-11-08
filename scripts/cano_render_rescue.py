@@ -49,6 +49,7 @@ def backup_configured(destination: Path) -> dict:
         raise BackupError("The expected Render source identity is incomplete or invalid")
 
     required_source_matched = False
+    matched_render_urls: set[str] = set()
     groups: dict[str, list[str]] = {}
     for env_name in SOURCE_ENV_NAMES:
         url = os.environ.get(env_name, "").strip()
@@ -63,6 +64,7 @@ def backup_configured(destination: Path) -> dict:
             if identity_required and (
                     parsed["PGDATABASE"] == render_db and is_render_hostname):
                 required_source_matched = True
+                matched_render_urls.add(url)
             groups.setdefault(url, []).append(env_name)
     if not groups:
         raise BackupError("No configured PostgreSQL sources to back up")
@@ -80,6 +82,7 @@ def backup_configured(destination: Path) -> dict:
     _private_directory(destination)
 
     manifest_entries = []
+    matched_source_numbers = []
     for ordinal, (_url, env_names) in enumerate(groups.items(), start=1):
         folder = destination / f"source-{ordinal:02d}"
         result = make_encrypted_backup(folder, database_env=env_names[0])
@@ -94,6 +97,8 @@ def backup_configured(destination: Path) -> dict:
         if (proof.get("authenticated") is not True
                 or proof.get("archive_sha256") != result.get("archive_sha256")):
             raise BackupError("Authenticated backup readback mismatch")
+        if _url in matched_render_urls:
+            matched_source_numbers.append(ordinal)
         manifest_entries.append({
             "source_number": ordinal,
             "env_aliases": env_names,
@@ -115,6 +120,7 @@ def backup_configured(destination: Path) -> dict:
         "entries": manifest_entries,
         "local_authenticated_readback": True,
         "required_render_source_matched": required_source_matched,
+        "required_render_source_numbers": matched_source_numbers,
         "offsite_verified": False,
         "isolated_restore_verified": False,
         "coverage_limit": "Configured URLs only; discover all other provider DBs separately.",
@@ -125,6 +131,7 @@ def backup_configured(destination: Path) -> dict:
         "verified_source_count": len(manifest_entries),
         "covered_env_names": covered,
         "required_render_source_matched": required_source_matched,
+        "required_render_source_numbers": matched_source_numbers,
         "offsite_verified": False,
         "isolated_restore_verified": False,
     }
