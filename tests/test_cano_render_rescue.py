@@ -6,6 +6,7 @@ from pathlib import Path
 import json
 import os
 import stat
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -63,6 +64,43 @@ class RenderRescueCoverageTests(unittest.TestCase):
             self.assertNotIn(secret, raw)
         if os.name == "posix":
             self.assertEqual(stat.S_IMODE(manifest.stat().st_mode), 0o600)
+
+    def test_real_synthetic_pgdump_streams_two_encrypted_archives(self):
+        # Integration with actual AES-GCM streaming and two fake pg_dump
+        # subprocesses. No database/user network access or private rows.
+        from scripts.cano_encrypted_backup import (
+            make_encrypted_backup as real_backup, verify_encrypted_backup as real_verify
+        )
+        fake = Path(self.temp.name) / "pg_dump_fake.py"
+        fake.write_text("#!" + sys.executable + "\n"
+                        "import os,sys\n"
+                        "assert 'CANO_BACKUP_KEY_HEX' not in os.environ\n"
+                        "assert os.environ.get('PGPASSWORD') in ('SECRET_A','SECRET_B')\n"
+                        "sys.stdout.buffer.write(b'PGDMP-FAKE-' + "
+                        "os.environ['PGDATABASE'].encode() * 200)\n",
+                        encoding="utf-8")
+        fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
+        executable = str(fake)
+        if os.name == "nt":
+            wrapper = Path(self.temp.name) / "pg_dump_fake.cmd"
+            wrapper.write_text('@echo off\r\n"' + sys.executable
+                               + '" "' + str(fake) + '" %*\r\n')
+            executable = str(wrapper)
+
+        def use_fake(destination, *, database_env):
+            return real_backup(destination, database_env=database_env,
+                               dump_bin=executable)
+        with patch.dict(os.environ, self.env):
+            with patch("scripts.cano_render_rescue.make_encrypted_backup",
+                       side_effect=use_fake):
+                result = backup_configured(self.destination)
+                self.assertEqual(result["verified_source_count"], 2)
+                receipts = sorted(self.destination.glob("source-*/*.receipt.json"))
+                self.assertEqual(len(receipts), 2)
+                for receipt in receipts:
+                    self.assertTrue(real_verify(receipt)["authenticated"])
+        self.assertEqual(len(list(self.destination.glob("source-*/*.canoenc"))), 2)
+        self.assertEqual(len(list(self.destination.rglob("*.dump"))), 0)
 
     def test_no_configured_urls_fails_before_writing(self):
         with patch.dict(os.environ, {"CANO_BACKUP_KEY_HEX": "ab" * 32},
