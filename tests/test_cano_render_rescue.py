@@ -98,6 +98,20 @@ class RenderRescueCoverageTests(unittest.TestCase):
         self.assertEqual(len(seen), 2, "second configured source must be attempted")
         self.assertFalse((self.destination / "cano-rescue-manifest.json").exists())
 
+    def test_failed_authenticated_readback_never_publishes_manifest(self):
+        with patch.dict(os.environ, {
+            "CANO_BACKUP_KEY_HEX": "ab" * 32,
+            "CANO_DATABASE_URL": self.first,
+        }, clear=True):
+            with patch("scripts.cano_render_rescue.make_encrypted_backup",
+                       side_effect=self._mock_export):
+                with patch("scripts.cano_render_rescue.verify_encrypted_backup",
+                           return_value={"authenticated": False,
+                                         "archive_sha256": "1" * 64}):
+                    with self.assertRaises(BackupError):
+                        backup_configured(self.destination)
+        self.assertFalse((self.destination / "cano-rescue-manifest.json").exists())
+
     def test_refuses_ephemeral_render_web_service_storage(self):
         with patch.dict(os.environ, {
             "RENDER_SERVICE_ID": "srv-test",
