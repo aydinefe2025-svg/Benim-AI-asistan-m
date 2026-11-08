@@ -116,6 +116,21 @@ def run():
     except PermissionError:
         pass
 
+    # Exact expiry must not accept a stale completion. PostgreSQL checks this
+    # against real rows; the synthetic now value makes the boundary precise.
+    boundary = queue.enqueue("lease-boundary", "Review expiry equality", approved=True)
+    boundary_lease = queue.claim("worker-1", approved=True, now=450, lease_seconds=5)
+    assert boundary_lease["id"] == boundary["id"]
+    try:
+        queue.complete(boundary["id"], boundary_lease["lease_token"],
+                       "Must not commit", now=455)
+        raise AssertionError("Exact-expiry lease accepted")
+    except PermissionError:
+        pass
+    assert queue.get(boundary["id"])["state"] == "running"
+    assert queue.recover_expired(now=455) == 1
+    assert queue.get(boundary["id"])["state"] == "blocked"
+
     # Two independent queue clients race the same authorized task.
     # The winning worker commits one draft; a losing or cross-owner worker
     # cannot write a second result. Real row locks and separate connections.
