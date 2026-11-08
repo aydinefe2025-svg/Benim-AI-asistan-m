@@ -58,7 +58,7 @@ def provision_synthetic_schema(database_url):
 def run():
     database_url = os.environ["TEST_TASK_DATABASE_URL"]
     owner = "ci-owner-" + uuid.uuid4().hex
-    queue = PostgresAuthorizedQueue(database_url, owner_key=owner, max_jobs=5)
+    queue = PostgresAuthorizedQueue(database_url, owner_key=owner, max_jobs=5, allow_test_clock=True)
     provision_synthetic_schema(database_url)
     queue.verify_schema()
 
@@ -77,7 +77,7 @@ def run():
     except ValueError:
         pass
 
-    other = PostgresAuthorizedQueue(database_url, owner_key=owner+"-other", max_jobs=5)
+    other = PostgresAuthorizedQueue(database_url, owner_key=owner+"-other", max_jobs=5, allow_test_clock=True)
     assert other.list() == []
     assert other.claim("other-worker", approved=True, now=100) is None
     try:
@@ -169,7 +169,7 @@ def run():
     queued = queue.enqueue("concurrent", "Only one result write", approved=True)
     def worker_claim_and_complete(i):
         independent = PostgresAuthorizedQueue(
-            database_url, owner_key=owner, max_jobs=5)
+            database_url, owner_key=owner, max_jobs=5, allow_test_clock=True)
         lease = independent.claim(f"worker-{i}", approved=True, now=500)
         if lease is None:
             return None
@@ -198,7 +198,7 @@ def run():
     except PermissionError:
         pass
 
-    reopened = PostgresAuthorizedQueue(database_url, owner_key=owner, max_jobs=5)
+    reopened = PostgresAuthorizedQueue(database_url, owner_key=owner, max_jobs=5, allow_test_clock=True)
     assert reopened.get(first["id"])["draft"] == "Unverified research draft"
     assert reopened.get(queued["id"])["draft"] == "Only winner draft"
     assert [event["state"] for event in reopened.events(queued["id"])] == [
