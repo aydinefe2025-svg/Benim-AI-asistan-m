@@ -1,0 +1,75 @@
+name: CANO digital organism one-day recovery 2026-11-08
+
+# One-shot recovery: GitHub schedule and watchdog didn't execute by 09:00 UTC.
+# This must never be merged as an always-on write trigger or used for future days.
+on:
+  push:
+    branches: [ops/cano-digital-calendar-recovery-20261108]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cano-bounded-organism-calendar-cycle
+  cancel-in-progress: false
+
+jobs:
+  recover-snapshot:
+    if: github.ref == 'refs/heads/ops/cano-digital-calendar-recovery-20261108'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      STATE_BRANCH: experiment/cano-digital-state-20261107
+      RECOVERY_DAY: '2026-11-08'
+    steps:
+      - name: Check out authorized project source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run existing simulator and watchdog regressions
+        run: python -m unittest organism_lab.tests.test_calendar_cycle organism_lab.tests.test_genome_checkpoint organism_lab.tests.test_calendar_health -v
+      - name: Load existing archival branch without force or overwrite
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/heads/$STATE_BRANCH:refs/remotes/origin/$STATE_BRANCH"
+          git worktree add --detach "$RUNNER_TEMP/cano-state" "refs/remotes/origin/$STATE_BRANCH"
+      - name: Advance only missing 8 November state and prove idempotence
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE_DIR="$RUNNER_TEMP/cano-state/research_reports/cano-digital-continuity"
+          python -m organism_lab.calendar_cycle --state-dir "$STATE_DIR" --day "$RECOVERY_DAY"
+          python -m organism_lab.calendar_cycle --state-dir "$STATE_DIR" --day "$RECOVERY_DAY"
+          python -m organism_lab.genome_checkpoint verify "$STATE_DIR/genome-state.json"
+          python -m organism_lab.calendar_health --state-dir "$STATE_DIR" --day "$RECOVERY_DAY"
+          sha256sum "$STATE_DIR/genome-state.json" "$STATE_DIR/daily/$RECOVERY_DAY.json"
+      - name: Persist manually recovered evidence, never force push
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/cano-state"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research_reports/cano-digital-continuity/genome-state.json research_reports/cano-digital-continuity/daily/
+          if git diff --cached --quiet; then
+            echo "UTC date already persisted: idempotent, no new commit" >> "$GITHUB_STEP_SUMMARY"
+          else
+            git commit -m "recovery: manually triggered bounded organism cycle 2026-11-08 (missed schedule)"
+            git push origin "HEAD:refs/heads/$STATE_BRANCH"
+          fi
+      - name: Independently fetch committed branch and read back archival result
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/heads/$STATE_BRANCH:refs/remotes/origin/$STATE_BRANCH"
+          git worktree add --detach "$RUNNER_TEMP/cano-readback" "refs/remotes/origin/$STATE_BRANCH"
+          DIR="$RUNNER_TEMP/cano-readback/research_reports/cano-digital-continuity"
+          python -m organism_lab.calendar_health --state-dir "$DIR" --day "$RECOVERY_DAY"
+          echo "Manual recovery, NOT evidence of a schedule-triggered execution" >> "$GITHUB_STEP_SUMMARY"
