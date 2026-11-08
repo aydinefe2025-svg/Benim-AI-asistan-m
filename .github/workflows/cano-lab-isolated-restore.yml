@@ -1,0 +1,60 @@
+name: CANO isolated laboratory account restore (synthetic PG)
+
+on:
+  pull_request:
+    branches:
+      - fix/sqlite-backup-restore-20261031
+    paths:
+      - 'scripts/cano_lab_isolated_restore.py'
+      - 'scripts/check_cano_lab_isolated_roundtrip.py'
+      - 'tests/test_cano_lab_isolated_restore.py'
+      - '.github/workflows/cano-lab-isolated-restore.yml'
+      - 'core/cano_backup_bundle.py'
+      - 'core/organism_lab_persistence.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-lab:
+    name: 'PG${{ matrix.pg }}: portable v2 lab restore'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['17', '18']
+    services:
+      postgres:
+        image: postgres:${{ matrix.pg }}
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: ci_persistence
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d ci_persistence"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      GITHUB_ACTIONS: 'true'
+      CANO_CI_ALLOW_DISPOSABLE_DB: '1'
+      CANO_CI_PG_MAJOR: ${{ matrix.pg }}
+      TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@127.0.0.1:5432/ci_persistence
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v5
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install isolated-only dependencies
+        run: python -m pip install -r requirements-persistence.txt
+      - name: Verify synthetic isolated PG recovery and rollback
+        run: python -m scripts.check_cano_lab_isolated_roundtrip
+      - name: Verify portable laboratory recovery negative regressions
+        run: python -m unittest discover -s tests -p 'test_cano_lab_isolated_restore.py' -v
+      # Never export an archive, DB dump, owner key, or secret as an artifact.
