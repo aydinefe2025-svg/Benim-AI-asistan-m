@@ -121,10 +121,10 @@ def verify_offsite_copy(source_directory: Path, copied_directory: Path) -> dict:
         if (archive.name[:-len(".canoenc")]
                 != receipt.name[:-len(".receipt.json")]):
             raise CopyVerificationError("Archive and receipt refer to different backups")
-        if str(archive) in used_files or str(receipt) in used_files:
+        if archive.as_posix() in used_files or receipt.as_posix() in used_files:
             raise CopyVerificationError("Duplicate bundle paths")
-        used_files.add(str(archive))
-        used_files.add(str(receipt))
+        used_files.add(archive.as_posix())
+        used_files.add(receipt.as_posix())
 
         _checked_directory(source / archive.parent)
         _checked_directory(copied / archive.parent)
