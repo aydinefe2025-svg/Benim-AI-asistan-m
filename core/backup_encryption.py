@@ -19,6 +19,7 @@ MIN_PASSPHRASE_CHARS = 12
 MAX_PASSPHRASE_CHARS = 1024
 MAX_PLAINTEXT_BYTES = 20 * 1024 * 1024
 _HEADER_BYTES = len(MAGIC) + SALT_BYTES + NONCE_BYTES
+MAX_CIPHERTEXT_BYTES = MAX_PLAINTEXT_BYTES + _HEADER_BYTES + 16
 
 
 def _derive_key(passphrase: str, salt: bytes) -> bytes:
@@ -46,7 +47,7 @@ def decrypt_backup(ciphertext: bytes, passphrase: str) -> bytes:
     """Authenticate and decrypt; use the same function for offline recovery."""
     if (not isinstance(ciphertext, bytes)
             or len(ciphertext) < _HEADER_BYTES + 16
-            or len(ciphertext) > MAX_PLAINTEXT_BYTES + _HEADER_BYTES + 16):
+            or len(ciphertext) > MAX_CIPHERTEXT_BYTES):
         raise ValueError("Encrypted backup size is invalid")
     if not ciphertext.startswith(MAGIC):
         raise ValueError("Unsupported encrypted backup format")
