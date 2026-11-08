@@ -60,25 +60,54 @@ def classify(original_name: str, log_name: str | None = None) -> str | None:
     return None
 
 
+class _ArchiveSelection(dict):
+    """Selected raw archive members PLUS a checksum of the full compressed tar."""
+    observed_archive_md5: str | None = None
+    observed_archive_sha256: str | None = None
+
+
+class _HashingCompressedReader:
+    """Hash bytes as tarfile streams them, without a second archive read."""
+    def __init__(self, source):
+        self.source = source
+        self.md5 = hashlib.md5()  # Published archive integrity digest, not a signature.
+        self.sha256 = hashlib.sha256()
+
+    def read(self, n=-1):
+        data = self.source.read(n)
+        self.md5.update(data)
+        self.sha256.update(data)
+        return data
+
+
+
 def discover_archive(archive: Path, *, log_name: str | None = None) -> dict[str, tuple[str, bytes]]:
     """One read-only streaming scan of existing gzip tar, no whole extraction."""
-    selected: dict[str, tuple[str, bytes]] = {}
-    with tarfile.open(archive, mode='r|gz') as tf:
-        for member in tf:
-            role = classify(member.name, log_name)
-            if role is None:
-                continue
-            if not member.isfile() or member.size > ROLE_MAX_BYTES[role]:
-                raise RunLineageNotProven(f'Unsafe or oversized target {role}')
-            if role in selected:
-                raise RunLineageNotProven(f'Ambiguous duplicate {role}: {selected[role][0]} and {member.name}')
-            stream = tf.extractfile(member)
-            if stream is None:
-                raise RunLineageNotProven(f'Cannot open original {role}')
-            data = stream.read(ROLE_MAX_BYTES[role] + 1)
-            if len(data) != member.size or len(data) > ROLE_MAX_BYTES[role]:
-                raise RunLineageNotProven(f'Truncated or oversized original {role}')
-            selected[role] = member.name, data
+    selected = _ArchiveSelection()
+    with archive.open('rb') as compressed:
+        reader = _HashingCompressedReader(compressed)
+        with tarfile.open(fileobj=reader, mode='r|gz') as tf:
+            for member in tf:
+                role = classify(member.name, log_name)
+                if role is None:
+                    continue
+                if not member.isfile() or member.size > ROLE_MAX_BYTES[role]:
+                    raise RunLineageNotProven(f'Unsafe or oversized target {role}')
+                if role in selected:
+                    raise RunLineageNotProven(f'Ambiguous duplicate {role}: {selected[role][0]} and {member.name}')
+                stream = tf.extractfile(member)
+                if stream is None:
+                    raise RunLineageNotProven(f'Cannot open original {role}')
+                data = stream.read(ROLE_MAX_BYTES[role] + 1)
+                if len(data) != member.size or len(data) > ROLE_MAX_BYTES[role]:
+                    raise RunLineageNotProven(f'Truncated or oversized original {role}')
+                selected[role] = member.name, data
+        # Tar iterator can stop at its end marker BEFORE the compressed file EOF.
+        # Hash every remaining raw gzip byte, including trailer or trailing data.
+        while reader.read(1024 * 1024):
+            pass
+        selected.observed_archive_md5 = reader.md5.hexdigest()
+        selected.observed_archive_sha256 = reader.sha256.hexdigest()
     return selected
 
 
@@ -126,6 +155,13 @@ def build_report(selected: dict[str, tuple[str, bytes]], output: Path, *, actual
             records[role]['matches_existing_F30_source_sha256'] = (records[role]['sha256'] == expected)
 
     issues = [f'{role}:missing' for role, record in records.items() if record['status'] != 'FOUND']
+    observed_archive_md5 = getattr(selected, 'observed_archive_md5', None) if actual_archive else None
+    observed_archive_sha256 = getattr(selected, 'observed_archive_sha256', None) if actual_archive else None
+    archive_md5_verified = bool(actual_archive and observed_archive_md5 == SOURCE_FULL_ARCHIVE_MD5)
+    if actual_archive and observed_archive_md5 is None:
+        issues.append('original_archive_md5_not_computed')
+    elif actual_archive and not archive_md5_verified:
+        issues.append('original_archive_md5_mismatch')
     for role, expected in [('matching_runner', expected_runner_sha256),
                            ('matching_prior', expected_prior_sha256)]:
         if expected is not None and records[role].get('status') == 'FOUND' and \
@@ -145,8 +181,12 @@ def build_report(selected: dict[str, tuple[str, bytes]], output: Path, *, actual
 
     info = {
         'status':'PROVENANCE_DIAGNOSTIC_ONLY_NOT_EOS_EVIDENCE',
-        'source': 'publisher_archive_member_bytes' if actual_archive else 'previously_extracted_directory_unlinked',
-        'source_full_archive_md5_previously_reported_not_recomputed':SOURCE_FULL_ARCHIVE_MD5,
+        'source': ('publisher_checksum_matched_original_archive' if archive_md5_verified
+                   else 'unverified_archive_or_extracted_directory'),
+        'source_full_archive_md5_expected': SOURCE_FULL_ARCHIVE_MD5,
+        'source_full_archive_md5_observed_this_scan': observed_archive_md5,
+        'source_full_archive_sha256_observed_this_scan': observed_archive_sha256,
+        'compressed_archive_checksum_verified': archive_md5_verified,
         'original_posterior_member':SOURCE_POSTERIOR_MEMBER,
         'selected':records, 'issues':issues,
         'strict_lineage_verified':False,
@@ -161,6 +201,9 @@ def build_report(selected: dict[str, tuple[str, bytes]], output: Path, *, actual
             'posterior_source_member': SOURCE_POSTERIOR_MEMBER,
             'posterior_run': SOURCE_POSTERIOR_RUN,
             'full_archive_md5': SOURCE_FULL_ARCHIVE_MD5,
+            'compressed_archive_md5_observed': observed_archive_md5,
+            'compressed_archive_sha256_observed': observed_archive_sha256,
+            'compressed_archive_integrity_basis': 'single_pass_streaming_compressed_bytes',
             'source_archive_md5': SOURCE_POSTERIOR_ARCHIVE_MD5,
             'verified_run_identity':'exact_gamma_NxX_lp40k_se001_source_and_prior',
             'binding_proof':'source_sampler_configuration_names_exact_posterior_run',
