@@ -94,6 +94,14 @@ class ForensicTests(unittest.TestCase):
                 save_audit(changed, target)
             self.assertEqual(target.read_bytes(), by)
 
+    def test_archived_manifest_hashes_match_source_and_do_not_hash_self(self):
+        p = ROOT / 'research_reports' / 'organism-lab-holdout-forensics' / 'EVIDENCE_MANIFEST.json'
+        manifest = json.loads(p.read_text(encoding='utf-8'))
+        self.assertNotIn('research_reports/organism-lab-holdout-forensics/EVIDENCE_MANIFEST.json',
+                         manifest['file_sha256'], 'A manifest cannot include its own literal hash')
+        for relative, expected in manifest['file_sha256'].items():
+            self.assertEqual(hashlib.sha256((ROOT / relative).read_bytes()).hexdigest(), expected)
+
     def test_metadata_explicitly_retrospective(self):
         self.assertEqual(self.result['classification'], 'posthoc_forensic_not_new_experiment')
         self.assertIn('not', self.result['interpretation'].lower())
