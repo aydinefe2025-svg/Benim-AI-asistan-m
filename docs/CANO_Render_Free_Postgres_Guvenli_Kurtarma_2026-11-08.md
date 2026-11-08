@@ -31,7 +31,7 @@ Kaynaklar: https://render.com/docs/free ; https://render.com/docs/ssh ; https://
 5. Mevcut `cano_encrypted_backup.py` üzerinden **diske düz `pg_dump` yazmadan** şifreli `*.canoenc` + makbuz üretir, sonra ciphertext kimlik doğrulaması ve SHA-256 doğrulaması yapar.
 6. Raporunda `independent_location_verified=false`, `restored_to_isolated_database=false` olarak kalır. Kendi başına buluta yükleme, dış IP açma, izin listesi kapatma veya canlı restore YAPMAZ.
 
-Yerel sentetik test: `python -m unittest discover -s tests -p "test_cano_render_rescue.py" -v` → **OK (8 tests)**. GitHub Core CI test keşfi `unittest` kullandığı için bağımsız `pytest` bağımlılığı kaldırıldı. Kod, mevcut gerçek yedekleme paketine henüz yüklenmedi / üretimde denenmedi. Bu testler gerçek kullanıcı verisinin yedeklendiği anlamına gelmez.
+Yerel sentetik test: `python -m unittest discover -s tests -p "test_cano_render_rescue.py" -v` → **OK (8 tests)**. GitHub Core CI test keşfi `unittest` kullandığı için bağımsız `pytest` bağımlılığı kaldırıldı. Yardımcı kaynak kod ve unittest testleri GitHub PR #437 kapsamında üretim kaynak dalına önerildi; canlı Render sürümüne dağıtılmadı ve gerçek veritabanında denenmedi. Bu testler gerçek kullanıcı verisinin yedeklendiği anlamına gelmez.
 
 ## 4. Bilgisayar başında uygulanacak güvenli prosedür
 
