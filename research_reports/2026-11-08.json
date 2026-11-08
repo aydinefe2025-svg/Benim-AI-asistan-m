@@ -1,0 +1,277 @@
+{
+  "generated_at": "2026-11-08T14:20:19.311134+00:00",
+  "status": "source_leads_only",
+  "verified": false,
+  "topics": {
+    "neutron_star_eos": {
+      "query": "neutron star equation of state NICER",
+      "sources": [
+        {
+          "title": "Neutron star",
+          "url": "https://en.wikipedia.org/wiki/Neutron_star"
+        },
+        {
+          "title": "Pulsar",
+          "url": "https://en.wikipedia.org/wiki/Pulsar"
+        },
+        {
+          "title": "List of most massive neutron stars",
+          "url": "https://en.wikipedia.org/wiki/List_of_most_massive_neutron_stars"
+        }
+      ],
+      "status": "found",
+      "attempts": 1
+    },
+    "history_inventions": {
+      "query": "history of engineering inventions",
+      "sources": [
+        {
+          "title": "History of engineering",
+          "url": "https://en.wikipedia.org/wiki/History_of_engineering"
+        },
+        {
+          "title": "Timeline of Russian innovation",
+          "url": "https://en.wikipedia.org/wiki/Timeline_of_Russian_innovation"
+        },
+        {
+          "title": "Timeline of historic inventions",
+          "url": "https://en.wikipedia.org/wiki/Timeline_of_historic_inventions"
+        }
+      ],
+      "status": "found",
+      "attempts": 1
+    },
+    "robotics": {
+      "query": "robotics biomimetics",
+      "sources": [
+        {
+          "title": "Biomimetics",
+          "url": "https://en.wikipedia.org/wiki/Biomimetics"
+        },
+        {
+          "title": "Robotics",
+          "url": "https://en.wikipedia.org/wiki/Robotics"
+        },
+        {
+          "title": "Robot",
+          "url": "https://en.wikipedia.org/wiki/Robot"
+        }
+      ],
+      "status": "found",
+      "attempts": 1
+    },
+    "open_source_ai": {
+      "query": "open source artificial intelligence agents",
+      "sources": [
+        {
+          "title": "Open-source artificial intelligence",
+          "url": "https://en.wikipedia.org/wiki/Open-source_artificial_intelligence"
+        },
+        {
+          "title": "Lists of open-source artificial intelligence software",
+          "url": "https://en.wikipedia.org/wiki/Lists_of_open-source_artificial_intelligence_software"
+        },
+        {
+          "title": "Distributed artificial intelligence",
+          "url": "https://en.wikipedia.org/wiki/Distributed_artificial_intelligence"
+        }
+      ],
+      "status": "found",
+      "attempts": 1
+    }
+  },
+  "scholarly_topics": {
+    "neutron_star_eos": {
+      "sources": [
+        {
+          "title": "Implications of latest NICER data for the neutron star equation of state",
+          "url": "https://doi.org/10.1103/physrevd.111.034005",
+          "doi": "10.1103/physrevd.111.034005",
+          "publisher": "American Physical Society (APS)",
+          "published_at": "2025-02-06",
+          "accessed_at": "2026-11-08T14:20:22+00:00",
+          "relevance_score": 39.610287,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        },
+        {
+          "title": "Implications of NICER for Neutron Star Matter: The QHC21 Equation of State",
+          "url": "https://doi.org/10.3847/1538-4357/ac7876",
+          "doi": "10.3847/1538-4357/ac7876",
+          "publisher": "American Astronomical Society",
+          "published_at": "2022-07-01",
+          "accessed_at": "2026-11-08T14:20:22+00:00",
+          "relevance_score": 38.867313,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        },
+        {
+          "title": "Systematics from NICER pulse profiles drive uncertainty in multimessenger inference of the neutron star equation of state",
+          "url": "https://doi.org/10.1103/mgsg-c6tn",
+          "doi": "10.1103/mgsg-c6tn",
+          "publisher": "American Physical Society (APS)",
+          "published_at": "2025-09-24",
+          "accessed_at": "2026-11-08T14:20:22+00:00",
+          "relevance_score": 37.605923,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        }
+      ],
+      "status": "metadata_only",
+      "verified": false
+    },
+    "history_inventions": {
+      "sources": [
+        {
+          "title": "The Industrial Revolution – inventions",
+          "url": "https://doi.org/10.5040/9781472926630.ch-063",
+          "doi": "10.5040/9781472926630.ch-063",
+          "publisher": "Bloomsbury Information Ltd",
+          "published_at": "",
+          "accessed_at": "2026-11-08T14:20:25+00:00",
+          "relevance_score": 19.100029,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        },
+        {
+          "title": "History of Industrial Property and Inventions",
+          "url": "https://doi.org/10.1007/978-3-031-39191-0_11",
+          "doi": "10.1007/978-3-031-39191-0_11",
+          "publisher": "Springer Nature Switzerland",
+          "published_at": "2023-09-22",
+          "accessed_at": "2026-11-08T14:20:25+00:00",
+          "relevance_score": 19.073025,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        },
+        {
+          "title": "International Journal of Engineering Inventions",
+          "url": "https://doi.org/10.9790/7461",
+          "doi": "10.9790/7461",
+          "publisher": "International Organization of Scientific Research",
+          "published_at": "",
+          "accessed_at": "2026-11-08T14:20:25+00:00",
+          "relevance_score": 18.742985,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        }
+      ],
+      "status": "metadata_only",
+      "verified": false
+    },
+    "robotics": {
+      "sources": [
+        {
+          "title": "IEEE International conference on ROBOTICS &amp; BIOMIMETICS",
+          "url": "https://doi.org/10.1109/robio.2006.340248",
+          "doi": "10.1109/robio.2006.340248",
+          "publisher": "IEEE",
+          "published_at": "2006-12",
+          "accessed_at": "2026-11-08T14:20:27+00:00",
+          "relevance_score": 24.570335,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        },
+        {
+          "title": "2006 IEEE International Conference on Robotics and Biomimetics",
+          "url": "https://doi.org/10.1109/robio.2006.340193",
+          "doi": "10.1109/robio.2006.340193",
+          "publisher": "IEEE",
+          "published_at": "2006",
+          "accessed_at": "2026-11-08T14:20:27+00:00",
+          "relevance_score": 24.539364,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        },
+        {
+          "title": "Soft Robotics",
+          "url": "https://doi.org/10.3390/biomimetics4010022",
+          "doi": "10.3390/biomimetics4010022",
+          "publisher": "MDPI AG",
+          "published_at": "2019-03-12",
+          "accessed_at": "2026-11-08T14:20:27+00:00",
+          "relevance_score": 24.13174,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        }
+      ],
+      "status": "metadata_only",
+      "verified": false
+    },
+    "open_source_ai": {
+      "sources": [
+        {
+          "title": "Mapping to Open-Source Packages",
+          "url": "https://doi.org/10.1017/9781009258227.028",
+          "doi": "10.1017/9781009258227.028",
+          "publisher": "Cambridge University Press",
+          "published_at": "2023-07-13",
+          "accessed_at": "2026-11-08T14:20:29+00:00",
+          "relevance_score": 34.794315,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        },
+        {
+          "title": "Artificial Intelligence and Data in Open Source",
+          "url": "https://doi.org/10.70828/zaow8899",
+          "doi": "10.70828/zaow8899",
+          "publisher": "The Linux Foundation",
+          "published_at": "2022-03",
+          "accessed_at": "2026-11-08T14:20:29+00:00",
+          "relevance_score": 29.77776,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        },
+        {
+          "title": "Autonomous agents modelling other agents: A comprehensive survey and open problems",
+          "url": "https://doi.org/10.1016/j.artint.2018.01.002",
+          "doi": "10.1016/j.artint.2018.01.002",
+          "publisher": "Elsevier BV",
+          "published_at": "2018-05",
+          "accessed_at": "2026-11-08T14:20:29+00:00",
+          "relevance_score": 29.458048,
+          "confidence": "unassessed",
+          "stage": "source_lead",
+          "retrieval": "publisher_metadata",
+          "primary_source_review": "required",
+          "verified": false
+        }
+      ],
+      "status": "metadata_only",
+      "verified": false
+    }
+  }
+}
