@@ -215,7 +215,7 @@ class CanoBackupBundleTests(unittest.TestCase):
             files = restore_to_new_directory(source, destination, password)
             self.assertEqual(files, sorted([
                 "cano-colony.json", "memory-library.json", "research-tasks.json",
-                "authorized-queue.json",
+                "authorized-queue.json", "manifest.json",
             ]))
             self.assertEqual(set(path.name for path in destination.iterdir()), set(files))
             with self.assertRaises(ValueError):
