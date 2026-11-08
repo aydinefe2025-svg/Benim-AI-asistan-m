@@ -106,6 +106,29 @@ class OffsiteCopyReadbackTests(unittest.TestCase):
         with self.assertRaises(CopyVerificationError):
             verify_offsite_copy(self.source, self.remote)
 
+    def test_oversized_source_manifest_refuses_before_hashing(self):
+        # A copied manifest is untrusted. Reject suspicious input before
+        # spending CPU on hashing or allocating a large text buffer.
+        manifest = self.source / "cano-rescue-manifest.json"
+        with manifest.open("ab") as stream:
+            stream.truncate(8 * 1024 * 1024)
+        self._copy()
+        with patch("scripts.cano_offsite_readback._hash_file",
+                   side_effect=AssertionError("hashed an oversized manifest")):
+            with self.assertRaisesRegex(CopyVerificationError,
+                                        "manifest exceeds size limit"):
+                verify_offsite_copy(self.source, self.remote)
+
+    def test_oversized_downloaded_manifest_refuses_before_hashing(self):
+        manifest = self.remote / "cano-rescue-manifest.json"
+        with manifest.open("ab") as stream:
+            stream.truncate(8 * 1024 * 1024)
+        with patch("scripts.cano_offsite_readback._hash_file",
+                   side_effect=AssertionError("hashed an oversized manifest")):
+            with self.assertRaisesRegex(CopyVerificationError,
+                                        "manifest exceeds size limit"):
+                verify_offsite_copy(self.source, self.remote)
+
     def test_mismatched_copied_manifest_is_rejected(self):
         (self.remote / "cano-rescue-manifest.json").write_text("{}")
         with self.assertRaises(CopyVerificationError):

@@ -24,6 +24,7 @@ _ALLOWED_ALIASES = frozenset({
     "AGENT_TASK_DATABASE_URL",
 })
 _MANIFEST = "cano-rescue-manifest.json"
+_MAX_MANIFEST_BYTES = 64 * 1024  # At most four sources; bound untrusted JSON before I/O.
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,180}\Z")
 
 
@@ -88,6 +89,10 @@ def verify_offsite_copy(source_directory: Path, copied_directory: Path) -> dict:
 
     src_manifest = source / _MANIFEST
     dst_manifest = copied / _MANIFEST
+    for manifest_path in (src_manifest, dst_manifest):
+        _checked_file(manifest_path)
+        if manifest_path.stat().st_size > _MAX_MANIFEST_BYTES:
+            raise CopyVerificationError("Backup manifest exceeds size limit")
     _copy_matches(src_manifest, dst_manifest)
     try:
         manifest = json.loads(src_manifest.read_text(encoding="utf-8"))
