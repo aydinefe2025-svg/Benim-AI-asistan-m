@@ -142,7 +142,7 @@ class IsolatedLabRestoreTests(unittest.TestCase):
 
     def test_wrong_key_tamper_and_v1_refuse_before_database_connection(self):
         backup = archive_with([record(3)])
-        for blob, password in [(backup, "wrong-test-password"), (backup[:-1] + b"x", PASSWORD),
+        for blob, password in [(backup, "wrong-test-password"), (backup[:-1] + bytes([backup[-1] ^ 1]), PASSWORD),
                                (archive_with([], v2=False), PASSWORD)]:
             with self.subTest(length=len(blob)):
                 with self.assertRaises(ValueError):
@@ -170,7 +170,7 @@ class IsolatedLabRestoreTests(unittest.TestCase):
 
     def test_sql_failure_rolls_back_all_rows(self):
         self.db.fail_after = 1
-        with self.assertRaises(RuntimeError):
+        with self.assertRaisesRegex(RuntimeError, "synthetic SQL failure"):
             self.restore(archive_with([record(6), record(7)]))
         self.assertEqual(self.db.rows, {})
 
