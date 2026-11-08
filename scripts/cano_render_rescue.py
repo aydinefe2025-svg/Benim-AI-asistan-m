@@ -144,6 +144,10 @@ def main() -> int:
     parser.add_argument("private_destination", type=Path)
     args = parser.parse_args()
     try:
+        if not all(os.environ.get(name, "").strip() for name in (
+                "CANO_REQUIRED_RENDER_DATABASE",
+                "CANO_REQUIRED_RENDER_HOST_PREFIX")):
+            raise BackupError("The operator CLI requires the Render source identity")
         result = backup_configured(args.private_destination)
     except (BackupError, OSError, ValueError, KeyError, TypeError):
         # Do not put connection strings, raw subprocess stderr or secrets on stdout.
