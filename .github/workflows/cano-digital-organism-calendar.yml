@@ -3,7 +3,10 @@ name: CANO bounded digital organism calendar cycle
 on:
   workflow_dispatch:
   schedule:
+    # Original 05:47 UTC attempt; the duplicate time is idempotent by day.
     - cron: '47 5 * * *'
+    # Separate 07:31 UTC fallback avoids one skipped GitHub schedule being fatal.
+    - cron: '31 7 * * *'
 
 permissions:
   contents: read
@@ -47,6 +50,8 @@ jobs:
           python -m organism_lab.calendar_cycle --state-dir "$STATE_DIR" --day "$UTC_DAY"
           python -m organism_lab.calendar_cycle --state-dir "$STATE_DIR" --day "$UTC_DAY"
           python -m organism_lab.genome_checkpoint verify "$STATE_DIR/genome-state.json"
+          python -m organism_lab.calendar_health --state-dir "$STATE_DIR" --day "$UTC_DAY"
+          echo "Source trigger: $GITHUB_EVENT_NAME; expected UTC day: $UTC_DAY" >> "$GITHUB_STEP_SUMMARY"
       - name: Persist only changed evidence to dedicated simulation state branch
         shell: bash
         run: |
@@ -62,3 +67,14 @@ jobs:
           git commit -m "archive: bounded digital organism continuity $(date -u +%F)"
           # Fail rather than force pushing or overwriting a concurrently modified branch.
           git push origin "HEAD:refs/heads/${STATE_BRANCH}"
+
+      - name: Verify the actual committed remote branch independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/heads/${STATE_BRANCH}:refs/remotes/origin/${STATE_BRANCH}"
+          git worktree add --detach "$RUNNER_TEMP/cano-check-remote" "refs/remotes/origin/${STATE_BRANCH}"
+          DIR="$RUNNER_TEMP/cano-check-remote/research_reports/cano-digital-continuity"
+          DAY="$(date -u +%F)"
+          python -m organism_lab.calendar_health --state-dir "$DIR" --day "$DAY"
+          echo "Remote branch readback verified: $STATE_BRANCH/$DAY" >> "$GITHUB_STEP_SUMMARY"
