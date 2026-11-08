@@ -158,6 +158,22 @@ class EncryptedBackupTests(unittest.TestCase):
                             restore_to_empty_database(self.root/'nonexistent.canoenc',
                                 target_db_url_env='RESTORE_URL',confirm=True)
 
+    def test_restore_rejects_cano_database_url_before_any_process(self):
+        # core.storage_config.cano_database_url selects CANO_DATABASE_URL
+        # ahead of DATABASE_URL. The restore guard must honor that live alias.
+        target = 'postgresql://owner:fake@localhost:5432/cano_restore_active'
+        with patch.dict(os.environ, {
+            'DATABASE_URL': 'postgresql://owner:fake@localhost/other_database',
+            'CANO_DATABASE_URL': 'postgresql://owner:fake@localhost/cano_restore_active',
+            'RESTORE_URL': target,
+        }):
+            with patch('cano_encrypted_backup.decrypt_to_sink',
+                       side_effect=AssertionError('decryption occurred before source alias check')):
+                with self.assertRaises(BackupError):
+                    restore_to_empty_database(
+                        self.root / 'nonexistent.canoenc',
+                        target_db_url_env='RESTORE_URL', confirm=True)
+
     def test_failing_pg_dump_removes_partial_ciphertext(self):
         bad=self.root/'bad.py'
         bad.write_text('#!'+sys.executable+'\nimport sys\nsys.stdout.buffer.write(b"PGDMP partial")\nsys.exit(2)\n')
