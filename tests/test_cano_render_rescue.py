@@ -102,6 +102,54 @@ class RenderRescueCoverageTests(unittest.TestCase):
         self.assertEqual(len(list(self.destination.glob("source-*/*.canoenc"))), 2)
         self.assertEqual(len(list(self.destination.rglob("*.dump"))), 0)
 
+    def test_required_render_source_absent_fails_before_backup(self):
+        """A verified Neon dump must not count as an expiring Render DB dump."""
+        e = {**self.env,
+             "CANO_REQUIRED_RENDER_DATABASE": "research_library_persistent_db",
+             "CANO_REQUIRED_RENDER_HOST_PREFIX": "dpg-dbkfp5bm8hqs73bba7u0-a"}
+        with patch.dict(os.environ, e, clear=True):
+            with patch("scripts.cano_render_rescue.make_encrypted_backup",
+                       side_effect=self._mock_export) as exporter:
+                with patch("scripts.cano_render_rescue.verify_encrypted_backup",
+                           return_value={"authenticated": True,
+                                         "archive_sha256": "1" * 64}):
+                    with self.assertRaises(BackupError):
+                        backup_configured(self.destination)
+                exporter.assert_not_called()
+        self.assertFalse(self.destination.exists())
+
+    def test_partial_render_identity_requirement_fails_closed(self):
+        e = {**self.env,
+             "CANO_REQUIRED_RENDER_DATABASE": "research_library_persistent_db"}
+        with patch.dict(os.environ, e, clear=True):
+            with self.assertRaises(BackupError):
+                backup_configured(self.destination)
+        self.assertFalse(self.destination.exists())
+
+    def test_matching_render_source_is_covered_without_host_disclosure(self):
+        render_url = (
+            "postgresql://owner:SECRET_RENDER@"
+            "dpg-dbkfp5bm8hqs73bba7u0-a.frankfurt-postgres.render.com/"
+            "research_library_persistent_db?sslmode=require"
+        )
+        e = {**self.env, "DATABASE_URL": render_url,
+             "CANO_REQUIRED_RENDER_DATABASE": "research_library_persistent_db",
+             "CANO_REQUIRED_RENDER_HOST_PREFIX": "dpg-dbkfp5bm8hqs73bba7u0-a"}
+        with patch.dict(os.environ, e, clear=True):
+            with patch("scripts.cano_render_rescue.make_encrypted_backup",
+                       side_effect=self._mock_export) as exporter:
+                with patch("scripts.cano_render_rescue.verify_encrypted_backup",
+                           return_value={"authenticated": True,
+                                         "archive_sha256": "1" * 64}):
+                    result = backup_configured(self.destination)
+        self.assertEqual(result["verified_source_count"], 3)
+        self.assertEqual(exporter.call_count, 3)
+        manifest = (self.destination / "cano-rescue-manifest.json").read_text("utf-8")
+        self.assertIn('"required_render_source_matched": true', manifest)
+        self.assertNotIn("SECRET_RENDER", manifest)
+        self.assertNotIn("dpg-dbkfp5bm8hqs73bba7u0-a", manifest)
+        self.assertNotIn("research_library_persistent_db", manifest)
+
     def test_no_configured_urls_fails_before_writing(self):
         with patch.dict(os.environ, {"CANO_BACKUP_KEY_HEX": "ab" * 32},
                         clear=True):
