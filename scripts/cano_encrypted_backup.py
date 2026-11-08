@@ -26,6 +26,7 @@ import tempfile
 from urllib.parse import urlsplit, unquote
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
 try:
     from scripts.cano_pg_backup import _libpq_env_from_uri, BackupError
@@ -223,38 +224,94 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
         if archive.exists() and not receipt.exists():archive.unlink()
 
 
-def decrypt_to_sink(path:Path,sink,*,key_env='CANO_BACKUP_KEY_HEX')->dict:
-    """Authenticated stream decryption; the caller must not trust bytes before GCM finalize."""
+def decrypt_to_sink(path:Path,sink,*,key_env='CANO_BACKUP_KEY_HEX',
+                    expected_proof:dict|None=None)->dict:
+    """Release plaintext to a sink only AFTER the original GCM tag verifies.
+
+    If streaming is requested, keep chunks in a temporary *encrypted* staging
+    file with a fresh ephemeral AES-GCM key. The original archive is completely
+    authenticated, including any required first-pass checksum, BEFORE a single
+    chunk is sent to pg_restore. Each staged chunk is separately authenticated
+    before release. No plaintext .dump file or unbounded plaintext RAM buffer.
+    """
     key=_key(key_env)
     path=Path(path)
     if path.is_symlink() or not path.is_file():
         raise BackupError('Refusing symbolic link or missing encrypted archive')
-    with path.open('rb') as inp:
-        size=path.stat().st_size
-        if size<len(MAGIC)+NONCE_BYTES+TAG_BYTES+6:
-            raise BackupError('Encrypted archive truncated')
-        header=inp.read(len(MAGIC)+NONCE_BYTES)
-        if header[:len(MAGIC)]!=MAGIC:raise BackupError('Unknown encrypted archive format')
-        inp.seek(size-TAG_BYTES);tag=inp.read(TAG_BYTES)
-        inp.seek(len(header))
-        dec=Cipher(algorithms.AES(key),modes.GCM(header[len(MAGIC):],tag)).decryptor()
-        dec.authenticate_additional_data(header)
-        remaining=size-len(header)-TAG_BYTES
-        h=hashlib.sha256();n=0;first=b''
-        try:
-            while remaining:
-                chunk=inp.read(min(CHUNK,remaining))
-                if not chunk:raise BackupError('Encrypted archive is truncated')
-                remaining-=len(chunk)
-                plain=dec.update(chunk)
-                if len(first)<5:first+=plain[:5-len(first)]
-                h.update(plain);n+=len(plain)
-                if sink is not None:sink(plain)
-            dec.finalize()
-        except (InvalidTag,ValueError):
-            raise BackupError('Encrypted archive authentication failed') from None
-        if first!=b'PGDMP' or n<6:raise BackupError('Decrypted content is not a PostgreSQL archive')
-        return {'authenticated':True,'plaintext_sha256':h.hexdigest(),'plaintext_size_bytes':n}
+    if sink is not None and not callable(sink):
+        raise BackupError('Invalid authenticated stream destination')
+    # TemporaryFile is private and automatically removed; it contains ONLY
+    # ciphertext encrypted under a fresh process-local, non-exported key.
+    stage=tempfile.TemporaryFile(mode='w+b') if sink is not None else None
+    stage_aead=AESGCM(secrets.token_bytes(32)) if stage is not None else None
+    blocks=0
+    try:
+        with path.open('rb') as inp:
+            size=path.stat().st_size
+            if size<len(MAGIC)+NONCE_BYTES+TAG_BYTES+6:
+                raise BackupError('Encrypted archive truncated')
+            header=inp.read(len(MAGIC)+NONCE_BYTES)
+            if header[:len(MAGIC)]!=MAGIC:
+                raise BackupError('Unknown encrypted archive format')
+            inp.seek(size-TAG_BYTES);tag=inp.read(TAG_BYTES)
+            inp.seek(len(header))
+            dec=Cipher(algorithms.AES(key),modes.GCM(header[len(MAGIC):],tag)).decryptor()
+            dec.authenticate_additional_data(header)
+            remaining=size-len(header)-TAG_BYTES
+            h=hashlib.sha256();n=0;first=b''
+            try:
+                while remaining:
+                    chunk=inp.read(min(CHUNK,remaining))
+                    if not chunk:raise BackupError('Encrypted archive is truncated')
+                    remaining-=len(chunk)
+                    plain=dec.update(chunk)
+                    if len(first)<5:first+=plain[:5-len(first)]
+                    h.update(plain);n+=len(plain)
+                    if stage is not None:
+                        nonce=blocks.to_bytes(12,'big')
+                        sealed=stage_aead.encrypt(nonce,plain,header)
+                        stage.write(len(sealed).to_bytes(4,'big'))
+                        stage.write(sealed)
+                        blocks+=1
+                # Do not call sink before this completes: update() output is
+                # unauthenticated until GCM finalize checks the entire tag.
+                dec.finalize()
+            except (InvalidTag,ValueError):
+                raise BackupError('Encrypted archive authentication failed') from None
+        if first!=b'PGDMP' or n<6:
+            raise BackupError('Decrypted content is not a PostgreSQL archive')
+        proof={'authenticated':True,'plaintext_sha256':h.hexdigest(),
+               'plaintext_size_bytes':n}
+        if expected_proof is not None and (
+                not isinstance(expected_proof,dict)
+                or proof['plaintext_sha256']!=expected_proof.get('plaintext_sha256')
+                or proof['plaintext_size_bytes']!=expected_proof.get('plaintext_size_bytes')):
+            # A distinct, valid GCM archive may have replaced the original
+            # between validation and restore. Reject BEFORE pg_restore stdin.
+            raise BackupError('Archive changed between authentication and restore')
+        if stage is not None:
+            stage.seek(0)
+            try:
+                for index in range(blocks):
+                    length_raw=stage.read(4)
+                    if len(length_raw)!=4:
+                        raise BackupError('Authenticated staging data is truncated')
+                    length=int.from_bytes(length_raw,'big')
+                    if not 16<length<=CHUNK+16:
+                        raise BackupError('Authenticated staging chunk is invalid')
+                    sealed=stage.read(length)
+                    if len(sealed)!=length:
+                        raise BackupError('Authenticated staging data is truncated')
+                    plain=stage_aead.decrypt(index.to_bytes(12,'big'),sealed,header)
+                    sink(plain)
+                if stage.read(1):
+                    raise BackupError('Authenticated staging contains extra data')
+            except (InvalidTag,ValueError):
+                raise BackupError('Authenticated staging verification failed') from None
+        return proof
+    finally:
+        if stage is not None:
+            stage.close()
 
 
 def verify_encrypted_backup(receipt_path: Path,*,key_env='CANO_BACKUP_KEY_HEX')->dict:
@@ -332,7 +389,7 @@ def restore_to_empty_database(path:Path,*,target_db_url_env='CANO_RESTORE_DATABA
                stdin=subprocess.PIPE,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,env=env)
         assert process.stdin is not None
         try:
-            second=decrypt_to_sink(path,process.stdin.write)
+            second=decrypt_to_sink(path,process.stdin.write,expected_proof=proof)
             if second['plaintext_sha256']!=proof['plaintext_sha256'] or second['plaintext_size_bytes']!=proof['plaintext_size_bytes']:
                 raise BackupError('Archive changed between authentication and restore')
         finally:
