@@ -11,6 +11,7 @@ import argparse
 from datetime import datetime, timezone
 import json
 import os
+import re
 from pathlib import Path
 
 from scripts.cano_pg_backup import _libpq_env_from_uri
@@ -38,15 +39,35 @@ def backup_configured(destination: Path) -> dict:
     if os.environ.get("RENDER_SERVICE_ID"):
         raise BackupError("Refusing an ephemeral Render service as backup destination")
     _key()  # Validate key before touching the filesystem.
+    render_db = os.environ.get("CANO_REQUIRED_RENDER_DATABASE", "").strip()
+    render_host_prefix = os.environ.get("CANO_REQUIRED_RENDER_HOST_PREFIX", "").strip().lower()
+    identity_required = ("CANO_REQUIRED_RENDER_DATABASE" in os.environ
+                         or "CANO_REQUIRED_RENDER_HOST_PREFIX" in os.environ)
+    if identity_required and (
+            not re.fullmatch(r"[A-Za-z0-9_]+", render_db)
+            or not re.fullmatch(r"dpg-[a-z0-9-]+", render_host_prefix)):
+        raise BackupError("The expected Render source identity is incomplete or invalid")
+
+    required_source_matched = False
     groups: dict[str, list[str]] = {}
     for env_name in SOURCE_ENV_NAMES:
         url = os.environ.get(env_name, "").strip()
         if url:
             # Validate *all* endpoints before producing partial backups.
-            _libpq_env_from_uri(url, os.environ)
+            parsed = _libpq_env_from_uri(url, os.environ)
+            hostname = parsed["PGHOST"].lower().rstrip(".")
+            is_render_hostname = (
+                hostname == render_host_prefix
+                or (hostname.startswith(render_host_prefix + ".")
+                    and hostname.endswith(".render.com")))
+            if identity_required and (
+                    parsed["PGDATABASE"] == render_db and is_render_hostname):
+                required_source_matched = True
             groups.setdefault(url, []).append(env_name)
     if not groups:
         raise BackupError("No configured PostgreSQL sources to back up")
+    if identity_required and not required_source_matched:
+        raise BackupError("Expected Render database source was not configured")
 
     destination = Path(destination)
     if destination.is_symlink():
@@ -93,6 +114,7 @@ def backup_configured(destination: Path) -> dict:
         "covered_env_names": covered,
         "entries": manifest_entries,
         "local_authenticated_readback": True,
+        "required_render_source_matched": required_source_matched,
         "offsite_verified": False,
         "isolated_restore_verified": False,
         "coverage_limit": "Configured URLs only; discover all other provider DBs separately.",
@@ -102,6 +124,7 @@ def backup_configured(destination: Path) -> dict:
         "manifest": str(manifest),
         "verified_source_count": len(manifest_entries),
         "covered_env_names": covered,
+        "required_render_source_matched": required_source_matched,
         "offsite_verified": False,
         "isolated_restore_verified": False,
     }
