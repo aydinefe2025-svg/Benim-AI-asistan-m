@@ -1,0 +1,32 @@
+{
+  "schema": "cano-resource-competition-evidence-v1",
+  "issue": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/413",
+  "original_vm_git_blob_sha": "0ced308713956ebd43fa58ef29bb31502101d001",
+  "source_commit_state": "local_verified_before_PR_CI",
+  "seed_partitions": [
+    "600..629",
+    "700..729"
+  ],
+  "experiment": "two 30-seed groups * four policies * three costs * reward/null =1440 runs plus 60 no-reproduction controls",
+  "local_test_command": "python -m unittest organism_lab.tests.test_resource_competition organism_lab.tests.test_compositional_transfer_study organism_lab.tests.test_selection_pressure_sweep -v",
+  "local_tests_passed": 27,
+  "selection_mechanism_with_seeded_AB": true,
+  "autonomous_learning_proven": false,
+  "production_deployment_approved": false,
+  "report_body_sha256": {
+    "competition-seeds-600-629.json": "fca310a29d36e477d1ddd4bdf62d85e3156562c82e606128bf28906d474f5630",
+    "competition-seeds-700-729.json": "1d5a52a3b19b79b7d2e2da13626bca20c6a48fb669dee04d9046d34e44f580fc"
+  },
+  "file_sha256": {
+    "competition-seeds-600-629.json": "6d7247e45a26548eb3a6efdfbdb4c6b31e63e469a45edca50c08385cfac829de",
+    "competition-seeds-700-729.json": "7253d284944217a5a44dcca5b927a4679302850fc7bfbbbf4ff4d6476893c29e"
+  },
+  "source_file_sha256": {
+    "organism_lab_cloud/organism_lab/resource_competition.py": "a757927e9daf03387e726cf90b8995d960597cb4478e91713e94f830d7c6a090",
+    "organism_lab_cloud/organism_lab/tests/test_resource_competition.py": "913c675290d9b50ed5a3b4580b64d9ab062d8735f9b6030e9fa12fb29bfe8987",
+    ".github/workflows/cano-resource-competition-evidence.yml": "9cad8938ee9c0566c150289a6af1521c4c2b6b62edc0c160a6716a011e0eb488",
+    "docs/CANO_RESOURCE_COMPETITION_2026-11-08.md": "3c74f491651acd610a69adedbeb66fe17eb111748ed4c19aa30850812a424255"
+  },
+  "caveat": "Engineered neutral turnover kills ~one organism per saturated tick: large mortality cost. Both A and B and AB genotypes seeded; no evolved novelty.",
+  "ci_first_attempt": "failed_FileNotFoundError_uncommitted_raw_reports; fixed regenerating pinned raw JSON in temporary directory"
+}

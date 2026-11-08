@@ -1,0 +1,56 @@
+name: CANO Organism Lab resource competition causal evidence
+on:
+  pull_request:
+    paths:
+      - 'organism_lab_cloud/organism_lab/resource_competition.py'
+      - 'organism_lab_cloud/organism_lab/tests/test_resource_competition.py'
+      - 'research_reports/organism-lab-competition/**'
+      - 'docs/CANO_RESOURCE_COMPETITION_2026-11-08.md'
+      - '.github/workflows/cano-resource-competition-evidence.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ['3.11','3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Prove original VM and all relevant regressions
+        working-directory: organism_lab_cloud
+        run: |
+          test "$(git hash-object organism_lab/digital_vm.py)" = '0ced308713956ebd43fa58ef29bb31502101d001'
+          python -m unittest organism_lab.tests.test_resource_competition organism_lab.tests.test_compositional_transfer_study organism_lab.tests.test_selection_pressure_sweep -v
+      - name: Regenerate both independent seed cohorts from source
+        working-directory: organism_lab_cloud
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          from organism_lab.resource_competition import run_competition,save_report,verify_report
+          from tempfile import TemporaryDirectory
+          root=Path('../research_reports/organism-lab-competition')
+          pins=json.loads((root/'EVIDENCE_MANIFEST.json').read_text())
+          for start in (600,700):
+              name=f'competition-seeds-{start}-{start+29}.json'
+              # Raw JSON is kept in the archival ZIP, not Git history.
+              # Independently regenerate and compare exact pinned bytes.
+              with TemporaryDirectory() as temp:
+                  output=Path(temp)/name
+                  doc=save_report(run_competition(seeds=tuple(range(start,start+30)),steps=80,period=12),output)
+                  assert hashlib.sha256(output.read_bytes()).hexdigest()==pins['file_sha256'][name]
+                  assert verify_report(output)==doc
+              r=doc['report']
+              assert doc['sha256']==pins['report_body_sha256'][name]
+              assert r['selection_mechanism_demonstrated'] is True
+              assert all(r['negative_controls'].values())
+              assert len(r['trials'])==360
+              assert r['per_cost'][2]['paired_joint_causal_ab_share']['mean']==0
+              assert r['per_cost'][0]['positive_seeds']==(30 if start==600 else 29)
+              print('INDEPENDENT REPLAY PASS:',name,'SHA',doc['sha256'])
+          PY
