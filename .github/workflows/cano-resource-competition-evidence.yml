@@ -33,13 +33,18 @@ jobs:
           import json,hashlib
           from pathlib import Path
           from organism_lab.resource_competition import run_competition,save_report,verify_report
+          from tempfile import TemporaryDirectory
           root=Path('../research_reports/organism-lab-competition')
           pins=json.loads((root/'EVIDENCE_MANIFEST.json').read_text())
           for start in (600,700):
               name=f'competition-seeds-{start}-{start+29}.json'
-              output=root/name
-              assert hashlib.sha256(output.read_bytes()).hexdigest()==pins['file_sha256'][name]
-              doc=verify_report(output)
+              # Raw JSON is kept in the archival ZIP, not Git history.
+              # Independently regenerate and compare exact pinned bytes.
+              with TemporaryDirectory() as temp:
+                  output=Path(temp)/name
+                  doc=save_report(run_competition(seeds=tuple(range(start,start+30)),steps=80,period=12),output)
+                  assert hashlib.sha256(output.read_bytes()).hexdigest()==pins['file_sha256'][name]
+                  assert verify_report(output)==doc
               r=doc['report']
               assert doc['sha256']==pins['report_body_sha256'][name]
               assert r['selection_mechanism_demonstrated'] is True
