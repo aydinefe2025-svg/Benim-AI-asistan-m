@@ -1,0 +1,43 @@
+{
+  "schema": "cano-holdout-censoring-audit-manifest-v1",
+  "issue": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/413",
+  "source_study_pr": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/429",
+  "source_aggregate_simulations": 450,
+  "new_simulations": 0,
+  "paired_seeds": 90,
+  "posthoc_status": "retrospective_diagnostic_not_adaptation_proof",
+  "audit_body_sha256": "016f2ac019755fdc8554ee29323ceda68a5b454f5685091039e9d936c58c06dc",
+  "archived_source_body_sha256": {
+    "energy-reset-seeds-0-29.json": "17a6141db8949e30aaccc335bf3010c5e91b2d17a18b97f379c7ca29741e1ec8",
+    "energy-reset-seeds-100-129.json": "8f20ceba1d3c9bf83a6220e83bc95c8307a74461923bd00a7465ccfccd89d526",
+    "forward-test-seeds-200-229.json": "54230779ada3d306f06c915129f84c1012dfff24d0538b2421db22367ac50d59"
+  },
+  "validation": {
+    "local_python": "3.13",
+    "tdd_red_record": "RED_LOG.txt",
+    "tdd_green_tests": 8,
+    "ci_python_matrix": [
+      "3.11",
+      "3.12"
+    ],
+    "ci_status_at_manifest_creation": "pending",
+    "read_only_old_archives": true,
+    "production_unchanged": true
+  },
+  "observations": {
+    "final_population_ties": 87,
+    "both_at_capacity": 65,
+    "both_at_floor": 19,
+    "extra_rewarded_steps_mean": 30.07777777777778,
+    "births_added_mean_delta": -1.4777777777777779
+  },
+  "scientific_acceptance": false,
+  "file_sha256": {
+    "organism_lab_cloud/organism_lab/holdout_censoring_audit.py": "d6062dca97c53db11591df77de1d8b24204154d43499ce8ad858c267a19d10e4",
+    "organism_lab_cloud/organism_lab/tests/test_holdout_censoring_audit.py": "f4ae01f7958efd1ca41981e8807dc48ad5638f11b074cd6a95a10334be650034",
+    ".github/workflows/cano-holdout-censoring-audit.yml": "9dd474ab04c924b948496787bd1a6b597b09516e70ba49181b2afeafc9012249",
+    "docs/CANO_HOLDOUT_CENSORING_DIAGNOSIS_2026-11-08.md": "550bda63d0db4f0e2356ff6d0b68062e5e16ddf5cde88d2e9d5cf5a2cba01013",
+    "research_reports/organism-lab-holdout-forensics/holdout-capacity-audit-2026-11-08.json": "3426407ea0791830a93dfc6321b6f8f4a5c7b0cd8050b3e2c6568c7bd278b6f3",
+    "research_reports/organism-lab-holdout-forensics/EVIDENCE_MANIFEST.json": "b52bb9d2b9881ac9bd8bd7ecabc211a20f670921d5e683d49c774594377bf75b"
+  }
+}
