@@ -85,6 +85,18 @@ def export_authorized_queue(queue) -> list[dict]:
     return result
 
 
+def _validate_research_tasks_json(data: bytes) -> None:
+    """Reject unreadable research exports before reporting recovery success.
+
+    Existing v1/v2 export structures remain accepted. Never include the
+    possibly private source contents in a validation error.
+    """
+    try:
+        json.loads(data.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError):
+        raise ValueError("Invalid CANO research tasks JSON") from None
+
+
 def create_portable_bundle(*, colony, memories, research_tasks,
                            authorized_queue, organism_records=None) -> bytes:
     """Bundle only records already scoped to the signed-in owner/session.
@@ -121,6 +133,7 @@ def create_portable_bundle(*, colony, memories, research_tasks,
         })
     if any(len(data) > MAX_COMPONENT_BYTES for data in components.values()):
         raise ValueError("One CANO backup section exceeds the 10 MiB limit")
+    _validate_research_tasks_json(components["research-tasks.json"])
     manifest = {
         "schema": ("cano-portable-backup-v2" if organism_records is not None
                    else "cano-portable-backup-v1"),
@@ -196,5 +209,6 @@ def verify_portable_bundle(bundle: bytes) -> dict[str, bytes]:
                 or item.get("size_bytes") != len(data)
                 or item.get("sha256") != sha256(data).hexdigest()):
             raise ValueError("Portable backup checksum mismatch")
+    _validate_research_tasks_json(files["research-tasks.json"])
     return files
 
