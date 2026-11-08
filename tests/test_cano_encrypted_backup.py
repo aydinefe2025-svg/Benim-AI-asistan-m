@@ -67,6 +67,62 @@ class EncryptedBackupTests(unittest.TestCase):
         with self.assertRaises(BackupError):verify_encrypted_backup(Path(result['receipt']))
         with self.assertRaises(BackupError):restore_to_empty_database(file,target_db_url_env='RESTORE_URL',confirm=True)
 
+    def test_tampered_encrypted_stream_never_forwards_plaintext(self):
+        """A failed GCM tag must never leak tentative plaintext to a child sink."""
+        result = make_encrypted_backup(self.target, dump_bin=self.fake)
+        archive = Path(result["archive"])
+        altered = bytearray(archive.read_bytes())
+        altered[-1] ^= 1
+        archive.write_bytes(altered)
+        forwarded = []
+        with self.assertRaises(BackupError):
+            decrypt_to_sink(archive, forwarded.append)
+        self.assertEqual(forwarded, [], "unauthenticated bytes reached restore sink")
+
+    def test_changed_valid_archive_between_restore_passes_never_reaches_child(self):
+        """A different valid GCM archive cannot be applied after first-pass proof."""
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+        from types import SimpleNamespace
+        first = make_encrypted_backup(self.target, dump_bin=self.fake)
+        archive = Path(first["archive"])
+        nonce = bytes(range(12))
+        header = b"CANOENC1" + nonce
+        enc = Cipher(algorithms.AES(bytes.fromhex(self.key)), modes.GCM(nonce)).encryptor()
+        enc.authenticate_additional_data(header)
+        replacement = b"PGDMP-another-valid-synthetic-archive" * 100
+        other = header + enc.update(replacement) + enc.finalize() + enc.tag
+        forwarded = []
+        class Pipe:
+            def write(self, data):
+                forwarded.append(bytes(data))
+                return len(data)
+            def close(self):
+                pass
+        fake_child = SimpleNamespace(stdin=Pipe(), wait=lambda timeout: 0, poll=lambda: 0)
+        original = decrypt_to_sink
+        swapped = [False]
+        def switch_after_preflight(path, sink, **kwargs):
+            proof = original(path, sink, **kwargs)
+            if sink is None and not swapped[0]:
+                swapped[0] = True
+                archive.write_bytes(other)
+            return proof
+        with patch.dict(os.environ, {
+            "RESTORE_URL": "postgresql://user:other@localhost/cano_restore_safety",
+        }):
+            with patch("cano_encrypted_backup.decrypt_to_sink", side_effect=switch_after_preflight):
+                with patch("cano_encrypted_backup.shutil.which", return_value="/synthetic/psql"):
+                    with patch("cano_encrypted_backup.subprocess.run",
+                               return_value=SimpleNamespace(returncode=0, stdout=b"0")):
+                        with patch("cano_encrypted_backup.subprocess.Popen", return_value=fake_child):
+                            with self.assertRaises(BackupError):
+                                restore_to_empty_database(
+                                    archive, target_db_url_env="RESTORE_URL",
+                                    confirm=True,
+                                )
+        self.assertTrue(swapped[0], "first authenticated read never ran")
+        self.assertEqual(forwarded, [], "changed archive reached isolated restore child")
+
     def test_missing_key_blocks_before_archive_created(self):
         with patch.dict(os.environ,{'CANO_BACKUP_KEY_HEX':''}):
             with self.assertRaises(BackupError):make_encrypted_backup(self.target,dump_bin=self.fake)
