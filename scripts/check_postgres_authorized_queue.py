@@ -131,6 +131,38 @@ def run():
     assert queue.recover_expired(now=455) == 1
     assert queue.get(boundary["id"])["state"] == "blocked"
 
+    # A real production call must use the PostgreSQL server clock, not the
+    # worker process clock: synthetic clock skew is injected without changing
+    # the PostgreSQL host clock or the timestamp stored in the server.
+    from unittest.mock import patch
+    server_owner = owner + "-server-clock"
+    server_queue = PostgresAuthorizedQueue(database_url, owner_key=server_owner)
+    server_job = server_queue.enqueue("server-clock", "Server-authoritative lease", approved=True)
+    with patch("core.postgres_authorized_queue.time.time", return_value=0.0):
+        server_lease = server_queue.claim("clock-skewed-worker", approved=True,
+                                          lease_seconds=10)
+    assert server_lease and server_lease["id"] == server_job["id"]
+    import psycopg
+    with psycopg.connect(database_url) as db, db.cursor() as cur:
+        cur.execute("SELECT EXTRACT(EPOCH FROM clock_timestamp())")
+        actual_db_now = float(cur.fetchone()[0])
+    assert actual_db_now < server_lease["lease_until"] <= actual_db_now + 11, (
+        "Lease must use PostgreSQL server time even with a frozen client clock")
+    with psycopg.connect(database_url) as db, db.cursor() as cur:
+        cur.execute("UPDATE public.cano_authorized_jobs "
+                    "SET lease_until=EXTRACT(EPOCH FROM clock_timestamp())-1 "
+                    "WHERE owner_key=%s AND id=%s", (server_owner, server_job["id"]))
+    with patch("core.postgres_authorized_queue.time.time", return_value=0.0):
+        try:
+            server_queue.complete(server_job["id"], server_lease["lease_token"],
+                                  "Must not commit under client skew")
+            raise AssertionError("Expired server-time lease accepted")
+        except PermissionError:
+            pass
+        assert server_queue.recover_expired() == 1, (
+            "Server-time expiry recovery must not trust the frozen client clock")
+    assert server_queue.get(server_job["id"])["state"] == "blocked"
+
     # Two independent queue clients race the same authorized task.
     # The winning worker commits one draft; a losing or cross-owner worker
     # cannot write a second result. Real row locks and separate connections.
