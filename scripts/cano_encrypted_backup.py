@@ -292,10 +292,11 @@ def restore_to_empty_database(path:Path,*,target_db_url_env='CANO_RESTORE_DATABA
     target=unquote(parts.path[1:])
     if not target.startswith('cano_restore_') or not target.replace('_','').isalnum():
         raise BackupError('Target must be a dedicated cano_restore_* database')
-    # CANO persists owner memory and authorized queue in separately configured
-    # databases. Check EVERY active source, not only the generic DATABASE_URL.
+    # CANO uses CANO_DATABASE_URL for its owner data, while memory and
+    # authorized queue can use separate databases. Protect each live source,
+    # not merely the generic DATABASE_URL fallback.
     # Normalize the default PostgreSQL port so :5432 cannot bypass this guard.
-    for source_env in ('DATABASE_URL', 'MEMORY_DATABASE_URL', 'AGENT_TASK_DATABASE_URL'):
+    for source_env in ('DATABASE_URL', 'CANO_DATABASE_URL', 'MEMORY_DATABASE_URL', 'AGENT_TASK_DATABASE_URL'):
         source_url=os.getenv(source_env,'')
         if not source_url:
             continue
