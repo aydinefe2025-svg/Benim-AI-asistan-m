@@ -1,0 +1,75 @@
+name: CANO digital selection pressure sweep evidence
+
+on:
+  pull_request:
+    paths:
+      - 'organism_lab_cloud/organism_lab/selection_pressure_sweep.py'
+      - 'organism_lab_cloud/organism_lab/tests/test_selection_pressure_sweep.py'
+      - 'research_reports/organism-lab-pressure/**'
+      - '.github/workflows/cano-selection-pressure-sweep.yml'
+  push:
+    branches: [feature/cano-selection-pressure-20261108]
+    paths:
+      - 'organism_lab_cloud/organism_lab/selection_pressure_sweep.py'
+      - 'organism_lab_cloud/organism_lab/tests/test_selection_pressure_sweep.py'
+      - 'research_reports/organism-lab-pressure/**'
+      - '.github/workflows/cano-selection-pressure-sweep.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  scientific-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Original VM and new diagnostic must pass in the same environment
+        working-directory: organism_lab_cloud
+        run: |
+          python -m compileall -q organism_lab/digital_vm.py organism_lab/compositional_transfer_study.py organism_lab/selection_pressure_sweep.py
+          python -m unittest organism_lab.tests.test_compositional_transfer_study organism_lab.tests.test_selection_pressure_sweep -v
+      - name: Independently regenerate immutable reports and verify pinned digests
+        working-directory: organism_lab_cloud
+        run: |
+          python - <<'PYCODE'
+          import hashlib
+          import json
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from organism_lab.selection_pressure_sweep import run_pressure_sweep, save_report, verify_report
+
+          evidence = Path('../research_reports/organism-lab-pressure')
+          manifest = json.loads((evidence/'EVIDENCE_MANIFEST.json').read_text(encoding='utf-8'))
+          specs = [
+              ('pressure-seeds-300-329.json', range(300,330),9),
+              ('pressure-seeds-400-429.json', range(400,430),10),
+          ]
+          with TemporaryDirectory() as tmp:
+              for filename,seeds,positive in specs:
+                  # Raw observations live in the immutable Library evidence ZIP.
+                  # The CI run rebuilds the same complete bytes without storing
+                  # ~700k of redundant raw JSON in Git source history.
+                  doc = save_report(run_pressure_sweep(seeds=tuple(seeds)), Path(tmp)/filename)
+                  r = verify_report(Path(tmp)/filename)['report']
+                  key = 'research_reports/organism-lab-pressure/'+filename
+                  assert doc['sha256'] == manifest['report_body_sha256'][key]
+                  raw_sha = hashlib.sha256((Path(tmp)/filename).read_bytes()).hexdigest()
+                  assert raw_sha == manifest['file_sha256'][key]
+                  assert len(r['trials'])==270
+                  assert r['design']['seeds']==list(seeds)
+                  assert r['primary_strict_gate'] is False
+                  assert r['adaptation_proven'] is False
+                  assert all(r['controls'].values())
+                  primary = next(x for x in r['grid'] if (x['capacity'],x['resource'])==(24,1))
+                  assert primary['positive_seeds']==positive
+                  assert primary['paired_causal_person_ticks']['ci95_low']<=0
+                  print(filename, 'recomputed and pinned',doc['sha256'], 'primary=FAIL')
+          PYCODE
