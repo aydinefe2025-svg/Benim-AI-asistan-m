@@ -24,8 +24,9 @@
   "source_file_sha256": {
     "organism_lab_cloud/organism_lab/resource_competition.py": "a757927e9daf03387e726cf90b8995d960597cb4478e91713e94f830d7c6a090",
     "organism_lab_cloud/organism_lab/tests/test_resource_competition.py": "913c675290d9b50ed5a3b4580b64d9ab062d8735f9b6030e9fa12fb29bfe8987",
-    ".github/workflows/cano-resource-competition-evidence.yml": "14233d89d456dec48bac953889ee3109eb37a7e74c7b4231b9489d386255a24e",
-    "docs/CANO_RESOURCE_COMPETITION_2026-11-08.md": "5a15b14f6547fc206d8257df1c616ed85c4da0a0f308fe1f286879c190d5689a"
+    ".github/workflows/cano-resource-competition-evidence.yml": "9cad8938ee9c0566c150289a6af1521c4c2b6b62edc0c160a6716a011e0eb488",
+    "docs/CANO_RESOURCE_COMPETITION_2026-11-08.md": "3c74f491651acd610a69adedbeb66fe17eb111748ed4c19aa30850812a424255"
   },
-  "caveat": "Engineered neutral turnover kills ~one organism per saturated tick: large mortality cost. Both A and B and AB genotypes seeded; no evolved novelty."
+  "caveat": "Engineered neutral turnover kills ~one organism per saturated tick: large mortality cost. Both A and B and AB genotypes seeded; no evolved novelty.",
+  "ci_first_attempt": "failed_FileNotFoundError_uncommitted_raw_reports; fixed regenerating pinned raw JSON in temporary directory"
 }
