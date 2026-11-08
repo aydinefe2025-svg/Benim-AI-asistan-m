@@ -2,13 +2,14 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from core.cano_backup_bundle import (
     create_portable_bundle, export_authorized_queue, verify_portable_bundle,
 )
-from core.backup_encryption import encrypt_backup
+from core.backup_encryption import MAX_PLAINTEXT_BYTES, encrypt_backup
 from scripts.cano_secure_backup import restore_to_new_directory
 
 
@@ -245,6 +246,42 @@ class CanoBackupBundleTests(unittest.TestCase):
                 self.assertEqual(
                     hashlib.sha256((extracted / filename).read_bytes()).hexdigest(),
                     entry["sha256"])
+
+    def test_offline_restore_rejects_oversized_ciphertext_before_unbounded_read(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "oversized.canoenc"
+            # Sparse synthetic input: no user records or large RAM allocation.
+            with source.open("wb") as output:
+                output.truncate(MAX_PLAINTEXT_BYTES + 100)
+            with patch.object(
+                Path, "read_bytes",
+                side_effect=AssertionError("unbounded Path.read_bytes forbidden"),
+            ):
+                with self.assertRaisesRegex(ValueError, "Encrypted backup size"):
+                    restore_to_new_directory(
+                        source, root / "output", "correct-horse-staple-cano-backup")
+            self.assertFalse((root / "output").exists())
+
+    def test_offline_restore_valid_ciphertext_avoids_unbounded_read(self):
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        archive = create_portable_bundle(
+            colony=colony, memories=[], research_tasks=b"{}",
+            authorized_queue=[],
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "valid.canoenc"
+            source.write_bytes(encrypt_backup(
+                archive, "correct-horse-staple-cano-backup"))
+            with patch.object(
+                Path, "read_bytes",
+                side_effect=AssertionError("unbounded Path.read_bytes forbidden"),
+            ):
+                restored = restore_to_new_directory(
+                    source, root / "output", "correct-horse-staple-cano-backup")
+            self.assertIn("manifest.json", restored)
+            self.assertTrue((root / "output" / "manifest.json").is_file())
 
     def test_offline_restore_authenticates_and_writes_only_validated_files(self):
         colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
