@@ -79,6 +79,67 @@ class EncryptedBackupTests(unittest.TestCase):
         archive=Path(result['archive']);archive.unlink();archive.symlink_to(self.dump)
         with self.assertRaises(BackupError):verify_encrypted_backup(Path(result['receipt']))
 
+    def test_restore_uses_authenticated_snapshot_after_original_archive_changes(self):
+        """An operator archive may be replaced after the first proof but before pg_restore.
+
+        The restore must stream only the already authenticated immutable copy.
+        No real SQL, owner record, network, or pg_restore binary is used.
+        """
+        result = make_encrypted_backup(self.target, dump_bin=self.fake)
+        archive = Path(result['archive'])
+        expected = b'PGDMP-PRIVATE-DATABASE-CONTENTS\x00\x01' * 1200
+
+        class RecordingPipe:
+            def __init__(self):
+                self.chunks = []
+                self.closed = False
+
+            def write(self, data):
+                self.chunks.append(bytes(data))
+                return len(data)
+
+            def close(self):
+                self.closed = True
+
+        class FakeRestore:
+            def __init__(self):
+                self.stdin = RecordingPipe()
+
+            def wait(self, timeout=None):
+                return 0
+
+            def poll(self):
+                return 0
+
+            def kill(self):
+                raise AssertionError('Unexpected forced termination')
+
+        fake_restore = FakeRestore()
+        def mutate_original_during_preflight(*args, **kwargs):
+            # This hook is reached only AFTER the initial authentication.
+            altered = bytearray(archive.read_bytes())
+            altered[-25] ^= 1
+            archive.write_bytes(altered)
+            class Result:
+                returncode = 0
+                stdout = b'0'
+            return Result()
+
+        with patch.dict(os.environ, {'RESTORE_URL':
+                'postgresql://user:example@localhost/cano_restore_snapshot'}):
+            with patch('cano_encrypted_backup.shutil.which', side_effect=lambda name: name):
+                with patch('cano_encrypted_backup.subprocess.run',
+                           side_effect=mutate_original_during_preflight):
+                    with patch('cano_encrypted_backup.subprocess.Popen',
+                               return_value=fake_restore):
+                        recovered = restore_to_empty_database(
+                            archive, target_db_url_env='RESTORE_URL', confirm=True)
+
+        self.assertTrue(recovered['authenticated'])
+        self.assertTrue(recovered['restored_to_new_database'])
+        self.assertEqual(b''.join(fake_restore.stdin.chunks), expected)
+        self.assertTrue(fake_restore.stdin.closed)
+
     def test_restore_requires_separate_safe_target_without_process_call(self):
         result=make_encrypted_backup(self.target,dump_bin=self.fake)
         with patch.dict(os.environ,{'RESTORE_URL':'postgresql://user:other@localhost/production'}):

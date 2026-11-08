@@ -223,39 +223,45 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
         if archive.exists() and not receipt.exists():archive.unlink()
 
 
-def decrypt_to_sink(path:Path,sink,*,key_env='CANO_BACKUP_KEY_HEX')->dict:
-    """Authenticated stream decryption; the caller must not trust bytes before GCM finalize."""
+def _decrypt_from_file(inp, sink, *, key_env='CANO_BACKUP_KEY_HEX')->dict:
+    """Decrypt a seekable ciphertext snapshot. Never hand the input handle to a child."""
     key=_key(key_env)
+    inp.seek(0, os.SEEK_END)
+    size=inp.tell()
+    inp.seek(0)
+    if size<len(MAGIC)+NONCE_BYTES+TAG_BYTES+6:
+        raise BackupError('Encrypted archive truncated')
+    header=inp.read(len(MAGIC)+NONCE_BYTES)
+    if header[:len(MAGIC)]!=MAGIC:raise BackupError('Unknown encrypted archive format')
+    inp.seek(size-TAG_BYTES);tag=inp.read(TAG_BYTES)
+    inp.seek(len(header))
+    dec=Cipher(algorithms.AES(key),modes.GCM(header[len(MAGIC):],tag)).decryptor()
+    dec.authenticate_additional_data(header)
+    remaining=size-len(header)-TAG_BYTES
+    h=hashlib.sha256();n=0;first=b''
+    try:
+        while remaining:
+            chunk=inp.read(min(CHUNK,remaining))
+            if not chunk:raise BackupError('Encrypted archive is truncated')
+            remaining-=len(chunk)
+            plain=dec.update(chunk)
+            if len(first)<5:first+=plain[:5-len(first)]
+            h.update(plain);n+=len(plain)
+            if sink is not None:sink(plain)
+        dec.finalize()
+    except (InvalidTag,ValueError):
+        raise BackupError('Encrypted archive authentication failed') from None
+    if first!=b'PGDMP' or n<6:raise BackupError('Decrypted content is not a PostgreSQL archive')
+    return {'authenticated':True,'plaintext_sha256':h.hexdigest(),'plaintext_size_bytes':n}
+
+
+def decrypt_to_sink(path:Path,sink,*,key_env='CANO_BACKUP_KEY_HEX')->dict:
+    """Authenticate encrypted archive; a sink must not trust bytes before finalize."""
     path=Path(path)
     if path.is_symlink() or not path.is_file():
         raise BackupError('Refusing symbolic link or missing encrypted archive')
     with path.open('rb') as inp:
-        size=path.stat().st_size
-        if size<len(MAGIC)+NONCE_BYTES+TAG_BYTES+6:
-            raise BackupError('Encrypted archive truncated')
-        header=inp.read(len(MAGIC)+NONCE_BYTES)
-        if header[:len(MAGIC)]!=MAGIC:raise BackupError('Unknown encrypted archive format')
-        inp.seek(size-TAG_BYTES);tag=inp.read(TAG_BYTES)
-        inp.seek(len(header))
-        dec=Cipher(algorithms.AES(key),modes.GCM(header[len(MAGIC):],tag)).decryptor()
-        dec.authenticate_additional_data(header)
-        remaining=size-len(header)-TAG_BYTES
-        h=hashlib.sha256();n=0;first=b''
-        try:
-            while remaining:
-                chunk=inp.read(min(CHUNK,remaining))
-                if not chunk:raise BackupError('Encrypted archive is truncated')
-                remaining-=len(chunk)
-                plain=dec.update(chunk)
-                if len(first)<5:first+=plain[:5-len(first)]
-                h.update(plain);n+=len(plain)
-                if sink is not None:sink(plain)
-            dec.finalize()
-        except (InvalidTag,ValueError):
-            raise BackupError('Encrypted archive authentication failed') from None
-        if first!=b'PGDMP' or n<6:raise BackupError('Decrypted content is not a PostgreSQL archive')
-        return {'authenticated':True,'plaintext_sha256':h.hexdigest(),'plaintext_size_bytes':n}
-
+        return _decrypt_from_file(inp,sink,key_env=key_env)
 
 def verify_encrypted_backup(receipt_path: Path,*,key_env='CANO_BACKUP_KEY_HEX')->dict:
     receipt_path=Path(receipt_path)
@@ -309,46 +315,56 @@ def restore_to_empty_database(path:Path,*,target_db_url_env='CANO_RESTORE_DATABA
             raise BackupError('Invalid configured source database URL') from None
         if same_source:
             raise BackupError('Isolated restore target must differ from all active source databases')
-    # Authentication must succeed BEFORE the destination receives any SQL.
-    proof=decrypt_to_sink(path,None)
-    env=_child_env(_libpq_env_from_uri(url,os.environ))
-    psql=shutil.which(psql_bin);restore=shutil.which(restore_bin)
-    if not psql or not restore:raise BackupError('PostgreSQL restore executables unavailable')
-    query=("SELECT count(*) FROM pg_catalog.pg_class c "
-           "JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace "
-           "WHERE c.relkind IN ('r','p','v','m','f') "
-           "AND n.nspname NOT IN ('pg_catalog','information_schema') "
-           "AND n.nspname NOT LIKE 'pg_toast%' ")
-    try:
-        pre=subprocess.run([psql,'-X','--no-password','-At','-c',query],
-                           stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
-                           stderr=subprocess.DEVNULL,env=env,check=False,timeout=50)
-    except (OSError,subprocess.SubprocessError):raise BackupError('Restore preflight failed') from None
-    if pre.returncode!=0 or pre.stdout.strip()!=b'0':
-        raise BackupError('Isolated restore database is not empty or inaccessible')
-    process=None
-    try:
-        process=subprocess.Popen([restore,'--no-password','--single-transaction',
-               '--exit-on-error','--no-owner','--no-privileges','--dbname',target],
-               stdin=subprocess.PIPE,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,env=env)
-        assert process.stdin is not None
+    # Capture ciphertext in an OS-managed private temporary file. POSIX unlinks
+    # its name immediately; Windows deletes it on close. Never spool plaintext.
+    original=Path(path)
+    if original.is_symlink() or not original.is_file():
+        raise BackupError('Refusing symbolic link or missing encrypted archive')
+    with tempfile.TemporaryFile(mode='w+b') as snapshot:
+        with original.open('rb') as archive:
+            shutil.copyfileobj(archive,snapshot,length=CHUNK)
+        snapshot.flush()
+        # Verify an anonymous, private *ciphertext* snapshot once; stream that same
+        # seekable snapshot later, even if the operator archive is replaced during
+        # preflight. No unauthenticated second read from the operator's path.
+        proof=_decrypt_from_file(snapshot,None)
+        env=_child_env(_libpq_env_from_uri(url,os.environ))
+        psql=shutil.which(psql_bin);restore=shutil.which(restore_bin)
+        if not psql or not restore:raise BackupError('PostgreSQL restore executables unavailable')
+        query=("SELECT count(*) FROM pg_catalog.pg_class c "
+               "JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace "
+               "WHERE c.relkind IN ('r','p','v','m','f') "
+               "AND n.nspname NOT IN ('pg_catalog','information_schema') "
+               "AND n.nspname NOT LIKE 'pg_toast%' ")
         try:
-            second=decrypt_to_sink(path,process.stdin.write)
-            if second['plaintext_sha256']!=proof['plaintext_sha256'] or second['plaintext_size_bytes']!=proof['plaintext_size_bytes']:
-                raise BackupError('Archive changed between authentication and restore')
+            pre=subprocess.run([psql,'-X','--no-password','-At','-c',query],
+                               stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
+                               stderr=subprocess.DEVNULL,env=env,check=False,timeout=50)
+        except (OSError,subprocess.SubprocessError):raise BackupError('Restore preflight failed') from None
+        if pre.returncode!=0 or pre.stdout.strip()!=b'0':
+            raise BackupError('Isolated restore database is not empty or inaccessible')
+        process=None
+        try:
+            process=subprocess.Popen([restore,'--no-password','--single-transaction',
+                   '--exit-on-error','--no-owner','--no-privileges','--dbname',target],
+                   stdin=subprocess.PIPE,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,env=env)
+            assert process.stdin is not None
+            try:
+                second=_decrypt_from_file(snapshot,process.stdin.write)
+                if second['plaintext_sha256']!=proof['plaintext_sha256'] or second['plaintext_size_bytes']!=proof['plaintext_size_bytes']:
+                    raise BackupError('Archive changed between authentication and restore')
+            finally:
+                process.stdin.close()
+            if process.wait(timeout=900)!=0:raise BackupError('Isolated restore failed')
+            return {'restored_to_new_database':True,'authenticated':True,
+                    'plaintext_sha256':proof['plaintext_sha256'],
+                    'target_database_name':target,
+                    'note':'Row-level source vs target equality must be tested separately.'}
+        except (OSError,subprocess.SubprocessError, BrokenPipeError):
+            raise BackupError('Isolated restore failed (details redacted)') from None
         finally:
-            process.stdin.close()
-        if process.wait(timeout=900)!=0:raise BackupError('Isolated restore failed')
-        return {'restored_to_new_database':True,'authenticated':True,
-                'plaintext_sha256':proof['plaintext_sha256'],
-                'target_database_name':target,
-                'note':'Row-level source vs target equality must be tested separately.'}
-    except (OSError,subprocess.SubprocessError, BrokenPipeError):
-        raise BackupError('Isolated restore failed (details redacted)') from None
-    finally:
-        if process is not None and process.poll() is None:
-            process.kill();process.wait()
-
+            if process is not None and process.poll() is None:
+                process.kill();process.wait()
 
 def main():
     p=argparse.ArgumentParser(description='CANO: private authenticated PostgreSQL export and isolated recovery')
