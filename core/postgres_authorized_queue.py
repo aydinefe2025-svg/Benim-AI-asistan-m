@@ -8,6 +8,7 @@ than replay work that may already have caused an external side effect.
 from __future__ import annotations
 
 import hashlib
+import math
 import logging
 import logging
 import os
@@ -15,6 +16,17 @@ import secrets
 import time
 import uuid
 from typing import Callable
+
+
+def _finite_now(now):
+    """Reject NaN and infinite test-clock overrides before reading or writing DB."""
+    try:
+        when = time.time() if now is None else float(now)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("Finite clock value required") from exc
+    if not math.isfinite(when):
+        raise ValueError("Finite clock value required")
+    return when
 
 
 class PostgresAuthorizedQueue:
@@ -176,7 +188,7 @@ class PostgresAuthorizedQueue:
             raise ValueError("Invalid worker identity")
         if type(lease_seconds) is not int or not 1 <= lease_seconds <= 3600:
             raise ValueError("Invalid lease duration")
-        when = time.time() if now is None else float(now)
+        when = _finite_now(now)
         with self._db() as db, db.cursor() as cur:
             cur.execute("SELECT * FROM cano_authorized_jobs "
                         "WHERE owner_key=%s AND state='queued' AND eligible_after<=%s "
@@ -207,14 +219,14 @@ class PostgresAuthorizedQueue:
             raise KeyError(task_id)
         if (row["state"] != "running" or not isinstance(token, str)
                 or not secrets.compare_digest(row["lease_token"] or "", token)
-                or row["lease_until"] is None or when > row["lease_until"]):
+                or row["lease_until"] is None or when >= row["lease_until"]):
             raise PermissionError("Job lease expired or lost")
         return row
 
     def complete(self, task_id, lease_token, draft, *, now: float | None = None):
         if not isinstance(draft, str) or not draft.strip():
             raise ValueError("Empty research draft")
-        when = time.time() if now is None else float(now)
+        when = _finite_now(now)
         clean = draft.strip()[:12000]
         with self._db() as db, db.cursor() as cur:
             self._require_lease(cur, task_id, lease_token, when)
@@ -229,7 +241,7 @@ class PostgresAuthorizedQueue:
                 "draft": clean, "verified": False}
 
     def fail(self, task_id, lease_token, *, now: float | None = None):
-        when = time.time() if now is None else float(now)
+        when = _finite_now(now)
         with self._db() as db, db.cursor() as cur:
             row = self._require_lease(cur, task_id, lease_token, when)
             if row["attempts"] < row["max_calls"]:
@@ -249,10 +261,10 @@ class PostgresAuthorizedQueue:
 
     def recover_expired(self, *, now: float | None = None):
         """Block expired work; external side effects must never be replayed blindly."""
-        when = time.time() if now is None else float(now)
+        when = _finite_now(now)
         with self._db() as db, db.cursor() as cur:
             cur.execute("SELECT id FROM cano_authorized_jobs "
-                        "WHERE owner_key=%s AND state='running' AND lease_until<%s "
+                        "WHERE owner_key=%s AND state='running' AND lease_until<=%s "
                         "FOR UPDATE SKIP LOCKED", (self.owner_key, when))
             rows = cur.fetchall()
             for row in rows:
