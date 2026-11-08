@@ -11,7 +11,7 @@ import getpass
 import os
 from pathlib import Path
 
-from core.backup_encryption import decrypt_backup
+from core.backup_encryption import MAX_CIPHERTEXT_BYTES, decrypt_backup
 from core.cano_backup_bundle import verify_portable_bundle
 
 
@@ -21,7 +21,12 @@ def restore_to_new_directory(source: Path, destination: Path, passphrase: str) -
         raise ValueError("Encrypted backup file is unavailable")
     if destination.exists() or destination.is_symlink():
         raise ValueError("Destination must be a new directory")
-    encrypted = source.read_bytes()
+    # Never load an unbounded operator-supplied archive into memory.
+    # Reading one extra byte detects over-limit inputs even if a file grows.
+    with source.open("rb") as stream:
+        encrypted = stream.read(MAX_CIPHERTEXT_BYTES + 1)
+    if len(encrypted) > MAX_CIPHERTEXT_BYTES:
+        raise ValueError("Encrypted backup size is invalid")
     bundle = decrypt_backup(encrypted, passphrase)
     files = verify_portable_bundle(bundle)
     destination.mkdir(mode=0o700, parents=False, exist_ok=False)
