@@ -71,9 +71,10 @@ class Cursor:
             self.row = (db.name,)
         elif "pg_advisory_xact_lock" in sql:
             self.row = ("",)
+        elif "SET LOCAL row_security = off" in sql:
+            self.row = None
         elif "SELECT COUNT(*)" in sql:
-            owner, collection = params
-            self.row = (sum(1 for key in db.rows if key[:2] == (owner, collection)),)
+            self.row = (len(db.rows),)
         elif "INSERT INTO public.organism_lab_records" in sql:
             if db.fail_after is not None and len(self.conn.pending) >= db.fail_after:
                 raise RuntimeError("synthetic SQL failure")
