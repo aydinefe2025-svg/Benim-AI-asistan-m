@@ -1,0 +1,52 @@
+name: CANO protected core mutation evidence validation
+
+on:
+  pull_request:
+    paths:
+      - 'organism_lab_cloud/organism_lab/core_protection_study.py'
+      - 'organism_lab_cloud/organism_lab/tests/test_core_protection_study.py'
+      - 'research_reports/organism-lab-protected-core/**'
+      - '.github/workflows/cano-core-protection-evidence.yml'
+      - 'docs/CANO_PROTECTED_CORE_2026-11-08.md'
+
+permissions:
+  contents: read
+jobs:
+  independent-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Execute finite mutation and integrity regressions
+        working-directory: organism_lab_cloud
+        run: |
+          python -m compileall -q organism_lab/core_protection_study.py organism_lab/digital_vm.py
+          python -m unittest organism_lab.tests.test_core_protection_study -v
+      - name: Independently recompute BOTH fixed-seed experiments from committed reports
+        working-directory: organism_lab_cloud
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from organism_lab.core_protection_study import verify_report
+          folder=Path('../research_reports/organism-lab-protected-core')
+          for file, first, expected_positive, p in [
+              ('pilot-seeds-0-29.json',0,4,0.0625),
+              ('confirmatory-seeds-30-59.json',30,5,0.03125)]:
+              doc=verify_report(folder/file)
+              r=doc['report']
+              assert r['design']['seeds']==list(range(first,first+30))
+              assert len(r['trials'])==120
+              assert r['positive_seeds']==expected_positive
+              assert r['exact_one_sided_sign_p']==p
+              assert r['no_division_births_zero'] is True
+              assert r['no_mutation_functional_b_zero'] is True
+              assert r['robust_improvement_demonstrated'] is False
+              print(file, 'SOURCE RECOMPUTATION PASS', 'robust_adaptation=False')
+          PY

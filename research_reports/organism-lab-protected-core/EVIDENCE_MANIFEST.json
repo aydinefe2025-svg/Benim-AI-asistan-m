@@ -1,0 +1,16 @@
+{
+  "baseline_engine": "organism_lab_cloud/organism_lab/digital_vm.py (unchanged in GitHub)",
+  "claim": "local_tests_passed; robust_adaptation_not_demonstrated; CI_pending",
+  "files": {
+    ".github/workflows/cano-core-protection-evidence.yml": "033f57287b783806fd472b2ef25ff09ac2f3a210621dbcccc9f9085faf2f53d6",
+    "docs/CANO_PROTECTED_CORE_2026-11-08.md": "5bf2eaf309cb3b2f7c317148f965f24ebe13566eb95e518cdfb2a045282b11c5",
+    "organism_lab_cloud/organism_lab/core_protection_study.py": "9878ac1d1c122342ff811076a6561179a8252f6303e0b2b43fc11b7cafda875b",
+    "organism_lab_cloud/organism_lab/tests/test_core_protection_study.py": "16fd6b2b45082061ddc36ba1aabbfff346c6023208a87a92cefbf5375055fa42",
+    "research_reports/organism-lab-protected-core/confirmatory-seeds-30-59.json": "91c3140c92cd2f13fbe2eb3c131dcc6bb6a7164fdecf055fc8542d406b0e1597",
+    "research_reports/organism-lab-protected-core/pilot-seeds-0-29.json": "63fb4396448735a690583b795fe9b78e2b7cd3b3385807e4f58a4c6ca3f7a818"
+  },
+  "issue": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/413",
+  "schema": "cano-core-protection-manifest-v1",
+  "simulation_count": 240,
+  "topic_key": "organism.digital"
+}
