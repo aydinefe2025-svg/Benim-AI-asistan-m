@@ -1,0 +1,28 @@
+{
+  "source_doi": "10.1038/s41586-025-09413-0",
+  "measurement_context": "Reported near-maximum elemental enrichments in PIXL's high-Fe-S Apollo Temple region; quoted published values only.",
+  "elements": [
+    {
+      "element": "Zn",
+      "concentration_ppm": 2300,
+      "quoted_uncertainty_ppm": 670,
+      "relative_quoted_uncertainty_pct": 29.13
+    },
+    {
+      "element": "Ni",
+      "concentration_ppm": 2000,
+      "quoted_uncertainty_ppm": 570,
+      "relative_quoted_uncertainty_pct": 28.5
+    },
+    {
+      "element": "Cu",
+      "concentration_ppm": 419,
+      "quoted_uncertainty_ppm": 355,
+      "relative_quoted_uncertainty_pct": 84.73
+    }
+  ],
+  "raw_spectra_reanalysed": false,
+  "uncertainty_is_biosignature_probability": false,
+  "life_detected": false,
+  "caution": "A quoted +/- divided by a quoted concentration does not measure probability of biological origin or independently validate mineral identification."
+}
