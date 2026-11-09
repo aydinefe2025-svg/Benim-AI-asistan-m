@@ -16,7 +16,7 @@ STOP_WORDS = {
     "özetle", "özetle", "ver", "göster", "yalnızca", "sadece", "dayandır",
     "dayalı", "yanıtı", "yanıt", "cevabı", "cevap", "nedir", "nasıl", "hakkında",
     "bilgi", "lütfen", "konusunda", "konusundaki", "için", "ile", "ve", "bir",
-    "the", "what", "is", "are", "of", "about", "find", "search", "research",
+    "kaynaklarını", "numaralı", "bağlantı", "bağlantılarını", "olarak", "listele", "listeleyin", "doğrulanmış", "pasajlarından", "alınamazsa", "açıkça", "belirt",\n    "the", "what", "is", "are", "of", "about", "find", "search", "research",
     "wikipedia", "source", "sources", "passage", "cite", "summarize", "only",
     "based", "on", "please", "give", "show", "and", "for", "to", "from", "url", "urlsini", "sini",
 }
