@@ -83,6 +83,15 @@ class GroqClaimJsonTests(unittest.TestCase):
                                       client_factory=lambda **kw: client)
         self.assertNotIn("some-secret", str(err.exception))
 
+    def test_client_construction_failure_is_sanitized(self):
+        def failing_factory(**kwargs):
+            raise RuntimeError("api_key=some-secret")
+
+        with self.assertRaisesRegex(RuntimeError, "provider request failed") as err:
+            generate_claim_quote_json("JSON", "Proposal", api_key="dummy",
+                                      client_factory=failing_factory)
+        self.assertNotIn("some-secret", str(err.exception))
+
     def test_provider_http_status_is_reported_without_leaking_body(self):
         class BadRequest(Exception):
             status_code = 400
