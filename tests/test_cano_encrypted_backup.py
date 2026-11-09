@@ -232,7 +232,7 @@ class EncryptedBackupTests(unittest.TestCase):
 
     def test_failing_pg_dump_removes_partial_ciphertext(self):
         bad=self.root/'bad.py'
-        bad.write_text('#!'+sys.executable+'\nimport sys\nsys.stdout.buffer.write(b"PGDMP partial")\nsys.exit(2)\n')
+        bad.write_text('#!'+sys.executable+'\nimport sys\nif "--version" in sys.argv:\n print("pg_dump (PostgreSQL) 18.0")\n raise SystemExit(0)\nsys.stdout.buffer.write(b"PGDMP partial")\nsys.exit(2)\n')
         bad.chmod(bad.stat().st_mode|stat.S_IXUSR)
         if os.name=='nt':
             wrapper=self.root/'bad_pg_dump.cmd'
@@ -250,6 +250,7 @@ class EncryptedBackupTests(unittest.TestCase):
         """A real pg_dump can stall after first bytes: pipe.read must not hang forever."""
         hanging=self.root/'hang_dump.py'
         hanging.write_text('#!'+sys.executable+'\nimport sys,time\n'
+            'if "--version" in sys.argv:\n print("pg_dump (PostgreSQL) 18.0")\n raise SystemExit(0)\n'
             'sys.stdout.buffer.write(b"PGDMP synthetic partial")\n'
             'sys.stdout.buffer.flush()\n'
             'time.sleep(6)\n', encoding='utf8')
