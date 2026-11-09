@@ -1,0 +1,58 @@
+name: CANO spontaneous AB lineage evidence
+
+on:
+  pull_request:
+    paths:
+      - 'organism_lab_cloud/organism_lab/spontaneous_adaptation.py'
+      - 'organism_lab_cloud/organism_lab/tests/test_spontaneous_adaptation.py'
+      - 'research_reports/organism-lab-spontaneous/**'
+      - 'docs/CANO_SPONTANEOUS_AB_2026-11-09.md'
+      - '.github/workflows/cano-spontaneous-ab-evidence.yml'
+  push:
+    branches:
+      - feature/cano-spontaneous-ab-20261109
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11','3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Verify inherited VM and all regression behavior
+        working-directory: organism_lab_cloud
+        run: |
+          python -m compileall -q organism_lab/digital_vm.py organism_lab/resource_competition.py organism_lab/low_loss_turnover.py organism_lab/compositional_transfer_study.py organism_lab/spontaneous_adaptation.py
+          python -m unittest organism_lab.tests.test_spontaneous_adaptation organism_lab.tests.test_resource_competition organism_lab.tests.test_low_loss_turnover -v
+      - name: Recompute both unseeded-AB 30-seed cohorts and hashes, do not promote failed primary gate
+        working-directory: organism_lab_cloud
+        run: |
+          python - <<'PY'
+          import hashlib,json,tempfile
+          from pathlib import Path
+          from organism_lab.spontaneous_adaptation import run_study,save_report,verify_report
+          manifest=json.loads(Path('../research_reports/organism-lab-spontaneous/EVIDENCE_MANIFEST.json').read_text())
+          with tempfile.TemporaryDirectory() as td:
+              for a in (1200,1300):
+                  name=f'novel-ab-seeds-{a}-{a+29}.json'
+                  outcome=run_study(seeds=tuple(range(a,a+30)),steps=120,period=12,mutation_rate=.08,holdout_steps=20)
+                  path=Path(td)/name
+                  wrapper=save_report(outcome,path)
+                  assert verify_report(path)==wrapper
+                  assert wrapper['sha256']==manifest['reports'][name]['body_sha256']
+                  assert hashlib.sha256(path.read_bytes()).hexdigest()==manifest['reports'][name]['file_sha256']
+                  assert outcome['emergence_seeds']==manifest['reports'][name]['emergence']
+                  assert outcome['holdout_positive_seeds']==manifest['reports'][name]['holdout_positive']
+                  assert outcome['adaptation_demonstrated'] is False
+                  assert all(outcome['negative_controls'].values())
+                  print('RECOMPUTED',name,'AB emergence',outcome['emergence_seeds'],'strict gate FAIL')
+          PY
