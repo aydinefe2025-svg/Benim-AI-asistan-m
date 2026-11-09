@@ -511,7 +511,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                             st.caption("Belgeden kısa metin: " + doc["excerpt"])
 
     if latest_id and inspected and inspected["status"] == "review_pending":
-        st.caption("Ավարտված taslakı incelemeden kaldırır; iddiaları doğrulamaz ve ders kabul etmez.")
+        st.caption("Taslağı inceleme kuyruğundan kaldırır; iddiaları doğrulamaz veya ders kabul etmez.")
         if st.button("İncelemeyi tamamla (doğruluk onayı değildir)",
                      key="cano_mark_reviewed_" + latest_id):
             try:
