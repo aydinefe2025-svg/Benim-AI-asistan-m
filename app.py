@@ -418,7 +418,7 @@ def _research_leads(goal: str) -> str:
         + "; ".join(item["title"] + ": " + item["url"] for item in scholarly)
         if scholarly else "Bibliographic metadata leads: none retrieved."
     )
-    return metadata + "\n\n" + format_research_evidence(excerpts)
+    return metadata + "\n\n" + format_research_evidence(_research_excerpts)
 
 
 def _research_answer(goal: str) -> str:
@@ -650,12 +650,13 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
         "Bu mesaj için harici kaynak sorgulanmadı; güncel veri doğrulanmadı."
     )
     
-    _research_excerpts = []\n    # Public source lookup only on explicit research requests; source URLs are
+    _research_excerpts = []
+    # Public source lookup only on explicit research requests; source URLs are
     # evidence pointers, not proof that model claims were independently verified.
     if arama_istegi:
         try:
             public_sources = research_sources(kullanici_mesaji)
-            excerpts = retrieve_research_excerpts(public_sources)
+            _research_excerpts = retrieve_research_excerpts(public_sources)
             if public_sources:
                 arama_sonucu += "\n" + format_research_evidence(excerpts)
                 arama_sonucu += "\nKaynak bağlantıları (ansiklopedi, bağımsız doğrulanmadı):\n" + "\n".join(
