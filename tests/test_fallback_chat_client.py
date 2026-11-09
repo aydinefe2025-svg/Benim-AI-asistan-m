@@ -29,6 +29,20 @@ class FallbackChatClientTests(unittest.TestCase):
         self.assertEqual(len(primary.calls), 1)
         self.assertEqual(fallback.calls, [])
 
+    def test_sanitized_provider_status_survives_primary_wrapper(self):
+        class ProviderError(RuntimeError):
+            status_code = 429
+            failure_kind = None
+
+        primary = FakeClient(error=ProviderError("private provider body"))
+        client = FallbackChatClient(primary)
+        with self.assertRaises(RuntimeError) as caught:
+            client.chat("free", "system", "prompt")
+
+        self.assertEqual(caught.exception.failure_kind, "rate_limit")
+        self.assertEqual(caught.exception.status_code, 429)
+        self.assertNotIn("private provider body", str(caught.exception))
+
     def test_enabled_fallback_activates_once_and_stays_pinned_for_the_run(self):
         primary = FakeClient(error=TimeoutError("slow local model"))
         fallback = FakeClient(result="remote result")
