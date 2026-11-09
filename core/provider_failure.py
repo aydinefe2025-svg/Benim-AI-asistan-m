@@ -9,6 +9,8 @@ MESSAGES = {
     "request": "Sağlayıcı isteği kabul etmedi; model ve istek ayarlarını kontrol edin.",
     "network": "Sağlayıcıya ağ bağlantısı kurulamadı veya bağlantı zaman aşımına uğradı.",
     "service": "Model hizmeti geçici olarak kullanılamıyor; daha sonra yeniden deneyin.",
+    "response": "Sağlayıcı yanıtı boş veya biçimi geçersizdi.",
+    "storage": "Öğrenme kaydı kalıcı depoya yazılamadı; mevcut dersler korunuyor.",
     "unknown": "Model yanıtı alınamadı; bağlantı ve model ayarlarını kontrol edin.",
 }
 
