@@ -32,6 +32,25 @@ class ResearchEvidenceTests(unittest.TestCase):
         self.assertFalse(results[0]["verified"])
         self.assertEqual(results[0]["source_type"], "secondary_source_excerpt")
 
+
+    def test_retrieves_from_allowlisted_turkish_wikipedia(self):
+        def fetch(url):
+            parsed = urlsplit(url)
+            self.assertEqual(parsed.scheme, "https")
+            self.assertEqual(parsed.netloc, "tr.wikipedia.org")
+            self.assertEqual(parsed.path, "/w/api.php")
+            self.assertEqual(parse_qs(parsed.query)["titles"], ["Kütleçekimsel merceklenme"])
+            return {"query": {"pages": {"1": {
+                "title": "Kütleçekimsel merceklenme", "extract": "Kütleçekimsel merceklenme, ..."
+            }}}}
+        results = retrieve_research_excerpts([{
+            "title": "Kütleçekimsel merceklenme",
+            "url": "https://tr.wikipedia.org/wiki/K%C3%BCtle%C3%A7ekimsel_merceklenme",
+        }], fetch=fetch)
+        self.assertEqual(len(results), 1)
+        self.assertIn("Kütleçekimsel merceklenme", results[0]["text"])
+        self.assertEqual(results[0]["id"], "W1")
+
     def test_rejects_untrusted_urls_and_deduplicates_titles(self):
         calls = []
 

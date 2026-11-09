@@ -4,10 +4,13 @@ Wikipedia is a secondary source. Excerpts are contextual evidence only and do no
 replace review of primary scientific literature or establish independent truth.
 """
 import json
-from urllib.parse import quote, urlencode, unquote, urlsplit
+from urllib.parse import urlencode, unquote, urlsplit
 from urllib.request import Request, urlopen
 
-API = "https://en.wikipedia.org/w/api.php"
+API_BY_HOST = {
+    "en.wikipedia.org": "https://en.wikipedia.org/w/api.php",
+    "tr.wikipedia.org": "https://tr.wikipedia.org/w/api.php",
+}
 MAX_EXCERPT_CHARS = 1800
 MAX_RESPONSE_BYTES = 100_000
 MAX_PAGES = 3
@@ -25,21 +28,21 @@ def _fetch(url):
     return json.loads(raw)
 
 
-def _title_from_wikipedia_url(url):
+def _wikipedia_title(url):
     if not isinstance(url, str):
         return None
     parsed = urlsplit(url)
-    if (parsed.scheme != "https" or parsed.netloc.lower() != "en.wikipedia.org"
+    if (parsed.scheme != "https" or parsed.netloc.lower() not in API_BY_HOST
             or not parsed.path.startswith("/wiki/") or parsed.query or parsed.fragment):
         return None
     title = unquote(parsed.path[len("/wiki/"):]).replace("_", " ").strip()
     if not title or len(title) > 200 or "/" in title:
         return None
-    return title
+    return parsed.netloc.lower(), title
 
 
 def retrieve_research_excerpts(sources, *, fetch=None, limit=MAX_PAGES):
-    """Retrieve plain-text extracts only for validated en.wikipedia.org/wiki URLs."""
+    """Retrieve plain-text extracts only through the fixed Wikipedia API hosts."""
     if not isinstance(sources, (list, tuple)):
         return []
     fetch = fetch or _fetch
@@ -51,20 +54,25 @@ def retrieve_research_excerpts(sources, *, fetch=None, limit=MAX_PAGES):
             break
         if not isinstance(item, dict):
             continue
-        title = _title_from_wikipedia_url(item.get("url"))
-        if title is None or title.casefold() in seen:
+        validated = _wikipedia_title(item.get("url"))
+        if validated is None:
             continue
-        seen.add(title.casefold())
+        host, title = validated
+        key = (host, title.casefold())
+        if key in seen:
+            continue
+        seen.add(key)
         params = {
             "action": "query", "prop": "extracts", "explaintext": 1,
-            "exintro": 1, "redirects": 1, "format": "json",
-            "titles": title,
+            "exintro": 1, "redirects": 1, "format": "json", "titles": title,
         }
         try:
-            data = fetch(API + "?" + urlencode(params))
+            data = fetch(API_BY_HOST[host] + "?" + urlencode(params))
             pages = data.get("query", {}).get("pages", {})
             page = next(iter(pages.values()), {})
-            extract = page.get("extract", "") if isinstance(page, dict) else ""
+            if not isinstance(page, dict):
+                continue
+            extract = page.get("extract", "")
         except (OSError, ValueError, KeyError, TypeError, AttributeError, StopIteration):
             continue
         if not isinstance(extract, str) or not extract.strip():
