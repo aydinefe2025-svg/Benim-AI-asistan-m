@@ -1,6 +1,8 @@
 """Small, bounded Google Gen AI adapter for opted-in fallback calls."""
 from __future__ import annotations
 
+from core.provider_failure import copy_safe_failure_metadata
+
 
 class GoogleChatClient:
     def __init__(self, api_key: str, *, timeout: float = 20.0) -> None:
@@ -41,7 +43,9 @@ class GoogleChatClient:
                     close()
             content = response.text
         except Exception as exc:
-            raise RuntimeError(f"Google request failed ({type(exc).__name__})") from None
+            failure = RuntimeError(f"Google request failed ({type(exc).__name__})")
+            copy_safe_failure_metadata(exc, failure)
+            raise failure from None
         if not isinstance(content, str) or not content.strip():
             raise RuntimeError("Google returned no usable text")
         return content.strip()

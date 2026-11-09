@@ -45,3 +45,36 @@ def failure_category(error):
 
 def safe_failure_message(error):
     return MESSAGES[failure_category(error)]
+
+
+def copy_safe_failure_metadata(source, target):
+    """Copy only canonical status metadata; never copy provider message/body text."""
+    kind = getattr(source, "failure_kind", None)
+    allowed = set(MESSAGES)
+    status = getattr(source, "status_code", None)
+    if kind not in allowed:
+        if status == 401:
+            kind = "authentication"
+        elif status == 403:
+            kind = "permission"
+        elif status == 429:
+            kind = "rate_limit"
+        elif status == 404:
+            kind = "model"
+        elif status in (400, 413, 422):
+            kind = "request"
+        elif (status in (408, 504)
+              or isinstance(source, (TimeoutError, ConnectionError))
+              or type(source).__name__ in (
+                  "APIConnectionError", "APITimeoutError", "ConnectTimeout",
+                  "ReadTimeout")):
+            kind = "network"
+        elif isinstance(status, int) and 500 <= status <= 599:
+            kind = "service"
+        elif isinstance(source, ValueError):
+            kind = "response"
+        else:
+            kind = "unknown"
+    target.failure_kind = kind
+    if isinstance(status, int) and 100 <= status <= 599:
+        target.status_code = status

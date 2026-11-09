@@ -1,6 +1,8 @@
 """Small, bounded Groq chat adapter for explicitly approved fallback runs."""
 from __future__ import annotations
 
+from core.provider_failure import copy_safe_failure_metadata
+
 
 class GroqChatClient:
     def __init__(self, api_key: str, *, timeout: float = 25.0) -> None:
@@ -27,7 +29,9 @@ class GroqChatClient:
             )
             content = response.choices[0].message.content
         except Exception as exc:
-            raise RuntimeError(f"Groq request failed ({type(exc).__name__})") from None
+            failure = RuntimeError(f"Groq request failed ({type(exc).__name__})")
+            copy_safe_failure_metadata(exc, failure)
+            raise failure from None
         if not isinstance(content, str) or not content.strip():
             raise RuntimeError("Groq returned no usable text")
         return content.strip()
