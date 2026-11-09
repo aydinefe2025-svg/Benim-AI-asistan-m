@@ -15,6 +15,10 @@ from core.claim_evidence import (
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
     retry_unavailable_skeptical_pass,
 )
+import hashlib
+from core.human_label_progress import (
+    decode_human_label_progress, encode_human_label_progress,
+)
 from core.claim_review_benchmark import (
     CASES as FIXED_BENCHMARK_CASES, run_claim_review_benchmark,
 )
@@ -215,6 +219,61 @@ st.caption(
     "küçük kaynak-temelli kümeye ve tek insan değerlendiriciye aittir; gerçek dünya "
     "genel bilimsel doğruluğu veya insan üstünlüğünü kanıtlamaz."
 )
+progress_case_sets = {
+    "v3": HUMAN_COMPARISON_CASES,
+    "v4": SUPPLEMENTAL_COMPARISON_CASES,
+    "v5": V5_COMPARISON_CASES,
+    "v6": V6_COMPARISON_CASES,
+}
+progress_case_ids = {
+    cohort: {case["case_id"] for case in cases}
+    for cohort, cases in progress_case_sets.items()
+}
+st.markdown("#### Kör etiketleme ilerlemesini yedekle veya sürdür")
+st.caption(
+    "Kısmi insan etiketlerini bir JSON dosyasına aktarabilir, oturum yenilendiğinde "
+    "bu dosyayı yükleyerek devam edebilirsin. Dosya yalnızca senin verdiğin etiketleri "
+    "içerir; altın cevap anahtarı ve CANO tahminleri dahil edilmez."
+)
+uploaded_label_backup = st.file_uploader(
+    "Önceki insan etiketi ilerleme yedeğini yükle",
+    type=["json"], key="cano_human_label_progress_upload",
+)
+if uploaded_label_backup is not None:
+    backup_bytes = uploaded_label_backup.getvalue()
+    backup_digest = hashlib.sha256(backup_bytes).hexdigest()
+    if backup_digest != st.session_state.get("_cano_human_label_backup_imported"):
+        try:
+            imported_progress = decode_human_label_progress(
+                backup_bytes, progress_case_ids)
+        except ValueError:
+            st.warning("Etiket yedeği geçersiz veya bu sürümle uyumsuz; mevcut etiketler korunuyor.")
+        else:
+            ui_values = {
+                "supported": "Destekliyor",
+                "contradicted": "Çelişiyor",
+                "insufficient": "Kanıt yetersiz",
+            }
+            for cohort, labels in imported_progress.items():
+                st.session_state[f"cano_claim_review_human_labels_{cohort}"] = labels
+                for case_id, label in labels.items():
+                    st.session_state[f"cano_human_{cohort}_{case_id}"] = ui_values[label]
+            st.session_state["_cano_human_label_backup_imported"] = backup_digest
+            st.success("İnsan etiketi ilerlemesi yüklendi; eksik vakaları tamamlayabilirsin.")
+progress_to_export = {
+    cohort: st.session_state.get(f"cano_claim_review_human_labels_{cohort}", {})
+    for cohort in progress_case_sets
+}
+try:
+    progress_backup = encode_human_label_progress(
+        progress_to_export, progress_case_ids)
+except ValueError:
+    progress_backup = encode_human_label_progress({}, progress_case_ids)
+st.download_button(
+    "Kısmi etiket ilerlemesini JSON olarak indir",
+    data=progress_backup, file_name="cano-human-label-progress.json",
+    mime="application/json", key="cano_human_label_progress_download",
+)
 v3_order_key = "cano_claim_review_order_v3"
 v3_order = randomized_case_order(
     HUMAN_COMPARISON_CASES, previous_ids=st.session_state.get(v3_order_key))
@@ -239,12 +298,19 @@ with st.form("cano_blind_human_labels_v3"):
         }.get(choice, "")
     labels_submitted = st.form_submit_button("24 insan değerlendirmesini kaydet")
 if labels_submitted:
-    if any(not value for value in human_labels.values()):
-        st.warning("Karşılaştırma için 24 vakanın tamamını etiketleyin.")
+    partial_labels = {
+        case_id: label for case_id, label in human_labels.items()
+        if label in {"supported", "contradicted", "insufficient"}
+    }
+    st.session_state[label_key] = partial_labels
+    st.session_state.pop(model_key, None)
+    if len(partial_labels) < len(HUMAN_COMPARISON_CASES):
+        st.warning(
+            f"{len(partial_labels)} / {len(HUMAN_COMPARISON_CASES)} 24 insan değerlendirmesini kaydedildi. "
+            "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
+        )
     else:
-        st.session_state[label_key] = human_labels
-        st.session_state.pop(model_key, None)
-        st.success("Etiketler bu tarayıcı oturumunda saklandı; beklenen cevaplar etiketleme sırasında gösterilmedi.")
+        st.success("İnsan etiketleri kaydedildi; cevap anahtarı etiketleme sırasında gösterilmedi.")
 saved_human_labels = st.session_state.get(label_key)
 v3_case_ids = {case["case_id"] for case in HUMAN_COMPARISON_CASES}
 v3_labels_complete = (
@@ -347,12 +413,19 @@ with st.form("cano_blind_human_labels_v4"):
         }.get(choice, "")
     v4_labels_submitted = st.form_submit_button("Ek 24 insan değerlendirmesini kaydet")
 if v4_labels_submitted:
-    if any(not value for value in v4_human_labels.values()):
-        st.warning("Ek kohort için 24 vakanın tamamını etiketleyin.")
+    partial_labels = {
+        case_id: label for case_id, label in v4_human_labels.items()
+        if label in {"supported", "contradicted", "insufficient"}
+    }
+    st.session_state[v4_label_key] = partial_labels
+    st.session_state.pop(v4_model_key, None)
+    if len(partial_labels) < len(SUPPLEMENTAL_COMPARISON_CASES):
+        st.warning(
+            f"{len(partial_labels)} / {len(SUPPLEMENTAL_COMPARISON_CASES)} ek kohortun 24 insan değerlendirmesini kaydedildi. "
+            "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
+        )
     else:
-        st.session_state[v4_label_key] = v4_human_labels
-        st.session_state.pop(v4_model_key, None)
-        st.success("Ek kohort etiketleri bu tarayıcı oturumunda saklandı; cevap anahtarı gösterilmedi.")
+        st.success("İnsan etiketleri kaydedildi; cevap anahtarı etiketleme sırasında gösterilmedi.")
 v4_saved_labels = st.session_state.get(v4_label_key)
 v4_case_ids = {case["case_id"] for case in SUPPLEMENTAL_COMPARISON_CASES}
 v4_labels_complete = (
@@ -468,12 +541,19 @@ with st.form("cano_blind_human_labels_v5"):
         }.get(choice, "")
     v5_labels_submitted = st.form_submit_button("Üçüncü kohort için 24 insan değerlendirmesini kaydet")
 if v5_labels_submitted:
-    if any(not value for value in v5_human_labels.values()):
-        st.warning("Üçüncü kohort karşılaştırması için 24 vakanın tamamını etiketleyin.")
+    partial_labels = {
+        case_id: label for case_id, label in v5_human_labels.items()
+        if label in {"supported", "contradicted", "insufficient"}
+    }
+    st.session_state[v5_label_key] = partial_labels
+    st.session_state.pop(v5_model_key, None)
+    if len(partial_labels) < len(V5_COMPARISON_CASES):
+        st.warning(
+            f"{len(partial_labels)} / {len(V5_COMPARISON_CASES)} üçüncü kohortun 24 insan değerlendirmesini kaydedildi. "
+            "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
+        )
     else:
-        st.session_state[v5_label_key] = v5_human_labels
-        st.session_state.pop(v5_model_key, None)
-        st.success("Etiketler bu tarayıcı oturumunda saklandı; kaynak cevap anahtarı gösterilmedi.")
+        st.success("İnsan etiketleri kaydedildi; cevap anahtarı etiketleme sırasında gösterilmedi.")
 v5_saved_labels = st.session_state.get(v5_label_key)
 v5_case_ids = {case["case_id"] for case in V5_COMPARISON_CASES}
 v5_labels_complete = (
@@ -588,12 +668,19 @@ with st.form("cano_blind_human_labels_v6"):
         }.get(choice, "")
     v6_labels_submitted = st.form_submit_button("Dördüncü kohort için 24 insan değerlendirmesini kaydet")
 if v6_labels_submitted:
-    if any(not value for value in v6_human_labels.values()):
-        st.warning("Dördüncü kohort karşılaştırması için 24 vakanın tamamını etiketleyin.")
+    partial_labels = {
+        case_id: label for case_id, label in v6_human_labels.items()
+        if label in {"supported", "contradicted", "insufficient"}
+    }
+    st.session_state[v6_label_key] = partial_labels
+    st.session_state.pop(v6_model_key, None)
+    if len(partial_labels) < len(V6_COMPARISON_CASES):
+        st.warning(
+            f"{len(partial_labels)} / {len(V6_COMPARISON_CASES)} dördüncü kohortun 24 insan değerlendirmesini kaydedildi. "
+            "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
+        )
     else:
-        st.session_state[v6_label_key] = v6_human_labels
-        st.session_state.pop(v6_model_key, None)
-        st.success("Etiketler bu tarayıcı oturumunda saklandı; kaynak cevap anahtarı gösterilmedi.")
+        st.success("İnsan etiketleri kaydedildi; cevap anahtarı etiketleme sırasında gösterilmedi.")
 v6_saved_labels = st.session_state.get(v6_label_key)
 v6_case_ids = {case["case_id"] for case in V6_COMPARISON_CASES}
 v6_labels_complete = (
