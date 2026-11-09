@@ -349,7 +349,7 @@ if "genome_campaign_v2" in st.session_state:
                        key="download_reproduction_json")
 
 st.subheader("Çevre değişimine uyum deneyi")
-st.caption("Yeni deney: TASK_A ortamında başlayan sanal genomlar, 40. adımdan sonra TASK_B ortamına geçer. Mutasyonlu soy, aynı tohumlarda mutasyonsuz kontrolle karşılaştırılır. Bu simüle edilmiş evrimsel seçilimdir; yapay zekâ modelinin kendi ağırlıklarını öğrenmesi değildir.")
+st.caption("Yeni deney: TASK_A ortamında başlayan sanal genomlar, 40. adımdan sonra TASK_B ortamına geçer. Mutasyonlu soy aynı tohumlardaki mutasyonsuz ve çoğalmasız kontrollerle karşılaştırılır; eşlenmiş sonuçların %95 güven aralıkları raporlanır. Bu simüle edilmiş evrimsel seçilimdir; yapay zekâ modelinin kendi ağırlıklarını öğrenmesi değildir.")
 if st.button("Uyum deneyini çalıştır (30 eşlenmiş tohum)", key="run_environment_shift"):
     try:
         adaptation = run_adaptation_study()
@@ -536,5 +536,6 @@ if CLOUD_MODE:
                 st.error("Yedek doğrulanamadı; mevcut laboratuvar arşivi değiştirilmedi.")
     except Exception as exc:
         st.error(f"Kalıcı arşiv işlemi tamamlanamadı ({type(exc).__name__}); uygulama içeriği güvenli biçimde gizlendi.")
+
 
 
