@@ -61,6 +61,13 @@ class AdaptationStudyTests(unittest.TestCase):
                 save_adaptation_study(second, path)
             self.assertEqual(path.read_bytes(), original_bytes)
 
+    def test_committed_adaptation_evidence_is_valid_json(self):
+        report_path = (Path(__file__).resolve().parents[2] / "research_reports"
+                       / "adaptation-study-issue-413-20261109.json")
+        evidence = json.loads(report_path.read_text(encoding="utf-8"))
+        self.assertEqual(evidence["schema"], "cano-adaptation-evidence-v1")
+        self.assertIn("changed_source_sha256", evidence["provenance"])
+
     def test_bounds_prevent_unbounded_runs(self):
         for kwargs in ({"seeds": (1,), "steps": 20, "shift_tick": 5},
                        {"seeds": (1, 2), "steps": 20, "shift_tick": 20},
