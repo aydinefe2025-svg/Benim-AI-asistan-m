@@ -260,7 +260,8 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(archived["source_claim_audit"], first)
         self.assertEqual(archived["source_documents"], old_documents)
 
-        second_model = QuoteModel(claims, verdict="insufficient")
+        second_model = QuoteModel(claims)
+        second_model.verdict = "insufficient"
         second = audit_claim_quotes(
             self.manager, self.mission_id,
             client=second_model, model="configured-provider")
