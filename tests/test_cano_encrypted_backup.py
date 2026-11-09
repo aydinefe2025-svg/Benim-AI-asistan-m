@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import os
+import subprocess
 import stat
 import sys
 import tempfile
@@ -10,7 +11,9 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1] / 'scripts'))
-from cano_encrypted_backup import BackupError, make_encrypted_backup, verify_encrypted_backup, decrypt_to_sink, restore_to_empty_database
+from cano_encrypted_backup import (BackupError, make_encrypted_backup,
+    verify_encrypted_backup, decrypt_to_sink, restore_to_empty_database,
+    _require_pg18_dump_client)
 
 
 class EncryptedBackupTests(unittest.TestCase):
@@ -22,6 +25,9 @@ class EncryptedBackupTests(unittest.TestCase):
         self.dump=self.root/'fake_pg_dump.py'
         self.dump.write_text('#!'+sys.executable+'\n'
             'import os,sys\n'
+            'if "--version" in sys.argv:\n'
+            ' print("pg_dump (PostgreSQL) 18.0")\n'
+            ' raise SystemExit(0)\n'
             'assert os.getenv("PGPASSWORD")=="private-example-secret"\n'
             'assert "CANO_BACKUP_KEY_HEX" not in os.environ\n'
             'assert "private-example-secret" not in " ".join(sys.argv)\n'
@@ -38,6 +44,56 @@ class EncryptedBackupTests(unittest.TestCase):
             'DATABASE_URL':'postgresql://user:private-example-secret@localhost/test?sslmode=require'
         })
         self.env.start();self.addCleanup(self.env.stop)
+
+    def test_pg18_version_probe_accepts_supported_banner_without_forwarding_secrets(self):
+        result = subprocess.CompletedProcess(
+            ['pg_dump', '--version'], 0,
+            stdout=b'pg_dump (PostgreSQL) 18.3 (Debian 18.3-1.pgdg13+1)')
+        with patch.dict(os.environ, {
+                'PGPASSWORD': 'sensitive-db-password',
+                'API_TOKEN': 'sensitive-provider-token',
+                'CANO_BACKUP_KEY_HEX': self.key,
+        }):
+            with patch('cano_encrypted_backup.subprocess.run',
+                       return_value=result) as probe:
+                _require_pg18_dump_client(self.fake)
+        self.assertNotIn('PGPASSWORD', probe.call_args.kwargs['env'])
+        self.assertNotIn('API_TOKEN', probe.call_args.kwargs['env'])
+        self.assertNotIn('CANO_BACKUP_KEY_HEX', probe.call_args.kwargs['env'])
+
+    def test_direct_library_backup_rejects_unsafe_pg_dump_before_io(self):
+        for banner in (b'pg_dump (PostgreSQL) 17.9',
+                       b'pg_dump (PostgreSQL) 19.0',
+                       b'pg_dump 18.0',
+                       b'pg_dump (PostgreSQL) 18.0' + b' ' * 257):
+            with self.subTest(banner=banner[:30]):
+                probe_result = subprocess.CompletedProcess(
+                    ['pg_dump', '--version'], 0, stdout=banner)
+                with patch('cano_encrypted_backup.shutil.which', return_value=self.fake):
+                    with patch('cano_encrypted_backup.subprocess.run', return_value=probe_result) as probe:
+                        with patch('cano_encrypted_backup.subprocess.Popen') as dump:
+                            with patch.dict(os.environ, {
+                                'PGPASSWORD': 'sensitive-db-password',
+                                'API_TOKEN': 'sensitive-provider-token',
+                            }):
+                                with self.assertRaises(BackupError):
+                                    make_encrypted_backup(self.target, dump_bin=self.fake)
+                dump.assert_not_called()
+                probe.assert_called_once()
+                self.assertNotIn('PGPASSWORD', probe.call_args.kwargs['env'])
+                self.assertNotIn('API_TOKEN', probe.call_args.kwargs['env'])
+                self.assertNotIn('CANO_BACKUP_KEY_HEX', probe.call_args.kwargs['env'])
+                self.assertFalse(self.target.exists())
+
+    def test_direct_library_backup_requires_successful_pg_dump_version_probe(self):
+        with patch('cano_encrypted_backup.shutil.which', return_value=self.fake):
+            with patch('cano_encrypted_backup.subprocess.run',
+                       side_effect=subprocess.TimeoutExpired('pg_dump', 12)):
+                with patch('cano_encrypted_backup.subprocess.Popen') as dump:
+                    with self.assertRaisesRegex(BackupError, 'Cannot verify'):
+                        make_encrypted_backup(self.target, dump_bin=self.fake)
+        dump.assert_not_called()
+        self.assertFalse(self.target.exists())
 
     def test_backup_streams_only_authenticated_ciphertext_and_receipt(self):
         result=make_encrypted_backup(self.target,dump_bin=self.fake)
