@@ -194,8 +194,8 @@ def _require_render_pg18_dump_client() -> None:
     banner = getattr(probe, "stdout", None)
     if (probe.returncode != 0 or not isinstance(banner, bytes)
             or len(banner) > 256 or not re.fullmatch(
-                rb"pg_dump \\(PostgreSQL\\) 18(?:\\.[0-9]+)?"
-                rb"(?: \\([A-Za-z0-9][A-Za-z0-9 ._~:+-]*\\))?",
+                rb"pg_dump \(PostgreSQL\) 18(?:\.[0-9]+)?"
+                rb"(?: \([A-Za-z0-9][A-Za-z0-9 ._~:+-]*\))?",
                 banner.strip(),
             )):
         raise BackupError("The Render PG18 rescue requires a pg_dump 18 client")
