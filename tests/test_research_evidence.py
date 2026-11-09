@@ -170,9 +170,9 @@ class ResearchEvidenceTests(unittest.TestCase):
     def test_sanitizer_removes_intro_after_exclamation_and_empty_list_items(self):
         answer = (
             "Taslak, bağımsız doğrulanmadı. Tabii ki! İşte kütleçekimsel "
-            "merceklenme konusundaki temel kaynaklar:\\n"
-            "1. [Kaynak](https://evil.invalid/a)\\n"
-            "2. [Diğer kaynak](https://evil.invalid/b)\\n"
+            "merceklenme konusundaki temel kaynaklar:\n"
+            "1. [Kaynak](https://evil.invalid/a)\n"
+            "2. [Diğer kaynak](https://evil.invalid/b)\n"
             "Bu bağlantılardan detayları öğrenebilirsin."
         )
         clean = sanitize_research_answer(answer, [])
