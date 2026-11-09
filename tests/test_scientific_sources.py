@@ -32,3 +32,20 @@ class ScientificSourcesTests(unittest.TestCase):
                  '2': {'title': 'Z', 'index': 1, 'fullurl': 'https://en.wikipedia.org/wiki/Z'}}
         self.assertEqual([x['title'] for x in research_sources('x', fetch=lambda _: {'query': {'pages': pages}})],
                          ['Z', 'A'])
+
+    def test_turkish_research_request_uses_turkish_wikipedia_and_extracts_topic(self):
+        def fetch(url):
+            parsed = urlsplit(url)
+            self.assertEqual(parsed.hostname, "tr.wikipedia.org")
+            params = parse_qs(parsed.query)
+            self.assertEqual(params["gsrsearch"], ["kütleçekimsel merceklenme"])
+            return {"query": {"pages": {"1": {
+                "title": "Kütleçekimsel merceklenme", "index": 1,
+                "fullurl": "https://tr.wikipedia.org/wiki/K%C3%BCtle%C3%A7ekimsel_merceklenme",
+            }}}}
+        query = ("Araştır kütleçekimsel merceklenme. Bir Wikipedia kaynak pasajı bul; "
+                 "yalnızca o pasajı özetle ve URL'sini ver.")
+        found = research_sources(query, fetch=fetch)
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0]["language"], "tr")
+        self.assertTrue(found[0]["url"].startswith("https://tr.wikipedia.org/wiki/"))
