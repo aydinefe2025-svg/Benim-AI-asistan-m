@@ -276,7 +276,7 @@ class CommandCenterTests(unittest.TestCase):
             colony = AgentColony(_session_database_path(st, self.db_base))
             prepare_cano_team(colony, approved=True)
             missions = CollaborativeMission(colony)
-            draft = missions.execute("Check a reviewable draft", client=FakeModel(), model="test")
+            draft = missions.execute("Check a reviewable draft", client=type("Client", (), {"chat": lambda self, model, system, prompt: "Test draft"})(), model="test")
             st.session_state["cano_history_mission"] = draft["id"]
             st.clicks.add("cano_mark_reviewed_" + draft["id"])
             render_cano_command_center(st, answer=FakeModel())
