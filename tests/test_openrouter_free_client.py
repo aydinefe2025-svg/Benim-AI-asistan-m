@@ -32,6 +32,7 @@ class OpenRouterFreeClientTests(unittest.TestCase):
         request = call.call_args.args[0]
         payload = json.loads(request.data.decode())
         self.assertEqual(payload["model"], "openrouter/free")
+        self.assertEqual(payload["provider"], {"data_collection": "deny", "zdr": True})
         self.assertEqual(payload["max_tokens"], 320)
         self.assertEqual(answer, "Merhaba")
         self.assertEqual(client.last_model_used, "vendor/model-free:free")

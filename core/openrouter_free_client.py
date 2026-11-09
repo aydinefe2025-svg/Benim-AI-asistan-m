@@ -33,6 +33,9 @@ class OpenRouterFreeClient:
             raise ValueError("System and prompt must be strings")
         payload = json.dumps({
             "model": "openrouter/free",
+            # Do not route prompts to providers that retain or train on them.
+            # If no eligible free endpoint exists, fail closed instead.
+            "provider": {"data_collection": "deny", "zdr": True},
             "messages": [
                 {"role": "system", "content": system[:12000]},
                 {"role": "user", "content": prompt[:30000]},
