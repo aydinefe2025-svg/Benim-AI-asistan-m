@@ -99,8 +99,13 @@ class BranchSyncTests(unittest.TestCase):
         import json
         import sys
 
+        # The CLI deliberately audits the named historical Render recovery ref.
+        # This isolated fixture initially has only 'prod'; create that exact ref.
+        legacy_ref = "refs/heads/fix/sqlite-backup-restore-20261031"
+        self.git(self.work, "push", "origin",
+                 "main:fix/sqlite-backup-restore-20261031")
         self.commit("new-for-cli.txt", "new")
-        original = self.git(self.work, "ls-remote", "origin", "refs/heads/prod")
+        original = self.git(self.work, "ls-remote", "origin", legacy_ref)
         repo_root = Path(__file__).resolve().parents[1]
         env = dict(os.environ, PYTHONPATH=str(repo_root))
         command = [sys.executable, "-m", "scripts.cano_safe_branch_sync"]
@@ -113,7 +118,7 @@ class BranchSyncTests(unittest.TestCase):
         receipt = json.loads(allowed.stdout.splitlines()[-1])
         self.assertEqual(receipt["status"], "legacy_behind_main")
         self.assertEqual(receipt["mutated"], False)
-        self.assertEqual(original, self.git(self.work, "ls-remote", "origin", "refs/heads/prod"))
+        self.assertEqual(original, self.git(self.work, "ls-remote", "origin", legacy_ref))
 
     def test_scheduled_workflow_can_only_audit_legacy_branch(self):
         repo = Path(__file__).resolve().parents[1]
