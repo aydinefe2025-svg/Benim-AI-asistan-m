@@ -16,6 +16,10 @@ Orijinal `GenomeWorld` ve önceki `CompetitionWorld` / `VacancyWorld` kaynaklar�
 - Eğitim boyunca A+B birleşimi ayrıca **ödüllendirilmedi**. Sonra mutasyon dondurularak her bireyin enerjisi 3'e eşitlendi; **20-adım A+B kompozisyonu için ödül 2 vs sıfır ödül** testi uygulandı. Bu bileşik görev daha önce ödüllendirilmemiştir, ancak yeni bir dış dünyadan/başka görev dağılımından gelen görev değildir. Holdout ödülünün kendisi ayrıca enerji maliyeti 1 ile dengelenmiyor; bu gerçek işletim maliyeti 1 altında uzun vadeli avantaj iddiası değildir.
 - **Önceden sabit kabul:** her 30-tohum kümesinde A+B'nin mutasyonla >=15/30 tohumda ortaya çıkması; aynı kümede yer açma yönteminin kapalı yönteme göre A+B birey-adım farkının >=15/30 tohumda pozitif olması, kesin tek yönlü işaret testi p<0,05, eşleştirilmiş normal-yaklaşık %95 alt sınır >0; kompozisyon holdout farkının alt sınırı >=0; tüm negatif kontrollerin geçmesi. İki kümenin de geçmesi gerekir. Kabul koşulu sonuç görüldükten sonra değiştirilmedi.
 
+## Ölçüm kapsamı: kanonik genotip ile işlevsel fenotip ayrı
+
+**Bağımsız kod incelemesi (9 Kasım):** Raporun `ab_mutation_births`, `ab_final_count` ve `ab_person_ticks` sayaçları yalnız `(COPY_REST, TASK_A, TASK_B, DIVIDE)` sırasındaki **kanonik AB genotipini** sayıyor. Ters sıralı `(COPY_REST, TASK_B, TASK_A, DIVIDE)` de geçerli bir kopyalayıcıdır ve `novel_task_match` tarafından işlevsel A+B olarak tanınır, ancak bu kanonik sayaçlara dahil edilmez. Holdout C ödülü iki sıralama için de geçerlidir. Dolayısıyla aşağıdaki **5/60** gözlemi bütün işlevsel A+B fenotiplerinin toplam ortaya çıkış sıklığı olarak sunulamaz; yalnız kayıtlı kanonik genotip için güvenilir dar bir ölçümdür. Tüm işlevsel fenotiplerin frekansı ve olası sıralama etkisi yeni, kaynak-hashli, bağımsız sayımla ayrıca test edilmelidir. Tarihsel rapor ve önceden sabit kabul eşiği geriye dönük değiştirilmedi.
+
 ## Gerçek sonuç — pozitif yenilik var, ama genel gelişim henüz yok
 
 | Ölçüm | Tohum 1200–1229 | Tohum 1300–1329 |
@@ -29,7 +33,7 @@ Orijinal `GenomeWorld` ve önceki `CompetitionWorld` / `VacancyWorld` kaynaklar�
 | Yer açma yönteminde zorunlu kayıp toplamı | 0 | 2 |
 | **Sıkı çoklu kabul kapısı** | **BAŞARISIZ** | **BAŞARISIZ** |
 
-**Somut bulgu:** Başlangıçta hiç AB yokken, rastgele kalıtsal mutasyonlarla 60 tohumun **5'inde** AB fenotipi ilk kez doğup yavrularına aktarılabildi. Bu beş koşulda yeni A+B taşıyıcıları bileşik görev ödülü verildiğinde ödülsüz karşıt koşula göre daha yüksek son nüfus gösterdi; burada seçilmiş olumlu alt-küme tüm popülasyona yaygın başarının kanıtı değildir. Tüm 60 koşulu kapsayan önceden sabit adaptasyon kapısı **BAŞARISIZDIR**.
+**Somut bulgu:** Başlangıçta hiç AB yokken, rastgele kalıtsal mutasyonlarla 60 tohumun **5'inde** kanonik AB genotipi ilk kez doğup yavrularına aktarılabildi. Bu beş koşulda yeni A+B taşıyıcıları bileşik görev ödülü verildiğinde ödülsüz karşıt koşula göre daha yüksek son nüfus gösterdi; burada seçilmiş olumlu alt-küme tüm popülasyona yaygın başarının kanıtı değildir. Tüm 60 koşulu kapsayan önceden sabit adaptasyon kapısı **BAŞARISIZDIR**.
 
 **Yeni yapısal tıkanma:** Uygunluk koşullu yer açma, başlangıç A+B yokken çalıştırılan yeni deneylerde **ilk 30 koşulda sıfır**, ikinci 30 koşulda **toplam 2 kez** zorunlu yer açtı; kapalı politika ile ölçülen A+B birey-adımları her tohumda **aynı** çıktı. Bu, önceki koşuldaki hazır A+B ile gösterilen yenileme etkisinin, **yeni mutasyonun oluşma olasılığını ve yerleşmesini otomatik artırmadığını** gösterir. En olası model-içi neden, tam kapasite ve uygun bölünme enerjisi koşullarının seyrek çakışmasıdır; bunun kesin nedensel açıklaması ayrıca mekanizma düzeyinde test edilmelidir.
 
@@ -42,7 +46,7 @@ Orijinal `GenomeWorld` ve önceki `CompetitionWorld` / `VacancyWorld` kaynaklar�
   - `resource_competition.py` `de430c7a2cf971a1cf1105c3f218c86ea3a251f5`
   - `low_loss_turnover.py` `e948fd99dd2939572834cde3ce416254e3ea0fef`
   - `compositional_transfer_study.py` `8fd857a39404602b86e2ae40f731ca0819862085`
-- GitHub CI dosyası yalnız yeni kaynak kodu ve rapor özet manifesti üzerinden Python **3.11/3.12** ile 26 testi ve iki JSON'un baştan yeniden hesaplanan *hem gövde hem dosya SHA256* değerlerini doğrular. CI kaynak/testleri depo dalında ayrıca çalıştırılıp görülmeden `ci_verified` denmez.
+- GitHub CI dosyası yalnız yeni kaynak kodu ve rapor özet manifesti üzerinden Python **3.11/3.12** ile 26 testi ve iki JSON'un baştan yeniden hesaplanan *hem gövde hem dosya SHA256* değerlerini doğrular. İlk yerel çalışma 26 test içeriyordu. Sonradan eklenen geçersiz ebeveyn soy kaydı regresyonuyla 27 odaklı test Python 3.11/3.12 GitHub CI içinde başarıyla yürütüldü; kaynak/rapor digest kontrolleri de aynı iş akışında çalıştı.
 - Tam ham veriler, kod, test ve kanıt paketi ayrı araştırma arşivindedir; hiçbir Render PostgreSQL tablosu, servis dağıtımı, otomasyon, canlı organizma veya fiziksel robot değiştirilmeyecektir.
 
 ## Açık soru ve diğer projenin P0 engeli
