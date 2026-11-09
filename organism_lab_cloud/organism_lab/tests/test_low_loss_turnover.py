@@ -59,6 +59,20 @@ class LowLossTurnoverTests(unittest.TestCase):
         self.assertIn('strict_low_loss_selection_demonstrated',r)
         self.assertIn('forced_vacancies',r['trials'][0]['active'])
 
+    def test_primary_ceiling_is_explicitly_counted_without_changing_gate(self):
+        r=self.report
+        primary=r['per_cost'][1]
+        actual=sum(x['active']['ab_final_share']==1.0
+                   for x in r['trials'] if x['cost']==1 and x['policy']=='closed')
+        eligible=sum(x['active']['ab_final_share']==1.0
+                     for x in r['trials'] if x['cost']==1 and x['policy']=='eligible')
+        self.assertEqual(primary['closed_active_ab_share_ceiling_seeds'],actual)
+        self.assertEqual(primary['eligible_active_ab_share_ceiling_seeds'],eligible)
+        self.assertEqual(primary['both_ceiling_seeds'],sum(
+            1 for seed in r['design']['seeds']
+            if next(x for x in r['trials'] if x['seed']==seed and x['cost']==1 and x['policy']=='closed')['active']['ab_final_share']==1.0
+            and next(x for x in r['trials'] if x['seed']==seed and x['cost']==1 and x['policy']=='eligible')['active']['ab_final_share']==1.0))
+
     def test_paced_cannot_force_more_deaths_than_continuous(self):
         for seed in range(800,815):
             a=trace_vacancy(seed,'continuous',cost=1,reward=2,steps=40,period=12)
