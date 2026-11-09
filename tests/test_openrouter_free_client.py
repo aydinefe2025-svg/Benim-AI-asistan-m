@@ -47,6 +47,15 @@ class OpenRouterFreeClientTests(unittest.TestCase):
                 client.chat("openrouter/free", "system", "prompt")
         self.assertNotIn("secret-test-key", str(result.exception))
         self.assertNotIn("unauthorized", str(result.exception))
+        self.assertEqual(result.exception.status_code, 401)
+
+    def test_invalid_provider_response_is_classified_without_details(self):
+        client = OpenRouterFreeClient("secret-test-key")
+        with patch("urllib.request.urlopen", return_value=FakeResponse(b"{}")):
+            with self.assertRaises(OpenRouterError) as result:
+                client.chat("openrouter/free", "system", "prompt")
+        self.assertEqual(result.exception.failure_kind, "response")
+        self.assertNotIn("secret-test-key", str(result.exception))
 
     def test_invalid_credentials_and_output_limit_are_rejected(self):
         with self.assertRaises(ValueError):
