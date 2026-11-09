@@ -1,0 +1,45 @@
+{
+  "schema": "cano-spontaneous-ab-evidence-manifest-v1",
+  "source": "Github issue 413",
+  "hypothesis": "previously unseeded A+B composite arises through non-targeted heritable grammar mutation",
+  "original_vm_blob_sha": "0ced308713956ebd43fa58ef29bb31502101d001",
+  "original_low_loss_blob_sha": "e948fd99dd2939572834cde3ce416254e3ea0fef",
+  "python_local": "3.13",
+  "local_test_command": "python -m unittest organism_lab.tests.test_spontaneous_adaptation organism_lab.tests.test_low_loss_turnover organism_lab.tests.test_resource_competition -v",
+  "local_tests_passed": 26,
+  "training_simulations": 300,
+  "report_source": "separate immutable archived ZIP, CI regenerates from repository source",
+  "acceptance_both_cohorts": false,
+  "general_ai_improvement_proven": false,
+  "render_backup_proven": false,
+  "reports": {
+    "novel-ab-seeds-1200-1229.json": {
+      "body_sha256": "67e534782117a9de6d3ed684931d5a369712ace73de3f4f32e31fea195330f57",
+      "file_sha256": "8866057ce42183f58b36d09827af3083e218059927762f68314bafb00b09029b",
+      "emergence": 4,
+      "holdout_positive": 4,
+      "positive_vs_closed": 0,
+      "strict_gate": false
+    },
+    "novel-ab-seeds-1300-1329.json": {
+      "body_sha256": "79085b30374d88423cb5f06c69bf808ae2f3c79f61f20cc385afdbe5a8947dae",
+      "file_sha256": "b55e170067d15a4535f097032a895f2c9f507c1d86a58f250dfad35d3d6135fe",
+      "emergence": 1,
+      "holdout_positive": 1,
+      "positive_vs_closed": 0,
+      "strict_gate": false
+    }
+  },
+  "source_sha256": {
+    "organism_lab_cloud/organism_lab/spontaneous_adaptation.py": "0389fd7a7e110069ea5e9192ff3ad5e775286ef5d2ffda2ce6d5b7fd0009c7f9",
+    "organism_lab_cloud/organism_lab/tests/test_spontaneous_adaptation.py": "b5ab3e017ebd4bf1f41a4ddd819701a569722c9d4ee17648eb5bc597e3501580",
+    "docs/CANO_SPONTANEOUS_AB_2026-11-09.md": "4ce7c3cbd487b6e057854bcc2b6062ac390026995889dabebdeeaa6318cdcb8d",
+    ".github/workflows/cano-spontaneous-ab-evidence.yml": "0c14bcfcf3a263a8ae6bd8ae769819e654211d9cbb995b93f981a71d93f4edb9"
+  },
+  "limits": [
+    "non-targeted mutation is still engineered grammar",
+    "only synthetic two-task composite",
+    "two 30-seed cohorts failed strict gate",
+    "non-destructive production isolation"
+  ]
+}
