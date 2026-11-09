@@ -29,8 +29,9 @@ class OperatorBackupDestinationSafetyTests(unittest.TestCase):
             with patch.object(sys, "argv", ["cano_render_rescue", str(destination)]):
                 with patch("scripts.cano_render_rescue.backup_configured",
                            return_value={"verified_source_count": 1}) as exporter:
-                    with contextlib.redirect_stdout(io.StringIO()) as output:
-                        result = main()
+                    with patch("scripts.cano_render_rescue._assert_private_destination_acl"):
+                        with contextlib.redirect_stdout(io.StringIO()) as output:
+                            result = main()
         return result, exporter, output.getvalue()
 
     def test_cli_rejects_transient_os_temp_before_export(self):
