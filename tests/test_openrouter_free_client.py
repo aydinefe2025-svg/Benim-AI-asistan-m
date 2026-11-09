@@ -48,6 +48,7 @@ class OpenRouterFreeClientTests(unittest.TestCase):
                 client.chat("openrouter/free", "system", "prompt")
         self.assertNotIn("secret-test-key", str(result.exception))
         self.assertNotIn("unauthorized", str(result.exception))
+        self.assertEqual(result.exception.status_code, 401)
 
     def test_invalid_credentials_and_output_limit_are_rejected(self):
         with self.assertRaises(ValueError):
