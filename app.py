@@ -64,7 +64,10 @@ from core.provider_failure import failure_category, safe_failure_message
 from core.connection_diagnostics import check_provider
 from core.public_research import research_sources
 from core.scientific_sources import scientific_sources
-from core.research_evidence import (\n    format_research_bibliography, format_research_evidence,\n    retrieve_research_excerpts,\n)
+from core.research_evidence import (
+    format_research_bibliography, format_research_evidence,
+    retrieve_research_excerpts,
+)
 from core.research_status import label_research_answer
 from core.user_memory import export_library, import_library, memory_context, new_memory
 from core.browser_memory import browser_memory_component, decode_snapshot, write_confirmed, explicit_memory_request
