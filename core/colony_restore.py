@@ -65,7 +65,7 @@ def restore_empty_colony(colony, snapshot):
         if row["id"] in seen_mission_ids or len(row["task"]) > 1200:
             raise ValueError("Duplicate or oversized mission")
         seen_mission_ids.add(row["id"])
-        if row["status"] not in ("review_pending", "blocked", "running") or len(row["stages"]) > 60000:
+        if row["status"] not in ("review_pending", "reviewed", "blocked", "running") or len(row["stages"]) > 60000:
             raise ValueError("Invalid mission status or stages")
         try:
             stages = json.loads(row["stages"])
@@ -74,7 +74,7 @@ def restore_empty_colony(colony, snapshot):
         roles = [s.get("role") if isinstance(s, dict) else None for s in stages] if isinstance(stages, list) else []
         if (not isinstance(stages, list) or len(stages) > 4 or
                 roles != ["planner", "researcher", "reviewer", "synthesis"][:len(stages)] or
-                (row["status"] == "review_pending" and len(stages) != 4)):
+                (row["status"] in ("review_pending", "reviewed") and len(stages) != 4)):
             raise ValueError("Invalid mission stage sequence")
         for stage in stages:
             if (not isinstance(stage.get("agent_id"), str)
