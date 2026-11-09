@@ -45,7 +45,7 @@ if CLOUD_MODE:
         st.title("Organizma Laboratuvarı")
         st.error("Kalıcı bulut laboratuvarı güvenli giriş ayarları tamamlanana kadar kapalı.")
         st.stop()
-    required = ("DATABASE_URL", "ORGANISM_LAB_OWNER_EMAIL", "ORGANISM_LAB_OWNER_KEY_SECRET")
+    required = ("ORGANISM_LAB_DATABASE_URL", "ORGANISM_LAB_OWNER_EMAIL", "ORGANISM_LAB_OWNER_KEY_SECRET")
     if any(not os.environ.get(name, "").strip() for name in required):
         st.title("Organizma Laboratuvarı")
         st.error("Kalıcı veritabanı ve hesap sahipliği yapılandırması tamamlanana kadar bulut kullanımı kapalı.")
