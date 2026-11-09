@@ -155,14 +155,14 @@ def sanitize_research_answer(answer, excerpts):
         answer,
     )
     source_intro = re.search(
-        r"(?im)^[^\\n]*\\b(?:kaynak\\w*|sources?|references?)\\b[^\\n]{0,220}:"
-        r"(?=\\s*\\n\\s*(?:\\d+[.)]|[-*]))",
+        r"(?im)^[^\n]*\b(?:kaynak\w*|sources?|references?)\b[^\n]{0,220}:"
+        r"(?=\s*\n\s*(?:\d+[.)]|[-*]))",
         answer,
     )
     cut_points = [match.start() for match in (source_heading, source_intro) if match]
     if source_intro:
         preceding = answer[:source_intro.start()]
-        sentence_ends = list(re.finditer(r"[.!?]\\s+", preceding))
+        sentence_ends = list(re.finditer(r"[.!?]\s+", preceding))
         source_start = sentence_ends[-1].end() if sentence_ends else source_intro.start()
         cut_points.append(source_start)
     clean = answer[:min(cut_points)].rstrip() if cut_points else answer
