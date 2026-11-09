@@ -32,7 +32,7 @@ class BenchmarkPanelUI:
         self.session_state = {}
         self.run_benchmark = run_benchmark
         self.calls = []
-        self.case_json = '[{"case_id":"one","prompt":"Question","expected":"answer"}]'
+        self.case_json = '[{"case_id":"one","prompt":"Question about evidence","expected":"answer"}]'
 
     def expander(self, *args, **kwargs): return nullcontext()
     def form(self, *args, **kwargs): return nullcontext()
@@ -81,7 +81,7 @@ class ColonyMemoryBenchmarkTests(unittest.TestCase):
             path = Path(folder) / "colony.sqlite3"
             colony = AgentColony(path)
             agent = colony.create_founder("researcher", "Be precise.")
-            colony.feedback(agent, "reviewed task", "Prefer primary evidence",
+            colony.feedback(agent, "Question about evidence", "Prefer primary evidence",
                             "review:case-1", accepted=True)
 
             for submit, expected_calls in ((False, 0), (True, 4)):
@@ -134,7 +134,7 @@ class ColonyMemoryBenchmarkTests(unittest.TestCase):
             agent = colony.create_founder("researcher", "Be precise.")
             colony.feedback(agent, "old", "Unreviewed guess", "evidence:rejected",
                             accepted=False)
-            colony.feedback(agent, "old", "Prefer primary evidence",
+            colony.feedback(agent, "Question one", "Prefer primary evidence for Question one",
                             "evidence:approved-1", accepted=True)
             client = MemoryAwareFakeClient()
             cases = (
@@ -148,9 +148,10 @@ class ColonyMemoryBenchmarkTests(unittest.TestCase):
             )
 
             self.assertEqual(result["baseline"].passed, 1)
-            self.assertEqual(result["candidate"].passed, 1)
+            self.assertEqual(result["candidate"].passed, 2)
+            self.assertEqual(result["delta"], 0.5)
             self.assertEqual(result["improved_case_ids"], ["case-1"])
-            self.assertEqual(result["regressed_case_ids"], ["case-2"])
+            self.assertEqual(result["regressed_case_ids"], [])
             self.assertEqual(result["memory_lessons_available"], 1)
             self.assertEqual(result["comparison"], "accepted_feedback_retrieval_only")
             self.assertFalse(result["model_weights_updated"])
@@ -201,3 +202,5 @@ class ColonyMemoryBenchmarkTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
