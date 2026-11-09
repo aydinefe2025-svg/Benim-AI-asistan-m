@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from core.research_evidence import (
     format_research_evidence,
+    format_research_bibliography,
     retrieve_research_excerpts,
 )
 
@@ -79,6 +80,24 @@ class ResearchEvidenceTests(unittest.TestCase):
         ], fetch=fetch, limit=99)
         self.assertEqual(len(results), 3)
         self.assertTrue(all(len(item["text"]) <= 1800 for item in results))
+
+    def test_bibliography_maps_citation_ids_to_retrieved_urls(self):
+        bibliography = format_research_bibliography([
+            {"id": "W1", "title": "Kütleçekimsel merceklenme",
+             "url": "https://tr.wikipedia.org/wiki/K%C3%BCtle%C3%A7ekimsel_merceklenme"},
+            {"id": "W2", "title": "Abell 1689",
+             "url": "https://en.wikipedia.org/wiki/Abell_1689"},
+        ])
+        self.assertIn("[W1]", bibliography)
+        self.assertIn("https://tr.wikipedia.org/wiki/", bibliography)
+        self.assertIn("[W2]", bibliography)
+        self.assertIn("bağımsız doğrulanmadı", bibliography)
+
+    def test_bibliography_rejects_non_allowlisted_or_malformed_sources(self):
+        self.assertEqual(format_research_bibliography([
+            {"id": "W1", "title": "Fake", "url": "https://evil.invalid/wiki/Fake"},
+            {"id": "W0", "title": "Invalid id", "url": "https://en.wikipedia.org/wiki/Fake"},
+        ]), "")
 
     def test_prompt_distinguishes_retrieved_excerpt_from_verification(self):
         evidence = format_research_evidence([

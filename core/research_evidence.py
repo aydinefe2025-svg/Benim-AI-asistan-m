@@ -4,6 +4,7 @@ Wikipedia is a secondary source. Excerpts are contextual evidence only and do no
 replace review of primary scientific literature or establish independent truth.
 """
 import json
+import re
 from urllib.parse import urlencode, unquote, urlsplit
 from urllib.request import Request, urlopen
 
@@ -109,3 +110,31 @@ def format_research_evidence(excerpts):
         "These excerpts are not independent verification."
     )
     return "\n\n".join(lines)
+
+def format_research_bibliography(excerpts):
+    """Render citation IDs as links to the exact retrieved secondary-source excerpts."""
+    if not isinstance(excerpts, (list, tuple)):
+        return ""
+    lines = []
+    for source in excerpts:
+        if not isinstance(source, dict):
+            continue
+        source_id = source.get("id")
+        title = source.get("title")
+        url = source.get("url")
+        if (not isinstance(source_id, str) or not re.fullmatch(r"W[1-9][0-9]*", source_id)
+                or not isinstance(title, str) or not title.strip()
+                or not isinstance(url, str)):
+            continue
+        parsed = urlsplit(url)
+        if (parsed.scheme != "https" or parsed.netloc.lower() not in API_BY_HOST
+                or not parsed.path.startswith("/wiki/") or parsed.query or parsed.fragment):
+            continue
+        safe_title = " ".join(title.split())[:200]
+        lines.append(f'- [{source_id}] {safe_title} — <{url}>')
+    if not lines:
+        return ""
+    return (
+        "**Kaynak adayları (ikincil kaynak pasajları; bağımsız doğrulanmadı):**\n"
+        + "\n".join(lines)
+    )
