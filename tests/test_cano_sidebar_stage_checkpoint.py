@@ -150,7 +150,7 @@ class SidebarStageCheckpointTests(unittest.TestCase):
         class FeedbackUI(PanelUI):
             def text_input(self, label, **kwargs):
                 return {
-                    "Dersin ilişkili olduğu görev": "Check paper",
+                    "Dersin ilişkili olduğu görev (* = tüm görevler)": "Check paper",
                     "İnceleme/kanıt referansı": "DOI:10.1000/test",
                 }.get(label, "")
             def text_area(self, label, **kwargs):
