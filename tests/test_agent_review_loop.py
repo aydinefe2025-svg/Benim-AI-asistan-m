@@ -22,7 +22,7 @@ class ReviewLoopTests(unittest.TestCase):
             colony = AgentColony(path)
             author = colony.create_founder("researcher", "Research carefully")
             reviewer = colony.spawn(author, "skeptic", "Check evidence", approved=True)
-            colony.feedback(author, "old task", "Check primary sources", "reviewed:test",
+            colony.feedback(author, "*", "Check primary sources", "reviewed:test",
                             accepted=True)
             client = FakeClient()
             loop = AgentReviewLoop(colony)
@@ -48,3 +48,4 @@ class ReviewLoopTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
