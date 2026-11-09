@@ -21,3 +21,6 @@ Use a held-out, human-labeled task set with stable case IDs and exact expected a
 Interpret exact-match scores as a narrow task-set measurement, not general intelligence or scientific correctness. Inspect every regressed case before considering a lesson reusable. The result includes the per-case improved/regressed IDs, repeatability flags, and benchmark digest, but omits prompts and model outputs. Accepted feedback remains retrieval memory; this does not train model weights or automatically promote a candidate.
 
 Do not mark the learning-benefit acceptance gate complete until a representative labeled suite has been run and regression results reviewed.
+
+Task-specific retrieval now checks meaningful word overlap between the requested task, the feedback task label and the lesson. Use `*` as the feedback task label only when a lesson should apply to every task. Unrelated accepted lessons are omitted; this is deterministic keyword matching, not semantic search. Matching scans at most the 500 newest accepted lessons and returns at most the configured limit. Include task-specific cases in the labeled benchmark and inspect both improved and regressed cases.
+
