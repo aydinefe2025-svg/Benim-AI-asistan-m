@@ -71,3 +71,4 @@ class ConsistentEOS:
   rows=np.column_stack([e*C*C/G*1e-3,p*C**4/G*10,h*(C*100)**2,n])
   assert len(rows)<=2000 and all(np.all(np.diff(rows[:,j])>0) for j in range(4))
   return rows
+
