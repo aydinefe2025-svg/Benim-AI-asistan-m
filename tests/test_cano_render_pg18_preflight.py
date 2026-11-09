@@ -31,13 +31,13 @@ class Pg18OperatorPreflightTests(unittest.TestCase):
             with patch.object(sys, "argv", ["cano_render_rescue", str(destination)]):
                 with patch("scripts.cano_render_rescue._assert_private_destination_acl"):
                     with patch("scripts.cano_render_rescue.backup_configured",
-                           return_value={"verified_source_count": 1}) as export:
-                    with patch("shutil.which", return_value=(
-                            "/synthetic/bin/pg_dump" if available else None)):
-                        with patch("subprocess.run", return_value=SimpleNamespace(
-                                returncode=rc, stdout=version, stderr=b"")) as probe:
-                            with contextlib.redirect_stdout(io.StringIO()) as output:
-                                status = main()
+                               return_value={"verified_source_count": 1}) as export:
+                        with patch("shutil.which", return_value=(
+                                "/synthetic/bin/pg_dump" if available else None)):
+                            with patch("subprocess.run", return_value=SimpleNamespace(
+                                    returncode=rc, stdout=version, stderr=b"")) as probe:
+                                with contextlib.redirect_stdout(io.StringIO()) as output:
+                                    status = main()
         return status, export.call_count, probe.call_count, output.getvalue()
 
     def test_pg17_is_refused_before_backup(self):
