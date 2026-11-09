@@ -8,6 +8,39 @@ class ChatClient(Protocol):
     def chat(self, model: str, system: str, prompt: str, *, temperature: float = 0.2) -> str: ...
 
 
+def _copy_safe_failure_metadata(source: Exception, target: Exception) -> None:
+    """Preserve only allowlisted machine-readable failure fields across wrapping."""
+    kind = getattr(source, "failure_kind", None)
+    allowed = {"authentication", "permission", "rate_limit", "model", "request",
+               "network", "service", "response", "storage", "unknown"}
+    if kind not in allowed:
+        status = getattr(source, "status_code", None)
+        if status == 401:
+            kind = "authentication"
+        elif status == 403:
+            kind = "permission"
+        elif status == 429:
+            kind = "rate_limit"
+        elif status == 404:
+            kind = "model"
+        elif status in (400, 413, 422):
+            kind = "request"
+        elif status in (408, 504) or isinstance(source, (TimeoutError, ConnectionError)) or type(source).__name__ in (
+            "APIConnectionError", "APITimeoutError", "ConnectTimeout", "ReadTimeout",
+        ):
+            kind = "network"
+        elif isinstance(status, int) and 500 <= status <= 599:
+            kind = "service"
+        elif isinstance(source, (ValueError,)):
+            kind = "response"
+        else:
+            kind = "unknown"
+    target.failure_kind = kind
+    status = getattr(source, "status_code", None)
+    if isinstance(status, int) and 100 <= status <= 599:
+        target.status_code = status
+
+
 class FallbackChatClient:
     """Use a primary client until it fails, then pin the run to one fallback.
 
@@ -69,9 +102,11 @@ class FallbackChatClient:
             return result
         except Exception as exc:
             if not self.allow_fallback:
-                raise RuntimeError(
+                failure = RuntimeError(
                     f"Primary chat provider failed ({type(exc).__name__}); external fallback is disabled"
-                ) from None
+                )
+                _copy_safe_failure_metadata(exc, failure)
+                raise failure from None
             self.fallback_active = True
             self.fallback_reason = type(exc).__name__
             self._failure_kinds.append(type(exc).__name__)
