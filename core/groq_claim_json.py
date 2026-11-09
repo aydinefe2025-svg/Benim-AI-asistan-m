@@ -91,10 +91,6 @@ def _generate_json_response(system, prompt, schema, schema_name, response_key, *
         raise ValueError("Invalid or oversized claim JSON prompt")
     if not isinstance(api_key, str) or not api_key.strip():
         raise ValueError("Claim JSON provider key is unavailable")
-    if client_factory is None:
-        from groq import Groq
-        client_factory = Groq
-    client = client_factory(api_key=api_key, timeout=25.0, max_retries=0)
     response_format = (
         {"type": "json_object"} if json_object_mode else {
             "type": "json_schema",
@@ -106,6 +102,10 @@ def _generate_json_response(system, prompt, schema, schema_name, response_key, *
         }
     )
     try:
+        if client_factory is None:
+            from groq import Groq
+            client_factory = Groq
+        client = client_factory(api_key=api_key, timeout=25.0, max_retries=0)
         result = client.chat.completions.create(
             model=model,
             messages=[
