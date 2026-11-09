@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import os
 import secrets
 import sqlite3
 import time
@@ -73,6 +74,18 @@ class AuthorizedQueue:
 
     @contextmanager
     def _db(self):
+        path = Path(self.path)
+        if path.is_symlink():
+            raise ValueError("Task queue database must not be a symbolic link")
+        if os.name == "posix":
+            # Restrict new and existing queue files before SQLite opens them or
+            # creates a rollback journal containing owner-private records.
+            # Reject a swapped final-component symlink when opening the file.
+            fd = os.open(self.path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+            try:
+                os.fchmod(fd, 0o600)
+            finally:
+                os.close(fd)
         db = sqlite3.connect(self.path, timeout=15)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys=ON")
