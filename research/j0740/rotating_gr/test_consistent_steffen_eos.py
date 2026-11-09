@@ -40,4 +40,17 @@ class ConsistentSteffenEOS(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Strictly increasing'):
             ConsistentEOS(bad)
 
+    def test_causal_cut_keeps_original_spline_and_cannot_reenter_acausal_branch(self):
+        p=np.geomspace(1.,1000.,13);e=10.*np.sqrt(p)
+        full=ConsistentEOS(np.column_stack([p,e]),subdivisions=12)
+        cut_pressure,through_end=full.causal_pressure_limit()
+        self.assertFalse(through_end)
+        cut=ConsistentEOS(np.column_stack([p,e]),subdivisions=12,max_pressure=cut_pressure)
+        self.assertLessEqual(max(v for v,_ in cut.extrema()),1.+2e-10)
+        trial=np.geomspace(p[0],cut_pressure*.999,20)
+        np.testing.assert_allclose(cut.energy(trial),full.energy(trial),rtol=1e-13,atol=0)
+        self.assertAlmostEqual(cut.pmax,cut_pressure,places=12)
+        with self.assertRaisesRegex(ValueError,'exceeds declared EOS support'):
+            cut.energy(cut_pressure*1.001)
+
 if __name__=='__main__': unittest.main()
