@@ -1,0 +1,60 @@
+name: CANO low-loss digital vacancy evidence
+
+on:
+  pull_request:
+    paths:
+      - 'organism_lab_cloud/organism_lab/low_loss_turnover.py'
+      - 'organism_lab_cloud/organism_lab/tests/test_low_loss_turnover.py'
+      - '.github/workflows/cano-low-loss-vacancy-evidence.yml'
+      - 'docs/CANO_LOW_LOSS_VACANCY_2026-11-09.md'
+      - 'research_reports/organism-lab-low-loss/EVIDENCE_MANIFEST.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  independent-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Test new engine and original conservation controls
+        working-directory: organism_lab_cloud
+        run: |
+          python -m compileall -q organism_lab/low_loss_turnover.py organism_lab/resource_competition.py organism_lab/digital_vm.py
+          python -m unittest organism_lab.tests.test_low_loss_turnover organism_lab.tests.test_resource_competition -v
+      - name: Generate all raw reports and verify both hashes with the committed original VM
+        working-directory: organism_lab_cloud
+        run: |
+          python - <<'PY'
+          import json, hashlib, subprocess, tempfile
+          from pathlib import Path
+          from organism_lab.low_loss_turnover import run_study,save_report,verify_report
+          manifest=json.loads(Path('../research_reports/organism-lab-low-loss/EVIDENCE_MANIFEST.json').read_text())
+          old_vm=subprocess.check_output(['git','hash-object','organism_lab/digital_vm.py'],text=True).strip()
+          old_engine=subprocess.check_output(['git','hash-object','organism_lab/resource_competition.py'],text=True).strip()
+          assert old_vm == manifest['original_vm_blob_sha']
+          assert old_engine == manifest['original_competition_blob_sha']
+          with tempfile.TemporaryDirectory() as d:
+              for first in (800,900):
+                  filename=f'low-loss-seeds-{first}-{first+29}.json'
+                  file=Path(d)/filename
+                  report=run_study(seeds=tuple(range(first,first+30)))
+                  assert report['strict_low_loss_selection_demonstrated'] is False
+                  doc=save_report(report,file)
+                  assert verify_report(file)==doc
+                  assert doc['sha256']==manifest['reports'][filename]['body_sha256']
+                  assert hashlib.sha256(file.read_bytes()).hexdigest()==manifest['reports'][filename]['file_sha256']
+                  assert report['per_cost'][1]['positive_seeds']==0
+                  assert report['per_cost'][0]['positive_seeds']==30
+                  assert all(report['negative_controls'].values())
+                  print('PASS',filename,'report_sha',doc['sha256'])
+          PY
