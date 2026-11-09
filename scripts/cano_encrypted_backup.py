@@ -19,6 +19,7 @@ import queue
 import math
 import os
 from pathlib import Path
+import re
 import secrets
 import shutil
 import subprocess
@@ -48,6 +49,33 @@ _SAFE_OS_ENV = {
 
 def _child_env(libpq_env: dict) -> dict:
     return {k:v for k,v in libpq_env.items() if k.startswith('PG') or k in _SAFE_OS_ENV}
+
+
+def _require_pg18_dump_client(binary: str) -> None:
+    """Reject an unsafe pg_dump major before touching storage or the source DB.
+
+    PostgreSQL's pg_dump cannot dump a server with a newer major version.
+    This guard belongs in the backup primitive as well as its operator CLI so
+    direct library callers cannot bypass the Render PG18 preflight.
+    """
+    safe_env = {key: value for key, value in os.environ.items()
+                if key in _SAFE_OS_ENV}
+    try:
+        probe = subprocess.run(
+            [binary, '--version'], stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            timeout=12, check=False, env=safe_env,
+        )
+    except (OSError, ValueError, subprocess.SubprocessError):
+        raise BackupError('Cannot verify local pg_dump major version') from None
+    banner = getattr(probe, 'stdout', None)
+    if (probe.returncode != 0 or not isinstance(banner, bytes)
+            or len(banner) > 256 or not re.fullmatch(
+                rb'pg_dump \(PostgreSQL\) 18(?:\.[0-9]+)?'
+                rb'(?: \([A-Za-z0-9][A-Za-z0-9 ._~:+-]*\))?',
+                banner.strip(),
+            )):
+        raise BackupError('The Render PG18 rescue requires a pg_dump 18 client')
 
 
 
@@ -110,6 +138,7 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
     env=_child_env(_libpq_env_from_uri(url,os.environ))
     executable=shutil.which(dump_bin)
     if not executable: raise BackupError('Required pg_dump executable not found')
+    _require_pg18_dump_client(executable)
     destination=Path(destination)
     _private_directory(destination)
     name='cano-pg-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+secrets.token_hex(8)

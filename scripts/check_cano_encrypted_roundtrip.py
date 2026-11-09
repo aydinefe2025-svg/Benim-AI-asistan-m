@@ -56,14 +56,14 @@ def main():
                     db.execute(sql.SQL('INSERT INTO {} (id,data) VALUES (%s,%s::jsonb)').format(sql.Identifier(t)),(id,json.dumps(payload)))
         with tempfile.TemporaryDirectory(prefix='cano-encrypted-dr-') as tmp:
             root=Path(tmp)
-            # The pg_dump/psql/pg_restore binaries are supplied by the exact
-            # postgres:N Docker image, with secrets passed via -e NAME (not argv).
+            # PostgreSQL 18 client binaries are used against both disposable PG17
+            # and PG18 servers. Secrets are passed via -e NAME (not argv).
             for binary in ('pg_dump','pg_restore','psql'):
                 file=root/('docker-'+binary)
                 file.write_text('#!/bin/sh\nset -eu\n'
                       'exec docker run --rm -i --network host '
                       '-e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE '
-                      'postgres:'+major+' '+binary+' "$@"\n')
+                      'postgres:18 '+binary+' "$@"\n')
                 file.chmod(file.stat().st_mode|stat.S_IXUSR)
             dump_bin=str(root/'docker-pg_dump')
             psql_bin=str(root/'docker-psql')
