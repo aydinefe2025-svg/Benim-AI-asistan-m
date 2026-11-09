@@ -153,9 +153,9 @@ class ResearchEvidenceTests(unittest.TestCase):
         answer = (
             "Özet: bu iddia doğrulanmış kabul edilmemelidir. "
             "Tabii, kütleçekimsel merceklenme konusundaki temel bilgiler için "
-            "aşağıdaki kaynakları inceleyebilirsin:\\n"
-            "1. Kütleçekimsel merceklenme — Wikipedia [W1]\\n"
-            "2. Abell 1689 — Wikipedia [W2]\\n"
+            "aşağıdaki kaynakları inceleyebilirsin:\n"
+            "1. Kütleçekimsel merceklenme — Wikipedia [W1]\n"
+            "2. Abell 1689 — Wikipedia [W2]\n"
             "3. CLASS B1359+154 — Wikipedia [W3]"
         )
         clean = sanitize_research_answer(
