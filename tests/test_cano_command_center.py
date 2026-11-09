@@ -174,14 +174,17 @@ class CommandCenterTests(unittest.TestCase):
             old_time = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
             with colony._db() as db:
                 db.execute("INSERT INTO colony_missions VALUES (?,?,?,?,?)",
-                           ("stale-mission", "Resume safely", "[]", "running", old_time))
+                           ("stale-mission", "Resume safely", '[{"role":"researcher","content":"saved checkpoint"}]', "running", old_time))
 
             st.clicks.clear()
             st.messages.clear()
             render_cano_command_center(st, answer=model)
 
         self.assertEqual(manager.get("stale-mission")["status"], "blocked")
-        self.assertEqual(len(manager.get("stale-mission")["stages"]), 0)
+        self.assertEqual(
+            manager.get("stale-mission")["stages"],
+            [{"role": "researcher", "content": "saved checkpoint"}],
+        )
         self.assertEqual(model.calls, [])
         self.assertIn("güvenli biçimde engellendi", " ".join(st.messages))
         self.assertIn("kaldığınız yerden sürdürebilirsiniz", " ".join(st.messages))
