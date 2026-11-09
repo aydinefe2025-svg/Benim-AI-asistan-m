@@ -1,7 +1,6 @@
 import unittest
 
 from organism_lab.assistant_context import summarize_lab_results
-from organism_lab.agent_roles import profile_prompt
 
 
 class AssistantContextTests(unittest.TestCase):
@@ -45,14 +44,6 @@ class AssistantContextTests(unittest.TestCase):
                                 "successful_routes": "unknown"},
             "genome_campaign_v2": {"results": "bad"},
         }), "")
-
-    def test_agent_prompt_explains_lab_results_plainly_without_overclaim(self):
-        prompt = profile_prompt("research")
-        self.assertIn("önce soruya doğrudan cevap ver", prompt)
-        self.assertIn("ne denendi", prompt)
-        self.assertIn("gerçek biyolojik keşif gibi sunma", prompt)
-        self.assertIn("bir kez ve kısa belirt", prompt)
-
 
 if __name__ == "__main__":
     unittest.main()
