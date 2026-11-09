@@ -352,7 +352,7 @@ def restore_to_empty_database(path:Path,*,target_db_url_env='CANO_RESTORE_DATABA
     # CANO persists owner memory and authorized queue in separately configured
     # databases. Check EVERY active source, not only the generic DATABASE_URL.
     # Normalize the default PostgreSQL port so :5432 cannot bypass this guard.
-    for source_env in ('DATABASE_URL', 'MEMORY_DATABASE_URL', 'AGENT_TASK_DATABASE_URL'):
+    for source_env in ('DATABASE_URL', 'CANO_DATABASE_URL', 'MEMORY_DATABASE_URL', 'AGENT_TASK_DATABASE_URL'):
         source_url=os.getenv(source_env,'')
         if not source_url:
             continue
