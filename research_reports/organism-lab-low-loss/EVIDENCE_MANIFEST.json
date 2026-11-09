@@ -16,26 +16,28 @@
   "secondary_cost_zero": "EXPLORATORY strong gain at lower forced-death count; not primary confirmation",
   "reports": {
     "low-loss-seeds-800-829.json": {
-      "body_sha256": "71d8c9ebc03ad6502a9926162ac70c575c4b4cb0a0ca1846487117f6d24231c8",
-      "file_sha256": "89376f5d1364b12e4c5a9833f496ae77ffe6c066db046d49efa40d0dd5d03343",
+      "body_sha256": "f2a3006f7c07f26e388d8d4906bd6d894ddb8035b6ea968586d3bcaaece886b2",
+      "file_sha256": "2e47040f1f02e0fd7d6c76822518a0367626181f597ad054109e9d75fe5ca3fd",
       "positive_cost_1": 0,
       "positive_cost_0": 30,
       "primary_pass": false
     },
     "low-loss-seeds-900-929.json": {
-      "body_sha256": "19519b73df9a2cd6c99cf44c16e79ea3263e3c1daee26a2be96bd955847aad18",
-      "file_sha256": "5ba7baf74938c38ce3b74488274dd14b95adc0913ef1983d61326d95d33218f4",
+      "body_sha256": "d66e3a7bb692c3095ec8dbe88798abc7e4a4e177689feafa89b87c2022a08b4c",
+      "file_sha256": "ef4f3e68994725bd8eec5e1ae948af21662e89a12011012a8c2219f3ec60265c",
       "positive_cost_1": 0,
       "positive_cost_0": 30,
       "primary_pass": false
     }
   },
   "source_sha256": {
-    "organism_lab_cloud/organism_lab/low_loss_turnover.py": "2096ba7fbc40663f5dbae32436516a930f16eedbf260ec260eed441d2a7784e4",
-    "organism_lab_cloud/organism_lab/tests/test_low_loss_turnover.py": "04ee382b1cab0afa11557b5353fde13eb6f6c95d00c519bb678cfce6f414f1c8",
+    "organism_lab_cloud/organism_lab/low_loss_turnover.py": "76080c78253d15819fdb8baa7d5957c814d939f34768e6d9be0f62072c249201",
+    "organism_lab_cloud/organism_lab/tests/test_low_loss_turnover.py": "b3297fc02a701b6d8ed695ae2360ca56a9c3b1418b79a869345742384d257998",
     ".github/workflows/cano-low-loss-vacancy-evidence.yml": "8069e2f43a8bf587d6b7cbf3e7162b8b2e8d3040cb215f360ac3da70b2a91a48",
-    "docs/CANO_LOW_LOSS_VACANCY_2026-11-09.md": "0b7a654405e85f76858575b9a15ec349597067c79a872bf91e1fc8159b17ac87"
+    "docs/CANO_LOW_LOSS_VACANCY_2026-11-09.md": "f8a56278e64d9344d5a9bc3d065fa5f309dfb7e63576559f00e3441a39f299bb"
   },
   "related_repository_pr": "to_be_assigned",
-  "production_deployed": false
+  "production_deployed": false,
+  "local_tests_passed": 20,
+  "original_primary_ceiling_detected": true
 }
