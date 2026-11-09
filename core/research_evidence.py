@@ -4,6 +4,7 @@ Wikipedia is a secondary source. Excerpts are contextual evidence only and do no
 replace review of primary scientific literature or establish independent truth.
 """
 import json
+import re
 from urllib.parse import urlencode, unquote, urlsplit
 from urllib.request import Request, urlopen
 
