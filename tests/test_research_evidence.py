@@ -5,6 +5,7 @@ from core.research_evidence import (
     format_research_evidence,
     format_research_bibliography,
     retrieve_research_excerpts,
+    sanitize_research_answer,
 )
 
 
@@ -110,6 +111,28 @@ class ResearchEvidenceTests(unittest.TestCase):
         self.assertIn("not independent verification", evidence)
         self.assertIn("unsupported claims as verified", format_research_evidence([]))
 
+
+    def test_sanitizer_removes_model_urls_and_unknown_ids(self):
+        answer = (
+            "Kanıt [W1] ve uydurma [W2]. "
+            "[şu bağlantı](https://evil.invalid/fake) "
+            "https://arxiv.org/abs/2201.01234"
+        )
+        clean = sanitize_research_answer(answer, [{"id": "W1"}])
+        self.assertIn("[W1]", clean)
+        self.assertNotIn("[W2]", clean)
+        self.assertNotIn("https://", clean)
+        self.assertNotIn("evil.invalid", clean)
+        self.assertNotIn("arxiv.org", clean)
+
+    def test_sanitizer_removes_all_model_citations_when_no_excerpt_arrives(self):
+        clean = sanitize_research_answer(
+            "İddia [W1] [W2] https://example.invalid/source", []
+        )
+        self.assertNotIn("[W1]", clean)
+        self.assertNotIn("[W2]", clean)
+        self.assertNotIn("https://", clean)
+        self.assertNotIn("example.invalid", clean)
 
 if __name__ == "__main__":
     unittest.main()
