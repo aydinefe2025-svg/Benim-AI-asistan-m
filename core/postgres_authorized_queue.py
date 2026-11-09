@@ -8,6 +8,7 @@ than replay work that may already have caused an external side effect.
 from __future__ import annotations
 
 import hashlib
+import math
 import logging
 import logging
 import os
@@ -17,9 +18,20 @@ import uuid
 from typing import Callable
 
 
+def _finite_now(now):
+    """Reject NaN and infinite test-clock overrides before reading or writing DB."""
+    try:
+        when = time.time() if now is None else float(now)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("Finite clock value required") from exc
+    if not math.isfinite(when):
+        raise ValueError("Finite clock value required")
+    return when
+
+
 class PostgresAuthorizedQueue:
     def __init__(self, database_url: str | None = None, *, owner_key: str,
-                 max_jobs: int = 100, connect=None):
+                 max_jobs: int = 100, connect=None, allow_test_clock: bool = False):
         self.database_url = database_url or os.environ.get("AGENT_TASK_DATABASE_URL")
         if not self.database_url:
             raise ValueError("AGENT_TASK_DATABASE_URL required")
@@ -30,6 +42,29 @@ class PostgresAuthorizedQueue:
         self.owner_key = owner_key
         self.max_jobs = max_jobs
         self._connect = connect
+        # Only disposable integration tests may simulate a clock. Never enable
+        # this escape hatch in an authenticated production queue.
+        if type(allow_test_clock) is not bool:
+            raise ValueError("allow_test_clock must be boolean")
+        self._allow_test_clock = allow_test_clock
+
+    def _override(self, now):
+        """Explicit clocks are for isolated test databases only."""
+        if now is None:
+            return None
+        validated = _finite_now(now)
+        if not self._allow_test_clock:
+            raise PermissionError("Clock overrides require isolated test configuration")
+        return validated
+
+    @staticmethod
+    def _server_clock(cur):
+        """Read the authority clock from PostgreSQL inside the current transaction."""
+        cur.execute("SELECT EXTRACT(EPOCH FROM clock_timestamp()) AS cano_now")
+        row = cur.fetchone()
+        if not isinstance(row, dict) or "cano_now" not in row:
+            raise RuntimeError("PostgreSQL server clock unavailable")
+        return _finite_now(row["cano_now"])
 
     def _db(self):
         if self._connect:
@@ -176,8 +211,10 @@ class PostgresAuthorizedQueue:
             raise ValueError("Invalid worker identity")
         if type(lease_seconds) is not int or not 1 <= lease_seconds <= 3600:
             raise ValueError("Invalid lease duration")
-        when = time.time() if now is None else float(now)
+        when = self._override(now)
         with self._db() as db, db.cursor() as cur:
+            if when is None:
+                when = self._server_clock(cur)
             cur.execute("SELECT * FROM cano_authorized_jobs "
                         "WHERE owner_key=%s AND state='queued' AND eligible_after<=%s "
                         "AND attempts<max_calls ORDER BY created_at,id "
@@ -186,6 +223,9 @@ class PostgresAuthorizedQueue:
             row = cur.fetchone()
             if row is None:
                 return None
+            # Lock is held; refresh the server timestamp after the claim query.
+            if now is None:
+                when = self._server_clock(cur)
             token = secrets.token_hex(16)
             cur.execute("UPDATE cano_authorized_jobs "
                         "SET state='running', attempts=attempts+1, "
@@ -205,19 +245,22 @@ class PostgresAuthorizedQueue:
         row = cur.fetchone()
         if row is None:
             raise KeyError(task_id)
+        # Re-read *after* locking the row. The worker wall clock cannot
+        # grant a stale worker a lease or prolong an existing one.
+        checked_at = self._server_clock(cur) if when is None else when
         if (row["state"] != "running" or not isinstance(token, str)
                 or not secrets.compare_digest(row["lease_token"] or "", token)
-                or row["lease_until"] is None or when > row["lease_until"]):
+                or row["lease_until"] is None or checked_at >= row["lease_until"]):
             raise PermissionError("Job lease expired or lost")
-        return row
+        return row, checked_at
 
     def complete(self, task_id, lease_token, draft, *, now: float | None = None):
         if not isinstance(draft, str) or not draft.strip():
             raise ValueError("Empty research draft")
-        when = time.time() if now is None else float(now)
+        when = self._override(now)
         clean = draft.strip()[:12000]
         with self._db() as db, db.cursor() as cur:
-            self._require_lease(cur, task_id, lease_token, when)
+            _, when = self._require_lease(cur, task_id, lease_token, when)
             cur.execute("UPDATE cano_authorized_jobs "
                         "SET state='review_pending',lease_token=NULL,worker_id=NULL,"
                         "lease_until=NULL,draft=%s,result_digest=%s "
@@ -229,9 +272,9 @@ class PostgresAuthorizedQueue:
                 "draft": clean, "verified": False}
 
     def fail(self, task_id, lease_token, *, now: float | None = None):
-        when = time.time() if now is None else float(now)
+        when = self._override(now)
         with self._db() as db, db.cursor() as cur:
-            row = self._require_lease(cur, task_id, lease_token, when)
+            row, when = self._require_lease(cur, task_id, lease_token, when)
             if row["attempts"] < row["max_calls"]:
                 state, eligible, code, outcome = (
                     "queued", when + min(2 ** (row["attempts"] - 1), 60),
@@ -249,12 +292,21 @@ class PostgresAuthorizedQueue:
 
     def recover_expired(self, *, now: float | None = None):
         """Block expired work; external side effects must never be replayed blindly."""
-        when = time.time() if now is None else float(now)
+        when = self._override(now)
         with self._db() as db, db.cursor() as cur:
-            cur.execute("SELECT id FROM cano_authorized_jobs "
-                        "WHERE owner_key=%s AND state='running' AND lease_until<%s "
-                        "FOR UPDATE SKIP LOCKED", (self.owner_key, when))
-            rows = cur.fetchall()
+            if when is None:
+                # Evaluate expiry at the server, never from a client clock.
+                cur.execute("SELECT id FROM cano_authorized_jobs "
+                            "WHERE owner_key=%s AND state='running' "
+                            "AND lease_until<=EXTRACT(EPOCH FROM clock_timestamp()) "
+                            "FOR UPDATE SKIP LOCKED", (self.owner_key,))
+                rows = cur.fetchall()
+                when = self._server_clock(cur)
+            else:
+                cur.execute("SELECT id FROM cano_authorized_jobs "
+                            "WHERE owner_key=%s AND state='running' AND lease_until<=%s "
+                            "FOR UPDATE SKIP LOCKED", (self.owner_key, when))
+                rows = cur.fetchall()
             for row in rows:
                 cur.execute("UPDATE cano_authorized_jobs SET state='blocked',"
                             "lease_token=NULL,worker_id=NULL,lease_until=NULL "
