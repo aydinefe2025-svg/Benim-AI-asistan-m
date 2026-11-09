@@ -1,5 +1,6 @@
 import unittest
 from core.provider_failure import failure_category, safe_failure_message
+from core.openrouter_free_client import OpenRouterError
 
 
 class ProviderFailureTests(unittest.TestCase):
@@ -24,6 +25,12 @@ class ProviderFailureTests(unittest.TestCase):
         self.assertEqual(failure_category(TimeoutError()), "network")
         self.assertEqual(failure_category(ConnectionError()), "network")
         self.assertEqual(failure_category(RuntimeError("private")), "unknown")
+
+    def test_openrouter_error_categories_are_safe(self):
+        self.assertEqual(failure_category(OpenRouterError("safe", status_code=401)), "authentication")
+        self.assertEqual(failure_category(OpenRouterError("safe", status_code=429)), "rate_limit")
+        self.assertEqual(failure_category(OpenRouterError("safe", failure_kind="network")), "network")
+        self.assertEqual(failure_category(OpenRouterError("safe", failure_kind="response")), "response")
 
     def test_malformed_body_is_safe(self):
         error = RuntimeError("private")
