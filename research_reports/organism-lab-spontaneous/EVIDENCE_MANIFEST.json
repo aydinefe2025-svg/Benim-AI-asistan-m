@@ -31,8 +31,8 @@
     }
   },
   "source_sha256": {
-    "organism_lab_cloud/organism_lab/spontaneous_adaptation.py": "683d77220e10485ad67a68a9ff3e94907ec88aa4e0f7d2aa50616198f17244a7",
-    "organism_lab_cloud/organism_lab/tests/test_spontaneous_adaptation.py": "e76e2733a0dc14071e907535258419c7c2fbc36105ce0c21e7295ee3d7627f23",
+    "organism_lab_cloud/organism_lab/spontaneous_adaptation.py": "0389fd7a7e110069ea5e9192ff3ad5e775286ef5d2ffda2ce6d5b7fd0009c7f9",
+    "organism_lab_cloud/organism_lab/tests/test_spontaneous_adaptation.py": "b5ab3e017ebd4bf1f41a4ddd819701a569722c9d4ee17648eb5bc597e3501580",
     "docs/CANO_SPONTANEOUS_AB_2026-11-09.md": "479963a31dcb7939d63b6cc7af20c7116a0e95bc08f6848db2c727ba17d16683",
     ".github/workflows/cano-spontaneous-ab-evidence.yml": "0c14bcfcf3a263a8ae6bd8ae769819e654211d9cbb995b93f981a71d93f4edb9"
   },
