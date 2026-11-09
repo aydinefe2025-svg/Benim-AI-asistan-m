@@ -23,8 +23,12 @@ python -m scripts.cano_render_operator_preflight "D:\CANO_PRIVATE\rescue_new"
 A nonzero exit means one or more **local** checks failed. The output contains
 only boolean checks, never a URL, hostname, account, password, or key.
 The preflight checks the syntax of the expected Render URI but does **not**
-prove that the URI connects to the actual remote server. On Windows a passing
-local check still requires **manual verification of private folder ACLs**.
+prove that the URI connects to the actual remote server. On Windows it reads
+the destination's access control list and passes only when the current user
+owns the folder and the only allowed principals are that user, SYSTEM, and
+local Administrators. If PowerShell cannot read the ACL or reports any other
+allowed principal, the check fails closed. The output reports only whether the
+ACL check passed; it never emits account names or ACL entries.
 This does not test an authorized /32 external connection; use the existing
 operator runbook and do not open access to 0.0.0.0/0.
 
