@@ -9,6 +9,7 @@ from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.task_panel import _session_database_path
 from core.claim_evidence import (
+    archived_source_audit_entries,
     _display_cached_confidence_conflict, _display_cached_disagreement,
     _reconcile_cached_confidence_conflicts,
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
@@ -155,7 +156,7 @@ labels = {m["id"]: m["task"][:70] for m in missions}
 mid = st.selectbox("Kaynağı okunmuş görev", mission_ids, format_func=lambda key: labels[key])
 record = manager.get(mid)
 documents = record["stages"][0].get("source_documents", [])
-audit_history = record["stages"][0].get("source_claim_audit_history", [])
+audit_history = archived_source_audit_entries(record["stages"])
 if isinstance(audit_history, list) and audit_history:
     st.warning(
         "Kaynaklar yenilendi. Önceki iddia değerlendirmeleri eski kaynak sürümüne "
