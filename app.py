@@ -418,7 +418,7 @@ def _research_leads(goal: str) -> str:
         + "; ".join(item["title"] + ": " + item["url"] for item in scholarly)
         if scholarly else "Bibliographic metadata leads: none retrieved."
     )
-    return metadata + "\n\n" + format_research_evidence(_research_excerpts)
+    return metadata + "\n\n" + format_research_evidence(excerpts)
 
 
 def _research_answer(goal: str) -> str:
@@ -658,7 +658,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
             public_sources = research_sources(kullanici_mesaji)
             _research_excerpts = retrieve_research_excerpts(public_sources)
             if public_sources:
-                arama_sonucu += "\n" + format_research_evidence(excerpts)
+                arama_sonucu += "\n" + format_research_evidence(_research_excerpts)
                 arama_sonucu += "\nKaynak bağlantıları (ansiklopedi, bağımsız doğrulanmadı):\n" + "\n".join(
                     item["title"] + ": " + item["url"] for item in public_sources
                 )
@@ -720,7 +720,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
         if arama_istegi and _research_excerpts:
             bibliography = format_research_bibliography(_research_excerpts)
             if bibliography:
-                final_answer += "\\n\\n" + bibliography
+                final_answer += "\n\n" + bibliography
         return final_answer
 
     except Exception as e:
