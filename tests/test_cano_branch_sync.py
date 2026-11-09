@@ -70,6 +70,38 @@ class BranchSyncTests(unittest.TestCase):
         after = self.git(self.work, "ls-remote", "origin", "refs/heads/prod")
         self.assertEqual(before, after)
 
+    def test_audit_reports_legacy_behind_without_pushing(self):
+        self.commit("new.txt", "new")
+        old = self.git(self.work, "ls-remote", "origin", "refs/heads/prod")
+        result = sync_branches(cwd=self.work, target="prod", audit_only=True)
+        self.assertEqual(result["status"], "legacy_behind_main")
+        self.assertEqual(result["requires_human_review"], False)
+        self.assertEqual(result["mutated"], False)
+        self.assertEqual(old, self.git(self.work, "ls-remote", "origin", "refs/heads/prod"))
+
+    def test_audit_reports_divergence_without_pushing_or_hiding_it(self):
+        self.commit("main.txt", "main only")
+        self.git(self.remote.parent, "clone", "-b", "prod", str(self.remote), str(self.peer))
+        self.git(self.peer, "config", "user.name", "Other contributor")
+        self.git(self.peer, "config", "user.email", "peer@example.org")
+        (self.peer / "legacy-only.txt").write_text("preserve", encoding="utf-8")
+        self.git(self.peer, "add", ".")
+        self.git(self.peer, "commit", "-m", "legacy work")
+        self.git(self.peer, "push", "origin", "prod")
+        original = self.git(self.work, "ls-remote", "origin", "refs/heads/prod")
+        result = sync_branches(cwd=self.work, target="prod", audit_only=True)
+        self.assertEqual(result["status"], "legacy_diverged_requires_review")
+        self.assertEqual(result["requires_human_review"], True)
+        self.assertEqual(result["mutated"], False)
+        self.assertEqual(original, self.git(self.work, "ls-remote", "origin", "refs/heads/prod"))
+
+    def test_scheduled_workflow_can_only_audit_legacy_branch(self):
+        repo = Path(__file__).resolve().parents[1]
+        workflow = (repo / ".github/workflows/cano-safe-branch-sync.yml").read_text()
+        self.assertIn("contents: read", workflow)
+        self.assertNotIn("contents: write", workflow)
+        self.assertIn("python -m scripts.cano_safe_branch_sync --audit-only", workflow)
+
     def test_invalid_refs_rejected_without_git_access(self):
         for bad in ("../prod", "prod..evil", "-force", "main//evil", "prod.lock"):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
