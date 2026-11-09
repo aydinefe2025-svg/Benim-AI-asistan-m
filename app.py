@@ -218,6 +218,19 @@ if "Google Gemini" in secilen_model and GOOGLE_KEY and st.sidebar.button("Google
     else:
         st.sidebar.error("Google bağlantısı doğrulanamadı. Ayrıntılar güvenlik için gizlendi.")
 
+if "OpenRouter" in secilen_model and OPENROUTER_KEY and st.sidebar.button("OpenRouter ücretsiz havuz bağlantısını doğrula"):
+    check = check_provider("openrouter", OPENROUTER_KEY)
+    if check["status"] == "verified":
+        st.sidebar.success("OpenRouter kimliği doğrulandı; ücretsiz model havuzu listesi erişilebilir. Metin üretilmedi.")
+    elif check.get("http_status") == 401:
+        st.sidebar.error("OpenRouter API anahtarı reddedildi (HTTP 401). Gizli ortam değişkenini kontrol edin.")
+    elif check.get("http_status") == 429:
+        st.sidebar.warning("OpenRouter istek sınırına ulaşıldı (HTTP 429). Daha sonra yeniden deneyin.")
+    elif check.get("http_status") in (403, 404):
+        st.sidebar.error("OpenRouter bu isteğe erişim vermedi veya uç noktayı bulamadı. Gizli hata ayrıntıları gösterilmedi.")
+    else:
+        st.sidebar.error("OpenRouter bağlantısı doğrulanamadı; anahtar, ağ veya sağlayıcı durumu kontrol edilmeli.")
+
 # Web Sayfası Başlığı ve Sade Tasarım
 st.title("🧠 CANO — Yapay Zekâ Komuta Merkezi")
 st.caption("Gerçek görevler · Uzman ekip · Denetim aşamaları · Bilimsel kaynak adayları · Açık kayıt durumu")
