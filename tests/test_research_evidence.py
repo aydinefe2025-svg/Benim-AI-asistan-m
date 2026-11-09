@@ -134,5 +134,19 @@ class ResearchEvidenceTests(unittest.TestCase):
         self.assertNotIn("https://", clean)
         self.assertNotIn("example.invalid", clean)
 
+    def test_sanitizer_removes_model_authored_source_sections(self):
+        answer = (
+            "Kısa araştırma özeti.\n\n"
+            "Kaynaklar (numaralı bağlantılar)\n"
+            "1. Kütleçekimsel merceklenme — Wikipedia\n"
+            "2. Abell 1689 — Wikipedia\n"
+            "Bunlar model tarafından yazıldı."
+        )
+        clean = sanitize_research_answer(answer, [{"id": "W1"}])
+        self.assertIn("Kısa araştırma özeti.", clean)
+        self.assertNotIn("Kaynaklar", clean)
+        self.assertNotIn("Abell 1689", clean)
+        self.assertNotIn("Bunlar model tarafından yazıldı.", clean)
+
 if __name__ == "__main__":
     unittest.main()
