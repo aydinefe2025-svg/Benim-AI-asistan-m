@@ -662,7 +662,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
                 arama_sonucu += "\nKaynak bağlantıları (ansiklopedi, bağımsız doğrulanmadı):\n" + "\n".join(
                     item["title"] + ": " + item["url"] for item in public_sources
                 )
-            elif not excerpts:
+            elif not _research_excerpts:
                 arama_sonucu += "\nAçık kaynak aramasında sonuç bulunamadı."
         except (OSError, ValueError, KeyError, TypeError):
             arama_sonucu += "\nAçık kaynak araması başarısız; sonuç doğrulanamadı."
