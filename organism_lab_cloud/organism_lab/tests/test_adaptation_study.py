@@ -48,6 +48,19 @@ class AdaptationStudyTests(unittest.TestCase):
             self.assertEqual(json.loads(path.read_text(encoding="utf-8")), report)
             self.assertFalse(path.with_suffix(".json.tmp").exists())
 
+    def test_save_is_idempotent_and_never_overwrites_different_experiment(self):
+        first = run_adaptation_study(seeds=(4, 5), steps=12, shift_tick=5, capacity=8)
+        second = run_adaptation_study(seeds=(6, 7), steps=12, shift_tick=5, capacity=8)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "reports" / "study.json"
+            self.assertEqual(save_adaptation_study(first, path), path)
+            original_bytes = path.read_bytes()
+            self.assertEqual(save_adaptation_study(first, path), path)
+            self.assertEqual(path.read_bytes(), original_bytes)
+            with self.assertRaises(FileExistsError):
+                save_adaptation_study(second, path)
+            self.assertEqual(path.read_bytes(), original_bytes)
+
     def test_bounds_prevent_unbounded_runs(self):
         for kwargs in ({"seeds": (1,), "steps": 20, "shift_tick": 5},
                        {"seeds": (1, 2), "steps": 20, "shift_tick": 20},
