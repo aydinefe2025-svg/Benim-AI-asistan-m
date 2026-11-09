@@ -231,9 +231,9 @@ progress_case_ids = {
 }
 st.markdown("#### Kör etiketleme ilerlemesini yedekle veya sürdür")
 st.caption(
-    "Kısmi insan etiketlerini bir JSON dosyasına aktarabilir, oturum yenilendiğinde "
-    "bu dosyayı yükleyerek devam edebilirsin. Dosya yalnızca senin verdiğin etiketleri "
-    "içerir; altın cevap anahtarı ve CANO tahminleri dahil edilmez."
+    "Bir kohortun formunda kısmi veya tam seçimlerini kaydettikten sonra ilerleme "
+    "dosyasını indir. Oturum yenilenince dosyayı yükleyerek devam edebilirsin. "
+    "Dosyada yalnızca insan etiketleri bulunur; altın anahtar ve CANO tahminleri yer almaz."
 )
 uploaded_label_backup = st.file_uploader(
     "Önceki insan etiketi ilerleme yedeğini yükle",
@@ -254,10 +254,14 @@ if uploaded_label_backup is not None:
                 "contradicted": "Çelişiyor",
                 "insufficient": "Kanıt yetersiz",
             }
-            for cohort, labels in imported_progress.items():
+            for cohort, cases in progress_case_sets.items():
+                labels = imported_progress.get(cohort, {})
                 st.session_state[f"cano_claim_review_human_labels_{cohort}"] = labels
-                for case_id, label in labels.items():
-                    st.session_state[f"cano_human_{cohort}_{case_id}"] = ui_values[label]
+                for case in cases:
+                    case_id = case["case_id"]
+                    st.session_state[f"cano_human_{cohort}_{case_id}"] = (
+                        ui_values.get(labels.get(case_id), "— Seçin —")
+                    )
             st.session_state["_cano_human_label_backup_imported"] = backup_digest
             st.success("İnsan etiketi ilerlemesi yüklendi; eksik vakaları tamamlayabilirsin.")
 progress_to_export = {
