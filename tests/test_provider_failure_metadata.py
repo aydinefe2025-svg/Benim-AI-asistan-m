@@ -35,6 +35,24 @@ class ProviderFailureMetadataTests(unittest.TestCase):
         self.assertEqual(caught.exception.failure_kind, "rate_limit")
         self.assertNotIn("private provider response body", str(caught.exception))
 
+    def test_allowlisted_groq_code_survives_safe_wrapping(self):
+        error = Exception("private provider response body")
+        error.status_code = 400
+        error.body = {"error": {"code": "unsupported_parameter", "message": "PRIVATE"}}
+        completion = types.SimpleNamespace(create=lambda **kwargs: (_ for _ in ()).throw(error))
+        fake_groq = types.SimpleNamespace(
+            Groq=lambda **kwargs: types.SimpleNamespace(
+                chat=types.SimpleNamespace(
+                    completions=types.SimpleNamespace(create=completion.create)
+                )
+            )
+        )
+        with patch.dict(sys.modules, {"groq": fake_groq}):
+            with self.assertRaises(RuntimeError) as caught:
+                GroqChatClient("test-key").chat("test-model", "system", "prompt")
+        self.assertEqual(caught.exception.failure_code, "unsupported_parameter")
+        self.assertNotIn("PRIVATE", str(caught.exception))
+
     def test_google_sdk_code_survives_safe_adapter_wrapping(self):
         error = GoogleSdkRateLimitError("private provider response body")
         fake_genai = types.SimpleNamespace(
