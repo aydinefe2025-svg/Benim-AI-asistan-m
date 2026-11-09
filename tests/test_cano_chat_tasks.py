@@ -300,7 +300,8 @@ class CanoChatTasksTests(unittest.TestCase):
                 self.assertEqual(mission["status"], "running")
 
             result = manager.execute(
-                "2+2 sonucunu incele", client=client, model="fake",
+                "Birincil kaynak kanıtını gözden geçir: 2+2 sonucunu incele",
+                client=client, model="fake",
                 mission_id=request_id, on_checkpoint=checkpoint)
             self.assertEqual(result["status"], "review_pending")
             self.assertEqual(len(client.calls), 4)
@@ -315,7 +316,8 @@ class CanoChatTasksTests(unittest.TestCase):
             restored = AgentColony(Path(tmp) / "session-b.sqlite3")
             restore_empty_colony(restored, _snapshot(original))
             replay = CollaborativeMission(restored).execute(
-                "2+2 sonucunu incele", client=client, model="fake",
+                "Birincil kaynak kanıtını gözden geçir: 2+2 sonucunu incele",
+                client=client, model="fake",
                 mission_id=request_id)
             self.assertEqual(replay["id"], request_id)
             self.assertEqual(replay["model_calls"], 0)
@@ -336,3 +338,4 @@ class CanoChatTasksTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
