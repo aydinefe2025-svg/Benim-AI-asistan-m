@@ -2,6 +2,7 @@
 import os
 import json
 import sqlite3
+import hashlib
 from pathlib import Path
 import streamlit as st
 from core.authentication import render_auth_gate
@@ -15,7 +16,6 @@ from core.claim_evidence import (
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
     retry_unavailable_skeptical_pass,
 )
-import hashlib
 from core.human_label_progress import (
     decode_human_label_progress, encode_human_label_progress,
 )
@@ -306,7 +306,7 @@ if labels_submitted:
     st.session_state.pop(model_key, None)
     if len(partial_labels) < len(HUMAN_COMPARISON_CASES):
         st.warning(
-            f"{len(partial_labels)} / {len(HUMAN_COMPARISON_CASES)} 24 insan değerlendirmesini kaydedildi. "
+            f"{len(partial_labels)} / 24 insan etiketi kaydedildi. "
             "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
         )
     else:
@@ -421,7 +421,7 @@ if v4_labels_submitted:
     st.session_state.pop(v4_model_key, None)
     if len(partial_labels) < len(SUPPLEMENTAL_COMPARISON_CASES):
         st.warning(
-            f"{len(partial_labels)} / {len(SUPPLEMENTAL_COMPARISON_CASES)} ek kohortun 24 insan değerlendirmesini kaydedildi. "
+            f"Ek kohort: {len(partial_labels)} / 24 insan etiketi kaydedildi. "
             "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
         )
     else:
@@ -549,7 +549,7 @@ if v5_labels_submitted:
     st.session_state.pop(v5_model_key, None)
     if len(partial_labels) < len(V5_COMPARISON_CASES):
         st.warning(
-            f"{len(partial_labels)} / {len(V5_COMPARISON_CASES)} üçüncü kohortun 24 insan değerlendirmesini kaydedildi. "
+            f"Üçüncü kohort: {len(partial_labels)} / 24 insan etiketi kaydedildi. "
             "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
         )
     else:
@@ -676,7 +676,7 @@ if v6_labels_submitted:
     st.session_state.pop(v6_model_key, None)
     if len(partial_labels) < len(V6_COMPARISON_CASES):
         st.warning(
-            f"{len(partial_labels)} / {len(V6_COMPARISON_CASES)} dördüncü kohortun 24 insan değerlendirmesini kaydedildi. "
+            f"Dördüncü kohort: {len(partial_labels)} / 24 insan etiketi kaydedildi. "
             "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
         )
     else:
