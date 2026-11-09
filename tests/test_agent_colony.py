@@ -38,7 +38,7 @@ class ColonyTests(unittest.TestCase):
             first = colony.run(founder, "Question", client=client, model="mock")
             self.assertEqual(first["lessons_used"], 0)
             colony.feedback(founder, "Question", "Unreviewed guess", "note", accepted=False)
-            colony.feedback(founder, "Question", "Check primary evidence", "review-id-1", accepted=True)
+            colony.feedback(founder, "*", "Check primary evidence", "review-id-1", accepted=True)
             reopened = AgentColony(path)
             second = reopened.run(founder, "Question", client=client, model="mock")
             self.assertEqual(second["lessons_used"], 1)
@@ -49,6 +49,46 @@ class ColonyTests(unittest.TestCase):
                           client.prompts[-1])
             self.assertNotIn(r"\nAccepted past lessons", client.prompts[-1])
             self.assertEqual(second["status"], "draft_unverified")
+
+    def test_task_matching_uses_relevant_and_global_lessons_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            colony = AgentColony(Path(folder) / "colony.sqlite3")
+            founder = colony.create_founder("research", "Research carefully")
+            colony.feedback(founder, "release deployment",
+                            "Require human approval before deployment",
+                            "review:deployment", accepted=True)
+            colony.feedback(founder, "primary source DOI evidence",
+                            "Check DOI and verify the primary source evidence",
+                            "review:source", accepted=True)
+            colony.feedback(founder, "*", "Separate facts from hypotheses",
+                            "review:global", accepted=True)
+            colony.feedback(founder, "primary source evidence",
+                            "Never check evidence", "review:unreviewed", accepted=False)
+            client = FakeClient()
+
+            result = colony.run(
+                founder, "Verify DOI citation evidence from the primary source",
+                client=client, model="mock")
+            self.assertEqual(result["lessons_used"], 2)
+            self.assertIn("Check DOI and verify the primary source evidence",
+                          client.prompts[-1])
+            self.assertIn("Separate facts from hypotheses", client.prompts[-1])
+            self.assertNotIn("Require human approval", client.prompts[-1])
+            self.assertNotIn("Never check evidence", client.prompts[-1])
+
+            unrelated = colony.run(
+                founder, "Explain a quantum graph",
+                client=client, model="mock")
+            self.assertEqual(unrelated["lessons_used"], 1)
+            self.assertIn("Separate facts from hypotheses", client.prompts[-1])
+            self.assertNotIn("Check DOI and verify", client.prompts[-1])
+
+    def test_task_matching_requires_nonempty_query(self):
+        with tempfile.TemporaryDirectory() as folder:
+            colony = AgentColony(Path(folder) / "colony.sqlite3")
+            founder = colony.create_founder("research", "Research carefully")
+            with self.assertRaises(ValueError):
+                colony.lessons(founder, task=" ")
 
     def test_rejects_oversized_task_without_model_call(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -71,3 +111,5 @@ class ColonyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
