@@ -189,7 +189,7 @@ def run_bounded_improvement_cycle(
         )
         try:
             feedback_id = colony.feedback(
-                author_id, "CANO bounded improvement proposal " + dataset_ref.strip(),
+                author_id, task.strip(),
                 lesson, evidence, accepted=False,
             )
         except Exception as exc:
