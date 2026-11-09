@@ -12,9 +12,11 @@ on:
       - "tests/test_virtual_colony_generation.py"
       - "tests/test_scheduled_colony_cycle.py"
       - "tests/test_cano_specialist_agents.py"
+      - "tests/test_cano_schedule_guard.py"
+      - "scripts/cano_schedule_guard.py"
   schedule:
-    # Keep away from the high-load start of the hour; changing this cron also re-enables a stalled schedule.
-    - cron: "37 * * * *"
+    # Two half-hour checks provide recovery if one scheduled run is skipped.
+    - cron: "7,37 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -26,7 +28,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      run_cycle: ${{ steps.guard.outputs.run_cycle }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Skip a cycle when the public report is recent
+        id: guard
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: python -m scripts.cano_schedule_guard --output "$GITHUB_OUTPUT"
+
   propose:
+    needs: freshness
+    if: needs.freshness.outputs.run_cycle == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -40,6 +60,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "test_*colony*.py" -q
           python -m unittest tests.test_cano_specialist_agents -q
+          python -m unittest tests.test_cano_schedule_guard -q
       - name: Restore prior verified colony database
         id: colony_cache
         uses: actions/cache@v4
