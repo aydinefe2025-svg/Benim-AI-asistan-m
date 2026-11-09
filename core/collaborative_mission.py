@@ -350,6 +350,18 @@ class CollaborativeMission:
                 return current[0]["source_documents"]
             if current != stages:
                 raise RuntimeError("Mission stages changed while reading sources")
+            previous_documents = current[0].get("source_documents", [])
+            if (documents != previous_documents
+                    and "source_claim_audit" in current[0]):
+                history = current[0].setdefault("source_claim_audit_history", [])
+                if not isinstance(history, list) or len(history) >= 20:
+                    raise RuntimeError(
+                        "Source audit archive is full; refresh was not applied")
+                history.append({
+                    "source_documents": previous_documents,
+                    "source_claim_audit": current[0].pop("source_claim_audit"),
+                    "archived_at": datetime.now(timezone.utc).isoformat(),
+                })
             current[0]["source_documents"] = documents
             db.execute("UPDATE colony_missions SET stages=? WHERE id=?",
                        (json.dumps(current, ensure_ascii=False), mission_id))
