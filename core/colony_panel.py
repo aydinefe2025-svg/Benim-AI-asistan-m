@@ -17,7 +17,7 @@ from core.colony_postgres import ColonySnapshotStore
 from core.cano_command_center import _snapshot
 from core.colony_restore import restore_colony_json_bytes, restore_owner_backup
 from core.task_panel import _session_database_path
-from core.provider_failure import safe_failure_message
+from core.provider_failure import MESSAGES, safe_failure_message
 
 
 def snapshots_match(left, right):
@@ -445,7 +445,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         elif result["status"] == "blocked":
                             st.warning(
                                 "Döngü tamamlanamadı; biten inceleme arşivlendi, "
-                                "aday etkinleştirilmedi.")
+                                "aday etkinleştirilmedi. "
+                                + MESSAGES.get(result.get("failure_category"), MESSAGES["unknown"]))
                         else:
                             st.info(
                                 "Döngü tamamlandı ancak aday sabit testlerde "
@@ -465,7 +466,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
             if cycle and cycle["status"] == "blocked":
                 st.caption(
                     "İnceleme kaydı korundu. Model sağlayıcısı veya test işlemi "
-                    "tamamlanamadı; aktif hafızaya hiçbir ders eklenmedi.")
+                    "tamamlanamadı; aktif hafızaya hiçbir ders eklenmedi. "
+                    + MESSAGES.get(cycle.get("failure_category"), MESSAGES["unknown"]))
             elif cycle:
                 st.caption(
                     f"Test sonucu: aday {cycle['benchmark']['candidate_passed']}/"
