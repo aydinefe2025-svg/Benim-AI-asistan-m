@@ -155,7 +155,7 @@ def sanitize_research_answer(answer, excerpts):
         answer,
     )
     source_intro = re.search(
-        r"(?im)^[^\n]*\b(?:kaynak\w*|sources?|references?)\b[^\n]{0,220}:"
+        r"(?i)\b(?:kaynak\w*|sources?|references?)\b[^\n]{0,220}:"
         r"(?=\s*\n\s*(?:\d+[.)]|[-*]))",
         answer,
     )
