@@ -148,5 +148,23 @@ class ResearchEvidenceTests(unittest.TestCase):
         self.assertNotIn("Abell 1689", clean)
         self.assertNotIn("Bunlar model tarafından yazıldı.", clean)
 
+
+    def test_sanitizer_removes_inline_intro_and_numbered_retrieved_source_list(self):
+        answer = (
+            "Özet: bu iddia doğrulanmış kabul edilmemelidir. "
+            "Tabii, kütleçekimsel merceklenme konusundaki temel bilgiler için "
+            "aşağıdaki kaynakları inceleyebilirsin:\\n"
+            "1. Kütleçekimsel merceklenme — Wikipedia [W1]\\n"
+            "2. Abell 1689 — Wikipedia [W2]\\n"
+            "3. CLASS B1359+154 — Wikipedia [W3]"
+        )
+        clean = sanitize_research_answer(
+            answer, [{"id": "W1"}, {"id": "W2"}, {"id": "W3"}]
+        )
+        self.assertIn("Özet:", clean)
+        self.assertNotIn("aşağıdaki kaynakları", clean)
+        self.assertNotIn("Abell 1689", clean)
+        self.assertNotIn("CLASS B1359+154", clean)
+
 if __name__ == "__main__":
     unittest.main()
