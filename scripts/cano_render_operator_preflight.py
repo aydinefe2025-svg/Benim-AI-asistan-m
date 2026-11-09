@@ -117,7 +117,7 @@ def _windows_private_acl(path: Path) -> bool:
         ("PATH", "SystemRoot", "WINDIR", "COMSPEC", "PATHEXT", "TEMP", "TMP")
         if key in os.environ
     }
-    safe_env["CANO_PREFLIGHT_ACL_PATH"] = str(Path(path).absolute())
+    safe_env["CANO_PREFLIGHT_ACL_PATH"] = os.fspath(path)
     try:
         outcome = subprocess.run(
             [powershell, "-NoProfile", "-NonInteractive", "-Command", command],
