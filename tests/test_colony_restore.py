@@ -37,6 +37,7 @@ class RestoreTests(unittest.TestCase):
                     return "stage-" + str(self.calls)
             record = first_missions.execute("Safe factual test",
                                             client=FakeClient(), model="fake")
+            first_missions.mark_reviewed(record["id"], approved=True)
             with first._db() as db:
                 snapshot = {
                     "agents": [dict(x) for x in db.execute("SELECT * FROM colony_agents")],
@@ -44,7 +45,6 @@ class RestoreTests(unittest.TestCase):
                     "reviews": [],
                     "missions": [dict(x) for x in db.execute("SELECT * FROM colony_missions")],
                 }
-            first_missions.mark_reviewed(record["id"], approved=True)
             target = AgentColony(Path(directory) / "restored.sqlite3")
             self.assertEqual(restore_empty_colony(target, snapshot), 2)
             restored = CollaborativeMission(target).get(record["id"])
