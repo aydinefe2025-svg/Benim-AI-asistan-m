@@ -472,7 +472,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             inspected = manager.get(latest_id)
         except (KeyError, ValueError, sqlite3.Error):
             inspected = None
-        if inspected and inspected["status"] == "review_pending" and inspected["stages"]:
+        if inspected and inspected["status"] in ("review_pending", "reviewed") and inspected["stages"]:
             planner_stage = inspected["stages"][0]
             if planner_stage.get("source_leads"):
                 with st.expander("📑 Gerçek kaynak metnini incele", expanded=False):
@@ -509,6 +509,24 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                         st.link_button("Kaynağı aç", doc["url"])
                         if doc.get("excerpt"):
                             st.caption("Belgeden kısa metin: " + doc["excerpt"])
+
+    if latest_id and inspected and inspected["status"] == "review_pending":
+        st.caption("Taslağı inceleme kuyruğundan kaldırır; iddiaları doğrulamaz veya ders kabul etmez.")
+        if st.button("İncelemeyi tamamla (doğruluk onayı değildir)",
+                     key="cano_mark_reviewed_" + latest_id):
+            try:
+                _checkpoint()
+                manager.mark_reviewed(latest_id, approved=True)
+                try:
+                    _checkpoint(archive_prior=False)
+                except Exception:
+                    st.error("İnceleme durumu bu oturumda korundu ama hesap yedeği doğrulanamadı; JSON yedeği alın.")
+                    return
+                st.success("Taslak inceleme kuyruğundan kaldırıldı; bilimsel doğruluk onaylanmadı.")
+                st.rerun()
+                return
+            except (RuntimeError, ValueError, KeyError, OSError, sqlite3.Error):
+                st.error("İnceleme durumu kaydedilemedi; mevcut taslak korundu.")
 
     if status["history"]:
         st.caption("Bu oturumda kayıtlı son ekip görevleri: " +
