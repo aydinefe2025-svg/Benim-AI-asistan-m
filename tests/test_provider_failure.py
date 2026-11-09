@@ -30,6 +30,7 @@ class ProviderFailureTests(unittest.TestCase):
         self.assertEqual(failure_category(OpenRouterError("safe", status_code=401)), "authentication")
         self.assertEqual(failure_category(OpenRouterError("safe", status_code=429)), "rate_limit")
         self.assertEqual(failure_category(OpenRouterError("safe", failure_kind="network")), "network")
+        self.assertEqual(failure_category(OpenRouterError("safe", failure_kind="response")), "response")
 
     def test_malformed_body_is_safe(self):
         error = RuntimeError("private")

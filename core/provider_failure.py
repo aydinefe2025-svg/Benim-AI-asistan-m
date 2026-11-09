@@ -9,11 +9,15 @@ MESSAGES = {
     "request": "Sağlayıcı isteği kabul etmedi; model ve istek ayarlarını kontrol edin.",
     "network": "Sağlayıcıya ağ bağlantısı kurulamadı veya bağlantı zaman aşımına uğradı.",
     "service": "Model hizmeti geçici olarak kullanılamıyor; daha sonra yeniden deneyin.",
+    "response": "Sağlayıcı bağlantısı açık, ancak model yanıtı boş veya biçimi geçersizdi.",
+    "storage": "Öğrenme kaydı kalıcı depoya yazılamadı; mevcut dersler korunuyor.",
     "unknown": "Model yanıtı alınamadı; bağlantı ve model ayarlarını kontrol edin.",
 }
 
 
 def failure_category(error):
+    if type(error).__name__ in ("OperationalError", "IntegrityError", "DatabaseError"):
+        return "storage"
     kind = getattr(error, "failure_kind", None)
     if kind in MESSAGES:
         return kind

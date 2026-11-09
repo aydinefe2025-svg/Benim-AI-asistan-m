@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 
 from core.agent_review_loop import AgentReviewLoop
+from core.provider_failure import failure_category
 from core.benchmark_harness import (
     BenchmarkCase,
     parse_memory_benchmark_cases,
@@ -148,7 +149,7 @@ def run_bounded_improvement_cycle(
             colony, author_id, lesson, cases, client=client, model=model,
             dataset_ref=dataset_ref,
         )
-    except Exception:
+    except Exception as exc:
         # Keep the completed review durable, but never expose provider exception
         # text or save an untested candidate lesson.
         return {
@@ -160,6 +161,7 @@ def run_bounded_improvement_cycle(
             "provider_calls_max": 24,
             "model_weights_updated": False,
             "candidate_activated": False,
+            "failure_category": failure_category(exc),
         }
     feedback_id = None
     if measured["eligible"]:

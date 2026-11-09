@@ -70,6 +70,7 @@ class OpenRouterFreeClient:
             raise OpenRouterError(
                 f"OpenRouter request failed ({type(exc).__name__})",
                 failure_kind=("network" if isinstance(exc, (urllib.error.URLError, TimeoutError))
+                              else "response" if isinstance(exc, (json.JSONDecodeError, UnicodeError))
                               else "unknown"),
             ) from None
         try:
@@ -77,9 +78,9 @@ class OpenRouterFreeClient:
             content = choice["message"]["content"]
             model_used = result.get("model")
         except (KeyError, IndexError, TypeError):
-            raise OpenRouterError("OpenRouter returned an invalid response") from None
+            raise OpenRouterError("OpenRouter returned an invalid response", failure_kind="response") from None
         if not isinstance(content, str) or not content.strip():
-            raise OpenRouterError("OpenRouter returned no usable text")
+            raise OpenRouterError("OpenRouter returned no usable text", failure_kind="response")
         self.last_model_used = model_used if isinstance(model_used, str) else "openrouter/free"
         return content.strip()
 
