@@ -4,6 +4,12 @@ These instructions apply to Codex and other coding agents reading this repositor
 
 **Mandatory first read**: `docs/CANO_CONTINUOUS_PROGRESS_PROTOCOL.md` and `docs/CANO_MASTER_REQUIREMENTS_2026-11-04.md`, plus the latest applicable GitHub Issue #95, related PR/CI, and project-specific Notion evidence record.
 
+## Cross-agent CANO recovery handoff — read before reopening tasks
+
+For CANO Render PostgreSQL 18 backup, restore-target safety, owner-local preflight, or disaster-recovery automation, **first read the current [Issue #440](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/440)** and parent [Issue #95](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/95). Check the most recent production-source commit and PR status. #440 is the shared **Codex ↔ ChatGPT ↔ GitHub** task checkpoint; it contains completed work, exact CI evidence, outstanding real-data acceptance, and access blockers.
+
+Do not recreate a completed restore source guard (#448 merged; earlier drafts #424/#433 superseded), Render rescue operator CLI (#435/#438), offsite readback (#441), Windows preflight (#443), or PG18 client guard (#446/#459) without identifying a *new* source-backed defect. Do not mistake a merged source commit or synthetic CI for a live Render deployment or a real offsite restore. If Codex Cloud lacks a connected environment, say so explicitly; a GitHub issue mention is **not** proof of an active agent session. Check updated issue/PR status each session rather than assuming this dated list remains current.
+
 ## Standing objective: measurable progress without repeated user prompting
 On each authorized work session:
 1. Recover the current topic's canonical state and prior evidence. Resume the last open acceptance criterion; do not restart a completed study or duplicate another agent's PR.
