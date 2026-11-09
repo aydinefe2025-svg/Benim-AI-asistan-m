@@ -7,6 +7,7 @@ from pathlib import Path
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
 from core.claim_evidence import (
+    archived_source_audit_entries,
     _display_cached_confidence_conflict, _display_cached_disagreement,
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
     retry_unavailable_skeptical_pass,
@@ -19,6 +20,16 @@ QUOTE = "Targeted nucleases are powerful tools for genome engineering."
 
 
 class ReviewQueueFilterTests(unittest.TestCase):
+    def test_archive_view_ignores_empty_legacy_placeholders(self):
+        real = {"source_documents": [{"doi": DOI}], "source_claim_audit": []}
+        stages = [{"source_claim_audit_history": [
+            {"source_documents": [], "source_claim_audit": []},
+            "invalid",
+            real,
+        ]}]
+        self.assertEqual(archived_source_audit_entries(stages), [real])
+        self.assertEqual(archived_source_audit_entries([]), [])
+
     def test_includes_only_safe_readable_source_excerpts(self):
         readable = [{
             "source_documents": [{
