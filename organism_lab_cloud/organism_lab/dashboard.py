@@ -27,6 +27,7 @@ from organism_lab.persistent_memory import (augment_with_memory, list_memories,
 from organism_lab.providers import (GROQ_MODEL_OPTIONS, ProviderError, diagnose_groq_access,
                                     generate, groq_active_key, groq_test_key, trained_local_ready)
 from organism_lab.agent_roles import AGENT_PROFILES, profile_prompt
+from organism_lab.assistant_context import summarize_lab_results
 from organism_lab.cloud_runtime import default_provider, session_output_dir
 from organism_lab.automation_status import render_colony_status_panel
 
@@ -184,14 +185,19 @@ ask_local_clicked = st.button("Groq'a sor" if CLOUD_MODE and selected_provider =
 if ask_local_clicked:
     try:
         relevant = retrieve_memories(OUTPUT_DIR, learning_query)
-        agent_prompt = learning_query
+        lab_context = summarize_lab_results(st.session_state)
+        agent_prompt = (
+            lab_context + "\n\nKullanıcının güncel isteği:\n" + learning_query
+            if lab_context else learning_query
+        )
         if selected_provider != "groq":
-            agent_prompt = profile_prompt(selected_agent) + "\n\nKullanıcının isteği:\n" + learning_query
+            agent_prompt = profile_prompt(selected_agent) + "\n\n" + agent_prompt
         response = generate(augment_with_memory(agent_prompt, relevant), selected_provider,
                            model=selected_model,
                            system_prompt=profile_prompt(selected_agent) if selected_provider == "groq" else None)
         st.session_state["local_learning_answer"] = response.get("text", "")
         st.session_state["local_learning_context_count"] = len(relevant)
+        st.session_state["local_learning_lab_context_used"] = bool(lab_context)
         if CLOUD_MODE:
             chat_path = OUTPUT_DIR / "chat_history.jsonl"
             with chat_path.open("a", encoding="utf-8") as history_file:
@@ -217,6 +223,8 @@ if st.session_state.get("local_learning_answer"):
     st.markdown("**Ajan yanıtı**")
     st.write(st.session_state["local_learning_answer"])
     st.caption(f"Model: {st.session_state.get('local_learning_provider', 'ollama')} · eklenen kayıtlı not: {st.session_state.get('local_learning_context_count', 0)}")
+    if st.session_state.get("local_learning_lab_context_used"):
+        st.caption("Son simülasyon ölçümleri bu yanıta bağlam olarak eklendi; sonuçlar yalnızca dijital model kapsamındadır.")
 with st.expander("Hesabımda saklanan kalıcı notlar" if CLOUD_MODE else "Bu bilgisayarda saklanan hafıza notları"):
     memory_rows = list_memories(OUTPUT_DIR)
     if memory_rows:
