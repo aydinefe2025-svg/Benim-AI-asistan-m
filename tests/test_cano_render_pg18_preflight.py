@@ -29,7 +29,8 @@ class Pg18OperatorPreflightTests(unittest.TestCase):
         # The new preflight must occur before it runs.
         with patch.dict(os.environ, IDENTITY, clear=True):
             with patch.object(sys, "argv", ["cano_render_rescue", str(destination)]):
-                with patch("scripts.cano_render_rescue.backup_configured",
+                with patch("scripts.cano_render_rescue._assert_private_destination_acl"):
+                    with patch("scripts.cano_render_rescue.backup_configured",
                            return_value={"verified_source_count": 1}) as export:
                     with patch("shutil.which", return_value=(
                             "/synthetic/bin/pg_dump" if available else None)):
