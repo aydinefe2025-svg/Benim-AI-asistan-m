@@ -1,0 +1,29 @@
+name: CANO Mastra MCP storage compatibility (test only)
+
+on:
+  pull_request:
+    branches:
+      - fix/sqlite-backup-restore-20261031
+    paths:
+      - 'integration/mastra-mcp-validation/**'
+      - '.github/workflows/cano-mastra-mcp-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mastra-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned dependencies and enforce peer engine floor
+        working-directory: integration/mastra-mcp-validation
+        run: npm install --engine-strict --no-audit --no-fund
+      - name: Run actual Mastra pinned package and file-backed store smoke
+        working-directory: integration/mastra-mcp-validation
+        run: npm test
