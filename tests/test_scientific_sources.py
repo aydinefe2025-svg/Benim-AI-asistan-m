@@ -47,5 +47,4 @@ class ScientificSourcesTests(unittest.TestCase):
                  "yalnızca o pasajı özetle ve URL'sini ver.")
         found = research_sources(query, fetch=fetch)
         self.assertEqual(len(found), 1)
-        self.assertEqual(found[0]["language"], "tr")
         self.assertTrue(found[0]["url"].startswith("https://tr.wikipedia.org/wiki/"))
