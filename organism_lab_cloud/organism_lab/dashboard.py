@@ -12,15 +12,24 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 from organism_lab.shared_world import run_shared_world
+from organism_lab.explanations import (explain_shared_world, explain_reproduction_study,
+                                       explain_adaptation_study, explain_discovery_sweep,
+                                       render_explanation)
 from organism_lab.reproduction_study import run_study, save_study
 from organism_lab.adaptation_study import run_adaptation_study, save_adaptation_study
+from organism_lab import discovery_sweep
+from organism_lab.colony_resilience import (run_colony_resilience_study,
+                                             save_colony_resilience_study,
+                                             explain_colony_resilience)
 from organism_lab.literature_search import list_records, save_records, search_openalex
 from organism_lab.persistent_memory import (augment_with_memory, list_memories,
                                             retrieve_memories, save_memory)
-from organism_lab.providers import GROQ_MODEL_OPTIONS, ProviderError, generate, trained_local_ready
+from organism_lab.providers import (GROQ_MODEL_OPTIONS, ProviderError, diagnose_groq_access,
+                                    generate, groq_active_key, groq_test_key, trained_local_ready)
 from organism_lab.agent_roles import AGENT_PROFILES, profile_prompt
 from organism_lab.assistant_context import summarize_lab_results
 from organism_lab.cloud_runtime import default_provider, session_output_dir
+from organism_lab.automation_status import render_colony_status_panel
 
 CLOUD_MODE = os.environ.get("ORGANISM_LAB_CLOUD_MODE", "").strip() == "1"
 st.set_page_config(page_title="Organizma Laboratuvarı", layout="wide")
@@ -79,6 +88,8 @@ else:
 st.title("Organizma Laboratuvarı")
 st.caption("Yalnızca dijital simülasyon. Fiziksel robot veya biyolojik organizma kontrolü içermez.")
 if CLOUD_MODE:
+    render_colony_status_panel(st)
+if CLOUD_MODE:
     st.caption(
         "Hesap başına kalıcı laboratuvar arşivi etkin. Her kayıt Neon PostgreSQL'de "
         "kullanıcıya özel anahtarla saklanır; yedekleri düzenli olarak indirin. "
@@ -107,17 +118,38 @@ if adapter_ready:
     )
     selected_model = None
 elif CLOUD_MODE:
-    groq_configured = bool(os.environ.get("GROQ_API_KEY", "").strip())
+    groq_configured = bool(groq_active_key())
+    test_key = groq_test_key()
+    test_key_active = os.environ.get("GROQ_API_KEY_TEST_ACTIVE", "").strip() == "1"
     if groq_configured:
-        st.info("Bulut sohbeti Groq üzerinden çalışır; gönderdiğin soru ve kullanılan açıkça kaydedilmiş notlar sağlayıcıya iletilir.")
+        active_label = "ayrı test anahtarı" if test_key_active else "mevcut Groq anahtarı"
+        st.info(f"Bulut sohbeti Groq üzerinden çalışır ({active_label}); gönderdiğin soru ve kullanılan açıkça kaydedilmiş notlar sağlayıcıya iletilir.")
     else:
-        st.info("Model seçeneklerini inceleyebilirsin. Sohbet, sunucuya güvenli GROQ_API_KEY eklenene kadar kapalıdır; API çağrısı yapılmaz.")
+        st.info("Model seçeneklerini inceleyebilirsin. Sohbet, sunucuya güvenli Groq anahtarı eklenene kadar kapalıdır; API çağrısı yapılmaz.")
     selected_provider = "groq"
     selected_model = st.selectbox(
         "Groq modeli", options=GROQ_MODEL_OPTIONS, index=0, key="assistant_groq_model",
         help="Büyük modeller daha fazla kota/tüketim kullanabilir. Model çağrısı yalnızca sen Yanıt üret'e bastığında yapılır.",
     )
     st.caption("Model erişimi ve ücret/kota koşulları Groq hesabına bağlıdır. Kullanılmayan modeller için otomatik çağrı yapılmaz.")
+    diagnostic_key = groq_active_key()
+    diagnostic_label = "ayrı test anahtarı" if test_key_active else "mevcut Groq anahtarı"
+    if diagnostic_key.strip() and st.button("Groq proje erişimini tanıla", key="diagnose_groq_project"):
+        diagnosis = diagnose_groq_access(
+            diagnostic_key, selected_model,
+        )
+        if diagnosis["reachable"] and diagnosis["model_available"]:
+            st.success(f"Render'daki {diagnostic_label} Groq'a erişiyor ve seçili model listeleniyor. Sohbet anahtarını değiştirmek için GROQ_API_KEY_TEST_ACTIVE değerini 1 yapıp yeniden dağıtabilirsin.")
+        elif diagnosis["reachable"]:
+            st.error(f"Render'daki {diagnostic_label} erişiyor, ancak seçili model bu anahtarın projesinde listelenmiyor.")
+        else:
+            status = diagnosis["http_status"]
+            code = diagnosis["error_code"]
+            safe_status = f"HTTP {status}" if isinstance(status, int) else "ağ yanıtı yok"
+            safe_code = f" · Groq kodu: {code}" if code else ""
+            response_origin = diagnosis.get("response_origin")
+            safe_origin = f" · yanıt sınıfı: {response_origin}" if response_origin else ""
+            st.error(f"Render'daki {diagnostic_label} ile Groq model listesi isteği başarısız ({safe_status}{safe_code}{safe_origin}). Anahtar değeri gösterilmedi.")
 else:
     st.info("Şu an Ollama temel modeli kullanılıyor; bu bilgisayarda eğitilmiş bir adaptör etkin değil. Kaydedilen notlar yanıta bağlam olarak eklenir, model ağırlıklarını değiştirmez.")
     selected_provider = "ollama"
@@ -286,6 +318,7 @@ if CLOUD_MODE and "organism_result" not in st.session_state:
 
 if "organism_result" in st.session_state:
     result = st.session_state["organism_result"]
+    render_explanation(st, explain_shared_world(result), key="explain_shared_world")
     a, b, c = st.columns(3)
     a.metric("Sanal robot", result["robots"])
     b.metric("Sanal organizma", result["organisms"])
@@ -318,6 +351,7 @@ if st.button("Araştırma kampanyasını çalıştır", key="run_genome_study_v2
 
 if "genome_campaign_v2" in st.session_state:
     campaign = st.session_state["genome_campaign_v2"]
+    render_explanation(st, explain_reproduction_study(campaign), key="explain_reproduction")
     st.dataframe(campaign["results"], width="stretch")
     commentary = st.session_state["genome_commentary_v2"]
     st.info("Deney ölçümleri doğrudan simülasyondan hesaplandı. Bu kampanyada yerel model kontrolü kullanılmadı.")
@@ -359,12 +393,154 @@ if CLOUD_MODE and "environment_shift_report" not in st.session_state:
 
 if "environment_shift_report" in st.session_state:
     adaptation = st.session_state["environment_shift_report"]
+    render_explanation(st, explain_adaptation_study(adaptation), key="explain_adaptation")
     st.dataframe(adaptation["results"], width="stretch", hide_index=True)
     st.download_button("Uyum deneyi raporunu indir (JSON)",
                        data=json.dumps(adaptation, ensure_ascii=False, indent=2),
                        file_name="environment-shift-study.json", mime="application/json",
                        key="download_environment_shift")
     st.caption("Kalıcı kayıt: " + st.session_state["environment_shift_path"])
+
+st.subheader("Otomatik keşif taraması · dijital simülasyon")
+st.caption("Sistem önce sınırlı sayıda mutasyon ayarını tarar; ardından en umut verici adayı taramada kullanılmayan ayrı tohumlarla yeniden sınar. Bu hesaplama yeni bir sanal aday bulabilir; gerçek canlılarda keşif veya deney değildir.")
+if st.button("Sınırlı keşif taramasını çalıştır", key="run_bounded_discovery"):
+    try:
+        with st.spinner("Aday ayarlar taranıyor; seçilen aday bağımsız simülasyon tohumlarında sınanıyor…"):
+            discovery = discovery_sweep.run_discovery_sweep()
+            discovery_path = OUTPUT_DIR / "discovery-sweep-latest.json"
+            saved_discovery = discovery_sweep.save_discovery_sweep(discovery, discovery_path)
+        st.session_state["organism_discovery_report"] = saved_discovery
+        st.session_state["organism_discovery_path"] = str(discovery_path)
+        st.session_state["organism_discovery_selection"] = "En son tarama"
+    except (OSError, ValueError, RuntimeError) as exc:
+        st.error(f"Tarama tamamlanamadı ({type(exc).__name__}); önceki sonuç korunuyor.")
+if CLOUD_MODE and "organism_discovery_report" not in st.session_state:
+    try:
+        discovery_path = OUTPUT_DIR / "discovery-sweep-latest.json"
+        st.session_state["organism_discovery_report"] = json.loads(discovery_path.read_text(encoding="utf-8"))
+        st.session_state["organism_discovery_path"] = str(discovery_path)
+    except (OSError, ValueError, TypeError):
+        pass
+if "organism_discovery_report" in st.session_state:
+    discovery = st.session_state["organism_discovery_report"]
+    discovery_path_display = st.session_state.get("organism_discovery_path")
+    history_entries = discovery_sweep.list_versioned_discovery_sweeps(
+        OUTPUT_DIR / "discovery-sweeps")
+    latest_run_id = discovery.get("run_id")
+    history_entries = [(path, report) for path, report in history_entries
+                       if not latest_run_id or report.get("run_id") != latest_run_id]
+    if history_entries:
+        history_labels = {
+            f"{report['generated_at'][:19].replace('T', ' ')} · "
+            f"{report.get('run_id', path.stem).replace('discovery-sweep-preserved-', '')[:8]}": (path, report)
+            for path, report in history_entries
+        }
+        selected_discovery = st.selectbox(
+            "Arşivden önceki taramayı aç",
+            options=["En son tarama", *history_labels],
+            key="organism_discovery_selection",
+        )
+        try:
+            discovery_path_display, discovery = discovery_sweep.select_discovery_sweep(
+                OUTPUT_DIR / "discovery-sweep-latest.json",
+                selected_discovery,
+                history_labels,
+            )
+            if selected_discovery == "En son tarama":
+                st.session_state["organism_discovery_report"] = discovery
+                st.session_state["organism_discovery_path"] = str(discovery_path_display)
+        except (OSError, ValueError, KeyError, TypeError):
+            st.error("Seçilen tarama raporu okunamadı; arşiv dosyaları değiştirilmedi.")
+            discovery = st.session_state["organism_discovery_report"]
+            discovery_path_display = st.session_state.get("organism_discovery_path")
+    status = discovery.get("status")
+    status_text = {
+        "replicated_simulation_candidate": "Aday ayrı tohumlarla tekrarlandı; yalnızca bu simülasyonda desteklendi.",
+        "not_reproduced_on_confirmation_seeds": "Tarama adayı, ayrı tohumlarda doğrulanmadı.",
+        "no_positive_screening_candidate": "Bu taramada olumlu aday bulunmadı.",
+    }.get(status, "Raporun durumu tanınmadı; dikkatli değerlendirme gerekiyor.")
+    st.info(status_text)
+    st.markdown("**Deneyin sorusu:** Ortam A'dan B'ye geçtiğinde, farklı mutasyon oranları B görevine uyumlu sanal genom payını mutasyonsuz kontrolün üzerine çıkarıyor mu?")
+    if discovery.get("selected_candidate"):
+        st.write("Tarama adayı", discovery["selected_candidate"])
+    if discovery.get("confirmation"):
+        st.write("Ayrı tohumlarla tekrar sınaması", discovery["confirmation"])
+    robustness = discovery.get("robustness", [])
+    if robustness:
+        st.markdown("**Ek sağlamlık kontrolü:** Aynı aday, çevre değişiminin daha erken ve daha geç olduğu koşullarda, taramada kullanılmayan aynı tohumlarla yeniden sınandı.")
+        st.dataframe([{
+            "Çevre değişiminin adımı": row["shift_tick"],
+            "Eşlenmiş deneme": row["paired_seeds"],
+            "Ortalama fark (yüzde puan)": row["mean_difference"] * 100,
+            "Yaklaşık %95 aralık alt sınırı": row["approx_ci95_low"] * 100,
+            "Yaklaşık %95 aralık üst sınırı": row["approx_ci95_high"] * 100,
+        } for row in robustness], width="stretch", hide_index=True)
+        st.caption(discovery.get("interpretation", {}).get("robustness", {}).get("summary", ""))
+    discovery_explanation = explain_discovery_sweep(discovery)
+    st.markdown("**Sonuç, sade dille:** " + discovery_explanation["finding"])
+    st.caption("Yorum sınırı: " + discovery_explanation["limit"])
+    st.dataframe(discovery.get("screening", []), width="stretch", hide_index=True)
+    with st.expander("Bu uyarı neden gösteriliyor?"):
+        st.write(discovery_explanation["warning_explanation"])
+        st.caption("Kanıt düzeyi: " + discovery.get("interpretation", {}).get("evidence_level", "belirsiz"))
+    st.download_button("Keşif taraması raporunu indir",
+                       data=json.dumps(discovery, ensure_ascii=False, indent=2, allow_nan=False),
+                       file_name="organism-lab-discovery-sweep.json", mime="application/json",
+                       key="download_discovery_report")
+    if discovery_path_display:
+        st.caption("Gösterilen kayıt: " + str(discovery_path_display))
+        if discovery.get("run_id"):
+            st.caption("Bu çalışma ayrıca değiştirilemez sürümlü arşive kaydedildi · " +
+                       f"discovery-sweeps/discovery-sweep-{discovery['run_id']}.json")
+
+st.divider()
+st.subheader("Sanal koloni iletişimi ve hata yalıtımı")
+st.caption(
+    "Sınırlı dijital stres testi: aynı sanal ajanlar açık yayın ağıyla ve bölümlenmiş, "
+    "geçersiz mesajları reddeden ağ geçitleriyle karşılaştırılır. Tek bir ajanın hatalı "
+    "mesaj göndermesi simüle edilir. Bu gerçek siber güvenlik denetimi veya güvenlik garantisi değildir."
+)
+if st.button("Koloni iletişimi ve yalıtım testini çalıştır", key="run_colony_resilience"):
+    try:
+        with st.spinner("Eşlenmiş sanal ağlar ve hata senaryosu karşılaştırılıyor…"):
+            report = run_colony_resilience_study()
+            saved = save_colony_resilience_study(
+                report, OUTPUT_DIR / "colony-resilience-latest.json")
+        st.session_state["colony_resilience_report"] = saved
+        st.success("Simülasyon raporu doğrulanıp sürümlü arşive kaydedildi.")
+    except (OSError, ValueError, RuntimeError) as exc:
+        st.error(f"Koloni testi tamamlanamadı ({type(exc).__name__}); önceki arşiv korunuyor.")
+if "colony_resilience_report" not in st.session_state:
+    try:
+        saved_path = OUTPUT_DIR / "colony-resilience-latest.json"
+        if saved_path.exists():
+            st.session_state["colony_resilience_report"] = json.loads(
+                saved_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        st.info("Önceki koloni testi okunamadı; yeni deneme mevcut dosyanın üstüne yazılmadı.")
+if "colony_resilience_report" in st.session_state:
+    colony_report = st.session_state["colony_resilience_report"]
+    try:
+        st.markdown(explain_colony_resilience(colony_report))
+        open_arm = colony_report["arms"]["open_broadcast"]
+        protected_arm = colony_report["arms"]["segmented_validated"]
+        st.dataframe([
+            {"Düzen": "Açık yayın", "Sağlıklı ve göreve hazır sanal ajan": open_arm["mean_healthy_ready"],
+             "Etkilenmiş sanal ajan": open_arm["mean_compromised_nodes"],
+             "Tam hazır sanal bölme": open_arm["mean_fully_ready_compartments"]},
+            {"Düzen": "Bölümlenmiş ve doğrulanan", "Sağlıklı ve göreve hazır sanal ajan": protected_arm["mean_healthy_ready"],
+             "Etkilenmiş sanal ajan": protected_arm["mean_compromised_nodes"],
+             "Tam hazır sanal bölme": protected_arm["mean_fully_ready_compartments"],
+             "Reddedilen hatalı mesaj": protected_arm["mean_rejected_bad_packets"]},
+        ], width="stretch", hide_index=True)
+        st.caption("Kanıt sınırı: yalnızca seçilen sayısal ağ modelinin simülasyon sonucu; gerçek saldırı veya gerçek ajan dayanıklılığı doğrulanmadı.")
+        st.download_button(
+            "Koloni iletişim testinin JSON raporunu indir",
+            data=json.dumps(colony_report, ensure_ascii=False, indent=2, allow_nan=False),
+            file_name="organism-lab-colony-resilience.json", mime="application/json",
+            key="download_colony_resilience")
+    except (KeyError, TypeError, ValueError):
+        st.warning("Koloni raporu doğrulanamadı; hatalı sonuç gösterilmiyor.")
 
 with st.expander("Kayıtlı araştırmaların otomatik özeti"):
     summary_path = OUTPUT_DIR / "research_summary.json"
