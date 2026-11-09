@@ -436,17 +436,22 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         if not saved:
                             return
                         st.session_state["cano_improvement_cycle"] = result
-                        st.session_state["colony_last_review"] = AgentReviewLoop(colony).get(
-                            result["review_id"])
+                        st.session_state["colony_last_review"] = (
+                            AgentReviewLoop(colony).get(result["review_id"])
+                            if result.get("review_id") else None)
                         if result["status"] == "review_pending":
                             st.success(
                                 "Aday beş testte iyileşme gösterdi; yalnızca inceleme "
                                 "bekleyen ders olarak kaydedildi.")
                         elif result["status"] == "blocked":
-                            st.warning(
-                                "Döngü tamamlanamadı; biten inceleme arşivlendi, "
-                                "aday etkinleştirilmedi. "
-                                + MESSAGES.get(result.get("failure_category"), MESSAGES["unknown"]))
+                            if result.get("review_id"):
+                                message = ("Döngü tamamlanamadı; biten inceleme arşivlendi, "
+                                           "aday etkinleştirilmedi. ")
+                            else:
+                                message = ("İnceleme aşaması tamamlanamadı; görev ve ders adayı "
+                                           "kaydedilmedi. ")
+                            st.warning(message + MESSAGES.get(
+                                result.get("failure_category"), MESSAGES["unknown"]))
                         else:
                             st.info(
                                 "Döngü tamamlandı ancak aday sabit testlerde "
@@ -464,10 +469,14 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                              + safe_failure_message(exc))
             cycle = st.session_state.get("cano_improvement_cycle")
             if cycle and cycle["status"] == "blocked":
-                st.caption(
-                    "İnceleme kaydı korundu. Model sağlayıcısı veya test işlemi "
-                    "tamamlanamadı; aktif hafızaya hiçbir ders eklenmedi. "
-                    + MESSAGES.get(cycle.get("failure_category"), MESSAGES["unknown"]))
+                if cycle.get("review_id"):
+                    status_text = ("İnceleme kaydı korundu; aday/test aşaması tamamlanamadı. "
+                                   "Aktif hafızaya ders eklenmedi. ")
+                else:
+                    status_text = ("İnceleme aşamasında görev kaydı oluşturulamadı; "
+                                   "aktif hafıza değişmedi. ")
+                st.caption(status_text + MESSAGES.get(
+                    cycle.get("failure_category"), MESSAGES["unknown"]))
             elif cycle:
                 st.caption(
                     f"Test sonucu: aday {cycle['benchmark']['candidate_passed']}/"
