@@ -134,11 +134,42 @@ def run_adaptation_study(*, seeds=tuple(range(30)), steps=120, shift_tick=40,
 
 
 def save_adaptation_study(report, output_path):
-    """Write one complete JSON report atomically, without replacing another run."""
+    """Create an immutable report atomically; never overwrite a different run."""
+    import os
+    import tempfile
+
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_suffix(path.suffix + ".tmp")
-    temp.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    temp.replace(path)
-    return path
+    payload = (json.dumps(report, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
+    def same_existing_report():
+        if path.is_symlink() or not path.is_file():
+            return False
+        try:
+            return json.loads(path.read_text(encoding="utf-8")) == report
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            return False
+
+    if path.is_symlink():
+        raise FileExistsError("Refusing to overwrite a report symlink")
+    if path.exists():
+        if same_existing_report():
+            return path
+        raise FileExistsError("Different adaptation report already saved")
+
+    fd, temporary_name = tempfile.mkstemp(prefix=".adaptation-", suffix=".tmp",
+                                         dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            # os.replace() silently destroyed prior data. This is create-if-absent.
+            os.link(temporary_name, path)
+        except FileExistsError:
+            if path.is_symlink() or not same_existing_report():
+                raise FileExistsError("Different adaptation report already saved")
+    finally:
+        os.unlink(temporary_name)
+    return path
