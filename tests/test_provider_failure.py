@@ -41,15 +41,21 @@ class ProviderFailureTests(unittest.TestCase):
             with self.subTest(code=repr(code)):
                 self.assertEqual(failure_category(GoogleSdkError(code)), "unknown")
 
-    def test_safe_provider_diagnostics_allowlist_status_and_code(self):
+    def test_safe_provider_diagnostics_allowlist_status_code_and_type(self):
         error = RuntimeError("PRIVATE provider response")
         error.status_code = 400
-        error.body = {"error": {"code": "unsupported_parameter", "message": "PRIVATE"}}
-        self.assertEqual(failure_diagnostics(error), (400, "unsupported_parameter"))
-        error.body["error"]["code"] = "PRIVATE provider text"
+        error.body = {"error": {"type": "invalid_request_error", "message": "PRIVATE"}}
+        self.assertEqual(failure_diagnostics(error), (400, "invalid_request_error"))
+        error.body["error"]["type"] = "PRIVATE provider text"
         self.assertEqual(failure_diagnostics(error), (400, None))
-        error.body["error"]["code"] = {}
+        error.body["error"]["type"] = {}
         self.assertEqual(failure_diagnostics(error), (400, None))
+
+    def test_safe_provider_diagnostics_prioritizes_allowlisted_code(self):
+        error = RuntimeError("PRIVATE provider response")
+        error.body = {"error": {"code": "unsupported_parameter",
+                                "type": "invalid_request_error"}}
+        self.assertEqual(failure_diagnostics(error), (None, "unsupported_parameter"))
 
     def test_model_retirement_machine_code(self):
         error = RuntimeError("private")

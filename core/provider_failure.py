@@ -33,12 +33,14 @@ SAFE_PROVIDER_ERROR_CODES = {
 
 
 def _provider_error_code(error):
-    """Return only an allowlisted provider machine code."""
+    """Return only an allowlisted provider machine code or error type."""
     code = getattr(error, "failure_code", None)
     if not isinstance(code, str) or code not in SAFE_PROVIDER_ERROR_CODES:
         body = getattr(error, "body", None)
         detail = body.get("error", body) if isinstance(body, dict) else {}
         code = detail.get("code") if isinstance(detail, dict) else None
+        if not isinstance(code, str) or code not in SAFE_PROVIDER_ERROR_CODES:
+            code = detail.get("type") if isinstance(detail, dict) else None
     return code if isinstance(code, str) and code in SAFE_PROVIDER_ERROR_CODES else None
 
 
