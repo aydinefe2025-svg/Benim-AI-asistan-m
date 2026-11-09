@@ -6,6 +6,8 @@ Spawn creates a configured agent record, never a process or unrestricted replica
 from __future__ import annotations
 
 import json
+import re
+import unicodedata
 from contextlib import contextmanager
 import sqlite3
 import uuid
@@ -15,6 +17,26 @@ from pathlib import Path
 
 def now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+_LESSON_STOP_WORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "how",
+    "in", "into", "is", "it", "me", "of", "on", "or", "the", "this", "that",
+    "to", "what", "when", "where", "which", "who", "why", "with", "please",
+    "task", "question", "research", "gorev", "gorevi", "soru", "konu", "ders",
+    "bir", "ve", "ile", "icin", "bu", "su", "ne", "nedir", "hakkinda",
+}
+
+
+def _lesson_terms(text):
+    normalized = text.translate(str.maketrans({"ı": "i", "İ": "i"})).casefold()
+    normalized = unicodedata.normalize("NFKD", normalized)
+    normalized = "".join(character for character in normalized
+                         if not unicodedata.combining(character))
+    return {
+        token for token in re.findall(r"[a-z0-9]{2,}", normalized)
+        if token not in _LESSON_STOP_WORDS
+    }
 
 
 class AgentColony:
@@ -154,16 +176,45 @@ class AgentColony:
                  int(bool(accepted)), now()))
             return cursor.lastrowid
 
-    def lessons(self, agent_id, *, limit=5):
+    def lessons(self, agent_id, *, limit=5, task=None):
+        """Return recent accepted lessons or task-matched lessons for one task.
+
+        A lesson tagged with the exact task marker "*" is reusable for every
+        task. Other lessons need at least one meaningful word in common with
+        the requested task, preventing unrelated recent feedback from being
+        injected into an agent prompt. Task matching scans at most the 500
+        newest accepted lessons and returns at most `limit`.
+        """
         self.get(agent_id)
         if type(limit) is not int or not 1 <= limit <= 20:
             raise ValueError("Invalid lesson limit")
+        if task is None:
+            with self._db() as db:
+                rows = db.execute(
+                    "SELECT task,lesson,evidence FROM colony_feedback "
+                    "WHERE agent_id=? AND accepted=1 ORDER BY id DESC LIMIT ?",
+                    (agent_id, limit)).fetchall()
+            return [dict(row) for row in rows]
+        if not isinstance(task, str) or not task.strip():
+            raise ValueError("Task is required for lesson matching")
+        query_terms = _lesson_terms(task)
         with self._db() as db:
             rows = db.execute(
                 "SELECT task,lesson,evidence FROM colony_feedback "
-                "WHERE agent_id=? AND accepted=1 ORDER BY id DESC LIMIT ?",
-                (agent_id, limit)).fetchall()
-        return [dict(row) for row in rows]
+                "WHERE agent_id=? AND accepted=1 ORDER BY id DESC LIMIT 500",
+                (agent_id,)).fetchall()
+        ranked = []
+        for recency, row in enumerate(rows):
+            item = dict(row)
+            if item["task"].strip() == "*":
+                score = 0
+            else:
+                score = len(query_terms & _lesson_terms(item["task"] + " " + item["lesson"]))
+                if not score:
+                    continue
+            ranked.append((-score, recency, item))
+        ranked.sort(key=lambda entry: (entry[0], entry[1]))
+        return [item for _, _, item in ranked[:limit]]
 
     def evaluate_learning(self, agent_id, *, min_evidence=2):
         """Measure accepted, evidence-backed lessons; never claim weight training.
@@ -234,7 +285,7 @@ class AgentColony:
             raise ValueError("Task required")
         if len(task) > (26000 if internal_review else 3000):
             raise ValueError("Task too long")
-        lessons = self.lessons(agent_id) if include_lessons else []
+        lessons = self.lessons(agent_id, task=task) if include_lessons else []
         if additional_lessons:
             lessons = [*lessons, {
                 "task": "isolated_candidate_evaluation",
@@ -254,3 +305,5 @@ class AgentColony:
             raise RuntimeError("Model response exceeds review storage limit")
         return {"agent_id": agent_id, "output": output, "status": "draft_unverified",
                 "lessons_used": len(lessons), "model": model}
+
+
