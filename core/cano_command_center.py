@@ -376,6 +376,8 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
     if status["blocked"]:
         st.warning(f"{status['blocked']} yarım kalmış görev kayıtlı. "
                    "Kayıtlı aşamalar korunuyor; aşağıdan kaldığınız yerden sürdürebilirsiniz.")
+        if answer is None:
+            st.info("Yarım kalmış görevi sürdürmek için önce bir model sağlayıcısı seçin.")
         for item in manager.interrupted(limit=10):
             if item["status"] != "blocked":
                 continue
@@ -383,7 +385,8 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             completed = len(saved["stages"])
             st.caption(f"{item['task'][:160]} — {completed}/4 aşama kayıtlı")
             if st.button("↻ Görevi kaldığı yerden sürdür: " + item["id"][:8],
-                         key="cano_resume_partial_" + item["id"]):
+                         key="cano_resume_partial_" + item["id"],
+                         disabled=answer is None):
                 try:
                     _checkpoint()
                     checkpoint_count = [0]
