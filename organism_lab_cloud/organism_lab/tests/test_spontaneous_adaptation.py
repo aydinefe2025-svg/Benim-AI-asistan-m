@@ -36,6 +36,23 @@ class SpontaneousAdaptationTests(unittest.TestCase):
             division_off.step()
         self.assertEqual(division_off.births,0)
 
+    def test_missing_newborn_parent_is_reported_as_provenance_violation(self):
+        from unittest.mock import patch
+        from organism_lab.digital_vm import DigitalOrganism
+        from organism_lab.spontaneous_adaptation import simulate
+
+        def inject_corrupt_newborn(world):
+            world.tick += 1
+            world.organisms.append(DigitalOrganism(
+                world.next_id, 999999, 1, 3, FOUNDER_GENOMES['AB']))
+            world.next_id += 1
+            world.births += 1
+
+        with patch.object(DiscoveryWorld, 'step', inject_corrupt_newborn):
+            with self.assertRaisesRegex(AssertionError, 'Missing parent provenance'):
+                simulate(1001, 'eligible_mutation', steps=20)
+
+
 if __name__=='__main__':unittest.main()
 
 class PairedStudyTests(unittest.TestCase):
