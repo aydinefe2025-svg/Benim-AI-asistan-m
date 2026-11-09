@@ -314,7 +314,7 @@ if labels_submitted:
             "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
         )
     else:
-        st.success("İnsan etiketleri kaydedildi; cevap anahtarı etiketleme sırasında gösterilmedi.")
+        st.success("İnsan etiketleri kaydedildi; cevap anahtarı gösterilmedi.")
 saved_human_labels = st.session_state.get(label_key)
 v3_case_ids = {case["case_id"] for case in HUMAN_COMPARISON_CASES}
 v3_labels_complete = (
@@ -429,7 +429,7 @@ if v4_labels_submitted:
             "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
         )
     else:
-        st.success("İnsan etiketleri kaydedildi; cevap anahtarı etiketleme sırasında gösterilmedi.")
+        st.success("İnsan etiketleri kaydedildi; cevap anahtarı gösterilmedi.")
 v4_saved_labels = st.session_state.get(v4_label_key)
 v4_case_ids = {case["case_id"] for case in SUPPLEMENTAL_COMPARISON_CASES}
 v4_labels_complete = (
@@ -557,7 +557,7 @@ if v5_labels_submitted:
             "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
         )
     else:
-        st.success("İnsan etiketleri kaydedildi; cevap anahtarı etiketleme sırasında gösterilmedi.")
+        st.success("İnsan etiketleri kaydedildi; cevap anahtarı gösterilmedi.")
 v5_saved_labels = st.session_state.get(v5_label_key)
 v5_case_ids = {case["case_id"] for case in V5_COMPARISON_CASES}
 v5_labels_complete = (
@@ -684,7 +684,7 @@ if v6_labels_submitted:
             "Devam etmek için eksik etiketleri tamamlayın; oturum yedeğini indirin."
         )
     else:
-        st.success("İnsan etiketleri kaydedildi; cevap anahtarı etiketleme sırasında gösterilmedi.")
+        st.success("İnsan etiketleri kaydedildi; cevap anahtarı gösterilmedi.")
 v6_saved_labels = st.session_state.get(v6_label_key)
 v6_case_ids = {case["case_id"] for case in V6_COMPARISON_CASES}
 v6_labels_complete = (
