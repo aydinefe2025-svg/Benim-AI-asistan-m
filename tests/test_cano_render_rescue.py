@@ -12,7 +12,9 @@ import unittest
 from unittest.mock import patch
 
 from scripts.cano_encrypted_backup import BackupError
-from scripts.cano_render_rescue import (\n    _assert_private_destination_acl, backup_configured, main,\n)
+from scripts.cano_render_rescue import (
+    _assert_private_destination_acl, backup_configured, main,
+)
 
 
 class RenderRescueCoverageTests(unittest.TestCase):
@@ -243,12 +245,7 @@ class RenderRescueCoverageTests(unittest.TestCase):
         env = {**self.env,
                "CANO_REQUIRED_RENDER_DATABASE": "research_library_persistent_db",
                "CANO_REQUIRED_RENDER_HOST_PREFIX": "dpg-dbkfp5bm8hqs73bba7u0-a"}
-        with patch.dict(os.environ, env, clear=True), \
-                patch.object(sys, "argv", ["cano_render_rescue", str(self.destination)]), \
-                patch("scripts.cano_render_rescue._assert_private_destination_acl",
-                      side_effect=BackupError("Unsafe private Windows ACL")) as acl, \
-                patch("scripts.cano_render_rescue._require_render_pg18_dump_client") as pg_dump, \
-                patch("scripts.cano_render_rescue.backup_configured") as exporter:
+        with patch.dict(os.environ, env, clear=True), patch.object(sys, "argv", ["cano_render_rescue", str(self.destination)]), patch("scripts.cano_render_rescue._assert_private_destination_acl", side_effect=BackupError("Unsafe private Windows ACL")) as acl, patch("scripts.cano_render_rescue._require_render_pg18_dump_client") as pg_dump, patch("scripts.cano_render_rescue.backup_configured") as exporter:
             self.assertEqual(main(), 1)
         acl.assert_called_once()
         pg_dump.assert_not_called()
