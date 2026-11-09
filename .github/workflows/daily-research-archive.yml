@@ -24,7 +24,7 @@ jobs:
       - name: Create bounded research report
         run: python -m scripts.daily_research
       - name: Validate generated archive
-        run: python -m scripts.validate_research_archive "research_reports/$(date -u +%F).json"
+        run: python -m scripts.validate_research_archive --require-scholarly "research_reports/$(date -u +%F).json"
       - name: Save report to main research library
         env:
           ARCHIVE_TARGET_BRANCH: main
