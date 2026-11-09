@@ -18,6 +18,7 @@ import tempfile
 from pathlib import Path
 
 from scripts.cano_pg_backup import _libpq_env_from_uri
+from scripts.cano_render_operator_preflight import _windows_private_acl
 from scripts.cano_encrypted_backup import (
     BackupError, _key, _private_directory, _private_receipt,
     make_encrypted_backup, verify_encrypted_backup,
@@ -141,6 +142,21 @@ def backup_configured(destination: Path) -> dict:
 
 
 
+
+def _assert_private_destination_acl(destination: Path, *, windows=None) -> None:
+    """Require a verified restrictive Windows ACL before the operator CLI runs."""
+    if windows is None:
+        windows = os.name == "nt"
+    if not windows:
+        return
+    destination = Path(destination)
+    directories = [destination.parent]
+    if destination.exists():
+        directories.append(destination)
+    if any(not _windows_private_acl(directory) for directory in directories):
+        raise BackupError("Backup destination does not have a verified private Windows ACL")
+
+
 def _assert_persistent_private_destination(destination: Path) -> None:
     """Refuse temporary, repository or redirected storage before any export.
 
@@ -148,6 +164,7 @@ def _assert_persistent_private_destination(destination: Path) -> None:
     copying the encrypted output to an *independent* provider afterward.
     """
     candidate = Path(destination).expanduser().absolute()
+    _assert_private_destination_acl(candidate)
     for part in (candidate, *candidate.parents):
         if part.is_symlink() or (hasattr(part, "is_junction") and part.is_junction()):
             raise BackupError("Backup destination passes through redirected storage")
