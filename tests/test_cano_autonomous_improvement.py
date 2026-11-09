@@ -74,9 +74,10 @@ class BoundedImprovementTests(unittest.TestCase):
         self.assertEqual(self.colony.lessons(self.author), [])
         with self.colony._db() as db:
             row = db.execute(
-                "SELECT accepted FROM colony_feedback WHERE id=?",
+                "SELECT task,accepted FROM colony_feedback WHERE id=?",
                 (result["feedback_id"],),
             ).fetchone()
+        self.assertEqual(row["task"], "Review a short research summary.")
         self.assertEqual(row["accepted"], 0)
         with self.assertRaises(PermissionError):
             self.colony.approve_feedback(result["feedback_id"])
@@ -84,6 +85,11 @@ class BoundedImprovementTests(unittest.TestCase):
             result["feedback_id"], approved=True)
         self.assertEqual(approval["status"], "accepted")
         self.assertEqual(self.colony.lessons(self.author)[0]["lesson"], LESSON)
+        self.assertEqual(
+            self.colony.lessons(
+                self.author, task="Review a short research summary.")[0]["lesson"],
+            LESSON,
+        )
 
     def test_review_failure_is_safe_and_stage_categorized(self):
         error = OpenRouterError("secret provider message", status_code=429)
