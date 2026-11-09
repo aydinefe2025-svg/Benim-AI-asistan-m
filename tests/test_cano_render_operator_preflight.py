@@ -6,7 +6,9 @@ from collections import namedtuple
 import unittest
 from unittest.mock import patch
 
-from scripts.cano_render_operator_preflight import preflight
+from scripts.cano_render_operator_preflight import (
+    _windows_acl_is_private, _windows_private_acl, preflight,
+)
 
 
 class OperatorPreflightTests(unittest.TestCase):
@@ -61,7 +63,8 @@ class OperatorPreflightTests(unittest.TestCase):
         with patch("shutil.which", return_value="/fake/bin/pgtool"), \
                 patch("subprocess.run", return_value=Completed()), \
                 patch("shutil.disk_usage", return_value=namedtuple(
-                    "Usage", "total used free")(12*1024**3, 1, 8*1024**3)):
+                    "Usage", "total used free")(12*1024**3, 1, 8*1024**3)), \
+                patch("scripts.cano_render_operator_preflight._windows_private_acl", return_value=True):
             result = preflight(self.dest, env=self.env)
         self.assertTrue(result["local_preflight_passed"], result)
         self.assertFalse(result["network_verified"])
@@ -83,6 +86,33 @@ class OperatorPreflightTests(unittest.TestCase):
         self.assertFalse(result["local_preflight_passed"])
         self.assertFalse(result["checks"]["key_present"])
         self.assertNotIn("bad-secret", repr(result))
+
+    def test_windows_acl_accepts_only_owner_system_and_administrators(self):
+        acl = {
+            "ownerSid": "S-1-5-21-1000",
+            "currentSid": "S-1-5-21-1000",
+            "allowSids": ["S-1-5-21-1000", "S-1-5-18", "S-1-5-32-544"],
+        }
+        self.assertTrue(_windows_acl_is_private(acl))
+
+    def test_windows_acl_rejects_broad_or_unowned_access(self):
+        base = {
+            "ownerSid": "S-1-5-21-1000",
+            "currentSid": "S-1-5-21-1000",
+            "allowSids": ["S-1-5-21-1000", "S-1-5-18"],
+        }
+        self.assertFalse(_windows_acl_is_private({**base, "allowSids": base["allowSids"] + ["S-1-1-0"]}))
+        self.assertFalse(_windows_acl_is_private({**base, "allowSids": base["allowSids"] + ["S-1-5-32-545"]}))
+        self.assertFalse(_windows_acl_is_private({**base, "ownerSid": "S-1-5-21-2000"}))
+        self.assertFalse(_windows_acl_is_private({**base, "allowSids": ["S-1-5-18"]}))
+        self.assertFalse(_windows_acl_is_private({"malformed": True}))
+
+    def test_windows_acl_probe_fails_closed_without_powershell_or_valid_output(self):
+        with patch("scripts.cano_render_operator_preflight.os.name", "nt"), patch("scripts.cano_render_operator_preflight.shutil.which", return_value=None):
+            self.assertFalse(_windows_private_acl(self.root))
+        completed = type("Completed", (), {"returncode": 0, "stdout": "not-json"})()
+        with patch("scripts.cano_render_operator_preflight.os.name", "nt"), patch("scripts.cano_render_operator_preflight.shutil.which", return_value="powershell.exe"), patch("scripts.cano_render_operator_preflight.subprocess.run", return_value=completed):
+            self.assertFalse(_windows_private_acl(self.root))
 
 
 if __name__ == "__main__":
