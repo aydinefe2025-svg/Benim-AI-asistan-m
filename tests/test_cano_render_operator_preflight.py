@@ -107,13 +107,10 @@ class OperatorPreflightTests(unittest.TestCase):
         self.assertFalse(_windows_acl_is_private({"malformed": True}))
 
     def test_windows_acl_probe_fails_closed_without_powershell_or_valid_output(self):
-        with patch("scripts.cano_render_operator_preflight.os.name", "nt"), \\
-                patch("scripts.cano_render_operator_preflight.shutil.which", return_value=None):
+        with patch("scripts.cano_render_operator_preflight.os.name", "nt"), patch("scripts.cano_render_operator_preflight.shutil.which", return_value=None):
             self.assertFalse(_windows_private_acl(self.root))
         completed = type("Completed", (), {"returncode": 0, "stdout": "not-json"})()
-        with patch("scripts.cano_render_operator_preflight.os.name", "nt"), \\
-                patch("scripts.cano_render_operator_preflight.shutil.which", return_value="powershell.exe"), \\
-                patch("scripts.cano_render_operator_preflight.subprocess.run", return_value=completed):
+        with patch("scripts.cano_render_operator_preflight.os.name", "nt"), patch("scripts.cano_render_operator_preflight.shutil.which", return_value="powershell.exe"), patch("scripts.cano_render_operator_preflight.subprocess.run", return_value=completed):
             self.assertFalse(_windows_private_acl(self.root))
 
 
