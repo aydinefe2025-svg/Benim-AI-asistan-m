@@ -161,7 +161,7 @@ def sanitize_research_answer(answer, excerpts):
         and re.fullmatch(r"W[1-9][0-9]*", item["id"])
     } if isinstance(excerpts, (list, tuple)) else set()
     clean = re.sub(
-        r"\[([^\]]+)\]\(\s*https?://[^)]+\)", r"\1", answer, flags=re.IGNORECASE
+        r"\[([^\]]+)\]\(\s*https?://[^)]+\)", r"\1", clean, flags=re.IGNORECASE
     )
     clean = re.sub(r"https?://[^\s<>\])}]+", "", clean, flags=re.IGNORECASE)
     clean = re.sub(
