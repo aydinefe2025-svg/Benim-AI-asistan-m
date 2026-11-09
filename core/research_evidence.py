@@ -154,7 +154,15 @@ def sanitize_research_answer(answer, excerpts):
         r"kaynakça|kaynak listesi|kaynak bağlantıları|references|bibliography)\b.*$",
         answer,
     )
-    clean = answer[:source_heading.start()].rstrip() if source_heading else answer
+    source_intro = re.search(
+        r"(?im)(?:^|(?<=[.!?])\\s+)(?:tabii[,!]?[ \\t]*)?[^.!?\\n]{0,220}"
+        r"\\b(?:kaynak(?:ları|lar|ça)|sources?|references?)\\b[^.!?\\n]{0,120}"
+        r"(?:inceleyebilirsin|inceleyin|aşağıda|listesi|bağlantıları)\\s*:"
+        r"(?=\\s*\\n\\s*(?:\\d+[.)]|[-*]))",
+        answer,
+    )
+    cut_points = [match.start() for match in (source_heading, source_intro) if match]
+    clean = answer[:min(cut_points)].rstrip() if cut_points else answer
     valid_ids = {
         item.get("id") for item in excerpts
         if isinstance(item, dict) and isinstance(item.get("id"), str)
