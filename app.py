@@ -67,6 +67,7 @@ from core.scientific_sources import scientific_sources
 from core.research_evidence import (
     format_research_bibliography, format_research_evidence,
     retrieve_research_excerpts, sanitize_research_answer,
+    require_cited_research_summary,
 )
 from core.research_status import label_research_answer
 from core.user_memory import export_library, import_library, memory_context, new_memory
@@ -718,7 +719,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
         final_answer = label_research_answer(
             temiz_cevap.strip(), research_requested=arama_istegi)
         if arama_istegi:
-            final_answer = sanitize_research_answer(final_answer, _research_excerpts)
+            final_answer = require_cited_research_summary(final_answer, _research_excerpts)
             if not _research_excerpts:
                 final_answer += "\n\n**Kaynak pasajı alınamadı; yanıtın iddiaları doğrulanmadı.**"
         if arama_istegi and _research_excerpts:
