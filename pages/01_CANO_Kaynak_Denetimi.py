@@ -155,6 +155,20 @@ labels = {m["id"]: m["task"][:70] for m in missions}
 mid = st.selectbox("Kaynağı okunmuş görev", mission_ids, format_func=lambda key: labels[key])
 record = manager.get(mid)
 documents = record["stages"][0].get("source_documents", [])
+audit_history = record["stages"][0].get("source_claim_audit_history", [])
+if isinstance(audit_history, list) and audit_history:
+    st.warning(
+        "Kaynaklar yenilendi. Önceki iddia değerlendirmeleri eski kaynak sürümüne "
+        "bağlı olduğu için arşivlendi; güncel kaynak için yeniden çalıştırın."
+    )
+    with st.expander(f"Arşivlenmiş önceki kaynak denetimleri ({len(audit_history)})"):
+        for archived in audit_history[-5:]:
+            if isinstance(archived, dict):
+                st.caption(str(archived.get("archived_at", "Tarih bilgisi yok")))
+                st.json({
+                    "source_documents": archived.get("source_documents", []),
+                    "source_claim_audit": archived.get("source_claim_audit", []),
+                })
 for source in documents:
     st.caption(str(source.get("status", "metadata_only")) + " · " + str(source.get("doi", "")))
     if source.get("excerpt"):

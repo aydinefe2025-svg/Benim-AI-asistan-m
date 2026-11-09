@@ -235,6 +235,42 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertTrue(assessment["disagreement"]["resolved"])
         self.assertFalse(result[0]["claim_verified"])
 
+    def test_refresh_archives_old_claim_audit_and_allows_a_fresh_review(self):
+        self.add_excerpt()
+        claims = [{"claim": "A claim", "doi": DOI, "quote": QUOTE}]
+        first = audit_claim_quotes(
+            self.manager, self.mission_id,
+            client=QuoteModel(claims), model="configured-provider")
+        old_documents = self.manager.get(self.mission_id)["stages"][0]["source_documents"]
+
+        self.manager.inspect_source_documents(
+            self.mission_id,
+            reader=lambda doi: {
+                "doi": doi, "status": "full_text_excerpt",
+                "title": "Refreshed paper",
+                "url": "https://europepmc.org/articles/PMC1234567",
+                "excerpt": "Updated passage. " + QUOTE,
+                "claim_verified": False,
+            },
+            refresh_missing=True,
+        )
+        refreshed = self.manager.get(self.mission_id)["stages"][0]
+        self.assertNotIn("source_claim_audit", refreshed)
+        archived = refreshed["source_claim_audit_history"][-1]
+        self.assertEqual(archived["source_claim_audit"], first)
+        self.assertEqual(archived["source_documents"], old_documents)
+
+        second_model = QuoteModel(claims)
+        second_model.verdict = "insufficient"
+        second = audit_claim_quotes(
+            self.manager, self.mission_id,
+            client=second_model, model="configured-provider")
+        self.assertEqual(second[0]["machine_assessment"]["verdict"], "insufficient")
+        self.assertEqual(len(second_model.calls), 2)
+        final = self.manager.get(self.mission_id)["stages"][0]
+        self.assertEqual(final["source_claim_audit"], second)
+        self.assertEqual(len(final["source_claim_audit_history"]), 1)
+
     def test_verbatim_excerpt_quote_is_cited_but_never_fact_verified(self):
         self.add_excerpt()
         model = QuoteModel([
