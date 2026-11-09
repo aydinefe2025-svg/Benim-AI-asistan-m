@@ -64,7 +64,7 @@ from core.provider_failure import failure_category, safe_failure_message
 from core.connection_diagnostics import check_provider
 from core.public_research import research_sources
 from core.scientific_sources import scientific_sources
-from core.research_evidence import format_research_evidence, retrieve_research_excerpts
+from core.research_evidence import (\n    format_research_bibliography, format_research_evidence,\n    retrieve_research_excerpts,\n)
 from core.research_status import label_research_answer
 from core.user_memory import export_library, import_library, memory_context, new_memory
 from core.browser_memory import browser_memory_component, decode_snapshot, write_confirmed, explicit_memory_request
@@ -647,7 +647,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
         "Bu mesaj için harici kaynak sorgulanmadı; güncel veri doğrulanmadı."
     )
     
-    # Public source lookup only on explicit research requests; source URLs are
+    _research_excerpts = []\n    # Public source lookup only on explicit research requests; source URLs are
     # evidence pointers, not proof that model claims were independently verified.
     if arama_istegi:
         try:
@@ -711,7 +711,13 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
         st.session_state["last_provider_used"] = router.last_provider_used
         st.session_state["last_model_used"] = router.last_model_used
         temiz_cevap = re.sub(r'<(think|thought|düşün).*?(</\1>|$)', '', raw_response, flags=re.DOTALL | re.IGNORECASE)
-        return label_research_answer(temiz_cevap.strip(), research_requested=arama_istegi)
+        final_answer = label_research_answer(
+            temiz_cevap.strip(), research_requested=arama_istegi)
+        if arama_istegi and _research_excerpts:
+            bibliography = format_research_bibliography(_research_excerpts)
+            if bibliography:
+                final_answer += "\\n\\n" + bibliography
+        return final_answer
 
     except Exception as e:
         logging.getLogger(__name__).warning("Provider request failed: category=%s", failure_category(e))
