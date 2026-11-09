@@ -24,6 +24,29 @@ def _http_status(error):
     return None
 
 
+SAFE_PROVIDER_ERROR_CODES = {
+    "model_not_found", "model_decommissioned", "invalid_request_error",
+    "unsupported_parameter", "context_length_exceeded", "request_too_large",
+    "invalid_api_key", "insufficient_quota", "rate_limit_exceeded",
+    "content_policy_violation", "server_error",
+}
+
+
+def _provider_error_code(error):
+    """Return only an allowlisted provider machine code."""
+    code = getattr(error, "failure_code", None)
+    if not isinstance(code, str) or code not in SAFE_PROVIDER_ERROR_CODES:
+        body = getattr(error, "body", None)
+        detail = body.get("error", body) if isinstance(body, dict) else {}
+        code = detail.get("code") if isinstance(detail, dict) else None
+    return code if isinstance(code, str) and code in SAFE_PROVIDER_ERROR_CODES else None
+
+
+def failure_diagnostics(error):
+    """Expose only numeric HTTP status and allowlisted code for logs."""
+    return _http_status(error), _provider_error_code(error)
+
+
 def failure_category(error):
     kind = getattr(error, "failure_kind", None)
     if kind in MESSAGES:
@@ -35,10 +58,7 @@ def failure_category(error):
         return "permission"
     if status == 429:
         return "rate_limit"
-    # Only consume known machine codes, never arbitrary provider messages.
-    body = getattr(error, "body", None)
-    detail = body.get("error", body) if isinstance(body, dict) else {}
-    code = detail.get("code") if isinstance(detail, dict) else None
+    code = _provider_error_code(error)
     if status == 404 or code in ("model_not_found", "model_decommissioned"):
         return "model"
     if status in (400, 413, 422):
@@ -87,3 +107,6 @@ def copy_safe_failure_metadata(source, target):
     target.failure_kind = kind
     if status is not None:
         target.status_code = status
+    code = _provider_error_code(source)
+    if code is not None:
+        target.failure_code = code

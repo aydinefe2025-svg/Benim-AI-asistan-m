@@ -60,7 +60,7 @@ from core.provider_router import (
     OPENROUTER_FREE_MODEL, build_provider_router, fallback_options,
 )
 from core.groq_diagnostics import check_groq_connection
-from core.provider_failure import failure_category, safe_failure_message
+from core.provider_failure import failure_category, failure_diagnostics, safe_failure_message
 from core.connection_diagnostics import check_provider
 from core.public_research import research_sources
 from core.scientific_sources import scientific_sources
@@ -729,7 +729,11 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
         return final_answer
 
     except Exception as e:
-        logging.getLogger(__name__).warning("Provider request failed: category=%s", failure_category(e))
+        _provider_status, _provider_code = failure_diagnostics(e)
+        logging.getLogger(__name__).warning(
+            "Provider request failed: category=%s status=%s code=%s",
+            failure_category(e), _provider_status, _provider_code,
+        )
         return safe_failure_message(e)
 
 # 🔄 SOHBET AKIŞINI EKRANA BASMA (Temiz Hafıza Akışı)
