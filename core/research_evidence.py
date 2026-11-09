@@ -198,7 +198,7 @@ def require_cited_research_summary(answer, excerpts):
     } if isinstance(excerpts, (list, tuple)) else set()
     if not any(
         match.group(1) in valid_ids
-        for match in re.finditer(r"\\[(W[1-9][0-9]*)\\]", clean)
+        for match in re.finditer(r"\[(W[1-9][0-9]*)\]", clean)
     ):
         return (
             "Model, alınan kaynak pasajlarına dayalı atıflı bir özet üretemedi; "
