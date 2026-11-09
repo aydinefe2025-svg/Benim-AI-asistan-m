@@ -60,6 +60,8 @@ class FakeStreamlit:
         self.messages.append(str(value))
 
     def button(self, label, key=None, **kw):
+        if kw.get("disabled"):
+            return False
         lookup = key or label
         if lookup in self.clicks:
             self.clicks.remove(lookup)
@@ -596,6 +598,36 @@ class CommandCenterTests(unittest.TestCase):
             ["https://doi.org/10.1136/bmj-2023-075847",
              "https://doi.org/10.1136/bmj.q1024"])
         self.assertEqual(len(model.calls), 4)
+
+
+    def test_resume_control_is_disabled_when_provider_is_unavailable(self):
+        from core.collaborative_mission import CollaborativeMission
+
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            manager = CollaborativeMission(colony)
+
+            class FailingModel:
+                def chat(self, model, system, prompt):
+                    raise RuntimeError("synthetic interruption")
+
+            with self.assertRaises(RuntimeError):
+                manager.execute("Interrupted test mission", client=FailingModel(), model="test")
+            mission_id = read_cano_status(colony)["history"][0]["id"]
+            self.assertEqual(read_cano_status(colony)["blocked"], 1)
+
+            st.clicks.add("cano_resume_partial_" + mission_id)
+            st.messages.clear()
+            render_cano_command_center(st, answer=None)
+
+        self.assertEqual(read_cano_status(colony)["blocked"], 1)
+        self.assertIn(
+            "önce bir model sağlayıcısı seçin",
+            " ".join(st.messages).casefold(),
+        )
+        self.assertFalse(any("Görev durdu:" in message for message in st.messages))
 
 
 if __name__ == "__main__":
