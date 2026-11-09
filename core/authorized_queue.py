@@ -8,6 +8,7 @@ Owner keys and approval MUST be supplied by an authenticated calling layer.
 from __future__ import annotations
 
 import hashlib
+import os
 import math
 import secrets
 import sqlite3
@@ -73,6 +74,17 @@ class AuthorizedQueue:
 
     @contextmanager
     def _db(self):
+        path = Path(self.path)
+        if path.is_symlink():
+            raise ValueError("Task queue database must not be a symbolic link")
+        if os.name == "posix":
+            # Protect new and legacy owner databases before opening SQLite.
+            # O_NOFOLLOW rejects a swapped final-component symbolic link.
+            fd = os.open(self.path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+            try:
+                os.fchmod(fd, 0o600)
+            finally:
+                os.close(fd)
         db = sqlite3.connect(self.path, timeout=15)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys=ON")
