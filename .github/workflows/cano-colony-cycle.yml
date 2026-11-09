@@ -29,13 +29,13 @@ concurrency:
 
 jobs:
   freshness:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     outputs:
       run_cycle: ${{ steps.guard.outputs.run_cycle }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Skip a cycle when the public report is recent
@@ -47,11 +47,11 @@ jobs:
   propose:
     needs: freshness
     if: needs.freshness.outputs.run_cycle == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install secure backup dependency
@@ -63,7 +63,7 @@ jobs:
           python -m unittest tests.test_cano_schedule_guard -q
       - name: Restore prior verified colony database
         id: colony_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: artifacts/colony-cycle.sqlite3
           key: cano-colony-db-${{ github.ref_name }}-${{ github.run_id }}
@@ -97,7 +97,7 @@ jobs:
       - name: Launch independent bounded validation agents
         run: python -m scripts.cano_specialist_agents --report artifacts/colony-cycle.json --database artifacts/colony-cycle.sqlite3
       - name: Upload verifiable cycle, agent results, and restart state
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cano-colony-cycle-${{ github.run_id }}
           path: |
@@ -107,14 +107,14 @@ jobs:
 
   publish:
     needs: propose
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     permissions:
       actions: read
       contents: write
     steps:
       - name: Download this run's validated artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: cano-colony-cycle-${{ github.run_id }}
           path: report
