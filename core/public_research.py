@@ -18,7 +18,7 @@ STOP_WORDS = {
     "bilgi", "lütfen", "konusunda", "konusundaki", "için", "ile", "ve", "bir",
     "the", "what", "is", "are", "of", "about", "find", "search", "research",
     "wikipedia", "source", "sources", "passage", "cite", "summarize", "only",
-    "based", "on", "please", "give", "show", "and", "for", "to", "from",
+    "based", "on", "please", "give", "show", "and", "for", "to", "from", "url", "urlsini", "sini",
 }
 
 
@@ -34,7 +34,7 @@ def _language(query):
 def _topic_query(query):
     query = re.sub(r"https?://\S+", " ", query)
     words = re.findall(r"[\wçğıöşüÇĞİÖŞÜ-]+", query.casefold(), flags=re.UNICODE)
-    topic = [word for word in words if word not in STOP_WORDS and not word.startswith("w")]
+    topic = [word for word in words if word not in STOP_WORDS]
     return " ".join(topic[:10])[:160]
 
 
