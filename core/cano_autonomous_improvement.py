@@ -26,6 +26,12 @@ _SENSITIVE_TOKEN = re.compile(
 )
 
 
+def _safe_failure_type(error: Exception) -> str:
+    name = type(error).__name__
+    return name if (len(name) <= 64 and name.isascii()
+                    and name.replace("_", "").isalnum()) else "UnknownError"
+
+
 def _reject_obvious_sensitive_text(value: str) -> None:
     if _SENSITIVE_TOKEN.search(value):
         raise ValueError("Secret-like or personal text is not allowed in the improvement cycle")
@@ -155,6 +161,7 @@ def run_bounded_improvement_cycle(
             "model_weights_updated": False,
             "candidate_activated": False,
             "failure_category": failure_category(exc),
+            "failure_type": _safe_failure_type(exc),
             "failure_stage": "review",
         }
     try:
@@ -176,6 +183,7 @@ def run_bounded_improvement_cycle(
             "model_weights_updated": False,
             "candidate_activated": False,
             "failure_category": failure_category(exc),
+            "failure_type": _safe_failure_type(exc),
             "failure_stage": "candidate_or_benchmark",
         }
     feedback_id = None
@@ -191,7 +199,7 @@ def run_bounded_improvement_cycle(
                 author_id, "CANO bounded improvement proposal " + dataset_ref.strip(),
                 lesson, evidence, accepted=False,
             )
-        except Exception:
+        except Exception as exc:
             return {
                 "status": "blocked",
                 "review_id": review["id"],
@@ -202,6 +210,7 @@ def run_bounded_improvement_cycle(
                 "model_weights_updated": False,
                 "candidate_activated": False,
                 "failure_category": "storage",
+                "failure_type": _safe_failure_type(exc),
                 "failure_stage": "proposal_save",
             }
     safe_result = {
