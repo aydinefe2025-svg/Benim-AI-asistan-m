@@ -170,7 +170,8 @@ def preflight(destination: Path, *, env=None) -> dict:
     return {
         "local_preflight_passed": all(checks.values()),
         "checks": checks,
-        "windows_acl_verified": acl_ok if os.name == "nt" else None,\n        "windows_acl_review_required": os.name == "nt" and not acl_ok,
+        "windows_acl_verified": acl_ok if os.name == "nt" else None,
+        "windows_acl_review_required": os.name == "nt" and not acl_ok,
         "network_verified": False,
         "offsite_verified": False,
         "isolated_restore_verified": False,
