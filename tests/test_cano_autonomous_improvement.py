@@ -97,6 +97,7 @@ class BoundedImprovementTests(unittest.TestCase):
         self.assertEqual(result["status"], "blocked")
         self.assertEqual(result["failure_stage"], "review")
         self.assertEqual(result["failure_category"], "rate_limit")
+        self.assertEqual(result["failure_type"], "OpenRouterError")
         self.assertIsNone(result["review_id"])
         self.assertEqual(self.colony.lessons(self.author), [])
 
