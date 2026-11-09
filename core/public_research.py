@@ -62,5 +62,5 @@ def research_sources(query, limit=3, fetch=None):
         if isinstance(title, str) and isinstance(source, str) and source.startswith("https://" + host + "/wiki/"):
             if source not in seen:
                 seen.add(source)
-                results.append({"title": title[:200], "url": source, "language": language})
+                results.append({"title": title[:200], "url": source})
     return results[:limit]
