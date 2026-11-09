@@ -3098,7 +3098,7 @@
       "digital_vm.py": "0ced308713956ebd43fa58ef29bb31502101d001"
     },
     "changed_source_sha256": {
-      "organism_lab/adaptation_study.py": "7d625909c4484b95c7e24ffad9450f0dadaf7c78056a38c35100ca1da1666f2d",
+      "organism_lab/adaptation_study.py": "07c9246f31dc395735393b64a160404bbce5b298b48eb6d9b0fd000f38e95733",
       "organism_lab/digital_vm.py": "9f48b26c89559fcb45644369f3f92ad5192a57e8d74a9ebab8ba303f06b9b99c"
     },
     "validation": "29 targeted unittest cases: 28 passed and 1 skipped because optional trained_local endpoint is not running",
