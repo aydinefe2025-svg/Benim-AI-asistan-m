@@ -62,8 +62,11 @@ class ExplanationTests(unittest.TestCase):
         self.assertIn("TASK_B", explanation["finding"])
         self.assertIn("yüzde puan", explanation["finding"])
         self.assertIn("model ağırlıklarını öğrendiğini", explanation["limits"])
+        self.assertIn("çoğalmasız kontrollerle", explanation["what_was_tested"])
+        self.assertIn("95% GA", explanation["finding"])
 
 
 if __name__ == "__main__":
     unittest.main()
+
 

@@ -107,6 +107,12 @@ class DashboardAppTests(unittest.TestCase):
             self.assertEqual(len(app.dataframe), 1)
             path = Path(tmp) / "organism_lab_output" / "environment-shift-study.json"
             self.assertTrue(path.exists())
+            report = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual([row["arm"] for row in report["results"]],
+                             ["mutation", "no_mutation", "no_reproduction"])
+            self.assertEqual(len(report["design"]["seeds"]), 30)
+            self.assertIn("no_reproduction",
+                          report["paired_task_b_share_differences_mutation_minus_controls"])
             self.assertEqual(len(app.get("download_button")), 1)
 
     def test_literature_search_is_available_without_automatic_network_call(self):
@@ -159,5 +165,6 @@ class DashboardAppTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 
 

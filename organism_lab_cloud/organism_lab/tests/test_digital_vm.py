@@ -18,6 +18,36 @@ class DigitalVMTests(unittest.TestCase):
         self.assertGreater(world.births, 0)
         self.assertTrue(any(execute_genome(item.genome) is None for item in world.organisms))
 
+    def test_genotype_is_inherited_with_parent_lineage_and_can_mutate(self):
+        world = GenomeWorld(seed=11, capacity=4, resources_per_tick=2,
+                            mutation_rate=1.0, initial_genome=(COPY_REST, 3, DIVIDE))
+        world.step()
+        parent = next(item for item in world.organisms if item.identifier == 0)
+        child = next(item for item in world.organisms if item.identifier == 1)
+        self.assertIsInstance(parent.genome, tuple)
+        self.assertIsInstance(child.genome, tuple)
+        self.assertEqual(child.parent, parent.identifier)
+        self.assertEqual(child.generation, parent.generation + 1)
+        self.assertNotEqual(child.genome, parent.genome)
+
+    def test_mutation_is_seeded_and_zero_rate_preserves_genotype(self):
+        kwargs = dict(seed=17, capacity=16, resources_per_tick=2,
+                      mutation_rate=0.5, initial_genome=(COPY_REST, 3, DIVIDE))
+        first, second = GenomeWorld(**kwargs), GenomeWorld(**kwargs)
+        for _ in range(8):
+            first.step()
+            second.step()
+        lineage = lambda world: [(item.identifier, item.parent, item.generation, item.genome)
+                                 for item in world.organisms]
+        self.assertEqual(lineage(first), lineage(second))
+
+        unchanged = GenomeWorld(seed=17, capacity=16, resources_per_tick=2,
+                                mutation_rate=0.0, initial_genome=(COPY_REST, 3, DIVIDE))
+        for _ in range(8):
+            unchanged.step()
+        self.assertTrue(all(item.genome == (COPY_REST, 3, DIVIDE)
+                            for item in unchanged.organisms))
+
     def test_control_does_not_divide(self):
         world = GenomeWorld(seed=1, resources_per_tick=20, allow_replication=False)
         for _ in range(30):
@@ -42,3 +72,4 @@ class DigitalVMTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

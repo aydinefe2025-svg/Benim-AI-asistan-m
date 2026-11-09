@@ -62,23 +62,46 @@ def explain_adaptation_study(report):
     rows = {row.get("arm"): row for row in report.get("results", [])}
     mutation = rows.get("mutation", {})
     control = rows.get("no_mutation", {})
+    no_reproduction = rows.get("no_reproduction")
     mut_share = float(mutation.get("final_task_b_share_mean", 0))
     control_share = float(control.get("final_task_b_share_mean", 0))
     delta = mut_share - control_share
     direction = "yüksek" if delta > 0 else "düşük" if delta < 0 else "aynı"
     pct = abs(delta) * 100
     shift = report.get("design", {}).get("shift_tick", "?")
+    controls_text = (" mutasyonsuz ve çoğalmasız kontrollerle"
+                     if no_reproduction else " mutasyonsuz kontrolle")
+    finding = (
+        f"Son adımda TASK_B komutunu taşıyanların ortalama payı mutasyonlu grupta "
+        f"%{mut_share * 100:.1f}, mutasyonsuz kontrolde %{control_share * 100:.1f} idi. "
+        f"Mutasyonlu grupta fark {direction} ({pct:.1f} yüzde puan)."
+    )
+    paired = report.get("paired_task_b_share_differences_mutation_minus_controls", {})
+    comparison = paired.get("no_reproduction")
+    if comparison and comparison.get("ci95_low") is not None:
+        finding += (
+            f" Mutasyonlu − çoğalmasız kontrol eşlenmiş farkı "
+            f"%{comparison['mean'] * 100:.1f} yüzde puan "
+            f"(95% GA %{comparison['ci95_low'] * 100:.1f} ile "
+            f"%{comparison['ci95_high'] * 100:.1f})."
+        )
+    criterion = report.get("adaptation_criterion", {})
+    if criterion:
+        finding += (
+            " Önceden belirlenen ölçüte göre iki kontrolün de eşlenmiş %95 güven "
+            + ("aralığının alt sınırı sıfırın üstünde; bu simülasyonda ölçüt karşılandı."
+               if criterion.get("met") else
+               "aralığı sıfırın üstünde değil; uyum gösterildiği sonucuna varılamaz.")
+        )
     return {
-        "what_was_tested": f"Sanal ortam {shift}. adımda A görevinden B görevine geçirildi. Mutasyonlu grup, aynı tohumlardaki mutasyonsuz grupla karşılaştırıldı.",
-        "finding": (
-            f"Son adımda TASK_B komutunu taşıyanların ortalama payı mutasyonlu grupta "
-            f"%{mut_share * 100:.1f}, kontrol grubunda %{control_share * 100:.1f} idi. "
-            f"Mutasyonlu grupta fark {direction} ({pct:.1f} yüzde puan)."
+        "what_was_tested": (
+            f"Sanal ortam {shift}. adımda A görevinden B görevine geçirildi. "
+            f"Mutasyonlu grup, aynı tohumlardaki{controls_text} karşılaştırıldı."
         ),
+        "finding": finding,
         "meaning": "Bu, sadece simülatörde tanımlanan görev ve ödül kuralları altında görülen farktır; simülatör sonucu kodla hesaplanmıştır.",
         "limits": "Bu sonuç gerçek canlıların uyum sağladığını veya yapay zekânın model ağırlıklarını öğrendiğini göstermez; yalnızca sanal genom değişimini ölçer.",
     }
-
 
 def explain_discovery_sweep(report):
     """Translate a bounded sweep's measured effect and evidence limit."""
@@ -140,4 +163,5 @@ def render_explanation(st, explanation, *, key):
         st.markdown(f"**Ne bulundu?** {explanation['finding']}")
         st.markdown(f"**Bu ne anlama geliyor?** {explanation['meaning']}")
         st.markdown(f"**Sınırı ne?** {explanation['limits']}")
+
 
