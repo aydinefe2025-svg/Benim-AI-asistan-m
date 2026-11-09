@@ -3104,4 +3104,4 @@
     "validation": "29 targeted unittest cases: 28 passed and 1 skipped because optional trained_local endpoint is not running",
     "observatory_updated": false
   }
-}\n
+}
