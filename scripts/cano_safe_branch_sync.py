@@ -87,5 +87,5 @@ if __name__ == "__main__":
     result = sync_branches(audit_only=arguments.audit_only)
     if result["requires_human_review"]:
         print("::warning::Historical recovery branch is ahead/diverged; "
-              "preserve it for human-reviewed integration; no Git ref updated.")
+              "preserve it for human-reviewed integration; no remote branch ref updated.")
     print(json.dumps(result, sort_keys=True))
