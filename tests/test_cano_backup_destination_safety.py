@@ -51,7 +51,10 @@ class OperatorBackupDestinationSafetyTests(unittest.TestCase):
         destination = Path.home() / "cano-persistent-operator-backups" / "new-run"
         if ROOT == Path.home() or ROOT in destination.parents:
             self.skipTest("No independent owner directory in this test runner")
-        status, exporter, _ = self._cli(destination)
+        # This test isolates destination handling; the PG18 version probe has
+        # independent regression coverage in test_cano_render_pg18_preflight.
+        with patch("scripts.cano_render_rescue._require_render_pg18_dump_client"):
+            status, exporter, _ = self._cli(destination)
         self.assertEqual(status, 0)
         exporter.assert_called_once_with(destination)
 

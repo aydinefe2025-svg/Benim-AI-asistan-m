@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 import json
 import os
 import re
+import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -167,6 +169,38 @@ def _assert_persistent_private_destination(destination: Path) -> None:
             raise BackupError("Backup destination must not use temporary storage")
 
 
+
+def _require_render_pg18_dump_client() -> None:
+    """Check local pg_dump 18 before any database export or archive creation.
+
+    PostgreSQL 17 pg_dump refuses to dump server 18; a newer major is not
+    accepted here until its output has been tested against the planned PG18
+    recovery target. Version probing inherits no database/password secrets.
+    """
+    binary = shutil.which("pg_dump")
+    if not binary:
+        raise BackupError("PostgreSQL 18 pg_dump executable is not installed")
+    safe_env = {key: value for key, value in os.environ.items()
+                if key in ("PATH", "HOME", "SystemRoot", "SYSTEMROOT",
+                           "WINDIR", "PATHEXT", "COMSPEC")}
+    try:
+        probe = subprocess.run(
+            [binary, "--version"], stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            timeout=12, check=False, env=safe_env,
+        )
+    except (OSError, ValueError, subprocess.SubprocessError):
+        raise BackupError("Cannot verify local pg_dump major version") from None
+    banner = getattr(probe, "stdout", None)
+    if (probe.returncode != 0 or not isinstance(banner, bytes)
+            or len(banner) > 256 or not re.fullmatch(
+                rb"pg_dump \(PostgreSQL\) 18(?:\.[0-9]+)?"
+                rb"(?: \([A-Za-z0-9][A-Za-z0-9 ._~:+-]*\))?",
+                banner.strip(),
+            )):
+        raise BackupError("The Render PG18 rescue requires a pg_dump 18 client")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Encrypted owner-only backups of all configured CANO PostgreSQL URLs"
@@ -179,6 +213,7 @@ def main() -> int:
                 "CANO_REQUIRED_RENDER_HOST_PREFIX")):
             raise BackupError("The operator CLI requires the Render source identity")
         _assert_persistent_private_destination(args.private_destination)
+        _require_render_pg18_dump_client()
         result = backup_configured(args.private_destination)
     except (BackupError, OSError, ValueError, KeyError, TypeError):
         # Do not put connection strings, raw subprocess stderr or secrets on stdout.
