@@ -106,6 +106,8 @@ def format_research_evidence(excerpts):
         )
     lines.append(
         "Cite factual statements supported by these passages using [W1], [W2], etc. "
+        "Do not create a separate source list, bibliography, links, or named references; "
+        "the application appends only its validated retrieved-source bibliography. "
         "If a claim is not supported by a passage, label it unverified or omit it. "
         "These excerpts are not independent verification."
     )
@@ -147,6 +149,12 @@ def sanitize_research_answer(answer, excerpts):
     """
     if not isinstance(answer, str):
         raise ValueError("Research answer must be text")
+    source_heading = re.search(
+        r"(?im)^\s*(?:[*_`~#]+\s*)?(?:kaynaklar?(?:\s*\([^)]*\))?|"
+        r"kaynakça|kaynak listesi|kaynak bağlantıları|references|bibliography)\b.*$",
+        answer,
+    )
+    clean = answer[:source_heading.start()].rstrip() if source_heading else answer
     valid_ids = {
         item.get("id") for item in excerpts
         if isinstance(item, dict) and isinstance(item.get("id"), str)
