@@ -2,10 +2,12 @@ import base64
 import hashlib
 import io
 import json
+import os
 import tarfile
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from organism_lab.persistent_store import (
     PersistenceConflict, PersistenceNotConfigured, PostgresArchive, authenticated_owner_key,
@@ -52,6 +54,14 @@ class PersistentStoreTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 unpack_directory(buffer.getvalue(), target)
             self.assertFalse(Path(target).parent.joinpath("escape.txt").exists())
+
+    def test_archive_prefers_least_privilege_runtime_database_url(self):
+        with patch.dict(os.environ, {
+            "ORGANISM_LAB_DATABASE_URL": "postgresql://runtime",
+            "DATABASE_URL": "postgresql://owner",
+        }, clear=True):
+            store = PostgresArchive("a" * 64, connect=lambda *a, **k: None)
+            self.assertEqual(store.database_url, "postgresql://runtime")
 
     def test_database_connection_is_required(self):
         with self.assertRaises(PersistenceNotConfigured):
