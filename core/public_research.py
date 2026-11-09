@@ -11,7 +11,7 @@ API_BY_LANGUAGE = {
 TURKISH_MARKERS = set("çğıöşü")
 TURKISH_WORDS = {"araştır", "nedir", "nasıl", "için", "kaynak", "yanıt", "cevap", "göre", "üzerine"}
 STOP_WORDS = {
-    "araştır", "araştırma", "internette", "internetten", "webde", "wikipedia",
+    "araştır", "araştırma", "internette", "o", "bu", "şu", "internetten", "webde", "wikipedia",
     "kaynak", "kaynakları", "kaynaklardan", "pasaj", "pasajı", "bul", "bulup",
     "özetle", "özetle", "ver", "göster", "yalnızca", "sadece", "dayandır",
     "dayalı", "yanıtı", "yanıt", "cevabı", "cevap", "nedir", "nasıl", "hakkında",
