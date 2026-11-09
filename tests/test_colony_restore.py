@@ -44,12 +44,13 @@ class RestoreTests(unittest.TestCase):
                     "reviews": [],
                     "missions": [dict(x) for x in db.execute("SELECT * FROM colony_missions")],
                 }
+            first_missions.mark_reviewed(record["id"], approved=True)
             target = AgentColony(Path(directory) / "restored.sqlite3")
             self.assertEqual(restore_empty_colony(target, snapshot), 2)
             restored = CollaborativeMission(target).get(record["id"])
             self.assertEqual(restored["task"], record["task"])
             self.assertEqual(restored["stages"], record["stages"])
-            self.assertEqual(restored["status"], "review_pending")
+            self.assertEqual(restored["status"], "reviewed")
             with self.assertRaises(RuntimeError):
                 restore_empty_colony(target, snapshot)
 
