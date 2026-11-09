@@ -1,3 +1,6 @@
+import os
+import sqlite3
+import stat
 import tempfile
 import threading
 import unittest
@@ -88,6 +91,30 @@ class AuthorizedQueueTests(unittest.TestCase):
         reopened = AuthorizedQueue(self.db, owner_key='user-a', max_jobs=4)
         self.assertEqual(reopened.get(job['id'])['goal'], 'Saved goal')
         self.assertEqual(len(reopened.events(job['id'])), 1)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX permission contract")
+    def test_main_queue_database_and_rollback_journal_owner_only(self):
+        job = self.queue.enqueue('private', 'Confidential authorized goal', approved=True)
+        os.chmod(self.db, 0o644)  # Simulate legacy readable queue file.
+        again = AuthorizedQueue(self.db, owner_key='user-a', max_jobs=4)
+        self.assertEqual(again.get(job['id'])['state'], 'queued')
+        self.assertEqual(stat.S_IMODE(os.stat(self.db).st_mode), 0o600)
+        with sqlite3.connect(self.db) as connection:
+            connection.execute('UPDATE authorized_jobs SET goal=? WHERE id=?',
+                               ('Private draft text', job['id']))
+            journal = self.db + '-journal'
+            self.assertTrue(os.path.isfile(journal))
+            self.assertEqual(stat.S_IMODE(os.stat(journal).st_mode), 0o600)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX symlink contract")
+    def test_main_queue_rejects_symlink_target_before_database_creation(self):
+        root = Path(self.temp.name)
+        victim = root / 'unrelated.sqlite3'
+        link = root / 'queue-link.sqlite3'
+        link.symlink_to(victim)
+        with self.assertRaisesRegex(ValueError, 'symbolic link'):
+            AuthorizedQueue(link, owner_key='user-a', max_jobs=4)
+        self.assertFalse(victim.exists())
 
     def test_quota_rejects_unbounded_task_creation(self):
         for i in range(4):
