@@ -157,7 +157,7 @@ def sanitize_research_answer(answer, excerpts):
     source_intro = re.search(
         r"(?im)(?:^|(?<=[.!?])\s+)(?:tabii[,!]?[ \t]*)?[^.!?\n]{0,220}"
         r"\b(?:kaynak(?:ları|lar|ça)|sources?|references?)\b[^.!?\n]{0,120}"
-        r"(?:inceleyebilirsin|inceleyin|aşağıda|listesi|bağlantıları)\s*:"
+        r"(?:inceleyebilirsin|inceleyin|aşağıda|listesi|bağlantıları|numaralandır\w*|sıralan\w*)\s*:"
         r"(?=\s*\n\s*(?:\d+[.)]|[-*]))",
         answer,
     )

@@ -152,8 +152,8 @@ class ResearchEvidenceTests(unittest.TestCase):
     def test_sanitizer_removes_inline_intro_and_numbered_retrieved_source_list(self):
         answer = (
             "Özet: bu iddia doğrulanmış kabul edilmemelidir. "
-            "Tabii, kütleçekimsel merceklenme konusundaki temel bilgiler için "
-            "aşağıdaki kaynakları inceleyebilirsin:\n"
+            "Kütleçekimsel merceklenme konusundaki temel kaynaklar aşağıdaki gibi "
+            "numaralandırılmıştır:\n"
             "1. Kütleçekimsel merceklenme — Wikipedia [W1]\n"
             "2. Abell 1689 — Wikipedia [W2]\n"
             "3. CLASS B1359+154 — Wikipedia [W3]"
@@ -162,7 +162,7 @@ class ResearchEvidenceTests(unittest.TestCase):
             answer, [{"id": "W1"}, {"id": "W2"}, {"id": "W3"}]
         )
         self.assertIn("Özet:", clean)
-        self.assertNotIn("aşağıdaki kaynakları", clean)
+        self.assertNotIn("temel kaynaklar", clean)
         self.assertNotIn("Abell 1689", clean)
         self.assertNotIn("CLASS B1359+154", clean)
 
