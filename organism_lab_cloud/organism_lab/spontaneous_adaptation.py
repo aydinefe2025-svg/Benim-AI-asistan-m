@@ -106,8 +106,9 @@ def simulate(seed,arm,*,steps=120,period=12,mutation_rate=.08,holdout_steps=20):
             if ab_new:
                 first_ab_tick=tick
                 # Parent lookup from BEFORE step: never hallucinate ancestry.
+                if ab_new[0].parent not in before:
+                    raise AssertionError('Missing parent provenance')
                 first_ab_mutant_parent=list(before[ab_new[0].parent].genome)
-                if ab_new[0].parent not in before:raise AssertionError('Missing parent provenance')
         n=len(world.organisms)
         population_trace.append(n)
         person_ticks+=n
