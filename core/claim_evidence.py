@@ -138,6 +138,23 @@ def has_readable_source_excerpt(stages):
     return False
 
 
+def archived_source_audit_entries(stages):
+    """Return only archive entries that actually preserve a source or audit."""
+    if not isinstance(stages, list) or not stages or not isinstance(stages[0], dict):
+        return []
+    history = stages[0].get("source_claim_audit_history")
+    if not isinstance(history, list):
+        return []
+    return [
+        item for item in history
+        if isinstance(item, dict)
+        and ((isinstance(item.get("source_documents"), list)
+              and bool(item["source_documents"]))
+             or (isinstance(item.get("source_claim_audit"), list)
+                 and bool(item["source_claim_audit"])))
+    ]
+
+
 def _pending_source_disagreements(stages):
     audit = stages[0].get("source_claim_audit") if stages else None
     if not isinstance(audit, list):
