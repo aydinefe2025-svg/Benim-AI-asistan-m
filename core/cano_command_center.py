@@ -120,6 +120,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
     try:
         colony = AgentColony(_session_database_path(st, base), max_agents=12)
         manager = CollaborativeMission(colony)
+        recovered_missions = manager.recover_stale()
         status = read_cano_status(colony)
     except (OSError, sqlite3.Error, ValueError):
         st.error("CANO ajan kayıtları açılamadı; görev çalıştırılmadı.")
@@ -271,6 +272,13 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
         (status["agents"], status["missions"],
          status["review_pending"], status["lessons"])):
         col.metric(label, value)
+
+    if recovered_missions:
+        st.warning(
+            f"{len(recovered_missions)} uzun süredir açık kalan görev güvenli biçimde "
+            "engellendi. Kayıtlı aşamalar korundu; sağlayıcı hazır olduğunda aşağıdan "
+            "kaldığınız yerden sürdürebilirsiniz."
+        )
 
     if backup_store is None:
         st.caption("Bu oturumda yalnızca geçici SQLite var; JSON yedeği alın.")

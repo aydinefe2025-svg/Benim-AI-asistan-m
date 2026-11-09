@@ -161,6 +161,32 @@ class CommandCenterTests(unittest.TestCase):
         self.assertIn("research-planner", roles)
         self.assertIn("evidence-reviewer", roles)
 
+    def test_stale_running_mission_is_recovered_and_shown_for_resume(self):
+        from datetime import datetime, timedelta, timezone
+        from core.collaborative_mission import CollaborativeMission
+
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        model = FakeModel()
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=model)
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            manager = CollaborativeMission(colony)
+            old_time = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+            with colony._db() as db:
+                db.execute("INSERT INTO colony_missions VALUES (?,?,?,?,?)",
+                           ("stale-mission", "Resume safely", "[]", "running", old_time))
+
+            st.clicks.clear()
+            st.messages.clear()
+            render_cano_command_center(st, answer=model)
+
+        self.assertEqual(manager.get("stale-mission")["status"], "blocked")
+        self.assertEqual(len(manager.get("stale-mission")["stages"]), 0)
+        self.assertEqual(model.calls, [])
+        self.assertIn("güvenli biçimde engellendi", " ".join(st.messages))
+        self.assertIn("kaldığınız yerden sürdürebilirsiniz", " ".join(st.messages))
+
+
     def test_main_cockpit_prepares_and_executes_four_stage_task(self):
         st = FakeStreamlit(clicks={"cano_prepare_team"})
         model = FakeModel()
