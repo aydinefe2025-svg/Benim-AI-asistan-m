@@ -141,8 +141,22 @@ def run_bounded_improvement_cycle(
     _reject_obvious_sensitive_text(task)
     if not isinstance(dataset_ref, str) or not dataset_ref.strip() or len(dataset_ref) > 120:
         raise ValueError("Benchmark label/version is required")
-    review = AgentReviewLoop(colony).execute(
-        author_id, reviewer_id, task, client=client, model=model)
+    try:
+        review = AgentReviewLoop(colony).execute(
+            author_id, reviewer_id, task, client=client, model=model)
+    except Exception as exc:
+        return {
+            "status": "blocked",
+            "review_id": None,
+            "lesson": None,
+            "feedback_id": None,
+            "benchmark": None,
+            "provider_calls_max": 24,
+            "model_weights_updated": False,
+            "candidate_activated": False,
+            "failure_category": failure_category(exc),
+            "failure_stage": "review",
+        }
     try:
         lesson = generate_lesson_candidate(review, client=client, model=model)
         measured = evaluate_lesson_candidate(
@@ -162,6 +176,7 @@ def run_bounded_improvement_cycle(
             "model_weights_updated": False,
             "candidate_activated": False,
             "failure_category": failure_category(exc),
+            "failure_stage": "candidate_or_benchmark",
         }
     feedback_id = None
     if measured["eligible"]:
@@ -186,6 +201,8 @@ def run_bounded_improvement_cycle(
                 "provider_calls_max": 24,
                 "model_weights_updated": False,
                 "candidate_activated": False,
+                "failure_category": "storage",
+                "failure_stage": "proposal_save",
             }
     safe_result = {
         "status": "review_pending" if feedback_id else "not_improved",

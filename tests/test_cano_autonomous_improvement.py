@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from core.agent_colony import AgentColony
@@ -8,6 +9,7 @@ from core.cano_autonomous_improvement import (
     run_bounded_improvement_cycle,
 )
 from core.benchmark_harness import BenchmarkCase
+from core.openrouter_free_client import OpenRouterError
 
 
 LESSON = "Keep answers evidence-based and clearly state uncertainty."
@@ -82,6 +84,21 @@ class BoundedImprovementTests(unittest.TestCase):
             result["feedback_id"], approved=True)
         self.assertEqual(approval["status"], "accepted")
         self.assertEqual(self.colony.lessons(self.author)[0]["lesson"], LESSON)
+
+    def test_review_provider_failure_records_safe_stage_and_category(self):
+        error = OpenRouterError("safe", status_code=429)
+        with patch("core.cano_autonomous_improvement.AgentReviewLoop.execute",
+                   side_effect=error):
+            result = run_bounded_improvement_cycle(
+                self.colony, self.author, self.reviewer,
+                "Review a short research summary.", self.cases_json(), "safe-v1",
+                client=FakeClient(), model="mock",
+            )
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["failure_stage"], "review")
+        self.assertEqual(result["failure_category"], "rate_limit")
+        self.assertIsNone(result["review_id"])
+        self.assertEqual(self.colony.lessons(self.author), [])
 
     def test_no_measured_gain_never_creates_a_pending_lesson(self):
         client = FakeClient(candidate_helps=False)
