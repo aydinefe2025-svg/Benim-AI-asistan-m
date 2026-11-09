@@ -37,8 +37,8 @@ class ProviderFailureTests(unittest.TestCase):
         self.assertEqual(failure_category(error), "authentication")
 
     def test_invalid_or_arbitrary_code_is_ignored(self):
-        for code in ("429", True, 999, "SECRET_VALUE"):
-            with self.subTest(code=code):
+        for code in ("429", True, 999, "SECRET_VALUE", [], {}):
+            with self.subTest(code=repr(code)):
                 self.assertEqual(failure_category(GoogleSdkError(code)), "unknown")
 
     def test_safe_provider_diagnostics_allowlist_status_and_code(self):
@@ -47,6 +47,8 @@ class ProviderFailureTests(unittest.TestCase):
         error.body = {"error": {"code": "unsupported_parameter", "message": "PRIVATE"}}
         self.assertEqual(failure_diagnostics(error), (400, "unsupported_parameter"))
         error.body["error"]["code"] = "PRIVATE provider text"
+        self.assertEqual(failure_diagnostics(error), (400, None))
+        error.body["error"]["code"] = {}
         self.assertEqual(failure_diagnostics(error), (400, None))
 
     def test_model_retirement_machine_code(self):
