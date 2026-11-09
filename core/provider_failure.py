@@ -15,11 +15,20 @@ MESSAGES = {
 }
 
 
+def _http_status(error):
+    """Read only canonical numeric HTTP status fields from provider exceptions."""
+    for field in ("status_code", "code"):
+        status = getattr(error, field, None)
+        if isinstance(status, int) and not isinstance(status, bool) and 100 <= status <= 599:
+            return status
+    return None
+
+
 def failure_category(error):
     kind = getattr(error, "failure_kind", None)
     if kind in MESSAGES:
         return kind
-    status = getattr(error, "status_code", None)
+    status = _http_status(error)
     if status == 401:
         return "authentication"
     if status == 403:
@@ -51,7 +60,7 @@ def copy_safe_failure_metadata(source, target):
     """Copy only canonical status metadata; never copy provider message/body text."""
     kind = getattr(source, "failure_kind", None)
     allowed = set(MESSAGES)
-    status = getattr(source, "status_code", None)
+    status = _http_status(source)
     if kind not in allowed:
         if status == 401:
             kind = "authentication"
@@ -76,5 +85,5 @@ def copy_safe_failure_metadata(source, target):
         else:
             kind = "unknown"
     target.failure_kind = kind
-    if isinstance(status, int) and 100 <= status <= 599:
+    if status is not None:
         target.status_code = status
