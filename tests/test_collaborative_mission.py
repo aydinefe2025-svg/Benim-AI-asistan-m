@@ -54,6 +54,19 @@ class CollaborativeMissionTests(unittest.TestCase):
         self.assertIn("Result 2", client.calls[2][2])
         self.assertIn("Result 3", client.calls[3][2])
 
+    def test_review_completion_requires_explicit_action_and_preserves_draft(self):
+        record = self.missions.execute(
+            "Review a safe factual draft", client=FakeClient(), model="fake")
+        with self.assertRaises(PermissionError):
+            self.missions.mark_reviewed(record["id"])
+        reviewed = self.missions.mark_reviewed(record["id"], approved=True)
+        saved = self.missions.get(record["id"])
+        self.assertEqual(reviewed["status"], "reviewed")
+        self.assertEqual(saved["status"], "reviewed")
+        self.assertEqual(saved["stages"], record["stages"])
+        self.assertEqual(self.missions.mark_reviewed(record["id"], approved=True)["status"],
+                         "already_reviewed")
+
     def test_accepted_lesson_is_retrieved_by_the_next_team_mission(self):
         founder = self.colony.get(self.missions._agents()[0])["id"]
         self.colony.feedback(
