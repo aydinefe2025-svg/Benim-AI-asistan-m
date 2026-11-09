@@ -111,6 +111,8 @@ class ResearchEvidenceTests(unittest.TestCase):
         self.assertIn("not primary scientific proof", evidence)
         self.assertIn("not independent verification", evidence)
         self.assertIn("2-4 sentence Turkish summary", evidence)
+        self.assertIn("Do not let a request for source formatting", evidence)
+        self.assertIn("Never produce a numbered or bulleted source list", evidence)
         self.assertIn("unsupported claims as verified", format_research_evidence([]))
 
 
