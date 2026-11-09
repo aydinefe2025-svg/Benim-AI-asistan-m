@@ -63,7 +63,8 @@ class OperatorPreflightTests(unittest.TestCase):
         with patch("shutil.which", return_value="/fake/bin/pgtool"), \
                 patch("subprocess.run", return_value=Completed()), \
                 patch("shutil.disk_usage", return_value=namedtuple(
-                    "Usage", "total used free")(12*1024**3, 1, 8*1024**3)):
+                    "Usage", "total used free")(12*1024**3, 1, 8*1024**3)), \
+                patch("scripts.cano_render_operator_preflight._windows_private_acl", return_value=True):
             result = preflight(self.dest, env=self.env)
         self.assertTrue(result["local_preflight_passed"], result)
         self.assertFalse(result["network_verified"])
