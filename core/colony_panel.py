@@ -450,8 +450,13 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                             else:
                                 message = ("İnceleme aşaması tamamlanamadı; görev ve ders adayı "
                                            "kaydedilmedi. ")
+                            error_type = result.get("failure_type")
+                            suffix = (f" (hata türü: {error_type})"
+                                      if isinstance(error_type, str) and error_type.isascii()
+                                      and error_type.replace("_", "").isalnum()
+                                      and len(error_type) <= 64 else "")
                             st.warning(message + MESSAGES.get(
-                                result.get("failure_category"), MESSAGES["unknown"]))
+                                result.get("failure_category"), MESSAGES["unknown"]) + suffix)
                         else:
                             st.info(
                                 "Döngü tamamlandı ancak aday sabit testlerde "
@@ -475,8 +480,13 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 else:
                     status_text = ("İnceleme aşamasında görev kaydı oluşturulamadı; "
                                    "aktif hafıza değişmedi. ")
+                error_type = cycle.get("failure_type")
+                suffix = (f" (hata türü: {error_type})"
+                          if isinstance(error_type, str) and error_type.isascii()
+                          and error_type.replace("_", "").isalnum()
+                          and len(error_type) <= 64 else "")
                 st.caption(status_text + MESSAGES.get(
-                    cycle.get("failure_category"), MESSAGES["unknown"]))
+                    cycle.get("failure_category"), MESSAGES["unknown"]) + suffix)
             elif cycle:
                 st.caption(
                     f"Test sonucu: aday {cycle['benchmark']['candidate_passed']}/"
