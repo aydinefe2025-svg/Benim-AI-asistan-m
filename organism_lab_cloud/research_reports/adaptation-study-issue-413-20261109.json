@@ -3101,7 +3101,7 @@
       "organism_lab/adaptation_study.py": "7d625909c4484b95c7e24ffad9450f0dadaf7c78056a38c35100ca1da1666f2d",
       "organism_lab/digital_vm.py": "9f48b26c89559fcb45644369f3f92ad5192a57e8d74a9ebab8ba303f06b9b99c"
     },
-    "validation": "21 targeted unit tests passed; 1 skipped because optional trained_local endpoint is not running",
+    "validation": "29 targeted unittest cases: 28 passed and 1 skipped because optional trained_local endpoint is not running",
     "observatory_updated": false
   }
 }\n
