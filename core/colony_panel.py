@@ -281,7 +281,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 st.error("Kontrollü büyüme tamamlanamadı.")
 
         with st.form("colony_feedback_form"):
-            task = st.text_input("Dersin ilişkili olduğu görev", max_chars=300)
+            task = st.text_input("Dersin ilişkili olduğu görev (* = tüm görevler)",
+                                 max_chars=300)
             lesson = st.text_area("Öğrenilecek ders", max_chars=1000)
             evidence = st.text_input("İnceleme/kanıt referansı", max_chars=300)
             accepted = st.checkbox("Bu dersi sonraki görevlerde kullanmayı onaylıyorum")
@@ -715,3 +716,5 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                                data=json.dumps(data, ensure_ascii=False, indent=2),
                                file_name="ajan-kolonisi-yedek.json",
                                mime="application/json", key="colony_backup")
+
+
