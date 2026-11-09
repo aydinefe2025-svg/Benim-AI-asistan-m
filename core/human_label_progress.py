@@ -32,7 +32,7 @@ def _validated_cohorts(cohorts, allowed_case_ids):
             raise ValueError("Unknown case identifier")
         kept = {}
         for case_id, label in labels.items():
-            if not isinstance(case_id, str) or label not in VALID_LABELS:
+            if not isinstance(case_id, str) or not isinstance(label, str) or label not in VALID_LABELS:
                 raise ValueError("Invalid human label")
             kept[case_id] = label
         if kept:
