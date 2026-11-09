@@ -17,6 +17,7 @@ from core.colony_postgres import ColonySnapshotStore
 from core.cano_command_center import _snapshot
 from core.colony_restore import restore_colony_json_bytes, restore_owner_backup
 from core.task_panel import _session_database_path
+from core.provider_failure import MESSAGES, safe_failure_message
 
 
 def snapshots_match(left, right):
@@ -394,8 +395,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                                         model="configured-provider")
                     st.session_state["colony_last_draft"] = result["output"]
                     st.success("Taslak üretildi; bağımsız doğrulama gerekiyor.")
-                except (RuntimeError, ValueError, OSError):
-                    st.error("Ajan görevi tamamlayamadı.")
+                except (RuntimeError, ValueError, OSError) as exc:
+                    st.error("Ajan görevi tamamlanamadı. " + safe_failure_message(exc))
         if st.session_state.get("colony_last_draft"):
             st.text_area("Son doğrulanmamış taslak",
                          value=st.session_state["colony_last_draft"],
@@ -435,16 +436,27 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         if not saved:
                             return
                         st.session_state["cano_improvement_cycle"] = result
-                        st.session_state["colony_last_review"] = AgentReviewLoop(colony).get(
-                            result["review_id"])
+                        st.session_state["colony_last_review"] = (
+                            AgentReviewLoop(colony).get(result["review_id"])
+                            if result.get("review_id") else None)
                         if result["status"] == "review_pending":
                             st.success(
                                 "Aday beş testte iyileşme gösterdi; yalnızca inceleme "
                                 "bekleyen ders olarak kaydedildi.")
                         elif result["status"] == "blocked":
-                            st.warning(
-                                "Döngü tamamlanamadı; biten inceleme arşivlendi, "
-                                "aday etkinleştirilmedi.")
+                            if result.get("review_id"):
+                                message = ("Döngü tamamlanamadı; biten inceleme arşivlendi, "
+                                           "aday etkinleştirilmedi. ")
+                            else:
+                                message = ("İnceleme aşaması tamamlanamadı; görev ve ders adayı "
+                                           "kaydedilmedi. ")
+                            error_type = result.get("failure_type")
+                            suffix = (f" (hata türü: {error_type})"
+                                      if isinstance(error_type, str) and error_type.isascii()
+                                      and error_type.replace("_", "").isalnum()
+                                      and len(error_type) <= 64 else "")
+                            st.warning(message + MESSAGES.get(
+                                result.get("failure_category"), MESSAGES["unknown"]) + suffix)
                         else:
                             st.info(
                                 "Döngü tamamlandı ancak aday sabit testlerde "
@@ -461,9 +473,19 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                     st.error("İnceleme döngüsü tamamlanamadı; aktif dersler değişmedi.")
             cycle = st.session_state.get("cano_improvement_cycle")
             if cycle and cycle["status"] == "blocked":
-                st.caption(
-                    "İnceleme kaydı korundu. Model sağlayıcısı veya test işlemi "
-                    "tamamlanamadı; aktif hafızaya hiçbir ders eklenmedi.")
+                if cycle.get("review_id"):
+                    status_text = ("İnceleme kaydı korundu; aday/test aşaması tamamlanamadı. "
+                                   "Aktif hafızaya ders eklenmedi. ")
+                else:
+                    status_text = ("İnceleme aşamasında görev kaydı oluşturulamadı; "
+                                   "aktif hafıza değişmedi. ")
+                error_type = cycle.get("failure_type")
+                suffix = (f" (hata türü: {error_type})"
+                          if isinstance(error_type, str) and error_type.isascii()
+                          and error_type.replace("_", "").isalnum()
+                          and len(error_type) <= 64 else "")
+                st.caption(status_text + MESSAGES.get(
+                    cycle.get("failure_category"), MESSAGES["unknown"]) + suffix)
             elif cycle:
                 st.caption(
                     f"Test sonucu: aday {cycle['benchmark']['candidate_passed']}/"

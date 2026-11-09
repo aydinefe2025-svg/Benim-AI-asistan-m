@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 
 from core.agent_review_loop import AgentReviewLoop
+from core.provider_failure import failure_category
 from core.benchmark_harness import (
     BenchmarkCase,
     parse_memory_benchmark_cases,
@@ -23,6 +24,11 @@ _SENSITIVE_TOKEN = re.compile(
     r"postgres(?:ql)?://|-----BEGIN [A-Z ]*PRIVATE KEY-----|"
     r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})"
 )
+
+
+def _safe_failure_type(error: Exception) -> str:
+    name = type(error).__name__
+    return name if len(name) <= 64 and name.isascii() and name.replace("_", "").isalnum() else "UnknownError"
 
 
 def _reject_obvious_sensitive_text(value: str) -> None:
@@ -140,15 +146,24 @@ def run_bounded_improvement_cycle(
     _reject_obvious_sensitive_text(task)
     if not isinstance(dataset_ref, str) or not dataset_ref.strip() or len(dataset_ref) > 120:
         raise ValueError("Benchmark label/version is required")
-    review = AgentReviewLoop(colony).execute(
-        author_id, reviewer_id, task, client=client, model=model)
+    try:
+        review = AgentReviewLoop(colony).execute(
+            author_id, reviewer_id, task, client=client, model=model)
+    except Exception as exc:
+        return {
+            "status": "blocked", "review_id": None, "lesson": None,
+            "feedback_id": None, "benchmark": None, "provider_calls_max": 24,
+            "model_weights_updated": False, "candidate_activated": False,
+            "failure_category": failure_category(exc),
+            "failure_type": _safe_failure_type(exc), "failure_stage": "review",
+        }
     try:
         lesson = generate_lesson_candidate(review, client=client, model=model)
         measured = evaluate_lesson_candidate(
             colony, author_id, lesson, cases, client=client, model=model,
             dataset_ref=dataset_ref,
         )
-    except Exception:
+    except Exception as exc:
         # Keep the completed review durable, but never expose provider exception
         # text or save an untested candidate lesson.
         return {
@@ -160,6 +175,9 @@ def run_bounded_improvement_cycle(
             "provider_calls_max": 24,
             "model_weights_updated": False,
             "candidate_activated": False,
+            "failure_category": failure_category(exc),
+            "failure_type": _safe_failure_type(exc),
+            "failure_stage": "candidate_or_benchmark",
         }
     feedback_id = None
     if measured["eligible"]:
@@ -174,7 +192,7 @@ def run_bounded_improvement_cycle(
                 author_id, "CANO bounded improvement proposal " + dataset_ref.strip(),
                 lesson, evidence, accepted=False,
             )
-        except Exception:
+        except Exception as exc:
             return {
                 "status": "blocked",
                 "review_id": review["id"],
@@ -184,6 +202,9 @@ def run_bounded_improvement_cycle(
                 "provider_calls_max": 24,
                 "model_weights_updated": False,
                 "candidate_activated": False,
+                "failure_category": "storage",
+                "failure_type": _safe_failure_type(exc),
+                "failure_stage": "proposal_save",
             }
     safe_result = {
         "status": "review_pending" if feedback_id else "not_improved",
