@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - name: Reject new mutable Actions references
+        run: python scripts/check_actions_ref_regressions.py .github/workflows --baseline config/actions_ref_baseline_20261109.json
       - name: Install secure backup dependency
         run: python -m pip install "cryptography>=44,<51"
       - name: Run unit tests
