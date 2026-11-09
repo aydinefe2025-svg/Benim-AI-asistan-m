@@ -6,7 +6,9 @@ from collections import namedtuple
 import unittest
 from unittest.mock import patch
 
-from scripts.cano_render_operator_preflight import (\n    _windows_acl_is_private, _windows_private_acl, preflight,\n)
+from scripts.cano_render_operator_preflight import (
+    _windows_acl_is_private, _windows_private_acl, preflight,
+)
 
 
 class OperatorPreflightTests(unittest.TestCase):
