@@ -63,7 +63,7 @@ def main():
                 file.write_text('#!/bin/sh\nset -eu\n'
                       'exec docker run --rm -i --network host '
                       '-e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE '
-                      'postgres:'+major+' '+binary+' "$@"\n')
+                      'postgres:18 '+binary+' "$@"\n')
                 file.chmod(file.stat().st_mode|stat.S_IXUSR)
             dump_bin=str(root/'docker-pg_dump')
             psql_bin=str(root/'docker-psql')
