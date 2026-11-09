@@ -269,6 +269,21 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(resumed["status"], "review_pending")
             self.assertEqual(len(resumed["stages"]), 4)
 
+    def test_command_center_closes_review_queue_without_accepting_claims(self):
+        from core.collaborative_mission import CollaborativeMission
+        st = FakeStreamlit()
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            prepare_cano_team(colony, approved=True)
+            missions = CollaborativeMission(colony)
+            draft = missions.execute("Check a reviewable draft", client=type("Client", (), {"chat": lambda self, model, system, prompt: "Test draft"})(), model="test")
+            st.session_state["cano_history_mission"] = draft["id"]
+            st.clicks.add("cano_mark_reviewed_" + draft["id"])
+            render_cano_command_center(st, answer=FakeModel())
+            self.assertEqual(missions.get(draft["id"])["status"], "reviewed")
+            self.assertEqual(read_cano_status(colony)["review_pending"], 0)
+            self.assertIn("bilimsel doğruluk onaylanmadı", " ".join(st.messages))
+
     def test_generic_mission_failure_shows_safe_location_and_fresh_blocked_count(self):
         st = FakeStreamlit(clicks={"cano_prepare_team"})
         calls = []

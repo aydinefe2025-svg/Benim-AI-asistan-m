@@ -233,6 +233,24 @@ class CollaborativeMission:
                            "WHERE id=? AND status='running'", (mission_id,))
             raise
 
+    def mark_reviewed(self, mission_id, *, approved=False):
+        """Close a completed draft's review queue without endorsing its claims."""
+        if type(approved) is not bool or not approved:
+            raise PermissionError("Explicit review completion required")
+        with self.colony._db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT status FROM colony_missions WHERE id=?",
+                             (mission_id,)).fetchone()
+            if row is None:
+                raise KeyError(mission_id)
+            if row["status"] == "reviewed":
+                return {"id": mission_id, "status": "already_reviewed"}
+            if row["status"] != "review_pending":
+                raise RuntimeError("Only completed drafts can be marked reviewed")
+            db.execute("UPDATE colony_missions SET status='reviewed' "
+                       "WHERE id=? AND status='review_pending'", (mission_id,))
+        return {"id": mission_id, "status": "reviewed"}
+
     def inspect_source_documents(self, mission_id, *, reader=None,
                                  refresh_missing=False):
         """Read up to two opted-in source documents; checkpoint source excerpts.
@@ -247,7 +265,7 @@ class CollaborativeMission:
         if not callable(reader):
             raise ValueError("Evidence reader must be callable")
         saved = self.get(mission_id)
-        if saved["status"] != "review_pending":
+        if saved["status"] not in ("review_pending", "reviewed"):
             raise RuntimeError("Only completed drafts can be inspected")
         stages = saved["stages"]
         if not isinstance(stages, list) or len(stages) != 4:
@@ -343,7 +361,7 @@ class CollaborativeMission:
             row = db.execute(
                 "SELECT stages,status FROM colony_missions WHERE id=?",
                 (mission_id,)).fetchone()
-            if row is None or row["status"] != "review_pending":
+            if row is None or row["status"] not in ("review_pending", "reviewed"):
                 raise RuntimeError("Mission changed while reading sources")
             current = json.loads(row["stages"])
             if "source_documents" in current[0] and not refresh_missing:
