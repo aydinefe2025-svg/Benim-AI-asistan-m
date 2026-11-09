@@ -17,6 +17,7 @@ from core.colony_postgres import ColonySnapshotStore
 from core.cano_command_center import _snapshot
 from core.colony_restore import restore_colony_json_bytes, restore_owner_backup
 from core.task_panel import _session_database_path
+from core.provider_failure import safe_failure_message
 
 
 def snapshots_match(left, right):
@@ -394,8 +395,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                                         model="configured-provider")
                     st.session_state["colony_last_draft"] = result["output"]
                     st.success("Taslak üretildi; bağımsız doğrulama gerekiyor.")
-                except (RuntimeError, ValueError, OSError):
-                    st.error("Ajan görevi tamamlayamadı.")
+                except (RuntimeError, ValueError, OSError) as exc:
+                    st.error("Ajan görevi tamamlayamadı. " + safe_failure_message(exc))
         if st.session_state.get("colony_last_draft"):
             st.text_area("Son doğrulanmamış taslak",
                          value=st.session_state["colony_last_draft"],
@@ -458,7 +459,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         st.session_state["colony_last_review"] = record
                         st.success("Üç model çağrısı tamamlandı; inceleme kaydı oluşturuldu.")
                 except (ValueError, RuntimeError, OSError, sqlite3.Error) as exc:
-                    st.error("İnceleme döngüsü tamamlanamadı; aktif dersler değişmedi.")
+                    st.error("İnceleme döngüsü tamamlanamadı; aktif dersler değişmedi. "
+                             + safe_failure_message(exc))
             cycle = st.session_state.get("cano_improvement_cycle")
             if cycle and cycle["status"] == "blocked":
                 st.caption(
