@@ -166,5 +166,20 @@ class ResearchEvidenceTests(unittest.TestCase):
         self.assertNotIn("Abell 1689", clean)
         self.assertNotIn("CLASS B1359+154", clean)
 
+
+    def test_sanitizer_removes_intro_after_exclamation_and_empty_list_items(self):
+        answer = (
+            "Taslak, bağımsız doğrulanmadı. Tabii ki! İşte kütleçekimsel "
+            "merceklenme konusundaki temel kaynaklar:\n"
+            "1. [Kaynak](https://evil.invalid/a)\n"
+            "2. [Diğer kaynak](https://evil.invalid/b)\n"
+            "Bu bağlantılardan detayları öğrenebilirsin."
+        )
+        clean = sanitize_research_answer(answer, [])
+        self.assertIn("Taslak, bağımsız doğrulanmadı.", clean)
+        self.assertNotIn("İşte kütleçekimsel", clean)
+        self.assertNotIn("Bu bağlantılardan", clean)
+        self.assertNotIn("evil.invalid", clean)
+
 if __name__ == "__main__":
     unittest.main()

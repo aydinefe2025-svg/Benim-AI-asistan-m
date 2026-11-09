@@ -155,13 +155,16 @@ def sanitize_research_answer(answer, excerpts):
         answer,
     )
     source_intro = re.search(
-        r"(?im)(?:^|(?<=[.!?])\s+)(?:tabii[,!]?[ \t]*)?[^.!?\n]{0,220}"
-        r"\b(?:kaynak(?:ları|lar|ça)|sources?|references?)\b[^.!?\n]{0,120}"
-        r"(?:inceleyebilirsin|inceleyin|aşağıda|listesi|bağlantıları|numaralandır\w*|sıralan\w*)\s*:"
+        r"(?i)\b(?:kaynak\w*|sources?|references?)\b[^\n]{0,220}:"
         r"(?=\s*\n\s*(?:\d+[.)]|[-*]))",
         answer,
     )
     cut_points = [match.start() for match in (source_heading, source_intro) if match]
+    if source_intro:
+        preceding = answer[:source_intro.start()]
+        sentence_ends = list(re.finditer(r"[.!?]\s+", preceding))
+        source_start = sentence_ends[-1].end() if sentence_ends else source_intro.start()
+        cut_points.append(source_start)
     clean = answer[:min(cut_points)].rstrip() if cut_points else answer
     valid_ids = {
         item.get("id") for item in excerpts
