@@ -357,8 +357,8 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                         _checkpoint(archive_prior=(stage_checkpoint_count[0] == 0))
                     except Exception:
                         st.error("Kısmi görev PostgreSQL'e kaydedilemedi; JSON yedeği alın.")
-                    st.warning("Groq kotası doldu. Kısmi aşamalar yerel SQLite'da korundu; "
-                               "kota yenilendiğinde kaldığınız yerden sürdürün.")
+                    st.warning("Seçili sağlayıcının istek sınırı aşıldı. Kısmi aşamalar yerel SQLite'da "
+                               "korundu; sağlayıcı yeniden istek kabul ettiğinde kaldığınız yerden sürdürün.")
                 except (RuntimeError, ValueError, OSError, sqlite3.Error) as exc:
                     try:
                         _checkpoint(archive_prior=(stage_checkpoint_count[0] == 0))
