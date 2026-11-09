@@ -225,8 +225,19 @@ def run_study(*, seeds=tuple(range(800, 830)), steps=80, period=12,
             deaths.append(eligible["active"]["forced_vacancies"])
             always_deaths.append(continuous["active"]["forced_vacancies"])
         pos=sum(d>0 for d in diffs);neg=sum(d<0 for d in diffs)
+        # Retrospective ceiling diagnostic: never used to relax primary gate.
+        closed_ceiling = sum(idx[seed,"closed",cost]["active"]["ab_final_share"]==1.0
+                             for seed in seeds)
+        eligible_ceiling = sum(idx[seed,"eligible",cost]["active"]["ab_final_share"]==1.0
+                               for seed in seeds)
+        both_ceiling = sum(idx[seed,"closed",cost]["active"]["ab_final_share"]==1.0
+                           and idx[seed,"eligible",cost]["active"]["ab_final_share"]==1.0
+                           for seed in seeds)
         by_cost.append({"cost":cost,"positive_seeds":pos,"negative_seeds":neg,
                         "tied_seeds":len(seeds)-pos-neg,"exact_sign_p":_p(diffs),
+                        "closed_active_ab_share_ceiling_seeds":closed_ceiling,
+                        "eligible_active_ab_share_ceiling_seeds":eligible_ceiling,
+                        "both_ceiling_seeds":both_ceiling,
                         "causal_ab_gain_over_closed":_ci(diffs),
                         "continuous_gain_over_closed":_ci(always_effect),
                         "paced_gain_over_closed":_ci(paced_effect),
