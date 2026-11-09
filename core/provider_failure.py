@@ -14,6 +14,9 @@ MESSAGES = {
 
 
 def failure_category(error):
+    kind = getattr(error, "failure_kind", None)
+    if kind in MESSAGES:
+        return kind
     status = getattr(error, "status_code", None)
     if status == 401:
         return "authentication"
