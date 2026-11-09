@@ -5,7 +5,7 @@ from __future__ import annotations
 def check_provider(provider: str, credential: str | None, *, model: str = "",
                    request_get=None) -> dict:
     """List models or query Telegram getMe; never generate text or send messages."""
-    if provider not in {"groq", "google", "telegram"}:
+    if provider not in {"groq", "google", "telegram", "openrouter"}:
         raise ValueError("Unsupported provider")
     if not isinstance(credential, str) or not credential.strip():
         return {"status": "not_configured", "reachable": False, "authenticated": False}
@@ -14,8 +14,9 @@ def check_provider(provider: str, credential: str | None, *, model: str = "",
         "groq": "https://api.groq.com/openai/v1/models",
         "google": "https://generativelanguage.googleapis.com/v1beta/models",
         "telegram": "https://api.telegram.org/bot" + token + "/getMe",
+        "openrouter": "https://openrouter.ai/api/v1/models",
     }
-    headers = {"Authorization": "Bearer " + token} if provider == "groq" else (
+    headers = {"Authorization": "Bearer " + token} if provider in {"groq", "openrouter"} else (
         {"x-goog-api-key": token} if provider == "google" else {})
     try:
         if request_get is None:
@@ -27,6 +28,13 @@ def check_provider(provider: str, credential: str | None, *, model: str = "",
             return {"status": "failed", "reachable": True,
                     "authenticated": False, "http_status": response.status_code}
         body = response.json()
+        if provider == "openrouter":
+            collection = body["data"]
+            if not isinstance(collection, list):
+                raise ValueError("Invalid model list")
+            # Authentication is verified by a successful, read-only model-list response.
+            # The free router is dynamic, so do not infer route availability from this list.
+            return {"status": "verified", "reachable": True, "authenticated": True}
         if provider == "telegram":
             valid = (body.get("ok") is True and
                      body.get("result", {}).get("is_bot") is True)
