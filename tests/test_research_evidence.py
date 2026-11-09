@@ -187,7 +187,7 @@ class ResearchEvidenceTests(unittest.TestCase):
     def test_summary_requires_inline_citation_to_retrieved_excerpt(self):
         result = require_cited_research_summary(
             "Araştırma taslağı — bağımsız doğrulama yapılmadı. "
-            "İşte temel kaynaklar:\\n1. Wikipedia [W1]",
+            "İşte temel kaynaklar:\n1. Wikipedia [W1]",
             [{"id": "W1"}],
         )
         self.assertIn("atıflı bir özet üretemedi", result)
