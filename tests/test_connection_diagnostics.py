@@ -49,3 +49,27 @@ class ConnectionDiagnosticTests(unittest.TestCase):
     def test_malformed_body_is_not_success(self):
         request = Mock(return_value=Mock(status_code=200, json=lambda: {'models': 'invalid'}))
         self.assertEqual(check_provider('google', 'token', request_get=request)['status'], 'unreachable_or_invalid')
+
+    def test_openrouter_read_only_authentication_check(self):
+        request = Mock(return_value=Mock(status_code=200, json=lambda: {'data': [{'id': 'openrouter/free'}]}))
+        result = check_provider('openrouter', 'private-token', request_get=request)
+        self.assertEqual(result, {'status': 'verified', 'reachable': True, 'authenticated': True})
+        self.assertEqual(request.call_args.args[0], 'https://openrouter.ai/api/v1/models')
+        self.assertEqual(request.call_args.kwargs['headers']['Authorization'], 'Bearer private-token')
+        self.assertFalse(request.call_args.kwargs['allow_redirects'])
+
+    def test_openrouter_http_failures_never_leak_credentials(self):
+        for code in (401, 403, 429, 503):
+            request = Mock(return_value=Mock(status_code=code, text='private-token'))
+            result = check_provider('openrouter', 'private-token', request_get=request)
+            self.assertEqual(result['status'], 'failed')
+            self.assertEqual(result['http_status'], code)
+            self.assertNotIn('private-token', json.dumps(result))
+
+    def test_openrouter_missing_key_and_invalid_body(self):
+        request = Mock()
+        self.assertEqual(check_provider('openrouter', '', request_get=request)['status'], 'not_configured')
+        request.assert_not_called()
+        malformed = Mock(return_value=Mock(status_code=200, json=lambda: {'data': 'invalid'}))
+        self.assertEqual(check_provider('openrouter', 'token', request_get=malformed)['status'],
+                         'unreachable_or_invalid')
