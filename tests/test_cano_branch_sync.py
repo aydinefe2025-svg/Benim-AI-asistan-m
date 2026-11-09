@@ -95,6 +95,26 @@ class BranchSyncTests(unittest.TestCase):
         self.assertEqual(result["mutated"], False)
         self.assertEqual(original, self.git(self.work, "ls-remote", "origin", "refs/heads/prod"))
 
+    def test_cli_requires_explicit_read_only_flag_and_preserves_remote(self):
+        import json
+        import sys
+
+        self.commit("new-for-cli.txt", "new")
+        original = self.git(self.work, "ls-remote", "origin", "refs/heads/prod")
+        repo_root = Path(__file__).resolve().parents[1]
+        env = dict(os.environ, PYTHONPATH=str(repo_root))
+        command = [sys.executable, "-m", "scripts.cano_safe_branch_sync"]
+        disallowed = subprocess.run(command, cwd=self.work, env=env,
+                                    text=True, capture_output=True, timeout=30)
+        self.assertNotEqual(disallowed.returncode, 0)
+        allowed = subprocess.run(command + ["--audit-only"], cwd=self.work,
+                                 env=env, text=True, capture_output=True, timeout=30)
+        self.assertEqual(allowed.returncode, 0, allowed.stderr[-600:])
+        receipt = json.loads(allowed.stdout.splitlines()[-1])
+        self.assertEqual(receipt["status"], "legacy_behind_main")
+        self.assertEqual(receipt["mutated"], False)
+        self.assertEqual(original, self.git(self.work, "ls-remote", "origin", "refs/heads/prod"))
+
     def test_scheduled_workflow_can_only_audit_legacy_branch(self):
         repo = Path(__file__).resolve().parents[1]
         workflow = (repo / ".github/workflows/cano-safe-branch-sync.yml").read_text()
