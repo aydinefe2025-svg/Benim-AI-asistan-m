@@ -253,6 +253,8 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(status["blocked"], 1)
             self.assertEqual(status["missions"], 1)
             self.assertIn("kota", " ".join(st.messages).casefold())
+            self.assertIn("seçili sağlayıcının istek sınırı aşıldı", " ".join(st.messages).casefold())
+            self.assertNotIn("groq kotası", " ".join(st.messages).casefold())
             self.assertEqual(len(calls), 4)
             from core.collaborative_mission import CollaborativeMission
             mission = CollaborativeMission(colony).get(status["history"][0]["id"])
