@@ -59,6 +59,7 @@ from core.provider_config import (
 from core.provider_router import (
     OPENROUTER_FREE_MODEL, build_provider_router, fallback_options,
 )
+from core.trained_lora_client import TRAINED_LORA_LABEL, trained_lora_metadata
 from core.groq_diagnostics import check_groq_connection
 from core.provider_failure import failure_category, failure_diagnostics, safe_failure_message
 from core.connection_diagnostics import check_provider
@@ -96,7 +97,11 @@ try:
     _local_ollama_models = OllamaClient(OLLAMA_URL, timeout=1).list_models()
 except Exception:
     _local_ollama_models = []
-available_models = available_providers(_credentials, _local_ollama_models)
+_lora_metadata = trained_lora_metadata()
+available_models = available_providers(
+    _credentials, _local_ollama_models,
+    trained_lora_available=_lora_metadata is not None,
+)
 if not available_models:
     st.error("Streamlit Secrets veya GROQ_API_KEY, GOOGLE_API_KEY, OPENROUTER_API_KEY ya da erişilebilir yerel Ollama modeli gerekli.")
     st.stop()
@@ -174,6 +179,9 @@ secilen_model = st.sidebar.selectbox(
 if secilen_model.startswith("Ollama (Yerel): "):
     aktif_llm_adi = secilen_model.removeprefix("Ollama (Yerel): ")
     st.sidebar.success(f"Aktif Beyin: Yerel Ollama · {aktif_llm_adi}")
+elif secilen_model == TRAINED_LORA_LABEL:
+    aktif_llm_adi = _lora_metadata["model"]
+    st.sidebar.success(f"Aktif Beyin: LoRA deneysel · {_lora_metadata['adapter']}")
 elif "Groq" in secilen_model:
     aktif_llm_adi = "openai/gpt-oss-120b"
     st.sidebar.success("Aktif Beyin: Groq GPT-OSS ⚡")
@@ -683,7 +691,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     GÜNCEL ÇALIŞMA DURUMU: {storage_context}
     
     🧰 GERÇEK YETENEKLER VE SINIRLAR:
-    - Bu uygulama, seçime göre yerel Ollama, Groq, Google Gemini veya sabit ücretsiz OpenRouter model havuzuyla yanıt üretebilir.
+    - Bu uygulama, seçime göre yerel deneysel LoRA, Ollama, Groq, Google Gemini veya sabit ücretsiz OpenRouter model havuzuyla yanıt üretebilir.
     - internette_ara() DuckDuckGo anlık yanıtını ve şehir belirtilirse wttr.in hava servisini sorgular. Ayrıca açık ansiklopedi arama bağlantıları toplanabilir; bunlar bağımsız doğrulama değildir. Tam web tarayıcısı değildir.
     - Araştırma/görev paneli kullanıcı denetimli taslak ve kayıt işlevi sunar; görevleri arka planda kendiliğinden yürütmez.
     - Hafıza notları DATABASE_URL ve doğrulanmış giriş yapılandırılmışsa PostgreSQL üzerinde kalıcıdır. Aksi halde yalnızca bu tarayıcının yerel deposunda saklanır; başka cihazlarla eşitlenmez, kullanıcı tarayıcı verilerini silerse kaybolabilir. Sohbet geçmişi hâlâ oturuma özeldir.\n    - Sol menüde 🧬 Öğrenen uzman ajanlar paneli bulunur: kurucu uzman, izinli alt uzman, onaylı geri bildirimden ders çağırma ve modelle taslak üretme sunar.\n    - En az iki farklı ajan varsa panelde üç aşamalı taslak → eleştiri → düzeltme döngüsü vardır. İnceleme kayıtları oturuma özel SQLite dosyasındadır; sunucu yeniden başlatılınca korunacağı garanti değildir.\n    - Bu geri bildirim kullanımı model ağırlıklarını eğitmez. Uzmanlar otomatik olarak arka planda çoğalan bağımsız süreçler değildir.

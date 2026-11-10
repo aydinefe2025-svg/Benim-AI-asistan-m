@@ -32,6 +32,13 @@ class ProviderConfigTests(unittest.TestCase):
             ("Ollama (Yerel): qwen3:8b",),
         )
 
+    def test_lora_is_listed_only_when_the_local_service_is_verified(self):
+        self.assertEqual(
+            available_providers({}, trained_lora_available=True),
+            ("LoRA (Yerel · Qwen3-8B deneysel)",),
+        )
+        self.assertEqual(available_providers({}), ())
+
     def test_unavailable_secret_storage_is_graceful(self):
         class NoFile:
             def __getitem__(self, key):
