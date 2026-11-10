@@ -63,7 +63,7 @@
         "spin_residual_hz": 0.0
       }
     },
-    "first_steffen_causal_limit_pressure_geom": 7.163554733909825e-10,
+    "first_steffen_causal_limit_pressure_geom": 7.163554733909825E-10,
     "full_source_fixed_mass_validation": {
       "rns_minus_source_tov_radius_km": -0.02863151058291713,
       "rotating_center_g_cm3": 1749731258530240.0,
@@ -99,7 +99,7 @@
     "affected_eos": 6,
     "interpretation": "All six carry a negative native cs2 node at the same low-pressure source knot and one nonincreasing energy edge. This is a common source-layer irregularity, not evidence by itself of a core instability; it remains flagged and was not clipped.",
     "relative_pressure_spread": 0.0,
-    "shared_pressure_geom_m_minus2": 5.175111469637044e-16
+    "shared_pressure_geom_m_minus2": 5.175111469637044E-16
   },
   "source_files": {
     "APR4_EPP": {
@@ -277,6 +277,18 @@
         "nodes": 500
       }
     }
+  },
+  "logz_gap_audit": {
+    "historical_multinest_minus_ais_logz_gap": 0.367159,
+    "final_vs_last_progress_increment": 0.024819986072543543,
+    "historical_support_estimate": 0.146,
+    "validated_support": 0.14421155212931322,
+    "support_log_shift": 0.012325288212503763,
+    "terms_are_additive": false,
+    "either_term_explains_gap": false,
+    "historical_multinest_binary_identity_verified": false,
+    "normalization_changed": false,
+    "interpretation": "Both checked terms are individually far smaller than the reported gap. No root cause is established; constrained-volume calibration and missed posterior mass remain hypotheses."
   }
 }
 
