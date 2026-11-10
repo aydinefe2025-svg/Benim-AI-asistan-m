@@ -76,6 +76,7 @@ class V8ReceiptAuditTests(unittest.TestCase):
             "https://github.com/attacker/CANO/actions/runs/12345/artifacts",
             "https://github.com/example/CANO/actions/runs/99999/artifacts",
             "https://github.com.evil.example/example/CANO/actions/runs/12345/artifacts",
+            "https://github.com:invalid/example/CANO/actions/runs/12345/artifacts",
         )
         for url in urls:
             with self.subTest(url=url):
