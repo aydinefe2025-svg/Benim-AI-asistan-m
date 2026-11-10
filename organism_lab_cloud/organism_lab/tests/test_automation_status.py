@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import Mock
 
 from organism_lab.automation_status import (
-    ColonyStatusUnavailable, RUNS_URL, load_latest_colony_status,
+    ColonyStatusUnavailable, PUBLISHED_STATUS_URL, RUNS_URL, load_latest_colony_status,
     _load_process_cached,
 )
 
@@ -108,8 +108,28 @@ class AutomationStatusTests(unittest.TestCase):
         self.assertEqual(value["report"]["tick_id"], 7)
         self.assertEqual(len(value["report"]["specialist_agents"]), 4)
         self.assertEqual(value["state"], "success")
-        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(calls), 4)
         self.assertTrue(calls[-1][1]["stream"])
+
+    def test_prefers_published_static_feed_without_github_api_calls(self):
+        report = fixture_report()
+        calls = []
+
+        def get(url, **kwargs):
+            calls.append((url, kwargs))
+            return FakeResponse(report)
+
+        value = load_latest_colony_status(get)
+        self.assertEqual(value["state"], "success")
+        self.assertEqual(value["run_id"], 11)
+        self.assertEqual(value["report"]["tick_id"], 7)
+        self.assertEqual([call[0] for call in calls], [PUBLISHED_STATUS_URL])
+
+    def test_rejects_invalid_published_report_instead_of_trusting_it(self):
+        report = fixture_report()
+        report["specialist_agents"]["roles"].clear()
+        with self.assertRaises(ColonyStatusUnavailable):
+            load_latest_colony_status(lambda url, **kwargs: FakeResponse(report))
 
     def test_rejects_report_from_a_different_run(self):
         report = fixture_report(run_id=999)
@@ -131,3 +151,4 @@ class AutomationStatusTests(unittest.TestCase):
     def test_no_credentials_are_sent(self):
         _, calls = self._load(fixture_report())
         self.assertTrue(all("Authorization" not in call[1]["headers"] for call in calls))
+

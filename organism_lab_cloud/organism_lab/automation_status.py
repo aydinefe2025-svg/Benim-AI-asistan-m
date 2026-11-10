@@ -16,6 +16,9 @@ import time
 
 REPOSITORY = "aydinefe2025-svg/Benim-AI-asistan-m"
 WORKFLOW_FILE = "cano-colony-cycle.yml"
+PUBLISHED_STATUS_URL = (
+    "https://aydinefe2025-svg.github.io/Benim-AI-asistan-m/cano-colony-status.json"
+)
 MAX_ARCHIVE_BYTES = 8_000_000
 MAX_REPORT_BYTES = 1_000_000
 EXPECTED_AGENTS = {"evidence", "generation", "continuity", "security"}
@@ -153,11 +156,32 @@ def _validate_report(report: object, run_id: int) -> dict:
 
 
 def load_latest_colony_status(request_get=None) -> dict:
-    """Fetch the latest successful run report, with no credentials or writes."""
+    """Fetch the public status feed, falling back to the Actions API."""
     if request_get is None:
         import requests
         request_get = requests.get
     try:
+        # The Pages feed avoids GitHub REST's low unauthenticated rate limit on
+        # Render. It contains only the latest successful, validated toy report.
+        try:
+            published = _get_json(request_get, PUBLISHED_STATUS_URL)
+        except Exception:
+            published = {}
+        if "github_run_id" in published:
+            try:
+                run_id = int(published["github_run_id"])
+            except (TypeError, ValueError):
+                raise ColonyStatusUnavailable("invalid_published_run_id") from None
+            summary = _validate_report(published, run_id)
+            return {
+                "state": "success",
+                "run_id": run_id,
+                "run_url": f"https://github.com/{REPOSITORY}/actions/runs/{run_id}",
+                "latest_run_state": "completed",
+                "latest_run_conclusion": "success",
+                "generated_at": summary.pop("timestamp"),
+                "report": summary,
+            }
         payload = _get_json(request_get, RUNS_URL)
         runs = payload.get("workflow_runs")
         if not isinstance(runs, list):
@@ -314,3 +338,4 @@ def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
             width="stretch", hide_index=True,
         )
         st.caption("Bu ajanlar ayrı Python süreçleridir; sohbet modeli veya otonom kod geliştirici değildir.")
+
