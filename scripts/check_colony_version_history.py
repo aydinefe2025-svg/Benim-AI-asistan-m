@@ -94,7 +94,7 @@ def main():
     else:
         raise AssertionError("Unbounded backups accepted")
     assert store.load(bounded_owner) == before
-    assert len(store.list_archived(bounded_owner)) == 20
+    assert len(store.list_archived(bounded_owner)) == MAX_ARCHIVED_REVISIONS_PER_OWNER
 
     print("CANO PostgreSQL versioned backup: older snapshot restored into "
           "fresh SQLite, owner isolation, concurrent snapshots retained, "
