@@ -10,7 +10,7 @@ from research.mars_places_track_audit import audit_csv_text
 
 
 DATA = (Path(__file__).resolve().parents[1] / "research" / "data" /
-        "mars2020_places_best_tactical_20260317.csv")
+        "mars2020_places_best_tactical_20260730.csv")
 
 
 def local_rows(count=3):
