@@ -62,6 +62,15 @@ class TrainedLoraClientTests(unittest.TestCase):
         payload = json.loads(request.data.decode("utf-8"))
         self.assertIn("Sistem", payload["prompt"])
         self.assertIn("KULLANICI İSTEĞİ:\nSoru", payload["prompt"])
+        self.assertEqual(payload["system"], "Sistem")
+        self.assertEqual(payload["user_prompt"], "Soru")
+        self.assertEqual(payload["max_new_tokens"], 256)
+
+
+    def test_output_budget_is_bounded_before_any_network_call(self):
+        for invalid in (True, 31, 513, "96"):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                TrainedLoraClient(transport=Mock(), max_output_tokens=invalid)
 
     def test_sensitive_request_is_blocked_before_generation(self):
         health = FakeResponse({

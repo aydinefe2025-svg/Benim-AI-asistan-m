@@ -40,9 +40,13 @@ def trained_lora_metadata(*, transport=None) -> dict[str, str] | None:
 class TrainedLoraClient:
     """Chat adapter. It never grants the model direct filesystem/tool access."""
 
-    def __init__(self, *, transport=None, timeout: int = 240) -> None:
+    def __init__(self, *, transport=None, timeout: int = 240,
+                 max_output_tokens: int = 256) -> None:
+        if type(max_output_tokens) is not int or not 32 <= max_output_tokens <= 512:
+            raise ValueError("Local LoRA output budget must be between 32 and 512 tokens")
         self.transport = transport or urlopen
         self.timeout = timeout
+        self.max_output_tokens = max_output_tokens
         metadata = trained_lora_metadata(transport=self.transport)
         if metadata is None:
             raise TrainedLoraError("The expected local LoRA service is unavailable")
@@ -67,7 +71,12 @@ class TrainedLoraClient:
         full_prompt = prefix + user_text
         request = Request(
             TRAINED_LORA_URL + "/generate",
-            data=json.dumps({"prompt": full_prompt}, ensure_ascii=False).encode("utf-8"),
+            data=json.dumps({
+                "prompt": full_prompt,
+                "system": system_text,
+                "user_prompt": user_text,
+                "max_new_tokens": self.max_output_tokens,
+            }, ensure_ascii=False).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",
         )

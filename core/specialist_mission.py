@@ -55,13 +55,13 @@ class SpecialistMission:
         steps = []
         for role, assignment in ROLES:
             earlier = "\n\n".join(
-                f"{item['role']}: {item['output'][:500]}" for item in steps
+                f"{item['role']}: {item['output'][:220]}" for item in steps
             )
             prompt = (
                 f"Domain: {domain}\nMission: {question}\nRole assignment: {assignment}\n"
                 f"Earlier role notes (unverified; use only if relevant):\n{earlier or '(none)'}\n"
                 "Respond only with the deliverable requested for your role in Turkish. "
-                "Use at most 8 concise bullets. Do not repeat other roles' deliverables. "
+                "Use at most 3 short bullets and 80 words total. Do not repeat other roles' deliverables. "
                 "Do not repeat the whole mission or earlier notes. Do not claim sources, "
                 "measurements, tests, or actions that were not supplied. Mark unknowns."
             )
