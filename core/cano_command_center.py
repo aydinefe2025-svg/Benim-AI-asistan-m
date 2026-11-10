@@ -381,7 +381,11 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                          key="cano_resume_partial_" + item["id"]):
                 try:
                     _checkpoint()
-                    checkpoint_count = [0]
+                except Exception:
+                    st.error("Kalıcı CANO yedek kontrolü geçmedi; görev sürdürülmedi. "
+                             "Bu denemede sağlayıcı çağrısı yapılmadı; kayıtlı aşamalar korundu.")
+                    return
+                checkpoint_count = [0]
                     def _resume_checkpoint():
                         _checkpoint(archive_prior=(checkpoint_count[0] == 0))
                         checkpoint_count[0] += 1
