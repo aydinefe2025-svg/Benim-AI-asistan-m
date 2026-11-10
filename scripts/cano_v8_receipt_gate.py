@@ -42,7 +42,11 @@ def _github_artifact_url(value, repo, run_id):
         p = urlsplit(value)
     except ValueError:
         return False
-    if p.hostname != "github.com" or p.port is not None or p.query or p.fragment:
+    try:
+        port = p.port
+    except ValueError:
+        return False
+    if p.hostname != "github.com" or port is not None or p.query or p.fragment:
         return False
     expected = f"/{repo}/actions/runs/{run_id}/artifacts"
     if p.path == expected:
