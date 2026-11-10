@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: cano-colony-cycle
@@ -17,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,3 +45,22 @@ jobs:
           name: cano-colony-cycle-${{ github.run_id }}
           path: artifacts/colony-cycle.json
           retention-days: 30
+      - name: Prepare public status page
+        run: |
+          mkdir -p artifacts/status-site
+          cp artifacts/colony-cycle.json artifacts/status-site/cano-colony-status.json
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: artifacts/status-site
+      - name: Publish status without REST API rate limits
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          timeout: 600000
+          error_count: 10
+          reporting_interval: 5000
+        # This static feed contains only the validated digital simulation report.
+        # User records, credentials, and chat data are never included.
+        if: github.ref == 'refs/heads/main'
+
