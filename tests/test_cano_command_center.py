@@ -554,5 +554,51 @@ class CommandCenterTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 4)
 
 
+    def test_failed_resume_shows_safe_message_without_nameerror_or_secret(self):
+        from core.collaborative_mission import CollaborativeMission
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        calls = []
+
+        def provider_fails_at_synthesis(prompt):
+            calls.append(prompt)
+            if len(calls) >= 4:
+                raise RuntimeError("PASSWORD=PRIVATE_DO_NOT_DISPLAY")
+            return "Verified synthetic stage " + str(len(calls))
+
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            st.task, st.submit = "Resume with simulated provider outage", True
+            render_cano_command_center(st, answer=provider_fails_at_synthesis)
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            saved = CollaborativeMission(colony).interrupted()[0]
+            before_resume = len(st.messages)
+            st.clicks.add("cano_resume_partial_" + saved["id"])
+            render_cano_command_center(st, answer=provider_fails_at_synthesis)
+            failed = CollaborativeMission(colony).get(saved["id"])
+
+        self.assertEqual(failed["status"], "blocked")
+        self.assertEqual(len(failed["stages"]), 3)
+        self.assertEqual(len(calls), 5)
+        displayed = " ".join(st.messages[before_resume:])
+        self.assertIn("Görev", displayed)
+        self.assertNotIn("PRIVATE_DO_NOT_DISPLAY", displayed)
+        self.assertNotIn("PASSWORD=", displayed)
+
+    def test_mission_failure_message_does_not_echo_error_or_unknown_phase(self):
+        from core.cano_command_center import mission_failure_message
+        danger = RuntimeError("postgresql://admin:PRIVATE_DO_NOT_DISPLAY@host/db")
+        for failure in ({"phase": "model_call", "role": "synthesis"},
+                        {"phase": "owner_backup_checkpoint"},
+                        {"phase": "unknown", "role": "PRIVATE_DO_NOT_DISPLAY"},
+                        None):
+            with self.subTest(failure=failure):
+                shown = mission_failure_message(danger, failure)
+                self.assertIn("Görev", shown)
+                self.assertNotIn("PRIVATE_DO_NOT_DISPLAY", shown)
+                self.assertNotIn("postgresql://", shown)
+        self.assertIn("PostgreSQL", mission_failure_message(
+            danger, {"phase": "owner_backup_checkpoint"}))
+
+
 if __name__ == "__main__":
     unittest.main()
