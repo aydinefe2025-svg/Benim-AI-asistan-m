@@ -8,6 +8,7 @@ from typing import Protocol
 
 from core.knowledge_store import KnowledgeStore
 from core.task_store import TaskStore
+from core.safety_policy import safe_response_for_prompt
 from core.web_search import SearchResult, SearchError, DuckDuckGoSearch
 
 
@@ -60,6 +61,9 @@ class ResearchOrchestrator:
         question = question.strip()
         if not question:
             raise ValueError("Research question cannot be empty")
+        safe_response = safe_response_for_prompt(question)
+        if safe_response is not None:
+            raise ValueError(safe_response)
         skeptic_model = skeptic_model or research_model
         synthesis_model = synthesis_model or research_model
         models = [research_model, skeptic_model, synthesis_model]
