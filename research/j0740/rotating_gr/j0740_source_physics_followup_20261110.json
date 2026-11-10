@@ -1,0 +1,282 @@
+{
+  "apr4_epp": {
+    "causal_support_density_g_cm3": 2023412078992040.0,
+    "consistent_interpolant_root_densities_below_limit": true,
+    "first_causal_cutoff_candidate": {
+      "crust_powerlaw_sweep": {
+        "0.5": {
+          "rotating_radius_km": 10.77,
+          "static_radius_km": 10.68,
+          "table_sha256": "e494135d31f6ffa7a39bbb3949b87c5888448c4c1b3ced7acc2882b931eff6a6"
+        },
+        "0.6": {
+          "rotating_radius_km": 10.77,
+          "static_radius_km": 10.69,
+          "table_sha256": "070bf0f4c48a7777e96f739a616c60bd179ebd576d163c756ad4db5fe6e77b01"
+        },
+        "0.7": {
+          "rotating_radius_km": 10.78,
+          "static_radius_km": 10.69,
+          "table_sha256": "e956ec71d66d16439bf3e6aad9e35c3c7caf720086b6a9202c5fd96552cc4e2d"
+        }
+      },
+      "crust_sweep_interpretation": "At RNS 0.01 km displayed radius precision, alpha 0.5/0.6/0.7 yields a 0.01 km displayed span for both rotating and static roots; sub-display sensitivity remains unresolved.",
+      "finite_density_grid": {
+        "points_per_curve": 17,
+        "rotating_failures": 0,
+        "rotating_sampled_max_msun": 2.134,
+        "static_failures": 0,
+        "static_sampled_max_msun": 2.122,
+        "turning_brackets_rotating": 0,
+        "turning_brackets_static": 0
+      },
+      "mesh_refinement_fixed_center": {
+        "151x301": {
+          "mass_msun": 2.0730146441,
+          "radius_km": 10.7700680348
+        },
+        "201x401": {
+          "mass_msun": 2.07282094432,
+          "radius_km": 10.7703786245
+        },
+        "delta_201_minus_151": {
+          "mass_msun": -0.00019369978,
+          "radius_km": 0.0003105897
+        }
+      },
+      "rns_rows": 196,
+      "rns_table_sha256": "f83142616b129ad90e776ced8690773939ef13fb2033415731fb3c95a0af2849",
+      "rotating_root": {
+        "central_energy_density_g_cm3": 1757355044247787.0,
+        "mass_msun": 2.073,
+        "radius_eq_km": 10.77,
+        "solver_mode": "RNS_C_AXIS_RATIO_FREQUENCY_REFINED",
+        "spin_hz_reported": 346.5,
+        "spin_residual_hz": -0.036368999999979224
+      },
+      "static_root": {
+        "central_energy_density_g_cm3": 1794801630434782.0,
+        "mass_msun": 2.073,
+        "radius_eq_km": 10.69,
+        "solver_mode": null,
+        "spin_hz_reported": 0.0,
+        "spin_residual_hz": 0.0
+      }
+    },
+    "first_steffen_causal_limit_pressure_geom": 7.163554733909825e-10,
+    "full_source_fixed_mass_validation": {
+      "rns_minus_source_tov_radius_km": -0.02863151058291713,
+      "rotating_center_g_cm3": 1749731258530240.0,
+      "rotating_mass_msun": 2.072,
+      "rotating_radius_eq_km": 10.76,
+      "spin_residual_hz": 0.1636310000000094,
+      "static_tov_radius_km": 10.698631510582917,
+      "status": "MATCHED_FIXED_MASS_RNS_GR_AND_STATIC_TOV_VALIDATED"
+    },
+    "native_source_max_cs2": 1.0982782452928908,
+    "native_source_negative_cs2_nodes": 0,
+    "steffen_exact_interval_max_cs2": 1.0944473294245576
+  },
+  "date": "2026-11-10",
+  "jester_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+  "limitations": [
+    "Native source superluminal and negative-cs2 behavior is retained; a strict-causal Steffen cutoff defines a separate candidate and does not repair or replace the source table.",
+    "The APR4 causal-cutoff RNS sequence has only 17 density points and no sampled turnover before causal support ends; this is not continuous turning-point or stability certification.",
+    "No EOS prior normalization or full-domain M,R nuisance integral has passed; 15.26-km adaptive validation remains failed at ESS 25-59 and the logZ discrepancy remains 0.367159 and unresolved.",
+    "EOS_Bayes=NOT_RUN."
+  ],
+  "schema": "j0740-pinned-seven-eos-source-and-apr4-causal-rns-followup-v1",
+  "scientific_status": "SOURCE_AUDIT_COMPLETE_FOR_PINNED_SEVEN; APR4_CAUSAL_FIXED_MASS_AND_FINITE_SEQUENCE_VALIDATED; CONTINUOUS_STABILITY_AND_FULL_EOS_BAYES_OPEN",
+  "shared_low_pressure_native_derivative_finding": {
+    "affected": [
+      "ENG",
+      "MPA1",
+      "MS1",
+      "MS1B",
+      "WFF1",
+      "WFF2"
+    ],
+    "affected_eos": 6,
+    "interpretation": "All six carry a negative native cs2 node at the same low-pressure source knot and one nonincreasing energy edge. This is a common source-layer irregularity, not evidence by itself of a core instability; it remains flagged and was not clipped.",
+    "relative_pressure_spread": 0.0,
+    "shared_pressure_geom_m_minus2": 5.175111469637044e-16
+  },
+  "source_files": {
+    "APR4_EPP": {
+      "native_source_screen": {
+        "first_negative_cs2_index": null,
+        "first_negative_cs2_rho_g_cm3": null,
+        "first_superluminal_central_density_g_cm3": 2029865076154650.2,
+        "first_superluminal_index": 812,
+        "native_negative_cs2_node_count": 0,
+        "native_superluminal_node_count": 2,
+        "raw_energy_nonincreasing_segments": 0,
+        "source_cs2_max": 1.0982782452928908,
+        "source_cs2_min": null,
+        "source_nodes": 865,
+        "status": "SOURCE_NATIVE_CS2_SUPERLUMINAL"
+      },
+      "source_npz_bytes": 56300,
+      "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+      "source_tov_mr_screen": {
+        "first_target_crossing_index": 453,
+        "global_mass_peak_index": 499,
+        "local_mass_monotone_at_target": true,
+        "mass_max": 2.1591669543848258,
+        "mass_min": 0.09448563000445322,
+        "nodes": 500
+      }
+    },
+    "ENG": {
+      "native_source_screen": {
+        "first_negative_cs2_index": 254,
+        "first_negative_cs2_rho_g_cm3": 332423422177.4366,
+        "first_superluminal_central_density_g_cm3": 1474481206237090.2,
+        "first_superluminal_index": 784,
+        "native_negative_cs2_node_count": 1,
+        "native_superluminal_node_count": 57,
+        "raw_energy_nonincreasing_segments": 1,
+        "source_cs2_max": 1.1148688420214583,
+        "source_cs2_min": null,
+        "source_nodes": 889,
+        "status": "SOURCE_NATIVE_CS2_NEGATIVE_AND_SUPERLUMINAL"
+      },
+      "source_npz_bytes": 57432,
+      "source_npz_sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953",
+      "source_tov_mr_screen": {
+        "first_target_crossing_index": 425,
+        "global_mass_peak_index": 499,
+        "local_mass_monotone_at_target": true,
+        "mass_max": 2.252090040159999,
+        "mass_min": 0.09673763871298718,
+        "nodes": 500
+      }
+    },
+    "MPA1": {
+      "native_source_screen": {
+        "first_negative_cs2_index": 254,
+        "first_negative_cs2_rho_g_cm3": 332423420088.3387,
+        "first_superluminal_central_density_g_cm3": null,
+        "first_superluminal_index": null,
+        "native_negative_cs2_node_count": 1,
+        "native_superluminal_node_count": 0,
+        "raw_energy_nonincreasing_segments": 1,
+        "source_cs2_max": 0.9901977569360237,
+        "source_cs2_min": null,
+        "source_nodes": 836,
+        "status": "SOURCE_NATIVE_CS2_NEGATIVE_NODES_PRESENT_NOT_CLEAN_CAUSAL"
+      },
+      "source_npz_bytes": 54676,
+      "source_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+      "source_tov_mr_screen": {
+        "first_target_crossing_index": 385,
+        "global_mass_peak_index": 490,
+        "local_mass_monotone_at_target": true,
+        "mass_max": 2.4686392693496426,
+        "mass_min": 0.09513022633067426,
+        "nodes": 491
+      }
+    },
+    "MS1": {
+      "native_source_screen": {
+        "first_negative_cs2_index": 254,
+        "first_negative_cs2_rho_g_cm3": 332423422177.4366,
+        "first_superluminal_central_density_g_cm3": null,
+        "first_superluminal_index": null,
+        "native_negative_cs2_node_count": 1,
+        "native_superluminal_node_count": 0,
+        "raw_energy_nonincreasing_segments": 1,
+        "source_cs2_max": 0.8891760211190608,
+        "source_cs2_min": null,
+        "source_nodes": 895,
+        "status": "SOURCE_NATIVE_CS2_NEGATIVE_NODES_PRESENT_NOT_CLEAN_CAUSAL"
+      },
+      "source_npz_bytes": 56640,
+      "source_npz_sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad",
+      "source_tov_mr_screen": {
+        "first_target_crossing_index": 323,
+        "global_mass_peak_index": 454,
+        "local_mass_monotone_at_target": true,
+        "mass_max": 2.799082457834451,
+        "mass_min": 0.09857656094030814,
+        "nodes": 455
+      }
+    },
+    "MS1B": {
+      "native_source_screen": {
+        "first_negative_cs2_index": 254,
+        "first_negative_cs2_rho_g_cm3": 332423420088.3387,
+        "first_superluminal_central_density_g_cm3": null,
+        "first_superluminal_index": null,
+        "native_negative_cs2_node_count": 1,
+        "native_superluminal_node_count": 0,
+        "raw_energy_nonincreasing_segments": 1,
+        "source_cs2_max": 0.8950793444776252,
+        "source_cs2_min": null,
+        "source_nodes": 895,
+        "status": "SOURCE_NATIVE_CS2_NEGATIVE_NODES_PRESENT_NOT_CLEAN_CAUSAL"
+      },
+      "source_npz_bytes": 56668,
+      "source_npz_sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c",
+      "source_tov_mr_screen": {
+        "first_target_crossing_index": 326,
+        "global_mass_peak_index": 455,
+        "local_mass_monotone_at_target": true,
+        "mass_max": 2.797101204989841,
+        "mass_min": 0.09709809587572525,
+        "nodes": 456
+      }
+    },
+    "WFF1": {
+      "native_source_screen": {
+        "first_negative_cs2_index": 254,
+        "first_negative_cs2_rho_g_cm3": 332423420088.3387,
+        "first_superluminal_central_density_g_cm3": 1752191674639125.2,
+        "first_superluminal_index": 799,
+        "native_negative_cs2_node_count": 1,
+        "native_superluminal_node_count": 69,
+        "raw_energy_nonincreasing_segments": 1,
+        "source_cs2_max": 1.4935011837582934,
+        "source_cs2_min": null,
+        "source_nodes": 868,
+        "status": "SOURCE_NATIVE_CS2_NEGATIVE_AND_SUPERLUMINAL"
+      },
+      "source_npz_bytes": 56428,
+      "source_npz_sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3",
+      "source_tov_mr_screen": {
+        "first_target_crossing_index": 480,
+        "global_mass_peak_index": 499,
+        "local_mass_monotone_at_target": true,
+        "mass_max": 2.1136703143450717,
+        "mass_min": 0.09403821000515546,
+        "nodes": 500
+      }
+    },
+    "WFF2": {
+      "native_source_screen": {
+        "first_negative_cs2_index": 254,
+        "first_negative_cs2_rho_g_cm3": 332423420088.3387,
+        "first_superluminal_central_density_g_cm3": 1631716438756705.2,
+        "first_superluminal_index": 794,
+        "native_negative_cs2_node_count": 1,
+        "native_superluminal_node_count": 78,
+        "raw_energy_nonincreasing_segments": 1,
+        "source_cs2_max": 1.3965933215383362,
+        "source_cs2_min": null,
+        "source_nodes": 872,
+        "status": "SOURCE_NATIVE_CS2_NEGATIVE_AND_SUPERLUMINAL"
+      },
+      "source_npz_bytes": 56620,
+      "source_npz_sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae",
+      "source_tov_mr_screen": {
+        "first_target_crossing_index": 456,
+        "global_mass_peak_index": 499,
+        "local_mass_monotone_at_target": true,
+        "mass_max": 2.185070287239653,
+        "mass_min": 0.09458316605607091,
+        "nodes": 500
+      }
+    }
+  }
+}
+
