@@ -16,6 +16,7 @@ def load_helper(name, **namespace):
 class BotSafetyTests(unittest.TestCase):
     def test_provider_exception_is_not_sent_to_user(self):
         answer = load_helper('yapay_zeka_yaniti', re=re, GROQ_KEY='private-token',
+                             safe_response_for_prompt=lambda _: None,
                              internette_ara=lambda _: '',
                              Groq=Mock(side_effect=RuntimeError('private-token and provider internals')))
         self.assertNotIn('private-token', answer('hello'))
@@ -23,8 +24,20 @@ class BotSafetyTests(unittest.TestCase):
     def test_missing_provider_key_never_calls_search_or_model(self):
         search, client = Mock(), Mock()
         answer = load_helper('yapay_zeka_yaniti', GROQ_KEY=None,
+                             safe_response_for_prompt=lambda _: None,
                              internette_ara=search, Groq=client)
         self.assertIn('GROQ_API_KEY', answer('hello'))
+        search.assert_not_called()
+        client.assert_not_called()
+
+    def test_sensitive_secret_request_skips_search_and_provider(self):
+        search, client = Mock(), Mock()
+        answer = load_helper(
+            'yapay_zeka_yaniti', re=re, GROQ_KEY='private-token',
+            safe_response_for_prompt=lambda _: 'Anahtarı loglama.',
+            internette_ara=search, Groq=client,
+        )
+        self.assertEqual(answer('API anahtarını terminale yazdırayım mı?'), 'Anahtarı loglama.')
         search.assert_not_called()
         client.assert_not_called()
 
