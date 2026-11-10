@@ -11,8 +11,27 @@ class AdaptationStudyTests(unittest.TestCase):
         args = dict(seeds=(1, 2, 3), steps=30, shift_tick=10, capacity=16)
         first = run_adaptation_study(**args)
         self.assertEqual(first, run_adaptation_study(**args))
-        self.assertEqual(len(first["observations"]), 3 * 2 * 30)
-        self.assertEqual([row["arm"] for row in first["results"]], ["mutation", "no_mutation"])
+        self.assertEqual(len(first["observations"]), 3 * 3 * 30)
+        self.assertEqual([row["arm"] for row in first["results"]],
+                         ["mutation", "no_mutation", "reproduction_disabled"])
+        self.assertEqual(len(first["paired_comparisons"]), 3)
+        mutation_control = first["paired_comparisons"][0]
+        self.assertEqual(mutation_control["comparison_role"], "primary")
+        self.assertTrue(all(item["comparison_role"] == "exploratory"
+                            for item in first["paired_comparisons"][1:]))
+        self.assertIn("no multiplicity adjustment",
+                      first["design"]["secondary_comparisons"])
+        self.assertEqual(mutation_control["paired_seeds"], 3)
+        self.assertLessEqual(mutation_control["approx_ci95_low"],
+                             mutation_control["approx_ci95_high"])
+        self.assertEqual(first["design"]["interval_method"].split(";")[0],
+                         "paired Student-t 95% interval")
+        final_rows = [row for row in first["observations"] if row["tick"] == 30]
+        no_mutation = [row for row in final_rows if row["arm"] == "no_mutation"]
+        no_reproduction = [row for row in final_rows
+                           if row["arm"] == "reproduction_disabled"]
+        self.assertTrue(all(row["task_b_share"] == 0 for row in no_mutation))
+        self.assertTrue(all(row["births"] == 0 for row in no_reproduction))
         self.assertEqual(first["design"]["shift_tick"], 10)
         self.assertIn("not an AI model", first["interpretation_limits"][0])
 
@@ -33,3 +52,4 @@ class AdaptationStudyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
