@@ -1,5 +1,6 @@
 import unittest
-from core.provider_failure import failure_category, failure_diagnostics, safe_failure_message
+from core.provider_failure import (copy_safe_failure_metadata, failure_category,
+                                   failure_diagnostics, safe_failure_message)
 from core.openrouter_free_client import OpenRouterError
 
 
@@ -35,6 +36,21 @@ class ProviderFailureTests(unittest.TestCase):
         error = GoogleSdkError(429)
         error.status_code = 401
         self.assertEqual(failure_category(error), "authentication")
+
+    def test_rate_limit_machine_code_overrides_gateway_413(self):
+        for code in ("rate_limit_exceeded", "insufficient_quota"):
+            with self.subTest(code=code):
+                error = RuntimeError("PRIVATE provider response")
+                error.status_code = 413
+                error.body = {"error": {"code": code, "message": "PRIVATE"}}
+                self.assertEqual(failure_category(error), "rate_limit")
+                self.assertIn("kota", safe_failure_message(error))
+                self.assertNotIn("PRIVATE", safe_failure_message(error))
+
+                wrapped = RuntimeError("safe adapter wrapper")
+                copy_safe_failure_metadata(error, wrapped)
+                self.assertEqual(failure_category(wrapped), "rate_limit")
+                self.assertEqual(failure_diagnostics(wrapped), (413, code))
 
     def test_invalid_or_arbitrary_code_is_ignored(self):
         for code in ("429", True, 999, "SECRET_VALUE", [], {}):

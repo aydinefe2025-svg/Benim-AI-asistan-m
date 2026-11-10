@@ -50,6 +50,11 @@ def failure_diagnostics(error):
 
 
 def failure_category(error):
+    # Some gateways encode exhausted quota as HTTP 413 rather than 429.
+    # A specific allowlisted machine code must win over that ambiguous status.
+    code = _provider_error_code(error)
+    if code in ("insufficient_quota", "rate_limit_exceeded"):
+        return "rate_limit"
     kind = getattr(error, "failure_kind", None)
     if kind in MESSAGES:
         return kind
@@ -60,7 +65,6 @@ def failure_category(error):
         return "permission"
     if status == 429:
         return "rate_limit"
-    code = _provider_error_code(error)
     if status == 404 or code in ("model_not_found", "model_decommissioned"):
         return "model"
     if status in (400, 413, 422):
@@ -83,7 +87,10 @@ def copy_safe_failure_metadata(source, target):
     kind = getattr(source, "failure_kind", None)
     allowed = set(MESSAGES)
     status = _http_status(source)
-    if kind not in allowed:
+    code = _provider_error_code(source)
+    if code in ("insufficient_quota", "rate_limit_exceeded"):
+        kind = "rate_limit"
+    elif kind not in allowed:
         if status == 401:
             kind = "authentication"
         elif status == 403:
@@ -109,6 +116,5 @@ def copy_safe_failure_metadata(source, target):
     target.failure_kind = kind
     if status is not None:
         target.status_code = status
-    code = _provider_error_code(source)
     if code is not None:
         target.failure_code = code
