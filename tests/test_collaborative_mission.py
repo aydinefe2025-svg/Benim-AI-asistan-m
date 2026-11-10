@@ -241,6 +241,7 @@ class CollaborativeMissionTests(unittest.TestCase):
         self.assertNotIn("unsupported_parameter", message)
 
     def test_failure_notice_identifies_phase_without_exposing_raw_exception(self):
+        from core.provider_failure import MESSAGES
         exc = RuntimeError("secret=do-not-display; provider request failed")
         message = mission_failure_message(exc, {
             "phase": "model_call", "role": "reviewer",
@@ -248,8 +249,9 @@ class CollaborativeMissionTests(unittest.TestCase):
         })
         self.assertIn("model sağlayıcı çağrısı", message)
         self.assertIn("reviewer rolü", message)
-        self.assertIn("RuntimeError", message)
-        self.assertIn("son kayıtlı aşamaları arayüzde kontrol edin", message)
+        self.assertIn(MESSAGES["unknown"], message)
+        self.assertNotIn("RuntimeError", message)
+        self.assertIn("son kayıtlı aşamalar korundu", message)
         self.assertNotIn("do-not-display", message)
         self.assertNotIn("provider request failed", message)
 
