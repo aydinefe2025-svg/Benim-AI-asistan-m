@@ -4,11 +4,12 @@ import io
 import json
 import zipfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock
 
 from organism_lab.automation_status import (
     ColonyStatusUnavailable, PUBLISHED_STATUS_URL, RUNS_URL, load_latest_colony_status,
-    _load_process_cached,
+    MAX_REPORT_AGE, _load_process_cached, report_age_seconds,
 )
 
 
@@ -64,6 +65,21 @@ class FakeResponse:
 
 
 class AutomationStatusTests(unittest.TestCase):
+    def test_report_age_is_timezone_aware_and_marks_stale_at_threshold(self):
+        now = datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc)
+        fresh = now - timedelta(seconds=MAX_REPORT_AGE.total_seconds() - 1)
+        stale = now - MAX_REPORT_AGE
+        self.assertLess(report_age_seconds(fresh.isoformat(), now=now), MAX_REPORT_AGE.total_seconds())
+        self.assertEqual(report_age_seconds(stale.isoformat(), now=now), MAX_REPORT_AGE.total_seconds())
+
+    def test_invalid_timezone_or_future_report_timestamp_is_rejected(self):
+        now = datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc)
+        for timestamp in (None, "", "2026-11-10T11:00:00", "not-a-date",
+                          (now + timedelta(minutes=6)).isoformat()):
+            with self.subTest(timestamp=timestamp):
+                with self.assertRaises(ColonyStatusUnavailable):
+                    report_age_seconds(timestamp, now=now)
+
     def test_process_cache_shares_success_and_allows_explicit_refresh(self):
         import organism_lab.automation_status as status_module
         with status_module._STATUS_CACHE_LOCK:
