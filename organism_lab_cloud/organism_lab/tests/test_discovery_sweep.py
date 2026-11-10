@@ -66,7 +66,6 @@ class DiscoverySweepTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 run_discovery_sweep(**args)
 
-
     def test_first_versioned_save_preserves_legacy_latest_report_exactly(self):
         report = run_discovery_sweep(screening_seeds=(0, 1, 2),
                                      confirmation_seeds=(10, 11, 12),
@@ -86,7 +85,6 @@ class DiscoverySweepTests(unittest.TestCase):
             listed = list_versioned_discovery_sweeps(target.parent / "discovery-sweeps")
             self.assertEqual(listed[-1][1], legacy_document)
 
-
     def test_history_lists_only_valid_versioned_reports_newest_first(self):
         report = run_discovery_sweep(screening_seeds=(0, 1, 2),
                                      confirmation_seeds=(10, 11, 12),
@@ -103,7 +101,6 @@ class DiscoverySweepTests(unittest.TestCase):
             remaining = list_versioned_discovery_sweeps(latest.parent / "discovery-sweeps")
             self.assertEqual([document["run_id"] for _, document in remaining],
                              [first["run_id"]])
-
 
     def test_switching_back_to_latest_reloads_latest_after_archive_selection(self):
         report = run_discovery_sweep(screening_seeds=(0, 1, 2),
@@ -135,6 +132,6 @@ class DiscoverySweepTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 select_discovery_sweep(latest_path, "En son tarama", {})
 
+
 if __name__ == "__main__":
     unittest.main()
-

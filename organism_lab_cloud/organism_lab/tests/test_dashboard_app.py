@@ -40,10 +40,17 @@ class DashboardAppTests(unittest.TestCase):
             self.assertTrue(any("40 çevrim tamamlandı" in item.value and "ağırlıklarını eğitmez" in item.value
                                 for item in app.caption))
 
+    def test_malformed_cached_automation_status_is_reported_without_crashing(self):
+        with patch("organism_lab.automation_status._load_process_cached",
+                   return_value={"state": "success", "run_id": 12}):
+            app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
+        self.assertFalse(app.exception)
+        self.assertTrue(any("eksik veya beklenmeyen biçimde" in item.value for item in app.warning))
+
     def test_simulation_button_and_metrics(self):
         app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
         self.assertFalse(app.exception)
-        self.assertEqual(len(app.button), 8)
+        self.assertEqual(len(app.button), 9)
         next(button for button in app.button if button.label == "Simülasyonu çalıştır").click().run()
         self.assertFalse(app.exception)
         self.assertEqual(len(app.metric), 3)
@@ -71,7 +78,7 @@ class DashboardAppTests(unittest.TestCase):
                 patch("organism_lab.reproduction_study.summarize_with_local_model",
                       side_effect=AssertionError("UI campaign must not call a model")):
             app = AppTest.from_file(str(DASHBOARD), default_timeout=20).run()
-            self.assertEqual(len(app.button), 8)
+            self.assertEqual(len(app.button), 9)
             next(button for button in app.button if button.label == "Araştırma kampanyasını çalıştır").click().run()
             self.assertFalse(app.exception)
             self.assertTrue(any("Kayıt tamamlandı" in item.value for item in app.success))
@@ -175,5 +182,4 @@ class DashboardAppTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
 

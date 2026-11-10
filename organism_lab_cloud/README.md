@@ -48,6 +48,12 @@ approval. No old session data is migrated automatically.
 All colony and evolution results are digital simulations, not biological or
 physical-system control. Assistant conversations do not train model weights.
 
+The on-demand colony resilience study compares bounded open-broadcast and
+segmented/validated message-passing simulations under one injected bad-message
+fault. It records paired deterministic trials and versioned JSON output. This
+abstract scenario is not a penetration test, production security control, or
+guarantee that real agents/networks will resist attacks.
+
 ## Bounded automated discovery
 
 `.github/workflows/organism-lab-discovery.yml` runs a weekly simulation sweep
@@ -64,4 +70,3 @@ hourly CANO job is proposal-only and does not start agents or model calls.
 Scheduled jobs run on GitHub-hosted runners and require no Render worker or
 provider API key. Their output is public repository history, so archive only
 non-sensitive deterministic measurements and never include user chat/data.
-

@@ -237,4 +237,3 @@ def generate(prompt, provider="offline", *, transport=None, model=None, system_p
         label = "Groq" if provider == "groq" else "Provider"
         raise ProviderError(label + " returned an invalid response (" + type(exc).__name__ + ").") from None
 
-

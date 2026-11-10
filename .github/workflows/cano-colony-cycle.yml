@@ -16,11 +16,19 @@ jobs:
   propose:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Restore bounded digital-colony state
+        uses: actions/cache@v4
+        with:
+          path: artifacts/colony-cycle.sqlite3
+          key: cano-colony-state-${{ github.run_id }}
+          restore-keys: |
+            cano-colony-state-
       - name: Run bounded cycle
         env:
           CANO_CYCLE_OUTPUT: artifacts/colony-cycle.json

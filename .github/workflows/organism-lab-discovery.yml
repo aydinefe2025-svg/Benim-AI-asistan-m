@@ -3,7 +3,7 @@ name: Organism Lab bounded discovery
 on:
   workflow_dispatch:
   schedule:
-    - cron: "23 6 * * *"
+    - cron: "23 6 * * 1"
 permissions:
   contents: write
 

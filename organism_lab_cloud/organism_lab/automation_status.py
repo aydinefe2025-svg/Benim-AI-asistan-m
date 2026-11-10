@@ -5,49 +5,29 @@ No GitHub token, database credential, or user data is used by this bridge.
 """
 from __future__ import annotations
 
+from io import BytesIO
+import hashlib
 import json
 import math
+import re
+import zipfile
 import threading
 import time
-from datetime import datetime, timedelta, timezone
-
 
 REPOSITORY = "aydinefe2025-svg/Benim-AI-asistan-m"
-RAW_REPORT_URL = (
-    f"https://raw.githubusercontent.com/{REPOSITORY}/cano-latest/colony-cycle.json"
-)
+WORKFLOW_FILE = "cano-colony-cycle.yml"
+MAX_ARCHIVE_BYTES = 8_000_000
 MAX_REPORT_BYTES = 1_000_000
 EXPECTED_AGENTS = {"evidence", "generation", "continuity", "security"}
-MAX_REPORT_AGE_SECONDS = 2 * 60 * 60
-
-
-def _parse_report_timestamp(value: object) -> datetime:
-    """Require a timezone-aware ISO timestamp and normalize it to UTC."""
-    if not isinstance(value, str) or not value or len(value) > 64:
-        raise ColonyStatusUnavailable("cycle_timestamp_invalid")
-    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
-    try:
-        parsed = datetime.fromisoformat(normalized)
-    except ValueError:
-        raise ColonyStatusUnavailable("cycle_timestamp_invalid") from None
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        raise ColonyStatusUnavailable("cycle_timestamp_invalid")
-    parsed = parsed.astimezone(timezone.utc)
-    if parsed > datetime.now(timezone.utc) + timedelta(minutes=5):
-        raise ColonyStatusUnavailable("cycle_timestamp_invalid")
-    return parsed
-
-
-def _report_timestamp_display(value: object, *, now: datetime | None = None) -> tuple[str, bool]:
-    """Return a safe UTC label and whether an hourly report is stale."""
-    parsed = _parse_report_timestamp(value)
-    current = now or datetime.now(timezone.utc)
-    age_seconds = max(0.0, (current.astimezone(timezone.utc) - parsed).total_seconds())
-    return parsed.strftime("%Y-%m-%d %H:%M:%S UTC"), age_seconds > MAX_REPORT_AGE_SECONDS
+RUNS_URL = (
+    f"https://api.github.com/repos/{REPOSITORY}/actions/workflows/"
+    f"{WORKFLOW_FILE}/runs?branch=main&per_page=5"
+)
 
 
 class ColonyStatusUnavailable(RuntimeError):
     """Safe, user-facing category; raw response bodies are never surfaced."""
+
 
 _STATUS_CACHE_LOCK = threading.Lock()
 _STATUS_CACHE_VALUE = None
@@ -77,38 +57,45 @@ def _load_process_cached(loader, *, force_refresh=False):
         return value
 
 
-def _get_report(request_get) -> dict:
+def _get_json(request_get, url: str) -> dict:
     response = request_get(
-        RAW_REPORT_URL,
-        headers={"Accept": "application/json",
+        url,
+        headers={"Accept": "application/vnd.github+json",
                  "User-Agent": "organism-lab-readonly-colony-panel"},
         timeout=8,
+    )
+    response.raise_for_status()
+    value = response.json()
+    if not isinstance(value, dict):
+        raise ColonyStatusUnavailable("invalid_github_response")
+    return value
+
+
+def _bounded_download(request_get, url: str) -> bytes:
+    response = request_get(
+        url,
+        headers={"Accept": "application/vnd.github+json",
+                 "User-Agent": "organism-lab-readonly-colony-panel"},
+        timeout=12,
         stream=True,
     )
     response.raise_for_status()
     declared = response.headers.get("Content-Length")
-    if declared and int(declared) > MAX_REPORT_BYTES:
-        raise ColonyStatusUnavailable("cycle_report_too_large")
+    if declared and int(declared) > MAX_ARCHIVE_BYTES:
+        raise ColonyStatusUnavailable("artifact_too_large")
     body = bytearray()
-    for chunk in response.iter_content(chunk_size=32_000):
+    for chunk in response.iter_content(chunk_size=64_000):
         if not chunk:
             continue
         body.extend(chunk)
-        if len(body) > MAX_REPORT_BYTES:
-            raise ColonyStatusUnavailable("cycle_report_too_large")
-    report = json.loads(bytes(body).decode("utf-8"))
-    if not isinstance(report, dict):
-        raise ColonyStatusUnavailable("invalid_cycle_report")
-    raw_run_id = report.get("github_run_id")
-    if not isinstance(raw_run_id, (str, int)) or not str(raw_run_id).isdigit():
-        raise ColonyStatusUnavailable("invalid_workflow_run")
-    return report, int(raw_run_id)
+        if len(body) > MAX_ARCHIVE_BYTES:
+            raise ColonyStatusUnavailable("artifact_too_large")
+    return bytes(body)
 
 
 def _validate_report(report: object, run_id: int) -> dict:
     if not isinstance(report, dict):
         raise ColonyStatusUnavailable("invalid_cycle_report")
-    timestamp = _parse_report_timestamp(report.get("timestamp"))
     cycle = report.get("cycle")
     generation = report.get("virtual_generation")
     specialists = report.get("specialist_agents")
@@ -159,32 +146,84 @@ def _validate_report(report: object, run_id: int) -> dict:
         "confirmation_ci95_low": generation.get("held_out_confirmation", {}).get("ci95_low"),
         "births": generation.get("training", {}).get("candidate_mean_births"),
         "population": generation.get("training", {}).get("candidate_mean_final_population"),
+        "continued_from_tick": report["continuity"].get("previous_tick_id"),
         "specialist_agents": roles,
-        "timestamp": timestamp.isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "timestamp": report.get("timestamp"),
     }
 
 
 def load_latest_colony_status(request_get=None) -> dict:
-    """Read the latest validated public report without GitHub REST API calls."""
+    """Fetch the latest successful run report, with no credentials or writes."""
     if request_get is None:
         import requests
         request_get = requests.get
     try:
-        report, run_id = _get_report(request_get)
+        payload = _get_json(request_get, RUNS_URL)
+        runs = payload.get("workflow_runs")
+        if not isinstance(runs, list):
+            raise ColonyStatusUnavailable("invalid_workflow_run_list")
+        if not runs:
+            return {"state": "no_runs"}
+        latest = runs[0]
+        latest_id = latest.get("id")
+        if type(latest_id) is not int:
+            raise ColonyStatusUnavailable("invalid_workflow_run")
+        previous_success = next((
+            run for run in runs
+            if run.get("status") == "completed" and run.get("conclusion") == "success"
+            and type(run.get("id")) is int
+        ), None)
+        if previous_success is None:
+            return {
+                "state": latest.get("status", "unknown"),
+                "conclusion": latest.get("conclusion"),
+                "run_id": latest_id,
+            }
+        run_id = previous_success["id"]
+        artifacts_url = (
+            f"https://api.github.com/repos/{REPOSITORY}/actions/runs/{run_id}/artifacts"
+        )
+        artifacts = _get_json(request_get, artifacts_url).get("artifacts")
+        if not isinstance(artifacts, list):
+            raise ColonyStatusUnavailable("invalid_artifact_list")
+        expected_name = f"cano-colony-cycle-{run_id}"
+        artifact = next((item for item in artifacts
+                         if isinstance(item, dict) and item.get("name") == expected_name
+                         and item.get("expired") is False and type(item.get("id")) is int), None)
+        if artifact is None or artifact.get("size_in_bytes", MAX_ARCHIVE_BYTES + 1) > MAX_ARCHIVE_BYTES:
+            raise ColonyStatusUnavailable("cycle_artifact_missing")
+        archive_url = (
+            f"https://api.github.com/repos/{REPOSITORY}/actions/artifacts/"
+            f"{artifact['id']}/zip"
+        )
+        archive = _bounded_download(request_get, archive_url)
+        digest = artifact.get("digest")
+        if not isinstance(digest, str) or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest):
+            raise ColonyStatusUnavailable("artifact_digest_missing")
+        if hashlib.sha256(archive).hexdigest() != digest.removeprefix("sha256:"):
+            raise ColonyStatusUnavailable("artifact_digest_mismatch")
+        with zipfile.ZipFile(BytesIO(archive)) as bundle:
+            info = next((item for item in bundle.infolist()
+                         if item.filename == "colony-cycle.json"), None)
+            if info is None or info.file_size > MAX_REPORT_BYTES:
+                raise ColonyStatusUnavailable("cycle_report_missing_or_too_large")
+            raw = bundle.read(info)
+        report = json.loads(raw.decode("utf-8"))
         summary = _validate_report(report, run_id)
         return {
             "state": "success",
             "run_id": run_id,
             "run_url": f"https://github.com/{REPOSITORY}/actions/runs/{run_id}",
-            "latest_run_state": "completed",
-            "latest_run_conclusion": "success",
+            "latest_run_state": latest.get("status"),
+            "latest_run_conclusion": latest.get("conclusion"),
             "generated_at": summary.pop("timestamp"),
             "report": summary,
         }
     except ColonyStatusUnavailable:
         raise
     except Exception as exc:
-        # Surface only fixed diagnostic codes; never expose response data or URLs.
+        # Expose only a fixed diagnostic code; never show URLs, response bodies,
+        # headers, credentials, or arbitrary exception text in the app.
         code = "github_cycle_unavailable"
         try:
             import requests
@@ -198,35 +237,13 @@ def load_latest_colony_status(request_get=None) -> dict:
                     404: "github_http_404",
                     429: "github_http_429",
                 }.get(status, "github_http_5xx" if isinstance(status, int) and status >= 500 else "github_http_error")
+            elif isinstance(exc, zipfile.BadZipFile):
+                code = "artifact_not_a_valid_zip"
             elif isinstance(exc, json.JSONDecodeError):
                 code = "artifact_json_invalid"
         except Exception:
             pass
         raise ColonyStatusUnavailable(code) from None
-
-
-def _lesson_explanation(report: dict) -> tuple[str, str]:
-    """Translate the measured transfer decision into plain Turkish."""
-    training_low = report["training_ci95_low"]
-    confirmation_low = report["confirmation_ci95_low"]
-    candidate_rate = report["candidate_mutation_rate"]
-    next_rate = report["next_generation_mutation_rate"]
-    if report["lesson_status"] == "transferred":
-        return (
-            "Sanal deneye aktarıldı",
-            f"Aday ayar ({candidate_rate:.3f}) eğitimde ve ayrı doğrulama grubunda "
-            f"olumlu kanıt eşiğini geçti; sonraki sanal nesilde {next_rate:.3f} ayarı "
-            "kullanılacak. Bu sonuç yalnızca basitleştirilmiş dijital simülasyona aittir; "
-            "yapay zekâ modelinin ağırlıkları değişmez."
-        )
-    return (
-        "Aktarılmadı",
-        f"Aday ayar ({candidate_rate:.3f}) yeterli iyileşme kanıtı göstermedi. "
-        f"Eğitim testinin %95 aralık alt sınırı {training_low:.3f}, ayrı doğrulamanın "
-        f"alt sınırı {confirmation_low:.3f}; aktarım için ikisinin de sıfırın üstünde "
-        f"olması gerekir. Bu nedenle sonraki sanal turda {next_rate:.3f} ayarı korundu. "
-        "Sonuç yalnızca toy dijital VM içindir."
-    )
 
 
 def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
@@ -258,25 +275,33 @@ def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
         if value.get("state") != "success":
             st.info(f"Son otomatik çevrim durumu: {value.get('state', 'bilinmiyor')}.")
             return
-        report = value["report"]
-        timestamp_label, report_is_stale = _report_timestamp_display(value.get("generated_at"))
-        st.caption(f"Son doğrulanmış rapor zamanı: {timestamp_label}")
-        if report_is_stale:
-            st.warning("Son doğrulanmış rapor 2 saatten eski. Saatlik çevrim gecikmiş olabilir; Actions çalışmasını ve zamanlamayı kontrol et.")
+        report = value.get("report")
+        required_report_fields = {
+            "tick_id", "generation_id", "lesson_status", "candidate_mutation_rate",
+            "next_generation_mutation_rate", "training_ci95_low",
+            "confirmation_ci95_low", "specialist_agents",
+        }
+        if (not isinstance(report, dict)
+                or not required_report_fields.issubset(report)
+                or not isinstance(value.get("run_url"), str)):
+            st.warning("GitHub Actions raporu eksik veya beklenmeyen biçimde; güvenli biçimde gösterilmedi.")
+            return
         if value.get("latest_run_state") != "completed" or value.get("latest_run_conclusion") != "success":
             st.warning("En son Actions çalışması henüz başarıyla tamamlanmadı; aşağıda son başarılı rapor gösteriliyor.")
         a, b, c = st.columns(3)
         a.metric("Dijital çevrim", report["tick_id"])
         b.metric("Sanal nesil", report["generation_id"])
-        lesson_label, lesson_detail = _lesson_explanation(report)
-        c.metric("Ders aktarımı", lesson_label)
-        st.info(lesson_detail)
+        c.metric("Ders aktarımı", report["lesson_status"])
         st.caption(
             f"Aday mutasyon {report['candidate_mutation_rate']:.3f} · "
             f"sonraki nesil {report['next_generation_mutation_rate']:.3f} · "
             f"eğitim alt sınırı {report['training_ci95_low']:.3f} · "
             f"ayrılmış doğrulama alt sınırı {report['confirmation_ci95_low']:.3f}"
         )
+        if report["continued_from_tick"] is None:
+            st.caption("Bu, mevcut kayıt dizisindeki ilk çevrim; önceki nesilden devam kaydı yok.")
+        else:
+            st.caption(f"Önceki kayıtlı çevrim #{report['continued_from_tick']} üzerinden devam etti.")
         if isinstance(report.get("births"), (int, float)):
             st.caption(f"Deneme ortalaması: {report['births']:.1f} sanal doğum; "
                        f"son nüfus {report['population']:.1f}. Bunlar yalnızca toy VM ölçümleridir.")

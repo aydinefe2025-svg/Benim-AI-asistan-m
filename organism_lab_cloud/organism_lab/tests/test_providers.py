@@ -260,4 +260,3 @@ class ProviderTests(unittest.TestCase):
             with self.assertRaisesRegex(ProviderError, "Groq network request failed"):
                 generate("hello", "groq", transport=lambda *args, **kwargs: (_ for _ in ()).throw(URLError("private detail")))
 
-

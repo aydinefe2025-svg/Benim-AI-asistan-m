@@ -18,18 +18,19 @@ from organism_lab.explanations import (explain_shared_world, explain_reproductio
 from organism_lab.reproduction_study import run_study, save_study
 from organism_lab.adaptation_study import run_adaptation_study, save_adaptation_study
 from organism_lab import discovery_sweep
+from organism_lab.automation_status import render_colony_status_panel
+# BEGIN colony resilience imports
 from organism_lab.colony_resilience import (run_colony_resilience_study,
                                              save_colony_resilience_study,
                                              explain_colony_resilience)
+# END colony resilience imports
 from organism_lab.literature_search import list_records, save_records, search_openalex
 from organism_lab.persistent_memory import (augment_with_memory, list_memories,
                                             retrieve_memories, save_memory)
 from organism_lab.providers import (GROQ_MODEL_OPTIONS, ProviderError, diagnose_groq_access,
                                     generate, groq_active_key, groq_test_key, trained_local_ready)
 from organism_lab.agent_roles import AGENT_PROFILES, profile_prompt
-from organism_lab.assistant_context import summarize_lab_results
 from organism_lab.cloud_runtime import default_provider, session_output_dir
-from organism_lab.automation_status import render_colony_status_panel
 
 CLOUD_MODE = os.environ.get("ORGANISM_LAB_CLOUD_MODE", "").strip() == "1"
 st.set_page_config(page_title="Organizma Laboratuvarı", layout="wide")
@@ -45,7 +46,7 @@ if CLOUD_MODE:
         st.title("Organizma Laboratuvarı")
         st.error("Kalıcı bulut laboratuvarı güvenli giriş ayarları tamamlanana kadar kapalı.")
         st.stop()
-    required = ("ORGANISM_LAB_DATABASE_URL", "ORGANISM_LAB_OWNER_EMAIL", "ORGANISM_LAB_OWNER_KEY_SECRET")
+    required = ("DATABASE_URL", "ORGANISM_LAB_OWNER_EMAIL", "ORGANISM_LAB_OWNER_KEY_SECRET")
     if any(not os.environ.get(name, "").strip() for name in required):
         st.title("Organizma Laboratuvarı")
         st.error("Kalıcı veritabanı ve hesap sahipliği yapılandırması tamamlanana kadar bulut kullanımı kapalı.")
@@ -87,8 +88,7 @@ else:
     )).resolve()
 st.title("Organizma Laboratuvarı")
 st.caption("Yalnızca dijital simülasyon. Fiziksel robot veya biyolojik organizma kontrolü içermez.")
-if CLOUD_MODE:
-    render_colony_status_panel(st)
+render_colony_status_panel(st)
 if CLOUD_MODE:
     st.caption(
         "Hesap başına kalıcı laboratuvar arşivi etkin. Her kayıt Neon PostgreSQL'de "
@@ -185,19 +185,14 @@ ask_local_clicked = st.button("Groq'a sor" if CLOUD_MODE and selected_provider =
 if ask_local_clicked:
     try:
         relevant = retrieve_memories(OUTPUT_DIR, learning_query)
-        lab_context = summarize_lab_results(st.session_state)
-        agent_prompt = (
-            lab_context + "\n\nKullanıcının güncel isteği:\n" + learning_query
-            if lab_context else learning_query
-        )
+        agent_prompt = learning_query
         if selected_provider != "groq":
-            agent_prompt = profile_prompt(selected_agent) + "\n\n" + agent_prompt
+            agent_prompt = profile_prompt(selected_agent) + "\n\nKullanıcının isteği:\n" + learning_query
         response = generate(augment_with_memory(agent_prompt, relevant), selected_provider,
                            model=selected_model,
                            system_prompt=profile_prompt(selected_agent) if selected_provider == "groq" else None)
         st.session_state["local_learning_answer"] = response.get("text", "")
         st.session_state["local_learning_context_count"] = len(relevant)
-        st.session_state["local_learning_lab_context_used"] = bool(lab_context)
         if CLOUD_MODE:
             chat_path = OUTPUT_DIR / "chat_history.jsonl"
             with chat_path.open("a", encoding="utf-8") as history_file:
@@ -223,8 +218,6 @@ if st.session_state.get("local_learning_answer"):
     st.markdown("**Ajan yanıtı**")
     st.write(st.session_state["local_learning_answer"])
     st.caption(f"Model: {st.session_state.get('local_learning_provider', 'ollama')} · eklenen kayıtlı not: {st.session_state.get('local_learning_context_count', 0)}")
-    if st.session_state.get("local_learning_lab_context_used"):
-        st.caption("Son simülasyon ölçümleri bu yanıta bağlam olarak eklendi; sonuçlar yalnızca dijital model kapsamındadır.")
 with st.expander("Hesabımda saklanan kalıcı notlar" if CLOUD_MODE else "Bu bilgisayarda saklanan hafıza notları"):
     memory_rows = list_memories(OUTPUT_DIR)
     if memory_rows:
@@ -411,7 +404,6 @@ if st.button("Sınırlı keşif taramasını çalıştır", key="run_bounded_dis
             saved_discovery = discovery_sweep.save_discovery_sweep(discovery, discovery_path)
         st.session_state["organism_discovery_report"] = saved_discovery
         st.session_state["organism_discovery_path"] = str(discovery_path)
-        st.session_state["organism_discovery_selection"] = "En son tarama"
     except (OSError, ValueError, RuntimeError) as exc:
         st.error(f"Tarama tamamlanamadı ({type(exc).__name__}); önceki sonuç korunuyor.")
 if CLOUD_MODE and "organism_discovery_report" not in st.session_state:
@@ -423,36 +415,6 @@ if CLOUD_MODE and "organism_discovery_report" not in st.session_state:
         pass
 if "organism_discovery_report" in st.session_state:
     discovery = st.session_state["organism_discovery_report"]
-    discovery_path_display = st.session_state.get("organism_discovery_path")
-    history_entries = discovery_sweep.list_versioned_discovery_sweeps(
-        OUTPUT_DIR / "discovery-sweeps")
-    latest_run_id = discovery.get("run_id")
-    history_entries = [(path, report) for path, report in history_entries
-                       if not latest_run_id or report.get("run_id") != latest_run_id]
-    if history_entries:
-        history_labels = {
-            f"{report['generated_at'][:19].replace('T', ' ')} · "
-            f"{report.get('run_id', path.stem).replace('discovery-sweep-preserved-', '')[:8]}": (path, report)
-            for path, report in history_entries
-        }
-        selected_discovery = st.selectbox(
-            "Arşivden önceki taramayı aç",
-            options=["En son tarama", *history_labels],
-            key="organism_discovery_selection",
-        )
-        try:
-            discovery_path_display, discovery = discovery_sweep.select_discovery_sweep(
-                OUTPUT_DIR / "discovery-sweep-latest.json",
-                selected_discovery,
-                history_labels,
-            )
-            if selected_discovery == "En son tarama":
-                st.session_state["organism_discovery_report"] = discovery
-                st.session_state["organism_discovery_path"] = str(discovery_path_display)
-        except (OSError, ValueError, KeyError, TypeError):
-            st.error("Seçilen tarama raporu okunamadı; arşiv dosyaları değiştirilmedi.")
-            discovery = st.session_state["organism_discovery_report"]
-            discovery_path_display = st.session_state.get("organism_discovery_path")
     status = discovery.get("status")
     status_text = {
         "replicated_simulation_candidate": "Aday ayrı tohumlarla tekrarlandı; yalnızca bu simülasyonda desteklendi.",
@@ -487,13 +449,11 @@ if "organism_discovery_report" in st.session_state:
                        data=json.dumps(discovery, ensure_ascii=False, indent=2, allow_nan=False),
                        file_name="organism-lab-discovery-sweep.json", mime="application/json",
                        key="download_discovery_report")
-    if discovery_path_display:
-        st.caption("Gösterilen kayıt: " + str(discovery_path_display))
-        if discovery.get("run_id"):
-            st.caption("Bu çalışma ayrıca değiştirilemez sürümlü arşive kaydedildi · " +
-                       f"discovery-sweeps/discovery-sweep-{discovery['run_id']}.json")
+    if st.session_state.get("organism_discovery_path"):
+        st.caption("Kayıt: " + st.session_state["organism_discovery_path"])
 
 st.divider()
+# BEGIN colony resilience panel
 st.subheader("Sanal koloni iletişimi ve hata yalıtımı")
 st.caption(
     "Sınırlı dijital stres testi: aynı sanal ajanlar açık yayın ağıyla ve bölümlenmiş, "
@@ -541,6 +501,7 @@ if "colony_resilience_report" in st.session_state:
             key="download_colony_resilience")
     except (KeyError, TypeError, ValueError):
         st.warning("Koloni raporu doğrulanamadı; hatalı sonuç gösterilmiyor.")
+# END colony resilience panel
 
 with st.expander("Kayıtlı araştırmaların otomatik özeti"):
     summary_path = OUTPUT_DIR / "research_summary.json"
@@ -599,5 +560,4 @@ if CLOUD_MODE:
                 st.error("Yedek doğrulanamadı; mevcut laboratuvar arşivi değiştirilmedi.")
     except Exception as exc:
         st.error(f"Kalıcı arşiv işlemi tamamlanamadı ({type(exc).__name__}); uygulama içeriği güvenli biçimde gizlendi.")
-
 
