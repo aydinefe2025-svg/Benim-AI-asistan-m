@@ -59,6 +59,22 @@ class ProviderRouterTests(unittest.TestCase):
         self.assertIn("candidate-", router.primary.last_model_used)
         self.assertFalse(router.allow_fallback)
 
+    def test_google_timeout_is_configurable_for_long_team_stages(self):
+        with patch("core.provider_router.GoogleChatClient") as client_type:
+            router = build_provider_router(
+                "Google Gemini (hesap kotası uygulanır)",
+                {"GOOGLE_API_KEY": "google-key"}, google_timeout=60.0,
+            )
+        self.assertEqual(client_type.call_args.kwargs["timeout"], 60.0)
+        self.assertEqual(router.primary_provider, "Google Gemini")
+
+    def test_invalid_google_timeout_is_rejected(self):
+        with self.assertRaises(ValueError):
+            build_provider_router(
+                "Google Gemini (hesap kotası uygulanır)",
+                {"GOOGLE_API_KEY": "google-key"}, google_timeout=0,
+            )
+
     def test_unknown_or_unconfigured_provider_is_rejected(self):
         with self.assertRaises(ValueError):
             build_provider_router("Groq GPT-OSS", {})
