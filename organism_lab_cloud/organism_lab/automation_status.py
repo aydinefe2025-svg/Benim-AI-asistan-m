@@ -275,7 +275,17 @@ def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
         if value.get("state") != "success":
             st.info(f"Son otomatik çevrim durumu: {value.get('state', 'bilinmiyor')}.")
             return
-        report = value["report"]
+        report = value.get("report")
+        required_report_fields = {
+            "tick_id", "generation_id", "lesson_status", "candidate_mutation_rate",
+            "next_generation_mutation_rate", "training_ci95_low",
+            "confirmation_ci95_low", "specialist_agents",
+        }
+        if (not isinstance(report, dict)
+                or not required_report_fields.issubset(report)
+                or not isinstance(value.get("run_url"), str)):
+            st.warning("GitHub Actions raporu eksik veya beklenmeyen biçimde; güvenli biçimde gösterilmedi.")
+            return
         if value.get("latest_run_state") != "completed" or value.get("latest_run_conclusion") != "success":
             st.warning("En son Actions çalışması henüz başarıyla tamamlanmadı; aşağıda son başarılı rapor gösteriliyor.")
         a, b, c = st.columns(3)
