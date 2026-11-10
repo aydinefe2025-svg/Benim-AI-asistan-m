@@ -11,6 +11,7 @@ class RuntimeMigrationTests(unittest.TestCase):
         sql = MIGRATION.read_text(encoding="utf-8").upper()
         self.assertIn("REVOKE ALL ON PUBLIC.ORGANISM_LAB_RECORDS FROM PUBLIC", sql)
         self.assertIn("GRANT USAGE ON SCHEMA PUBLIC TO ORGANISM_LAB_RUNTIME", sql)
+        self.assertIn("REVOKE ALL ON PUBLIC.ORGANISM_LAB_RECORDS FROM ORGANISM_LAB_RUNTIME", sql)
         self.assertIn(
             "GRANT SELECT, INSERT, UPDATE ON PUBLIC.ORGANISM_LAB_RECORDS TO ORGANISM_LAB_RUNTIME",
             sql,
