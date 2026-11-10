@@ -8,6 +8,7 @@ from groq import Groq
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from dotenv import load_dotenv
+from core.safety_policy import safe_response_for_prompt
 
 # 🔒 .env dosyasındaki gizli şifreleri bilgisayarın hafızasına yüklüyoruz
 load_dotenv()
@@ -78,6 +79,9 @@ def internette_ara(sorgu: str) -> str:
 
 # 🧠 Yapay Zekayı Çalıştıran Ana Fonksiyon
 def yapay_zeka_yaniti(kullanici_mesaji):
+    safe_response = safe_response_for_prompt(kullanici_mesaji)
+    if safe_response is not None:
+        return safe_response
     if not GROQ_KEY:
         return "Model yapılandırılmamış: GROQ_API_KEY gerekli."
     arama_sonucu = internette_ara(kullanici_mesaji)
