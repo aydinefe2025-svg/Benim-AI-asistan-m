@@ -270,6 +270,41 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(len(calls), 5)
             self.assertIn("kaldığı yerden tamamlandı", " ".join(st.messages))
 
+    def test_cockpit_resume_provider_error_is_shown_without_traceback(self):
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        calls = []
+
+        def fail_after_three(prompt):
+            calls.append(prompt)
+            if len(calls) >= 4:
+                raise RuntimeError("private provider response body")
+            return f"Stage {len(calls)}"
+
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            st.task = "Resume a blocked task safely"
+            st.submit = True
+            render_cano_command_center(st, answer=fail_after_three)
+
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            from core.collaborative_mission import CollaborativeMission
+            manager = CollaborativeMission(colony)
+            mission = manager.interrupted()[0]
+            st.clicks.add("cano_resume_partial_" + mission["id"])
+            render_cano_command_center(st, answer=fail_after_three)
+
+            saved = manager.get(mission["id"])
+
+        messages = " ".join(st.messages)
+        self.assertIn(
+            "Görev durdu: model sağlayıcı çağrısı, synthesis rolü", messages)
+        self.assertNotIn("private provider response body", messages)
+        self.assertNotIn("NameError", messages)
+        self.assertNotIn("Traceback", messages)
+        self.assertEqual(saved["status"], "blocked")
+        self.assertEqual(len(saved["stages"]), 3)
+        self.assertEqual(len(calls), 5)
+
     def test_evidence_read_button_shows_saved_source_excerpt(self):
         from core.collaborative_mission import CollaborativeMission
         st = FakeStreamlit(clicks={"cano_prepare_team"})
