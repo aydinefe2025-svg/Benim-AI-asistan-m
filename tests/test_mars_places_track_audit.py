@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import unittest
 from pathlib import Path
 
@@ -111,6 +112,34 @@ class RealMarsPlacesTrackTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit_csv_text(as_csv(header, [{k:v for k,v in r.items() if k != "sclk"}
                                              for r in rows]))
+
+
+    def test_independent_receipt_reproduces_source_and_metrics(self):
+        """Independently calculated JS baseline must agree with Python audit."""
+        report = (Path(__file__).resolve().parents[1] / "research_reports" /
+                  "mars" / "2026-11-10_places_pds_independent_check.json")
+        expected = json.loads(report.read_text(encoding="utf-8"))
+        actual = audit_csv_text(DATA.read_text(encoding="utf-8"))
+        for name in ("source_sha256", "total_records", "source_site_records",
+                     "source_rover_records", "validated_rover_positions",
+                     "first_sol", "last_sol", "distinct_martian_sols",
+                     "chord_segment_count", "chord_sum_km",
+                     "same_sol_segments", "multi_sol_gaps",
+                     "largest_sol_gap", "max_origin_offset_residual_m"):
+            with self.subTest(metric=name):
+                self.assertEqual(actual[name], expected[name])
+        self.assertAlmostEqual(
+            actual["median_observed_chord_m"],
+            expected["median_observed_chord_m"], places=3,
+        )
+        self.assertAlmostEqual(
+            actual["longest_observed_chord_m"],
+            expected["longest_observed_chord_m"], places=3,
+        )
+        self.assertLess(
+            abs(actual["max_quaternion_norm_error"] -
+                expected["max_quaternion_norm_error"]), 1e-12,
+        )
 
 
 if __name__ == "__main__":
