@@ -20,7 +20,9 @@
     "height_unit_note": "DEM XML declares unit DN. Values align numerically with PDS localization elevation in m; slope degrees assume DEM DN represents vertical metres, to be independently calibrated before physical use.",
     "not_a_full_DEM_copy": true,
     "no_real_rover_control": true,
-    "not_a_terrain_hazard_safety_certification": true
+    "not_a_terrain_hazard_safety_certification": true,
+    "original_pre_JSON_roundtrip_observations_sha256": "afa8a1d269d65b3c3aed6e1f3e6b8a165184a97241d2eb4f8165566d01b1be3a",
+    "saved_observations_sha256_basis": "Python json.dumps(observations, separators=(',',':'),ensure_ascii=True) of the saved repository JSON values; numeric representation is normalized after JS parsing"
   },
   "fields": [
     "site",
@@ -15052,5 +15054,5 @@
     "centers_over_1m_discrepancy": 4,
     "local_3x3_gradients_over_15_degrees": 65
   },
-  "observations_sha256": "afa8a1d269d65b3c3aed6e1f3e6b8a165184a97241d2eb4f8165566d01b1be3a"
+  "observations_sha256": "a3e6d17ba5ab980b4f9535e4c0971bb36822ffb4101ff546e525ab727e470480"
 }
