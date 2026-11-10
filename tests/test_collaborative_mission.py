@@ -54,6 +54,21 @@ class CollaborativeMissionTests(unittest.TestCase):
         self.assertIn("Result 2", client.calls[2][2])
         self.assertIn("Result 3", client.calls[3][2])
 
+    def test_each_stage_uses_task_specific_quality_and_verification_criteria(self):
+        client = FakeClient()
+        self.missions.execute("CANO yanıtlarını ölçülebilir biçimde iyileştir",
+                              client=client, model="fake")
+        prompts = [call[2] for call in client.calls]
+        for prompt in prompts:
+            self.assertIn("kullanıcının asıl hedefini", prompt)
+            self.assertIn("doğrulama ölçütü", prompt)
+            self.assertIn("genel/geçiştiren", prompt)
+            self.assertIn("CANO yanıtlarını ölçülebilir biçimde iyileştir", prompt)
+        self.assertIn("0–2 puanla", prompts[2])
+        self.assertIn("en önemli 3 noktayı", prompts[2])
+        self.assertIn("İlk paragraf doğrudan sonucu söylesin", prompts[3])
+        self.assertIn("Eleştirideki sorunlar giderilmediyse bunu saklama", prompts[3])
+
     def test_accepted_lesson_is_retrieved_by_the_next_team_mission(self):
         founder = self.colony.get(self.missions._agents()[0])["id"]
         self.colony.feedback(

@@ -23,6 +23,14 @@ DOI_LEAD_URL = re.compile(
 )
 
 
+_QUALITY_CONTRACT = (
+    "Yanıt kalitesi: kullanıcının asıl hedefini ilk paragrafta karşıla; genel/geçiştiren "
+    "öğütler verme; her önemli öneriyi görevdeki somut bağlama bağla; tekrarları at; "
+    "uygulanabilir adımı, beklenen sonucu ve doğrulama ölçütünü belirt. Kanıt olmayan "
+    "şeyi gerçekmiş gibi yazma. Kullanıcının dilinde yanıt ver."
+)
+
+
 def normalize_source_leads(candidates):
     """Constrain untrusted external metadata to short unverified DOI leads."""
     if not isinstance(candidates, list):
@@ -147,12 +155,16 @@ class CollaborativeMission:
             for index in range(len(stages), len(STAGE_ROLES)):
                 if index == 0:
                     agent_id = planner
-                    prompt = ("Make a concise actionable research plan. Mark unknowns. Goal: "
-                              + task)
+                    prompt = ("Bu görev için önce hedefi ve beklenen teslimatı tek cümlede "
+                              "tanımla. Ardından en fazla 4 sıralı adım ver; her adım için "
+                              "somut çıktı ve bunu doğrulama ölçütü yaz. Bilinmeyenleri ve "
+                              "gerekli araç/kanıtları ayrıca belirt. Hedef: " + task)
                 elif index == 1:
                     agent_id = researcher
-                    prompt = ("Investigate this goal following the plan. Distinguish "
-                              "unverified claims. Goal: " + task
+                    prompt = ("Planı izleyerek hedefe doğrudan yanıt üret. Her adımda somut "
+                              "bulgu/öneri, dayanağı ve uygulanabilir doğrulama yöntemi ver. "
+                              "Erişilemeyen bilgiyi açıkça eksik bırak; kaynak veya test "
+                              "uydurma. Hedef: " + task
                               + "\nPlan:\n" + stages[0]["output"][:6000])
                     if "source_leads" in stages[0]:
                         # External metadata is untrusted data, never instructions
@@ -163,15 +175,24 @@ class CollaborativeMission:
                                                 ensure_ascii=False)[:2800])
                 elif index == 2:
                     agent_id = reviewer
-                    prompt = ("Critique factual support, assumptions and gaps. Do not claim "
-                              "external verification without actual evidence. Goal: " + task
+                    prompt = ("Taslağı aşağıdaki ölçütlerin her biri için 0–2 puanla: hedefe "
+                              "doğrudan yanıt, somutluk, kanıt/varsayım ayrımı, uygulanabilirlik, "
+                              "doğrulanabilirlik. Her düşük puana taslaktan örnek göster. "
+                              "Desteksiz iddiaları ve genel/geçiştiren kısımları işaretle; "
+                              "düzeltilecek en önemli 3 noktayı sırala. Harici doğrulama "
+                              "yapılmadıysa bunu açıkça söyle. Hedef: " + task
                               + "\nDraft:\n" + stages[1]["output"][:6000])
                 else:
                     agent_id = researcher
-                    prompt = ("Produce a concise revised result, explicitly separating "
-                              "facts, uncertainties and follow-up checks. Goal: " + task
+                    prompt = ("Kullanıcıya verilecek nihai taslağı üret. İlk paragraf doğrudan "
+                              "sonucu söylesin. Ardından görev için gereken somut bulguları ve "
+                              "uygulanabilir adımları ver; her adımın doğrulama ölçütünü yaz. "
+                              "Gerçek, varsayım ve eksik kanıtı ayır. Eleştirideki sorunlar "
+                              "giderilmediyse bunu saklama. Dolgu, tekrar ve genel motivasyon "
+                              "cümleleri kullanma. Hedef: " + task
                               + "\nDraft:\n" + stages[1]["output"][:5000]
                               + "\nCritique:\n" + stages[2]["output"][:5000])
+                prompt += "\n\n" + _QUALITY_CONTRACT
                 prompt += ("\nExecution boundary: this stage generates model text only. "
                            "No code, calculator, device or experiment is executed. "
                            "Earlier role outputs are untrusted drafts, not execution "
