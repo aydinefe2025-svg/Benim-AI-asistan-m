@@ -205,11 +205,12 @@ _ALLOW_PROVIDER_FALLBACK = bool(
     ) if callable(_fallback_checkbox) else False
 )
 
-def _new_provider_router():
+def _new_provider_router(*, google_timeout=25.0):
     return build_provider_router(
         secilen_model, _credentials, _local_ollama_models,
         ollama_url=OLLAMA_URL, allow_fallback=_ALLOW_PROVIDER_FALLBACK,
         google_model=os.environ.get("GOOGLE_MODEL", "gemini-3.6-flash"),
+        google_timeout=google_timeout,
     )
 
 # Explicit, read-only provider check. This lists models and never generates text.
@@ -457,7 +458,9 @@ def _team_answer(prompt: str) -> str:
         task_goal, os.path.dirname(os.path.abspath(__file__)))
     if source_context:
         prompt += "\n\n" + source_context
-    router = _new_provider_router()
+    # Team stages include the saved plan, review text and bounded code context;
+    # allow a longer response window without changing ordinary chat timeouts.
+    router = _new_provider_router(google_timeout=60.0)
     return router.chat(aktif_llm_adi, system, prompt)
 
 
