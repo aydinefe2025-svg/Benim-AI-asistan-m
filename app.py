@@ -501,6 +501,62 @@ render_organism_lab_panel(
     database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None,
 )
 
+# LoRA-backed local specialist workflow. User-triggered, bounded, and draft-only.
+if _lora_metadata is not None:
+    with st.expander("🧪 CANO yerel LoRA uzman kurulu", expanded=False):
+        st.caption(
+            "Altı uzman rolü LoRA üzerinde sırayla çalışır. Bu panel web, dosya, "
+            "kod veya fiziksel robot işlemi başlatmaz; sonuçlar doğrulanmamış taslaktır."
+        )
+        with st.form("lora_specialist_mission_form"):
+            _lora_mission_domain = st.selectbox(
+                "Çalışma türü",
+                ("robotics_simulation", "research", "computational_cell_model"),
+                format_func={
+                    "robotics_simulation": "Robotik simülasyon",
+                    "research": "Genel araştırma taslağı",
+                    "computational_cell_model": "Hesaplamalı hücre modeli",
+                }.get,
+            )
+            _lora_mission_question = st.text_area(
+                "CANO için incelenecek hedef", max_chars=1200,
+                key="lora_specialist_mission_question",
+            )
+            _run_lora_mission = st.form_submit_button("6 uzmanla LoRA taslağı üret")
+        if _run_lora_mission:
+            _blocked_topics = ("neutron star", "neutron-star", "nötron yıldız", "nötron-yıldız")
+            if any(topic in _lora_mission_question.casefold() for topic in _blocked_topics):
+                st.error("Nötron yıldızı araştırması bu akışta kapsam dışındadır.")
+            elif not _lora_mission_question.strip():
+                st.warning("Önce incelenecek hedefi yazın.")
+            else:
+                try:
+                    from core.safety_policy import safe_response_for_prompt
+                    _lora_safety = safe_response_for_prompt(_lora_mission_question)
+                    if _lora_safety is not None:
+                        st.warning(_lora_safety)
+                    else:
+                        from core.specialist_mission import SpecialistMission
+                        from core.trained_lora_client import TrainedLoraClient
+                        _lora_client = TrainedLoraClient(
+                            timeout=240, max_output_tokens=96,
+                        )
+                        _lora_result = SpecialistMission(_lora_client).run(
+                            _lora_mission_question.strip(),
+                            model=_lora_client.last_model_used,
+                            domain=_lora_mission_domain,
+                        )
+                        st.session_state["lora_specialist_mission_result"] = _lora_result
+                        st.success("Altı rol tamamlandı; taslak bağımsız doğrulanmadı.")
+                except Exception:
+                    st.error("Yerel LoRA görevi tamamlanamadı; ayrıntılar ve gizli yapılandırma gösterilmedi.")
+        _lora_result = st.session_state.get("lora_specialist_mission_result")
+        if _lora_result:
+            st.info("Durum: draft_unverified · Bağımsız doğrulama yapılmadı · Harici işlem yok")
+            for _lora_step in _lora_result["steps"]:
+                with st.expander(_lora_step["role"], expanded=False):
+                    st.markdown(_lora_step["output"])
+
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji, *, approved=False):
     from core.safety_policy import safe_response_for_prompt
