@@ -61,6 +61,30 @@ class V8ReceiptAuditTests(unittest.TestCase):
         self.assertEqual(audit_receipt(manifest)["status"], "blocked")
         self.assertIsNone(audit_receipt(manifest)["metrics"])
 
+    def test_external_host_cannot_impersonate_github_artifact(self):
+        manifest = self.build()
+        manifest["provenance"]["artifact_url"] = (
+            "https://evil.example/actions/runs/12345/artifacts"
+        )
+        result = audit_receipt(manifest)
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("missing_artifact_reference", result["errors"])
+        self.assertIsNone(result["metrics"])
+
+    def test_wrong_repository_or_run_artifact_url_is_rejected(self):
+        urls = (
+            "https://github.com/attacker/CANO/actions/runs/12345/artifacts",
+            "https://github.com/example/CANO/actions/runs/99999/artifacts",
+            "https://github.com.evil.example/example/CANO/actions/runs/12345/artifacts",
+        )
+        for url in urls:
+            with self.subTest(url=url):
+                manifest = self.build()
+                manifest["provenance"]["artifact_url"] = url
+                result = audit_receipt(manifest)
+                self.assertEqual(result["status"], "blocked")
+                self.assertIsNone(result["metrics"])
+
     def test_false_positive_false_negative_unknown_and_errors_are_separate(self):
         result = audit_receipt(self.build())
         self.assertEqual(result["status"], "metadata_ready_unverified")
