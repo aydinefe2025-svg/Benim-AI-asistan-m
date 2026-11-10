@@ -33,6 +33,62 @@ operator intentionally extracts it, and extracted files contain private user dat
 **Status:** An operator-only disaster-recovery utility; NOT an automatic production backup,
 NOT a completed Render database backup and NOT proof of restored production data.
 
+## Critical: identify the real CANO application source before export (10 November 2026)
+
+An authenticated and restored archive is NOT proof that it contains the CANO
+application's data. On 10 November a correctly authenticated Render PG18 archive
+restored **zero** application tables; the actual app-data candidate is Neon
+`benim-ai-persistence` / `assistant_pg` (nine tables observed separately).
+Never use the empty Render database's receipt as an application recovery receipt.
+
+**Do not assume every CANO component uses one URL.** Read the running app's
+non-secret connection mapping with authorized owner access, independently for
+`CANO_DATABASE_URL` / `DATABASE_URL`, `MEMORY_DATABASE_URL`, and
+`AGENT_TASK_DATABASE_URL`. Confirm provider, server host and database
+identity against what is actually running. Do not print or copy URL secrets
+into command arguments, GitHub issues, logs or ChatGPT.
+
+For application-data exports, use the **explicitly guarded profile**, not
+the generic `backup` command alone. On the trusted owner host, securely set
+these *non-secret expected identity pins* in the operator process environment:
+
+- `CANO_BACKUP_EXPECTED_HOST`: the **exact** expected database server hostname,
+  independently verified against the actual deployed app.
+- `CANO_BACKUP_EXPECTED_DB`: the exact expected database name.
+- `CANO_BACKUP_KEY_HEX`: a separately generated/retained 256-bit encryption
+  key. **Never print it or put it in a script or issue.**
+- Set the selected `--database-env` variable to the actual URL using a masked,
+  private owner-side secret channel.
+
+Then, only after correct identity mapping is established, run:
+
+```powershell
+py -m scripts.cano_encrypted_backup backup D:\Private-CANO-Backups --database-env DATABASE_URL --require-application-profile full
+```
+
+`full` enforces all **nine expected CANO public base tables** and at least
+one populated table; it uses read-only `psql` inventory queries and aborts
+*before creating the dump* if server/database pins, required tables, permissions,
+or records do not match. The receipt includes a **preflight** result, not an
+assertion that independent offsite storage or a restore has passed. The generic
+backup command without this flag is for non-application PostgreSQL exports and
+must NOT be used to certify CANO app-data recovery.
+
+If CANO services are genuinely stored in *distinct* databases with scoped
+credentials, back them up **separately**, using `colony`, `tasks`, or
+`memory` as `--require-application-profile`, and test each resulting archive
+and isolated restore independently. A scoped role may not have access to all
+nine tables; this is a reason to use the correct role/profile, **not** to
+silently bypass validation. Missing tables or zero visible records fail closed.
+
+After exporting, independently authenticate a separate-provider ciphertext
+copy and **retain its decryption key separately**. Restore to a fresh empty,
+dedicated database and compare exact table inventories and record counts
+for *every source*; a source with zero application rows does not satisfy
+the owner's nonempty CANO recovery objective. This preflight alone cannot prove
+the deployed runtime connection mapping, all owner scopes, an atomic snapshot
+across multiple databases, or a successful data restore.
+
 ## Preconditions
 
 - Install PostgreSQL client utilities `pg_dump`, `pg_restore` and `psql` at versions compatible with the PostgreSQL server.

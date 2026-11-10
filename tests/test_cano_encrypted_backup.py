@@ -58,6 +58,50 @@ class EncryptedBackupTests(unittest.TestCase):
         if os.name=='posix':
             self.assertTrue(all((p.stat().st_mode&0o777)==0o600 for p in files))
 
+    def test_app_profile_guard_blocks_wrong_source_before_writing_any_archive(self):
+        with patch.dict(os.environ,{
+                'CANO_BACKUP_EXPECTED_HOST':'localhost',
+                'CANO_BACKUP_EXPECTED_DB':'test'}):
+            with patch('cano_encrypted_backup.require_application_source',
+                       side_effect=ValueError('secret=FAKE')) as guard:
+                with patch('cano_encrypted_backup.subprocess.Popen',
+                           side_effect=AssertionError('pg_dump must not execute')):
+                    with self.assertRaisesRegex(BackupError,'source identity/inventory'):
+                        make_encrypted_backup(self.target,dump_bin=self.fake,
+                                              source_profile='full')
+                guard.assert_called_once()
+        self.assertFalse(self.target.exists())
+
+    def test_app_profile_receipt_separates_preflight_from_actual_restore(self):
+        safe={'profile':'full','required_tables_matched':9,
+              'nonempty_table_verified':True,'source_host_pinned':True,
+              'source_database_pinned':True,
+              'scope':'Preflight only; restore not proven'}
+        with patch.dict(os.environ,{
+                'CANO_BACKUP_EXPECTED_HOST':'localhost',
+                'CANO_BACKUP_EXPECTED_DB':'test'}):
+            with patch('cano_encrypted_backup.require_application_source',
+                       return_value=safe) as guard:
+                result=make_encrypted_backup(self.target,dump_bin=self.fake,
+                                              source_profile='full')
+                guard.assert_called_once()
+        receipt=json.loads(Path(result['receipt']).read_text())
+        self.assertEqual(receipt['application_source_preflight'],safe)
+        self.assertFalse(receipt['production_restore_tested'])
+        self.assertFalse(receipt['offsite_location_verified'])
+        verify_encrypted_backup(Path(result['receipt']))
+
+    def test_app_profile_missing_expected_pins_never_runs_dump(self):
+        with patch.dict(os.environ,{
+                'CANO_BACKUP_EXPECTED_HOST':'',
+                'CANO_BACKUP_EXPECTED_DB':''}):
+            with patch('cano_encrypted_backup.subprocess.Popen',
+                       side_effect=AssertionError('pg_dump must not execute')):
+                with self.assertRaisesRegex(BackupError,'source identity/inventory'):
+                    make_encrypted_backup(self.target,dump_bin=self.fake,
+                                          source_profile='full')
+        self.assertFalse(self.target.exists())
+
     def test_wrong_key_and_tampering_fail_before_restore(self):
         result=make_encrypted_backup(self.target,dump_bin=self.fake)
         file=Path(result['archive'])

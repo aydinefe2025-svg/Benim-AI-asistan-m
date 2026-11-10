@@ -29,6 +29,10 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
 try:
+    from scripts.cano_backup_source_gate import require_application_source
+except ImportError:  # direct CLI from scripts/ and local unittest harness
+    from cano_backup_source_gate import require_application_source
+try:
     from scripts.cano_pg_backup import _libpq_env_from_uri, BackupError
 except ImportError:  # direct CLI from scripts/ and minimal local unit harness
     from cano_pg_backup import _libpq_env_from_uri, BackupError
@@ -97,7 +101,8 @@ def _private_receipt(path: Path, payload: dict) -> None:
 def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL',
                           key_env: str='CANO_BACKUP_KEY_HEX',
                           dump_bin: str='pg_dump', max_plaintext_bytes:int=2*1024**3,
-                          max_seconds:float=1800) -> dict:
+                          max_seconds:float=1800,
+                          source_profile: str|None=None) -> dict:
     """Stream from pg_dump through AES-256-GCM: no unencrypted archive at rest."""
     key=_key(key_env)
     if not isinstance(max_plaintext_bytes,int) or max_plaintext_bytes<6:
@@ -110,6 +115,19 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
     env=_child_env(_libpq_env_from_uri(url,os.environ))
     executable=shutil.which(dump_bin)
     if not executable: raise BackupError('Required pg_dump executable not found')
+    # For application data, identity + expected live tables must be proven
+    # BEFORE creating an archive. A valid encrypted dump of an unrelated empty
+    # Render DB must never pass as a CANO application disaster-recovery copy.
+    source_preflight=None
+    if source_profile is not None:
+        try:
+            source_preflight=require_application_source(
+                env,source_profile,
+                expected_host=os.getenv('CANO_BACKUP_EXPECTED_HOST',''),
+                expected_database=os.getenv('CANO_BACKUP_EXPECTED_DB',''),
+            )
+        except ValueError:
+            raise BackupError('CANO application backup source identity/inventory preflight failed') from None
     destination=Path(destination)
     _private_directory(destination)
     name='cano-pg-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+secrets.token_hex(8)
@@ -200,6 +218,8 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
             'offsite_location_verified':False,
             'note':'Encrypted on local operator destination; external transport and isolated restore require separate proof.',
         }
+        if source_preflight is not None:
+            payload['application_source_preflight']=source_preflight
         _private_receipt(receipt,payload)
         return {'archive':str(archive),'receipt':str(receipt),
                 'plaintext_sha256':payload['plaintext_sha256'],
@@ -430,13 +450,17 @@ def main():
     sub=p.add_subparsers(dest='command',required=True)
     b=sub.add_parser('backup');b.add_argument('destination',type=Path)
     b.add_argument('--database-env',default='DATABASE_URL')
+    b.add_argument('--require-application-profile',
+                   choices=('full','colony','tasks','memory'),default=None)
     v=sub.add_parser('verify');v.add_argument('receipt',type=Path)
     t=sub.add_parser('restore-isolated');t.add_argument('archive',type=Path)
     t.add_argument('--target-database-env',default='CANO_RESTORE_DATABASE_URL')
     t.add_argument('--confirm-empty-isolated-target',action='store_true')
     a=p.parse_args()
     try:
-        if a.command=='backup':r=make_encrypted_backup(a.destination,database_env=a.database_env)
+        if a.command=='backup':
+            r=make_encrypted_backup(a.destination,database_env=a.database_env,
+                                    source_profile=a.require_application_profile)
         elif a.command=='verify':r=verify_encrypted_backup(a.receipt)
         else:r=restore_to_empty_database(a.archive,target_db_url_env=a.target_database_env,confirm=a.confirm_empty_isolated_target)
     except (BackupError,OSError,ValueError):
