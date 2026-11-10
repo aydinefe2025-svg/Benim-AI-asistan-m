@@ -16,6 +16,11 @@ class AdaptationStudyTests(unittest.TestCase):
                          ["mutation", "no_mutation", "reproduction_disabled"])
         self.assertEqual(len(first["paired_comparisons"]), 3)
         mutation_control = first["paired_comparisons"][0]
+        self.assertEqual(mutation_control["comparison_role"], "primary")
+        self.assertTrue(all(item["comparison_role"] == "exploratory"
+                            for item in first["paired_comparisons"][1:]))
+        self.assertIn("no multiplicity adjustment",
+                      first["design"]["secondary_comparisons"])
         self.assertEqual(mutation_control["paired_seeds"], 3)
         self.assertLessEqual(mutation_control["approx_ci95_low"],
                              mutation_control["approx_ci95_high"])
