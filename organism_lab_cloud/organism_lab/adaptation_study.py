@@ -95,13 +95,14 @@ def run_adaptation_study(*, seeds=tuple(range(30)), steps=120, shift_tick=40,
                           "mean_unique_genomes": statistics.mean(row["unique_genomes"] for row in rows)})
     by_arm_seed = {(row["arm"], row["seed"]): row["task_b_share"] for row in final}
     comparisons = []
-    for candidate_arm, control_arm in (
+    for index, (candidate_arm, control_arm) in enumerate((
             ("mutation", "no_mutation"),
             ("mutation", "reproduction_disabled"),
-            ("no_mutation", "reproduction_disabled")):
+            ("no_mutation", "reproduction_disabled"))):
         comparisons.append({
             "candidate_arm": candidate_arm,
             "control_arm": control_arm,
+            "comparison_role": "primary" if index == 0 else "exploratory",
             **_paired_effect(
                 [by_arm_seed[(candidate_arm, seed)] for seed in seeds],
                 [by_arm_seed[(control_arm, seed)] for seed in seeds]),
@@ -115,6 +116,8 @@ def run_adaptation_study(*, seeds=tuple(range(30)), steps=120, shift_tick=40,
                        "environment": "TASK_A switches to TASK_B; matching task instruction earns energy",
                        "arms": ["mutation", "no_mutation", "reproduction_disabled"],
                        "primary_metric": "final share of surviving population carrying TASK_B",
+                       "primary_comparison": "mutation vs no_mutation",
+                       "secondary_comparisons": "exploratory; no multiplicity adjustment",
                        "interval_method": "paired Student-t 95% interval; conservative df=30 critical value above 30 pairs"},
             "results": summaries, "paired_comparisons": comparisons,
             "observations": observations,
