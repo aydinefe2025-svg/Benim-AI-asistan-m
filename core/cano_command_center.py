@@ -386,9 +386,10 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                              "Bu denemede sağlayıcı çağrısı yapılmadı; kayıtlı aşamalar korundu.")
                     return
                 checkpoint_count = [0]
-                    def _resume_checkpoint():
-                        _checkpoint(archive_prior=(checkpoint_count[0] == 0))
-                        checkpoint_count[0] += 1
+                def _resume_checkpoint():
+                    _checkpoint(archive_prior=(checkpoint_count[0] == 0))
+                    checkpoint_count[0] += 1
+                try:
                     result = manager.resume(
                         item["id"], client=_AnswerAdapter(answer),
                         model="configured-provider",
