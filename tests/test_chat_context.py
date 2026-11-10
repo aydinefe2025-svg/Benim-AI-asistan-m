@@ -5,6 +5,8 @@ import types
 import unittest
 from pathlib import Path
 
+from core.safety_policy import safe_response_for_prompt
+
 APP = Path(__file__).resolve().parents[1] / "app.py"
 
 
@@ -50,6 +52,7 @@ class ChatContextTests(unittest.TestCase):
             "aktif_llm_adi": "openai/gpt-oss-120b",
             "internette_ara": lambda query: "Test verisi",
             "memory_context": lambda items, query: "MEMORY_CONTEXT",
+            "safe_response_for_prompt": safe_response_for_prompt,
             "label_research_answer": lambda answer, **kwargs: answer,
             "re": re,
         }
