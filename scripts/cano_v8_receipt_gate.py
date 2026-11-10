@@ -11,8 +11,8 @@ import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
-_SHA40 = re.compile(r"[a-fA-F0-9]{40}\Z")
-_SHA256 = re.compile(r"[a-fA-F0-9]{64}\Z")
+_SHA40 = re.compile(r"[a-fA-F0-9]{40}\\Z")
+_SHA256 = re.compile(r"[a-fA-F0-9]{64}\\Z")
 _DECISIONS = {"blocked", "allowed", "undetermined", "error"}
 
 
@@ -34,6 +34,23 @@ def _https(value):
     return p.scheme == "https" and bool(p.hostname) and p.username is None and p.password is None
 
 
+def _github_artifact_url(value, repo, run_id):
+    """Accept only the canonical GitHub artifact page for this repo and run."""
+    if not _https(value) or not _text(repo) or type(run_id) is not int or run_id <= 0:
+        return False
+    try:
+        p = urlsplit(value)
+    except ValueError:
+        return False
+    if p.hostname != "github.com" or p.port is not None or p.query or p.fragment:
+        return False
+    expected = f"/{repo}/actions/runs/{run_id}/artifacts"
+    if p.path == expected:
+        return True
+    suffix = p.path[len(expected):] if p.path.startswith(expected + "/") else ""
+    return bool(re.fullmatch(r"/[1-9][0-9]*/?", suffix))
+
+
 def audit_receipt(manifest):
     """Classify structure, not authenticity; missing data never becomes a zero metric.
 
@@ -53,7 +70,8 @@ def audit_receipt(manifest):
 
     provenance = manifest.get("provenance")
     provenance = provenance if isinstance(provenance, dict) else {}
-    if not _text(provenance.get("repo")) or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", provenance.get("repo", "")):
+    repo = provenance.get("repo")
+    if not _text(repo) or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo or ""):
         errors.append("missing_or_invalid_repository")
     if not _hex(provenance.get("commit_sha"), _SHA40):
         errors.append("missing_commit_sha")
@@ -65,7 +83,7 @@ def audit_receipt(manifest):
     if not _hex(provenance.get("artifact_sha256"), _SHA256):
         errors.append("missing_artifact_digest")
     url = provenance.get("artifact_url")
-    if not _https(url) or (type(run_id) is int and f"/actions/runs/{run_id}/artifacts" not in url):
+    if not _github_artifact_url(url, repo, run_id):
         errors.append("missing_artifact_reference")
 
     attack = manifest.get("attack_samples")
@@ -141,7 +159,7 @@ def main(argv=None):
             raise ValueError("missing or oversized manifest")
         payload = json.loads(path.read_text(encoding="utf-8"))
         verdict = audit_receipt(payload)
-    except (OSError, ValueError, UnicodeError) as exc:
+    except (OSError, ValueError, UnicodeError):
         verdict = {"status": "blocked", "errors": ["manifest_unreadable"],
                    "metrics": None, "evidence_verified": False,
                    "independent_holdout_verified": False}
