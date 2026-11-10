@@ -29,6 +29,28 @@ from core.task_panel import _session_database_path
 from core.cano_backup_bundle import create_portable_bundle, export_authorized_queue
 from core.organism_lab_persistence import OrganismLabStore
 from core.encrypted_backup_ui import render_encrypted_download
+from core.provider_failure import safe_failure_message
+
+
+def mission_failure_message(error, failure=None):
+    """Show a fixed, safe error notice without exposing provider exception text.
+
+    `CollaborativeMission.last_failure` contains bounded phase metadata, not
+    private provider response bodies. Never interpolate unknown phase/role,
+    exception strings, credentials or connection URLs into the Streamlit UI.
+    """
+    phase = failure.get("phase") if isinstance(failure, dict) else None
+    if phase == "owner_backup_checkpoint":
+        return ("Görev durduruldu: PostgreSQL kontrol noktası doğrulanamadı. "
+                "Kısmi aşamaların kaydını kontrol etmeden yeniden çalıştırmayın.")
+    if phase in ("sqlite_stage_write", "completion_write"):
+        return ("Görev durduruldu: yerel görev kaydı doğrulanamadı. "
+                "Yeni işlem başlatmadan önce kayıtları kontrol edin.")
+    if phase == "model_call":
+        return ("Görev tamamlanamadı: " + safe_failure_message(error)
+                + " Kaydedilmiş aşamaları kontrol edip sonra sürdürebilirsiniz.")
+    return ("Görev tamamlanamadı; önce kayıtların durumunu kontrol edin. "
+            "Hata ayrıntıları ve gizli bağlantı bilgileri görüntülenmez.")
 
 
 class _AnswerAdapter:
