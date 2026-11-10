@@ -11,8 +11,8 @@ import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
-_SHA40 = re.compile(r"[a-fA-F0-9]{40}\\Z")
-_SHA256 = re.compile(r"[a-fA-F0-9]{64}\\Z")
+_SHA40 = re.compile(r"[a-fA-F0-9]{40}\Z")
+_SHA256 = re.compile(r"[a-fA-F0-9]{64}\Z")
 _DECISIONS = {"blocked", "allowed", "undetermined", "error"}
 
 
