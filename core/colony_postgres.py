@@ -8,6 +8,9 @@ import json
 import os
 
 
+# Keep the existing versioned backups intact while leaving bounded headroom.
+MAX_ARCHIVED_REVISIONS_PER_OWNER = 100
+
 _NO_EXPECTED_PRIOR = object()
 
 
@@ -136,7 +139,7 @@ class ColonySnapshotStore:
                     if prior is not None and archive_prior:
                         cur.execute("SELECT COUNT(*) FROM private_colony_snapshot_revisions "
                                     "WHERE owner_key=%s", (owner_key,))
-                        if cur.fetchone()[0] >= 20:
+                        if cur.fetchone()[0] >= MAX_ARCHIVED_REVISIONS_PER_OWNER:
                             raise RuntimeError("Colony backup revision quota reached; export required")
                         cur.execute("INSERT INTO private_colony_snapshot_revisions "
                                     "(owner_key,payload) VALUES (%s,%s::jsonb)",
