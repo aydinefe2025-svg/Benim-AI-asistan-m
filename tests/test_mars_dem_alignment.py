@@ -47,10 +47,19 @@ class MarsPdsRealDemTests(unittest.TestCase):
         self.assertEqual(result["metrics"]["unique_three_pixel_row_ranges"], 1681)
 
     def test_source_hashes_bind_to_actual_official_pds_data(self):
-        self.assertEqual(hashlib.sha256(self.csv_data).hexdigest(),
+        """Windows Git checkout CRLF must not masquerade as PDS corruption."""
+        canonical_csv = self.csv_data.replace(b"\r\n", b"\n")
+        canonical_label = self.dem_label.replace(b"\r\n", b"\n")
+        self.assertEqual(hashlib.sha256(canonical_csv).hexdigest(),
                          "9da19e4f70287fe0d33ba716ff2169c10447c30c7a048583f730e4155226cde9")
-        self.assertEqual(hashlib.sha256(self.dem_label).hexdigest(),
+        self.assertEqual(hashlib.sha256(canonical_label).hexdigest(),
                          "7a736fabc434f4c6b4da17e0d943858809d10051570cc06570cb47f3c192e111")
+
+    def test_line_endings_can_change_without_changing_source_measurements(self):
+        csv_crlf = self.csv_data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+        label_crlf = self.dem_label.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+        self.assertEqual(self._run(csv_content=csv_crlf, label=label_crlf),
+                         self._run())
 
     def test_real_elevation_residuals_and_local_gradient_counts(self):
         m = self._run()["metrics"]
