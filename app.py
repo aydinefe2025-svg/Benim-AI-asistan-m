@@ -63,6 +63,7 @@ from core.groq_diagnostics import check_groq_connection
 from core.provider_failure import failure_category, failure_diagnostics, safe_failure_message
 from core.connection_diagnostics import check_provider
 from core.public_research import research_sources
+from core.safety_policy import safe_response_for_prompt
 from core.scientific_sources import scientific_sources
 from core.research_evidence import (
     format_research_bibliography, format_research_evidence,
@@ -495,6 +496,9 @@ render_organism_lab_panel(
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji, *, approved=False):
+    safe_response = safe_response_for_prompt(kullanici_mesaji)
+    if safe_response is not None:
+        return safe_response
     local_ollama_selected = str(globals().get("secilen_model", "")).startswith("Ollama (Yerel): ")
     from core.cano_chat_tasks import parse_task_request, format_task_result
     task_goal = parse_task_request(kullanici_mesaji)
