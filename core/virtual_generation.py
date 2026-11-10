@@ -17,10 +17,22 @@ from pathlib import Path
 
 _RATES = (0.02, 0.05, 0.08, 0.12, 0.18)
 _TRAIN_SEEDS = tuple(range(12))
-_CONFIRM_SEEDS = tuple(range(100, 112))
 _STEPS = 80
 _SHIFT_TICK = 30
 _CAPACITY = 32
+
+# Two-sided 95% Student-t critical values, indexed by degrees of freedom.
+# For df > 30, 2.042 (the df=30 value) is a conservative upper bound.
+_T95 = (None, 12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365,
+        2.306, 2.262, 2.228, 2.201, 2.179, 2.160, 2.145, 2.131,
+        2.120, 2.110, 2.101, 2.093, 2.086, 2.080, 2.074, 2.069,
+        2.064, 2.060, 2.056, 2.052, 2.048, 2.045, 2.042)
+
+
+def _confirmation_seeds(tick_id: int) -> tuple[int, ...]:
+    """Give each cycle a fresh holdout so repeated selection cannot reuse it."""
+    start = 100 + (tick_id - 1) * 100
+    return tuple(range(start, start + 12))
 
 
 def _vm_types():
@@ -76,7 +88,9 @@ def _paired_summary(candidate: list, parent: list) -> dict:
     differences = [left - right for left, right in zip(candidate_scores, parent_scores)]
     mean = sum(differences) / len(differences)
     variance = sum((value - mean) ** 2 for value in differences) / (len(differences) - 1)
-    margin = 1.96 * math.sqrt(variance / len(differences))
+    degrees_of_freedom = len(differences) - 1
+    critical = _T95[degrees_of_freedom] if degrees_of_freedom < len(_T95) else _T95[-1]
+    margin = critical * math.sqrt(variance / len(differences))
     summary = {
         "paired_seeds": len(differences),
         "candidate_mean_score": sum(candidate_scores) / len(candidate_scores),
@@ -124,8 +138,10 @@ def run_virtual_generation(database_path: str | Path, tick_id: int) -> dict:
         candidate_rate = _RATES[(tick_id - 1) % len(_RATES)]
         training = _paired_summary(_scores(candidate_rate, _TRAIN_SEEDS),
                                    _scores(parent_rate, _TRAIN_SEEDS))
-        confirmation = _paired_summary(_scores(candidate_rate, _CONFIRM_SEEDS),
-                                       _scores(parent_rate, _CONFIRM_SEEDS))
+        confirmation_seeds = _confirmation_seeds(tick_id)
+        confirmation = _paired_summary(_scores(candidate_rate, confirmation_seeds),
+                                       _scores(parent_rate, confirmation_seeds))
+        confirmation["seed_ids"] = list(confirmation_seeds)
         transferred = training["positive_evidence"] and confirmation["positive_evidence"]
         next_rate = candidate_rate if transferred else parent_rate
         created_at = datetime.now(timezone.utc).isoformat()
