@@ -14,7 +14,7 @@ import math
 from pathlib import Path
 import statistics
 
-PINNED_CSV = Path(__file__).resolve().parent / "data" / "mars2020_places_best_tactical_20260317.csv"
+PINNED_CSV = Path(__file__).resolve().parent / "data" / "mars2020_places_best_tactical_20260730.csv"
 SOURCE_URL = (
     "https://pds-geosciences.wustl.edu/m2020/"
     "urn-nasa-pds-mars2020_rover_places/data_localizations/best_tactical.csv"
