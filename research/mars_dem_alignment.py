@@ -42,6 +42,18 @@ def _tag_value(node: ET.Element, tag: str) -> float:
     return float(values[0])
 
 
+def _pinned_original_bytes(data: bytes, expected_sha256: str) -> bytes:
+    """Only allow exact source bytes or Git's CRLF checkout conversion.
+
+    Reject all other byte alterations. The PDS sources were archived with LF,
+    but Git on Windows may expand LF to CRLF during checkout.
+    """
+    for candidate in (data, data.replace(b"\\r\\n", b"\\n")):
+        if hashlib.sha256(candidate).hexdigest() == expected_sha256:
+            return candidate
+    raise ValueError("NASA PDS pinned source SHA-256 mismatch")
+
+
 def _finite(value: object, field: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError("Invalid " + field)
@@ -68,10 +80,10 @@ def audit_bundle(csv_bytes: bytes, label_bytes: bytes,
     provenance = sampled.get("provenance")
     if not isinstance(provenance, dict):
         raise ValueError("Missing provenance")
-    if hashlib.sha256(csv_bytes).hexdigest() != provenance.get("localizations_sha256"):
-        raise ValueError("Source localization SHA-256 mismatch")
-    if hashlib.sha256(label_bytes).hexdigest() != provenance.get("dem_label_sha256"):
-        raise ValueError("NASA PDS raster label SHA-256 mismatch")
+    csv_bytes = _pinned_original_bytes(
+        csv_bytes, provenance.get("localizations_sha256", ""))
+    label_bytes = _pinned_original_bytes(
+        label_bytes, provenance.get("dem_label_sha256", ""))
 
     root = ET.fromstring(label_bytes)
     arrays = [x for x in root.iter() if _lname(x.tag) == "Array_2D_Image"]
