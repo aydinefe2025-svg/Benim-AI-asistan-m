@@ -48,7 +48,7 @@ def _pinned_original_bytes(data: bytes, expected_sha256: str) -> bytes:
     Reject all other byte alterations. The PDS sources were archived with LF,
     but Git on Windows may expand LF to CRLF during checkout.
     """
-    for candidate in (data, data.replace(b"\\r\\n", b"\\n")):
+    for candidate in (data, data.replace(b"\r\n", b"\n")):
         if hashlib.sha256(candidate).hexdigest() == expected_sha256:
             return candidate
     raise ValueError("NASA PDS pinned source SHA-256 mismatch")
