@@ -395,6 +395,8 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                     st.rerun()
                     return
                 except (RuntimeError, ValueError, KeyError, OSError, sqlite3.Error) as exc:
+                    # Lazy import avoids the module cycle: colony_panel imports _snapshot here.
+                    from core.colony_panel import mission_failure_message
                     st.error(mission_failure_message(
                         exc, getattr(manager, "last_failure", None)))
 
