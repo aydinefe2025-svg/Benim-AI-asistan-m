@@ -12,7 +12,9 @@ from concurrent.futures import ThreadPoolExecutor
 from core.agent_colony import AgentColony
 from core.colony_restore import restore_empty_colony
 
-from core.colony_postgres import ColonySnapshotStore
+from core.colony_postgres import (
+    ColonySnapshotStore, MAX_ARCHIVED_REVISIONS_PER_OWNER,
+)
 
 
 def main():
@@ -77,12 +79,12 @@ def main():
     # record without the owner's explicit export/maintenance.
     bounded_owner = owner + "-bounded"
     store.save_versioned_verified(bounded_owner, initial)
-    for i in range(20):
+    for i in range(MAX_ARCHIVED_REVISIONS_PER_OWNER):
         store.save_versioned_verified(bounded_owner, {
             "agents": [{"id": "bounded-" + str(i)}],
             "feedback": [], "reviews": [], "missions": []})
     before = store.load(bounded_owner)
-    assert len(store.list_archived(bounded_owner)) == 20
+    assert len(store.list_archived(bounded_owner)) == MAX_ARCHIVED_REVISIONS_PER_OWNER
     try:
         store.save_versioned_verified(bounded_owner, {
             "agents": [{"id": "overflow"}], "feedback": [],
