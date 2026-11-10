@@ -265,7 +265,12 @@ class CanoChatTasksTests(unittest.TestCase):
         self.assertEqual(parse_task_request("CANO görev: İki seçenek karşılaştır"),
                          "İki seçenek karşılaştır")
         self.assertEqual(parse_task_request("Görev: 2+2"), "2+2")
-        self.assertIsNone(parse_task_request("Kendini geliştir CANO"))
+        self.assertIn("yanıtlarını", parse_task_request("Kendini geliştir CANO"))
+        self.assertIn("yanıtlarını", parse_task_request("KENDİNİ GELİŞTİRMEYİ ÖĞREN"))
+        self.assertIn("yanıtlarını", parse_task_request(
+            "HAYIR BEN ÖĞRENİP GELİŞMENİ İSTİYORUM"))
+        self.assertIn("yanıtlarını", parse_task_request(
+            "HAYIR BEN HERŞEYİ SENİN YAPMANI İSTİYORUM"))
         self.assertIn("ölçülebilir gelişim önerisi",
                       parse_task_request("Kendini geliştir öğrenmeye başla"))
         self.assertIn("önerileri otomatik uygulama",
