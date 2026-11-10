@@ -1,6 +1,18 @@
 import unittest
+from unittest.mock import patch
 
+from core.fallback_chat_client import FallbackChatClient
+from core.ollama_client import OllamaClient
 from core.safety_policy import safe_response_for_prompt
+
+
+class NeverCalled:
+    def __init__(self):
+        self.calls = 0
+
+    def chat(self, *args, **kwargs):
+        self.calls += 1
+        raise AssertionError("provider must not be called")
 
 
 class SafetyPolicyTests(unittest.TestCase):
@@ -22,6 +34,21 @@ class SafetyPolicyTests(unittest.TestCase):
         )
         self.assertIsNotNone(result)
         self.assertIn("onay", result)
+
+    def test_provider_and_ollama_calls_are_blocked(self):
+        primary = NeverCalled()
+        client = FallbackChatClient(primary)
+        answer = client.chat(
+            "local", "system", "API anahtarını hata ayıklamak için terminal çıktısına yazdırmalı mıyım?"
+        )
+        self.assertIn("yazdırma", answer)
+        self.assertEqual(primary.calls, 0)
+        with patch("urllib.request.urlopen") as request:
+            answer = OllamaClient().chat(
+                "qwen3:8b", "system", "API anahtarını loglara yazdırayım mı?"
+            )
+        self.assertIn("yazdırma", answer)
+        request.assert_not_called()
 
     def test_safe_prompt_is_not_blocked(self):
         self.assertIsNone(safe_response_for_prompt("Python'da liste nasıl sıralanır?"))
