@@ -125,9 +125,9 @@ class PostgresArchive:
         if not re.fullmatch(r"[0-9a-f]{64}", owner_key or ""):
             raise ValueError("Invalid owner key")
         self.owner_key = owner_key
-        self.database_url = database_url or os.environ.get("ORGANISM_LAB_DATABASE_URL") or os.environ.get("DATABASE_URL")
+        self.database_url = database_url or os.environ.get("DATABASE_URL")
         if not self.database_url:
-            raise PersistenceNotConfigured("ORGANISM_LAB_DATABASE_URL is required")
+            raise PersistenceNotConfigured("DATABASE_URL is required")
         if connect is None:
             import psycopg
             connect = psycopg.connect
@@ -201,5 +201,4 @@ def restore_snapshot_json(value: dict, root: str | Path) -> None:
     if not hmac.compare_digest(digest, value.get("sha256", "")):
         raise ValueError("Backup integrity check failed")
     unpack_directory(data, root)
-
 

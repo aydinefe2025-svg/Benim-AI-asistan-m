@@ -140,4 +140,3 @@ def render_explanation(st, explanation, *, key):
         st.markdown(f"**Ne bulundu?** {explanation['finding']}")
         st.markdown(f"**Bu ne anlama geliyor?** {explanation['meaning']}")
         st.markdown(f"**Sınırı ne?** {explanation['limits']}")
-

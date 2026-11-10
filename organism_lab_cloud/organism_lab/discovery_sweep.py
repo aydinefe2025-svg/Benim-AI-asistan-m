@@ -200,7 +200,6 @@ def save_discovery_sweep(report, path):
     return document
 
 
-
 def list_versioned_discovery_sweeps(history_dir):
     """Read valid versioned reports newest-first without changing archive files."""
     directory = Path(history_dir)
@@ -221,9 +220,9 @@ def list_versioned_discovery_sweeps(history_dir):
 
 
 def select_discovery_sweep(latest_path, selection, history_entries):
-    """Load latest afresh or return the explicitly selected immutable archive report.
+    """Load the latest report afresh or return the explicitly selected archive report.
 
-    Streamlit reruns may retain an older selected archive document in session state.
+    Streamlit reruns can leave a previously selected archive document in session state.
     Reading the latest file here makes switching back to "En son tarama" deterministic.
     """
     if selection == "En son tarama":
@@ -238,6 +237,7 @@ def select_discovery_sweep(latest_path, selection, history_entries):
         return history_entries[selection]
     except KeyError as exc:
         raise ValueError("Selected discovery report is unavailable") from exc
+
 
 def validate_discovery_sweep(document):
     """Recompute the bounded sweep and reject edited or inconsistent metrics."""
@@ -258,4 +258,3 @@ def validate_discovery_sweep(document):
         if document.get(field) != expected[field]:
             raise ValueError("Discovery report does not match deterministic recomputation")
     return True
-

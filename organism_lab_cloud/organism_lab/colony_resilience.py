@@ -234,4 +234,3 @@ def save_colony_resilience_study(report: dict, path) -> dict:
     write_verified(history / f"colony-resilience-{run_id}.json")
     write_verified(target)
     return document
-

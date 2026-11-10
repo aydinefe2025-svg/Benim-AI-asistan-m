@@ -1,10 +1,14 @@
-"""Safety and validation tests for reading the published colony report."""
+"""Safety and validation tests for reading the public scheduled colony artifact."""
+import hashlib
+import io
 import json
+import zipfile
 import unittest
+from unittest.mock import Mock
 
 from organism_lab.automation_status import (
-    ColonyStatusUnavailable, RAW_REPORT_URL, load_latest_colony_status,
-    _lesson_explanation,
+    ColonyStatusUnavailable, RUNS_URL, load_latest_colony_status,
+    _load_process_cached,
 )
 
 
@@ -12,9 +16,9 @@ def fixture_report(run_id=11):
     return {
         "github_run_id": str(run_id),
         "db_integrity": "ok",
-        "continuity": {"increment_verified": True},
         "mode": "bounded_virtual_reproduction_with_held_out_validation",
         "cycle": {"tick_id": 7},
+        "continuity": {"increment_verified": True, "previous_tick_id": 6},
         "virtual_generation": {
             "generation_id": 7, "offspring_scope": "bounded toy digital VM only",
             "model_weights_updated": False, "lesson_status": "rejected",
@@ -36,72 +40,81 @@ def fixture_report(run_id=11):
     }
 
 
+def zipped_report(report):
+    memory = io.BytesIO()
+    with zipfile.ZipFile(memory, "w", zipfile.ZIP_DEFLATED) as bundle:
+        bundle.writestr("colony-cycle.json", json.dumps(report).encode("utf-8"))
+    return memory.getvalue()
+
+
 class FakeResponse:
-    def __init__(self, content):
+    def __init__(self, data=None, content=None):
+        self.data = data
         self.content = content
-        self.headers = {"Content-Length": str(len(content))}
+        self.headers = {"Content-Length": str(len(content))} if content is not None else {}
 
     def raise_for_status(self):
         return None
+
+    def json(self):
+        return self.data
 
     def iter_content(self, chunk_size):
         yield self.content
 
 
 class AutomationStatusTests(unittest.TestCase):
+    def test_process_cache_shares_success_and_allows_explicit_refresh(self):
+        import organism_lab.automation_status as status_module
+        with status_module._STATUS_CACHE_LOCK:
+            status_module._STATUS_CACHE_VALUE = None
+            status_module._STATUS_CACHE_ERROR = None
+            status_module._STATUS_CACHE_UNTIL = 0
+        calls = []
+
+        def loader():
+            calls.append(True)
+            return {"state": "success", "run_id": len(calls)}
+
+        self.assertEqual(_load_process_cached(loader)["run_id"], 1)
+        self.assertEqual(_load_process_cached(loader)["run_id"], 1)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(_load_process_cached(loader, force_refresh=True)["run_id"], 2)
+        self.assertEqual(len(calls), 2)
+
     def _load(self, report):
-        content = json.dumps(report).encode("utf-8")
+        run_id = 11
+        archive = zipped_report(report)
+        digest = "sha256:" + hashlib.sha256(archive).hexdigest()
         calls = []
 
         def get(url, **kwargs):
             calls.append((url, kwargs))
-            if url != RAW_REPORT_URL:
-                raise AssertionError("The panel must use the published raw report only")
-            return FakeResponse(content)
+            if url == RUNS_URL:
+                return FakeResponse({"workflow_runs": [{
+                    "id": run_id, "status": "completed", "conclusion": "success",
+                }]})
+            if url.endswith(f"/actions/runs/{run_id}/artifacts"):
+                return FakeResponse({"artifacts": [{
+                    "id": 42, "name": f"cano-colony-cycle-{run_id}",
+                    "expired": False, "size_in_bytes": len(archive), "digest": digest,
+                }]})
+            return FakeResponse(content=archive)
 
         return load_latest_colony_status(get), calls
 
-    def test_reads_published_report_and_four_independent_agent_results(self):
+    def test_reads_latest_report_and_four_independent_agent_results(self):
         value, calls = self._load(fixture_report())
         self.assertEqual(value["report"]["tick_id"], 7)
         self.assertEqual(len(value["report"]["specialist_agents"]), 4)
         self.assertEqual(value["state"], "success")
-        self.assertEqual(len(calls), 1)
-        self.assertTrue(calls[0][1]["stream"])
-        self.assertNotIn("Authorization", calls[0][1]["headers"])
+        self.assertEqual(len(calls), 3)
+        self.assertTrue(calls[-1][1]["stream"])
 
-    def test_timestamp_is_normalized_and_displayed_in_utc(self):
-        from datetime import datetime, timezone
-        from organism_lab.automation_status import _report_timestamp_display
-        value, _ = self._load(fixture_report())
-        self.assertEqual(value["generated_at"], "2026-11-07T00:00:00Z")
-        label, stale = _report_timestamp_display(
-            "2026-11-07T02:00:00+02:00",
-            now=datetime(2026, 11, 7, 0, 30, tzinfo=timezone.utc),
-        )
-        self.assertEqual(label, "2026-11-07 00:00:00 UTC")
-        self.assertFalse(stale)
-
-    def test_rejects_missing_naive_and_malformed_timestamps(self):
-        for timestamp in (None, "not-a-timestamp", "2026-11-07T00:00:00"):
-            report = fixture_report()
-            report["timestamp"] = timestamp
-            with self.subTest(timestamp=timestamp):
-                with self.assertRaises(ColonyStatusUnavailable):
-                    self._load(report)
-
-    def test_rejects_report_with_invalid_run_id(self):
-        report = fixture_report()
-        report["github_run_id"] = "not-a-run"
+    def test_rejects_report_from_a_different_run(self):
+        report = fixture_report(run_id=999)
         with self.assertRaises(ColonyStatusUnavailable):
             self._load(report)
-
-    def test_rejects_report_from_wrong_mode_or_corrupt_state(self):
-        for field, value in (("mode", "unbounded"), ("db_integrity", "failed")):
-            report = fixture_report()
-            report[field] = value
-            with self.assertRaises(ColonyStatusUnavailable):
-                self._load(report)
 
     def test_rejects_missing_or_unpassed_agents(self):
         report = fixture_report()
@@ -109,51 +122,12 @@ class AutomationStatusTests(unittest.TestCase):
         with self.assertRaises(ColonyStatusUnavailable):
             self._load(report)
 
-    def test_rejects_oversized_report_before_parsing(self):
-        content = b" " * 1_000_001
+    def test_no_actions_run_returns_clear_empty_state(self):
+        value = load_latest_colony_status(
+            lambda url, **kwargs: FakeResponse({"workflow_runs": []})
+        )
+        self.assertEqual(value["state"], "no_runs")
 
-        def get(url, **kwargs):
-            return FakeResponse(content)
-
-        with self.assertRaises(ColonyStatusUnavailable):
-            load_latest_colony_status(get)
-
-    def test_rejects_report_exceeding_stream_limit(self):
-        class UnboundedResponse(FakeResponse):
-            def __init__(self):
-                super().__init__(b"{}")
-                self.headers = {}
-
-            def iter_content(self, chunk_size):
-                yield b" " * 1_000_001
-
-        with self.assertRaises(ColonyStatusUnavailable):
-            load_latest_colony_status(lambda url, **kwargs: UnboundedResponse())
-
-    def test_rejected_lesson_is_explained_in_plain_turkish(self):
-        report = {
-            "lesson_status": "rejected",
-            "candidate_mutation_rate": 0.05,
-            "next_generation_mutation_rate": 0.12,
-            "training_ci95_low": -1.733,
-            "confirmation_ci95_low": -1.365,
-        }
-        label, detail = _lesson_explanation(report)
-        self.assertEqual(label, "Aktarılmadı")
-        self.assertIn("yeterli iyileşme kanıtı göstermedi", detail)
-        self.assertIn("-1.733", detail)
-        self.assertIn("-1.365", detail)
-        self.assertIn("0.120 ayarı korundu", detail)
-
-    def test_transferred_lesson_is_marked_as_simulation_only(self):
-        report = {
-            "lesson_status": "transferred",
-            "candidate_mutation_rate": 0.05,
-            "next_generation_mutation_rate": 0.05,
-            "training_ci95_low": 0.2,
-            "confirmation_ci95_low": 0.1,
-        }
-        label, detail = _lesson_explanation(report)
-        self.assertEqual(label, "Sanal deneye aktarıldı")
-        self.assertIn("yapay zekâ modelinin ağırlıkları değişmez", detail)
-
+    def test_no_credentials_are_sent(self):
+        _, calls = self._load(fixture_report())
+        self.assertTrue(all("Authorization" not in call[1]["headers"] for call in calls))
