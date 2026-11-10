@@ -224,6 +224,22 @@ class CollaborativeMissionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.missions.recover_stale(older_than_seconds=30)
 
+    def test_model_failure_notice_uses_allowlisted_provider_category_only(self):
+        from core.provider_failure import MESSAGES
+        exc = RuntimeError("private response body and token")
+        exc.status_code = 400
+        exc.body = {"error": {"code": "unsupported_parameter",
+                              "message": "private response body"}}
+        message = mission_failure_message(exc, {
+            "phase": "model_call", "role": "synthesis",
+            "exception_type": "RuntimeError",
+        })
+        self.assertIn(MESSAGES["request"], message)
+        self.assertIn("synthesis rolü", message)
+        self.assertIn("son kayıtlı aşamalar korundu", message)
+        self.assertNotIn("private response", message)
+        self.assertNotIn("unsupported_parameter", message)
+
     def test_failure_notice_identifies_phase_without_exposing_raw_exception(self):
         exc = RuntimeError("secret=do-not-display; provider request failed")
         message = mission_failure_message(exc, {
