@@ -38,8 +38,11 @@ def build_provider_router(
     allow_fallback: bool = False,
     google_model: str = GOOGLE_MODEL,
     groq_model: str = GROQ_MODEL,
+    google_timeout: float = 25.0,
 ) -> FallbackChatClient:
     """Build a fresh per-turn router. External failover requires explicit opt-in."""
+    if not isinstance(google_timeout, (int, float)) or google_timeout <= 0:
+        raise ValueError("Google timeout must be positive")
     local_models = tuple(model for model in local_models if isinstance(model, str) and model)
     if selected.startswith(LOCAL_PREFIX):
         primary_model = selected.removeprefix(LOCAL_PREFIX)
@@ -64,7 +67,7 @@ def build_provider_router(
         if not key:
             raise ValueError("Google Gemini is not configured")
         primary_model = google_model
-        primary = GoogleChatClient(key, timeout=25)
+        primary = GoogleChatClient(key, timeout=google_timeout)
         primary_provider = "Google Gemini"
     elif selected == OPENROUTER_LABEL:
         key = credentials.get("OPENROUTER_API_KEY")
