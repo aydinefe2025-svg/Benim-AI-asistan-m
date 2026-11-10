@@ -13,6 +13,7 @@ import re
 import zipfile
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 
 REPOSITORY = "aydinefe2025-svg/Benim-AI-asistan-m"
 WORKFLOW_FILE = "cano-colony-cycle.yml"
@@ -22,6 +23,7 @@ PUBLISHED_STATUS_URL = (
 )
 MAX_ARCHIVE_BYTES = 8_000_000
 MAX_REPORT_BYTES = 1_000_000
+MAX_REPORT_AGE = timedelta(minutes=90)
 EXPECTED_AGENTS = {"evidence", "generation", "continuity", "security"}
 RUNS_URL = (
     f"https://api.github.com/repos/{REPOSITORY}/actions/workflows/"
@@ -31,6 +33,25 @@ RUNS_URL = (
 
 class ColonyStatusUnavailable(RuntimeError):
     """Safe, user-facing category; raw response bodies are never surfaced."""
+
+
+def report_age_seconds(timestamp: object, *, now: datetime | None = None) -> float:
+    """Validate an ISO timestamp and return its nonnegative UTC age."""
+    if not isinstance(timestamp, str) or not timestamp.strip():
+        raise ColonyStatusUnavailable("report_timestamp_invalid")
+    try:
+        generated = datetime.fromisoformat(timestamp.strip().replace("Z", "+00:00"))
+    except ValueError:
+        raise ColonyStatusUnavailable("report_timestamp_invalid") from None
+    if generated.tzinfo is None:
+        raise ColonyStatusUnavailable("report_timestamp_invalid")
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        raise ValueError("now must be timezone-aware")
+    age = (current.astimezone(timezone.utc) - generated.astimezone(timezone.utc)).total_seconds()
+    if age < -300:
+        raise ColonyStatusUnavailable("report_timestamp_in_future")
+    return max(0.0, age)
 
 
 _STATUS_CACHE_LOCK = threading.Lock()
@@ -129,6 +150,7 @@ def _validate_report(report: object, run_id: int) -> dict:
         raise ColonyStatusUnavailable("specialist_agent_results_invalid")
     if generation.get("lesson_status") not in {"transferred", "rejected"}:
         raise ColonyStatusUnavailable("generation_decision_invalid")
+    report_age_seconds(report.get("timestamp"))
     measured = (
         generation.get("candidate_mutation_rate"),
         generation.get("next_generation_mutation_rate"),
@@ -314,6 +336,12 @@ def render_colony_status_panel(st, *, loader=load_latest_colony_status) -> None:
             return
         if value.get("latest_run_state") != "completed" or value.get("latest_run_conclusion") != "success":
             st.warning("En son Actions çalışması henüz başarıyla tamamlanmadı; aşağıda son başarılı rapor gösteriliyor.")
+        age_seconds = report_age_seconds(value.get("generated_at"))
+        age_minutes = int(age_seconds // 60)
+        if age_seconds >= MAX_REPORT_AGE.total_seconds():
+            st.warning(f"Son doğrulanmış rapor {age_minutes} dakika önce üretildi; otomatik çevrim gecikmiş olabilir.")
+        else:
+            st.caption(f"Son doğrulanmış rapor {age_minutes} dakika önce üretildi.")
         a, b, c = st.columns(3)
         a.metric("Dijital çevrim", report["tick_id"])
         b.metric("Sanal nesil", report["generation_id"])
