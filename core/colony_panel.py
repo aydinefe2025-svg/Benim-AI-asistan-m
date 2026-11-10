@@ -17,7 +17,7 @@ from core.colony_postgres import ColonySnapshotStore
 from core.cano_command_center import _snapshot
 from core.colony_restore import restore_colony_json_bytes, restore_owner_backup
 from core.task_panel import _session_database_path
-from core.provider_failure import MESSAGES, safe_failure_message
+from core.provider_failure import MESSAGES, failure_category, safe_failure_message
 
 
 def snapshots_match(left, right):
@@ -59,6 +59,14 @@ def mission_failure_message(exc, failure=None):
     phase = phase_labels.get(failure.get("phase"), "başlangıç/ön kontrol")
     role = failure.get("role")
     role_text = f", {role} rolü" if isinstance(role, str) and role else ""
+    if failure.get("phase") == "model_call":
+        # Provider adapters retain only allowlisted status/code metadata on the
+        # exception. Use that to give the operator a useful category without
+        # ever rendering provider response text or request contents.
+        detail = MESSAGES[failure_category(exc)]
+        return (f"Görev durdu: {phase}{role_text}. {detail} "
+                "Görev tamamlanmadı; son kayıtlı aşamalar korundu. "
+                "İnceleyip daha sonra yeniden sürdürebilirsiniz.")
     error_type = failure.get("exception_type")
     if not isinstance(error_type, str) or not error_type:
         error_type = type(exc).__name__[:80]
