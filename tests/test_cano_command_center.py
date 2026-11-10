@@ -305,6 +305,55 @@ class CommandCenterTests(unittest.TestCase):
         self.assertEqual(len(saved["stages"]), 3)
         self.assertEqual(len(calls), 5)
 
+    def test_resume_backup_checkpoint_failure_stops_before_provider_call(self):
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        calls = []
+
+        def interrupted(prompt):
+            calls.append(prompt)
+            if len(calls) >= 4:
+                raise RuntimeError("PRIVATE provider response")
+            return f"Stage {len(calls)}"
+
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            st.task = "Preserve a blocked mission on backup failure"
+            st.submit = True
+            render_cano_command_center(st, answer=interrupted)
+
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            from core.cano_command_center import _snapshot
+            from core.collaborative_mission import CollaborativeMission
+            manager = CollaborativeMission(colony)
+            mission = manager.interrupted()[0]
+            before = manager.get(mission["id"])
+            self.assertEqual(before["status"], "blocked")
+            self.assertEqual(len(before["stages"]), 3)
+            st.clicks.add("cano_resume_partial_" + mission["id"])
+
+            from core.colony_postgres import ColonySnapshotStore
+            with (patch.object(ColonySnapshotStore, "__init__", return_value=None),
+                  patch.object(ColonySnapshotStore, "verify_schema"),
+                  patch.object(ColonySnapshotStore, "load",
+                               return_value=_snapshot(colony)),
+                  patch.object(ColonySnapshotStore, "save_versioned_verified",
+                               side_effect=RuntimeError("PRIVATE revision limit")) as save):
+                render_cano_command_center(
+                    st, answer=interrupted, owner_key="owner-a",
+                    database_url="postgresql://synthetic-test")
+
+            save.assert_called_once()
+
+        messages = " ".join(st.messages)
+        self.assertIn("görev sürdürülmedi", messages)
+        self.assertIn("sağlayıcı çağrısı yapılmadı", messages)
+        self.assertNotIn("PRIVATE", messages)
+        self.assertNotIn("Traceback", messages)
+        after = manager.get(mission["id"])
+        self.assertEqual(after["status"], "blocked")
+        self.assertEqual(len(after["stages"]), 3)
+        self.assertEqual(len(calls), 4)
+
     def test_evidence_read_button_shows_saved_source_excerpt(self):
         from core.collaborative_mission import CollaborativeMission
         st = FakeStreamlit(clicks={"cano_prepare_team"})
