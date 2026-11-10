@@ -68,12 +68,20 @@ def explain_adaptation_study(report):
     direction = "yüksek" if delta > 0 else "düşük" if delta < 0 else "aynı"
     pct = abs(delta) * 100
     shift = report.get("design", {}).get("shift_tick", "?")
+    comparison = next((item for item in report.get("paired_comparisons", [])
+                       if item.get("candidate_arm") == "mutation"
+                       and item.get("control_arm") == "no_mutation"), None)
+    interval = ""
+    if comparison:
+        interval = (f" Eşlenmiş yaklaşık %95 aralık: "
+                    f"{comparison['approx_ci95_low'] * 100:.1f}–"
+                    f"{comparison['approx_ci95_high'] * 100:.1f} yüzde puan.")
     return {
-        "what_was_tested": f"Sanal ortam {shift}. adımda A görevinden B görevine geçirildi. Mutasyonlu grup, aynı tohumlardaki mutasyonsuz grupla karşılaştırıldı.",
+        "what_was_tested": f"Sanal ortam {shift}. adımda A görevinden B görevine geçirildi. Mutasyonlu grup, aynı tohumlardaki mutasyonsuz grupla ve üremenin kapalı olduğu kontrolle karşılaştırıldı.",
         "finding": (
             f"Son adımda TASK_B komutunu taşıyanların ortalama payı mutasyonlu grupta "
             f"%{mut_share * 100:.1f}, kontrol grubunda %{control_share * 100:.1f} idi. "
-            f"Mutasyonlu grupta fark {direction} ({pct:.1f} yüzde puan)."
+            f"Mutasyonlu grupta fark {direction} ({pct:.1f} yüzde puan).{interval}"
         ),
         "meaning": "Bu, sadece simülatörde tanımlanan görev ve ödül kuralları altında görülen farktır; simülatör sonucu kodla hesaplanmıştır.",
         "limits": "Bu sonuç gerçek canlıların uyum sağladığını veya yapay zekânın model ağırlıklarını öğrendiğini göstermez; yalnızca sanal genom değişimini ölçer.",
@@ -140,3 +148,4 @@ def render_explanation(st, explanation, *, key):
         st.markdown(f"**Ne bulundu?** {explanation['finding']}")
         st.markdown(f"**Bu ne anlama geliyor?** {explanation['meaning']}")
         st.markdown(f"**Sınırı ne?** {explanation['limits']}")
+
