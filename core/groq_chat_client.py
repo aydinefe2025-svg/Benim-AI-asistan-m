@@ -1,6 +1,8 @@
 """Small, bounded Groq chat adapter for explicitly approved fallback runs."""
 from __future__ import annotations
 
+from core.safety_policy import safe_response_for_prompt
+
 from core.provider_failure import copy_safe_failure_metadata
 
 
@@ -14,6 +16,9 @@ class GroqChatClient:
         self.timeout = float(timeout)
 
     def chat(self, model: str, system: str, prompt: str, *, temperature: float = 0.2) -> str:
+        safe_response = safe_response_for_prompt(prompt)
+        if safe_response is not None:
+            return safe_response
         if not model.strip():
             raise ValueError("Model name cannot be empty")
         try:

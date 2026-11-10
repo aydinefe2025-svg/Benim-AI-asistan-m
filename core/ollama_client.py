@@ -6,6 +6,8 @@ import urllib.error
 import urllib.request
 from typing import Any
 
+from core.safety_policy import safe_response_for_prompt
+
 
 class OllamaError(RuntimeError):
     """Raised when Ollama is unreachable or returns an invalid response."""
@@ -67,6 +69,11 @@ class OllamaClient:
             for message in messages
         ):
             raise ValueError("Messages must contain valid chat roles and string content")
+        user_messages = [message["content"] for message in messages if message["role"] == "user"]
+        if user_messages:
+            safe_response = safe_response_for_prompt(user_messages[-1])
+            if safe_response is not None:
+                return safe_response
         response = self._request(
             "/api/chat",
             {

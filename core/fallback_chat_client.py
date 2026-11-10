@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from core.safety_policy import safe_response_for_prompt
+
 from core.provider_failure import copy_safe_failure_metadata
 
 
@@ -53,6 +55,11 @@ class FallbackChatClient:
         self._failure_kinds: list[str] = []
 
     def chat(self, model: str, system: str, prompt: str, *, temperature: float = 0.2) -> str:
+        safe_response = safe_response_for_prompt(prompt)
+        if safe_response is not None:
+            self.last_model_used = "deterministic-policy"
+            self.last_provider_used = "CANO Safety Gate"
+            return safe_response
         if self.fallback_active:
             if self._active_fallback is not None:
                 provider, client, model_name = self._active_fallback

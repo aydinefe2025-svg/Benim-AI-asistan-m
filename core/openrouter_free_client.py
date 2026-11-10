@@ -5,6 +5,8 @@ import json
 import urllib.error
 import urllib.request
 
+from core.safety_policy import safe_response_for_prompt
+
 
 class OpenRouterError(RuntimeError):
     """A sanitized OpenRouter failure without credentials or response bodies."""
@@ -33,6 +35,9 @@ class OpenRouterFreeClient:
         self.last_model_used: str | None = None
 
     def chat(self, model: str, system: str, prompt: str, *, temperature: float = 0.2) -> str:
+        safe_response = safe_response_for_prompt(prompt)
+        if safe_response is not None:
+            return safe_response
         # Ignore caller-supplied model names, including paid model IDs. This adapter
         # always uses OpenRouter's explicitly free model pool.
         if not isinstance(system, str) or not isinstance(prompt, str):

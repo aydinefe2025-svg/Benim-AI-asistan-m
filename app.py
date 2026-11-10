@@ -495,6 +495,10 @@ render_organism_lab_panel(
 
 # 🧠 Modeli Doğrudan Tetikleyen Arka Plan Sistemi
 def asistani_calistir(kullanici_mesaji, *, approved=False):
+    from core.safety_policy import safe_response_for_prompt
+    safe_response = safe_response_for_prompt(kullanici_mesaji)
+    if safe_response is not None:
+        return safe_response
     local_ollama_selected = str(globals().get("secilen_model", "")).startswith("Ollama (Yerel): ")
     from core.cano_chat_tasks import parse_task_request, format_task_result
     task_goal = parse_task_request(kullanici_mesaji)
