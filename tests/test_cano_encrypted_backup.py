@@ -73,10 +73,18 @@ class EncryptedBackupTests(unittest.TestCase):
         self.assertFalse(self.target.exists())
 
     def test_reject_symlink_destination_and_archive(self):
-        link=self.root/'link';link.symlink_to(self.root,target_is_directory=True)
+        link=self.root/'link'
+        try:
+            link.symlink_to(self.root,target_is_directory=True)
+        except (NotImplementedError, OSError) as exc:
+            self.skipTest(f"symlink creation is unavailable in this environment: {exc}")
         with self.assertRaises(BackupError):make_encrypted_backup(link,dump_bin=self.fake)
         result=make_encrypted_backup(self.target,dump_bin=self.fake)
-        archive=Path(result['archive']);archive.unlink();archive.symlink_to(self.dump)
+        archive=Path(result['archive']);archive.unlink()
+        try:
+            archive.symlink_to(self.dump)
+        except (NotImplementedError, OSError) as exc:
+            self.skipTest(f"symlink creation is unavailable in this environment: {exc}")
         with self.assertRaises(BackupError):verify_encrypted_backup(Path(result['receipt']))
 
     def test_restore_uses_authenticated_snapshot_after_original_archive_changes(self):
@@ -280,3 +288,4 @@ class EncryptedBackupTests(unittest.TestCase):
         with self.assertRaises(BackupError):verify_encrypted_backup(receipt)
 
 if __name__=='__main__':unittest.main()
+
