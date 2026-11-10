@@ -1,6 +1,11 @@
 -- Permit the hosted lab runtime to access only its authenticated owner's
 -- single filesystem snapshot. The application sets organism.owner_key
 -- transaction-locally on every connection before issuing archive queries.
+REVOKE ALL ON public.organism_lab_records FROM PUBLIC;
+GRANT USAGE ON SCHEMA public TO organism_lab_runtime;
+GRANT SELECT, INSERT, UPDATE ON public.organism_lab_records TO organism_lab_runtime;
+ALTER TABLE public.organism_lab_records ENABLE ROW LEVEL SECURITY;
+
 DO $$
 BEGIN
     IF NOT EXISTS (
