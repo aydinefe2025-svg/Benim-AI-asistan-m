@@ -2,6 +2,7 @@ import unittest
 import ast
 from pathlib import Path
 from types import SimpleNamespace
+from uuid import uuid4
 from core.cano_capabilities import capability_reply
 
 
@@ -26,6 +27,29 @@ class CapabilityTests(unittest.TestCase):
         self.assertIn('hesap sahibine bağlı PostgreSQL', text)
         self.assertIn('Komuta Merkezi', text)
         self.assertNotIn('Neon', text)
+
+    def test_self_improvement_commands_open_bounded_task_preview_without_model_call(self):
+        app = Path(__file__).resolve().parents[1] / 'app.py'
+        tree = ast.parse(app.read_text(encoding='utf-8'))
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                  and n.name == 'asistani_calistir')
+        for query in (
+            'KENDİNİ GELİŞTİRMEYİ ÖĞREN',
+            'HAYIR BEN ÖĞRENİP GELİŞMENİ İSTİYORUM',
+            'HAYIR BEN HERŞEYİ SENİN YAPMANI İSTİYORUM',
+        ):
+            with self.subTest(query=query):
+                namespace = {
+                    'st': SimpleNamespace(session_state={}),
+                    'uuid4': uuid4,
+                    'secilen_model': 'Groq GPT-OSS',
+                }
+                exec(compile(ast.Module(body=[fn], type_ignores=[]), str(app), 'exec'),
+                     namespace)
+                text = namespace['asistani_calistir'](query)
+                self.assertIn('CANO görev taslağı hazır', text)
+                self.assertIn('Henüz model çağrısı veya görev kaydı yapılmadı', text)
+                self.assertIn('yanıtlarını', text)
 
     def test_growth_is_explained_as_a_repeatable_workflow(self):
         text = capability_reply('kendini geliştir cano', persistent_memory=True,

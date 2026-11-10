@@ -1,27 +1,42 @@
 """Explicit routing from CANO chat into the durable four-stage task runner."""
 from __future__ import annotations
 
+import unicodedata
+
+
+def _normalize_intent(text: str) -> str:
+    """Normalize Turkish dotted/dotless-I variants for command matching."""
+    folded = unicodedata.normalize("NFKD", text.casefold())
+    without_marks = "".join(char for char in folded
+                             if not unicodedata.combining(char))
+    return without_marks.replace("ı", "i")
+
 
 def parse_task_request(message):
     """Return a bounded task only when the user clearly invokes the team."""
     if not isinstance(message, str):
         return None
     text = message.strip()
-    prefixes = ("cano görev:", "cano gorev:", "görev:", "gorev:")
-    folded = text.casefold()
-    if (("kendini geliştir" in folded or "kendini gelistir" in folded)
-            and any(phrase in folded for phrase in
-                    ("öğrenmeye başla", "ogrenmeye basla"))):
+    prefixes = ("cano gorev:", "gorev:")
+    folded = _normalize_intent(text)
+    self_improvement_request = any(phrase in folded for phrase in (
+        "kendini gelistir", "gelismeni istiyorum", "ogrenip gelismen",
+        "cano'yu gelistir", "cano yu gelistir", "modeli gelistir",
+        "herseyi senin yapmani istiyorum", "her seyi senin yapmani istiyorum",
+        "hepsini senin yapmani istiyorum",
+    ))
+    if self_improvement_request:
         return ("CANO için ölçülebilir gelişim önerisi hazırla: inceleme bekleyen "
-                "taslaklarla doğrulanmış dersleri ayır; geliştirme ölçütü ve güvenli "
-                "deney öner. Model ağırlıklarını, kayıtları veya etkin ajanları "
+                "taslakları ve onaylı dersleri ayır; CANO'nun kullanıcı niyetini "
+                "karşılamayan yanıtlarını ve ürün özellikleri hakkındaki iddialarını "
+                "mevcut kod/testlerle denetle; doğrulanabilir kök neden ve ölçülebilir "
+                "düzeltme öner. Model ağırlıklarını, kayıtları veya etkin ajanları "
                 "değiştirme; önerileri otomatik uygulama.")
     for prefix in prefixes:
         if folded.startswith(prefix):
             task = text[len(prefix):].strip()
             return task if 1 <= len(task) <= 1200 else None
     return None
-
 
 def format_task_result(result):
     """Present saved role outputs with the real execution status and ID."""
