@@ -6,6 +6,7 @@ from core.google_chat_client import GoogleChatClient
 from core.groq_chat_client import GroqChatClient
 from core.ollama_client import OllamaClient
 from core.openrouter_free_client import OpenRouterFreeClient
+from core.trained_lora_client import TRAINED_LORA_LABEL, TrainedLoraClient
 
 GROQ_MODEL = "openai/gpt-oss-120b"
 GOOGLE_MODEL = "gemini-3.6-flash"
@@ -47,6 +48,10 @@ def build_provider_router(
         primary = OllamaClient(ollama_url, timeout=180, max_output_tokens=1200,
                                think=False)
         primary_provider = "Ollama (Yerel)"
+    elif selected == TRAINED_LORA_LABEL:
+        primary = TrainedLoraClient(timeout=240)
+        primary_model = primary.last_model_used
+        primary_provider = TRAINED_LORA_LABEL
     elif selected.startswith("Groq"):
         key = credentials.get("GROQ_API_KEY")
         if not key:

@@ -1,4 +1,7 @@
 import unittest
+from unittest.mock import Mock, patch
+
+from core.trained_lora_client import TRAINED_LORA_LABEL
 
 from core.provider_router import (
     OPENROUTER_LABEL,
@@ -46,6 +49,15 @@ class ProviderRouterTests(unittest.TestCase):
         )
         self.assertEqual(router.primary_provider, "Ollama (Yerel)")
         self.assertEqual([name for name, _, _ in router.fallback_chain], [OPENROUTER_LABEL])
+
+    def test_verified_local_lora_can_be_selected_without_credentials(self):
+        fake = Mock()
+        fake.last_model_used = "Qwen/Qwen3-8B + candidate-test"
+        with patch("core.provider_router.TrainedLoraClient", return_value=fake):
+            router = build_provider_router(TRAINED_LORA_LABEL, {})
+        self.assertEqual(router.primary_provider, TRAINED_LORA_LABEL)
+        self.assertIn("candidate-", router.primary.last_model_used)
+        self.assertFalse(router.allow_fallback)
 
     def test_unknown_or_unconfigured_provider_is_rejected(self):
         with self.assertRaises(ValueError):

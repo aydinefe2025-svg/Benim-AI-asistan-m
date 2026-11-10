@@ -4,8 +4,8 @@ Never log or return credential values through diagnostics.
 """
 
 
-def available_providers(secrets, local_models=()):
-    labels = []
+def available_providers(secrets, local_models=(), *, trained_lora_available=False):
+    labels = ["LoRA (Yerel · Qwen3-8B deneysel)"] if trained_lora_available else []
     for name, label in (
         ("GROQ_API_KEY", "Groq GPT-OSS (sağlayıcı kotası uygulanır)"),
         ("GOOGLE_API_KEY", "Google Gemini (hesap kotası uygulanır)"),
