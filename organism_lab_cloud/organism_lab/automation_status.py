@@ -17,7 +17,8 @@ import time
 REPOSITORY = "aydinefe2025-svg/Benim-AI-asistan-m"
 WORKFLOW_FILE = "cano-colony-cycle.yml"
 PUBLISHED_STATUS_URL = (
-    "https://aydinefe2025-svg.github.io/Benim-AI-asistan-m/cano-colony-status.json"
+    "https://raw.githubusercontent.com/aydinefe2025-svg/Benim-AI-asistan-m/"
+    "cano-latest/colony-cycle.json"
 )
 MAX_ARCHIVE_BYTES = 8_000_000
 MAX_REPORT_BYTES = 1_000_000
@@ -161,8 +162,9 @@ def load_latest_colony_status(request_get=None) -> dict:
         import requests
         request_get = requests.get
     try:
-        # The Pages feed avoids GitHub REST's low unauthenticated rate limit on
-        # Render. It contains only the latest successful, validated toy report.
+        # The existing public cano-latest branch feed avoids GitHub REST's low
+        # unauthenticated rate limit on Render. It contains only the latest
+        # successful, validated toy report.
         try:
             published = _get_json(request_get, PUBLISHED_STATUS_URL)
         except Exception:
