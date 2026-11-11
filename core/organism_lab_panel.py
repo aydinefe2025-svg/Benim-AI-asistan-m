@@ -166,6 +166,12 @@ def render_organism_lab_panel(st, *, owner_key=None, database_url=None):
             st.success(f"{saved['observations']} dijital gözlem yeniden hesaplanarak doğrulandı.")
             st.markdown(explain_campaign(saved["report"]))
             st.dataframe(saved["report"]["results"], hide_index=True)
+            with st.expander("Tohum bazında ham ölçümler", expanded=False):
+                st.caption(
+                    "Her satır aynı başlangıç tohumu için çoğalma kuralı ile kontrolü "
+                    "karşılaştırır. Fark, çoğalma nüfusu eksi kontrol nüfusudur; "
+                    "bu ölçümler yalnızca simülatöre aittir.")
+                st.dataframe(saved["report"]["observations"], hide_index=True)
             st.caption("JSON SHA-256: " + saved["sha256"])
             st.download_button(
                 "Deney kanıtını JSON indir", data=saved["json"],
