@@ -23,6 +23,7 @@ class DigitalVMTests(unittest.TestCase):
     def test_lineage_snapshot_records_parent_genome_and_no_mutation_control(self):
         world = GenomeWorld(seed=4, resources_per_tick=20, mutation_rate=0)
         world.step()
+        world.step()
         records = world.lineage_snapshot()
         founder = next(row for row in records if row["organism_id"] == 0)
         child = next(row for row in records if row["organism_id"] == 1)
@@ -37,6 +38,7 @@ class DigitalVMTests(unittest.TestCase):
 
     def test_mutation_provenance_counts_changed_opcodes(self):
         world = GenomeWorld(seed=7, resources_per_tick=20, mutation_rate=1)
+        world.step()
         world.step()
         records = world.lineage_snapshot()
         founder = next(row for row in records if row["organism_id"] == 0)
