@@ -91,6 +91,42 @@ class EncryptedBackupTests(unittest.TestCase):
         self.assertFalse(receipt['offsite_location_verified'])
         verify_encrypted_backup(Path(result['receipt']))
 
+    def test_authenticated_receipt_rejects_forged_source_profile(self):
+        safe={'profile':'full','required_tables_matched':9,
+              'nonempty_table_verified':True,'source_host_pinned':True,
+              'source_database_pinned':True,
+              'scope':'Preflight only; restore not proven'}
+        with patch('cano_encrypted_backup.require_application_source',return_value=safe):
+            result=make_encrypted_backup(self.target,dump_bin=self.fake,
+                                         source_profile='full')
+        receipt_path=Path(result['receipt'])
+        receipt=json.loads(receipt_path.read_text(encoding='utf8'))
+        self.assertEqual(len(receipt['receipt_mac_sha256']),64)
+        self.assertTrue(all(char in '0123456789abcdef' for char in receipt['receipt_mac_sha256']))
+        proof=verify_encrypted_backup(receipt_path)
+        self.assertTrue(proof['receipt_authenticated'])
+        self.assertTrue(proof['source_preflight_metadata_authenticated'])
+        self.assertFalse(proof['production_restore_tested'])
+        receipt['application_source_preflight']['required_tables_matched']=900
+        receipt_path.write_text(json.dumps(receipt),encoding='utf8')
+        with self.assertRaisesRegex(BackupError,'receipt authentication'):
+            verify_encrypted_backup(receipt_path)
+
+    def test_legacy_unsigned_receipt_cannot_certify_source_provenance(self):
+        result=make_encrypted_backup(self.target,dump_bin=self.fake)
+        receipt_path=Path(result['receipt'])
+        legacy=json.loads(receipt_path.read_text(encoding='utf8'))
+        legacy.pop('receipt_mac_sha256',None)
+        legacy['application_source_preflight']={
+            'profile':'full','source_host_pinned':True,
+            'source_database_pinned':True,'required_tables_matched':900,
+            'nonempty_table_verified':True}
+        receipt_path.write_text(json.dumps(legacy),encoding='utf8')
+        proof=verify_encrypted_backup(receipt_path)
+        self.assertTrue(proof['authenticated'])
+        self.assertFalse(proof['receipt_authenticated'])
+        self.assertFalse(proof['source_preflight_metadata_authenticated'])
+
     def test_app_profile_missing_expected_pins_never_runs_dump(self):
         with patch.dict(os.environ,{
                 'CANO_BACKUP_EXPECTED_HOST':'',
