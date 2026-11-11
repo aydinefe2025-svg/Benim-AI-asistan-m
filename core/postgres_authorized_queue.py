@@ -13,6 +13,7 @@ import logging
 import logging
 import os
 import secrets
+import threading
 import time
 import uuid
 from typing import Callable
@@ -271,6 +272,23 @@ class PostgresAuthorizedQueue:
         return {"id": task_id, "status": "review_pending",
                 "draft": clean, "verified": False}
 
+    def renew_lease(self, task_id, lease_token, *, lease_seconds: int = 60):
+        """Extend a live lease under its row lock; an expired lease is never revived."""
+        if type(lease_seconds) is not int or not 1 <= lease_seconds <= 3600:
+            raise ValueError("Invalid lease duration")
+        with self._db() as db, db.cursor() as cur:
+            self._require_lease(cur, task_id, lease_token, None)
+            # Keep the expiry predicate in the write as well as the locked read:
+            # the server clock is authoritative even at the expiry boundary.
+            cur.execute("UPDATE cano_authorized_jobs SET lease_until="
+                        "EXTRACT(EPOCH FROM clock_timestamp())+%s "
+                        "WHERE owner_key=%s AND id=%s AND state='running' "
+                        "AND lease_token=%s AND lease_until>EXTRACT(EPOCH FROM clock_timestamp())",
+                        (lease_seconds, self.owner_key, task_id, lease_token))
+            if cur.rowcount != 1:
+                raise PermissionError("Job lease expired or lost")
+        return True
+
     def fail(self, task_id, lease_token, *, now: float | None = None):
         when = self._override(now)
         with self._db() as db, db.cursor() as cur:
@@ -316,20 +334,62 @@ class PostgresAuthorizedQueue:
             return len(rows)
 
     def run_once(self, worker_id: str, answer: Callable[[str], str], *,
-                 approved: bool = False, now: float | None = None):
+                 approved: bool = False, now: float | None = None,
+                 lease_seconds: int = 60):
         """One explicitly triggered provider attempt; no automatic background calls."""
         if approved is not True:
             raise PermissionError("Explicit execution authorization required")
         if not callable(answer):
             raise ValueError("An authorized provider callback is required")
-        job = self.claim(worker_id, approved=True, now=now)
+        if type(lease_seconds) is not int or not 1 <= lease_seconds <= 3600:
+            raise ValueError("Invalid lease duration")
+        job = self.claim(worker_id, approved=True, now=now, lease_seconds=lease_seconds)
         if job is None:
             return None
+        stopped, lost = threading.Event(), threading.Event()
+        interval = min(10.0, max(.25, lease_seconds / 3))
+
+        def heartbeat():
+            while not stopped.wait(interval):
+                try:
+                    self.renew_lease(job["id"], job["lease_token"],
+                                     lease_seconds=lease_seconds)
+                except Exception:
+                    # No exception details: they can include connection data.
+                    lost.set()
+                    return
+
+        thread = threading.Thread(target=heartbeat, name="cano-queue-lease-heartbeat", daemon=True)
+        thread.start()
         try:
-            draft = answer(job["goal"])
+            try:
+                draft = answer(job["goal"])
+            except Exception:
+                # Never log provider errors: they can contain credentials or prompts.
+                if lost.is_set():
+                    return {"id": job["id"], "status": "lease_lost", "verified": False}
+                try:
+                    return self.fail(job["id"], job["lease_token"], now=now)
+                except PermissionError:
+                    return {"id": job["id"], "status": "lease_lost", "verified": False}
+            if lost.is_set():
+                return {"id": job["id"], "status": "lease_lost", "verified": False}
             if not isinstance(draft, str) or not draft.strip():
-                raise ValueError("Empty provider result")
-            return self.complete(job["id"], job["lease_token"], draft, now=now)
-        except Exception:
-            # Never log provider errors: they can contain credentials or prompts.
-            return self.fail(job["id"], job["lease_token"], now=now)
+                try:
+                    return self.fail(job["id"], job["lease_token"], now=now)
+                except PermissionError:
+                    return {"id": job["id"], "status": "lease_lost", "verified": False}
+            try:
+                return self.complete(job["id"], job["lease_token"], draft, now=now)
+            except PermissionError:
+                return {"id": job["id"], "status": "lease_lost", "verified": False}
+            except Exception:
+                # The transaction may have committed before its acknowledgement was
+                # lost. Leave reconciliation to recovery/manual review; never retry.
+                return {"id": job["id"], "status": "completion_uncertain",
+                        "manual_review": True, "verified": False}
+        finally:
+            stopped.set()
+            # A PostgreSQL connection is bounded by connect_timeout=8; never
+            # make callback completion wait indefinitely for a stuck renewal.
+            thread.join(timeout=8.5)
