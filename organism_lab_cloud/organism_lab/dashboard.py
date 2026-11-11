@@ -22,7 +22,8 @@ from organism_lab.automation_status import render_colony_status_panel
 # BEGIN colony resilience imports
 from organism_lab.colony_resilience import (run_colony_resilience_study,
                                              save_colony_resilience_study,
-                                             explain_colony_resilience)
+                                             explain_colony_resilience,
+                                             paired_trial_rows)
 # END colony resilience imports
 from organism_lab.literature_search import list_records, save_records, search_openalex
 from organism_lab.persistent_memory import (augment_with_memory, list_memories,
@@ -464,8 +465,10 @@ st.divider()
 st.subheader("Sanal koloni iletişimi ve hata yalıtımı")
 st.caption(
     "Sınırlı dijital stres testi: aynı sanal ajanlar açık yayın ağıyla ve bölümlenmiş, "
-    "geçersiz mesajları reddeden ağ geçitleriyle karşılaştırılır. Tek bir ajanın hatalı "
-    "mesaj göndermesi simüle edilir. Bu gerçek siber güvenlik denetimi veya güvenlik garantisi değildir."
+    "geçersiz mesajları reddeden ağ geçitleriyle karşılaştırılır. Her adımda olası yönlü "
+    "bağlantıların %8'i etkin örneklenir; iki kol aynı bağlantı örüntülerini kullanır. "
+    "Tek bir ajanın hatalı mesaj göndermesi simüle edilir. Bu gerçek siber güvenlik denetimi "
+    "veya güvenlik garantisi değildir."
 )
 if st.button("Koloni iletişimi ve yalıtım testini çalıştır", key="run_colony_resilience"):
     try:
@@ -501,6 +504,9 @@ if "colony_resilience_report" in st.session_state:
              "Reddedilen hatalı mesaj": protected_arm["mean_rejected_bad_packets"]},
         ], width="stretch", hide_index=True)
         st.caption("Kanıt sınırı: yalnızca seçilen sayısal ağ modelinin simülasyon sonucu; gerçek saldırı veya gerçek ajan dayanıklılığı doğrulanmadı.")
+        with st.expander("Tohum bazında eşlenmiş sonuçları incele"):
+            st.caption("Her satır aynı arızalı sanal ajanı kullanan eşlenmiş bir deney tohumudur. Fark sütunları bölümlenmiş ağ eksi açık ağ olarak hesaplanır.")
+            st.dataframe(paired_trial_rows(colony_report), width="stretch", hide_index=True)
         st.download_button(
             "Koloni iletişim testinin JSON raporunu indir",
             data=json.dumps(colony_report, ensure_ascii=False, indent=2, allow_nan=False),
