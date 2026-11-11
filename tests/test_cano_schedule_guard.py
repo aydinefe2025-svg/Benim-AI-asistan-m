@@ -5,19 +5,54 @@ from datetime import datetime, timedelta, timezone
 from scripts.cano_schedule_guard import MAX_REPORT_AGE, should_run_cycle
 
 
+def valid_report(timestamp):
+    roles = ("evidence", "generation", "continuity", "security")
+    return {
+        "timestamp": timestamp,
+        "db_integrity": "ok",
+        "stored_ticks": 12,
+        "verified_tick_id": 12,
+        "continuity": {
+            "had_prior_state": True,
+            "previous_tick_id": 11,
+            "previous_tick_count": 11,
+            "increment_verified": True,
+        },
+        "cycle": {"tick_id": 12, "state": "proposed"},
+        "virtual_generation": {"generation_id": 12, "lesson_status": "rejected"},
+        "mode": "bounded_virtual_reproduction_with_held_out_validation",
+        "scope": "authorized_github_runner",
+        "specialist_agents": {
+            "status": "passed",
+            "launched": 4,
+            "roles": [
+                {
+                    "role": role,
+                    "status": "passed",
+                    "execution": "isolated_read_only_subprocess",
+                    "model_calls": 0,
+                }
+                for role in roles
+            ],
+        },
+    }
+
+
 class CanoScheduleGuardTests(unittest.TestCase):
     def setUp(self):
         self.now = datetime(2026, 11, 9, 12, 0, tzinfo=timezone.utc)
 
-    def report(self, timestamp):
-        return json.dumps({"timestamp": timestamp}).encode()
+    def report(self, timestamp, **overrides):
+        payload = valid_report(timestamp)
+        payload.update(overrides)
+        return json.dumps(payload).encode()
 
     def test_manual_and_push_events_always_run(self):
         for event in ("workflow_dispatch", "push"):
             with self.subTest(event=event):
                 self.assertTrue(should_run_cycle(event, None, now=self.now))
 
-    def test_recent_scheduled_report_skips_expensive_cycle(self):
+    def test_recent_complete_scheduled_report_skips_cycle(self):
         recent = self.now - timedelta(minutes=49, seconds=59)
         self.assertFalse(should_run_cycle("schedule", self.report(recent.isoformat()), now=self.now))
 
@@ -38,6 +73,30 @@ class CanoScheduleGuardTests(unittest.TestCase):
     def test_future_timestamp_fails_open(self):
         future = self.now + timedelta(seconds=1)
         self.assertTrue(should_run_cycle("schedule", self.report(future.isoformat()), now=self.now))
+
+    def test_fresh_but_invalid_reports_fail_open(self):
+        recent = (self.now - timedelta(minutes=1)).isoformat()
+        invalid = (
+            {"db_integrity": "failed"},
+            {"mode": "unbounded"},
+            {"continuity": {"had_prior_state": True}},
+            {"specialist_agents": {"status": "failed"}},
+        )
+        for override in invalid:
+            with self.subTest(override=override):
+                self.assertTrue(should_run_cycle(
+                    "schedule", self.report(recent, **override), now=self.now))
+
+    def test_no_prior_state_is_valid_for_initial_cycle(self):
+        recent = (self.now - timedelta(minutes=1)).isoformat()
+        initial = valid_report(recent)
+        initial["continuity"] = {"had_prior_state": False}
+        initial["stored_ticks"] = 1
+        initial["verified_tick_id"] = 1
+        initial["cycle"]["tick_id"] = 1
+        initial["virtual_generation"]["generation_id"] = 1
+        self.assertFalse(should_run_cycle(
+            "schedule", json.dumps(initial), now=self.now))
 
 
 if __name__ == "__main__":
