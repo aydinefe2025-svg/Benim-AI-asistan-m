@@ -7,12 +7,13 @@ from unittest.mock import patch
 from core.agent_colony import AgentColony
 from core.task_panel import _session_database_path
 from core.cano_command_center import (
-    prepare_cano_team, read_cano_status, render_cano_command_center
+    prepare_cano_team, read_cano_status, render_cano_command_center,
+    _render_claim_evidence_review,
 )
 
 
 class FakeStreamlit:
-    def __init__(self, *, clicks=None, submit=False, task="", crossref=False, local_backup=False):
+    def __init__(self, *, clicks=None, submit=False, task="", crossref=False, local_backup=False,\n                 checkbox_values=None, select_values=None):
         self.session_state = {}
         self.clicks = set(clicks or [])
         self.submit = submit
@@ -381,6 +382,82 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(saved["stages"][0]["source_documents"][0]["status"],
                              "full_text_excerpt")
             self.assertFalse(saved["stages"][0]["source_documents"][0]["claim_verified"])
+
+    def test_owner_claim_review_is_explicit_and_does_not_complete_mission(self):
+        import json
+        from core.collaborative_mission import CollaborativeMission
+
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        rationale = ("I inspected the publisher full text and confirmed that the "
+                     "quoted measurement directly supports this narrow claim.")
+        st.task = rationale
+        reviewer = "oidc_" + "a" * 64
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=FakeModel())
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            prepare_cano_team(colony, approved=True)
+            manager = CollaborativeMission(colony)
+            mission = manager.execute(
+                "Solar study: the paper measured solar output.",
+                client=type("Client", (), {
+                    "chat": lambda self, model, system, prompt: "Draft"
+                })(), model="test",
+                source_lookup=lambda query, limit=3: [
+                    {"title": "Solar study", "url": "https://doi.org/10.1234/solar"}])
+            with patch("core.europepmc_evidence.read_publication_evidence",
+                       return_value={"doi": "10.1234/solar", "title": "Solar study",
+                                     "url": "https://europepmc.org/articles/PMC1234567",
+                                     "status": "full_text_excerpt",
+                                     "excerpt": "Measured solar output in a real study.",
+                                     "claim_verified": False}):
+                manager.inspect_source_documents(mission["id"])
+
+            class AuditModel:
+                def __init__(self):
+                    self.calls = 0
+
+                def __call__(self, prompt):
+                    self.calls += 1
+                    return json.dumps({"claims": [{
+                        "claim": "The study measured solar output.",
+                        "doi": "10.1234/solar",
+                        "quote": "Measured solar output in a real study.",
+                        "comparison": "supports",
+                        "rationale": "The passage directly reports a measurement.",
+                    }]})
+
+            model = AuditModel()
+            audit_key = "cano_claim_audit_external_consent_" + mission["id"]
+            st.checkbox_values[audit_key] = True
+            st.submit = True
+            checkpoints = []
+            planner = manager.get(mission["id"])["stages"][0]
+            _render_claim_evidence_review(
+                st, manager, mission["id"], planner, owner_key=reviewer,
+                answer=model, checkpoint=lambda **kwargs: checkpoints.append(kwargs))
+            audited = manager.get(mission["id"])
+            item = audited["stages"][0]["source_claim_audit"][0]
+            self.assertEqual(item["status"], "quote_found_unverified")
+            self.assertFalse(item["claim_verified"])
+            self.assertEqual(model.calls, 1)
+
+            decision_key = "cano_claim_decision_" + mission["id"] + "_0"
+            primary_key = "cano_claim_primary_" + mission["id"] + "_0"
+            st.select_values[decision_key] = "Birincil tam metin doğrudan destekliyor"
+            st.checkbox_values[primary_key] = True
+            st.submit = True
+            planner = audited["stages"][0]
+            _render_claim_evidence_review(
+                st, manager, mission["id"], planner, owner_key=reviewer,
+                answer=model, checkpoint=lambda **kwargs: checkpoints.append(kwargs))
+            reviewed = manager.get(mission["id"])
+            claim = reviewed["stages"][0]["source_claim_audit"][0]
+            self.assertTrue(claim["claim_verified"])
+            self.assertEqual(claim["human_review"]["reviewer_id"], reviewer)
+            self.assertTrue(claim["human_review"]["primary_source_confirmed"])
+            self.assertEqual(reviewed["status"], "review_pending")
+            self.assertEqual(model.calls, 1)
+            self.assertEqual(len(checkpoints), 3)
 
     def test_opted_in_browser_backup_survives_new_session_and_no_provider_replay(self):
         st = FakeStreamlit(clicks={"cano_prepare_team"}, local_backup=True)
