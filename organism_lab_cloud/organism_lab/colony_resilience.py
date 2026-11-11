@@ -17,12 +17,14 @@ SCHEMA = "organism-lab-colony-resilience-v1"
 MAX_SEEDS = 50
 MAX_TICKS = 40
 MAX_POPULATION = 32
+CONTACT_PROBABILITY = 0.08
 
 
 def _simulate(seed: int, *, ticks: int, population: int, compartments: int,
               fault_tick: int, protected: bool) -> dict:
     """Simulate a useful protocol spreading before one sender emits a bad packet."""
     rng = random.Random(seed)
+    contact_rng = random.Random(seed ^ 0x5EEDC0DE)
     group_size = population // compartments
     groups = [i // group_size for i in range(population)]
     knowledge = [i == 0 for i in range(population)]
@@ -31,6 +33,12 @@ def _simulate(seed: int, *, ticks: int, population: int, compartments: int,
     rejected_packets = 0
 
     for tick in range(ticks):
+        # Draw the same directed contact graph for both paired study arms.
+        # Generate it before applying policy filters so both arms see identical contacts.
+        contacts = [
+            [contact_rng.random() < CONTACT_PROBABILITY for _ in range(population)]
+            for _ in range(population)
+        ]
         if tick == fault_tick:
             compromised[faulted_node] = True
             knowledge[faulted_node] = False
@@ -44,7 +52,7 @@ def _simulate(seed: int, *, ticks: int, population: int, compartments: int,
             if previous_compromised[receiver]:
                 continue
             for sender in range(population):
-                if sender == receiver:
+                if sender == receiver or not contacts[receiver][sender]:
                     continue
                 if protected:
                     same_compartment = groups[sender] == groups[receiver]
@@ -144,18 +152,19 @@ def run_colony_resilience_study(*, seeds=30, ticks=10, population=16,
             "population": population,
             "compartments": compartments,
             "simulated_fault_tick": fault_tick,
+            "directed_contact_probability_per_tick": CONTACT_PROBABILITY,
             "fault_model": "one virtual node begins emitting an invalid message",
         },
         "arms": {
             "open_broadcast": {
-                "description": "All nodes accept messages from every other node.",
+                "description": "All nodes share the same randomly sampled directed contacts.",
                 "mean_healthy_ready": _mean(open_network, "healthy_ready"),
                 "mean_compromised_nodes": _mean(open_network, "compromised_nodes"),
                 "mean_fully_ready_compartments": _mean(open_network, "fully_ready_compartments"),
                 "trials": open_network,
             },
             "segmented_validated": {
-                "description": "Messages stay within compartments or pass an alternate-tick gateway; invalid senders are rejected.",
+                "description": "The same sampled contacts are filtered by compartment gateways; invalid senders are rejected.",
                 "mean_healthy_ready": _mean(protected_network, "healthy_ready"),
                 "mean_compromised_nodes": _mean(protected_network, "compromised_nodes"),
                 "mean_fully_ready_compartments": _mean(protected_network, "fully_ready_compartments"),
@@ -176,6 +185,45 @@ def run_colony_resilience_study(*, seeds=30, ticks=10, population=16,
     return report
 
 
+
+def paired_trial_rows(report: dict) -> list[dict]:
+    """Return per-seed arm comparisons after validating the matched experiment."""
+    validate_colony_resilience_report(report)
+    arms = report["arms"]
+    open_trials = arms["open_broadcast"].get("trials")
+    protected_trials = arms["segmented_validated"].get("trials")
+    if (not isinstance(open_trials, list) or not open_trials
+            or not isinstance(protected_trials, list)
+            or len(open_trials) != len(protected_trials)):
+        raise ValueError("Paired trial lists are incomplete")
+    rows = []
+    for open_trial, protected_trial in zip(open_trials, protected_trials):
+        if (not isinstance(open_trial, dict) or not isinstance(protected_trial, dict)
+                or type(open_trial.get("seed")) is not int
+                or open_trial.get("seed") != protected_trial.get("seed")
+                or type(open_trial.get("faulted_node")) is not int
+                or open_trial.get("faulted_node") != protected_trial.get("faulted_node")):
+            raise ValueError("Paired trial seed or fault does not match")
+        metrics = ("healthy_ready", "compromised_nodes", "fully_ready_compartments")
+        if any(type(trial.get(metric)) is not int
+               for trial in (open_trial, protected_trial) for metric in metrics):
+            raise ValueError("Paired trial metrics are invalid")
+        rows.append({
+            "Tohum": open_trial["seed"],
+            "Arızalı ajan": open_trial["faulted_node"],
+            "Açık ağ · hazır": open_trial["healthy_ready"],
+            "Bölümlü ağ · hazır": protected_trial["healthy_ready"],
+            "Hazır ajan farkı": protected_trial["healthy_ready"] - open_trial["healthy_ready"],
+            "Açık ağ · etkilenmiş": open_trial["compromised_nodes"],
+            "Bölümlü ağ · etkilenmiş": protected_trial["compromised_nodes"],
+            "Etkilenmiş ajan farkı": protected_trial["compromised_nodes"] - open_trial["compromised_nodes"],
+            "Açık ağ · hazır bölme": open_trial["fully_ready_compartments"],
+            "Bölümlü ağ · hazır bölme": protected_trial["fully_ready_compartments"],
+            "Reddedilen hatalı mesaj": protected_trial.get("rejected_bad_packets", 0),
+        })
+    return rows
+
+
 def explain_colony_resilience(report: dict) -> str:
     """Make the paired experiment legible without an LLM call."""
     validate_colony_resilience_report(report)
@@ -191,7 +239,9 @@ def explain_colony_resilience(report: dict) -> str:
         f"**Ne denendi?** {report['design']['population']} sanal ajanı "
         f"{report['design']['compartments']} bölmeye ayırdık ve aynı "
         f"{len(report['design']['paired_seeds'])} başlangıçta iki iletişim düzenini karşılaştırdık. "
-        f"{report['design']['simulated_fault_tick']}. adımda tek bir sanal ajanın geçersiz mesaj göndermesini modelledik.\n\n"
+        f"Her adımda olası yönlü bağlantıların %{report['design']['directed_contact_probability_per_tick'] * 100:.0f}'i etkin örneklendi "
+        f"ve iki düzen aynı bağlantı örüntüsünü kullandı. {report['design']['simulated_fault_tick']}. adımda "
+        "tek bir sanal ajanın geçersiz mesaj göndermesini modelledik.\n\n"
         f"**Ne ölçtük?** Açık ağda son durumda ortalama "
         f"{open_arm['mean_healthy_ready']:.1f}/{report['design']['population']} ajan hazır, "
         f"{open_arm['mean_compromised_nodes']:.1f} ajan etkilenmişti. Bölümlenmiş ve doğrulanan ağda "
