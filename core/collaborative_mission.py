@@ -27,7 +27,10 @@ _QUALITY_CONTRACT = (
     "Yanıt kalitesi: kullanıcının asıl hedefini ilk paragrafta karşıla; genel/geçiştiren "
     "öğütler verme; her önemli öneriyi görevdeki somut bağlama bağla; tekrarları at; "
     "uygulanabilir adımı, beklenen sonucu ve doğrulama ölçütünü belirt. Kanıt olmayan "
-    "şeyi gerçekmiş gibi yazma. Kullanıcının dilinde yanıt ver."
+    "şeyi gerçekmiş gibi yazma. Kullanıcının dilinde yanıt ver. Çıktı yalnızca kullanıcıya " 
+    "sunulacak metin olsun; gizli iç muhakeme zinciri, adım adım düşünce günlüğü, " 
+    "taslak notları veya öz konuşma üretme. Gerekli gerekçeyi kısa, denetlenebilir " 
+    "bir özet olarak sun."
 )
 
 
