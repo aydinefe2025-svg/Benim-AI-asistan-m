@@ -63,6 +63,8 @@ class CollaborativeMissionTests(unittest.TestCase):
             self.assertIn("kullanıcının asıl hedefini", prompt)
             self.assertIn("doğrulama ölçütü", prompt)
             self.assertIn("genel/geçiştiren", prompt)
+            self.assertIn("gizli iç muhakeme zinciri", prompt)
+            self.assertIn("kısa, denetlenebilir", prompt)
             self.assertIn("CANO yanıtlarını ölçülebilir biçimde iyileştir", prompt)
         self.assertIn("0–2 puanla", prompts[2])
         self.assertIn("en önemli 3 noktayı", prompts[2])
