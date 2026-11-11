@@ -1,0 +1,63 @@
+{
+  "schema": "j0740-wff1-rounded-target-root-fix-v1",
+  "date": "2026-11-11",
+  "root_cause": {
+    "classification": "finite-precision RNS exact-target equality plateau caused a strict-adjacent-pair bracketing false negative",
+    "preserved_pre_fix_run": 42827242417,
+    "rotating_successful_trials": 31,
+    "rotating_failed_trials": 11,
+    "rotating_sampled_peak_mass_msun": 2.126,
+    "static_target_bracket_msun": [2.047, 2.094],
+    "target_mass_msun": 2.073,
+    "interpretation": "The stable rotating sequence reached above target but reported one or more samples exactly equal to 2.073 Msun, splitting the strict adjacent crossing condition. This is a numerical bracketing issue, not physical EOS exclusion."
+  },
+  "fix": {
+    "commit": "50448fe7896fdcbb65f1290a115868d39e020c8e",
+    "files": [
+      "research/j0740/rotating_gr/seven_eos_sequence.py",
+      "research/j0740/rotating_gr/test_seven_eos_sequence.py"
+    ],
+    "behavior": "Keep the last strictly-below mass sample across exact-target samples and pair it with the first strictly-above sample; retain the sampled-turnover stop.",
+    "regression_test": "test_exact_target_mass_plateau_does_not_break_strict_bracket"
+  },
+  "validation": {
+    "head": "00ccb86fe1ef4366205ffff2c871e3f25e17c95b",
+    "pr_triggered_workflows": "21/21 success",
+    "core_tests": {
+      "run_id": 42984373162,
+      "platforms": ["ubuntu-latest", "windows-latest"],
+      "tests": 807,
+      "skipped": 5,
+      "conclusion": "success"
+    },
+    "seven_eos_fixed_mass_rns_tov": {
+      "run_id": 42984373034,
+      "conclusion": "success",
+      "validated": 7
+    },
+    "two_grid_root_convergence": {
+      "run_id": 42984373097,
+      "conclusion": "success",
+      "grids": ["151x301", "201x401"],
+      "validated_per_grid": 7,
+      "comparator": "PASS",
+      "tolerances": {
+        "mass_delta_msun": 0.0015,
+        "radius_delta_km": 0.15,
+        "spin_delta_hz": 0.25
+      },
+      "artifact_id": 13839598210,
+      "artifact_bytes": 128445,
+      "artifact_zip_sha256": "21ee4b4b60b2080063693b5451ce4a0ed6e09db22d75bfe3bd8005e9b5663b69"
+    },
+    "pinned_sources": {
+      "rns": "97e85d325a33e37f702306414533f6cd77812477",
+      "jester": "e6768650ce992abfd1153a6833857572fe5cd230"
+    }
+  },
+  "limitations": [
+    "Finite two-grid sensitivity is not a continuum stability certificate.",
+    "Original EOS causality, continuous turning points, crust and EOS-prior normalization, all-M,R nuisance convergence, and the historical 0.367159 logZ difference remain unresolved.",
+    "EOS_Bayes remains NOT_RUN."
+  ]
+}
