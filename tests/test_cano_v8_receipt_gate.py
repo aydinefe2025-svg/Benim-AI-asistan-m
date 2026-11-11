@@ -129,6 +129,39 @@ class V8ReceiptAuditTests(unittest.TestCase):
         self.assertIsNone(result["metrics"]["false_positive_rate"])
         self.assertFalse(result["independent_holdout_verified"])
 
+    def test_reused_sample_reference_is_rejected(self):
+        manifest = self.build()
+        manifest["attack_samples"][1]["artifact_sample_ref"] = (
+            manifest["attack_samples"][0]["artifact_sample_ref"]
+        )
+        result = audit_receipt(manifest)
+        self.assertEqual(result["status"], "blocked")
+        self.assertIsNone(result["metrics"])
+
+    def test_shared_attack_and_benign_receipt_is_rejected(self):
+        manifest = self.build()
+        manifest["benign_holdout"]["samples"][0]["artifact_sample_ref"] = (
+            manifest["attack_samples"][0]["artifact_sample_ref"]
+        )
+        result = audit_receipt(manifest)
+        self.assertEqual(result["status"], "blocked")
+        self.assertIsNone(result["metrics"])
+
+    def test_noncanonical_or_remote_sample_receipt_ref_is_rejected(self):
+        for ref in (
+            "https://example.org/a.json",
+            "C:/private/receipt.json",
+            "results/./A-00.json",
+            "./results/A-00.json",
+            "results//A-00.json",
+        ):
+            with self.subTest(ref=ref):
+                manifest = self.build()
+                manifest["attack_samples"][0]["artifact_sample_ref"] = ref
+                result = audit_receipt(manifest)
+                self.assertEqual(result["status"], "blocked")
+                self.assertIsNone(result["metrics"])
+
     def test_a_valid_structure_is_never_claimed_verified(self):
         result = audit_receipt(self.build())
         self.assertFalse(result["evidence_verified"])
