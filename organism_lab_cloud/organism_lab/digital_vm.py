@@ -1,5 +1,6 @@
 """Bounded instruction-level digital replication model (not biological life)."""
 from dataclasses import dataclass
+from hashlib import sha256
 from random import Random
 
 NOP = 0
@@ -27,6 +28,15 @@ def execute_genome(genome):
     return None
 
 
+def genome_fingerprint(genome):
+    """Return a stable SHA-256 digest for a validated instruction sequence."""
+    if not isinstance(genome, (tuple, list)) or not 1 <= len(genome) <= MAX_GENOME_LENGTH:
+        raise ValueError("Invalid genome")
+    if any(type(op) is not int or op not in INSTRUCTION_SET for op in genome):
+        raise ValueError("Invalid genome")
+    return sha256(b"genome-v1:" + bytes(genome)).hexdigest()
+
+
 @dataclass(frozen=True)
 class DigitalOrganism:
     identifier: int
@@ -34,6 +44,8 @@ class DigitalOrganism:
     generation: int
     energy: int
     genome: tuple[int, ...]
+    parent_genome_sha256: str | None = None
+    mutation_count: int = 0
 
 
 class GenomeWorld:
@@ -92,8 +104,10 @@ class GenomeWorld:
             available -= gain
             energy += gain
             if energy > 0:
-                survivors.append(DigitalOrganism(organism.identifier, organism.parent,
-                                                 organism.generation, energy, organism.genome))
+                survivors.append(DigitalOrganism(
+                    organism.identifier, organism.parent, organism.generation, energy,
+                    organism.genome, organism.parent_genome_sha256, organism.mutation_count
+                ))
             else:
                 self.deaths += 1
         children = []
@@ -102,14 +116,23 @@ class GenomeWorld:
             child_genome = execute_genome(organism.genome) if self.allow_replication else None
             if (child_genome is not None and organism.energy >= 8
                     and len(survivors) + len(children) < self.capacity):
-                children.append(DigitalOrganism(self.next_id, organism.identifier,
-                                                organism.generation + 1, 3,
-                                                self._mutate(child_genome)))
+                inherited_genome = tuple(child_genome)
+                mutated_genome = self._mutate(inherited_genome)
+                mutation_count = sum(
+                    inherited != mutated
+                    for inherited, mutated in zip(inherited_genome, mutated_genome)
+                )
+                children.append(DigitalOrganism(
+                    self.next_id, organism.identifier, organism.generation + 1, 3,
+                    mutated_genome, genome_fingerprint(organism.genome), mutation_count
+                ))
                 self.next_id += 1
                 self.births += 1
-                organism = DigitalOrganism(organism.identifier, organism.parent,
-                                           organism.generation, organism.energy - 4,
-                                           organism.genome)
+                organism = DigitalOrganism(
+                    organism.identifier, organism.parent, organism.generation,
+                    organism.energy - 4, organism.genome,
+                    organism.parent_genome_sha256, organism.mutation_count
+                )
             parents.append(organism)
         self.organisms = parents + children
         return self.metrics()
@@ -119,6 +142,21 @@ class GenomeWorld:
         if type(environment) is not int or environment not in (TASK_A, TASK_B):
             raise ValueError("Environment must be TASK_A or TASK_B")
         self.environment = environment
+
+    def lineage_snapshot(self):
+        """Return an auditable snapshot of the living colony's genotype provenance."""
+        return [
+            {
+                "organism_id": item.identifier,
+                "parent_id": item.parent,
+                "generation": item.generation,
+                "genome": list(item.genome),
+                "genome_sha256": genome_fingerprint(item.genome),
+                "parent_genome_sha256": item.parent_genome_sha256,
+                "mutation_count": item.mutation_count,
+            }
+            for item in sorted(self.organisms, key=lambda organism: organism.identifier)
+        ]
 
     def metrics(self):
         return {"tick": self.tick, "population": len(self.organisms),
