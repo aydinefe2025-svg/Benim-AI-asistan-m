@@ -55,6 +55,15 @@ def _github_artifact_url(value, repo, run_id):
     return bool(re.fullmatch(r"/[1-9][0-9]*/?", suffix))
 
 
+def _valid_sample_ref(value):
+    """Require an unambiguous, local POSIX-relative artifact member path."""
+    if not _text(value) or any(ch in value for ch in ("\\", ":", "?", "#", "%")):
+        return False
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        return False
+    return all(part and part not in (".", "..") for part in value.split("/"))
+
+
 def audit_receipt(manifest):
     """Classify structure, not authenticity; missing data never becomes a zero metric.
 
@@ -108,6 +117,7 @@ def audit_receipt(manifest):
         controls = []
 
     seen = set()
+    seen_refs = set()
     counts = {"TP": 0, "FP": 0, "TN": 0, "FN": 0, "U": 0, "ERR": 0}
     for group, items in (("attack", attack), ("benign", controls)):
         for i, item in enumerate(items):
@@ -122,8 +132,12 @@ def audit_receipt(manifest):
             if not _hex(item.get("sha256"), _SHA256):
                 errors.append(f"missing_case_digest_{group}_{i}")
             ref = item.get("artifact_sample_ref")
-            if not _text(ref) or ref.startswith("/") or ".." in Path(ref).parts or "\\" in ref:
+            if not _valid_sample_ref(ref):
                 errors.append(f"invalid_sample_receipt_ref_{group}_{i}")
+            elif ref in seen_refs:
+                errors.append(f"duplicate_sample_receipt_ref_{group}_{i}")
+            else:
+                seen_refs.add(ref)
             decision = item.get("decision")
             if not isinstance(decision, str) or decision not in _DECISIONS:
                 errors.append(f"invalid_decision_{group}_{i}")
