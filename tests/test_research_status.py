@@ -28,6 +28,13 @@ class ResearchStatusTests(unittest.TestCase):
             "**İncelenmemiş model iddiaları**\nA claim.\nMethod",
         )
 
+    def test_bold_list_heading_with_colon_inside_markers_is_downgraded(self):
+        original = "- **Doğrulanmış Gerçekler:**\\n  - İddia"
+        self.assertEqual(
+            label_unverified_claim_headings(original),
+            "- **İncelenmemiş model iddiaları:**\\n  - İddia",
+        )
+
     def test_non_heading_text_is_unchanged(self):
         text = "These are verified facts in a sentence."
         self.assertEqual(label_unverified_claim_headings(text), text)
