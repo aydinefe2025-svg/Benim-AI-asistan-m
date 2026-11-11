@@ -139,7 +139,8 @@ class AutomationStatusTests(unittest.TestCase):
         self.assertEqual(value["state"], "success")
         self.assertEqual(value["run_id"], 11)
         self.assertEqual(value["report"]["tick_id"], 7)
-        self.assertEqual([call[0] for call in calls], [PUBLISHED_STATUS_URL])
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(calls[0][0].startswith(PUBLISHED_STATUS_URL + "?_="))
 
     def test_rejects_invalid_published_report_instead_of_trusting_it(self):
         report = fixture_report()
