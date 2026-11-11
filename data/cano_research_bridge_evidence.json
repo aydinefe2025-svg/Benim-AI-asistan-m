@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "status": "archived_findings_not_independently_remeasured",
+  "observations": [
+    {
+      "id": "piezo_meta_2026",
+      "class": "electric_peak_mw",
+      "value": "0.42",
+      "source_kind": "reported_numerical_model_peak",
+      "source": "https://doi.org/10.1038/s41598-026-60480-3",
+      "archive": "https://app.notion.com/p/4092bd61682a819880bbff1edd19f835",
+      "boundary": "Model peak; NOT observed continuous electrical power or site harvest"
+    },
+    {
+      "id": "sweat_mfc_2026",
+      "class": "electric_peak_density_uw_cm2",
+      "value": "20.29",
+      "source_kind": "reported_artificial_sweat_lab_result",
+      "source": "https://doi.org/10.1016/j.jpowsour.2026.240856",
+      "archive": "https://app.notion.com/p/4092bd61682a81a79a43f4928a9f32e1",
+      "boundary": "Artificial sweat/biology experimental context; area-scaled ideal upper value, not worn field energy"
+    },
+    {
+      "id": "thermal_pneumatic_2026",
+      "class": "mechanical_actuation_only",
+      "source_kind": "reported_research_demonstration",
+      "source": "https://doi.org/10.1038/s41467-026-77422-2",
+      "archive": "https://app.notion.com/p/4092bd61682a819880bbff1edd19f835",
+      "boundary": "Mechanical movement and heat-gun laboratory demo; no electrical output reported in archive"
+    },
+    {
+      "id": "tesla_induction_1888",
+      "class": "energy_transfer_not_generation",
+      "source_kind": "historical_patent_reference",
+      "source": "https://patents.google.com/patent/US381968A/en",
+      "archive": "https://app.notion.com/p/40a2bd61682a81c8a078ccea752cb76b",
+      "boundary": "Inductive motor/power transfer concepts; cannot count transferred energy as harvested source"
+    }
+  ],
+  "prior_validation": {
+    "adaptation_demonstrated": false,
+    "adaptation_source": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/blob/main/research_reports/organism-lab-adaptation/validation-2026-11-08.json",
+    "compositional_transfer_confirmed": false,
+    "transfer_source": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/413",
+    "boundary": "Prior synthetic organism experiments did not pass independent generalization/robustness gates"
+  }
+}
