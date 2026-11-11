@@ -188,7 +188,7 @@ def load_latest_colony_status(request_get=None) -> dict:
         # unauthenticated rate limit on Render. It contains only the latest
         # successful, validated toy report.
         try:
-            published = _get_json(request_get, PUBLISHED_STATUS_URL)
+            published = _get_json(request_get, f"{PUBLISHED_STATUS_URL}?_={time.time_ns()}")
         except Exception:
             published = {}
         if "github_run_id" in published:
