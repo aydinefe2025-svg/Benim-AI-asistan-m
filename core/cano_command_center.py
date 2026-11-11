@@ -27,6 +27,7 @@ from core.scientific_sources import scientific_sources
 from core.doi_priority import prioritize_requested_dois
 from core.task_panel import _session_database_path
 from core.research_status import label_unverified_claim_headings
+from core.claim_evidence import audit_claim_quotes, record_source_claim_review
 from core.cano_backup_bundle import create_portable_bundle, export_authorized_queue
 from core.organism_lab_persistence import OrganismLabStore
 from core.encrypted_backup_ui import render_encrypted_download
@@ -38,6 +39,107 @@ class _AnswerAdapter:
 
     def chat(self, model, system, prompt):
         return self.answer(system + "\n\n" + prompt)
+
+
+def _render_claim_evidence_review(st, manager, mission_id, planner_stage, *,
+                                  owner_key, answer, checkpoint):
+    """Expose advisory quote checks and authenticated owner review per claim."""
+    st.caption(
+        "İddia denetimi alıntının kaynakta geçtiğini ve modelin geçici yorumunu "
+        "gösterir; tek başına doğrulama değildir. Her kabul edilen iddia için hesap "
+        "sahibi birincil tam metni kendisi incelemelidir."
+    )
+    audit = planner_stage.get("source_claim_audit")
+    if not isinstance(audit, list) or not audit:
+        if answer is None:
+            st.info("İddia denetimi için kullanılabilir bir model sağlayıcısı seçin.")
+            return
+        with st.form("cano_claim_audit_consent_" + mission_id, clear_on_submit=True):
+            consent = st.checkbox(
+                "Görev metni ve en fazla iki kaynak pasajı seçili sağlayıcıya "
+                "gönderilsin (bu işlem bir model çağrısı yapar).",
+                value=False, key="cano_claim_audit_external_consent_" + mission_id)
+            start_audit = st.form_submit_button("Kaynak pasajlarıyla iddiaları karşılaştır")
+        if start_audit:
+            if not consent:
+                st.warning("Sağlayıcıya gönderim için açık onay gerekli; hiçbir çağrı yapılmadı.")
+            else:
+                try:
+                    checkpoint()
+                    audit_claim_quotes(
+                        manager, mission_id, client=_AnswerAdapter(answer),
+                        model="configured-provider")
+                    checkpoint(archive_prior=False)
+                    st.success("İddia-alıntı denetimi kaydedildi; bu sonuç doğrulama değildir.")
+                    st.rerun()
+                    return
+                except Exception:
+                    st.error("İddia denetimi tamamlanamadı; görev taslağı ve önceki kanıtlar korundu.")
+                    return
+        return
+
+    for index, item in enumerate(audit):
+        if not isinstance(item, dict):
+            continue
+        st.markdown(f"**İddia {index + 1}:** " + str(item.get("claim", "")))
+        st.caption("Denetim: " + str(item.get("status", "unknown")) +
+                   " — makine/model önerisi; doğrulanmış değil.")
+        if item.get("citation_url"):
+            st.link_button("İddia kaynağını aç", item["citation_url"])
+        if item.get("quote"):
+            st.caption("Eşleşen alıntı (eşleşme destek anlamına gelmez): " + item["quote"])
+        machine = item.get("machine_assessment")
+        if isinstance(machine, dict):
+            st.caption("İkinci modelin geçici karşılaştırması: " +
+                       str(machine.get("verdict", "insufficient")) + " — " +
+                       str(machine.get("reason", "")))
+        human = item.get("human_review")
+        if isinstance(human, dict):
+            st.info(
+                ("Hesap sahibi birincil kaynağı destekledi." if human.get("supported")
+                 else "Hesap sahibi iddiayı desteklemedi.") +
+                " Bu tekil kayıt görevin tamamını doğrulamaz."
+            )
+            continue
+        if not isinstance(owner_key, str) or not owner_key.strip():
+            st.caption("Hesap sahibi girişi olmadan insan kaynak incelemesi kaydedilemez.")
+            continue
+        with st.form("cano_claim_review_" + mission_id + "_" + str(index),
+                     clear_on_submit=True):
+            decision = st.selectbox(
+                "Birincil tam metindeki bu iddia", [
+                    "Yetersiz veya desteklenmiyor",
+                    "Birincil tam metin doğrudan destekliyor",
+                ], key="cano_claim_decision_" + mission_id + "_" + str(index))
+            primary = st.checkbox(
+                "DOI bağlantısındaki birincil tam metni kendim açıp bu alıntıyla "
+                "iddianın kapsamını kontrol ettim.",
+                value=False, key="cano_claim_primary_" + mission_id + "_" + str(index))
+            rationale = st.text_area(
+                "İnceleme gerekçesi (en az 20 karakter)", max_chars=1000,
+                key="cano_claim_rationale_" + mission_id + "_" + str(index))
+            submit_review = st.form_submit_button("Bu iddia için insan incelemesini kaydet")
+        if submit_review:
+            supported = decision == "Birincil tam metin doğrudan destekliyor"
+            try:
+                record_source_claim_review(
+                    manager, mission_id, index, reviewer_id=owner_key,
+                    supported=supported, rationale=rationale,
+                    primary_source_confirmed=primary)
+                checkpoint(archive_prior=False)
+                st.success(
+                    "Tekil iddia incelemesi kaydedildi. Görev review_pending kalır; "
+                    "bu onay diğer iddiaları doğrulamaz."
+                )
+                st.rerun()
+                return
+            except Exception:
+                st.error(
+                    "İnceleme kaydedilemedi. Desteklenen iddia için birincil tam metin "
+                    "onayı, eşleşen alıntı ve en az 20 karakter gerekçe gerekir."
+                )
+
+
 
 
 def prepare_cano_team(colony, *, approved=False):
@@ -488,6 +590,12 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                         st.link_button("Kaynağı aç", doc["url"])
                         if doc.get("excerpt"):
                             st.caption("Belgeden kısa metin: " + doc["excerpt"])
+
+            if planner_stage.get("source_documents"):
+                with st.expander("🧾 İddia kanıtı ve insan incelemesi", expanded=False):
+                    _render_claim_evidence_review(
+                        st, manager, latest_id, planner_stage,
+                        owner_key=owner_key, answer=answer, checkpoint=_checkpoint)
 
     if status["history"]:
         st.caption("Bu oturumda kayıtlı son ekip görevleri: " +
