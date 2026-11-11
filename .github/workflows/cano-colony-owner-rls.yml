@@ -1,0 +1,43 @@
+name: CANO colony owner-scoped RLS isolated PostgreSQL test
+
+on:
+  pull_request:
+    paths:
+      - 'core/colony_postgres.py'
+      - 'tests/test_colony_postgres.py'
+      - 'tests/test_colony_rls_owner_context.py'
+      - 'tests/test_colony_rls_postgres_integration.py'
+      - 'sql/cano_colony_owner_rls_20261111.sql'
+      - '.github/workflows/cano-colony-owner-rls.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: ci_rls
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d ci_rls"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-persistence.txt
+      - name: Test real PostgreSQL synthetic two-owner RLS isolation
+        env:
+          CANO_RLS_TEST_DB_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_rls
+        run: python -m unittest -v tests.test_colony_rls_postgres_integration tests.test_colony_rls_owner_context tests.test_colony_postgres
