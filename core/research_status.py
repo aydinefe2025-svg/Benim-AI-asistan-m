@@ -38,7 +38,7 @@ def label_unverified_claim_headings(output: str) -> str:
     title_pattern = "|".join(re.escape(title) for title in verified_titles)
     heading = re.compile(
         r"(?im)^(?P<prefix>\s*(?:#{1,6}\s+|[-*]\s+)?(?:\*\*)?)"
-        r"(?P<title>" + title_pattern + r")(?P<suffix>(?:\*\*)?\s*:?)\s*$"
+        r"(?P<title>" + title_pattern + r")(?P<suffix>(?:\*\*:|:\*\*|\*\*|:)?\s*)$"
     )
     return heading.sub(
         lambda match: match.group("prefix")
