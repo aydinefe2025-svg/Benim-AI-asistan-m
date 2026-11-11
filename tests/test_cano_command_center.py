@@ -13,13 +13,16 @@ from core.cano_command_center import (
 
 
 class FakeStreamlit:
-    def __init__(self, *, clicks=None, submit=False, task="", crossref=False, local_backup=False,\n                 checkbox_values=None, select_values=None):
+    def __init__(self, *, clicks=None, submit=False, task="", crossref=False, local_backup=False,
+                 checkbox_values=None, select_values=None):
         self.session_state = {}
         self.clicks = set(clicks or [])
         self.submit = submit
         self.task = task
         self.crossref = crossref
         self.local_backup = local_backup
+        self.checkbox_values = dict(checkbox_values or {})
+        self.select_values = dict(select_values or {})
         self.messages = []
         self.downloaded = False
         self.metrics = {}
@@ -76,7 +79,7 @@ class FakeStreamlit:
     def checkbox(self, label, **kw):
         if kw.get("key") == "cano_local_backup_opt_in":
             return self.session_state.get("cano_local_backup_opt_in", self.local_backup)
-        return self.crossref
+        return self.checkbox_values.get(kw.get("key", ""), self.crossref)
 
     def form_submit_button(self, label, **kw):
         result, self.submit = self.submit, False
@@ -86,7 +89,7 @@ class FakeStreamlit:
         self.messages.append(url)
 
     def selectbox(self, label, options, **kw):
-        return options[0]
+        return self.select_values.get(kw.get("key", ""), options[0])
 
     def download_button(self, label, data, **kw):
         self.downloaded = True
