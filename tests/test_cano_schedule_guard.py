@@ -56,6 +56,24 @@ class CanoScheduleGuardTests(unittest.TestCase):
         recent = self.now - timedelta(minutes=49, seconds=59)
         self.assertFalse(should_run_cycle("schedule", self.report(recent.isoformat()), now=self.now))
 
+    def test_recent_transferred_generation_does_not_run_duplicate_cycle(self):
+        """The generator and specialist validator both publish 'transferred'."""
+        recent = self.now - timedelta(minutes=5)
+        report = valid_report(recent.isoformat())
+        report["virtual_generation"]["lesson_status"] = "transferred"
+        self.assertFalse(
+            should_run_cycle("schedule", json.dumps(report).encode(), now=self.now)
+        )
+
+    def test_unknown_accepted_generation_fails_open(self):
+        """'accepted' is not a persisted value of the canonical generator."""
+        recent = self.now - timedelta(minutes=5)
+        report = valid_report(recent.isoformat())
+        report["virtual_generation"]["lesson_status"] = "accepted"
+        self.assertTrue(
+            should_run_cycle("schedule", json.dumps(report).encode(), now=self.now)
+        )
+
     def test_threshold_and_older_report_trigger_cycle(self):
         stale = self.now - MAX_REPORT_AGE
         self.assertTrue(should_run_cycle("schedule", self.report(stale.isoformat()), now=self.now))
