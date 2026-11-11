@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import hashlib
+import hmac
 import json
 import time
 import threading
@@ -66,6 +67,18 @@ def _key(key_env: str='CANO_BACKUP_KEY_HEX') -> bytes:
     if len(key)!=32:
         raise BackupError('Backup key must be 256 bits')
     return key
+
+
+def _receipt_mac(payload: dict, key: bytes) -> str:
+    """Authenticate receipt metadata with a domain-separated backup-key subkey.
+
+    This binds the source preflight flags and archive digest to the backup key.
+    It does not attest real source identity, offsite copying or restore success.
+    """
+    subkey = hmac.new(key, b'CANO receipt metadata v1', hashlib.sha256).digest()
+    canonical = json.dumps(payload, sort_keys=True, separators=(',', ':'),
+                           ensure_ascii=False, allow_nan=False).encode('utf8')
+    return hmac.new(subkey, canonical, hashlib.sha256).hexdigest()
 
 
 def _sha256(path: Path) -> str:
@@ -220,6 +233,7 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
         }
         if source_preflight is not None:
             payload['application_source_preflight']=source_preflight
+        payload['receipt_mac_sha256'] = _receipt_mac(payload, key)
         _private_receipt(receipt,payload)
         return {'archive':str(archive),'receipt':str(receipt),
                 'plaintext_sha256':payload['plaintext_sha256'],
@@ -347,6 +361,25 @@ def verify_encrypted_backup(receipt_path: Path,*,key_env='CANO_BACKUP_KEY_HEX')-
     if receipt_path.is_symlink():raise BackupError('Refusing symlink receipt')
     try: data=json.loads(receipt_path.read_text('utf8'))
     except (OSError,ValueError):raise BackupError('Invalid encrypted backup receipt') from None
+    if not isinstance(data, dict):
+        raise BackupError('Invalid encrypted backup receipt')
+    mac = data.get('receipt_mac_sha256')
+    receipt_authenticated = False
+    if mac is not None:
+        # New receipts authenticate *every* field, not just the ciphertext.
+        # Historical unsigned receipts remain decryptable but cannot attest
+        # source identity/inventory. Missing MAC is never a positive signal.
+        if (not isinstance(mac, str) or len(mac) != 64 or
+                any(ch not in '0123456789abcdef' for ch in mac)):
+            raise BackupError('Invalid receipt authentication code')
+        unsigned = {k: v for k, v in data.items() if k != 'receipt_mac_sha256'}
+        try:
+            expected = _receipt_mac(unsigned, _key(key_env))
+        except (TypeError, ValueError, OverflowError):
+            raise BackupError('Invalid receipt authentication metadata') from None
+        if not hmac.compare_digest(mac, expected):
+            raise BackupError('Encrypted backup receipt authentication failed')
+        receipt_authenticated = True
     name=data.get('archive')
     if (not isinstance(name,str) or not name.endswith('.canoenc') or
         '/' in name or '\\' in name or name in ('.','..')):
@@ -360,7 +393,18 @@ def verify_encrypted_backup(receipt_path: Path,*,key_env='CANO_BACKUP_KEY_HEX')-
     if (proof['plaintext_sha256']!=data.get('plaintext_sha256') or
         proof['plaintext_size_bytes']!=data.get('plaintext_size_bytes')):
         raise BackupError('Encrypted backup receipt mismatch')
-    return {**proof,'archive_sha256':data['archive_sha256']}
+    return {
+        **proof,
+        'archive_sha256': data['archive_sha256'],
+        'receipt_authenticated': receipt_authenticated,
+        'source_preflight_metadata_authenticated': (
+            receipt_authenticated and isinstance(data.get('application_source_preflight'), dict)
+        ),
+        # Neither receipt signatures nor cryptographic archive validity proves
+        # a distinct offsite copy or a successful production-data restore.
+        'production_restore_tested': False,
+        'offsite_location_verified': False,
+    }
 
 
 def restore_to_empty_database(path:Path,*,target_db_url_env='CANO_RESTORE_DATABASE_URL',
