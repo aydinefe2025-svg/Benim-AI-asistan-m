@@ -461,7 +461,17 @@ def _team_answer(prompt: str) -> str:
     # Team stages include the saved plan, review text and bounded code context;
     # allow a longer response window without changing ordinary chat timeouts.
     router = _new_provider_router(google_timeout=60.0)
-    return router.chat(aktif_llm_adi, system, prompt)
+    try:
+        return router.chat(aktif_llm_adi, system, prompt)
+    except Exception as exc:
+        # Provider exception text may contain request or account details. Record
+        # only the allowlisted category, numeric HTTP status and machine code.
+        status, code = failure_diagnostics(exc)
+        logging.getLogger(__name__).warning(
+            "CANO team provider failure category=%s status=%s code=%s exception_type=%s",
+            failure_category(exc), status, code, type(exc).__name__[:80],
+        )
+        raise
 
 
 _CANO_OWNER_KEY = _OWNER_KEY if _AUTH_REQUIRED and _OWNER_KEY else None
