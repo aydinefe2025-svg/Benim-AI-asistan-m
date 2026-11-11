@@ -10,7 +10,7 @@ import os
 import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from scripts.cano_pg_backup import _libpq_env_from_uri
+from scripts.cano_pg_backup import BackupError, _libpq_env_from_uri
 
 
 def blocked(status="not_configured"):
@@ -34,7 +34,7 @@ def probe(environ=None, connect=None):
                 not (host == prefix or
                      (host.startswith(prefix + ".") and host.endswith(".render.com")))):
             return blocked("identity_mismatch")
-    except (KeyError, TypeError, ValueError):
+    except (BackupError, KeyError, TypeError, ValueError):
         return blocked("invalid_source")
 
     try:
