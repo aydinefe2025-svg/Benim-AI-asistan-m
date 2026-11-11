@@ -339,7 +339,7 @@ if "genome_campaign_v2" in st.session_state:
     campaign = st.session_state["genome_campaign_v2"]
     render_explanation(st, explain_reproduction_study(campaign), key="explain_reproduction")
     st.dataframe(campaign["results"], width="stretch")
-    with st.expander("Tohum bazında ham ölçümler", expanded=False):
+    with st.expander("Tohum bazında ham ölçümler", expanded=True):
         st.caption(
             "Her satır aynı başlangıç tohumu için çoğalma kuralı ile kontrolü "
             "karşılaştırır. Fark, deney nüfusu eksi kontrol nüfusudur; "
