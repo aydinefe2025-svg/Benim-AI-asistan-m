@@ -1,6 +1,7 @@
 """Reproducible CANO seed lab demonstration (no real harvesting/network)."""
 import json
 from core.seed_ecosystem import SeedEcosystem
+from core.archived_energy_bridge import load_evidence, compare_workload, growth_claim_gate
 
 
 def scenario(profile: str) -> dict:
@@ -33,7 +34,18 @@ def scenario(profile: str) -> dict:
 
 
 if __name__ == "__main__":
+    catalog = load_evidence()
+    research_reuse = {
+        "sensor": compare_workload(catalog, area_cm2=10, standby_mw="0.05",
+                                   active_mw="1", active_fraction="0.01", hours=24),
+        "compute": compare_workload(catalog, area_cm2=10, standby_mw=3000,
+                                    active_mw=3000, active_fraction=1, hours=24),
+        "growth_claim": growth_claim_gate(catalog),
+        "archive_status": catalog["status"],
+        "evidence_ids": [item["id"] for item in catalog["observations"]],
+    }
     print(json.dumps({"simulation_only": True, "energy_units": "hypothetical credits",
+                      "research_reuse": research_reuse,
                       "solar_only": scenario("solar_only"), "solar_equal_energy": scenario("solar_equal_energy"),
                       "diversified": scenario("diversified")},
                      ensure_ascii=False, indent=2))
