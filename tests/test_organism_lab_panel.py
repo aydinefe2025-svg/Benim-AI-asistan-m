@@ -22,6 +22,7 @@ class FakeStreamlit:
         self.successes = []
         self.warnings = []
         self.markdown_blocks = []
+        self.dataframes = []
 
     def expander(self, *_args, **_kwargs):
         return nullcontext()
@@ -47,8 +48,8 @@ class FakeStreamlit:
     def download_button(self, _label, **kwargs):
         self.downloads.append(kwargs)
 
-    def dataframe(self, *_args, **_kwargs):
-        pass
+    def dataframe(self, data, **_kwargs):
+        self.dataframes.append(data)
 
     def divider(self):
         pass
@@ -101,6 +102,9 @@ class OrganismPanelTests(unittest.TestCase):
         self.assertEqual(len(ui.metrics), 3)
         self.assertEqual(ui.session_state["cano_organism_campaign_result"]["observations"], 50)
         self.assertEqual(len(ui.markdown_blocks), 1)
+        self.assertEqual(len(ui.dataframes), 2)
+        self.assertEqual(len(ui.dataframes[1]), 50)
+        self.assertIn("paired_population_difference", ui.dataframes[1][0])
         self.assertIn("Ne bulundu?", ui.markdown_blocks[0])
         self.assertTrue(all("json" in item["mime"] for item in ui.downloads))
         self.assertTrue(any("PostgreSQL" in m for m in ui.warnings))
@@ -108,6 +112,7 @@ class OrganismPanelTests(unittest.TestCase):
         ui.pressed.clear()
         render_organism_lab_panel(ui)
         self.assertEqual(len(ui.downloads), 4)
+        self.assertEqual(len(ui.dataframes), 4)
         self.assertEqual(len(ui.successes), 2)
 
     def test_replay_mismatch_cannot_report_success(self):
