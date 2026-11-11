@@ -73,7 +73,7 @@ def _render_claim_evidence_review(st, manager, mission_id, planner_stage, *,
                     st.success("İddia-alıntı denetimi kaydedildi; bu sonuç doğrulama değildir.")
                     st.rerun()
                     return
-                except (RuntimeError, ValueError, OSError, sqlite3.Error):
+                except Exception:
                     st.error("İddia denetimi tamamlanamadı; görev taslağı ve önceki kanıtlar korundu.")
                     return
         return
@@ -133,7 +133,7 @@ def _render_claim_evidence_review(st, manager, mission_id, planner_stage, *,
                 )
                 st.rerun()
                 return
-            except (PermissionError, RuntimeError, ValueError, OSError, sqlite3.Error):
+            except Exception:
                 st.error(
                     "İnceleme kaydedilemedi. Desteklenen iddia için birincil tam metin "
                     "onayı, eşleşen alıntı ve en az 20 karakter gerekçe gerekir."
