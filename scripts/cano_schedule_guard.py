@@ -41,7 +41,7 @@ def _is_complete_report(report: object) -> bool:
     generation = report.get("virtual_generation")
     if not isinstance(generation, dict) or generation.get("generation_id") != tick:
         return False
-    if generation.get("lesson_status") not in {"accepted", "rejected"}:
+    if generation.get("lesson_status") not in {"transferred", "rejected"}:
         return False
 
     continuity = report.get("continuity")
