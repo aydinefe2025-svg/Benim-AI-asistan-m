@@ -75,6 +75,13 @@ class DashboardAppTests(unittest.TestCase):
             self.assertFalse(app.exception)
             self.assertTrue(any("Kayıt tamamlandı" in item.value for item in app.success))
             self.assertTrue(any("model kontrolü kullanılmadı" in item.value for item in app.info))
+            raw_table = next(
+                (item for item in app.dataframe
+                 if getattr(item, "key", None) == "genome_raw_observations"),
+                None,
+            )
+            self.assertIsNotNone(raw_table)
+            self.assertEqual(len(raw_table.value), 150)
             self.assertTrue((Path(tmp) / "organism_lab_output" / "research_studies.sqlite3").exists())
 
     def test_bounded_discovery_report_is_saved_and_explained(self):
