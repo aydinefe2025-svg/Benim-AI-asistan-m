@@ -137,6 +137,9 @@ def main() -> None:
     print(json.dumps({"base": result["base_report_status"], "fine": result["fine_report_status"],
                       "validated": result["fine_validated_count"], "required": 7,
                       "EOS_Bayes": "NOT_RUN"}), flush=True)
+    print("WFF1_FINE_BRANCH_SUPPORT", json.dumps(
+        result["models"].get("WFF1", {}).get("fine_scan", {}),
+        sort_keys=True), flush=True)
 
 
 if __name__ == "__main__":
