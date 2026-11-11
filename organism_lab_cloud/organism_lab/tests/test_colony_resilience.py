@@ -45,6 +45,15 @@ class ColonyResilienceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "seed or fault"):
             paired_trial_rows(report)
 
+    def test_legacy_report_is_explained_with_its_original_model_limit(self):
+        report = run_colony_resilience_study(seeds=3)
+        report["design"].pop("directed_contact_probability_per_tick")
+        report["sha256"] = _report_digest(report)
+        explanation = explain_colony_resilience(report)
+        self.assertIn("Eski rapor varsayımı", explanation)
+        self.assertIn("tam bağlantı", explanation)
+        self.assertIn("doğrudan karşılaştırma", explanation)
+
     def test_plain_language_explanation_states_simulation_limit(self):
         text = explain_colony_resilience(run_colony_resilience_study(seeds=3))
         self.assertIn("Ne denendi?", text)

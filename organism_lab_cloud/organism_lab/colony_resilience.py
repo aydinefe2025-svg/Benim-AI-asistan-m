@@ -235,12 +235,25 @@ def explain_colony_resilience(report: dict) -> str:
     if any(type(arm.get(key)) not in (int, float)
            for arm in (open_arm, protected) for key in required):
         raise ValueError("Incomplete colony resilience report")
+    contact_probability = report.get("design", {}).get("directed_contact_probability_per_tick")
+    if contact_probability is None:
+        # Older archived runs predate the stochastic network and used a complete graph.
+        contact_description = (
+            "**Eski rapor varsayımı:** Her adımda sanal ajan çiftleri arasında tam bağlantı vardı. "
+            "Bu sonucu yeni olasılıksal deneyle doğrudan karşılaştırma."
+        )
+    elif type(contact_probability) in (int, float) and 0 <= contact_probability <= 1:
+        contact_description = (
+            f"**Model varsayımı:** Her adımda olası yönlü bağlantıların %{contact_probability * 100:.0f}'i "
+            "örneklendi; iki ağ kolu aynı bağlantı örüntülerini kullandı."
+        )
+    else:
+        raise ValueError("Invalid contact probability in report")
     return (
         f"**Ne denendi?** {report['design']['population']} sanal ajanı "
         f"{report['design']['compartments']} bölmeye ayırdık ve aynı "
         f"{len(report['design']['paired_seeds'])} başlangıçta iki iletişim düzenini karşılaştırdık. "
-        f"Her adımda olası yönlü bağlantıların %{report['design']['directed_contact_probability_per_tick'] * 100:.0f}'i etkin örneklendi "
-        f"ve iki düzen aynı bağlantı örüntüsünü kullandı. {report['design']['simulated_fault_tick']}. adımda "
+        f"{contact_description} {report['design']['simulated_fault_tick']}. adımda "
         "tek bir sanal ajanın geçersiz mesaj göndermesini modelledik.\n\n"
         f"**Ne ölçtük?** Açık ağda son durumda ortalama "
         f"{open_arm['mean_healthy_ready']:.1f}/{report['design']['population']} ajan hazır, "
