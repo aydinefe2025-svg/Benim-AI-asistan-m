@@ -41,6 +41,13 @@
       36.706921,
       106.559213
     ],
+    "ess_range_corrected": [
+      36.706921,
+      133.887395
+    ],
+    "ess_range_display_corrected": "36.71–133.89",
+    "ess_minimum_display_corrected": 36.71,
+    "correction_note": "The minimum is seed 151507 at ESS 36.706921; prior range displays omitting it are superseded. Existing runs were not repeated.",
     "max_weight_fraction": [
       0.04499965,
       0.02405293,
