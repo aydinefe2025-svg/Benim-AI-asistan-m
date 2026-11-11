@@ -1,6 +1,6 @@
 import unittest
 
-from core.research_status import UNVERIFIED_RESEARCH_LABEL, label_research_answer
+from core.research_status import (\n    UNVERIFIED_RESEARCH_LABEL, label_research_answer,\n    label_unverified_claim_headings,\n)
 
 
 class ResearchStatusTests(unittest.TestCase):
@@ -11,6 +11,23 @@ class ResearchStatusTests(unittest.TestCase):
         self.assertTrue(answer.startswith(UNVERIFIED_RESEARCH_LABEL))
         self.assertIn("bağımsız doğrulama yapılmadı", answer)
         self.assertIn("Bu sonuç kesin olarak doğrudur.", answer)
+
+    def test_unverified_claim_headings_are_downgraded_only_for_display(self):
+        original = "# Doğrulanmış Gerçekler\\nİddia metni"
+        displayed = label_unverified_claim_headings(original)
+        self.assertEqual(displayed, "# İncelenmemiş model iddiaları\\nİddia metni")
+        self.assertEqual(original, "# Doğrulanmış Gerçekler\\nİddia metni")
+
+    def test_english_bold_heading_is_downgraded_and_other_text_is_preserved(self):
+        original = "**Verified Facts**\\nA claim.\\nMethod"
+        self.assertEqual(
+            label_unverified_claim_headings(original),
+            "**İncelenmemiş model iddiaları**\\nA claim.\\nMethod",
+        )
+
+    def test_non_heading_text_is_unchanged(self):
+        text = "These are verified facts in a sentence."
+        self.assertEqual(label_unverified_claim_headings(text), text)
 
     def test_regular_chat_is_not_mislabeled_as_research(self):
         self.assertEqual(
