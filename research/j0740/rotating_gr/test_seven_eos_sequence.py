@@ -23,6 +23,15 @@ class SevenEosSequenceTests(unittest.TestCase):
         self.assertEqual(first_stable_crossing(points, 2.073),
                          (1e15, 1.1e15))
 
+    def test_exact_target_mass_plateau_does_not_break_strict_bracket(self):
+        # RNS rounds reported masses; exact target rows can sit between the
+        # strict-below and strict-above samples on an otherwise stable branch.
+        points = [mock(0.9e15, 2.047), mock(1.0e15, 2.073),
+                  mock(1.1e15, 2.073), mock(1.2e15, 2.094),
+                  mock(1.3e15, 2.08)]
+        self.assertEqual(first_stable_crossing(points, 2.073),
+                         (0.9e15, 1.2e15))
+
     def test_missing_mass_no_extrapolation(self):
         points = [mock(0.9e15, 1.9), mock(1.1e15, 2.01),
                   mock(1.3e15, 1.99)]
@@ -103,3 +112,4 @@ class StableSourceReferenceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
