@@ -18,6 +18,7 @@ from core.cano_command_center import _snapshot
 from core.colony_restore import restore_colony_json_bytes, restore_owner_backup
 from core.task_panel import _session_database_path
 from core.provider_failure import MESSAGES, failure_category, safe_failure_message
+from core.research_status import label_unverified_claim_headings
 
 
 def snapshots_match(left, right):
@@ -561,7 +562,7 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                        "Bu sonuç bağımsız doğrulanmış bilgi değildir.")
             for stage in mission["stages"]:
                 st.text_area("Ekip aşaması: " + stage["role"],
-                             value=stage["output"], height=140, disabled=True,
+                             value=label_unverified_claim_headings(stage["output"]), height=140, disabled=True,
                              key="mission_" + stage["role"])
                 if stage["role"] == "planner" and "source_lookup_status" in stage:
                     status = stage["source_lookup_status"]
