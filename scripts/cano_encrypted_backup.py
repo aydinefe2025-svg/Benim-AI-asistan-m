@@ -451,7 +451,7 @@ def main():
     b=sub.add_parser('backup');b.add_argument('destination',type=Path)
     b.add_argument('--database-env',default='DATABASE_URL')
     b.add_argument('--require-application-profile',
-                   choices=('full','colony','tasks','memory'),default=None)
+                   choices=('full','colony','tasks','memory'),default='full')
     v=sub.add_parser('verify');v.add_argument('receipt',type=Path)
     t=sub.add_parser('restore-isolated');t.add_argument('archive',type=Path)
     t.add_argument('--target-database-env',default='CANO_RESTORE_DATABASE_URL')
