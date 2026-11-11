@@ -81,6 +81,22 @@ class Tests(unittest.TestCase):
         self.assertNotIn("SUPER_SECRET", repr(result))
         self.assertNotIn("placeholder", repr(result))
 
+    def test_rejected_tls_mode_returns_redacted_blocked_status(self):
+        """Bad URI TLS mode is a safe failure, never an uncaught startup error."""
+        bad = {**ENV, "CANO_RENDER_INTERNAL_URL": URL + "?sslmode=disable"}
+        result = probe(bad, connect=lambda *a, **kw: self.fail("network reached"))
+        self.assertEqual("invalid_source", result["status"])
+        self.assertFalse(result["internal_readonly_verified"])
+        self.assertNotIn("placeholder", repr(result))
+
+    def test_missing_uri_password_returns_blocked_without_connecting(self):
+        """Malformed connection strings cannot crash the health probe."""
+        bad = {**ENV, "CANO_RENDER_INTERNAL_URL":
+               "postgresql://test@" + HOST + ".frankfurt-postgres.render.com/" + DB}
+        result = probe(bad, connect=lambda *a, **kw: self.fail("network reached"))
+        self.assertEqual("invalid_source", result["status"])
+        self.assertFalse(result["internal_readonly_verified"])
+
     def test_invalid_port(self):
         for val in (0, -1, 65536, "string"):
             with self.subTest(port=val), self.assertRaises(ValueError):
