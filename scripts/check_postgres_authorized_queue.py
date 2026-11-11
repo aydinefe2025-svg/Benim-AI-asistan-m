@@ -163,6 +163,47 @@ def run():
             "Server-time expiry recovery must not trust the frozen client clock")
     assert server_queue.get(server_job["id"])["state"] == "blocked"
 
+    # Exercise renewal against real PostgreSQL 17/18 row locks and server time,
+    # never a production database. The valid lease survives its original expiry.
+    import time
+    renewed_job = server_queue.enqueue("renewed-job", "Bounded renewal smoke", approved=True)
+    renewable = server_queue.claim("renewal-worker", approved=True, lease_seconds=2)
+    assert renewable and renewable["id"] == renewed_job["id"]
+    try:
+        server_queue.renew_lease(renewed_job["id"], "forged-lease-token",
+                                 lease_seconds=8)
+        raise AssertionError("Forged renewal token accepted")
+    except PermissionError:
+        pass
+    assert server_queue.renew_lease(
+        renewed_job["id"], renewable["lease_token"], lease_seconds=8
+    ) is True
+    time.sleep(2.2)
+    assert server_queue.complete(
+        renewed_job["id"], renewable["lease_token"], "Renewed synthetic draft"
+    )["status"] == "review_pending", "Valid renewed lease lost before commit"
+    assert server_queue.get(renewed_job["id"])["draft"] == "Renewed synthetic draft"
+
+    expired_renewal = server_queue.enqueue(
+        "expired-renewal", "Never revive expired lease", approved=True
+    )
+    expired_claim = server_queue.claim("expired-worker", approved=True, lease_seconds=10)
+    assert expired_claim and expired_claim["id"] == expired_renewal["id"]
+    with psycopg.connect(database_url) as db, db.cursor() as cur:
+        cur.execute("UPDATE public.cano_authorized_jobs "
+                    "SET lease_until=EXTRACT(EPOCH FROM clock_timestamp())-1 "
+                    "WHERE owner_key=%s AND id=%s",
+                    (server_owner, expired_renewal["id"]))
+    try:
+        server_queue.renew_lease(
+            expired_renewal["id"], expired_claim["lease_token"], lease_seconds=8
+        )
+        raise AssertionError("Expired lease revived")
+    except PermissionError:
+        pass
+    assert server_queue.recover_expired() == 1
+    assert server_queue.get(expired_renewal["id"])["state"] == "blocked"
+
     # Two independent queue clients race the same authorized task.
     # The winning worker commits one draft; a losing or cross-owner worker
     # cannot write a second result. Real row locks and separate connections.
