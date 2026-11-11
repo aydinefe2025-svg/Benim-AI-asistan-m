@@ -1,6 +1,6 @@
 {
   "record_id": "J0740_nuisance_k4_compare_xpsi_regression_2026-11-11",
-  "status": "REGRESSION_PASS_K4_COMPARISON_COMPLETE_TAILCORR_HELDOUT_PENDING",
+  "status": "REGRESSION_PASS_K4_COMPARISON_COMPLETE_TAILCORR_POINTWISE_RESULTS_RECORDED",
   "date": "2026-11-11",
   "EOS_Bayes": "NOT_RUN",
   "k2_15_26_ess_correction": {
@@ -418,6 +418,23 @@
     "verification_sha256": "94121CA6BD751D5B2EECE3BEE7E579498FE2BF6A185F0C5A0391F2FFE8519B1E",
     "status": "PASS"
   },
-  "generalization_scope": "Pointwise evidence only: validated M,R points (2.073,13.25) and (2.000,13.75). Transfer proposal failed gates at (2.000,14.00) and (2.000,13.50); no full M,R domain claim."
+  "generalization_scope": "Pointwise evidence only: validated M,R points (2.073,13.25) and (2.000,13.75). Transfer proposal failed gates at (2.000,14.00) and (2.000,13.50); no full M,R domain claim.",
+  "failed_seed_195503_correlations": {
+    "mass_radius_msun_km": [
+      2.0,
+      13.5
+    ],
+    "ESS": 111.227428,
+    "max_weight_fraction": 0.061614091,
+    "largest_weight_index": 23,
+    "correlations": {
+      "p_phase__s_phase": 0.99949179,
+      "p_radius__p_logT": -0.860540068,
+      "s_radius__s_logT": -0.773005253,
+      "p_phase__p_logT": 0.559911907,
+      "s_radius__column_density": 0.476072226,
+      "s_logT__column_density": -0.453532487
+    },
+    "status": "EXPLORATORY_MAX_WEIGHT_GATE_FAILED"
+  }
 }
-
