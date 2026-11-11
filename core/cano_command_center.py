@@ -26,6 +26,7 @@ from core.cano_chat_tasks import stage_execution_notice
 from core.scientific_sources import scientific_sources
 from core.doi_priority import prioritize_requested_dois
 from core.task_panel import _session_database_path
+from core.research_status import label_unverified_claim_headings
 from core.cano_backup_bundle import create_portable_bundle, export_authorized_queue
 from core.organism_lab_persistence import OrganismLabStore
 from core.encrypted_backup_ui import render_encrypted_download
@@ -432,7 +433,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                         st.warning(legacy_notice)
                     st.caption("Bu aşama model metnidir; kod, cihaz veya fiziksel deney "
                                "çalıştırılmadı. Gerçek kaynak okuma kayıtları ayrıca gösterilir.")
-                    st.markdown(stage["output"])
+                    st.markdown(label_unverified_claim_headings(stage["output"]))
                     lessons_used = stage.get("approved_lessons_used")
                     if type(lessons_used) is int and lessons_used >= 0:
                         st.caption(
