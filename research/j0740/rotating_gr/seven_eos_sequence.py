@@ -69,11 +69,18 @@ def stable_source_radius_at_mass(source: Path, mass: float) -> tuple[float, dict
 
 
 def first_stable_crossing(models: list[dict], target: float) -> tuple[float, float] | None:
-    """Bracket the FIRST increasing-mass crossing, never the unstable branch."""
+    """Bracket the FIRST increasing-mass crossing, never the unstable branch.
+
+    RNS reports mass at finite decimal precision. One or more sampled points
+    can therefore equal the requested target exactly and split an otherwise
+    valid strict bracket. Keep the last strictly-below point across such an
+    equality plateau, then return it with the first strictly-above point.
+    """
     if not (math.isfinite(target) and target > 0):
         raise ValueError("invalid target")
     ordered = sorted(models, key=lambda x: x["central_energy_density_g_cm3"])
     previous = None
+    below_target = None
     for model in ordered:
         ec = float(model["central_energy_density_g_cm3"])
         mass = float(model["mass_msun"])
@@ -84,8 +91,12 @@ def first_stable_crossing(models: list[dict], target: float) -> tuple[float, flo
                 raise ValueError("duplicate central density in scan")
             if mass < previous["mass_msun"] - 0.002:
                 break  # maximum stable mass reached; DO NOT search beyond it
-            if previous["mass_msun"] < target < mass:
-                return (float(previous["central_energy_density_g_cm3"]), ec)
+        if mass < target:
+            below_target = model
+        elif mass > target and below_target is not None:
+            return (float(below_target["central_energy_density_g_cm3"]), ec)
+        # If mass == target, retain the last strict-below sample and continue
+        # until a strict-above sample completes the bracket.
         previous = model
     return None
 
@@ -269,3 +280,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
