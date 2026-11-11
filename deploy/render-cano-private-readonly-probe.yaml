@@ -1,0 +1,22 @@
+# PLANNING ONLY. New isolated Free web service after separate user approval.
+# No backup, no restore, no data rows queried, no production service updates.
+services:
+  - type: web
+    name: cano-pg18-private-readonly-probe-20261111
+    runtime: python
+    region: frankfurt
+    plan: free
+    branch: fix/cano-render-private-readonly-blueprint-20261111
+    autoDeployTrigger: off
+    buildCommand: pip install -r requirements-persistence.txt
+    startCommand: python -m scripts.cano_cloud_readonly_probe
+    healthCheckPath: /healthz
+    envVars:
+      - key: CANO_RENDER_INTERNAL_URL
+        fromDatabase:
+          name: research-library-persistent-db
+          property: connectionString
+      - key: CANO_REQUIRED_RENDER_DATABASE
+        value: research_library_persistent_db
+      - key: CANO_REQUIRED_RENDER_HOST_PREFIX
+        value: dpg-dbkfp5bm8hqs73bba7u0-a
