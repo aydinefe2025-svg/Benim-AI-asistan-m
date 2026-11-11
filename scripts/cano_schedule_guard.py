@@ -13,6 +13,63 @@ REPORT_URL = (
     "Benim-AI-asistan-m/cano-latest/colony-cycle.json"
 )
 MAX_REPORT_AGE = timedelta(minutes=50)
+MAX_REPORT_BYTES = 1_000_000
+EXPECTED_MODE = "bounded_virtual_reproduction_with_held_out_validation"
+EXPECTED_ROLES = {"evidence", "generation", "continuity", "security"}
+
+
+def _is_complete_report(report: object) -> bool:
+    """Only let a structurally validated published result suppress a cycle."""
+    if not isinstance(report, dict):
+        return False
+    if (report.get("db_integrity") != "ok"
+            or report.get("mode") != EXPECTED_MODE
+            or report.get("scope") != "authorized_github_runner"):
+        return False
+
+    cycle = report.get("cycle")
+    if not isinstance(cycle, dict):
+        return False
+    tick = cycle.get("tick_id")
+    if type(tick) is not int or tick < 1:
+        return False
+    if (report.get("stored_ticks") != tick
+            or report.get("verified_tick_id") != tick
+            or cycle.get("state") != "proposed"):
+        return False
+
+    generation = report.get("virtual_generation")
+    if not isinstance(generation, dict) or generation.get("generation_id") != tick:
+        return False
+    if generation.get("lesson_status") not in {"accepted", "rejected"}:
+        return False
+
+    continuity = report.get("continuity")
+    if not isinstance(continuity, dict):
+        return False
+    if continuity.get("had_prior_state") is True:
+        if (continuity.get("increment_verified") is not True
+                or continuity.get("previous_tick_id") != tick - 1
+                or continuity.get("previous_tick_count") != tick - 1):
+            return False
+    elif continuity.get("had_prior_state") is not False:
+        return False
+
+    specialists = report.get("specialist_agents")
+    roles = specialists.get("roles") if isinstance(specialists, dict) else None
+    if (not isinstance(roles, list)
+            or specialists.get("status") != "passed"
+            or specialists.get("launched") != len(EXPECTED_ROLES)):
+        return False
+    if {item.get("role") for item in roles if isinstance(item, dict)} != EXPECTED_ROLES:
+        return False
+    return all(
+        isinstance(item, dict)
+        and item.get("status") == "passed"
+        and item.get("execution") == "isolated_read_only_subprocess"
+        and item.get("model_calls") == 0
+        for item in roles
+    )
 
 
 def should_run_cycle(
@@ -21,13 +78,19 @@ def should_run_cycle(
     *,
     now: datetime | None = None,
 ) -> bool:
-    """Run every manual/push request and fail open for stale or invalid reports."""
+    """Run manual/push requests and fail open for stale or invalid reports."""
     if event_name != "schedule":
         return True
     if report_payload is None:
         return True
     try:
+        payload_size = len(report_payload.encode("utf-8") if isinstance(report_payload, str)
+                           else report_payload)
+        if payload_size > MAX_REPORT_BYTES:
+            return True
         report = json.loads(report_payload)
+        if not _is_complete_report(report):
+            return True
         timestamp = datetime.fromisoformat(str(report["timestamp"]).replace("Z", "+00:00"))
         if timestamp.tzinfo is None:
             return True
@@ -36,7 +99,7 @@ def should_run_cycle(
             raise ValueError("now must be timezone-aware")
         age = current.astimezone(timezone.utc) - timestamp.astimezone(timezone.utc)
         return age < timedelta(0) or age >= MAX_REPORT_AGE
-    except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError, UnicodeError):
         return True
 
 
@@ -46,8 +109,8 @@ def fetch_public_report() -> bytes | None:
         with urlopen(request, timeout=8) as response:
             if response.status != 200:
                 return None
-            payload = response.read(1_000_001)
-        return payload if len(payload) <= 1_000_000 else None
+            payload = response.read(MAX_REPORT_BYTES + 1)
+        return payload if len(payload) <= MAX_REPORT_BYTES else None
     except Exception:
         # The report is public and contains no credentials. Fail open so a read
         # outage triggers the bounded cycle instead of silently suppressing it.
