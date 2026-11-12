@@ -163,7 +163,7 @@ def render_organism_lab_panel(st, *, owner_key=None, database_url=None):
                 "Organism Lab persistence write/readback failed")
             return False
 
-    with st.sidebar.expander("🧬 Organizmalar Laboratuvarı", expanded=False):
+    with st.expander("🧬 Organizmalar Laboratuvarı", expanded=False):
         st.caption(
             "Yalnızca sınırlı dijital simülasyon. Gerçek hücre veya robot çalıştırmaz; "
             "kendiliğinden yeni ajan oluşturmaz ve model API'si kullanmaz."
