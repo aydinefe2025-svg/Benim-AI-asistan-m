@@ -15,14 +15,18 @@ from pathlib import Path
 import re
 import shutil
 import threading
+import secrets
 from urllib.parse import urlsplit
+from urllib.request import Request, urlopen
+import zipfile
 
 from scripts.cano_encrypted_backup import make_encrypted_backup, verify_encrypted_backup
 from scripts.cano_pg_backup import BackupError, _libpq_env_from_uri
 
 _root = Path('/tmp/cano-owner-export')
 _lock = threading.Lock()
-_state = {'phase': 'idle', 'archive': '', 'receipt': '', 'size': 0, 'sha256': '', 'error': ''}
+_state = {'phase': 'idle', 'archive': '', 'receipt': '', 'size': 0, 'sha256': '', 'error': '',
+          'offsite_phase': 'not_started', 'offsite_sha256': '', 'offsite_bytes': 0}
 _ALLOWED_PHASES = ('idle', 'running', 'ready', 'failed', 'purged')
 
 
@@ -85,6 +89,79 @@ def _worker():
             _state.update(phase='failed', error='export_or_verification_failed')
 
 
+
+def _auto_upload_worker():
+    """Optional one-time OFFSITE transfer using a short-lived Notion upload grant.
+
+    The grant is configured privately via Render env vars, never in Git. The
+    only upload bytes are a ZIP containing authenticated ciphertext and a
+    receipt. The private AES key is never in the ZIP or network request.
+    """
+    try:
+        uri = os.environ.get('CANO_NOTION_UPLOAD_URL', '')
+        auth = os.environ.get('CANO_NOTION_UPLOAD_AUTH', '')
+        parsed = urlsplit(uri)
+        if (parsed.scheme != 'https' or parsed.hostname != 'api.notion.com'
+                or not parsed.path.startswith('/v1/file_uploads/')
+                or not parsed.path.endswith('/send')
+                or parsed.username or parsed.password or parsed.fragment
+                or not auth.startswith('Bearer ') or len(auth) < 45):
+            raise ValueError('Invalid one-time transfer configuration')
+        with _lock:
+            if _state['phase'] != 'idle':
+                raise ValueError('Archive generation already started')
+            _state.update(phase='running', offsite_phase='dumping')
+        _worker()
+        with _lock:
+            if _state['phase'] != 'ready':
+                raise ValueError('Encrypted dump has not been verified')
+            archive = Path(_state['archive'])
+            receipt = Path(_state['receipt'])
+            _state['offsite_phase'] = 'packaging'
+        target = _root / 'CANO_RENDER_PG18_ENCRYPTED_BACKUP_20261112.zip'
+        with zipfile.ZipFile(target, 'w', compression=zipfile.ZIP_STORED) as z:
+            z.write(archive, arcname=archive.name)
+            z.write(receipt, arcname=receipt.name)
+            z.writestr('README.txt',
+                       'CANO Render PostgreSQL 18 AUTHENTICATED ENCRYPTED EXPORT.\n'
+                       'Contains only AES-256-GCM ciphertext and a verification receipt.\n'
+                       'AES owner recovery key is NOT included.\n'
+                       'Import requires separately retained owner key and isolated restore.\n')
+        if target.stat().st_size > 19 * 1024 * 1024:
+            raise ValueError('Exceeds supported one-part upload size')
+        # Never upload a file unless ZIP CRC and every included hash passes.
+        with zipfile.ZipFile(target) as z:
+            if z.testzip() is not None:
+                raise ValueError('ZIP failed self-check')
+        payload = target.read_bytes()
+        digest = hashlib.sha256(payload).hexdigest()
+        boundary = '----cano-only-encrypted-' + secrets.token_hex(10)
+        body = (('--' + boundary + '\r\n'
+                 'Content-Disposition: form-data; name="file"; filename="' + target.name + '"\r\n'
+                 'Content-Type: application/zip\r\n\r\n').encode()
+                + payload + ('\r\n--' + boundary + '--\r\n').encode())
+        req = Request(uri, data=body, method='POST', headers={
+            'Authorization': auth,
+            'Content-Type': 'multipart/form-data; boundary=' + boundary,
+            'User-Agent': 'CANO-owner-encrypted-offsite/1',
+        })
+        with _lock:
+            _state['offsite_phase'] = 'uploading'
+        with urlopen(req, timeout=75) as result:
+            reply = result.read(8192)
+            parsed_reply = json.loads(reply)
+            if result.status not in (200, 201) or parsed_reply.get('status') != 'uploaded':
+                raise ValueError('Offsite provider did not confirm upload')
+        with _lock:
+            _state.update(offsite_phase='upload_http_accepted',
+                          offsite_sha256=digest, offsite_bytes=len(payload))
+    except Exception:
+        # Never serialize a provider URL, token, database URL or internal error.
+        with _lock:
+            _state['offsite_phase'] = 'failed'
+
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
@@ -137,7 +214,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == '/healthz':
-            return self._json(200, {'service': 'cano-encrypted-export', 'api': 'owner_only'})
+            with _lock:
+                offsite = {k: _state[k] for k in ('offsite_phase', 'offsite_sha256', 'offsite_bytes')}
+            return self._json(200, {'service': 'cano-encrypted-export', 'api': 'owner_only', **offsite})
         if not self._authorized():
             return
         if self.path == '/v1/status':
@@ -189,6 +268,8 @@ def main():
         port = int(os.environ.get('PORT', '10000'))
         if not 1 <= port <= 65535:
             raise ValueError('invalid port')
+        if os.environ.get('CANO_AUTO_UPLOAD_ONCE') == '1':
+            threading.Thread(target=_auto_upload_worker, daemon=True, name='cano-offsite-upload-once').start()
         ThreadingHTTPServer(('0.0.0.0', port), Handler).serve_forever()
     except (OSError, ValueError):
         return 1
