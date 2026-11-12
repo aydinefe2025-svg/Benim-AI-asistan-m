@@ -502,8 +502,9 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                     st.success("Kayıtlı aşamalar korundu; görev kaldığı yerden tamamlandı.")
                     st.rerun()
                     return
-                except (RuntimeError, ValueError, KeyError, OSError, sqlite3.Error) as exc:
-                    # Lazy import avoids the module cycle: colony_panel imports _snapshot here.
+                except Exception as exc:
+                    # Provider/PostgreSQL adapters can raise their own exception
+                    # classes; keep every resume failure inside the safe UI path.
                     from core.colony_panel import mission_failure_message
                     st.error(mission_failure_message(
                         exc, getattr(manager, "last_failure", None)))
