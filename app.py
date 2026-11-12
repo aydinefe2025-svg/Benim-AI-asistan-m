@@ -733,21 +733,23 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     )
     
     _research_excerpts = []
-    # Public source lookup only on explicit research requests; source URLs are
-    # evidence pointers, not proof that model claims were independently verified.
+    _scholarly_sources = []
+    # Run the two public providers only for an explicit research request.
+    # Encyclopedia passages and Crossref metadata have distinct evidence status.
     if arama_istegi:
-        try:
-            public_sources = research_sources(kullanici_mesaji)
-            _research_excerpts = retrieve_research_excerpts(public_sources)
-            if public_sources:
-                arama_sonucu += "\n" + format_research_evidence(_research_excerpts)
-                arama_sonucu += "\nKaynak bağlantıları (ansiklopedi, bağımsız doğrulanmadı):\n" + "\n".join(
-                    item["title"] + ": " + item["url"] for item in public_sources
-                )
-            elif not _research_excerpts:
-                arama_sonucu += "\nAçık kaynak aramasında sonuç bulunamadı."
-        except (OSError, ValueError, KeyError, TypeError):
-            arama_sonucu += "\nAçık kaynak araması başarısız; sonuç doğrulanamadı."
+        from core.chat_research import (
+            collect_chat_research_context, format_scholarly_leads,
+        )
+        _research = collect_chat_research_context(
+            kullanici_mesaji,
+            public_lookup=research_sources,
+            scholarly_lookup=scientific_sources,
+            retrieve_excerpts=retrieve_research_excerpts,
+            format_evidence=format_research_evidence,
+        )
+        _research_excerpts = _research["excerpts"]
+        _scholarly_sources = _research["scholarly_sources"]
+        arama_sonucu += "\n" + _research["context"]
     saved_context = memory_context(st.session_state.saved_memories, kullanici_mesaji)
     storage_context = (
         "Hafıza notları şu anda doğrulanmış giriş hesabının PostgreSQL deposunda saklanır."
@@ -807,6 +809,10 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
             bibliography = format_research_bibliography(_research_excerpts)
             if bibliography:
                 final_answer += "\n\n" + bibliography
+        if arama_istegi and _scholarly_sources:
+            scholarly_bibliography = format_scholarly_leads(_scholarly_sources)
+            if scholarly_bibliography:
+                final_answer += "\n\n" + scholarly_bibliography
         return final_answer
 
     except Exception as e:
