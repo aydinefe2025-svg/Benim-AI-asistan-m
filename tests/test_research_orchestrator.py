@@ -101,6 +101,7 @@ class ResearchOrchestratorTests(unittest.TestCase):
         result = orchestrator.run("A research question", web_search=True)
         self.assertEqual(result["search_count"], "1")
         self.assertEqual(result["search_error"], "OSError")
+        self.assertIn("provider error types: OSError", result["report"])
         self.assertNotIn("private host detail", result["report"])
 
     def test_empty_question_rejected(self):
