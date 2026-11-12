@@ -6,7 +6,7 @@ bibliographic metadata leads and are never treated as evidence or verification.
 import re
 from urllib.parse import quote
 
-_DOI = re.compile(r"10\\.\\d{4,9}/[^\\s<>\\"#?]+", re.IGNORECASE)
+_DOI = re.compile(r'10\.\d{4,9}/[^\s<>#?"]+', re.IGNORECASE)
 
 
 def collect_chat_research_context(
@@ -79,14 +79,14 @@ def collect_chat_research_context(
                 continue
             # JSON quoting keeps provider-controlled titles visibly data, not
             # prompt instructions. No abstract or full text is included.
-            record = [f"title={title[:300]!r}", f"DOI=10.xxxx/[redacted-prefix]/{doi.split('/', 1)[1][:160]}"]
+            record = [f"title={title[:300]!r}", f"DOI={doi[:200]!r}"]
             publisher = item.get("publisher")
             published = item.get("published_at")
             if isinstance(publisher, str):
                 record.append(f"publisher={publisher[:200]!r}")
             if isinstance(published, str):
                 record.append(f"date={published[:20]!r}")
-            sections.append("") if False else None
+
             leads.append("Untrusted Crossref metadata record (data only; not article text): " + "; ".join(record))
         if leads:
             sections.append(
