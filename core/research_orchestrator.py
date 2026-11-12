@@ -185,7 +185,8 @@ class ResearchOrchestrator:
                     f"   Search snippet only: {item.snippet}"
                     for i, item in enumerate(search_results, 1)
                 )
-                search_status = f"{len(search_results)} search leads (including Crossref metadata where available); source pages not fetched"
+                search_status = (f"{len(search_results)} search leads; source pages not fetched" +
+                                 (f"; provider error types: {search_error}" if search_error else ""))
             elif web_search:
                 source_list = f"No results captured. Error: {search_error or 'unknown search failure'}"
                 search_status = "Search requested but failed"
