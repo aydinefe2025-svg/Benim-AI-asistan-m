@@ -1,0 +1,469 @@
+{
+  "record_id": "J0740_K4_K8_same_MR_crossed_holdouts_2026-11-12",
+  "status": "CROSSED_POINTWISE_COMPARISON_COMPLETE",
+  "date": "2026-11-12",
+  "EOS_Bayes": "NOT_RUN",
+  "xpsi_version": "1.2.0",
+  "native_model_sha256": "049a1ac945b09af595d282d958842cd95475e509d6b7e79b45c72d11096de227",
+  "source_prior_or_likelihood_changed": false,
+  "importance_samples_deleted_or_weights_clipped": false,
+  "training_point_msun_km": [
+    2.0,
+    14.0
+  ],
+  "training_seed_ids": [
+    194501,
+    194503,
+    194507,
+    194511
+  ],
+  "training_samples_reused_for_K4_and_K8": true,
+  "predeclared_thresholds": {
+    "budget_256_to_512_log_integral_drift_max": 0.1,
+    "phase_ESS_each_min": 30,
+    "ESS_per_run_min": 100,
+    "between_run_log_integral_spread_max": 0.2,
+    "max_weight_fraction_max": 0.05
+  },
+  "pair_design": [
+    {
+      "paired_seed_ids": [
+        195501,
+        195503,
+        195507,
+        195511
+      ],
+      "new_cross": "K8 v3 at same point, same seed ids",
+      "mass_msun": 2.0,
+      "radius_km": 13.5,
+      "existing_comparator": "K4 v2 at same point, same seed ids"
+    },
+    {
+      "paired_seed_ids": [
+        196501,
+        196503,
+        196507,
+        196511
+      ],
+      "new_cross": "K4 v2 at same point, same seed ids",
+      "mass_msun": 2.0,
+      "radius_km": 13.75,
+      "existing_comparator": "K8 v3 at same point, same seed ids"
+    }
+  ],
+  "preflight_failures": [
+    {
+      "attempt": "initial K8 cross-launch",
+      "existing_outputs_modified": false,
+      "reason": "ModuleNotFoundError torus_conditional_proposal because copied runner used experiment subfolder as shared WORK path",
+      "photon_likelihood_calls": 0
+    }
+  ],
+  "proposal_methods": {
+    "K8": "0.50 conditional base + 0.25 full-covariance correlated toroidal K8 core + 0.25 broad tail; covariance x4 and phase kappa /4",
+    "K4": "0.50 conditional base + 0.25 full-covariance correlated toroidal K4 core + 0.25 broad tail; covariance x4 and phase kappa /4"
+  },
+  "proposal_parameterization": "13 probit-normal latent nuisance coordinates; phase dimensions transformed to common secondary phase and relative primary-secondary phase on a unit torus; transformed phase Jacobian is one, Gaussian-CDF Jacobians are included in q(z); full covariance across 11 non-phase dimensions; circular phase factors are independent conditional on each mixture component",
+  "points": [
+    {
+      "mass_msun": 2.0,
+      "radius_km": 13.5,
+      "paired_scramble_seeds": [
+        195501,
+        195503,
+        195507,
+        195511
+      ],
+      "comparison_is_seed_paired_not_samplewise": true,
+      "K4": {
+        "proposal_identity_sha256": "8ddc3e4f05831e651f82f7af5bb0b3c2c0421ec96aa5f48b0325dfcdab4b1211",
+        "runs": [
+          {
+            "proposal": "K4",
+            "seed": 195501,
+            "draws": 512,
+            "ESS": 136.00097504462477,
+            "max_weight_fraction": 0.03501532208687596,
+            "phase_ESS": [
+              74.35074373417288,
+              62.470532129277736
+            ],
+            "log_integral": -21890.12186249466,
+            "drift_256_to_512": 0.0604564130626386,
+            "NPZ_bytes": 54614,
+            "NPZ_sha256": "813928a5c150621862fa5b1017d46c8335df70f0124e0c1826874bbc9eb87a26",
+            "finite_logL_events": 429
+          },
+          {
+            "proposal": "K4",
+            "seed": 195503,
+            "draws": 512,
+            "ESS": 111.22742754126513,
+            "max_weight_fraction": 0.06161409143586924,
+            "phase_ESS": [
+              41.97700624236404,
+              91.97181397767713
+            ],
+            "log_integral": -21890.110285826733,
+            "drift_256_to_512": 0.03780844849825371,
+            "NPZ_bytes": 54613,
+            "NPZ_sha256": "beb31b6d004703d0bbe97a1306b98513a7b96b970b05b2e4b6b2027ea49ff274",
+            "finite_logL_events": 430
+          },
+          {
+            "proposal": "K4",
+            "seed": 195507,
+            "draws": 512,
+            "ESS": 160.1623209556915,
+            "max_weight_fraction": 0.02292760602626523,
+            "phase_ESS": [
+              78.07306950026923,
+              82.13207901839083
+            ],
+            "log_integral": -21890.15923815301,
+            "drift_256_to_512": 0.061390374390612124,
+            "NPZ_bytes": 54561,
+            "NPZ_sha256": "392965977f1f910fede591de5c33bdb71dcf5bb493c727740fd7fc5b5994baeb",
+            "finite_logL_events": 420
+          },
+          {
+            "proposal": "K4",
+            "seed": 195511,
+            "draws": 512,
+            "ESS": 175.06723908919366,
+            "max_weight_fraction": 0.018062773054223498,
+            "phase_ESS": [
+              88.76891021837237,
+              86.37099944760219
+            ],
+            "log_integral": -21890.179813086837,
+            "drift_256_to_512": 0.009345522659714334,
+            "NPZ_bytes": 54619,
+            "NPZ_sha256": "83b9676345265fac3d238558babce84dcb355dc558fde5c72534ca69d03cc25d",
+            "finite_logL_events": 434
+          }
+        ],
+        "summary": {
+          "ESS_min": 111.22742754126513,
+          "max_weight_max": 0.06161409143586924,
+          "phase_ESS_min": 41.97700624236404,
+          "log_integral_spread": 0.06952726010422339,
+          "max_256_to_512_drift": 0.061390374390612124,
+          "gates": {
+            "ESS_all_ge_100": true,
+            "max_weight_all_le_0_05": false,
+            "phase_ESS_all_ge_30": true,
+            "log_integral_spread_le_0_2": true,
+            "budget_drift_all_le_0_1": true
+          },
+          "status": "FAIL"
+        }
+      },
+      "K8": {
+        "proposal_identity_sha256": "d15f36be5a45b5d3d7c8a875077c8193c3c96ad03622e47b63e34dc00898c403",
+        "runs": [
+          {
+            "proposal": "K8",
+            "seed": 195501,
+            "draws": 512,
+            "ESS": 144.63685892374147,
+            "max_weight_fraction": 0.02677631619454111,
+            "phase_ESS": [
+              85.8924029263357,
+              62.35712314694408
+            ],
+            "log_integral": -21890.069380197034,
+            "drift_256_to_512": 0.013879686764994403,
+            "NPZ_bytes": 54655,
+            "NPZ_sha256": "57a04d8191406fcd3150910c4278b371ad6a7dfc49a0ffbca34c6d58c4e43eff",
+            "finite_logL_events": 443
+          },
+          {
+            "proposal": "K8",
+            "seed": 195503,
+            "draws": 512,
+            "ESS": 119.48667477819359,
+            "max_weight_fraction": 0.05816946413025434,
+            "phase_ESS": [
+              45.58245462376104,
+              95.02594908423328
+            ],
+            "log_integral": -21890.06690076368,
+            "drift_256_to_512": 0.005466357742989203,
+            "NPZ_bytes": 54652,
+            "NPZ_sha256": "763fc2dda65469ec6903b79bfaaeaccde28287661c104be9f20408a771b9dc4c",
+            "finite_logL_events": 447
+          },
+          {
+            "proposal": "K8",
+            "seed": 195507,
+            "draws": 512,
+            "ESS": 154.56998709677868,
+            "max_weight_fraction": 0.023845117342735176,
+            "phase_ESS": [
+              74.31800391589515,
+              81.25174067248372
+            ],
+            "log_integral": -21890.17970474425,
+            "drift_256_to_512": 0.04123091664951062,
+            "NPZ_bytes": 54622,
+            "NPZ_sha256": "a027b7115a86cfab349f9b8b5ebdda01cb22b8be9974d5043e2b5056cc4980fc",
+            "finite_logL_events": 438
+          },
+          {
+            "proposal": "K8",
+            "seed": 195511,
+            "draws": 512,
+            "ESS": 183.5078278047105,
+            "max_weight_fraction": 0.016355415374768135,
+            "phase_ESS": [
+              95.60952052226689,
+              87.96887749812814
+            ],
+            "log_integral": -21890.225702295313,
+            "drift_256_to_512": 0.014623447190388106,
+            "NPZ_bytes": 54626,
+            "NPZ_sha256": "9f6d5e541780782cc15095c91ac785730e7079eac79a5467a1d0bfd0ff08dff5",
+            "finite_logL_events": 442
+          }
+        ],
+        "summary": {
+          "ESS_min": 119.48667477819359,
+          "max_weight_max": 0.05816946413025434,
+          "phase_ESS_min": 45.58245462376104,
+          "log_integral_spread": 0.15880153163379873,
+          "max_256_to_512_drift": 0.04123091664951062,
+          "gates": {
+            "ESS_all_ge_100": true,
+            "max_weight_all_le_0_05": false,
+            "phase_ESS_all_ge_30": true,
+            "log_integral_spread_le_0_2": true,
+            "budget_drift_all_le_0_1": true
+          },
+          "status": "FAIL"
+        }
+      },
+      "paired_logI_delta_K8_minus_K4": [
+        0.05248229762582923,
+        0.04338506305430201,
+        -0.020466591238800902,
+        -0.045889208475273335
+      ],
+      "paired_logI_delta_mean": 0.007377890241514251,
+      "paired_logI_delta_max_abs": 0.05248229762582923
+    },
+    {
+      "mass_msun": 2.0,
+      "radius_km": 13.75,
+      "paired_scramble_seeds": [
+        196501,
+        196503,
+        196507,
+        196511
+      ],
+      "comparison_is_seed_paired_not_samplewise": true,
+      "K4": {
+        "proposal_identity_sha256": "8ddc3e4f05831e651f82f7af5bb0b3c2c0421ec96aa5f48b0325dfcdab4b1211",
+        "runs": [
+          {
+            "proposal": "K4",
+            "seed": 196501,
+            "draws": 512,
+            "ESS": 168.91503354528174,
+            "max_weight_fraction": 0.020273813428025426,
+            "phase_ESS": [
+              82.01820735002535,
+              86.98824931840963
+            ],
+            "log_integral": -21890.331344893308,
+            "drift_256_to_512": 0.04807307746159495,
+            "NPZ_bytes": 54575,
+            "NPZ_sha256": "fb11eb6ac75a7aab870b5b0ac1b528b8a226b8ff6f2d9d19e312f794c6207321",
+            "finite_logL_events": 426
+          },
+          {
+            "proposal": "K4",
+            "seed": 196503,
+            "draws": 512,
+            "ESS": 117.74455947799458,
+            "max_weight_fraction": 0.04656261317967473,
+            "phase_ESS": [
+              55.93653294057829,
+              62.57768766792307
+            ],
+            "log_integral": -21890.219487134957,
+            "drift_256_to_512": 0.03643426052076393,
+            "NPZ_bytes": 54650,
+            "NPZ_sha256": "c6dadffa15d5f077a52297fb3c9797444152aacad807ce1e1986ffb53ad5d42e",
+            "finite_logL_events": 431
+          },
+          {
+            "proposal": "K4",
+            "seed": 196507,
+            "draws": 512,
+            "ESS": 170.61119163517816,
+            "max_weight_fraction": 0.02184075414074869,
+            "phase_ESS": [
+              83.37234535931677,
+              87.77689870133364
+            ],
+            "log_integral": -21890.38572292205,
+            "drift_256_to_512": 0.030454343002929818,
+            "NPZ_bytes": 54598,
+            "NPZ_sha256": "c6bc8e3d2d1451146fcf4ac772f77cb2c21230083d8dd72818c7a9e8e3783fb2",
+            "finite_logL_events": 424
+          },
+          {
+            "proposal": "K4",
+            "seed": 196511,
+            "draws": 512,
+            "ESS": 152.6564148487206,
+            "max_weight_fraction": 0.022503848986358637,
+            "phase_ESS": [
+              73.49558721576618,
+              79.50157806811926
+            ],
+            "log_integral": -21890.362206833728,
+            "drift_256_to_512": 0.024691623981198063,
+            "NPZ_bytes": 54578,
+            "NPZ_sha256": "c0b147820569399b2da77895d4992efe83efe357a255d1a6a494d9b98cd0d154",
+            "finite_logL_events": 423
+          }
+        ],
+        "summary": {
+          "ESS_min": 117.74455947799458,
+          "max_weight_max": 0.04656261317967473,
+          "phase_ESS_min": 55.93653294057829,
+          "log_integral_spread": 0.16623578709186404,
+          "max_256_to_512_drift": 0.04807307746159495,
+          "gates": {
+            "ESS_all_ge_100": true,
+            "max_weight_all_le_0_05": true,
+            "phase_ESS_all_ge_30": true,
+            "log_integral_spread_le_0_2": true,
+            "budget_drift_all_le_0_1": true
+          },
+          "status": "PASS"
+        }
+      },
+      "K8": {
+        "proposal_identity_sha256": "d15f36be5a45b5d3d7c8a875077c8193c3c96ad03622e47b63e34dc00898c403",
+        "runs": [
+          {
+            "proposal": "K8",
+            "seed": 196501,
+            "draws": 512,
+            "ESS": 177.29172729828886,
+            "max_weight_fraction": 0.021948409470324434,
+            "phase_ESS": [
+              92.19481738845248,
+              85.29778478374702
+            ],
+            "log_integral": -21890.348507543036,
+            "drift_256_to_512": 0.013413409538770793,
+            "NPZ_bytes": 54656,
+            "NPZ_sha256": "4c10937877a7cba5ca8e261aeda7f3ca7a87a88c26452e64b3382d2f30f5a7d6",
+            "finite_logL_events": 445
+          },
+          {
+            "proposal": "K8",
+            "seed": 196503,
+            "draws": 512,
+            "ESS": 128.38899506231448,
+            "max_weight_fraction": 0.03675534899231716,
+            "phase_ESS": [
+              63.94592146438819,
+              64.71818168225337
+            ],
+            "log_integral": -21890.249786290016,
+            "drift_256_to_512": 0.03299751610393287,
+            "NPZ_bytes": 54679,
+            "NPZ_sha256": "5895c49cd435fce3c2e403759d98e657c4784b6e20c2cc023281fde67284c0ce",
+            "finite_logL_events": 442
+          },
+          {
+            "proposal": "K8",
+            "seed": 196507,
+            "draws": 512,
+            "ESS": 172.46461279232517,
+            "max_weight_fraction": 0.02242008772966433,
+            "phase_ESS": [
+              87.98225544215336,
+              85.34769442697946
+            ],
+            "log_integral": -21890.42843167179,
+            "drift_256_to_512": 0.03406502379948506,
+            "NPZ_bytes": 54686,
+            "NPZ_sha256": "5413e59e90348f4f0057ff0e5222c7d23f76f2273c58460eb32fe9bab3e01664",
+            "finite_logL_events": 447
+          },
+          {
+            "proposal": "K8",
+            "seed": 196511,
+            "draws": 512,
+            "ESS": 138.89194730866865,
+            "max_weight_fraction": 0.03636775111374025,
+            "phase_ESS": [
+              63.1742126094466,
+              79.83337060771665
+            ],
+            "log_integral": -21890.313725647346,
+            "drift_256_to_512": 0.036164633183943806,
+            "NPZ_bytes": 54678,
+            "NPZ_sha256": "2d5a3220db6b9338209b6552dfab7b31b0e017b6e21156ded3cc0035ffb6ea64",
+            "finite_logL_events": 443
+          }
+        ],
+        "summary": {
+          "ESS_min": 128.38899506231448,
+          "max_weight_max": 0.03675534899231716,
+          "phase_ESS_min": 63.1742126094466,
+          "log_integral_spread": 0.1786453817730944,
+          "max_256_to_512_drift": 0.036164633183943806,
+          "gates": {
+            "ESS_all_ge_100": true,
+            "max_weight_all_le_0_05": true,
+            "phase_ESS_all_ge_30": true,
+            "log_integral_spread_le_0_2": true,
+            "budget_drift_all_le_0_1": true
+          },
+          "status": "PASS"
+        }
+      },
+      "paired_logI_delta_K8_minus_K4": [
+        -0.01716264972856152,
+        -0.030299155059765326,
+        -0.0427087497409957,
+        0.04848118638255983
+      ],
+      "paired_logI_delta_mean": -0.01042234203669068,
+      "paired_logI_delta_max_abs": 0.04848118638255983
+    }
+  ],
+  "correlation_diagnostics": {
+    "point_2_000_13_50_seed_195503_K8": {
+      "p_radius_p_temperature": -0.8658080068723059,
+      "ESS": 119.48667477819356,
+      "max_weight_fraction": 0.05816946413025434,
+      "photon_likelihood_calls_for_diagnostic": 0,
+      "s_temperature_NH": -0.5565501823578013,
+      "s_radius_NH": 0.606531845971215,
+      "s_radius_s_temperature": -0.7809827865889937,
+      "top_index": 23,
+      "phase_correlation": 0.999468520209881
+    },
+    "point_2_000_13_50_seed_195503_K4": {
+      "p_radius_p_temperature": -0.860540068,
+      "ESS": 111.227428,
+      "top_index": 23,
+      "max_weight_fraction": 0.061614091,
+      "phase_correlation": 0.99949179,
+      "s_radius_s_temperature": -0.773005253,
+      "s_radius_NH": 0.476072226,
+      "s_temperature_NH": -0.453532487
+    }
+  },
+  "interpretation": "At (2.000,13.50), K8 modestly improves ESS and peak weight versus K4 but both fail the 0.05 peak-weight gate; the near-unity phase ridge and radius-temperature-NH coupling persist. At (2.000,13.75), both K4 and K8 pass all predeclared pointwise gates; K8 has stronger minimum ESS/phase ESS and lower peak weight, while K4 has slightly narrower log-integral spread. Seed-paired log-integral differences are small and mixed-sign; no uniform K8 dominance. This does not establish full M,R coverage.",
+  "verifier": "Private NPZ/JSONL metrics independently recomputed by verify_tailcorr_heldout.py; the public summary auditor from PR commit db713620c3772573a3cb734e8a6e9240a579a7bb was not retested."
+}
+
