@@ -11,9 +11,20 @@ from core.organism_lab_panel import (
 from organism_lab.shared_world import run_shared_world
 
 
+class FakeSidebar:
+    def __init__(self, parent):
+        self.parent = parent
+
+    def expander(self, label, **_kwargs):
+        self.parent.sidebar_expanders.append(label)
+        return nullcontext()
+
+
 class FakeStreamlit:
     def __init__(self, pressed=()):
-        self.sidebar = self
+        self.sidebar_expanders = []
+        self.main_expanders = []
+        self.sidebar = FakeSidebar(self)
         self.pressed = set(pressed)
         self.session_state = {}
         self.downloads = []
@@ -24,7 +35,8 @@ class FakeStreamlit:
         self.markdown_blocks = []
         self.dataframes = []
 
-    def expander(self, *_args, **_kwargs):
+    def expander(self, label, **_kwargs):
+        self.main_expanders.append(label)
         return nullcontext()
 
     def caption(self, *_args, **_kwargs):
@@ -117,6 +129,8 @@ class OrganismPanelTests(unittest.TestCase):
         expected = run_shared_world(steps=10, energy=40, materials=12)
         expected["design"] = {"steps": 10, "energy": 40, "materials": 12}
         self.assertEqual(ui.session_state["cano_organism_world_result"], expected)
+        self.assertIn("🧬 Organizmalar Laboratuvarı", ui.main_expanders)
+        self.assertEqual(ui.sidebar_expanders, [])
         self.assertEqual(len(ui.downloads), 2)
         self.assertEqual(len(ui.metrics), 3)
         self.assertIn("Ne denendi?", ui.markdown_blocks[0])
