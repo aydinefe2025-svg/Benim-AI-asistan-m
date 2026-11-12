@@ -21,6 +21,8 @@ def json_export(document):
 def explain_world_result(result):
     """Explain one deterministic shared-budget simulation in plain Turkish."""
     try:
+        if not isinstance(result, dict):
+            raise ValueError
         robots = result["robots"]
         organisms = result["organisms"]
         births = result["births"]
@@ -31,6 +33,8 @@ def explain_world_result(result):
         if not isinstance(history, list):
             raise ValueError
         design = result.get("design", {})
+        if not isinstance(design, dict):
+            raise ValueError
         steps = design.get("steps", len(history))
         energy = design.get("energy")
         materials = design.get("materials")
