@@ -1,0 +1,30 @@
+"""Fail-closed local tests; synthetic source and no real Render connections."""
+import unittest
+from scripts.cano_cloud_backup_bridge import authorized, parse_range, RescueState
+from scripts.cano_install_pg18_client import fetch_verified
+
+class Tests(unittest.TestCase):
+    def test_token_auth(self):
+        token="a"*64
+        self.assertTrue(authorized("Bearer "+token,token))
+        for bad in (None,token,"bearer "+token,"Bearer "+("b"*64),"Bearer "+token+"x"):
+            self.assertFalse(authorized(bad,token))
+        self.assertFalse(authorized("Bearer " + token,""))
+    def test_ranges_restricted(self):
+        self.assertEqual((0,9),parse_range(None,10))
+        self.assertEqual((4,8),parse_range("bytes=4-8",10))
+        self.assertEqual((9,9),parse_range("bytes=9-",10))
+        self.assertEqual((0,8*1024*1024-1),parse_range(None,16*1024*1024))
+        for bad in ("bytes=-1","bytes=100-", "bytes=5-4","bytes=0-0,1-1", "0-9", "bytes=1-2\r\nInjected"):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                parse_range(bad,10)
+    def test_failed_status_no_false_backup(self):
+        state=RescueState({"status":"pg18_readonly_connection_verified","internal_readonly_verified":True})
+        self.assertFalse(state.health()["real_backup_created"])
+        self.assertIsNone(state.artifact("archive"))
+    def test_official_binary_restricts_file_names(self):
+        with self.assertRaises(RuntimeError):
+            fetch_verified("untrusted.deb",1,"0"*64)
+
+if __name__ == "__main__":
+    unittest.main()
