@@ -1,6 +1,6 @@
 {
   "record_id": "J0740_conditional_torus_proposal_candidate_2026-11-12",
-  "status": "MATHEMATICAL_CANDIDATE_NOT_IMPLEMENTED_OR_VALIDATED",
+  "status": "TORUS_COMPONENT_IMPLEMENTED_AND_TESTED; FULL_IMPORTANCE_PROPOSAL_NOT_VALIDATED",
   "date": "2026-11-12",
   "target_changes": false,
   "xpsi_version": "1.2.0",
@@ -22,6 +22,14 @@
     "defensive_mixture": "q(z)=0.50*q_base(z)+0.25*qC(x(z),phi(z))*prod_j phi_std(z_phase_j)+0.25*q_broad(z). q_broad is the existing normalized broad-tail component; retain its exact density.",
     "normalization": "The wrapped-normal lattice sum is normalized on T^2; each Gaussian is normalized on R^11; mixture weights sum to one; the phase map (u_primary,u_secondary)->(common,relative) has unit torus Jacobian; include both standard-normal CDF Jacobians when evaluating density in latent z. The base defensive component preserves prior support.",
     "fit": "Fit B_k and Omega_k from preserved weighted training samples only, with positive-definite regularization specified before any held-out evaluation; do not fit on held-out outcomes."
+  },
+  "implementation_and_math_tests": {
+    "module": "research/j0740/windows_access/conditional_wrapped_normal.py",
+    "test": "research/j0740/windows_access/test_conditional_wrapped_normal.py",
+    "result": "4 tests passed in the authorized Python 3.12 environment",
+    "checks": ["unit-torus grid normalization at two conditional means", "Fourier density versus independent wrapped-Gaussian lattice sum", "sample Fourier moments including cross-phase frequency", "reject non-positive-definite covariance"],
+    "photon_likelihood_calls": 0,
+    "scope_limit": "Only the normalized conditional phase component was implemented and mathematically tested. The weighted Gaussian mixture, defensive mixture assembly, held-out importance weights, and all predeclared scientific gates remain untested."
   },
   "required_validation_before_use": [
     "Implement lattice-sum density with a numerical truncation error bound and verify unit-torus normalization independently.",
