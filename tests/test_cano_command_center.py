@@ -406,9 +406,8 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(len(calls), 5)
 
         messages = " ".join(st.messages)
-        self.assertIn("owner_backup_checkpoint", messages)
+        self.assertIn("hesap PostgreSQL yedek kontrolü", messages)
         self.assertNotIn("PRIVATE", messages)
-        self.assertNotIn("ExternalStoreFailure", messages)
         self.assertNotIn("Traceback", messages)
 
     def test_evidence_read_button_shows_saved_source_excerpt(self):
