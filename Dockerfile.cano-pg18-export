@@ -1,0 +1,18 @@
+# Isolated owner-only PostgreSQL 18 encrypted exporter. Never a database server.
+FROM postgres:18-bookworm
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m venv /opt/cano-python
+COPY requirements-persistence.txt /app/requirements-persistence.txt
+RUN /opt/cano-python/bin/pip install --no-cache-dir -r /app/requirements-persistence.txt
+COPY scripts/cano_cloud_encrypted_export.py /app/scripts/cano_cloud_encrypted_export.py
+COPY scripts/cano_encrypted_backup.py /app/scripts/cano_encrypted_backup.py
+COPY scripts/cano_pg_backup.py /app/scripts/cano_pg_backup.py
+RUN mkdir -p /app/scripts /tmp/cano-owner-export && chmod 0700 /tmp/cano-owner-export \
+    && chown -R nobody:nogroup /tmp/cano-owner-export
+WORKDIR /app
+ENV PATH="/usr/lib/postgresql/18/bin:/opt/cano-python/bin:${PATH}"
+USER nobody
+EXPOSE 10000
+ENTRYPOINT ["/opt/cano-python/bin/python3", "-m", "scripts.cano_cloud_encrypted_export"]
