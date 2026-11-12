@@ -1,0 +1,23 @@
+# Dedicated Free service; does not update or redeploy the main CANO app.
+services:
+  - type: web
+    name: cano-pg18-encrypted-export-20261112
+    runtime: docker
+    region: frankfurt
+    plan: free
+    branch: fix/cano-render-encrypted-export-20261112
+    autoDeployTrigger: off
+    dockerfilePath: ./Dockerfile.cano-pg18-export
+    dockerContext: .
+    healthCheckPath: /healthz
+    envVars:
+      - key: CANO_RENDER_INTERNAL_URL
+        fromDatabase:
+          name: research-library-persistent-db
+          property: connectionString
+      - key: CANO_REQUIRED_RENDER_DATABASE
+        value: research_library_persistent_db
+      - key: CANO_REQUIRED_RENDER_HOST_PREFIX
+        value: dpg-dbkfp5bm8hqs73bba7u0-a
+# CANO_BACKUP_KEY_HEX and CANO_EXPORT_ACCESS_TOKEN are provisioned separately
+# via Render secret environment controls; never commit them in this YAML.
