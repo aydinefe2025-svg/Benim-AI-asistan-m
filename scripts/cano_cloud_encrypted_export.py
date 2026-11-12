@@ -102,7 +102,7 @@ def _auto_upload_worker():
         auth = os.environ.get('CANO_NOTION_UPLOAD_AUTH', '')
         parsed = urlsplit(uri)
         if (parsed.scheme != 'https' or parsed.hostname != 'api.notion.com'
-                or not parsed.path.startswith('/v1/file_uploads/')
+                or not parsed.path.startswith('/v1/mcp/file_uploads/')
                 or not parsed.path.endswith('/send')
                 or parsed.username or parsed.password or parsed.fragment
                 or not auth.startswith('Bearer ') or len(auth) < 45):
