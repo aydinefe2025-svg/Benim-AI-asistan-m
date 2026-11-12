@@ -6,7 +6,7 @@ from contextlib import nullcontext
 from unittest.mock import patch
 
 from core.organism_lab_panel import (
-    explain_campaign, json_export, render_organism_lab_panel, run_checked_campaign
+    explain_campaign, explain_world_result, json_export, render_organism_lab_panel, run_checked_campaign
 )
 from organism_lab.shared_world import run_shared_world
 
@@ -75,6 +75,24 @@ class OrganismPanelTests(unittest.TestCase):
         self.assertEqual(a["observations"], 15)
         self.assertEqual(json.loads(a["json"])["design"]["steps"], 10)
 
+    def test_world_explanation_uses_saved_design_and_measured_results(self):
+        result = run_shared_world(steps=10, energy=40, materials=12)
+        result["design"] = {"steps": 10, "energy": 40, "materials": 12}
+        explanation = explain_world_result(result)
+        self.assertIn("10 sanal adım", explanation)
+        self.assertIn("40 enerji ve 12 malzeme", explanation)
+        self.assertIn(f"{result['robots']} sanal robot", explanation)
+        self.assertIn(f"{result['successful_routes']} başarılı sanal rota", explanation)
+        self.assertIn("kontrol grubuyla karşılaştırma yapılmadı", explanation)
+        self.assertIn("biyolojik ya da fiziksel dünyaya kanıt oluşturmaz", explanation)
+
+    def test_zero_steps_and_invalid_world_report_are_explicit(self):
+        result = run_shared_world(steps=0, energy=40, materials=12)
+        result["design"] = {"steps": 0, "energy": 40, "materials": 12}
+        self.assertIn("hiçbir işlem yapmadı", explain_world_result(result))
+        with self.assertRaises(ValueError):
+            explain_world_result({"history": [], "robots": -1})
+
     def test_out_of_budget_campaign_is_rejected(self):
         for seed_count, steps in ((1, 20), (11, 20), (3, 0),
                                   (3, 101), (True, 20), (3, 1.5)):
@@ -97,15 +115,17 @@ class OrganismPanelTests(unittest.TestCase):
                                     "cano_organism_campaign_run"))
         render_organism_lab_panel(ui)
         expected = run_shared_world(steps=10, energy=40, materials=12)
+        expected["design"] = {"steps": 10, "energy": 40, "materials": 12}
         self.assertEqual(ui.session_state["cano_organism_world_result"], expected)
         self.assertEqual(len(ui.downloads), 2)
         self.assertEqual(len(ui.metrics), 3)
+        self.assertIn("Ne denendi?", ui.markdown_blocks[0])
         self.assertEqual(ui.session_state["cano_organism_campaign_result"]["observations"], 50)
-        self.assertEqual(len(ui.markdown_blocks), 1)
+        self.assertEqual(len(ui.markdown_blocks), 2)
         self.assertEqual(len(ui.dataframes), 2)
         self.assertEqual(len(ui.dataframes[1]), 50)
         self.assertIn("paired_population_difference", ui.dataframes[1][0])
-        self.assertIn("Ne bulundu?", ui.markdown_blocks[0])
+        self.assertIn("Ne bulundu?", ui.markdown_blocks[1])
         self.assertTrue(all("json" in item["mime"] for item in ui.downloads))
         self.assertTrue(any("PostgreSQL" in m for m in ui.warnings))
         self.assertEqual(ui.errors, [])

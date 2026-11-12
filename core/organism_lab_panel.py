@@ -18,6 +18,57 @@ def json_export(document):
 
 
 
+def explain_world_result(result):
+    """Explain one deterministic shared-budget simulation in plain Turkish."""
+    try:
+        if not isinstance(result, dict):
+            raise ValueError
+        robots = result["robots"]
+        organisms = result["organisms"]
+        births = result["births"]
+        routes = result["successful_routes"]
+        energy_left = result["energy_left"]
+        materials_left = result["materials_left"]
+        history = result["history"]
+        if not isinstance(history, list):
+            raise ValueError
+        design = result.get("design", {})
+        if not isinstance(design, dict):
+            raise ValueError
+        steps = design.get("steps", len(history))
+        energy = design.get("energy")
+        materials = design.get("materials")
+        values = (robots, organisms, births, routes, energy_left, materials_left, steps)
+        if any(type(value) is not int or value < 0 for value in values):
+            raise ValueError
+        if energy is not None and (type(energy) is not int or energy < 0):
+            raise ValueError
+        if materials is not None and (type(materials) is not int or materials < 0):
+            raise ValueError
+    except (KeyError, TypeError, ValueError):
+        raise ValueError("World report has no valid computed results") from None
+
+    setup = f"{steps} sanal adım"
+    if energy is not None and materials is not None:
+        setup += f", başlangıçta {energy} enerji ve {materials} malzeme"
+    if steps == 0:
+        outcome = "Adım sayısı sıfır olduğu için simülatör hiçbir işlem yapmadı."
+    else:
+        outcome = (
+            f"Son durumda {robots} sanal robot ve {organisms} sanal organizma vardı. "
+            f"Bu çalışmada {births} yeni dijital doğum ve {routes} başarılı sanal rota kaydedildi."
+        )
+    return (
+        f"**Ne denendi?** Paylaşılan enerji ve malzeme bütçesiyle {setup} çalıştırıldı.\n\n"
+        f"**Ne oldu?** {outcome} Kalan bütçe: {energy_left} enerji ve {materials_left} malzeme.\n\n"
+        "**Bunun anlamı:** Robot kurma, dijital doğum ve rota denemeleri aynı sanal kaynakları "
+        "kullandı; sonuçlar bu simülatörün kurallarına göre hesaplandı.\n\n"
+        "**Sınır ve sonraki adım:** Bu tek koşullu dijital denemedir; kontrol grubuyla karşılaştırma "
+        "yapılmadı ve biyolojik ya da fiziksel dünyaya kanıt oluşturmaz. Çoğalma etkisini değerlendirmek "
+        "için yanındaki genom karşılaştırma çalışmasını kullanın."
+    )
+
+
 def explain_campaign(report):
     """Explain computed study metrics in plain Turkish without another model call."""
     try:
@@ -128,6 +179,9 @@ def render_organism_lab_panel(st, *, owner_key=None, database_url=None):
             try:
                 result = run_shared_world(
                     steps=int(steps), energy=int(energy), materials=int(materials))
+                result["design"] = {
+                    "steps": int(steps), "energy": int(energy), "materials": int(materials),
+                }
                 st.session_state["cano_organism_world_result"] = result
                 if store is not None:
                     if persist("world", json_export(result)):
@@ -142,6 +196,7 @@ def render_organism_lab_panel(st, *, owner_key=None, database_url=None):
             st.metric("Sanal robot", result["robots"])
             st.metric("Sanal organizma", result["organisms"])
             st.metric("Başarılı sanal rota", result["successful_routes"])
+            st.markdown(explain_world_result(result))
             st.download_button(
                 "Sanal dünya JSON indir", data=json_export(result),
                 file_name="cano-dijital-dunya.json", mime="application/json",
@@ -213,6 +268,7 @@ def render_organism_lab_panel(st, *, owner_key=None, database_url=None):
                                 "Başarılı sanal rota": doc.get("successful_routes"),
                                 "Adım sayısı": len(doc.get("history", [])),
                             })
+                            st.markdown(explain_world_result(doc))
                         st.download_button(
                             "Arşivlenen JSON'u indir", data=record["data"],
                             file_name=f"cano-organism-lab-{record['kind']}-{record['sha256'][:12]}.json",
