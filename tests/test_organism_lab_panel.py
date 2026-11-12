@@ -125,7 +125,7 @@ class OrganismPanelTests(unittest.TestCase):
         self.assertEqual(len(ui.dataframes), 2)
         self.assertEqual(len(ui.dataframes[1]), 50)
         self.assertIn("paired_population_difference", ui.dataframes[1][0])
-        self.assertIn("Ne bulundu?", ui.markdown_blocks[0])
+        self.assertIn("Ne bulundu?", ui.markdown_blocks[1])
         self.assertTrue(all("json" in item["mime"] for item in ui.downloads))
         self.assertTrue(any("PostgreSQL" in m for m in ui.warnings))
         self.assertEqual(ui.errors, [])
