@@ -49,6 +49,14 @@ class FitTests(unittest.TestCase):
         self.assertEqual(m,mm)
         self.assertEqual(qq.logpdf_latent_z(z[:5],phase_indices=PHASE).shape,(5,))
 
+    def test_proposal_identity_changes_when_broad_tail_scale_changes(self):
+        z=np.random.default_rng(300).normal(size=(700,13))
+        lw=np.random.default_rng(301).normal(size=700)
+        _,a=fit_defensive_torus(z,lw,phase_indices=PHASE,broad_scale=4.0)
+        _,b=fit_defensive_torus(z,lw,phase_indices=PHASE,broad_scale=5.0)
+        self.assertEqual(a['training_array_sha256'],b['training_array_sha256'])
+        self.assertNotEqual(a['proposal_identity_sha256'],b['proposal_identity_sha256'])
+
     def test_training_collapse_rejected_not_truncated(self):
         z=np.random.default_rng(54).normal(size=(512,13))
         w=np.full(512,-1000.)

@@ -72,7 +72,7 @@ def fit_defensive_torus(z, logw, *, phase_indices, ridge=0.05,
               'training_ESS':ess,'training_array_sha256':digest,
               'proposal_identity_sha256':hashlib.sha256(b''.join(
                   np.ascontiguousarray(arr, dtype=np.float64).tobytes() for arr in
-                  (mu,cov,loc,B,phase_cov,proposal.fractions))).hexdigest(),
+                  (mu,cov,loc,B,phase_cov,broad.covariance_x,broad.phase.covariance,proposal.fractions))).hexdigest(),
               'training_phase_indices':[p,s], 'ridge':ridge,'x_floor':x_floor,
               'phase_floor':phase_floor,'broad_scale':broad_scale,
               'base_fraction':base_fraction,'core_fraction':core_fraction,
