@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - "research/j0740/**"
+      - "tools/j0740/**"
       - ".github/workflows/j0740-source-prior-tests.yml"
   push:
     branches: [main]
     paths:
       - "research/j0740/**"
+      - "tools/j0740/**"
       - ".github/workflows/j0740-source-prior-tests.yml"
 
 permissions:
@@ -33,3 +35,7 @@ jobs:
       - name: Verify conditional torus and defensive 13D mixture math
         working-directory: research/j0740/windows_access
         run: python -m unittest -v test_conditional_wrapped_normal test_defensive_torus_mixture test_native_prior_bridge test_weighted_torus_fit
+
+      - name: Verify no-photon deterministic balance MIS mathematics
+        working-directory: tools/j0740
+        run: python -m unittest -v test_balance_mis_audit
