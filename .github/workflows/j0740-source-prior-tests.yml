@@ -32,4 +32,4 @@ jobs:
           python -m unittest -v test_j0740_science test_source_lineage_gate test_original_salmi_run_probe test_J0740_windows_source_proof
       - name: Verify conditional torus and defensive 13D mixture math
         working-directory: research/j0740/windows_access
-        run: python -m unittest -v test_conditional_wrapped_normal test_defensive_torus_mixture test_native_prior_bridge
+        run: python -m unittest -v test_conditional_wrapped_normal test_defensive_torus_mixture test_native_prior_bridge test_weighted_torus_fit
