@@ -29,6 +29,16 @@ class ColonyRLSPostgresTests(unittest.TestCase):
             db.execute("""CREATE TABLE public.private_colony_snapshot_revisions (
                 revision bigserial primary key, owner_key text not null,
                 payload jsonb not null, archived_at timestamptz not null default now())""")
+            # Seed both synthetic owners before applying RLS. Each test then
+            # has deterministic data independent of unittest method ordering.
+            db.execute("""INSERT INTO public.private_colony_snapshots (owner_key,payload)
+                VALUES (%s,%s::jsonb)""",
+                ("tenant-a", json.dumps(
+                    {"agents": [{"id": "a"}], "feedback": [], "reviews": []})))
+            db.execute("""INSERT INTO public.private_colony_snapshots (owner_key,payload)
+                VALUES (%s,%s::jsonb)""",
+                ("tenant-b", json.dumps(
+                    {"agents": [{"id": "b"}], "feedback": [], "reviews": []})))
             db.execute("""GRANT SELECT, INSERT, UPDATE
                 ON public.private_colony_snapshots TO cano_snapshot_app""")
             db.execute("""GRANT SELECT, INSERT
