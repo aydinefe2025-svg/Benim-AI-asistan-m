@@ -2,7 +2,7 @@
 import os
 import unittest
 from unittest.mock import patch
-from scripts.cano_cloud_encrypted_export import valid_auth, source_verified, _state
+from scripts.cano_cloud_encrypted_export import valid_auth, source_verified, _state, _auto_upload_worker
 
 PREFIX='dpg-dbkfp5bm8hqs73bba7u0-a'
 DB='research_library_persistent_db'
@@ -32,6 +32,13 @@ class SecurityTests(unittest.TestCase):
     def test_wrong_tls_mode_rejected(self):
         self.assertFalse(source_verified({**BASE, 'CANO_RENDER_INTERNAL_URL':
             BASE['CANO_RENDER_INTERNAL_URL']+'?sslmode=disable'}))
+
+    def test_auto_upload_rejects_invalid_destination_without_dump(self):
+        with patch.dict(os.environ, {'CANO_NOTION_UPLOAD_URL': 'https://example.com/v1/file_uploads/id/send', 'CANO_NOTION_UPLOAD_AUTH': 'Bearer placeholder-placeholder'}, clear=True):
+            with patch('scripts.cano_cloud_encrypted_export._worker', side_effect=AssertionError('dump should not run')):
+                _auto_upload_worker()
+                self.assertEqual('failed', _state['offsite_phase'])
+                _state['offsite_phase'] = 'not_started'
 
     def test_auth_fail_closed_on_bad_render_configuration(self):
         with patch.dict(os.environ, {'CANO_EXPORT_ACCESS_TOKEN': 'not64chars'}):
