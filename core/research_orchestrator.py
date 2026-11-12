@@ -10,6 +10,7 @@ from core.knowledge_store import KnowledgeStore
 from core.task_store import TaskStore
 from core.safety_policy import safe_response_for_prompt
 from core.web_search import SearchResult, SearchError, DuckDuckGoSearch
+from core.scientific_sources import scientific_sources
 
 
 class ChatClient(Protocol):
@@ -41,12 +42,14 @@ class ResearchOrchestrator:
         output_dir: str | Path = "reports",
         knowledge_store: KnowledgeStore | None = None,
         search_client: SearchClient | None = None,
+        scientific_lookup=scientific_sources,
     ) -> None:
         self.client = client
         self.task_store = task_store
         self.output_dir = Path(output_dir)
         self.knowledge_store = knowledge_store
         self.search_client = search_client
+        self.scientific_lookup = scientific_lookup
 
     def run(
         self,
@@ -77,21 +80,58 @@ class ResearchOrchestrator:
         search_error = ""
         if web_search:
             searcher = self.search_client or DuckDuckGoSearch()
+            web_results: list[SearchResult] = []
             try:
-                search_results = searcher.search(question, max_results=max_search_results)
-                if self.knowledge_store:
-                    for result in search_results:
-                        self.knowledge_store.add_source(
-                            result.url,
-                            result.title or result.url,
-                            publisher=result.publisher,
-                            notes=(
-                                "Search result snippet only; full source page was not fetched or verified. "
-                                f"Query: {question}\nSnippet: {result.snippet}"
-                            ),
-                        )
+                web_results = searcher.search(question, max_results=max_search_results)
             except (SearchError, OSError, ValueError) as exc:
-                search_error = str(exc)
+                search_error = type(exc).__name__
+
+            scholarly_results: list[SearchResult] = []
+            try:
+                # Crossref returns bibliographic metadata, not article text or
+                # evidence. Keep the limitation visible in every generated snippet.
+                for item in self.scientific_lookup(question, limit=min(max_search_results, 3)):
+                    if not isinstance(item, dict):
+                        continue
+                    title, url = item.get("title"), item.get("url")
+                    if not isinstance(title, str) or not isinstance(url, str):
+                        continue
+                    details = ["Crossref metadata only; abstract/full text not retrieved"]
+                    if item.get("published_at"):
+                        details.append("date: " + str(item["published_at"])[:20])
+                    if item.get("doi"):
+                        details.append("DOI: " + str(item["doi"])[:200])
+                    scholarly_results.append(SearchResult(
+                        title=title[:300], url=url[:500],
+                        snippet="; ".join(details),
+                        publisher=(str(item.get("publisher") or "Crossref")[:200]
+                                   + " — candidate source; primary-source review required"),
+                    ))
+            except Exception as exc:
+                # A metadata outage must not erase usable ordinary web results.
+                search_error = "; ".join(x for x in (search_error, type(exc).__name__) if x)
+
+            seen_urls: set[str] = set()
+            for result in scholarly_results + web_results:
+                identity = result.url.rstrip("/").casefold()
+                if identity in seen_urls:
+                    continue
+                seen_urls.add(identity)
+                search_results.append(result)
+                if len(search_results) >= max(1, min(int(max_search_results), 10)):
+                    break
+
+            if self.knowledge_store:
+                for result in search_results:
+                    self.knowledge_store.add_source(
+                        result.url,
+                        result.title or result.url,
+                        publisher=result.publisher,
+                        notes=(
+                            "Search lead only; source page not fetched or verified; metadata/snippet is not full source text. "
+                            f"Query: {question}\nSnippet: {result.snippet}"
+                        ),
+                    )
 
         if search_results:
             search_context = "\n\n".join(
@@ -145,7 +185,7 @@ class ResearchOrchestrator:
                     f"   Search snippet only: {item.snippet}"
                     for i, item in enumerate(search_results, 1)
                 )
-                search_status = f"{len(search_results)} search results; source pages not fetched"
+                search_status = f"{len(search_results)} search leads (including Crossref metadata where available); source pages not fetched"
             elif web_search:
                 source_list = f"No results captured. Error: {search_error or 'unknown search failure'}"
                 search_status = "Search requested but failed"
