@@ -15,8 +15,8 @@ on:
       - "tests/test_cano_schedule_guard.py"
       - "scripts/cano_schedule_guard.py"
   schedule:
-    # Two half-hour checks provide recovery if one scheduled run is skipped.
-    - cron: "7,37 * * * *"
+    # Four staggered checks improve recovery when a scheduled event is delayed or dropped.
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
 
 permissions:
