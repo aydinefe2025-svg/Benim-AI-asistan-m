@@ -21,6 +21,10 @@ TOPICS = {
     'biology': 'cellular mechanics quantitative modeling',
     'history': 'history of engineering ancient technology',
     'artificial_intelligence': 'scientific discovery multi agent artificial intelligence',
+    'energy': 'renewable energy battery storage electrochemistry',
+    'mathematics': 'applied mathematics numerical optimization modeling',
+    'manufacturing': 'additive manufacturing precision 3D printing',
+    'physics': 'quantum sensing photonics condensed matter',
 }
 MAX_RESPONSE_BYTES = 512 * 1024
 MAX_RECORDS = 5
@@ -34,6 +38,10 @@ TOPIC_TITLE_SIGNALS = {
     'biology': re.compile(r'\b(cells?|cellular|tissues?|mechanobiology|biomechanics|morphogenesis|cardiomyocytes?)\b', re.I),
     'history': re.compile(r'\b(ancient|medieval|archaeolog(?:y|ical)|history|historical|antiquity|industrial revolution)\b', re.I),
     'artificial_intelligence': re.compile(r'\b(artificial intelligence|machine learning|deep learning|large language models?|multi[- ]agents?|agentic|autonomous agents?|neural networks?|language models?|foundation models?|AI[- ]driven|scientific discovery)\b', re.I),
+    'energy': re.compile(r'\b(batter(?:y|ies)|photovoltaics?|solar|wind energy|hydrogen|electrolytes?|electrochemical|energy storage|renewable energy|fuel cells?)\b', re.I),
+    'mathematics': re.compile(r'\b(mathematical|mathematics|numerical|topolog(?:y|ical)|optimization|differential equations?|graph theory|dynamical systems?|algorithms?)\b', re.I),
+    'manufacturing': re.compile(r'\b(additive manufacturing|3d print(?:ing|ed)?|three[- ]dimensional printing|fabrication|manufacturing|machining|rapid prototyping)\b', re.I),
+    'physics': re.compile(r'\b(quantum|photonics?|optical|spintronics?|condensed matter|superconduct(?:ivity|ors?)|metrolog(?:y|ical)|spectroscopy)\b', re.I),
 }
 
 
@@ -51,11 +59,25 @@ def choose_topic(when=None):
     return list(TOPICS)[today.toordinal() % len(TOPICS)]
 
 
-def build_url(topic, rows=MAX_RECORDS):
+def choose_offset(when=None, rows=MAX_RECORDS):
+    """Rotate five bounded relevance windows on each return to a topic.
+
+    A topic is visited once per len(TOPICS) days. This increases DOI candidate
+    breadth without adding a second Crossref request or external state.
+    """
+    if type(rows) is not int or not 1 <= rows <= MAX_RECORDS:
+        raise ValueError('row limit not allowed')
+    today = (when or dt.datetime.now(dt.timezone.utc)).date()
+    return ((today.toordinal() // len(TOPICS)) % 5) * rows
+
+
+def build_url(topic, rows=MAX_RECORDS, offset=0):
     if topic not in TOPICS or type(rows) is not int or not 1 <= rows <= MAX_RECORDS:
         raise ValueError('topic/row limit not allowed')
+    if type(offset) is not int or not 0 <= offset <= rows * 4 or offset % rows:
+        raise ValueError('offset must be a bounded aligned result window')
     query = urllib.parse.urlencode({
-        'query.bibliographic': TOPICS[topic], 'rows': rows,
+        'query.bibliographic': TOPICS[topic], 'rows': rows, 'offset': offset,
         'select': 'DOI,title,type,published,container-title,URL',
         'filter': 'from-pub-date:2024-01-01,until-pub-date:' + dt.datetime.now(dt.timezone.utc).date().isoformat(),
         'sort': 'relevance', 'order': 'desc',
@@ -127,8 +149,8 @@ def parse_crossref_response(payload, topic, fetched_at=None):
             'claims_verified': False, 'content_downloaded': False}
 
 
-def fetch_crossref(topic, rows=MAX_RECORDS, opener=None):
-    url = build_url(topic, rows)
+def fetch_crossref(topic, rows=MAX_RECORDS, opener=None, offset=0):
+    url = build_url(topic, rows, offset=offset)
     op = opener or urllib.request.build_opener(DenyRedirect())
     req = urllib.request.Request(url, headers={
         'User-Agent': 'CANO-Research-Metadata/1.0 (noncommercial bounded metadata review)',
@@ -153,7 +175,9 @@ def fetch_crossref(topic, rows=MAX_RECORDS, opener=None):
         parsed = json.loads(raw.decode('utf-8'))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise FeedError('Crossref response is not JSON') from exc
-    return parse_crossref_response(parsed, topic)
+    value = parse_crossref_response(parsed, topic)
+    value['query_offset'] = offset
+    return value
 
 
 def save_json(data, path):
@@ -178,10 +202,12 @@ def main(argv=None):
     p.add_argument('--output', default='crossref_pending_review.json')
     args = p.parse_args(argv)
     topic = choose_topic() if args.topic == 'auto' else args.topic
+    offset = choose_offset(rows=args.rows) if args.topic == 'auto' else 0
     try:
-        value = fetch_crossref(topic, args.rows)
+        value = fetch_crossref(topic, args.rows, offset=offset)
         save_json(value, args.output)
-        print(json.dumps({'ok': True, 'topic': topic, 'count': len(value['items']),
+        print(json.dumps({'ok': True, 'topic': topic, 'offset': offset,
+                          'topics_total': len(TOPICS), 'count': len(value['items']),
                           'pending_review': len(value['items'])}))
         return 0
     except (FeedError, ValueError, FileExistsError, OSError) as exc:
