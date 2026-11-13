@@ -1,36 +1,36 @@
 {
-  "github_run_id": "43358527122",
-  "github_sha": "1d7d9b721f81e407830ff8eba458165db966e9ed",
+  "github_run_id": "43404884884",
+  "github_sha": "bb42e8c04f80055ed6113a5da9bf2afeff1ef0e0",
   "db_integrity": "ok",
-  "stored_ticks": 48,
-  "verified_tick_id": 48,
+  "stored_ticks": 49,
+  "verified_tick_id": 49,
   "continuity": {
     "had_prior_state": true,
-    "previous_tick_id": 47,
-    "previous_tick_count": 47,
+    "previous_tick_id": 48,
+    "previous_tick_count": 48,
     "increment_verified": true
   },
-  "timestamp": "2026-11-13T03:22:48.838069+00:00",
+  "timestamp": "2026-11-13T09:53:38.952389+00:00",
   "cycle": {
-    "tick_id": 48,
+    "tick_id": 49,
     "state": "proposed",
     "active_count": 1,
     "candidates": [
       {
         "parent_id": "cano-research-founder",
+        "role": "simulation",
+        "generation": 1,
+        "status": "awaiting_validation"
+      },
+      {
+        "parent_id": "cano-research-founder",
+        "role": "research",
+        "generation": 1,
+        "status": "awaiting_validation"
+      },
+      {
+        "parent_id": "cano-research-founder",
         "role": "verification",
-        "generation": 1,
-        "status": "awaiting_validation"
-      },
-      {
-        "parent_id": "cano-research-founder",
-        "role": "software",
-        "generation": 1,
-        "status": "awaiting_validation"
-      },
-      {
-        "parent_id": "cano-research-founder",
-        "role": "archive",
         "generation": 1,
         "status": "awaiting_validation"
       }
@@ -38,18 +38,18 @@
     "activated": 0
   },
   "virtual_generation": {
-    "generation_id": 48,
-    "parent_generation_id": 47,
+    "generation_id": 49,
+    "parent_generation_id": 48,
     "parent_mutation_rate": 0.12,
-    "candidate_mutation_rate": 0.08,
+    "candidate_mutation_rate": 0.12,
     "training": {
-      "candidate_mean_births": 78.66666666666667,
-      "candidate_mean_final_population": 9.25,
-      "candidate_mean_max_generation": 2.5833333333333335,
-      "candidate_mean_score": 2.0,
-      "ci95_high": -0.10269261378547934,
-      "ci95_low": -1.230640719547854,
-      "mean_paired_difference": -0.6666666666666666,
+      "candidate_mean_births": 74.0,
+      "candidate_mean_final_population": 9.0,
+      "candidate_mean_max_generation": 2.5,
+      "candidate_mean_score": 2.6666666666666665,
+      "ci95_high": 0.0,
+      "ci95_low": 0.0,
+      "mean_paired_difference": 0.0,
       "paired_seeds": 12,
       "parent_mean_births": 74.0,
       "parent_mean_final_population": 9.0,
@@ -58,38 +58,38 @@
       "positive_evidence": false
     },
     "held_out_confirmation": {
-      "candidate_mean_births": 83.16666666666667,
-      "candidate_mean_final_population": 9.5,
-      "candidate_mean_max_generation": 2.75,
-      "candidate_mean_score": 1.9166666666666667,
-      "ci95_high": -0.10269261378547934,
-      "ci95_low": -1.230640719547854,
-      "mean_paired_difference": -0.6666666666666666,
+      "candidate_mean_births": 69.33333333333333,
+      "candidate_mean_final_population": 8.75,
+      "candidate_mean_max_generation": 2.8333333333333335,
+      "candidate_mean_score": 2.6666666666666665,
+      "ci95_high": 0.0,
+      "ci95_low": 0.0,
+      "mean_paired_difference": 0.0,
       "paired_seeds": 12,
-      "parent_mean_births": 80.0,
-      "parent_mean_final_population": 9.333333333333334,
-      "parent_mean_max_generation": 2.75,
-      "parent_mean_score": 2.5833333333333335,
+      "parent_mean_births": 69.33333333333333,
+      "parent_mean_final_population": 8.75,
+      "parent_mean_max_generation": 2.8333333333333335,
+      "parent_mean_score": 2.6666666666666665,
       "positive_evidence": false,
       "seed_ids": [
-        4800,
-        4801,
-        4802,
-        4803,
-        4804,
-        4805,
-        4806,
-        4807,
-        4808,
-        4809,
-        4810,
-        4811
+        4900,
+        4901,
+        4902,
+        4903,
+        4904,
+        4905,
+        4906,
+        4907,
+        4908,
+        4909,
+        4910,
+        4911
       ]
     },
     "lesson_status": "rejected",
     "next_generation_mutation_rate": 0.12,
     "primary_metric": "final surviving unique genome count",
-    "created_at": "2026-11-13T03:22:48.835753+00:00",
+    "created_at": "2026-11-13T09:53:38.950688+00:00",
     "offspring_scope": "bounded toy digital VM only",
     "model_weights_updated": false
   },
@@ -147,7 +147,7 @@
         "model_calls": 0
       }
     ],
-    "started_at": "2026-11-13T03:22:48.988307+00:00",
+    "started_at": "2026-11-13T09:53:39.130689+00:00",
     "execution_scope": "four isolated read-only Python subprocesses; no model/network/API access"
   }
 }
