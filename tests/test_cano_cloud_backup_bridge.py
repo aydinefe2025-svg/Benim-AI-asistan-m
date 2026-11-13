@@ -22,6 +22,16 @@ class Tests(unittest.TestCase):
         state=RescueState({"status":"pg18_readonly_connection_verified","internal_readonly_verified":True})
         self.assertFalse(state.health()["real_backup_created"])
         self.assertIsNone(state.artifact("archive"))
+    def test_backup_will_not_start_without_source_gate(self):
+        # Regression: a valid PGDMP can still be an empty/wrong database dump.
+        # No database or real backup is accessed by this test.
+        from unittest.mock import patch
+        state = RescueState({"internal_readonly_verified": True})
+        with patch("scripts.cano_cloud_backup_bridge.make_encrypted_backup") as backup:
+            state.run_once()
+        self.assertEqual("failed", state.backup_state)
+        backup.assert_not_called()  # no verified app source, no dump
+
     def test_official_binary_restricts_file_names(self):
         with self.assertRaises(RuntimeError):
             fetch_verified("untrusted.deb",1,"0"*64)
