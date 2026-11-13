@@ -1,0 +1,21 @@
+# Reviewed isolated Free service. Backup stays DISABLED until explicit owner-only\n# CANO_RESCUE_ENABLE=1 and secrets are supplied via Render environment.\n# Do not change any existing production database or external allowlists.
+services:
+  - type: web
+    name: cano-pg18-private-readonly-probe-20261111
+    runtime: python
+    region: frankfurt
+    plan: free
+    branch: fix/cano-render-private-readonly-blueprint-20261111
+    autoDeployTrigger: off
+    buildCommand: pip install -r requirements-persistence.txt && python -m scripts.cano_install_pg18_client
+    startCommand: python -m scripts.cano_cloud_backup_bridge
+    healthCheckPath: /healthz
+    envVars:
+      - key: CANO_RENDER_INTERNAL_URL
+        fromDatabase:
+          name: research-library-persistent-db
+          property: connectionString
+      - key: CANO_REQUIRED_RENDER_DATABASE
+        value: research_library_persistent_db
+      - key: CANO_REQUIRED_RENDER_HOST_PREFIX
+        value: dpg-dbkfp5bm8hqs73bba7u0-a
