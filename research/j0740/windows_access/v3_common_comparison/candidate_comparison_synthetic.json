@@ -1,0 +1,464 @@
+{
+  "kind": "SYNTHETIC_COMMON_TARGET_COMPARISON_NO_REAL_XPSI",
+  "targets": [
+    "shifted",
+    "correlated",
+    "bimodal-phase",
+    "diffuse"
+  ],
+  "N_train": 4096,
+  "N_test_per_seed": 1024,
+  "train_seed": 40017,
+  "test_seeds": [
+    40021,
+    40023,
+    40027,
+    40031
+  ],
+  "samples_kept": true,
+  "real_photon_calls": 0,
+  "full_MR_convergence": "NOT_ESTABLISHED",
+  "EOS_Bayes": "NOT_RUN",
+  "results": [
+    {
+      "target": "shifted",
+      "training_ESS": 507.6439010282652,
+      "seeds": [
+        {
+          "seed": 40021,
+          "base": {
+            "ess": 179.77282187998856,
+            "max_weight": 0.026202118900549784,
+            "logZ": -0.019492828437837062,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 496.2577592858021,
+            "max_weight": 0.009582651967258346,
+            "logZ": -0.0014092649976502614,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 702.3375339118915,
+            "max_weight": 0.002974858054573837,
+            "logZ": 0.005061753242873834,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40023,
+          "base": {
+            "ess": 88.43193888376157,
+            "max_weight": 0.08281761439839813,
+            "logZ": 0.03848369589836054,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 501.42947357227354,
+            "max_weight": 0.005691044315830376,
+            "logZ": -0.0028853316938306506,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 705.033374052575,
+            "max_weight": 0.0028690202330834864,
+            "logZ": 0.0004512755661902901,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40027,
+          "base": {
+            "ess": 168.80113631579397,
+            "max_weight": 0.03960163851604729,
+            "logZ": -0.015421983523887128,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 497.83871213532336,
+            "max_weight": 0.006428194360881734,
+            "logZ": -0.00039967622601899677,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 702.1604893597034,
+            "max_weight": 0.0031295388838072633,
+            "logZ": 0.002423791299748679,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40031,
+          "base": {
+            "ess": 173.92878018616506,
+            "max_weight": 0.023322108899305298,
+            "logZ": -0.005172516220981471,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 498.5529152321361,
+            "max_weight": 0.005716337677577189,
+            "logZ": -0.0032894626335986388,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 705.234636837152,
+            "max_weight": 0.0033642636573604705,
+            "logZ": -0.003991800433919224,
+            "cdf_endpoints": 0
+          }
+        }
+      ],
+      "summary": {
+        "base": {
+          "mean_ESS": 152.73366931642727,
+          "worst_max_weight": 0.08281761439839813,
+          "max_abs_logZ_error": 0.03848369589836054,
+          "total_cdf_endpoint_rows": 0
+        },
+        "bounded": {
+          "mean_ESS": 498.5197150563838,
+          "worst_max_weight": 0.009582651967258346,
+          "max_abs_logZ_error": 0.0032894626335986388,
+          "total_cdf_endpoint_rows": 0
+        },
+        "latent": {
+          "mean_ESS": 703.6915085403305,
+          "worst_max_weight": 0.0033642636573604705,
+          "max_abs_logZ_error": 0.005061753242873834,
+          "total_cdf_endpoint_rows": 0
+        }
+      }
+    },
+    {
+      "target": "correlated",
+      "training_ESS": 314.9080650353547,
+      "seeds": [
+        {
+          "seed": 40021,
+          "base": {
+            "ess": 76.13391579713684,
+            "max_weight": 0.0833979435263368,
+            "logZ": 0.05797753653512405,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 305.1031090612965,
+            "max_weight": 0.014449457072934968,
+            "logZ": 0.015702720653632873,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 484.29988998498396,
+            "max_weight": 0.0064294763255763315,
+            "logZ": 0.01177783556500156,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40023,
+          "base": {
+            "ess": 132.98024786095326,
+            "max_weight": 0.031612348616434,
+            "logZ": 0.0014631356298000497,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 320.7591412790693,
+            "max_weight": 0.01055553324773425,
+            "logZ": -0.009934354908781806,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 484.5272281247056,
+            "max_weight": 0.0065841773168314865,
+            "logZ": -0.009640853862089571,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40027,
+          "base": {
+            "ess": 66.88725161442638,
+            "max_weight": 0.10650102343778743,
+            "logZ": -0.01812529893185655,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 318.3719357842896,
+            "max_weight": 0.011221025665589943,
+            "logZ": 0.0012411305767550118,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 475.30491735479416,
+            "max_weight": 0.008595178025869414,
+            "logZ": 0.0037882519613621213,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40031,
+          "base": {
+            "ess": 56.21229329952378,
+            "max_weight": 0.0983376683542697,
+            "logZ": 0.10690489012358473,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 216.5454883113614,
+            "max_weight": 0.04061080361106044,
+            "logZ": 0.04054692216929201,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 480.36659624301245,
+            "max_weight": 0.0070417789233998005,
+            "logZ": 0.007272473090049303,
+            "cdf_endpoints": 0
+          }
+        }
+      ],
+      "summary": {
+        "base": {
+          "mean_ESS": 83.05342714301005,
+          "worst_max_weight": 0.10650102343778743,
+          "max_abs_logZ_error": 0.10690489012358473,
+          "total_cdf_endpoint_rows": 0
+        },
+        "bounded": {
+          "mean_ESS": 290.19491860900416,
+          "worst_max_weight": 0.04061080361106044,
+          "max_abs_logZ_error": 0.04054692216929201,
+          "total_cdf_endpoint_rows": 0
+        },
+        "latent": {
+          "mean_ESS": 481.124657926874,
+          "worst_max_weight": 0.008595178025869414,
+          "max_abs_logZ_error": 0.01177783556500156,
+          "total_cdf_endpoint_rows": 0
+        }
+      }
+    },
+    {
+      "target": "bimodal-phase",
+      "training_ESS": 575.7113066144929,
+      "seeds": [
+        {
+          "seed": 40021,
+          "base": {
+            "ess": 214.40086077577774,
+            "max_weight": 0.021356093795356065,
+            "logZ": -0.04224006231985644,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 407.46811327457254,
+            "max_weight": 0.007291799792219779,
+            "logZ": -0.0023763504474967334,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 531.7268009506953,
+            "max_weight": 0.0047521920132874975,
+            "logZ": 0.0043387716520841835,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40023,
+          "base": {
+            "ess": 176.5527468936378,
+            "max_weight": 0.03428798142499669,
+            "logZ": -0.023532936052766296,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 409.35274175354766,
+            "max_weight": 0.006935424599277767,
+            "logZ": 0.0089807162196065,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 533.4225422437066,
+            "max_weight": 0.004718897528148191,
+            "logZ": -0.015090942430026288,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40027,
+          "base": {
+            "ess": 180.76201089310757,
+            "max_weight": 0.031575698943201176,
+            "logZ": -0.01319556954390766,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 424.8767529896604,
+            "max_weight": 0.007104275859456851,
+            "logZ": -0.009975475175668436,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 553.2062601780782,
+            "max_weight": 0.004481580989149035,
+            "logZ": -0.011530172639478309,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40031,
+          "base": {
+            "ess": 102.74137822857706,
+            "max_weight": 0.068313042331681,
+            "logZ": 0.033588704560605365,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 407.6516809176894,
+            "max_weight": 0.006847945162689405,
+            "logZ": 0.028598160898245517,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 533.4641882611824,
+            "max_weight": 0.004869377756731294,
+            "logZ": 0.0014913413088315508,
+            "cdf_endpoints": 0
+          }
+        }
+      ],
+      "summary": {
+        "base": {
+          "mean_ESS": 168.61424919777505,
+          "worst_max_weight": 0.068313042331681,
+          "max_abs_logZ_error": 0.04224006231985644,
+          "total_cdf_endpoint_rows": 0
+        },
+        "bounded": {
+          "mean_ESS": 412.3373222338675,
+          "worst_max_weight": 0.007291799792219779,
+          "max_abs_logZ_error": 0.028598160898245517,
+          "total_cdf_endpoint_rows": 0
+        },
+        "latent": {
+          "mean_ESS": 537.9549479084155,
+          "worst_max_weight": 0.004869377756731294,
+          "max_abs_logZ_error": 0.015090942430026288,
+          "total_cdf_endpoint_rows": 0
+        }
+      }
+    },
+    {
+      "target": "diffuse",
+      "training_ESS": 2332.637392674957,
+      "seeds": [
+        {
+          "seed": 40021,
+          "base": {
+            "ess": 419.7749886298019,
+            "max_weight": 0.022604720628869663,
+            "logZ": 0.019926756509270227,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 840.0901337456406,
+            "max_weight": 0.0035751253466261013,
+            "logZ": -0.006673536795935853,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 946.2873412100975,
+            "max_weight": 0.0018690462760746942,
+            "logZ": -0.00480427093290281,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40023,
+          "base": {
+            "ess": 608.552665871233,
+            "max_weight": 0.008934245472445116,
+            "logZ": -0.005368744363570599,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 835.7841590658524,
+            "max_weight": 0.003667202389323794,
+            "logZ": -0.005645388978372523,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 944.2478059235532,
+            "max_weight": 0.0017727977713750478,
+            "logZ": -0.0012643241946506123,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40027,
+          "base": {
+            "ess": 601.7620476526795,
+            "max_weight": 0.012510466722504054,
+            "logZ": -0.009983636918076577,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 839.1813567155497,
+            "max_weight": 0.003344950459441861,
+            "logZ": -0.0018841782587015743,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 945.4134954744048,
+            "max_weight": 0.0017710337947706158,
+            "logZ": -0.001531360118509184,
+            "cdf_endpoints": 0
+          }
+        },
+        {
+          "seed": 40031,
+          "base": {
+            "ess": 552.4722648885718,
+            "max_weight": 0.012253097412071113,
+            "logZ": 0.0018667425153893191,
+            "cdf_endpoints": 0
+          },
+          "bounded": {
+            "ess": 824.8064956954336,
+            "max_weight": 0.006111578759785576,
+            "logZ": 0.0007293042091403024,
+            "cdf_endpoints": 0
+          },
+          "latent": {
+            "ess": 944.2395518794751,
+            "max_weight": 0.0018226720999054507,
+            "logZ": -0.003851536136827427,
+            "cdf_endpoints": 0
+          }
+        }
+      ],
+      "summary": {
+        "base": {
+          "mean_ESS": 545.6404917605715,
+          "worst_max_weight": 0.022604720628869663,
+          "max_abs_logZ_error": 0.019926756509270227,
+          "total_cdf_endpoint_rows": 0
+        },
+        "bounded": {
+          "mean_ESS": 834.965536305619,
+          "worst_max_weight": 0.006111578759785576,
+          "max_abs_logZ_error": 0.006673536795935853,
+          "total_cdf_endpoint_rows": 0
+        },
+        "latent": {
+          "mean_ESS": 945.0470486218827,
+          "worst_max_weight": 0.0018690462760746942,
+          "max_abs_logZ_error": 0.00480427093290281,
+          "total_cdf_endpoint_rows": 0
+        }
+      }
+    }
+  ]
+}
