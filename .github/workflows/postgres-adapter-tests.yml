@@ -25,6 +25,9 @@ on:
       - "tests/test_postgres_memory.py"
       - "tests/test_postgres_smoke_safety.py"
       - "requirements-persistence.txt"
+      - "tests/test_cano_cloud_source_gate_pg18.py"
+      - "scripts/cano_backup_source_gate.py"
+      - "scripts/cano_cloud_backup_bridge.py"
       - ".github/workflows/postgres-adapter-tests.yml"
   workflow_dispatch:
 
@@ -123,3 +126,11 @@ jobs:
           CANO_CI_ALLOW_DISPOSABLE_DB: "1"
           CANO_CI_PG_MAJOR: "18"
         run: python -m scripts.check_cano_pg_backup_roundtrip
+
+      - name: Real PG18 source-inventory gate on fake CANO tables
+        env:
+          # Exact CI-only local service; test refuses any other DB or credentials.
+          CANO_CI_RENDER_SOURCE_GATE_DSN: postgresql://ci_user:synthetic-ci-only@127.0.0.1:5432/ci_persistence
+        run: |
+          command -v psql
+          python -m unittest tests.test_cano_cloud_source_gate_pg18 -v
