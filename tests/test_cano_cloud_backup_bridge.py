@@ -32,6 +32,49 @@ class Tests(unittest.TestCase):
         self.assertEqual("failed", state.backup_state)
         backup.assert_not_called()  # no verified app source, no dump
 
+    def test_full_source_profile_is_required_before_dump(self):
+        # Only simulated URIs and mocks: proves the order, no real PG access.
+        import os
+        from unittest.mock import patch
+        required = {
+            "CANO_RENDER_INTERNAL_URL":
+                "postgresql://fake:fake@dpg-synthetic-a.region.render.com/research_library_persistent_db",
+            "CANO_REQUIRED_RENDER_HOST_PREFIX": "dpg-synthetic-a",
+            "CANO_REQUIRED_RENDER_DATABASE": "research_library_persistent_db",
+        }
+        state = RescueState({"internal_readonly_verified": True})
+        with patch.dict(os.environ, required), patch(
+                "scripts.cano_cloud_backup_bridge.require_application_source",
+                return_value={"profile": "full", "nonempty_table_verified": True}) as gate, patch(
+                "scripts.cano_cloud_backup_bridge.make_encrypted_backup",
+                side_effect=RuntimeError("synthetic stop after safe preflight")) as backup:
+            state.run_once()
+        self.assertEqual("failed", state.backup_state)
+        gate.assert_called_once()
+        self.assertEqual(gate.call_args.args[1], "full")
+        self.assertEqual(gate.call_args.kwargs["expected_database"],
+                         "research_library_persistent_db")
+        self.assertTrue(gate.call_args.kwargs["psql_bin"].endswith("psql18"))
+        backup.assert_called_once()
+
+    def test_pinned_source_mismatch_never_reaches_dump(self):
+        import os
+        from unittest.mock import patch
+        wrong = {
+            "CANO_RENDER_INTERNAL_URL":
+                "postgresql://fake:fake@wrong.example.net/other_db",
+            "CANO_REQUIRED_RENDER_HOST_PREFIX": "dpg-synthetic-a",
+            "CANO_REQUIRED_RENDER_DATABASE": "research_library_persistent_db",
+        }
+        state = RescueState({"internal_readonly_verified": True})
+        with patch.dict(os.environ, wrong), patch(
+                "scripts.cano_cloud_backup_bridge.require_application_source") as gate, patch(
+                "scripts.cano_cloud_backup_bridge.make_encrypted_backup") as backup:
+            state.run_once()
+        self.assertEqual("failed", state.backup_state)
+        gate.assert_not_called()
+        backup.assert_not_called()
+
     def test_official_binary_restricts_file_names(self):
         with self.assertRaises(RuntimeError):
             fetch_verified("untrusted.deb",1,"0"*64)
