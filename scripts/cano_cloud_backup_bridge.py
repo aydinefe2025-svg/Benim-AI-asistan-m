@@ -17,9 +17,12 @@ from typing import Any
 
 from scripts.cano_cloud_readonly_probe import probe
 from scripts.cano_encrypted_backup import make_encrypted_backup
+from scripts.cano_backup_source_gate import require_application_source
+from scripts.cano_pg_backup import _libpq_env_from_uri
 
 ROOT = Path(__file__).resolve().parent.parent
 BIN = ROOT / ".cano-pg18" / "pg_dump18"
+PSQL = ROOT / ".cano-pg18" / "psql18"
 DEST = ROOT / ".cano-render-rescue-ciphertext"
 MAX_RANGE = 8 * 1024 * 1024
 
@@ -48,6 +51,31 @@ def parse_range(value: str | None, total: int) -> tuple[int, int]:
     if start > end or start >= total:
         raise ValueError("out of bounds Range")
     return start, end
+
+
+def verify_application_source_before_dump(source: dict[str, Any]) -> dict:
+    """Fail closed on wrong/empty CANO source; no real rows are copied.
+
+    Reuses the existing canonical main branch source-inventory gate. The
+    separately pinned read-only probe validates PostgreSQL version/host/db.
+    This inventory gate requires all CANO tables and at least one row
+    somewhere among them before the expensive encrypted dump can start.
+    """
+    if not source.get("internal_readonly_verified"):
+        raise ValueError("PG18 read-only source identity was not verified")
+    required_db = os.environ.get("CANO_REQUIRED_RENDER_DATABASE", "")
+    required_prefix = os.environ.get("CANO_REQUIRED_RENDER_HOST_PREFIX", "").lower()
+    env = _libpq_env_from_uri(os.environ.get("CANO_RENDER_INTERNAL_URL", ""), os.environ)
+    host = env["PGHOST"].lower().rstrip(".")
+    if (not required_prefix
+            or not (host == required_prefix
+                    or (host.startswith(required_prefix + ".") and host.endswith(".render.com")))):
+        raise ValueError("Source host fails pinned Render identity")
+    if env["PGDATABASE"] != required_db:
+        raise ValueError("Source database fails pinned Render identity")
+    return require_application_source(
+        env, "full", expected_host=host,
+        expected_database=required_db, psql_bin=str(PSQL))
 
 
 class RescueState:
@@ -80,6 +108,9 @@ class RescueState:
         with self.lock:
             self.backup_state = "running"
         try:
+            # A valid PGDMP or a successful probe does not prove this dump
+            # contains CANO. Require the pre-existing #539 full profile first.
+            verify_application_source_before_dump(self.source)
             result = make_encrypted_backup(
                 DEST, database_env="CANO_RENDER_INTERNAL_URL",
                 key_env="CANO_BACKUP_KEY_HEX", dump_bin=str(BIN),
