@@ -129,5 +129,56 @@ class CrossrefDiscoveryTests(unittest.TestCase):
         self.assertIsNone(feed.paper_date({}))
 
 
+    def test_global_topic_breadth_and_strict_title_anchors(self):
+        # Public DOI metadata only; titles must have a topic-specific signal.
+        candidates = {
+            'energy': 'Electrochemical battery energy storage mechanisms',
+            'mathematics': 'Numerical optimization methods for partial differential equations',
+            'manufacturing': 'Additive manufacturing and 3D printing of composite parts',
+            'physics': 'Quantum photonic sensors for optical metrology',
+        }
+        for topic, title in candidates.items():
+            with self.subTest(topic=topic):
+                self.assertIn(topic, feed.TOPICS)
+                result = feed.parse_crossref_response(
+                    {'status':'ok','message':{'items':[{'DOI':'10.1234/new.source',
+                                                         'title':[title]}]}},
+                    topic, '2026-11-13T00:00:00Z')
+                self.assertEqual(result['items'][0]['review_status'], 'pending_review')
+                self.assertFalse(result['claims_verified'])
+
+    def test_each_topic_visit_rotates_deeper_without_more_daily_requests(self):
+        import datetime as dt
+        moment = dt.datetime(2026, 11, 13, tzinfo=dt.timezone.utc)
+        steps = len(feed.TOPICS)
+        first = feed.choose_offset(moment, rows=5)
+        second = feed.choose_offset(moment + dt.timedelta(days=steps), rows=5)
+        self.assertEqual(second, (first + 5) % 25)
+        self.assertEqual(first, feed.choose_offset(moment, rows=5))
+        self.assertEqual(first, feed.choose_offset(moment + dt.timedelta(days=steps * 5), rows=5))
+        self.assertIn(first, (0, 5, 10, 15, 20))
+
+    def test_url_rejects_unbounded_or_misaligned_page_windows(self):
+        from urllib.parse import parse_qs, urlsplit
+        query = parse_qs(urlsplit(feed.build_url('robotics', rows=5, offset=10)).query)
+        self.assertEqual(query['offset'], ['10'])
+        self.assertEqual(query['rows'], ['5'])
+        for bad in (-1, 6, 25, 10000, True, '5'):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    feed.build_url('robotics', rows=5, offset=bad)
+
+    def test_one_https_request_at_nonzero_offset_preserves_pending_review(self):
+        from urllib.parse import parse_qs, urlsplit
+        fake = FakeOpener(json.dumps(GOOD).encode())
+        result = feed.fetch_crossref('robotics', rows=5, opener=fake, offset=5)
+        self.assertEqual(len(fake.calls), 1)
+        self.assertEqual(parse_qs(urlsplit(fake.calls[0][0]).query)['offset'], ['5'])
+        self.assertEqual(result['query_offset'], 5)
+        self.assertFalse(result['claims_verified'])
+        self.assertEqual(result['items'][0]['review_status'], 'pending_review')
+
+
+
 if __name__ == '__main__':
     unittest.main()
