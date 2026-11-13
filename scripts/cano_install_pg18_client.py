@@ -60,7 +60,8 @@ def install(project_root: Path) -> dict:
             os.unlink(tempname)
     libdir = target / "usr" / "lib" / "x86_64-linux-gnu"
     binary = target / "usr" / "lib" / "postgresql" / "18" / "bin" / "pg_dump"
-    if not binary.is_file() or not (libdir / "libpq.so.5").exists():
+    psql_binary = target / "usr" / "lib" / "postgresql" / "18" / "bin" / "psql"
+    if not binary.is_file() or not psql_binary.is_file() or not (libdir / "libpq.so.5").exists():
         raise RuntimeError("PGDG archive contents incomplete")
     wrapper = target / "pg_dump18"
     shell = "#!/bin/sh\nexport LD_LIBRARY_PATH=" + shlex.quote(str(libdir)) + "\nexec " + shlex.quote(str(binary)) + ' "$@"\n'
@@ -70,7 +71,22 @@ def install(project_root: Path) -> dict:
                            timeout=12, check=False, env={"PATH": os.environ.get("PATH", ""), "HOME": os.environ.get("HOME", "")})
     if probe.returncode or not re.fullmatch(rb"pg_dump \(PostgreSQL\) 18(?:\.[0-9]+)?(?: \([^\r\n]{1,70}\))?\r?\n?", probe.stdout):
         raise RuntimeError("PG18 client startup validation failed")
-    return {"pg_dump18": str(wrapper), "sha_pinned": True, "client_major": 18}
+    # Reuse the same officially pinned PG18 client for a read-only, fail-closed
+    # application table inventory BEFORE any dump is produced.
+    psql_wrapper = target / "psql18"
+    psql_shell = "#!/bin/sh\\nexport LD_LIBRARY_PATH=" + shlex.quote(str(libdir)) + "\\nexec " + shlex.quote(str(psql_binary)) + ' "$@"\\n'
+    psql_wrapper.write_text(psql_shell, encoding="ascii")
+    psql_wrapper.chmod(0o700)
+    psql_probe = subprocess.run([str(psql_wrapper), "--version"], capture_output=True,
+                                timeout=12, check=False,
+                                env={"PATH": os.environ.get("PATH", ""),
+                                     "HOME": os.environ.get("HOME", "")})
+    if psql_probe.returncode or not re.fullmatch(
+            rb"psql \\(PostgreSQL\\) 18(?:\\.[0-9]+)?(?: \\([^\\r\\n]{1,70}\\))?\\r?\\n?",
+            psql_probe.stdout):
+        raise RuntimeError("PG18 psql client startup validation failed")
+    return {"pg_dump18": str(wrapper), "psql18": str(psql_wrapper),
+            "sha_pinned": True, "client_major": 18}
 
 
 if __name__ == "__main__":
