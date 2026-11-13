@@ -74,7 +74,7 @@ def install(project_root: Path) -> dict:
     # Reuse the same officially pinned PG18 client for a read-only, fail-closed
     # application table inventory BEFORE any dump is produced.
     psql_wrapper = target / "psql18"
-    psql_shell = "#!/bin/sh\\nexport LD_LIBRARY_PATH=" + shlex.quote(str(libdir)) + "\\nexec " + shlex.quote(str(psql_binary)) + ' "$@"\\n'
+    psql_shell = "#!/bin/sh\nexport LD_LIBRARY_PATH=" + shlex.quote(str(libdir)) + "\nexec " + shlex.quote(str(psql_binary)) + ' "$@"\n'
     psql_wrapper.write_text(psql_shell, encoding="ascii")
     psql_wrapper.chmod(0o700)
     psql_probe = subprocess.run([str(psql_wrapper), "--version"], capture_output=True,
@@ -82,7 +82,7 @@ def install(project_root: Path) -> dict:
                                 env={"PATH": os.environ.get("PATH", ""),
                                      "HOME": os.environ.get("HOME", "")})
     if psql_probe.returncode or not re.fullmatch(
-            rb"psql \\(PostgreSQL\\) 18(?:\\.[0-9]+)?(?: \\([^\\r\\n]{1,70}\\))?\\r?\\n?",
+            rb"psql \(PostgreSQL\) 18(?:\.[0-9]+)?(?: \([^\r\n]{1,70}\))?\r?\n?",
             psql_probe.stdout):
         raise RuntimeError("PG18 psql client startup validation failed")
     return {"pg_dump18": str(wrapper), "psql18": str(psql_wrapper),
