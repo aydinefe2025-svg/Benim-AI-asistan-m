@@ -15,20 +15,23 @@
 `headline_run_binding.py` resmî klasör eşleştirmesini tanır; eski eşleştirme fonksiyonunu veya bilimsel kaynakları sessizce değiştirmez. **Gerçek dosyalar verilirse** aşağıdakileri baştan doğrular:
 
 - 40,6 MB orijinal arşivin resmî MD5 kimliği;
+- resmî Zenodo README için sabit beklenen MD5; **yalnız dosya yolu da verilirse** README baytlarının MD5 yeniden okuması (salt metin metadata ile yeni hash kanıtı üretmez);
 - özgün çalıştırıcı, `CustomPrior`, ayarlar, `out_` ve `stats.dat` için önceden bağımsız Windows denetimleriyle kaydedilmiş **beş SHA-256**;
 - orijinal tar içindeki **tam beş göreli yol**;
 - `out_` içinde gerçekten yazan X-PSI sürümü ve yayındaki sürüm aralığı;
-- bağımsız `stats.dat`–`out_` MultiNest `logZ` ve hata değerlerinin tolerans içi eşitliği;
+- bağımsız `stats.dat`–`out_` MultiNest `logZ` ve hata değerlerinin tolerans içi eşitliği **ve önceden kaynakla eşleştirilmiş özgün logZ/hata değerlerine ayrı ayrı bağlılığı**;
 - isteğe bağlı 12,9 GB tam kaynak arşivi yeniden MD5 doğrulaması (gerçek bütçe/çalışma durumuna göre).
 
 Test sırasında gerçek üretim hash'leri **yalnız sentetik test fixtürü için** değiştirilebilir; bu durumda sonuç asla bilimsel olarak kaynak-doğrulandı ibaresini vermez.
 
 ### Kanıtlı testler
 
-`python -m unittest test_headline_run_binding.py -v` — **7/7 PASS**. RED kaydı: olmayan resmî eşleştirme davranışında `NotImplementedError`; GREEN kaydı: yöntem eklenince aynı test PASS. `python -m compileall .` PASS.
+`python -m unittest test_headline_run_binding.py -v` — **10/10 PASS**. RED kaydı: olmayan resmî eşleştirme davranışında `NotImplementedError`; GREEN kaydı: yöntem eklenince aynı test PASS. `python -m compileall .` PASS.
 
 ## Sınır (gizlenmeyecek)
 
 Windows SentinelX son kontrolde **OFFLINE** olduğundan, bu dosyanın üretim hash denetleyicisi gerçek dosyalarda bu turda çalıştırılamadı. Kodun **test başarısı**, yayımlanan örneklerin kaynak önseli ve EOS veri zincirinin tam doğrulandığı anlamına gelmez. Özellikle 15-boyutlu kaynak foton olabilirliğinin tüm kütle–yarıçap düzlemindeki yakınsaması, tüm yedi orijinal EOS için sürekli dönen yıldız kararlılığı ve EOS Bayes sonucu tamamlanmış değildir. `EOS_Bayes=NOT_RUN`.
 
 Kod, test, RED/GREEN kayıtları ve SHA manifesti aynı paket içinde sağlanır. Ana çalışma dalına ayrı dosyalar olarak eklenmeli; eski keskin kapı ancak gerçek kaynak dosyalarıyla regresyon kontrolünden sonra değiştirilmelidir.
+
+**İkinci RED/GREEN onarımı:** Testler, iki uydurma ama eşit logZ/hata değerinin önce yanlışlıkla kabul edilebildiğini ve README dosyasının gerçekten yeniden okunup okunmadığının belirtilmediğini gösterdi. Şimdi özgün logZ ve hata değerleri de sabit denetleniyor; isteğe bağlı gerçek README MD5 okumasının durumu raporda ayrı yazıyor. Sentetik testlerle toplam **10/10 PASS**.
