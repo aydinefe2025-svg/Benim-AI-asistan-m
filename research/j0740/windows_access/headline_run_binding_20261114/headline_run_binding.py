@@ -25,6 +25,8 @@ PUBLISHED_OUTPUT_DIR = "STU/STU_NICER_XMM_hr/STU_outputs/run1_lp40k_Xse001_Dfix/
 README_MD5 = "ed363c6d252a0a6ef177f8d45757e50e"
 POSTERIOR_ARCHIVE_MD5 = "ca8e70eeca81feb71321f1a88a24f2f9"
 FULL_ARCHIVE_MD5 = "7792c92b9ae1fa404ae5bdd3920ce075"
+KNOWN_STATS_LOGZ = -21889.986812013929
+KNOWN_STATS_ERROR = 0.0244091345940078905
 EXPECTED_SOURCE_MEMBERS = {
     "runner": "STU/STU_NICER_XMM_hr/STU_modules/main_lp40k_Xse001_Dfix.py",
     "prior": "STU/STU_NICER_XMM_hr/STU_modules/CustomPrior_GLS_compressed_scaling_Dfix.py",
@@ -56,6 +58,7 @@ def verify_published_binding(
     out_logz: float,
     out_error: float,
     full_archive_path: str | Path | None = None,
+    readme_local_path: str | Path | None = None,
     expected_file_hashes: Mapping[str, str] = PINS,
 ) -> dict:
     """Verify a publication-documented, cross-prefix run link from real bytes.
@@ -65,6 +68,9 @@ def verify_published_binding(
     """
     if readme_md5.lower() != README_MD5:
         raise SourceMismatch("official Zenodo README identity mismatch")
+    readme_checked = readme_local_path is not None
+    if readme_checked and digest(Path(readme_local_path), "md5") != README_MD5:
+        raise SourceMismatch("published README file bytes MD5 mismatch")
     if digest(Path(source_posterior_archive_path), "md5") != POSTERIOR_ARCHIVE_MD5:
         raise SourceMismatch("published posterior archive MD5 mismatch")
     complete_full_archive = full_archive_path is not None
@@ -91,6 +97,8 @@ def verify_published_binding(
         raise SourceMismatch("archived stats/out_ evidence numbers disagree")
     if stats_error < 0 or out_error < 0:
         raise SourceMismatch("invalid evidence uncertainty")
+    if abs(stats_logz - KNOWN_STATS_LOGZ) > 1e-8 or abs(stats_error - KNOWN_STATS_ERROR) > 1e-10:
+        raise SourceMismatch("evidence values are not the known original logZ and uncertainty")
     test_override = dict(expected_file_hashes) != PINS
     return {
         "status": "PUBLISHER_DIRECTORY_AND_SOURCE_FILE_BYTES_VERIFIED" if not test_override else "SYNTHETIC_TEST_FIXTURE_ONLY",
@@ -98,6 +106,7 @@ def verify_published_binding(
         "source_version_from_out_log": "v" + match.group(1),
         "reported_evidence_values_match": True,
         "full_archive_md5_checked_this_run": complete_full_archive,
+        "official_readme_file_bytes_checked_this_run": readme_checked,
         "source_files_sha256_checked_this_run": not test_override,
         "source_posterior_archive_md5_checked_this_run": True,
         "sample_to_actual_historical_runner_execution_attested": False,
