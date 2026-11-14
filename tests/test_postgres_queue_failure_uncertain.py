@@ -43,6 +43,65 @@ class FailurePersistenceUncertainTests(unittest.TestCase):
     def test_empty_reply_and_failed_database_ack(self):
         self._assert_fail_closed(lambda _: "   ")
 
+
+class PermissionFailureQueue(BrokenFailQueue):
+    """A backend permission error is not proof that the lease is gone."""
+
+    def fail(self, task_id, lease_token, *, now=None):
+        self.fail_attempts += 1
+        raise PermissionError("SENSITIVE-DB-ACL-DENIED")
+
+
+class PermissionCompletionQueue(BrokenFailQueue):
+    def complete(self, task_id, lease_token, draft, *, now=None):
+        raise PermissionError("SENSITIVE-DB-COMMIT-UNKNOWN")
+
+
+class ExplicitLeaseLossQueue(BrokenFailQueue):
+    def fail(self, task_id, lease_token, *, now=None):
+        from core.postgres_authorized_queue import LeaseLostError
+        raise LeaseLostError("lease lost")
+
+
+class PermissionErrorClassificationTests(unittest.TestCase):
+    def test_permission_error_is_not_lease_loss_on_failure_ack(self):
+        queue = PermissionFailureQueue()
+        result = queue.run_once(
+            "synthetic-worker", lambda _: (_ for _ in ()).throw(
+                RuntimeError("SENSITIVE-PROVIDER-CALL")),
+            approved=True,
+        )
+        self.assertEqual(result["status"], "failure_uncertain")
+        self.assertTrue(result["manual_review"])
+        self.assertFalse(result["verified"])
+        self.assertEqual(queue.fail_attempts, 1)
+        self.assertNotIn("SENSITIVE", str(result))
+
+    def test_permission_error_is_not_lease_loss_on_completion_ack(self):
+        queue = PermissionCompletionQueue()
+        result = queue.run_once(
+            "synthetic-worker", lambda _: "synthetic answer",
+            approved=True,
+        )
+        self.assertEqual(result["status"], "completion_uncertain")
+        self.assertTrue(result["manual_review"])
+        self.assertFalse(result["verified"])
+        self.assertNotIn("SENSITIVE", str(result))
+
+    def test_explicit_lease_loss_is_distinct_from_backend_denial(self):
+        from core.postgres_authorized_queue import LeaseLostError
+        self.assertTrue(issubclass(LeaseLostError, PermissionError))
+        queue = ExplicitLeaseLossQueue()
+        result = queue.run_once(
+            "synthetic-worker", lambda _: (_ for _ in ()).throw(
+                RuntimeError("synthetic provider error")),
+            approved=True,
+        )
+        self.assertEqual(result["status"], "lease_lost")
+        self.assertFalse(result["verified"])
+        self.assertNotIn("manual_review", result)
+
+
 class FailureUncertainPanelTests(unittest.TestCase):
     def test_uncertain_failure_requires_manual_review_not_retry_hint(self):
         from unittest.mock import MagicMock, patch
