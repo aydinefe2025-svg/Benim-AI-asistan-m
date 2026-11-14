@@ -1,0 +1,30 @@
+{
+  "EOS_Bayes": "NOT_RUN",
+  "as_of": "2026-11-14",
+  "files_sha256": {
+    "README.md": "c5066b8a18ae2c78dbd0e8ed042559dc8e9fc8fa02bf3dd8da651de36f4cff07",
+    "green.log": "ad03c8a8b471f12ac1ec6c780fe9445e91eb708f899a6b4acf158abb35049563",
+    "headline_run_binding.py": "31942033876c333f2772d852f23e08bbdd80b9bea39269e358a11db866ae5c52",
+    "red.log": "40e291a32169ee7e7ddc179d8d78ca1ed62199f8e504593a926fc8c13c1f30a6",
+    "test_headline_run_binding.py": "dd425571121c087ff6a3e7f53591223cda0c60e4ce0800e817460ffbc491db8a"
+  },
+  "key_finding": "official README maps published gamma_NxX M-R posterior to STU_NICER_XMM_hr ST-U headline run",
+  "original_readme_md5": "ed363c6d252a0a6ef177f8d45757e50e",
+  "published_and_source_file_integrity_fresh_this_session": false,
+  "schema": "j0740-headline-published-lineage-validator-v1",
+  "scientific_status": "DOCUMENTARY_BINDING_RECONCILED; BYTE_CERTIFIED_NATIVE_EOS_INFERENCE_NOT_RUN",
+  "source_archive_md5": "ca8e70eeca81feb71321f1a88a24f2f9",
+  "test_result": "7/7 PASS (synthetic fixtures only)",
+  "upstream_original_readme": "https://zenodo.org/records/10519473/files/README.md?download=1",
+  "windows_agent_status": "OFFLINE",
+  "xpsi_version_summary": {
+    "archived_out_log_version": "v1.2.0",
+    "discrepancy_resolved": false,
+    "headlined_version_per_paper": "v1.2.1",
+    "likelihood_call_block_same": true,
+    "nested_sampler_py_same": true,
+    "prior_py_same": true,
+    "sample_py_same": true,
+    "whole_likelihood_py_same": false
+  }
+}
