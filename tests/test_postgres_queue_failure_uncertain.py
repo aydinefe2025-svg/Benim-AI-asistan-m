@@ -102,6 +102,54 @@ class PermissionErrorClassificationTests(unittest.TestCase):
         self.assertNotIn("manual_review", result)
 
 
+
+class RenewalDeniedQueue(BrokenFailQueue):
+    def __init__(self):
+        super().__init__()
+        from threading import Event
+        self.renewed = Event()
+
+    def renew_lease(self, task_id, lease_token, *, lease_seconds=60):
+        self.renewed.set()
+        raise PermissionError("SENSITIVE-DB-RENEWAL-DENIED")
+
+
+class RenewalLeaseLostQueue(RenewalDeniedQueue):
+    def renew_lease(self, task_id, lease_token, *, lease_seconds=60):
+        from core.postgres_authorized_queue import LeaseLostError
+        self.renewed.set()
+        raise LeaseLostError("confirmed expired lease")
+
+
+class LeaseRenewalUncertaintyTests(unittest.TestCase):
+    def _callback_after_renewal(self, queue):
+        import time
+        def synthetic(_):
+            self.assertTrue(queue.renewed.wait(timeout=3))
+            # Allow the renewal thread to publish its outcome before returning.
+            time.sleep(.05)
+            return "synthetic answer"
+        return synthetic
+
+    def test_database_permission_error_on_renewal_needs_manual_review(self):
+        queue = RenewalDeniedQueue()
+        result = queue.run_once("synthetic-worker",
+                                self._callback_after_renewal(queue),
+                                approved=True, lease_seconds=1)
+        self.assertEqual(result["status"], "lease_renewal_uncertain")
+        self.assertTrue(result["manual_review"])
+        self.assertFalse(result["verified"])
+        self.assertNotIn("SENSITIVE", str(result))
+
+    def test_confirmed_renewal_expiry_is_distinct(self):
+        queue = RenewalLeaseLostQueue()
+        result = queue.run_once("synthetic-worker",
+                                self._callback_after_renewal(queue),
+                                approved=True, lease_seconds=1)
+        self.assertEqual(result["status"], "lease_lost")
+        self.assertFalse(result["verified"])
+
+
 class FailureUncertainPanelTests(unittest.TestCase):
     def test_uncertain_failure_requires_manual_review_not_retry_hint(self):
         from unittest.mock import MagicMock, patch
