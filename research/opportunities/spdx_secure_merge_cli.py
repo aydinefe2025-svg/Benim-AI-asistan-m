@@ -169,7 +169,8 @@ def main():
             verdict,result,problems,summary=decision(base,source,mod.merge_sbom,
                 jsonschema.Draft201909Validator(schema))
             record.update({'status':verdict,'problems':problems,'summary':summary,
-                           'patched_source_sha256':patch['source_level_patch']['patched_sha256']})
+                           'patched_source_sha256':patch['source_level_patch']['patched_sha256'],
+                           'source_mode':patch.get('source_mode')})
             if verdict!='ACCEPT':print(json.dumps(record,ensure_ascii=False));return 2
             output=args.output
             if output.resolve() in (args.base.resolve(),args.source.resolve()):
