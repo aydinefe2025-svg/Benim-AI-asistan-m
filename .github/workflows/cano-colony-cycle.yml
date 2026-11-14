@@ -14,6 +14,8 @@ on:
       - "tests/test_cano_specialist_agents.py"
       - "tests/test_cano_schedule_guard.py"
       - "scripts/cano_schedule_guard.py"
+      - "scripts/cano_recover_colony_artifact.py"
+      - "tests/test_cano_recover_colony_artifact.py"
   schedule:
     # Four staggered checks improve recovery when a scheduled event is delayed or dropped.
     - cron: "7,22,37,52 * * * *"
@@ -69,20 +71,14 @@ jobs:
           key: cano-colony-db-${{ github.ref_name }}-${{ github.run_id }}
           restore-keys: |
             cano-colony-db-${{ github.ref_name }}-
-      - name: Restore last GitHub audit artifact when cache is missing
+      - name: Restore the most recent actually verified history artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [[ -f artifacts/colony-cycle.sqlite3 ]]; then
-            echo "Previous SQLite restored by cache; skip archive extraction"
+            echo "Previous SQLite restored from GitHub cache; verify next"
           else
-            previous_run="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow cano-colony-cycle.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
-            if [[ -n "$previous_run" ]]; then
-              mkdir -p artifacts
-              gh run download "$previous_run" --repo "$GITHUB_REPOSITORY" --name "cano-colony-cycle-$previous_run" --dir artifacts
-            else
-              echo "No prior successful CANO run; starting fresh"
-            fi
+            python -m scripts.cano_recover_colony_artifact --repo "$GITHUB_REPOSITORY" --dest artifacts/colony-cycle.sqlite3
           fi
       - name: Reject damaged restored state before advancing
         run: |
