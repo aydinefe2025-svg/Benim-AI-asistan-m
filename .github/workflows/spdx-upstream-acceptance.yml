@@ -9,6 +9,7 @@ on:
       - "research/opportunities/spdx_patched_acceptance.py"
       - "research/opportunities/spdx_secure_merge_cli.py"
       - "research/opportunities/spdx_secure_merge_selftest.py"
+      - "research/opportunities/SPDX_SECURE_MERGE_README_TR.md"
       - ".github/workflows/spdx-upstream-acceptance.yml"
   workflow_dispatch:
 permissions:
@@ -33,6 +34,18 @@ jobs:
       - name: Verify usable local CLI and source-level patched merge
         run: |
           python research/opportunities/spdx_secure_merge_selftest.py -v
+      - name: Bundle reviewed pilot sources and real CI receipts
+        run: |
+          python -m zipfile -c spdx-secure-pilot.zip \
+            research/opportunities/spdx_upstream_acceptance.py \
+            research/opportunities/spdx_source_patch.py \
+            research/opportunities/spdx_patched_acceptance.py \
+            research/opportunities/spdx_validation_pipeline.py \
+            research/opportunities/spdx_fixture_matrix_24.py \
+            research/opportunities/spdx_secure_merge_cli.py \
+            research/opportunities/spdx_secure_merge_selftest.py \
+            research/opportunities/SPDX_SECURE_MERGE_README_TR.md \
+            spdx-acceptance-results.json spdx-sourcepatch-results.json
       - name: Preserve inspectable acceptance receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
@@ -41,5 +54,6 @@ jobs:
           path: |
             spdx-acceptance-results.json
             spdx-sourcepatch-results.json
+            spdx-secure-pilot.zip
           if-no-files-found: warn
           retention-days: 14
