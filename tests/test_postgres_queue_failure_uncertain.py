@@ -43,6 +43,33 @@ class FailurePersistenceUncertainTests(unittest.TestCase):
     def test_empty_reply_and_failed_database_ack(self):
         self._assert_fail_closed(lambda _: "   ")
 
+class FailureUncertainPanelTests(unittest.TestCase):
+    def test_uncertain_failure_requires_manual_review_not_retry_hint(self):
+        from unittest.mock import MagicMock, patch
+        from core.authorized_queue_panel import render_authorized_queue_panel
+        for state in ("failure_uncertain", "completion_uncertain"):
+            with self.subTest(status=state):
+                st = MagicMock()
+                st.form_submit_button.side_effect = (False, True)
+                st.checkbox.return_value = True
+                queue = MagicMock()
+                queue.list.return_value = []
+                queue.run_once.return_value = {
+                    "status": state, "manual_review": True, "verified": False
+                }
+                with patch("core.authorized_queue_panel.PostgresAuthorizedQueue",
+                           return_value=queue):
+                    render_authorized_queue_panel(
+                        st, answer=lambda _: "never called",
+                        owner_key="synthetic-owner",
+                        database_url="postgresql://synthetic-unused")
+                queue.run_once.assert_called_once()
+                warnings = [str(call.args[0]) for call in st.warning.call_args_list]
+                self.assertTrue(any(
+                    "manuel" in message.lower() and "yeniden" in message.lower()
+                    for message in warnings), warnings)
+
+
 if __name__ == "__main__":
     unittest.main()
 
