@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - "research/opportunities/spdx_upstream_acceptance.py"
+      - "research/opportunities/spdx_validation_pipeline.py"
       - ".github/workflows/spdx-upstream-acceptance.yml"
   workflow_dispatch:
 permissions:
@@ -20,7 +21,7 @@ jobs:
         run: python -m pip install "jsonschema==4.26.0"
       - name: Real upstream merge + official SPDX JSON Schema
         run: |
-          python research/opportunities/spdx_upstream_acceptance.py --output spdx-acceptance-results.json
+          python research/opportunities/spdx_validation_pipeline.py --output spdx-acceptance-results.json
       - name: Preserve inspectable acceptance receipt
         if: always()
         uses: actions/upload-artifact@v4
