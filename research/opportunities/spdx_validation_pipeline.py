@@ -13,6 +13,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import jsonschema
 import spdx_upstream_acceptance as original
+import spdx_fixture_matrix_24 as schema_matrix
 
 
 def normalize_annotations(output: dict):
@@ -77,15 +78,20 @@ def run(output: Path):
                               'verdict':verdict,'raw_schema_error_count':len(raw_schema_errors),
                               'normalized_schema_error_count':len(normalized_schema_errors),
                               'semantic':semantic,'removed_fields':removed},ensure_ascii=False))
+        matrix_result = schema_matrix.verify(schema)
+        print(f"Official 24-case SPDX schema matrix: {matrix_result['passed']}/{matrix_result['total']}")
         result = {'date':'2026-11-14','test':'original upstream, official schema, separate normalization and safety gate',
                   'upstream_commit':original.UPSTREAM_COMMIT,'upstream_git_blob_sha1':original.FILES,
                   'spdx_schema_tag':original.SPDX_REF,'spdx_git_blob_sha1':original.SCHEMA_BLOB,
                   'python_jsonschema_version':version('jsonschema'),
                   'raw_upstream_schema_compliant':all(not c['raw_upstream_schema_errors'] for c in receipts),
                   'negative_annotation_target_control':'PASS',
+                  'official_schema_matrix':matrix_result,
                   'total':len(receipts),'passed':sum(c['passed'] for c in receipts),
                   'gate_passed':all(c['passed'] for c in receipts),'cases':receipts}
         output.write_text(json.dumps(result,indent=2,ensure_ascii=False)+'\n',encoding='utf8')
+        if matrix_result['passed']!=matrix_result['total']:
+            raise AssertionError(f"Only {matrix_result['passed']}/{matrix_result['total']} official schema cases passed")
         if not result['gate_passed']:
             raise AssertionError(f"Only {result['passed']}/{result['total']} safety gate cases passed")
 
