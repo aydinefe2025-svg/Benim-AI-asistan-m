@@ -1,6 +1,7 @@
 """CANO scheduled artifact restore: preserve continuity, never silently restart."""
 import json
 import shutil
+from contextlib import closing
 import sqlite3
 import tempfile
 import unittest
@@ -20,7 +21,7 @@ class ColonyArtifactRecoveryTests(unittest.TestCase):
     def valid_artifact(self, run_id=101, *, tick=3, report_run=None, report_ticks=None):
         folder = self.root / f"source-{run_id}"
         folder.mkdir(exist_ok=True)
-        with sqlite3.connect(folder / "colony-cycle.sqlite3") as db:
+        with closing(sqlite3.connect(folder / "colony-cycle.sqlite3")) as db, db:
             db.execute("CREATE TABLE colony_tick (tick_id INTEGER PRIMARY KEY, candidates TEXT, state TEXT)")
             for i in range(1, tick + 1):
                 db.execute("INSERT INTO colony_tick VALUES(?, ?, 'proposed')", (i, "[]"))
