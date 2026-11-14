@@ -7,6 +7,8 @@ on:
       - "research/opportunities/spdx_fixture_matrix_24.py"
       - "research/opportunities/spdx_source_patch.py"
       - "research/opportunities/spdx_patched_acceptance.py"
+      - "research/opportunities/spdx_secure_merge_cli.py"
+      - "research/opportunities/spdx_secure_merge_selftest.py"
       - ".github/workflows/spdx-upstream-acceptance.yml"
   workflow_dispatch:
 permissions:
@@ -28,6 +30,9 @@ jobs:
       - name: Patched source-level merge and native SPDX schema verification
         run: |
           python research/opportunities/spdx_patched_acceptance.py --output spdx-sourcepatch-results.json
+      - name: Verify usable local CLI and source-level patched merge
+        run: |
+          python research/opportunities/spdx_secure_merge_selftest.py -v
       - name: Preserve inspectable acceptance receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
