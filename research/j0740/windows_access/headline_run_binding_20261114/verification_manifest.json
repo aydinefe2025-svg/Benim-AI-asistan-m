@@ -1,20 +1,24 @@
 {
   "EOS_Bayes": "NOT_RUN",
   "as_of": "2026-11-14",
+  "code_has_real_archive_readback_this_turn": false,
   "files_sha256": {
-    "README.md": "c5066b8a18ae2c78dbd0e8ed042559dc8e9fc8fa02bf3dd8da651de36f4cff07",
-    "green.log": "ad03c8a8b471f12ac1ec6c780fe9445e91eb708f899a6b4acf158abb35049563",
-    "headline_run_binding.py": "31942033876c333f2772d852f23e08bbdd80b9bea39269e358a11db866ae5c52",
+    "README.md": "efcf0a7c6490dbbea82152177a017b55482f5bcee74383db00147e7116c5ae30",
+    "green.log": "78d0cf08d30da9043a0bed69f1e08d5173c045121d7abdcb6e5dffa6b071b75b",
+    "headline_run_binding.py": "c30a18aaeb33edc735ee958f38cd5426f234f9edea1cd52e246274acd5eb70ac",
     "red.log": "40e291a32169ee7e7ddc179d8d78ca1ed62199f8e504593a926fc8c13c1f30a6",
-    "test_headline_run_binding.py": "dd425571121c087ff6a3e7f53591223cda0c60e4ce0800e817460ffbc491db8a"
+    "red_2.log": "09d76304a4b19667e3e9bde15d6d7a6d22739dad92fa779f1740d3779717feb1",
+    "red_3.log": "e3d364d3e91ce8ee1d0cb1bbd9b5fd47fbc71d6fbfd689c929e0ad0c2d1a4ff9",
+    "test_headline_run_binding.py": "305e0f1291edaea086a0aa81d11d6f6c9469606de4fdda5da86c083f2ad807c3"
   },
   "key_finding": "official README maps published gamma_NxX M-R posterior to STU_NICER_XMM_hr ST-U headline run",
   "original_readme_md5": "ed363c6d252a0a6ef177f8d45757e50e",
   "published_and_source_file_integrity_fresh_this_session": false,
+  "readme_bytes_rehashed_this_turn": false,
   "schema": "j0740-headline-published-lineage-validator-v1",
   "scientific_status": "DOCUMENTARY_BINDING_RECONCILED; BYTE_CERTIFIED_NATIVE_EOS_INFERENCE_NOT_RUN",
   "source_archive_md5": "ca8e70eeca81feb71321f1a88a24f2f9",
-  "test_result": "7/7 PASS (synthetic fixtures only)",
+  "test_result": "10/10 PASS (synthetic fixtures only); red-green and two independent red regressions",
   "upstream_original_readme": "https://zenodo.org/records/10519473/files/README.md?download=1",
   "windows_agent_status": "OFFLINE",
   "xpsi_version_summary": {
