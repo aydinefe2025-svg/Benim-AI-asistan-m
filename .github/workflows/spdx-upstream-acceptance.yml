@@ -4,6 +4,7 @@ on:
     paths:
       - "research/opportunities/spdx_upstream_acceptance.py"
       - "research/opportunities/spdx_validation_pipeline.py"
+      - "research/opportunities/spdx_fixture_matrix_24.py"
       - ".github/workflows/spdx-upstream-acceptance.yml"
   workflow_dispatch:
 permissions:
