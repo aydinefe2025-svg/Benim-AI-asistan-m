@@ -1,0 +1,31 @@
+name: SPDX original-upstream integration (isolated research)
+on:
+  pull_request:
+    paths:
+      - "research/opportunities/spdx_upstream_acceptance.py"
+      - ".github/workflows/spdx-upstream-acceptance.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-pinned-upstream:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install exact validator version
+        run: python -m pip install "jsonschema==4.26.0"
+      - name: Real upstream merge + official SPDX JSON Schema
+        run: |
+          python research/opportunities/spdx_upstream_acceptance.py --output spdx-acceptance-results.json
+      - name: Preserve inspectable acceptance receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spdx-upstream-acceptance
+          path: spdx-acceptance-results.json
+          if-no-files-found: warn
+          retention-days: 14
