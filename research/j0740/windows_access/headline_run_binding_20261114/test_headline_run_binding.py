@@ -51,6 +51,35 @@ class OfficialLineageTests(unittest.TestCase):
                 with patch('headline_run_binding.POSTERIOR_ARCHIVE_MD5',hashlib.md5(poster.read_bytes()).hexdigest()):
                     self.call(paths,pins,poster)
 
+    def test_fabricated_equal_logz_must_still_fail_pinned_run_evidence(self):
+        with tempfile.TemporaryDirectory() as d:
+            paths,pins,poster=self.fixture(d)
+            from unittest.mock import patch
+            with patch('headline_run_binding.POSTERIOR_ARCHIVE_MD5',hashlib.md5(poster.read_bytes()).hexdigest()):
+                with self.assertRaisesRegex(SourceMismatch,'not the known original logZ'):
+                    verify_published_binding(paths, EXPECTED_SOURCE_MEMBERS,
+                        readme_md5=README_MD5, source_posterior_archive_path=poster,
+                        stats_logz=-11.0,out_logz=-11.0,stats_error=.5,out_error=.5,
+                        expected_file_hashes=pins)
+
+    def test_readme_md5_metadata_does_not_claim_fresh_file_hash(self):
+        with tempfile.TemporaryDirectory() as d:
+            paths,pins,poster=self.fixture(d)
+            from unittest.mock import patch
+            with patch('headline_run_binding.POSTERIOR_ARCHIVE_MD5',hashlib.md5(poster.read_bytes()).hexdigest()):
+                r=self.call(paths,pins,poster)
+            self.assertIs(r['official_readme_file_bytes_checked_this_run'],False)
+
+    def test_supplied_readme_file_requires_real_md5(self):
+        with tempfile.TemporaryDirectory() as d:
+            paths,pins,poster=self.fixture(d)
+            readme=Path(d)/'README.md'
+            readme.write_text('publisher README',encoding='utf-8')
+            from unittest.mock import patch
+            with patch('headline_run_binding.POSTERIOR_ARCHIVE_MD5',hashlib.md5(poster.read_bytes()).hexdigest()):
+                with self.assertRaisesRegex(SourceMismatch,'published README file bytes MD5 mismatch'):
+                    self.call(paths,pins,poster,readme_local_path=readme)
+
     def test_wrong_posterior_archive_blocked(self):
         with tempfile.TemporaryDirectory() as d:
             paths,pins,poster=self.fixture(d)
