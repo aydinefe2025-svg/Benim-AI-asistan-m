@@ -351,7 +351,7 @@ class PostgresAuthorizedQueue:
         job = self.claim(worker_id, approved=True, now=now, lease_seconds=lease_seconds)
         if job is None:
             return None
-        stopped, lost = threading.Event(), threading.Event()
+        stopped, lost, renewal_uncertain = (threading.Event(), threading.Event(), threading.Event())
         interval = min(10.0, max(.25, lease_seconds / 3))
 
         def heartbeat():
@@ -359,9 +359,13 @@ class PostgresAuthorizedQueue:
                 try:
                     self.renew_lease(job["id"], job["lease_token"],
                                      lease_seconds=lease_seconds)
-                except Exception:
-                    # No exception details: they can include connection data.
+                except LeaseLostError:
                     lost.set()
+                    return
+                except Exception:
+                    # A transport/permission failure does not prove lease expiry.
+                    # The provider may have been called: require manual reconciliation.
+                    renewal_uncertain.set()
                     return
 
         def persist_failure():
@@ -386,9 +390,15 @@ class PostgresAuthorizedQueue:
                 draft = answer(job["goal"])
             except Exception:
                 # Never log provider errors: they can contain credentials or prompts.
+                if renewal_uncertain.is_set():
+                    return {"id": job["id"], "status": "lease_renewal_uncertain",
+                            "manual_review": True, "verified": False}
                 if lost.is_set():
                     return {"id": job["id"], "status": "lease_lost", "verified": False}
                 return persist_failure()
+            if renewal_uncertain.is_set():
+                return {"id": job["id"], "status": "lease_renewal_uncertain",
+                        "manual_review": True, "verified": False}
             if lost.is_set():
                 return {"id": job["id"], "status": "lease_lost", "verified": False}
             if not isinstance(draft, str) or not draft.strip():
