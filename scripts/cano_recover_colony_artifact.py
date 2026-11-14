@@ -18,7 +18,7 @@ import tempfile
 from scripts.verify_cano_restore import verify_restored_state
 
 EXPECTED_MODE = "bounded_virtual_reproduction_with_held_out_validation"
-REPO_PATTERN = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\\Z")
+REPO_PATTERN = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
 
 
 def restore_previous_state(destination: Path, *, run_ids, inspect_artifacts, download):
