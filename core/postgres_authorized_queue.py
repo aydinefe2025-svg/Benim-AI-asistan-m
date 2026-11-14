@@ -359,6 +359,21 @@ class PostgresAuthorizedQueue:
                     lost.set()
                     return
 
+        def persist_failure():
+            """A failed provider attempt may already have cost an external call.
+
+            If recording its failure is unacknowledged, never promise a retry:
+            the database may have committed the failure transition already.
+            """
+            try:
+                return self.fail(job["id"], job["lease_token"], now=now)
+            except PermissionError:
+                return {"id": job["id"], "status": "lease_lost", "verified": False}
+            except Exception:
+                # Driver exceptions may contain secrets; no details cross this boundary.
+                return {"id": job["id"], "status": "failure_uncertain",
+                        "manual_review": True, "verified": False}
+
         thread = threading.Thread(target=heartbeat, name="cano-queue-lease-heartbeat", daemon=True)
         thread.start()
         try:
@@ -368,17 +383,11 @@ class PostgresAuthorizedQueue:
                 # Never log provider errors: they can contain credentials or prompts.
                 if lost.is_set():
                     return {"id": job["id"], "status": "lease_lost", "verified": False}
-                try:
-                    return self.fail(job["id"], job["lease_token"], now=now)
-                except PermissionError:
-                    return {"id": job["id"], "status": "lease_lost", "verified": False}
+                return persist_failure()
             if lost.is_set():
                 return {"id": job["id"], "status": "lease_lost", "verified": False}
             if not isinstance(draft, str) or not draft.strip():
-                try:
-                    return self.fail(job["id"], job["lease_token"], now=now)
-                except PermissionError:
-                    return {"id": job["id"], "status": "lease_lost", "verified": False}
+                return persist_failure()
             try:
                 return self.complete(job["id"], job["lease_token"], draft, now=now)
             except PermissionError:
