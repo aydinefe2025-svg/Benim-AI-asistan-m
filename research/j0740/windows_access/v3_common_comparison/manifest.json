@@ -1,0 +1,15 @@
+{
+  "scope": "SYNTHETIC_COMPARISON_NOT_XPSI",
+  "real_photon_calls": 0,
+  "source": "two existing archived v3 candidates",
+  "previous_K4K8_v1_v2_results": "UNCHANGED_FAIL",
+  "full_MR_convergence": "NOT_ESTABLISHED",
+  "EOS_Bayes": "NOT_RUN",
+  "files": {
+    "compare_candidates.py": "b5b67901cfc03e155848065587b7268c23be95e31e13eb30814eb6ef3462d4c5",
+    "candidate_comparison_synthetic.json": "f996404929e8efb4d62537b22b309dc476724d6e1232756207560366690e26c3",
+    "README.md": "dbda6c5a317aaf446d516ad9247f03753f216220bc3e3e2fce932e0d3596a26a",
+    "bounded_tests.log": "3ea906abce8733119c9650a5b6706504101d8a75af848317014c1e4d44019284",
+    "latent_tests.log": "89b96a110274343569807eb1f4945fdea79a98d0f4923e5081be32d56ff9b213"
+  }
+}

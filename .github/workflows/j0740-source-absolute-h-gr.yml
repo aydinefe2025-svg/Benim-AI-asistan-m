@@ -1,0 +1,64 @@
+name: J0740 source-absolute pseudoenthalpy full GR seven EOS sensitivity
+# Science negative control: restoring source absolute H alone in unchanged
+# upstream RNS C has confirmed 0/7 convergence because MakeSphere surface
+# enthalpy/pressure/energy bounds are inconsistent. Keep reproducible manually,
+# not an always-failing PR CI gate. Corrected C surface test is separate.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  absolute-h-real-gr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install numpy
+      - name: Eight isolated source absolute pseudoenthalpy and GR identity tests
+        working-directory: research/j0740/rotating_gr
+        run: python -m unittest -v test_j0740_absolute_enthalpy_gr
+      - name: Build pinned RNS C GR solver
+        run: make -C rns-upstream rns
+      - name: Download existing seven-EOS fixed mass GR artifact only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p prior-rns
+          gh run download 42353019033 --repo "$GITHUB_REPOSITORY" \
+            --name j0740-seven-eos-rns-fixed-mass-results \
+            --dir prior-rns
+      - name: Recompute seven rotating and seven static C GR stars with source absolute H
+        run: |
+          python research/j0740/rotating_gr/j0740_absolute_enthalpy_gr.py \
+            --rns-json prior-rns/J0740_seven_EOS_full_GR_fixed_spin_mass.json \
+            --binary rns-upstream/rns \
+            --jester-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --out results/J0740_seven_EOS_legacy_vs_absolute_pseudoenthalpy_GR.json
+      - name: Preserve corrected models or partial failure evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: j0740-seven-gr-corrected-source-absolute-enthalpy
+          path: |
+            results/J0740_seven_EOS_legacy_vs_absolute_pseudoenthalpy_GR.json
+            results/*_absolute_H.rns
+          if-no-files-found: warn
+          retention-days: 30

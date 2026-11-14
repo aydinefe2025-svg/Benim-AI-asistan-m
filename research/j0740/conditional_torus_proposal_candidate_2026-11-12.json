@@ -1,0 +1,45 @@
+{
+  "record_id": "J0740_conditional_torus_proposal_candidate_2026-11-12",
+  "status": "TORUS_COMPONENT_IMPLEMENTED_AND_TESTED; FULL_IMPORTANCE_PROPOSAL_NOT_VALIDATED",
+  "date": "2026-11-12",
+  "target_changes": false,
+  "xpsi_version": "1.2.0",
+  "native_model_sha256": "049a1ac945b09af595d282d958842cd95475e509d6b7e79b45c72d11096de227",
+  "observed_failure": {
+    "point_msun_km": [2.0, 13.5],
+    "seed": 195503,
+    "same_latent_top_weight_sample_in_K4_and_K8": true,
+    "top_index_zero_based": 23,
+    "K4_max_weight": 0.06161409143586924,
+    "K8_max_weight": 0.05816946413025434,
+    "gate_max_weight": 0.05,
+    "interpretation": "The same paired latent point remains dominant under both proposals; K8 improves its proposal density modestly but does not pass the peak-weight gate."
+  },
+  "candidate_density": {
+    "coordinates": "Let x in R^11 be the existing unit-Jacobian temperature-coupled non-phase latent coordinates and phi=(common_phase,relative_phase) in T^2, each phase in [0,1).",
+    "adapted_core": "qC(x,phi)=sum_k pi_k N_11(x;mu_k,Sigma_k) WN_2(phi; a_k+B_k(x-mu_k),Omega_k), with the phase mean reduced modulo one.",
+    "wrapped_normal": "WN_2(phi;m,Omega)=sum_{n in Z^2} Normal_2(phi+n;m,Omega); the density is normalized on the unit torus and samples by reducing a Gaussian draw modulo one.",
+    "defensive_mixture": "q(z)=0.50*q_base(z)+0.25*qC(x(z),phi(z))*prod_j phi_std(z_phase_j)+0.25*q_broad(z). q_broad is the existing normalized broad-tail component; retain its exact density.",
+    "normalization": "The wrapped-normal lattice sum is normalized on T^2; each Gaussian is normalized on R^11; mixture weights sum to one; the phase map (u_primary,u_secondary)->(common,relative) has unit torus Jacobian; include both standard-normal CDF Jacobians when evaluating density in latent z. The base defensive component preserves prior support.",
+    "fit": "Fit B_k and Omega_k from preserved weighted training samples only, with positive-definite regularization specified before any held-out evaluation; do not fit on held-out outcomes."
+  },
+  "implementation_and_math_tests": {
+    "module": "research/j0740/windows_access/conditional_wrapped_normal.py",
+    "test": "research/j0740/windows_access/test_conditional_wrapped_normal.py",
+    "result": "4 tests passed in the authorized Python 3.12 environment",
+    "checks": ["unit-torus grid normalization at two conditional means", "Fourier density versus independent wrapped-Gaussian lattice sum", "sample Fourier moments including cross-phase frequency", "reject non-positive-definite covariance"],
+    "photon_likelihood_calls": 0,
+    "scope_limit": "Only the normalized conditional phase component was implemented and mathematically tested. The weighted Gaussian mixture, defensive mixture assembly, held-out importance weights, and all predeclared scientific gates remain untested."
+  },
+  "required_validation_before_use": [
+    "Implement lattice-sum density with a numerical truncation error bound and verify unit-torus normalization independently.",
+    "Check sampling/log-density agreement and all transform Jacobians against independent numerical tests.",
+    "Freeze proposal hash, training rows, seeds, and thresholds before held-out likelihood calls.",
+    "At (2.000,13.50), repeat independent 512-draw seeds only after preflight; retain every finite sample and do not clip weights.",
+    "Require the existing ESS>=100, max normalized weight<=0.05, phase ESS>=30 per phase, log-integral spread<=0.2 and 256-to-512 drift<=0.1 gates."
+  ],
+  "source_prior_or_likelihood_changed": false,
+  "samples_deleted_or_weights_clipped": false,
+  "EOS_Bayes": "NOT_RUN"
+}
+

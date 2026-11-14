@@ -1,0 +1,71 @@
+name: J0740 pinned RNS 151x301 vs 201x401 spatial-grid audit
+on:
+  pull_request:
+    paths:
+      - "research/j0740/rotating_gr/rns_151_vs_201_spatial_grid.py"
+      - "research/j0740/rotating_gr/test_rns_151_vs_201_spatial_grid.py"
+      - ".github/workflows/j0740-151-vs-201-spatial-grid.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  spatial-refinement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install numpy
+      - name: Run seven independent scientific spatial-mesh safeguard tests
+        working-directory: research/j0740/rotating_gr
+        run: python -m unittest -v test_rns_151_vs_201_spatial_grid
+      - name: Compile BOTH actual RNS C mesh binaries from one pinned source
+        run: |
+          make -C rns-upstream rns
+          cp rns-upstream/rns rns-upstream/rns_151x301
+          # Upstream rns makefile has no 'clean' target: erase ONLY generated
+          # object files/working binary, preserving the saved baseline executable.
+          rm -f rns-upstream/*.o rns-upstream/rns
+          make -C rns-upstream HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+          cp rns-upstream/rns rns-upstream/rns_201x401
+      - name: Reuse pinned original seven-EOS model without rerunning mass roots
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p prior-rns
+          gh run download 42353019033 --repo "$GITHUB_REPOSITORY" \
+            --name j0740-seven-eos-rns-fixed-mass-results \
+            --dir prior-rns
+      - name: Solve all seven rotating and static GR stars at both spatial grids with identical EOS tables
+        run: |
+          python research/j0740/rotating_gr/rns_151_vs_201_spatial_grid.py \
+            --rns-json prior-rns/J0740_seven_EOS_full_GR_fixed_spin_mass.json \
+            --binary rns-upstream/rns_201x401 \
+            --baseline-binary rns-upstream/rns_151x301 \
+            --jester-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --out results/J0740_seven_EOS_RNS_151x301_vs_201x401_spatial_grid.json
+      - name: Preserve all validated or failed model results as evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: j0740-rns-seven-eos-151x301-vs-201x401-evidence
+          path: results/J0740_seven_EOS_RNS_151x301_vs_201x401_spatial_grid.json
+          if-no-files-found: warn
+          retention-days: 30

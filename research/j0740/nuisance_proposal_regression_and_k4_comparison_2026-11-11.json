@@ -1,0 +1,440 @@
+{
+  "record_id": "J0740_nuisance_k4_compare_xpsi_regression_2026-11-11",
+  "status": "REGRESSION_PASS_K4_COMPARISON_COMPLETE_TAILCORR_POINTWISE_RESULTS_RECORDED",
+  "date": "2026-11-11",
+  "EOS_Bayes": "NOT_RUN",
+  "k2_15_26_ess_correction": {
+    "point_msun_km": [
+      2.073,
+      15.26
+    ],
+    "ess_by_seed": {
+      "151501": 99.62165806980663,
+      "151503": 133.887395,
+      "151507": 36.706921,
+      "151511": 106.559213
+    },
+    "range": [
+      36.706921,
+      133.887395
+    ],
+    "minimum": 36.706921,
+    "display_range_rounded": "36.71–133.89",
+    "display_minimum_rounded": 36.71,
+    "all_four_existing_runs_preserved": true,
+    "rerun": false
+  },
+  "k4_experiments_are_distinct": {
+    "shared_physics": {
+      "test_point_msun_km": [
+        2.073,
+        15.26
+      ],
+      "xpsi_version": "1.2.0",
+      "native_model_manifest_sha256": "049a1ac945b09af595d282d958842cd95475e509d6b7e79b45c72d11096de227",
+      "source_prior_or_likelihood_changed": false,
+      "importance_weights_clipped_or_samples_deleted": false,
+      "proposal_coordinate_transform": "13 standard-normal prior coordinates z; source unit coordinates u=Phi(z); exact conditional transport for nuisance dimensions, with phase represented as common=u_secondary and relative=(u_primary-u_secondary) mod 1; Jacobian included in q(z)."
+    },
+    "previously_passing_independent_k4": {
+      "manifest_status": "TOROIDAL_R15_26_K4_FRESH_NATIVE_RUN_PASS",
+      "method": "q(z)=0.7 conditional transport base + 0.3 correlated toroidal K4 proposal",
+      "defensive_base_fraction": 0.7,
+      "components": 4,
+      "training_point_msun_km": [
+        2.073,
+        14.5
+      ],
+      "training_seeds": [
+        171501,
+        171503,
+        171507,
+        171511
+      ],
+      "training_artifact_sha256": [
+        "F9D555D7C4A414A5ACBA3E1E5CA8D2245207D668907DBE067853DE7D4DA333C1",
+        "A79A352A922A4D56BE76FD3FB689B5B543FF8E4DF28B88253D13D8517956FDD9",
+        "C4C0B1372A2A1E9DFBDAE2C5925ED0B78572D57EFA08031D5A4129C593E21F5E",
+        "E80C6F96B2C9FA7CEEA7F056F92261DFD164B787E5AF45A1D0D44CB6AC481345"
+      ],
+      "tuning_point_msun_km": [
+        2.073,
+        10.75
+      ],
+      "tuning_rule": "K=4 and alpha=.7 frozen before the R=15.26 independent test",
+      "test_seeds": [
+        181501,
+        181503,
+        181507,
+        181511
+      ],
+      "ess": [
+        171.01240416947275,
+        126.83726442084865,
+        140.44402994996412,
+        137.36884761594752
+      ],
+      "max_weight": [
+        0.018465663345017973,
+        0.0336213861494929,
+        0.037252982040261375,
+        0.0340748352412971
+      ],
+      "log_integral_spread": 0.14558070062776096,
+      "proposal_identity_sha256": "64ac7aebf46a8172ec7e5ba756b22edece0553a29ebdd3f3fb5c74081b7210cc",
+      "run_manifest_sha256": "1AE8DD3D528A3134B4F11F20DBCDF87129F7E3656B00CA57E4208FE01ACE9F40"
+    },
+    "new_failing_k4": {
+      "manifest_status": "TOROIDAL_R15_26_FRESH_NATIVE_RUN_FAIL",
+      "method": "q(z)=0.7 conditional transport base + 0.3 correlated toroidal K1 proposal; four fitted components",
+      "defensive_base_fraction": 0.7,
+      "components": 4,
+      "training_point_msun_km": [
+        2.073,
+        12.53
+      ],
+      "training_seeds": [
+        111201,
+        111203,
+        111207,
+        111211
+      ],
+      "training_artifact_sha256": [
+        "A1C2C5E3A1D972DC5219CAAB241FF7129485A87F3C8A24C89BBA8EA8946DF99F",
+        "A22D92DE396A484F077AABA63B4CA82C9DC2CAC3EA642D5A314DB4A4ACA85EDB",
+        "5B64C1EBE51C404A1CCC3CF708858943023E2B97AD49AEB9C6260D7206618F67",
+        "75D57F7D1DD68B5D8DAC84F8FA6C715C08DCEC9DAAAD34481543321658554812"
+      ],
+      "hyperparameter_tuning_point_msun_km": [
+        2.073,
+        10.75
+      ],
+      "tuning_seeds": [
+        111101,
+        111103
+      ],
+      "test_seeds": [
+        161501,
+        161503,
+        161507,
+        161511
+      ],
+      "ess": [
+        72.858359,
+        135.717914,
+        92.768393,
+        17.073106
+      ],
+      "proposal_file_hash_in_manifest": null,
+      "independent_source_identity": {
+        "proposal_code_sha256": "068D465CFCB4329DABA9886C8B48235F0B171A4680D7160150C6E847F4BD2081",
+        "runner_sha256": "BDA3153CC8E3E5BB731D05D9E1AD686DAFAB68894B006639E74B07028A3EEAE8",
+        "audit_source_hash": "83d660308479979079029338082e59b03c40e181f89291158c49ba7ed1f81cc5"
+      },
+      "run_manifest_sha256": "5FFB9D84C7C543DFEC94A46AB1CA8B1CEB85A3EA962D148083D39177DBC101CD"
+    },
+    "interpretation": "The new failure does not invalidate the earlier independent K4 PASS: training points, training data, tuning/test scrambles, and proposal identities differ. The target model/X-PSI hash and broad defensive mixture fraction match. The failed manifest did not store its fitted proposal digest; its runner and proposal-module hashes are recorded instead."
+  },
+  "xpsi_compatibility_regression": {
+    "xpsi_version": "1.2.0",
+    "patches": [
+      "Data.py: replace deprecated numpy.int alias with numpy.int64",
+      "PostProcessing/_postprocessor.py: normalize one tab-indented assignment to valid spaces"
+    ],
+    "original_backups_preserved": true,
+    "original_backup_hashes_sha256": {
+      "Data.py.before-codex-20261111": "0F53905DE3D5976C42089EE0DB3C776BE4DA63276E915C900205CD39BE886319",
+      "PostProcessing/_postprocessor.py.before-codex-20261111": "13A572BF47780DE791AB6E490035EB2B76257A43FA8EC6B5F26B53E68E6A0ADE"
+    },
+    "patched_source_hashes_sha256": {
+      "Data.py": "5D3DC5DC4DF11462983F40F2CE0CE88B624AE9A6D8BF2FC519FEF7D724155B14",
+      "PostProcessing/_postprocessor.py": "0B5C4E5E8C17FDDE90F4E97290754D17EA3FB8825987BBE67B050ADE9D00A2B7"
+    },
+    "source_reference": {
+      "prior_record_logL": -21863.348607914635,
+      "post_patch_logL": -21863.348607914635,
+      "absolute_delta": 0.0,
+      "source_published_reference": -21863.3486,
+      "absolute_error_to_reference": 7.914633897598833E-06,
+      "relative_tolerance": 1E-06,
+      "pass": true
+    },
+    "archived_mle": {
+      "post_patch_logL": -21861.000851842866,
+      "archived_weighted_table_max": -21861.0008518429,
+      "absolute_delta": 3.2741809263825417E-11,
+      "pass": true,
+      "archived_stats_sha256": "779167d6d11e40d21eb733523e4759773ef1e1f9eb913227e8550d7dd30f5b14"
+    },
+    "archived_map_post_patch_logL": -21866.177515847477,
+    "real_nicer_xmm_inputs_evaluated": 21,
+    "sampler_launched": false,
+    "EOS_Bayes": "NOT_RUN"
+  },
+  "new_method": {
+    "status": "POINTWISE_PASS_AT_2_073_13_25_AND_2_000_13_75; TRANSFER_FAILURES_AT_2_000_14_00_AND_13_50",
+    "method": "q=.70 conditional base + .15 weighted correlated toroidal K4 core + .15 broad correlated toroidal tail; preserve all source-supported samples and exact mixture weights",
+    "broad_tail": {
+      "full_covariance_scale": 4.0,
+      "phase_von_mises_kappa_divisor": 4.0
+    },
+    "training_point_msun_km": [
+      2.073,
+      14.5
+    ],
+    "training_seeds": [
+      171501,
+      171503,
+      171507,
+      171511
+    ],
+    "heldout_points_msun_km": [
+      [
+        2.073,
+        13.25
+      ],
+      [
+        2.0,
+        14.0
+      ]
+    ],
+    "heldout_seed_sets": [
+      [
+        193501,
+        193503,
+        193507,
+        193511
+      ],
+      [
+        194501,
+        194503,
+        194507,
+        194511
+      ]
+    ],
+    "draws_per_seed": 512,
+    "thresholds_unchanged": {
+      "ESS_per_run_min": 100,
+      "max_weight_fraction_max": 0.05,
+      "phase_ESS_each_min": 30,
+      "between_run_log_integral_spread_max": 0.2,
+      "256_to_512_log_integral_drift_max": 0.1
+    },
+    "no_pruning_or_clipping": true,
+    "EOS_Bayes": "NOT_RUN"
+  },
+  "limitations": [
+    "The two preflight failures for the new experiment happened before any likelihood call and are preserved separately on D:.",
+    "No full M,R-domain generalization is claimed until both held-out points pass all gates and additional coverage is assessed."
+  ],
+  "v1_heldout_results": {
+    "method": "q=.70 base + .15 weighted correlated toroidal K4 + .15 broad correlated toroidal tail",
+    "total_photon_calls": 5461,
+    "point_2_073_13_25": {
+      "seeds": [
+        193501,
+        193503,
+        193507,
+        193511
+      ],
+      "ESS": [
+        255.8361,
+        176.348081,
+        239.583425,
+        228.527018
+      ],
+      "max_weight": [
+        0.010754,
+        0.040962,
+        0.013737,
+        0.023525
+      ],
+      "minimum_phase_ESS": 74.641426,
+      "logI_spread": 0.107818,
+      "max_256_to_512_drift": 0.073435,
+      "status": "PASS"
+    },
+    "point_2_000_14_00": {
+      "seeds": [
+        194501,
+        194503,
+        194507,
+        194511
+      ],
+      "ESS": [
+        173.754505,
+        90.539816,
+        186.20973,
+        193.290346
+      ],
+      "max_weight": [
+        0.024254,
+        0.08048,
+        0.017465,
+        0.025478
+      ],
+      "minimum_phase_ESS": 32.118791,
+      "logI_spread": 0.098084,
+      "max_256_to_512_drift": 0.114251,
+      "status": "FAIL",
+      "failed_gates": [
+        "ESS_per_run_ge_100",
+        "max_weight_per_run_le_0_05",
+        "256_to_512_logI_drift_le_0_1"
+      ]
+    }
+  },
+  "failed_seed_194503_correlations": {
+    "mass_radius_msun_km": [
+      2.0,
+      14.0
+    ],
+    "ESS": 90.539816,
+    "max_weight_fraction": 0.080479947,
+    "largest_weight_index": 290,
+    "correlations": {
+      "p_phase__s_phase": 0.999397616,
+      "p_radius__p_logT": -0.82656277,
+      "s_radius__s_logT": -0.812931839,
+      "p_radius__s_radius": 0.584052082,
+      "p_logT__column_density": -0.506419705,
+      "p_phase__s_logT": -0.504186641
+    },
+    "status": "EXPLORATORY_LOW_ESS"
+  },
+  "v2_heldout_results": {
+    "method": "q=.50 conditional base + .25 weighted correlated toroidal K4 + .25 broad tail",
+    "training_point_msun_km": [
+      2.0,
+      14.0
+    ],
+    "training_seeds": [
+      194501,
+      194503,
+      194507,
+      194511
+    ],
+    "training_from_all_preserved_v1_samples": true,
+    "heldout_point_msun_km": [
+      2.0,
+      13.5
+    ],
+    "seeds": [
+      195501,
+      195503,
+      195507,
+      195511
+    ],
+    "ESS": [
+      136.000975,
+      111.227428,
+      160.162321,
+      175.067239
+    ],
+    "max_weight": [
+      0.035015,
+      0.061614,
+      0.022928,
+      0.018063
+    ],
+    "minimum_phase_ESS": 41.977006,
+    "logI_spread": 0.069527,
+    "max_256_to_512_drift": 0.06139,
+    "status": "FAIL",
+    "failed_gate": "max_weight_per_run_le_0_05",
+    "independent_recompute": "PASS",
+    "photon_calls": 1743
+  },
+  "v3_heldout_setup": {
+    "method": "q=.50 base + .25 weighted toroidal K8 + .25 broad correlated K8 tail",
+    "components": 8,
+    "training_point_msun_km": [
+      2.0,
+      14.0
+    ],
+    "training_seeds": [
+      194501,
+      194503,
+      194507,
+      194511
+    ],
+    "heldout_point_msun_km": [
+      2.0,
+      13.75
+    ],
+    "seeds": [
+      196501,
+      196503,
+      196507,
+      196511
+    ],
+    "status": "PASS"
+  },
+  "v3_heldout_results": {
+    "method": "q=.50 conditional base + .25 weighted correlated toroidal K8 + .25 broad K8 tail",
+    "components": 8,
+    "training_point_msun_km": [
+      2.0,
+      14.0
+    ],
+    "training_seeds": [
+      194501,
+      194503,
+      194507,
+      194511
+    ],
+    "heldout_point_msun_km": [
+      2.0,
+      13.75
+    ],
+    "seeds": [
+      196501,
+      196503,
+      196507,
+      196511
+    ],
+    "ESS": [
+      177.291727,
+      128.388995,
+      172.464613,
+      138.891947
+    ],
+    "max_weight": [
+      0.021948,
+      0.036755,
+      0.02242,
+      0.036368
+    ],
+    "minimum_phase_ESS": 63.174213,
+    "logI_spread": 0.178645,
+    "max_256_to_512_drift": 0.036165,
+    "support_normalization": 0.24947354926879406,
+    "model_sha256": "049a1ac945b09af595d282d958842cd95475e509d6b7e79b45c72d11096de227",
+    "proposal_identity_sha256": "d15f36be5a45b5d3d7c8a875077c8193c3c96ad03622e47b63e34dc00898c403",
+    "photon_calls": 1784,
+    "gates": "PASS_ALL",
+    "independent_recompute": "PASS",
+    "manifest_sha256": "BA7AFC053A869315C2C3B55CD26834976AD8147A299660EE53236C8899909EDF",
+    "verification_sha256": "94121CA6BD751D5B2EECE3BEE7E579498FE2BF6A185F0C5A0391F2FFE8519B1E",
+    "status": "PASS"
+  },
+  "generalization_scope": "Pointwise evidence only: validated M,R points (2.073,13.25) and (2.000,13.75). Transfer proposal failed gates at (2.000,14.00) and (2.000,13.50); no full M,R domain claim.",
+  "failed_seed_195503_correlations": {
+    "mass_radius_msun_km": [
+      2.0,
+      13.5
+    ],
+    "ESS": 111.227428,
+    "max_weight_fraction": 0.061614091,
+    "largest_weight_index": 23,
+    "correlations": {
+      "p_phase__s_phase": 0.99949179,
+      "p_radius__p_logT": -0.860540068,
+      "s_radius__s_logT": -0.773005253,
+      "p_phase__p_logT": 0.559911907,
+      "s_radius__column_density": 0.476072226,
+      "s_logT__column_density": -0.453532487
+    },
+    "status": "EXPLORATORY_MAX_WEIGHT_GATE_FAILED"
+  }
+}

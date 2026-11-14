@@ -1,0 +1,213 @@
+{
+  "date": "2026-11-11",
+  "target": {
+    "mass_msun": 2.073,
+    "radius_km": 15.26,
+    "support_normalization": 0.24947354926879406,
+    "nuisance_dimension": 13
+  },
+  "software_smoke": {
+    "python_3_15_2_numpy_2_5_4_scipy_1_18_1": "PASS",
+    "numpy_eigvalsh_diag_2_3": [
+      2.0,
+      3.0
+    ],
+    "scipy_quad_sin_0_pi": 2.0,
+    "quadrature_error_estimate": 2.220446049250313E-14,
+    "xpsi_1_2_0_python_3_12_10_import": "PASS",
+    "gsl_phase_interpolant": "Akima"
+  },
+  "predeclared_thresholds": {
+    "ess_per_run_ge_100": true,
+    "max_weight_per_run_le_0_05": true,
+    "phase_ess_each_ge_30": true,
+    "between_run_log_integral_spread_le_0_2": true,
+    "256_to_512_log_integral_drift_le_0_1": true
+  },
+  "K2": {
+    "components": 2,
+    "draws_per_seed": 512,
+    "new_likelihood_calls": 1335,
+    "status": "FAIL",
+    "seeds": [
+      151501,
+      151503,
+      151507,
+      151511
+    ],
+    "ess": [
+      99.621658,
+      133.887395,
+      36.706921,
+      106.559213
+    ],
+    "ess_range_corrected": [
+      36.706921,
+      133.887395
+    ],
+    "ess_range_display_corrected": "36.71–133.89",
+    "ess_minimum_display_corrected": 36.71,
+    "correction_note": "The minimum is seed 151507 at ESS 36.706921; prior range displays omitting it are superseded. Existing runs were not repeated.",
+    "max_weight_fraction": [
+      0.04499965,
+      0.02405293,
+      0.14010432,
+      0.04267375
+    ],
+    "minimum_phase_ess": [
+      45.346596,
+      68.399702,
+      12.172635,
+      48.363211
+    ],
+    "log_integral": [
+      -21891.304939,
+      -21891.441515,
+      -21891.280351,
+      -21891.440743
+    ],
+    "log_integral_spread": 0.161164182747598,
+    "maximum_256_to_512_drift": 0.0912872410444834,
+    "passed_gates": [
+      "between_run_log_integral_spread",
+      "256_to_512_log_integral_drift"
+    ],
+    "failed_gates": [
+      "ess_per_run",
+      "max_weight_fraction",
+      "phase_ess"
+    ]
+  },
+  "K4": {
+    "components": 4,
+    "draws_per_seed": 512,
+    "new_likelihood_calls": 1852,
+    "status": "FAIL",
+    "seeds": [
+      161501,
+      161503,
+      161507,
+      161511
+    ],
+    "ess": [
+      72.858359,
+      135.717914,
+      92.768393,
+      17.073106
+    ],
+    "max_weight_fraction": [
+      0.066173,
+      0.02190959,
+      0.04172217,
+      0.23099229
+    ],
+    "minimum_phase_ess": [
+      31.968886,
+      68.661865,
+      43.303087,
+      7.013742
+    ],
+    "log_integral": [
+      -21891.245454,
+      -21891.45523,
+      -21891.218837,
+      -21891.217695
+    ],
+    "log_integral_spread": 0.237534900647006,
+    "maximum_256_to_512_drift": 0.184072201063827,
+    "passed_gates": [],
+    "failed_gates": [
+      "ess_per_run",
+      "max_weight_fraction",
+      "phase_ess",
+      "between_run_log_integral_spread",
+      "256_to_512_log_integral_drift"
+    ]
+  },
+  "integrity": {
+    "all_eight_seeds_have_512_unique_indexed_rows": true,
+    "all_rows_match_fixed_mass_radius": true,
+    "all_rows_match_model_sha256": "049a1ac945b09af595d282d958842cd95475e509d6b7e79b45c72d11096de227",
+    "metrics_independently_recomputed": true,
+    "prior_completed_seeds_preserved": true
+  },
+  "final_eos_bayes": "NOT_RUN",
+  "limitations": [
+    "These are fixed-M,R nuisance validation runs at one point, not full-M,R convergence.",
+    "The 15.26-km K2 and K4 proposals fail predeclared gates; do not use them for final EOS evidence.",
+    "Original partial evaluations and manifests were preserved locally; raw photon data are not included."
+  ],
+  "weight_failure_diagnostic": {
+    "method": "Recomputed from saved normalized posterior weights and source-prior inverse transform; no samples deleted or reweighted",
+    "interpretation": "Exploratory because failed-run ESS is low; demonstrates tail sensitivity, not a valid corrected estimate.",
+    "comparators": [
+      {
+        "run": "K2 seed 151507",
+        "top1_weight": 0.14010432,
+        "top5_weight": 0.2619658,
+        "ESS": 36.706921,
+        "ESS_without_top1_diagnostic_only": 97.118427,
+        "log_integral_change_without_top1": -0.150944,
+        "phase_ESS": [
+          12.172635,
+          40.164758
+        ]
+      },
+      {
+        "run": "K2 seed 151503 passing weight reference",
+        "top1_weight": 0.02405293,
+        "top5_weight": 0.10744584,
+        "ESS": 133.887395,
+        "ESS_without_top1_diagnostic_only": 138.231449,
+        "log_integral_change_without_top1": -0.024347,
+        "phase_ESS": [
+          68.399702,
+          70.255957
+        ]
+      },
+      {
+        "run": "K4 seed 161511",
+        "top1_weight": 0.23099229,
+        "top5_weight": 0.3153653,
+        "ESS": 17.073106,
+        "ESS_without_top1_diagnostic_only": 113.41549,
+        "log_integral_change_without_top1": -0.262654,
+        "phase_ESS": [
+          7.013742,
+          44.607237
+        ]
+      },
+      {
+        "run": "K4 seed 161503 passing weight reference",
+        "top1_weight": 0.02190959,
+        "top5_weight": 0.10588509,
+        "ESS": 135.717914,
+        "ESS_without_top1_diagnostic_only": 138.884132,
+        "log_integral_change_without_top1": -0.022153,
+        "phase_ESS": [
+          71.202353,
+          68.661865
+        ]
+      }
+    ],
+    "posterior_weighted_latent_correlations": [
+      {
+        "run": "K2 seed 151507",
+        "p_phase__s_phase": 0.999,
+        "p_radius__p_temperature": -0.774,
+        "s_radius__s_temperature": -0.71,
+        "s_temperature__column_density": -0.496
+      },
+      {
+        "run": "K4 seed 161511",
+        "p_phase__s_phase": 0.999,
+        "p_radius__p_temperature": -0.948,
+        "s_radius__s_temperature": -0.854,
+        "p_radius__s_radius": 0.85,
+        "p_temperature__column_density": -0.807
+      }
+    ],
+    "conclusion": "The failed ESS is dominated by one unusually influential negative-phase sample in each failing seed, with posterior mass coupled across phase, spot radius/temperature and column density. The leave-one-out figures are sensitivity diagnostics only; retaining the samples leaves K2/K4 FAIL."
+  }
+}
+

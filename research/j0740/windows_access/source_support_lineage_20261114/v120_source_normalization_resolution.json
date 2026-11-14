@@ -1,0 +1,30 @@
+{
+  "EOS_Bayes": "NOT_RUN",
+  "MR_quadrature_reported_error": 6.416777258899838e-15,
+  "MR_support_integral": 0.5780634963185343,
+  "absolute_evidence_conditional_normalization_not_claimed_from_internal_pymultinest_only": "Not independently checked against MultiNest evidence estimator internals",
+  "difference_analytic_vs_historical": -0.00027773620076490535,
+  "full_15D_support_fraction_analytic_factorization": 0.14421155212931322,
+  "full_15D_support_fraction_historical_344064_samples": 0.14448928833007812,
+  "full_MR_convergence": "NOT_ESTABLISHED",
+  "historical_raw_support_log_rounded": 0.146,
+  "historical_scramble_sd": 0.00024170454899211859,
+  "likelihood_prior_gating": "zero-mass outside original CustomPrior.__call__ physical support; within support logprior=0",
+  "local_port_source_semantics_checks": true,
+  "local_xpsi_port_files_sha256": {
+    "Likelihood.py": "c2c4d4e2dd28184b2555f93659c0ad898d4781cff31aebcf4bcb199c1ed2474a",
+    "NestedSampler.py": "7047412859cacc28f714c7ed658f357080a05852baac5134b27895812a55120d",
+    "Prior.py": "daec8f780ec7a464e51fbd38ff6ca18c1f4ffe1c3279874d1bc7d564556f9a33",
+    "Sample.py": "aa9717516ae7d0f07758db86da071c835049efd141446f45fa02fcc3a68cbe36"
+  },
+  "native_original_prior_transformation_parity_all_runs": true,
+  "new_photon_calls": 0,
+  "normalized_MR_prior_grid_sum_from_previous": 0.9999999999999993,
+  "nuisance_support_fraction": 0.24947354926879406,
+  "original_custom_prior_sha256": "ecabb879c38d4e4e343e5e304e1be39d87a7b0a35d7077454e4677ea1458aa93",
+  "original_sources_mutated": false,
+  "relative_EOS_MR_likelihood_note": "Original nuisance support constant independent of M,R can cancel from normalized M,R posterior and relative EOS scores if the same original prior/model is used and original MR prior is divided once; no automatic fixed support correction.",
+  "status": "SOURCE_V120_SUPPORT_USAGE_AND_MR_MARGINAL_CONFIRMED",
+  "support_fraction_used_in": "NestedSampler.sampling_efficiency_only",
+  "upstream_tag": "xpsi-group/xpsi v1.2.0"
+}
