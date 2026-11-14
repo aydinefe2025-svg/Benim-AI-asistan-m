@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- MIPL PDS4 Velocity templates version: 8b7fe906a081fcabe0699b376cac54e77617b9a2 -->
+<?xml-model href="https://pds.nasa.gov/pds4/pds/v1/PDS4_PDS_1G00.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<?xml-model href="https://pds.nasa.gov/pds4/cart/v1/PDS4_CART_1G00_1970.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<?xml-model href="https://pds.nasa.gov/pds4/disp/v1/PDS4_DISP_1G00_1500.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<?xml-model href="https://pds.nasa.gov/pds4/img/v1/PDS4_IMG_1G00_1890.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<?xml-model href="https://pds.nasa.gov/pds4/geom/v1/PDS4_GEOM_1G00_1960.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<?xml-model href="https://pds.nasa.gov/pds4/proc/v1/PDS4_PROC_1G00_1210.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<?xml-model href="https://pds.nasa.gov/pds4/msn/v1/PDS4_MSN_1G00_1300.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<?xml-model href="https://pds.nasa.gov/pds4/msn_surface/v1/PDS4_MSN_SURFACE_1G00_1220.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<?xml-model href="https://pds.nasa.gov/pds4/img_surface/v1/PDS4_IMG_SURFACE_1G00_1280.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<?xml-model href="https://pds.nasa.gov/pds4/msss_cam_mh/v1/PDS4_MSSS_CAM_MH_1G00_1030.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<?xml-model href="https://pds.nasa.gov/pds4/mission/mars2020/v1/PDS4_MARS2020_1G00_1010.sch" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+
+<Product_Observational xmlns="http://pds.nasa.gov/pds4/pds/v1" 
+    xmlns:cart="http://pds.nasa.gov/pds4/cart/v1" 
+    xmlns:disp="http://pds.nasa.gov/pds4/disp/v1" 
+    xmlns:geom="http://pds.nasa.gov/pds4/geom/v1" 
+    xmlns:img="http://pds.nasa.gov/pds4/img/v1" 
+    xmlns:img_surface="http://pds.nasa.gov/pds4/img_surface/v1" 
+    xmlns:mars2020="http://pds.nasa.gov/pds4/mission/mars2020/v1" 
+    xmlns:msn="http://pds.nasa.gov/pds4/msn/v1" 
+    xmlns:msn_surface="http://pds.nasa.gov/pds4/msn_surface/v1" 
+    xmlns:msss_cam_mh="http://pds.nasa.gov/pds4/msss_cam_mh/v1" 
+    xmlns:pds="http://pds.nasa.gov/pds4/pds/v1" 
+    xmlns:proc="http://pds.nasa.gov/pds4/proc/v1" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="   http://pds.nasa.gov/pds4/pds/v1 https://pds.nasa.gov/pds4/pds/v1/PDS4_PDS_1G00.xsd   http://pds.nasa.gov/pds4/img/v1 https://pds.nasa.gov/pds4/img/v1/PDS4_IMG_1G00_1890.xsd      http://pds.nasa.gov/pds4/proc/v1 https://pds.nasa.gov/pds4/proc/v1/PDS4_PROC_1G00_1210.xsd      http://pds.nasa.gov/pds4/msn/v1 https://pds.nasa.gov/pds4/msn/v1/PDS4_MSN_1G00_1300.xsd   http://pds.nasa.gov/pds4/msn_surface/v1 https://pds.nasa.gov/pds4/msn_surface/v1/PDS4_MSN_SURFACE_1G00_1220.xsd   http://pds.nasa.gov/pds4/img_surface/v1 https://pds.nasa.gov/pds4/img_surface/v1/PDS4_IMG_SURFACE_1G00_1280.xsd   http://pds.nasa.gov/pds4/geom/v1 https://pds.nasa.gov/pds4/geom/v1/PDS4_GEOM_1G00_1960.xsd   http://pds.nasa.gov/pds4/disp/v1 https://pds.nasa.gov/pds4/disp/v1/PDS4_DISP_1G00_1500.xsd   http://pds.nasa.gov/pds4/cart/v1 https://pds.nasa.gov/pds4/cart/v1/PDS4_CART_1G00_1970.xsd   http://pds.nasa.gov/pds4/msss_cam_mh/v1 https://pds.nasa.gov/pds4/msss_cam_mh/v1/PDS4_MSSS_CAM_MH_1G00_1030.xsd   http://pds.nasa.gov/pds4/mission/mars2020/v1 https://pds.nasa.gov/pds4/mission/mars2020/v1/PDS4_MARS2020_1G00_1010.xsd">
+  <Identification_Area>
+    <logical_identifier>urn:nasa:pds:mars2020_rover_places:data_maps:m20_orbital_dem</logical_identifier>
+    <version_id>16.0</version_id>
+    <title>Mars2020    Observational Product - m20_orbital_dem</title>
+    <information_model_version>1.16.0.0</information_model_version>
+    <product_class>Product_Observational</product_class>
+    <Alias_List>
+      <Alias>
+        <alternate_id>m20_orbital_dem</alternate_id>
+        <comment>Product Id</comment>
+      </Alias>
+    </Alias_List>
+  </Identification_Area>
+  <Observation_Area>
+    <comment>Observational Intent</comment>
+    <Time_Coordinates>
+      <start_date_time>2021-02-18T20:44:27Z</start_date_time>
+      <stop_date_time>2026-06-21T23:27:41Z</stop_date_time>
+    </Time_Coordinates>
+    <Primary_Result_Summary>
+      <purpose>Science</purpose>
+      <processing_level>Derived</processing_level>
+      <Science_Facets>
+        <wavelength_range>Visible</wavelength_range>
+        <domain>Surface</domain>
+        <discipline_name>Imaging</discipline_name>
+      </Science_Facets>
+    </Primary_Result_Summary>
+    <Investigation_Area>
+      <name>Mars2020</name>
+      <type>Mission</type>
+      <Internal_Reference>
+        <lid_reference>urn:nasa:pds:context:investigation:mission.mars2020</lid_reference>
+        <reference_type>data_to_investigation</reference_type>
+        <comment>This is the PDS4 logical identifier for the Mars2020 Mission.</comment>
+      </Internal_Reference>
+    </Investigation_Area>
+    <Observing_System>
+      <Observing_System_Component>
+        <name>Mars 2020</name>
+        <type>Host</type>
+        <Internal_Reference>
+          <lid_reference>urn:nasa:pds:context:instrument_host:spacecraft.mars2020</lid_reference>
+          <reference_type>is_instrument_host</reference_type>
+          <comment>This is the PDS4 logical identifier for the Mars 2020 spacecraft.</comment>
+        </Internal_Reference>
+      </Observing_System_Component>
+    </Observing_System>
+    <Target_Identification>
+      <name>Mars</name>
+      <type>Planet</type>
+      <Internal_Reference>
+        <lid_reference>urn:nasa:pds:context:target:planet.mars</lid_reference>
+        <reference_type>data_to_target</reference_type>
+        <comment>This is the PDS4 logical identifier for the planet - mars.</comment>
+      </Internal_Reference>
+    </Target_Identification>
+    <Mission_Area>
+      <mars2020:Mars2020_Parameters>
+        <mars2020:Observation_Information>
+          <mars2020:mission_phase_name>Surface Mission</mars2020:mission_phase_name>
+          <mars2020:spacecraft_clock_start>666952977.663</mars2020:spacecraft_clock_start>
+          <mars2020:spacecraft_clock_stop>835355035</mars2020:spacecraft_clock_stop>
+        </mars2020:Observation_Information>
+      </mars2020:Mars2020_Parameters>
+    </Mission_Area>
+    <Discipline_Area>
+      <cart:Cartography>
+        <Local_Internal_Reference>
+          <local_identifier_reference>m20_orbital_dem</local_identifier_reference>
+          <local_reference_type>cartography_parameters_to_image_object</local_reference_type>
+        </Local_Internal_Reference>
+        <cart:Spatial_Domain>
+          <cart:Bounding_Coordinates>
+            <cart:west_bounding_coordinate unit="deg">77.20891766359929</cart:west_bounding_coordinate>
+            <cart:east_bounding_coordinate unit="deg">77.47215676466411</cart:east_bounding_coordinate>
+            <cart:north_bounding_coordinate unit="deg">18.50823447169246</cart:north_bounding_coordinate>
+            <cart:south_bounding_coordinate unit="deg">18.41578355706999</cart:south_bounding_coordinate>
+          </cart:Bounding_Coordinates>
+        </cart:Spatial_Domain>
+        <cart:Spatial_Reference_Information>
+          <cart:Horizontal_Coordinate_System_Definition>
+            <cart:Planar>
+              <cart:Map_Projection>
+                <cart:map_projection_name>Equirectangular</cart:map_projection_name>
+                <cart:Equirectangular>
+                  <cart:latitude_of_projection_origin unit="deg">0.0</cart:latitude_of_projection_origin>
+                  <cart:standard_parallel_1 unit="deg">18.4663</cart:standard_parallel_1>
+                  <cart:longitude_of_central_meridian unit="deg">0.0</cart:longitude_of_central_meridian>
+                </cart:Equirectangular>
+              </cart:Map_Projection>
+              <cart:Planar_Coordinate_Information>
+                <cart:planar_coordinate_encoding_method>Coordinate Pair</cart:planar_coordinate_encoding_method>
+                <cart:Coordinate_Representation>
+                  <cart:pixel_resolution_x unit="m/pixel">1.0</cart:pixel_resolution_x>
+                  <cart:pixel_resolution_y unit="m/pixel">1.0</cart:pixel_resolution_y>
+                  <cart:pixel_scale_x unit="pixel/deg">59274.69752330622</cart:pixel_scale_x>
+                  <cart:pixel_scale_y unit="pixel/deg">59274.69752330622</cart:pixel_scale_y>
+                </cart:Coordinate_Representation>
+              </cart:Planar_Coordinate_Information>
+              <cart:Geo_Transformation>
+                <cart:upperleft_corner_x unit="m">4340890</cart:upperleft_corner_x>
+                <cart:upperleft_corner_y unit="m">1097070</cart:upperleft_corner_y>
+              </cart:Geo_Transformation>
+            </cart:Planar>
+            <cart:Geodetic_Model>
+              <cart:latitude_type>Planetocentric</cart:latitude_type>
+              <cart:spheroid_name>Mars</cart:spheroid_name>
+              <cart:a_axis_radius unit="km">3396.19</cart:a_axis_radius>
+              <cart:b_axis_radius unit="km">3396.19</cart:b_axis_radius>
+              <cart:c_axis_radius unit="km">3396.19</cart:c_axis_radius>
+              <cart:longitude_direction>Positive East</cart:longitude_direction>
+              <cart:coordinate_system_type>Body-fixed Rotating</cart:coordinate_system_type>
+            </cart:Geodetic_Model>
+          </cart:Horizontal_Coordinate_System_Definition>
+        </cart:Spatial_Reference_Information>
+      </cart:Cartography>
+      <cart:Cartography>
+        <Local_Internal_Reference>
+          <local_identifier_reference>m20_orbital_dem</local_identifier_reference>
+          <local_reference_type>cartography_parameters_to_image_object</local_reference_type>
+        </Local_Internal_Reference>
+        <cart:Spatial_Reference_Information>
+          <cart:Horizontal_Coordinate_System_Definition>
+            <cart:Local>
+              <cart:local_description>Orthorectified Lander Map Projection</cart:local_description>
+              <cart:Map_Projection_Lander>
+                <cart:lander_map_projection_name>Orthorectified</cart:lander_map_projection_name>
+                <cart:Orthorectified>
+                  <cart:pixel_resolution_x unit="m/pixel">1.0</cart:pixel_resolution_x>
+                  <cart:pixel_resolution_y unit="m/pixel">1.0</cart:pixel_resolution_y>
+                  <cart:x_axis_maximum unit="m">1097070.0</cart:x_axis_maximum>
+                  <cart:x_axis_minimum unit="m">1091590.0</cart:x_axis_minimum>
+                  <cart:y_axis_maximum unit="m">4355690.0</cart:y_axis_maximum>
+                  <cart:y_axis_minimum unit="m">4340890.0</cart:y_axis_minimum>
+                </cart:Orthorectified>
+                <geom:Coordinate_Space_Reference>
+                  <geom:Coordinate_Space_Indexed>
+                    <geom:coordinate_space_frame_type>ORBITAL</geom:coordinate_space_frame_type>
+                    <geom:Coordinate_Space_Index>
+                      <geom:index_id>INDEX</geom:index_id>
+                      <geom:index_value_number>0</geom:index_value_number>
+                    </geom:Coordinate_Space_Index>
+                  </geom:Coordinate_Space_Indexed>
+                </geom:Coordinate_Space_Reference>
+              </cart:Map_Projection_Lander>
+            </cart:Local>
+          </cart:Horizontal_Coordinate_System_Definition>
+        </cart:Spatial_Reference_Information>
+      </cart:Cartography>
+      <disp:Display_Settings>
+        <Local_Internal_Reference>
+          <local_identifier_reference>m20_orbital_dem</local_identifier_reference>
+          <local_reference_type>display_settings_to_array</local_reference_type>
+        </Local_Internal_Reference>
+        <disp:Display_Direction>
+          <disp:horizontal_display_axis>Sample</disp:horizontal_display_axis>
+          <disp:horizontal_display_direction>Left to Right</disp:horizontal_display_direction>
+          <disp:vertical_display_axis>Line</disp:vertical_display_axis>
+          <disp:vertical_display_direction>Top to Bottom</disp:vertical_display_direction>
+        </disp:Display_Direction>
+      </disp:Display_Settings>
+      <img:Imaging>
+        <Local_Internal_Reference>
+          <local_identifier_reference>m20_orbital_dem</local_identifier_reference>
+          <local_reference_type>imaging_parameters_to_image_object</local_reference_type>
+        </Local_Internal_Reference>
+        <img:Sampling>
+          <img:Companding>
+            <img:processing_algorithm>None</img:processing_algorithm>
+            <img:companding_state>Companded</img:companding_state>
+          </img:Companding>
+        </img:Sampling>
+        <img:Commanded_Parameters>
+          <img:Sampling>
+            <img:Companding>
+              <img:processing_algorithm>None</img:processing_algorithm>
+              <img:companding_state>Companded</img:companding_state>
+            </img:Companding>
+          </img:Sampling>
+          <img:Thumbnail>
+            <img:Sampling>
+              <img:Companding>
+                <img:processing_algorithm>None</img:processing_algorithm>
+                <img:companding_state>Companded</img:companding_state>
+              </img:Companding>
+            </img:Sampling>
+          </img:Thumbnail>
+        </img:Commanded_Parameters>
+      </img:Imaging>
+      <msn:Mission_Information>
+        <msn:mission_phase_name>Surface Mission</msn:mission_phase_name>
+        <msn:spacecraft_clock_start>666952977.663</msn:spacecraft_clock_start>
+        <msn:spacecraft_clock_stop>835355035</msn:spacecraft_clock_stop>
+      </msn:Mission_Information>
+      <proc:Processing_Information>
+        <Local_Internal_Reference>
+          <local_identifier_reference>m20_orbital_dem</local_identifier_reference>
+          <local_reference_type>processing_information_to_data_object</local_reference_type>
+        </Local_Internal_Reference>
+        <proc:Process>
+          <proc:Software>
+            <proc:Software_Program>
+              <proc:name>COPY</proc:name>
+              <proc:program_type_name>VICAR</proc:program_type_name>
+              <proc:program_user>steveliu</proc:program_user>
+              <proc:program_start_date_time>2026-07-29T15:05:46.046Z</proc:program_start_date_time>
+            </proc:Software_Program>
+            <proc:Software_Program>
+              <proc:name>COPY</proc:name>
+              <proc:program_type_name>VICAR</proc:program_type_name>
+              <proc:program_user>steveliu</proc:program_user>
+              <proc:program_start_date_time>2026-07-29T15:28:49.049Z</proc:program_start_date_time>
+            </proc:Software_Program>
+          </proc:Software>
+        </proc:Process>
+      </proc:Processing_Information>
+    </Discipline_Area>
+  </Observation_Area>
+  <Reference_List>
+    <Internal_Reference>
+      <lidvid_reference>urn:nasa:pds:mars2020_rover_places:browse_maps:m20_orbital_dem.png::16.0</lidvid_reference>
+      <reference_type>data_to_browse</reference_type>
+      <comment>Reference pointer to browse version of this image.</comment>
+    </Internal_Reference>
+  </Reference_List>
+  <File_Area_Observational>
+    <File>
+      <file_name>m20_orbital_dem.img</file_name>
+      <creation_date_time>2026-07-29T15:28:47Z</creation_date_time>
+    </File>
+    <Header>
+      <local_identifier>ODL3_Header</local_identifier>
+      <offset unit="byte">0</offset>
+      <object_length unit="byte">59200</object_length>
+      <parsing_standard_id>PDS ODL 2</parsing_standard_id>
+      <description>ODL3 Header</description>
+    </Header>
+    <Header>
+      <local_identifier>VICAR_Header</local_identifier>
+      <offset unit="byte">59200</offset>
+      <object_length unit="byte">59200</object_length>
+      <parsing_standard_id>VICAR2</parsing_standard_id>
+      <description>VICAR Header</description>
+    </Header>
+    <Array_2D_Image>
+      <local_identifier>m20_orbital_dem</local_identifier>
+      <offset unit="byte">118400</offset>
+      <axes>2</axes>
+      <axis_index_order>Last Index Fastest</axis_index_order>
+      <Element_Array>
+        <data_type>IEEE754MSBSingle</data_type>
+        <unit>DN</unit>
+      </Element_Array>
+      <Axis_Array>
+        <axis_name>Line</axis_name>
+        <elements>5480</elements>
+        <sequence_number>1</sequence_number>
+      </Axis_Array>
+      <Axis_Array>
+        <axis_name>Sample</axis_name>
+        <elements>14800</elements>
+        <sequence_number>2</sequence_number>
+      </Axis_Array>
+    </Array_2D_Image>
+  </File_Area_Observational>
+</Product_Observational>
