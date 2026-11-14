@@ -150,6 +150,11 @@ def render_authorized_queue_panel(st, answer=None, *, owner_key=None, database_u
                 elif result["status"] == "review_pending":
                     st.success("Görev taslağı kaydedildi; bağımsız kaynak doğrulaması gerekiyor.")
                     st.rerun()
+                elif result.get("manual_review"):
+                    st.warning(
+                        "Görev durumunun kaydı belirsiz; otomatik yeniden "
+                        "çalıştırmayın. Denetim geçmişini manuel inceleyin."
+                    )
                 else:
                     st.warning("Görev güvenli biçimde engellendi veya sınırlı yeniden deneme bekliyor.")
             except (ValueError, PermissionError, RuntimeError):
