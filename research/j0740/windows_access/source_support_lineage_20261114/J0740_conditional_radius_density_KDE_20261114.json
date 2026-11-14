@@ -1,0 +1,276 @@
+{
+  "EOS_Bayes": "NOT_RUN",
+  "causal_modified_rns_candidate_radius_km": {
+    "MPA1": 12.5302983599,
+    "MS1": 15.0917866598,
+    "MS1B": 14.9076375918
+  },
+  "estimate": "1D Gaussian KDE of radius in mass slabs, Scott bandwidth multiples; no boundary correction",
+  "interpretation": "Comparison of local posterior radius densities at one fixed mass, NOT EOS posterior probabilities or Bayes factors",
+  "limitations": [
+    "conditional radius prior and source-run lineage require independent matching for likelihood inference",
+    "KDE results reuse correlated posterior samples; no independent confidence bounds",
+    "finite-grid causal-modified RNS candidates not original EOS or continuous stability certificate",
+    "no mass/selection model prior integration"
+  ],
+  "mass_windows": {
+    "0.015": {
+      "bandwidths": {
+        "0.5": {
+          "bandwidth_km": 0.05716306115874746,
+          "density_per_km": {
+            "MPA1": 0.39111420890839477,
+            "MS1": 0.050453778026059666,
+            "MS1B": 0.062169370398974716
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.1290001152524652,
+            "MS1B": 0.15895451758832874
+          }
+        },
+        "1.0": {
+          "bandwidth_km": 0.11432612231749492,
+          "density_per_km": {
+            "MPA1": 0.3841050064764978,
+            "MS1": 0.05184832948954162,
+            "MS1B": 0.060688940012552095
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.1349847792018146,
+            "MS1B": 0.15800090857775753
+          }
+        },
+        "1.5": {
+          "bandwidth_km": 0.17148918347624237,
+          "density_per_km": {
+            "MPA1": 0.38056368790539247,
+            "MS1": 0.05207401201315253,
+            "MS1B": 0.060738788031545456
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.1368338957922282,
+            "MS1B": 0.15960216374255082
+          }
+        },
+        "2.0": {
+          "bandwidth_km": 0.22865224463498984,
+          "density_per_km": {
+            "MPA1": 0.37781538818962834,
+            "MS1": 0.05211593408843862,
+            "MS1B": 0.06107776767591657
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.13794021026555237,
+            "MS1B": 0.16166034943304422
+          }
+        }
+      },
+      "n": 64680
+    },
+    "0.025": {
+      "bandwidths": {
+        "0.5": {
+          "bandwidth_km": 0.05178815892011906,
+          "density_per_km": {
+            "MPA1": 0.3896578835148787,
+            "MS1": 0.04954452598315142,
+            "MS1B": 0.06131458572648625
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.12714878379012604,
+            "MS1B": 0.15735492163895876
+          }
+        },
+        "1.0": {
+          "bandwidth_km": 0.10357631784023812,
+          "density_per_km": {
+            "MPA1": 0.3830961161269841,
+            "MS1": 0.050878846981907054,
+            "MS1B": 0.06076619624574056
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.13280961314951664,
+            "MS1B": 0.1586186695393135
+          }
+        },
+        "1.5": {
+          "bandwidth_km": 0.15536447676035717,
+          "density_per_km": {
+            "MPA1": 0.37953691375223375,
+            "MS1": 0.05117241442897359,
+            "MS1B": 0.06055988088236383
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.1348285570514481,
+            "MS1B": 0.15956255818083098
+          }
+        },
+        "2.0": {
+          "bandwidth_km": 0.20715263568047623,
+          "density_per_km": {
+            "MPA1": 0.3771495018275981,
+            "MS1": 0.051335524609006124,
+            "MS1B": 0.06059911765072046
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.13611452318044565,
+            "MS1B": 0.1606766477406655
+          }
+        }
+      },
+      "n": 106570
+    },
+    "0.04": {
+      "bandwidths": {
+        "0.5": {
+          "bandwidth_km": 0.04756572495514859,
+          "density_per_km": {
+            "MPA1": 0.3900165141325568,
+            "MS1": 0.04825551238640875,
+            "MS1B": 0.06285273592669528
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.12372684396129935,
+            "MS1B": 0.16115403745527868
+          }
+        },
+        "1.0": {
+          "bandwidth_km": 0.09513144991029718,
+          "density_per_km": {
+            "MPA1": 0.3834955271436954,
+            "MS1": 0.05015543372031847,
+            "MS1B": 0.06177699537963834
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.13078492490872073,
+            "MS1B": 0.16108922010057908
+          }
+        },
+        "1.5": {
+          "bandwidth_km": 0.14269717486544578,
+          "density_per_km": {
+            "MPA1": 0.380119585681158,
+            "MS1": 0.050915936857594574,
+            "MS1B": 0.061143089317823404
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.13394715446286568,
+            "MS1B": 0.16085224655882335
+          }
+        },
+        "2.0": {
+          "bandwidth_km": 0.19026289982059436,
+          "density_per_km": {
+            "MPA1": 0.3778007026288228,
+            "MS1": 0.05124303744113504,
+            "MS1B": 0.06093748559546659
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.1356351035997932,
+            "MS1B": 0.1612953209759796
+          }
+        }
+      },
+      "n": 165317
+    },
+    "0.06": {
+      "bandwidths": {
+        "0.5": {
+          "bandwidth_km": 0.044694278148380215,
+          "density_per_km": {
+            "MPA1": 0.38361722500024603,
+            "MS1": 0.0488869360801004,
+            "MS1B": 0.06260117624113451
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.12743675959824027,
+            "MS1B": 0.16318656244149193
+          }
+        },
+        "1.0": {
+          "bandwidth_km": 0.08938855629676043,
+          "density_per_km": {
+            "MPA1": 0.379601872879992,
+            "MS1": 0.05032357833105376,
+            "MS1B": 0.062151067609177636
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.1325693626041807,
+            "MS1B": 0.16372697831453056
+          }
+        },
+        "1.5": {
+          "bandwidth_km": 0.13408283444514066,
+          "density_per_km": {
+            "MPA1": 0.37728646178525277,
+            "MS1": 0.051076292670060475,
+            "MS1B": 0.06166570085891429
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.13537801602627483,
+            "MS1B": 0.1634453051061602
+          }
+        },
+        "2.0": {
+          "bandwidth_km": 0.17877711259352086,
+          "density_per_km": {
+            "MPA1": 0.37537966567957815,
+            "MS1": 0.051478158788338425,
+            "MS1B": 0.06147917762215005
+          },
+          "relative_to_MPA1": {
+            "MPA1": 1.0,
+            "MS1": 0.13713624763116464,
+            "MS1B": 0.1637786572984705
+          }
+        }
+      },
+      "n": 233063
+    }
+  },
+  "n_original_samples": 379669,
+  "new_photon_likelihood_calls": 0,
+  "primary_reference": {
+    "bandwidth_km": 0.10357631784023812,
+    "density_per_km": {
+      "MPA1": 0.3830961161269841,
+      "MS1": 0.050878846981907054,
+      "MS1B": 0.06076619624574056
+    },
+    "relative_to_MPA1": {
+      "MPA1": 1.0,
+      "MS1": 0.13280961314951664,
+      "MS1B": 0.1586186695393135
+    }
+  },
+  "radius_data": "GAMMA-NxX/STU published Salmi 2024 equal-weight posterior",
+  "relative_density_robustness": {
+    "MS1": {
+      "max": 0.13794021026555237,
+      "min": 0.12372684396129935
+    },
+    "MS1B": {
+      "max": 0.1637786572984705,
+      "min": 0.15735492163895876
+    }
+  },
+  "schema": "J0740_conditional_radius_density_16_sensitivity_checks_v1",
+  "source_archive_md5": "ca8e70eeca81feb71321f1a88a24f2f9",
+  "spin_hz": 346.536369,
+  "target_mass_msun": 2.073
+}
