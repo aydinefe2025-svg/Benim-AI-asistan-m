@@ -10,6 +10,7 @@ https://github.com/MoriwakiYusuke/sbom-unifier/blob/main/LICENSE
 from __future__ import annotations
 import hashlib
 import importlib
+import os
 from pathlib import Path
 import sys
 
@@ -76,10 +77,28 @@ def patch_merger_bytes(data: bytes) -> tuple[bytes, dict]:
 def load_patched(tmp: Path):
     """Download pinned modules, apply source fix before the first import."""
     blobs = {}
+    vendor = Path(__file__).resolve().parent / 'vendor'
+    offline = vendor.is_dir()
+    if os.environ.get('CANO_OFFLINE_ONLY') == '1' and not offline:
+        raise ValueError('verified offline vendor directory required')
+    blobs['source_mode'] = 'offline_pinned_vendor' if offline else 'network_pinned'
+    def source_bytes(relative: str, repo: str, ref: str, expected_blob: str) -> bytes:
+        if offline:
+            filename = vendor / relative
+            if not filename.is_file():
+                raise ValueError(f'missing pinned vendor file: {relative}')
+            data = filename.read_bytes()
+            actual = hashlib.sha1(
+                f'blob {len(data)}\0'.encode() + data
+            ).hexdigest()
+            if actual != expected_blob:
+                raise ValueError(f'pinned vendor blob mismatch: {relative}')
+            return data
+        uri = f'{pinned.SOURCE_BASE}{repo}/{ref}/{relative}'
+        return pinned.get_pinned(uri, expected_blob)
     for path, expected_blob in pinned.FILES.items():
-        uri = (f'{pinned.SOURCE_BASE}{pinned.UPSTREAM_REPO}/'
-               f'{pinned.UPSTREAM_COMMIT}/{path}')
-        data = pinned.get_pinned(uri, expected_blob)
+        data = source_bytes(path, pinned.UPSTREAM_REPO,
+                            pinned.UPSTREAM_COMMIT, expected_blob)
         local = tmp / path.removeprefix('src/')
         local.parent.mkdir(parents=True, exist_ok=True)
         if path.endswith('/merge/merger.py'):
@@ -88,9 +107,8 @@ def load_patched(tmp: Path):
         local.write_bytes(data)
     for name in ('sbom_unifier/__init__.py','sbom_unifier/merge/__init__.py'):
         (tmp/name).touch()
-    uri = (f'{pinned.SOURCE_BASE}spdx/spdx-spec/{pinned.SPDX_REF}'
-           '/schemas/spdx-schema.json')
-    schema = pinned.get_pinned(uri, pinned.SCHEMA_BLOB)
+    schema = source_bytes('schemas/spdx-schema.json', 'spdx/spdx-spec',
+                          pinned.SPDX_REF, pinned.SCHEMA_BLOB)
     (tmp/'spdx-schema-v2.3.1.json').write_bytes(schema)
     # This helper is used in a fresh CI process. Never mix original and patched
     # imports under the same Python module name within one process.
