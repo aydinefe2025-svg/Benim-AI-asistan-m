@@ -5,6 +5,8 @@ on:
       - "research/opportunities/spdx_upstream_acceptance.py"
       - "research/opportunities/spdx_validation_pipeline.py"
       - "research/opportunities/spdx_fixture_matrix_24.py"
+      - "research/opportunities/spdx_source_patch.py"
+      - "research/opportunities/spdx_patched_acceptance.py"
       - ".github/workflows/spdx-upstream-acceptance.yml"
   workflow_dispatch:
 permissions:
@@ -23,11 +25,16 @@ jobs:
       - name: Real upstream merge + official SPDX JSON Schema
         run: |
           python research/opportunities/spdx_validation_pipeline.py --output spdx-acceptance-results.json
+      - name: Patched source-level merge and native SPDX schema verification
+        run: |
+          python research/opportunities/spdx_patched_acceptance.py --output spdx-sourcepatch-results.json
       - name: Preserve inspectable acceptance receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: spdx-upstream-acceptance
-          path: spdx-acceptance-results.json
+          path: |
+            spdx-acceptance-results.json
+            spdx-sourcepatch-results.json
           if-no-files-found: warn
           retention-days: 14
