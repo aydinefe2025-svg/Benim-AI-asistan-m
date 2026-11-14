@@ -19,6 +19,11 @@ import uuid
 from typing import Callable
 
 
+class LeaseLostError(PermissionError):
+    """A confirmed stale lease, distinct from a failed database write/ack."""
+
+
+
 def _finite_now(now):
     """Reject NaN and infinite test-clock overrides before reading or writing DB."""
     try:
@@ -252,7 +257,7 @@ class PostgresAuthorizedQueue:
         if (row["state"] != "running" or not isinstance(token, str)
                 or not secrets.compare_digest(row["lease_token"] or "", token)
                 or row["lease_until"] is None or checked_at >= row["lease_until"]):
-            raise PermissionError("Job lease expired or lost")
+            raise LeaseLostError("Job lease expired or lost")
         return row, checked_at
 
     def complete(self, task_id, lease_token, draft, *, now: float | None = None):
@@ -286,7 +291,7 @@ class PostgresAuthorizedQueue:
                         "AND lease_token=%s AND lease_until>EXTRACT(EPOCH FROM clock_timestamp())",
                         (lease_seconds, self.owner_key, task_id, lease_token))
             if cur.rowcount != 1:
-                raise PermissionError("Job lease expired or lost")
+                raise LeaseLostError("Job lease expired or lost")
         return True
 
     def fail(self, task_id, lease_token, *, now: float | None = None):
@@ -367,7 +372,7 @@ class PostgresAuthorizedQueue:
             """
             try:
                 return self.fail(job["id"], job["lease_token"], now=now)
-            except PermissionError:
+            except LeaseLostError:
                 return {"id": job["id"], "status": "lease_lost", "verified": False}
             except Exception:
                 # Driver exceptions may contain secrets; no details cross this boundary.
@@ -390,7 +395,7 @@ class PostgresAuthorizedQueue:
                 return persist_failure()
             try:
                 return self.complete(job["id"], job["lease_token"], draft, now=now)
-            except PermissionError:
+            except LeaseLostError:
                 return {"id": job["id"], "status": "lease_lost", "verified": False}
             except Exception:
                 # The transaction may have committed before its acknowledgement was
