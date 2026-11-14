@@ -5,18 +5,20 @@ Bu araç **CANO araştırma kolundadır**, üretim sistemlerine bağlı değildi
 ## Gerekenler
 - Python **3.13 veya üstü**, `jsonschema==4.26.0`
 - Kullanıcının seçtiği **iki JSON dosyası** ve bunların **bağımsız güvenilir kaynaktan temin edilmiş SHA-256 özetleri**
-- Kaynağa sabit Git blob hash'iyle erişim için GitHub'a HTTPS; kullanıcı SBOM dosyalarının içeriği dış servise **gönderilmez**
+- İndirilebilir ZIP, MIT lisanslı özgün modüllerin ve resmî SPDX şemasının **hash'leri doğrulanmış kopyalarını içerir**; ZIP'ten çıkarınca çalışmak için **ağ bağlantısı gerekmez**. Sadece GitHub kodu doğrudan çalıştırıldığında, kopyalar yoksa HTTPS ile sabit hash'li kaynaklar alınır. Kullanıcı SBOM içeriği dış servise **gönderilmez**
 - Güvenilen ve yalnızca kullanıcının kontrolündeki dosya dizini; bu POSIX pilotu Windows'ta `O_NOFOLLOW` mevcut değilse güvenli biçimde **reddeder**
 
 ## Kurulum ve komut
 
 ```bash
 python3.13 -m pip install 'jsonschema==4.26.0'
-python3.13 research/opportunities/spdx_secure_merge_cli.py \
+python3.13 spdx_secure_merge_cli.py \
   --base input-base.spdx.json --source input-source.spdx.json \
   --base-sha256 <BASE_SHA256> --source-sha256 <SOURCE_SHA256> \
   --output merged.spdx.json
 ```
+
+Bu komut, **ZIP'i bir klasöre çıkartıp o klasörde çalıştırma** içindir. GitHub taslak PR klasörü içinden çalıştırırsanız betik yolu `research/opportunities/spdx_secure_merge_cli.py` olur. Çevrimdışı paket için `CANO_OFFLINE_ONLY=1` ortam değişkeniyle yalnız ZIP içindeki pinli kaynakların kullanılmasını zorunlu kılabilirsiniz.
 
 Beklenen SHA-256'yı aynı dosyadan hesaplayıp kendinizle karşılaştırmak yalnız bütünlüğü gösterir; **yayıncının kimliğini kanıtlamaz**. İmza doğrulama, ayrı trust anchor ve kanıtlanmış lisans uygunluğu bu pilotta henüz yoktur.
 
@@ -26,6 +28,7 @@ Beklenen SHA-256'yı aynı dosyadan hesaplayıp kendinizle karşılaştırmak ya
 - `REVIEW_REQUIRED`: Farklı beyan edilen lisans gibi kaynak çelişkileri otomatik onaylanmaz, çıktı yazılmaz.
 - `REJECT`: Çakışan kimlikler, bilinmeyen ilişki uçları, dosya veya şema hataları, doğrulanmamış harici `DocumentRef`, PURL eksikliği, bozuk JSON, symlink / hardlink veya beklenen hash uyuşmazlığında çıktı **yazılmaz**.
 - Kaynak JSON'lar yerinde değiştirilmez; uygulama kopya üzerinde çalışır. **4 MiB** sınır ve normal dosya kısıtı uygulanır.
+- Girdi dosyalarını güvenilir klasörlerde tutun; güvenilmeyen üst dizinlerdeki sembolik bağlantı / yarış durumlarına karşı kapsamlı dosya sistemi güvenlik garantisi verilmez.
 
 ## Gerçek upstream farkı
 
