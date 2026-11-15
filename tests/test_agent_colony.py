@@ -109,6 +109,49 @@ class ColonyTests(unittest.TestCase):
                 colony.feedback(founder, "", "lesson", "evidence", accepted=True)
 
 
+    def test_child_inherits_only_approved_relevant_ancestor_lessons(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'learning-lineage.sqlite3'
+            colony = AgentColony(path, max_agents=10)
+            founder = colony.create_founder('founder', 'Work carefully')
+            parent = colony.spawn(founder, 'evidence-reviewer', 'Verify citations', approved=True)
+            sibling = colony.spawn(founder, 'unrelated-reviewer', 'Review safety', approved=True)
+            child = colony.spawn(parent, 'research-planner', 'Plan evidence checks', approved=True)
+            colony.feedback(parent, 'verify DOI source', 'Open the original DOI article',
+                            'receipt:primary', accepted=True)
+            colony.feedback(parent, '3D printer laser tolerances', 'Check the kerf',
+                            'receipt:laser', accepted=True)
+            colony.feedback(sibling, 'verify DOI source', 'Trust unsupported blogs',
+                            'receipt:sibling', accepted=True)
+            colony.feedback(parent, 'verify DOI source', 'Ignore the primary article',
+                            'receipt:pending', accepted=False)
+            reopened = AgentColony(path)
+            client = FakeClient()
+            result = reopened.run(child, 'Verify DOI source citation',
+                                  client=client, model='mock')
+            self.assertEqual(result['lessons_used'], 1)
+            self.assertIn('Open the original DOI article', client.prompts[-1])
+            for banned in ('Check the kerf', 'Trust unsupported blogs',
+                           'Ignore the primary article'):
+                self.assertNotIn(banned, client.prompts[-1])
+            self.assertEqual(reopened.lessons(founder, task='Verify DOI source citation'), [])
+
+    def test_own_lessons_win_ties_without_cross_branch_leaks(self):
+        with tempfile.TemporaryDirectory() as folder:
+            colony = AgentColony(Path(folder) / 'lineage.sqlite3')
+            founder = colony.create_founder('founder', 'Work carefully')
+            parent = colony.spawn(founder, 'research', 'Careful', approved=True)
+            child = colony.spawn(parent, 'reviewer', 'Careful', approved=True)
+            colony.feedback(child, 'source evidence', 'Local child correction',
+                            'review:child', accepted=True)
+            colony.feedback(parent, 'source evidence', 'Parent correction',
+                            'review:parent', accepted=True)
+            matches = colony.lessons(child, task='source evidence', limit=1)
+            self.assertEqual(len(matches), 1)
+            self.assertEqual(matches[0]['lesson'], 'Local child correction')
+            self.assertEqual(colony.lessons(child, task='irrelevant quantum graph'), [])
+
+
 if __name__ == "__main__":
     unittest.main()
 
