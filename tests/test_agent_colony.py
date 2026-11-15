@@ -129,6 +129,9 @@ class ColonyTests(unittest.TestCase):
             client = FakeClient()
             result = reopened.run(child, 'Verify DOI source citation',
                                   client=client, model='mock')
+            learning = reopened.evaluate_learning(child)
+            self.assertEqual(learning['accepted_lessons'], 1)
+            self.assertEqual(learning['inherited_lessons'], 1)
             self.assertEqual(result['lessons_used'], 1)
             self.assertIn('Open the original DOI article', client.prompts[-1])
             for banned in ('Check the kerf', 'Trust unsupported blogs',
