@@ -19,6 +19,11 @@ import uuid
 from typing import Callable
 
 
+class LeaseLostError(PermissionError):
+    """A confirmed stale lease, distinct from a failed database write/ack."""
+
+
+
 def _finite_now(now):
     """Reject NaN and infinite test-clock overrides before reading or writing DB."""
     try:
@@ -252,7 +257,7 @@ class PostgresAuthorizedQueue:
         if (row["state"] != "running" or not isinstance(token, str)
                 or not secrets.compare_digest(row["lease_token"] or "", token)
                 or row["lease_until"] is None or checked_at >= row["lease_until"]):
-            raise PermissionError("Job lease expired or lost")
+            raise LeaseLostError("Job lease expired or lost")
         return row, checked_at
 
     def complete(self, task_id, lease_token, draft, *, now: float | None = None):
@@ -286,7 +291,7 @@ class PostgresAuthorizedQueue:
                         "AND lease_token=%s AND lease_until>EXTRACT(EPOCH FROM clock_timestamp())",
                         (lease_seconds, self.owner_key, task_id, lease_token))
             if cur.rowcount != 1:
-                raise PermissionError("Job lease expired or lost")
+                raise LeaseLostError("Job lease expired or lost")
         return True
 
     def fail(self, task_id, lease_token, *, now: float | None = None):
@@ -346,7 +351,7 @@ class PostgresAuthorizedQueue:
         job = self.claim(worker_id, approved=True, now=now, lease_seconds=lease_seconds)
         if job is None:
             return None
-        stopped, lost = threading.Event(), threading.Event()
+        stopped, lost, renewal_uncertain = (threading.Event(), threading.Event(), threading.Event())
         interval = min(10.0, max(.25, lease_seconds / 3))
 
         def heartbeat():
@@ -354,10 +359,29 @@ class PostgresAuthorizedQueue:
                 try:
                     self.renew_lease(job["id"], job["lease_token"],
                                      lease_seconds=lease_seconds)
-                except Exception:
-                    # No exception details: they can include connection data.
+                except LeaseLostError:
                     lost.set()
                     return
+                except Exception:
+                    # A transport/permission failure does not prove lease expiry.
+                    # The provider may have been called: require manual reconciliation.
+                    renewal_uncertain.set()
+                    return
+
+        def persist_failure():
+            """A failed provider attempt may already have cost an external call.
+
+            If recording its failure is unacknowledged, never promise a retry:
+            the database may have committed the failure transition already.
+            """
+            try:
+                return self.fail(job["id"], job["lease_token"], now=now)
+            except LeaseLostError:
+                return {"id": job["id"], "status": "lease_lost", "verified": False}
+            except Exception:
+                # Driver exceptions may contain secrets; no details cross this boundary.
+                return {"id": job["id"], "status": "failure_uncertain",
+                        "manual_review": True, "verified": False}
 
         thread = threading.Thread(target=heartbeat, name="cano-queue-lease-heartbeat", daemon=True)
         thread.start()
@@ -366,22 +390,22 @@ class PostgresAuthorizedQueue:
                 draft = answer(job["goal"])
             except Exception:
                 # Never log provider errors: they can contain credentials or prompts.
+                if renewal_uncertain.is_set():
+                    return {"id": job["id"], "status": "lease_renewal_uncertain",
+                            "manual_review": True, "verified": False}
                 if lost.is_set():
                     return {"id": job["id"], "status": "lease_lost", "verified": False}
-                try:
-                    return self.fail(job["id"], job["lease_token"], now=now)
-                except PermissionError:
-                    return {"id": job["id"], "status": "lease_lost", "verified": False}
+                return persist_failure()
+            if renewal_uncertain.is_set():
+                return {"id": job["id"], "status": "lease_renewal_uncertain",
+                        "manual_review": True, "verified": False}
             if lost.is_set():
                 return {"id": job["id"], "status": "lease_lost", "verified": False}
             if not isinstance(draft, str) or not draft.strip():
-                try:
-                    return self.fail(job["id"], job["lease_token"], now=now)
-                except PermissionError:
-                    return {"id": job["id"], "status": "lease_lost", "verified": False}
+                return persist_failure()
             try:
                 return self.complete(job["id"], job["lease_token"], draft, now=now)
-            except PermissionError:
+            except LeaseLostError:
                 return {"id": job["id"], "status": "lease_lost", "verified": False}
             except Exception:
                 # The transaction may have committed before its acknowledgement was

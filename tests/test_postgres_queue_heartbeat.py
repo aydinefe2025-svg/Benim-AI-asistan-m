@@ -2,7 +2,7 @@ import threading
 import time
 import unittest
 
-from core.postgres_authorized_queue import PostgresAuthorizedQueue
+from core.postgres_authorized_queue import PostgresAuthorizedQueue, LeaseLostError
 
 
 class _MemoryQueue(PostgresAuthorizedQueue):
@@ -25,7 +25,7 @@ class _MemoryQueue(PostgresAuthorizedQueue):
 
     def renew_lease(self, task_id, token, *, lease_seconds=60):
         if self.renewal_fails or task_id != "task" or token != "token" or time.monotonic() >= self.deadline:
-            raise PermissionError("Job lease expired or lost")
+            raise LeaseLostError("Job lease expired or lost")
         self.renewals += 1
         self.deadline = time.monotonic() + lease_seconds
 
@@ -33,7 +33,7 @@ class _MemoryQueue(PostgresAuthorizedQueue):
         if self.completion_error:
             raise RuntimeError(self.completion_error)
         if token != "token" or time.monotonic() >= self.deadline:
-            raise PermissionError("Job lease expired or lost")
+            raise LeaseLostError("Job lease expired or lost")
         self.completed = True
         return {"status": "review_pending", "draft": draft}
 
