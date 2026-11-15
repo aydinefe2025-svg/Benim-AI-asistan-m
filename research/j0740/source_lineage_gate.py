@@ -99,6 +99,15 @@ def verify_matched_run_manifest(manifest_path: str | Path) -> dict:
     """
     path = Path(manifest_path)
     m = json.loads(path.read_text(encoding="utf-8"))
+    # New publisher-documented identity schema: gamma_NxX is the output
+    # dataset label, NOT a literal token required inside ST-U config.ini.
+    # Legacy v1 behavior is preserved for old manifests and regression tests.
+    if m.get("schema") == "j0740-publisher-headline-v2":
+        from published_source_lineage import verify_published_headline_manifest
+        try:
+            return verify_published_headline_manifest(path)
+        except (OSError, ValueError) as exc:
+            raise RunLineageNotProven(str(exc)) from exc
     must = {
         "provenance_schema": "j0740-gamma-nxx-run-match-v1",
         "posterior_subset_sha256": SOURCE_POSTERIOR_SHA256,
