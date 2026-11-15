@@ -1,4 +1,6 @@
 import math
+import shutil
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
@@ -92,6 +94,22 @@ class IntegratedCAD(unittest.TestCase):
             self.assertLess(float(np.linalg.norm(got[2]-actual[1])),1e-6)
             self.assertLess(float(np.linalg.norm(got[3]-actual[2])),1e-6)
             self.assertLess(float(np.linalg.norm(tip-actual[3])),1e-6)
+
+    def test_openscad_independent_full_assembly_bounds(self):
+        if shutil.which('openscad') is None:
+            self.skipTest('OpenSCAD CLI not present; CI provides it')
+        with tempfile.TemporaryDirectory() as td:
+            output=Path(td)/'full_assembly_VIEW_ONLY.stl'
+            cmd=['openscad','-o',str(output),'-D','part="assembly"']
+            for key,val in zip(('q_yaw','q_shoulder','q_elbow','q_wrist'),START):
+                cmd+=['-D',f'{key}={val:.14f}']
+            cmd+=[str(ROOT/'cad'/'CANO_R1_PARAMETRIC.scad')]
+            subprocess.run(cmd,check=True,timeout=60,capture_output=True)
+            cad=trimesh.load(output,force='mesh')
+            world=self.a.bodies(START)
+            vertices=np.vstack([b.vertices for b in world])
+            bounds=np.stack((vertices.min(axis=0),vertices.max(axis=0)))
+            self.assertLess(float(np.max(np.abs(cad.bounds-bounds))),0.001)
 
     def test_new_start_and_two_waypoint_endpoints(self):
         for q in (START,WAY,END):
