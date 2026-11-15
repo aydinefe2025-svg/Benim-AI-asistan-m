@@ -38,8 +38,11 @@ class SafeInputAndOutput(unittest.TestCase):
 
     def test_no_follow_symlink(self):
         symlink=self.dir/'alias.spdx.json'
-        symlink.symlink_to(self.sample)
-        with self.assertRaises((OSError,cli.RejectedInput)):
+        try:
+            symlink.symlink_to(self.sample)
+        except (OSError,NotImplementedError) as e:
+            self.skipTest(f'creating symlinks requires Windows developer privilege: {e}')
+        with self.assertRaises((OSError,ValueError,cli.RejectedInput)):
             cli.read_verified_json(symlink,self.sha)
 
     def test_hardlink_rejected(self):
@@ -63,7 +66,10 @@ class SafeInputAndOutput(unittest.TestCase):
         target=self.dir/'out.json'
         digest=cli.write_exclusive(target,{'SPDXID':'SPDXRef-DOCUMENT'})
         self.assertEqual(hashlib.sha256(target.read_bytes()).hexdigest(),digest)
-        self.assertEqual(target.stat().st_mode & 0o777,0o600)
+        if os.name != 'nt':
+            self.assertEqual(target.stat().st_mode & 0o777,0o600)
+        else:
+            self.assertTrue(target.exists())
         with self.assertRaises(FileExistsError):
             cli.write_exclusive(target,{'x':1})
 
