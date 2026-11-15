@@ -3,6 +3,9 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+# Existing CI invokes this module explicitly; include the new v2 fail-closed
+# fixture tests in that same job rather than reporting local-only verification.
+from test_published_source_lineage import LineageTests as PublishedSourceLineageV2Tests
 from source_lineage_gate import (
     RunLineageNotProven, inspect_legacy_pair, require_proven_lineage,
     verify_matched_run_manifest, SOURCE_POSTERIOR_RUN, SOURCE_POSTERIOR_MEMBER,
