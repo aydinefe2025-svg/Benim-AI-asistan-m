@@ -176,64 +176,85 @@ class AgentColony:
                  int(bool(accepted)), now()))
             return cursor.lastrowid
 
-    def lessons(self, agent_id, *, limit=5, task=None):
-        """Return recent accepted lessons or task-matched lessons for one task.
+    def _lineage_ids(self, agent_id):
+        """Return this agent and its parents, never sibling or unrelated branches.
 
-        A lesson tagged with the exact task marker "*" is reusable for every
-        task. Other lessons need at least one meaningful word in common with
-        the requested task, preventing unrelated recent feedback from being
-        injected into an agent prompt. Task matching scans at most the 500
-        newest accepted lessons and returns at most `limit`.
+        The authorized agent tree has at most three descendant generations.
+        Reject malformed/cyclic parent links rather than leaking other lessons.
         """
-        self.get(agent_id)
+        lineage = []
+        with self._db() as db:
+            current = agent_id
+            while current is not None:
+                if current in lineage or len(lineage) >= 4:
+                    raise RuntimeError("Invalid bounded agent lineage")
+                row = db.execute(
+                    "SELECT parent_id FROM colony_agents WHERE id=?", (current,)
+                ).fetchone()
+                if row is None:
+                    raise KeyError(current)
+                lineage.append(current)
+                current = row["parent_id"]
+        return tuple(lineage)
+
+    def lessons(self, agent_id, *, limit=5, task=None):
+        """Return approved relevant lessons from this agent or its ancestors.
+
+        Accepted evidence belongs only to this owner's local colony. Parent
+        lessons are inherited by descendants, not siblings. The nearest
+        specialist wins equal-relevance ties, and unrelated lessons are omitted.
+        No unapproved feedback is ever used for model prompts.
+        """
         if type(limit) is not int or not 1 <= limit <= 20:
             raise ValueError("Invalid lesson limit")
-        if task is None:
-            with self._db() as db:
-                rows = db.execute(
-                    "SELECT task,lesson,evidence FROM colony_feedback "
-                    "WHERE agent_id=? AND accepted=1 ORDER BY id DESC LIMIT ?",
-                    (agent_id, limit)).fetchall()
-            return [dict(row) for row in rows]
-        if not isinstance(task, str) or not task.strip():
+        if task is not None and (not isinstance(task, str) or not task.strip()):
             raise ValueError("Task is required for lesson matching")
-        query_terms = _lesson_terms(task)
+        lineage = self._lineage_ids(agent_id)
+        placeholders = ",".join("?" for _ in lineage)
         with self._db() as db:
             rows = db.execute(
-                "SELECT task,lesson,evidence FROM colony_feedback "
-                "WHERE agent_id=? AND accepted=1 ORDER BY id DESC LIMIT 500",
-                (agent_id,)).fetchall()
+                "SELECT agent_id,task,lesson,evidence FROM colony_feedback "
+                f"WHERE accepted=1 AND agent_id IN ({placeholders}) "
+                "ORDER BY id DESC LIMIT 500", lineage
+            ).fetchall()
         ranked = []
+        query_terms = _lesson_terms(task) if task is not None else None
         for recency, row in enumerate(rows):
             item = dict(row)
-            if item["task"].strip() == "*":
+            distance = lineage.index(item.pop("agent_id"))
+            if query_terms is None:
+                score = 0
+            elif item["task"].strip() == "*":
                 score = 0
             else:
                 score = len(query_terms & _lesson_terms(item["task"] + " " + item["lesson"]))
                 if not score:
                     continue
-            ranked.append((-score, recency, item))
-        ranked.sort(key=lambda entry: (entry[0], entry[1]))
-        return [item for _, _, item in ranked[:limit]]
+            ranked.append((-score, distance, recency, item))
+        ranked.sort(key=lambda entry: (entry[0], entry[1], entry[2]))
+        return [item for _, _, _, item in ranked[:limit]]
 
     def evaluate_learning(self, agent_id, *, min_evidence=2):
-        """Measure accepted, evidence-backed lessons; never claim weight training.
+        """Count accessible approved feedback; never assert model-weight training.
 
-        A distinct evidence string is required for each counted lesson.
-        Readiness indicates reusable retrieval memory, not autonomous intelligence.
+        Parent-approved evidence is available to descendants but not siblings.
+        Readiness is retrieval-memory availability, not measured task accuracy.
         """
-        self.get(agent_id)
         if type(min_evidence) is not int or not 1 <= min_evidence <= 20:
             raise ValueError("Invalid evidence threshold")
+        lineage = self._lineage_ids(agent_id)
+        placeholders = ",".join("?" for _ in lineage)
         with self._db() as db:
             rows = db.execute(
-                "SELECT lesson,evidence FROM colony_feedback "
-                "WHERE agent_id=? AND accepted=1 ORDER BY id DESC", (agent_id,)
+                "SELECT agent_id,lesson,evidence FROM colony_feedback "
+                f"WHERE accepted=1 AND agent_id IN ({placeholders}) ORDER BY id DESC",
+                lineage
             ).fetchall()
         unique_evidence = {row["evidence"].strip() for row in rows if row["evidence"].strip()}
         return {
             "agent_id": agent_id,
             "accepted_lessons": len(rows),
+            "inherited_lessons": sum(row["agent_id"] != agent_id for row in rows),
             "distinct_evidence": len(unique_evidence),
             "retrieval_ready": len(unique_evidence) >= min_evidence,
             "model_weights_updated": False,
