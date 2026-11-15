@@ -23,6 +23,7 @@ SCRIPTS=(
     'spdx_source_patch.py',
     'spdx_patched_acceptance.py',
     'spdx_secure_merge_cli.py',
+    'spdx_secure_windows_io.py',
     'spdx_secure_merge_selftest.py',
     'SPDX_SECURE_MERGE_README_TR.md',
 )
