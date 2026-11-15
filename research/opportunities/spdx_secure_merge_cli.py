@@ -52,7 +52,10 @@ def read_verified_json(path: Path, expected_sha256: str):
         # prevents following a leaf symlink. The GetFileInformationByHandle
         # check also rejects junction/reparse-point and hardlinked inputs.
         from spdx_secure_windows_io import read_single_regular_file
-        raw=read_single_regular_file(path,MAX_FILE_BYTES)
+        try:
+            raw=read_single_regular_file(path,MAX_FILE_BYTES)
+        except ValueError as exc:
+            raise RejectedInput(str(exc)) from exc
     else:
         flags=os.O_RDONLY | getattr(os,'O_NOFOLLOW',0) | getattr(os,'O_CLOEXEC',0)
         flags |= getattr(os,'O_NONBLOCK',0)
