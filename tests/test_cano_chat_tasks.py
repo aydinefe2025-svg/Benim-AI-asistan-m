@@ -311,7 +311,7 @@ class CanoChatTasksTests(unittest.TestCase):
             self.assertEqual(result["status"], "review_pending")
             self.assertEqual(len(client.calls), 4)
             self.assertEqual([s["approved_lessons_used"] for s in result["stages"]],
-                             [0, 1, 0, 1])
+                             [1, 1, 1, 1])
             self.assertEqual(checkpoint_counts, [1, 2, 3, 4])
             rendered = format_task_result(result)
             self.assertIn("inceleme bekleyen taslaktır", rendered)
