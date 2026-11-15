@@ -6,7 +6,7 @@ Bu araç **CANO araştırma kolundadır**, üretim sistemlerine bağlı değildi
 - Python **3.13 veya üstü**, `jsonschema==4.26.0`
 - Kullanıcının seçtiği **iki JSON dosyası** ve bunların **bağımsız güvenilir kaynaktan temin edilmiş SHA-256 özetleri**
 - İndirilebilir ZIP, MIT lisanslı özgün modüllerin ve resmî SPDX şemasının **hash'leri doğrulanmış kopyalarını içerir**; ZIP'ten çıkarınca çalışmak için **ağ bağlantısı gerekmez**. Sadece GitHub kodu doğrudan çalıştırıldığında, kopyalar yoksa HTTPS ile sabit hash'li kaynaklar alınır. Kullanıcı SBOM içeriği dış servise **gönderilmez**
-- Güvenilen ve yalnızca kullanıcının kontrolündeki dosya dizini; bu POSIX pilotu Windows'ta `O_NOFOLLOW` mevcut değilse güvenli biçimde **reddeder**
+- Güvenilen ve yalnızca kullanıcının kontrolündeki dosya dizini; Linux'ta `O_NOFOLLOW` ile, **Windows'ta ayrı Win32 `CreateFileW(FILE_FLAG_OPEN_REPARSE_POINT)` okuyucusuyla** normal dosyaları kontrol eder; güvenilmeyen üst dizinler / ağ paylaşımları kapsam dışıdır
 
 ## Kurulum ve komut
 
@@ -21,6 +21,20 @@ python3.13 spdx_secure_merge_cli.py \
 Bu komut, **ZIP'i bir klasöre çıkartıp o klasörde çalıştırma** içindir. GitHub taslak PR klasörü içinden çalıştırırsanız betik yolu `research/opportunities/spdx_secure_merge_cli.py` olur. Çevrimdışı paket için `CANO_OFFLINE_ONLY=1` ortam değişkeniyle yalnız ZIP içindeki pinli kaynakların kullanılmasını zorunlu kılabilirsiniz.
 
 Beklenen SHA-256'yı aynı dosyadan hesaplayıp kendinizle karşılaştırmak yalnız bütünlüğü gösterir; **yayıncının kimliğini kanıtlamaz**. İmza doğrulama, ayrı trust anchor ve kanıtlanmış lisans uygunluğu bu pilotta henüz yoktur.
+
+### Windows PowerShell (çevrimdışı ZIP içinden)
+
+```powershell
+py -3.13 -m pip install jsonschema==4.26.0
+$env:CANO_OFFLINE_ONLY = "1"
+py -3.13 .\spdx_secure_merge_cli.py `
+  --base .\base.spdx.json --source .\source.spdx.json `
+  --base-sha256 "BAGIMSIZ_KAYNAKTAN_64_HANELI_SHA256" `
+  --source-sha256 "BAGIMSIZ_KAYNAKTAN_64_HANELI_SHA256" `
+  --output .\merged.spdx.json
+```
+
+ZIP'i güvenilir, size ait bir dizine açın. SHA değerleri yer tutucudur: **gerçek 64 haneli ve bağımsız doğruladığınız özetlerle değiştirin**. Sırf `Get-FileHash` ile aynı dosyadan hesaplamak dosyanın *yayıncı kimliğini* kanıtlamaz. İki dosyanın en fazla 4 MiB olduğu kabul edilir. Aynı ada sahip çıktı varsa üzerine yazılmaz. Windows 3.13 için özel CI, aracı gerçek dosyalarla sınar; genel Windows deposu testleriyle karıştırılmaz.
 
 ## Güvenli davranış
 
@@ -49,4 +63,4 @@ Kaynak: `MoriwakiYusuke/sbom-unifier`, commit `521f3b8ee6e301e847f7cb113517ba468
 
 `research/opportunities/spdx_secure_merge_selftest.py`: pilot komut satırı aracının I/O güvenliği ve sentetik birleşim testleri.
 
-Yalnızca yapısal doğrulama ve bu fikstürler ile denetlenmiştir. Yayıncı imzası, tüm olası SPDX semantiği, Windows/NFS/SMB, büyük SBOM'lar, gerçek müşteri verisi ve canlı dağıtım **doğrulanmadı**. CI başarısı ticari güvence ya da otomatik birleştirme onayı değildir. Taslak PR #550 gözden geçirilmeden ana dala alınmaz.
+Yalnızca yapısal doğrulama ve bu fikstürler ile denetlenmiştir. Yayıncı imzası, tüm olası SPDX semantiği, Windows güvenilmeyen üst dizinleri, NFS/SMB, büyük SBOM'lar, gerçek müşteri verisi ve canlı dağıtım **doğrulanmadı**. CI başarısı ticari güvence ya da otomatik birleştirme onayı değildir. Taslak PR #550 gözden geçirilmeden ana dala alınmaz.
