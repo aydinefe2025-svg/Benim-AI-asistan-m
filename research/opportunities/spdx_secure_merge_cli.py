@@ -6,8 +6,8 @@ Usage:
       --base-sha256 <trusted-digest> --source-sha256 <trusted-digest> \
       --output merged.spdx.json
 
-Requires Python >=3.13, jsonschema==4.26.0, and network to retrieve pinned
-public upstream source/schema. The user-provided SBOM bytes are never uploaded.
+Requires Python >=3.13 and jsonschema==4.26.0. With the verified offline
+vendor bundle, no network access is needed for the original source/schema. The user-provided SBOM bytes are never uploaded.
 SHA256 supplied by the user must come from an *independent trusted manifest*.
 A hash alone is not proof of publisher identity or license compliance.
 Source MIT (c) 2026 moriwaki: https://github.com/MoriwakiYusuke/sbom-unifier
@@ -47,32 +47,39 @@ def read_verified_json(path: Path, expected_sha256: str):
     """Read one ordinary local file; reject link/size/metadata drift."""
     if len(expected_sha256)!=64 or any(x not in '0123456789abcdefABCDEF' for x in expected_sha256):
         raise RejectedInput('expected SHA256 must be 64 hexadecimal chars')
-    flags=os.O_RDONLY | getattr(os,'O_NOFOLLOW',0) | getattr(os,'O_CLOEXEC',0)
-    flags |= getattr(os,'O_NONBLOCK',0)
-    if not hasattr(os,'O_NOFOLLOW'):
-        raise RejectedInput('O_NOFOLLOW unavailable: platform unsupported')
-    fd = os.open(path, flags)
-    try:
-        before=os.fstat(fd)
-        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
-            raise RejectedInput('only single-link regular files are allowed')
-        if before.st_size<1 or before.st_size>MAX_FILE_BYTES:
-            raise RejectedInput('input size outside bounded range')
-        chunks=[]
-        remaining=MAX_FILE_BYTES+1
-        while remaining:
-            buf=os.read(fd,min(65536,remaining))
-            if not buf:break
-            chunks.append(buf)
-            remaining-=len(buf)
-        raw=b''.join(chunks)
-        after=os.fstat(fd)
-        if (len(raw)!=before.st_size or len(raw)>MAX_FILE_BYTES
-            or (before.st_dev,before.st_ino,before.st_size,before.st_mtime_ns,before.st_ctime_ns)
-            != (after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns,after.st_ctime_ns)):
-            raise RejectedInput('input changed while reading')
-    finally:
-        os.close(fd)
+    if os.name == 'nt':
+        # A Windows CreateFileW handle with FILE_FLAG_OPEN_REPARSE_POINT
+        # prevents following a leaf symlink. The GetFileInformationByHandle
+        # check also rejects junction/reparse-point and hardlinked inputs.
+        from spdx_secure_windows_io import read_single_regular_file
+        raw=read_single_regular_file(path,MAX_FILE_BYTES)
+    else:
+        flags=os.O_RDONLY | getattr(os,'O_NOFOLLOW',0) | getattr(os,'O_CLOEXEC',0)
+        flags |= getattr(os,'O_NONBLOCK',0)
+        if not hasattr(os,'O_NOFOLLOW'):
+            raise RejectedInput('O_NOFOLLOW unavailable: platform unsupported')
+        fd=os.open(path,flags)
+        try:
+            before=os.fstat(fd)
+            if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+                raise RejectedInput('only single-link regular files are allowed')
+            if before.st_size<1 or before.st_size>MAX_FILE_BYTES:
+                raise RejectedInput('input size outside bounded range')
+            chunks=[]
+            remaining=MAX_FILE_BYTES+1
+            while remaining:
+                buf=os.read(fd,min(65536,remaining))
+                if not buf:break
+                chunks.append(buf)
+                remaining-=len(buf)
+            raw=b''.join(chunks)
+            after=os.fstat(fd)
+            if (len(raw)!=before.st_size or len(raw)>MAX_FILE_BYTES
+                or (before.st_dev,before.st_ino,before.st_size,before.st_mtime_ns,before.st_ctime_ns)
+                != (after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns,after.st_ctime_ns)):
+                raise RejectedInput('input changed while reading')
+        finally:
+            os.close(fd)
     sha=hashlib.sha256(raw).hexdigest()
     if sha.lower()!=expected_sha256.lower():
         raise RejectedInput('input digest differs from trusted expected SHA256')
