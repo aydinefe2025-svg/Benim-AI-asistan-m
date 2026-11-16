@@ -18,7 +18,7 @@ import subprocess
 import threading
 import secrets
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import Request, HTTPRedirectHandler, build_opener
 import zipfile
 
 from scripts.cano_encrypted_backup import make_encrypted_backup, verify_encrypted_backup, _child_env
@@ -156,6 +156,14 @@ def _worker():
 
 
 
+class _RejectUploadRedirect(HTTPRedirectHandler):
+    """Never forward a short-lived Notion upload bearer through HTTP redirects."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # The default urllib handler forwards Authorization to redirected hosts.
+        # Return None so urllib raises an HTTP error rather than following it.
+        return None
+
+
 def _auto_upload_worker():
     """Optional one-time OFFSITE transfer using a short-lived Notion upload grant.
 
@@ -213,7 +221,7 @@ def _auto_upload_worker():
         })
         with _lock:
             _state['offsite_phase'] = 'uploading'
-        with urlopen(req, timeout=75) as result:
+        with build_opener(_RejectUploadRedirect()).open(req, timeout=75) as result:
             reply = result.read(8192)
             parsed_reply = json.loads(reply)
             if result.status not in (200, 201) or parsed_reply.get('status') != 'uploaded':
