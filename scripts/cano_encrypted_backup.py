@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import hashlib
+import hmac
 import json
 import time
 import threading
@@ -125,9 +126,35 @@ def _private_receipt(path: Path, payload: dict) -> None:
 def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL',
                           key_env: str='CANO_BACKUP_KEY_HEX',
                           dump_bin: str='pg_dump', max_plaintext_bytes:int=2*1024**3,
-                          max_seconds:float=1800) -> dict:
+                          max_seconds:float=1800,
+                          source_preflight: dict | None = None) -> dict:
     """Stream from pg_dump through AES-256-GCM: no unencrypted archive at rest."""
     key=_key(key_env)
+    # Source metadata is optional for legacy private backups; operator-facing
+    # source attestations must never contain a URI, password, role or row text.
+    if source_preflight is not None:
+        if (not isinstance(source_preflight, dict) or
+                set(source_preflight) != {
+                    'source_id_sha256', 'application_profile', 'table_counts',
+                    'expected_table_count', 'read_only_catalog_and_count',
+                    'same_snapshot_as_dump_verified',
+                    'live_app_env_binding_verified', 'isolated_restore_verified',
+                } or
+                not isinstance(source_preflight.get('source_id_sha256'), str) or
+                not re.fullmatch(r'[0-9a-f]{64}', source_preflight['source_id_sha256']) or
+                not isinstance(source_preflight.get('table_counts'), dict) or
+                not source_preflight['table_counts'] or
+                any(not re.fullmatch(r'[a-z_][a-z0-9_]{0,62}', str(name)) or
+                    type(count) is not int or count < 0
+                    for name, count in source_preflight['table_counts'].items()) or
+                source_preflight.get('expected_table_count') != len(source_preflight['table_counts']) or
+                source_preflight.get('read_only_catalog_and_count') is not True or
+                any(source_preflight.get(flag) is not False for flag in (
+                    'same_snapshot_as_dump_verified',
+                    'live_app_env_binding_verified',
+                    'isolated_restore_verified',
+                ))):
+            raise BackupError('Unsafe source preflight metadata')
     if not isinstance(max_plaintext_bytes,int) or max_plaintext_bytes<6:
         raise BackupError('Invalid maximum backup size')
     if (isinstance(max_seconds, bool) or not isinstance(max_seconds, (int, float))
@@ -229,6 +256,16 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
             'offsite_location_verified':False,
             'note':'Encrypted on local operator destination; external transport and isolated restore require separate proof.',
         }
+        if source_preflight is not None:
+            payload['source_preflight'] = source_preflight
+            signed = json.dumps(
+                {'archive_sha256': payload['archive_sha256'],
+                 'source_preflight': source_preflight},
+                sort_keys=True, separators=(',', ':'), ensure_ascii=True,
+            ).encode('utf-8')
+            payload['source_preflight_hmac_sha256'] = hmac.new(
+                key, signed, hashlib.sha256
+            ).hexdigest()
         _private_receipt(receipt,payload)
         return {'archive':str(archive),'receipt':str(receipt),
                 'plaintext_sha256':payload['plaintext_sha256'],
@@ -358,6 +395,21 @@ def verify_encrypted_backup(receipt_path: Path,*,key_env='CANO_BACKUP_KEY_HEX')-
         _sha256(path)!=data.get('archive_sha256')):
         raise BackupError('Encrypted archive hash or size mismatch')
     proof=decrypt_to_sink(path,None,key_env=key_env)
+    if ('source_preflight' in data) != ('source_preflight_hmac_sha256' in data):
+        raise BackupError('Incomplete source attestation in receipt')
+    if 'source_preflight' in data:
+        if not isinstance(data['source_preflight'], dict):
+            raise BackupError('Invalid source attestation in receipt')
+        signed = json.dumps(
+            {'archive_sha256': data['archive_sha256'],
+             'source_preflight': data['source_preflight']},
+            sort_keys=True, separators=(',', ':'), ensure_ascii=True,
+        ).encode('utf-8')
+        expected = hmac.new(_key(key_env), signed, hashlib.sha256).hexdigest()
+        observed = data['source_preflight_hmac_sha256']
+        if (not isinstance(observed, str) or
+                not hmac.compare_digest(observed, expected)):
+            raise BackupError('Source attestation mismatch')
     if (proof['plaintext_sha256']!=data.get('plaintext_sha256') or
         proof['plaintext_size_bytes']!=data.get('plaintext_size_bytes')):
         raise BackupError('Encrypted backup receipt mismatch')
