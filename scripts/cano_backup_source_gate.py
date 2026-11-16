@@ -133,7 +133,7 @@ def require_application_source(libpq_env: dict, profile: str, *,
     if (getattr(inventory, 'returncode', None) != 0 or
             not isinstance(raw, bytes) or len(raw) > 4096):
         raise ValueError('Cannot verify source row-count inventory')
-    parts = raw.decode('utf-8', 'replace').strip().split('\\t')
+    parts = raw.decode('utf-8', 'replace').strip().split('\t')
     if (len(parts) != 3 or parts[0] != expected_database or
             parts[1] != expected_role):
         raise ValueError('Source database or role changed during preflight')
@@ -144,7 +144,7 @@ def require_application_source(libpq_env: dict, profile: str, *,
     table_counts = dict(zip(required, (int(n) for n in numbers)))
     if sum(table_counts.values()) < 1:
         raise ValueError('Application source has no data')
-    source_key = '\\x00'.join((host, db, expected_role))
+    source_key = '\x00'.join((host, db, expected_role))
     result['source_preflight'] = {
         'source_id_sha256': hashlib.sha256(source_key.encode('utf-8')).hexdigest(),
         'application_profile': profile,
