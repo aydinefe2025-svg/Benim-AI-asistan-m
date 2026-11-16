@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -328,7 +329,7 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 )
                 with st.form("colony_memory_benchmark_form"):
                     dataset_ref = st.text_input(
-                        "Test takımı etiketi/sürümü (yalnız kayıt etiketi)", max_chars=120)
+                        "Test etiketi (A-Z, 0-9, tire, alt çizgi; boşluk yok)", max_chars=120)
                     cases_json = st.text_area(
                         "İnsan tarafından etiketlenmiş testler (JSON)", max_chars=12_000,
                         placeholder='[{"case_id":"vaka-1","prompt":"...","expected":"..."}]')
@@ -337,8 +338,10 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 if benchmark_run:
                     try:
                         cases = parse_memory_benchmark_cases(cases_json)
-                        if not isinstance(dataset_ref, str) or not dataset_ref.strip():
-                            raise ValueError("Test takımı etiketi/sürümü gerekli")
+                        if (not isinstance(dataset_ref, str)
+                                or not re.fullmatch(r"[A-Za-z0-9._:-]{1,120}",
+                                                    dataset_ref.strip())):
+                            raise ValueError("Geçersiz test etiketi; boşluk olmamalı")
                         # Persist and read back the current accepted lessons before
                         # making the explicitly requested provider calls.
                         _checkpoint(archive_prior=False)
@@ -346,9 +349,15 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                             colony, selected, cases, client=AnswerAdapter(answer),
                             model="configured-provider",
                             source_refs=(dataset_ref.strip(),), safety_pass=False)
+                        saved, receipt = _persist_mutation(
+                            lambda: colony.record_benchmark(
+                                selected, dataset_ref.strip(), measured))
+                        if not saved:
+                            return
                         st.session_state["cano_memory_benchmark"] = {
                             "agent_id": selected,
                             "dataset_ref": dataset_ref.strip(),
+                            "receipt_id": receipt["id"],
                             "result": measured,
                         }
                     except (ValueError, RuntimeError, PermissionError, OSError,
@@ -370,7 +379,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         f"{measured['reproducible']['candidate']}. "
                         f"Geriye giden vakalar: {len(measured['regressed_case_ids'])}. "
                         "Bu küçük test seti CANO'nun genel performansını kanıtlamaz; "
-                        "dersler otomatik etkinleştirilmez. Sonuç bu oturumda tutulur."
+                        "dersler otomatik etkinleştirilmez. Ölçüm özeti kalıcı hesap yedeğine "
+                        "bağlıysa sonraki oturumda korunur."
                     )
                     safe_report = {
                         "agent_id": selected,
@@ -393,6 +403,20 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         data=json.dumps(safe_report, ensure_ascii=False, indent=2),
                         file_name="cano-ders-etki-olcumu.json",
                         mime="application/json", key="cano_memory_benchmark_download")
+        stored_benchmarks = colony.list_benchmarks(selected, limit=5)
+        if stored_benchmarks:
+            st.caption("Bu uzmanın kalıcı A/B ölçüm özetleri "
+                       "(ham istem ve model yanıtları saklanmaz):")
+            for saved_benchmark in stored_benchmarks:
+                st.caption(
+                    f"{saved_benchmark['created_at']} · "
+                    f"{saved_benchmark['dataset_ref']} · "
+                    f"ders kapalı {saved_benchmark['baseline_passed']}/"
+                    f"{saved_benchmark['total_cases']} → açık "
+                    f"{saved_benchmark['candidate_passed']}/"
+                    f"{saved_benchmark['total_cases']} · "
+                    f"gerileme {saved_benchmark['regressed_cases']}."
+                )
         if answer is None:
             st.warning("Görev yürütmek için model sağlayıcısı gerekli.")
         else:
@@ -683,6 +707,9 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 "SELECT * FROM colony_reviews ORDER BY created_at,id")] if db.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='colony_reviews'"
             ).fetchone() else []
+        with colony._db() as db:
+            data["benchmarks"] = [dict(row) for row in db.execute(
+                "SELECT * FROM colony_benchmarks ORDER BY created_at,id")]
         if owner_key and database_url:
             st.caption("PostgreSQL yedeği doğrulanmış kullanıcı hesabına bağlıdır.")
             if st.button("Ajan kayıtlarını kalıcı veritabanına yedekle",

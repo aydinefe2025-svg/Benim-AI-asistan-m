@@ -136,5 +136,75 @@ class BenchmarkHarnessTests(unittest.TestCase):
         self.assertEqual(calls, [])
 
 
+    def test_memory_ab_receipt_survives_fresh_session_and_owner_restore(self):
+        """A measured A/B result is owner-restorable without model text."""
+        import tempfile
+        from pathlib import Path
+        from core.agent_colony import AgentColony
+        from core.colony_restore import restore_empty_colony
+        from core.cano_command_center import _snapshot
+        from core.benchmark_harness import run_colony_memory_benchmark
+
+        class DeterministicProvider:
+            def chat(self, model, system, prompt):
+                return "PASS" if '"lesson": "Use verified provenance"' in prompt else "MISS"
+
+        with tempfile.TemporaryDirectory() as directory:
+            source = AgentColony(Path(directory) / "original.sqlite3")
+            founder = source.create_founder("research", "Check references")
+            source.feedback(founder, "*", "Use verified provenance",
+                            "review:approved-1", accepted=True)
+            cases = (
+                BenchmarkCase("case-1", "Verify original primary DOI source", "PASS"),
+                BenchmarkCase("case-2", "Verify original DOI reference", "PASS"),
+            )
+            result = run_colony_memory_benchmark(
+                source, founder, cases, client=DeterministicProvider(),
+                model="deterministic-offline-test",
+                source_refs=("synthetic:approved-feedback-v1",),
+            )
+            self.assertEqual(result["baseline"].passed, 0)
+            self.assertEqual(result["candidate"].passed, 2)
+            self.assertEqual(result["delta"], 1.0)
+            self.assertTrue(all(result["reproducible"].values()))
+            saved = source.record_benchmark(
+                founder, "synthetic-approved-feedback-v1", result)
+            reopened = AgentColony(Path(directory) / "original.sqlite3")
+            self.assertEqual(reopened.list_benchmarks(founder)[0], saved)
+            snapshot = _snapshot(reopened)
+            self.assertEqual(snapshot["benchmarks"], [saved])
+            self.assertNotIn("Verify original primary DOI source",
+                             repr(snapshot["benchmarks"]))
+            target = AgentColony(Path(directory) / "restored.sqlite3")
+            restore_empty_colony(target, snapshot)
+            self.assertEqual(target.list_benchmarks(founder), [saved])
+
+
+    def test_invalid_receipt_label_is_rejected_before_provider_calls(self):
+        """Do not spend model quota before checking owner receipt metadata."""
+        import tempfile
+        from pathlib import Path
+        from core.agent_colony import AgentColony
+        from core.benchmark_harness import run_colony_memory_benchmark
+
+        class Provider:
+            calls = 0
+
+            def chat(self, model, system, prompt):
+                self.calls += 1
+                return "4"
+
+        with tempfile.TemporaryDirectory() as folder:
+            colony = AgentColony(Path(folder) / "sandbox.sqlite3")
+            agent = colony.create_founder("research", "Fact check")
+            provider = Provider()
+            with self.assertRaises(ValueError):
+                run_colony_memory_benchmark(
+                    colony, agent, (BenchmarkCase("one", "2 + 2?", "4"),),
+                    client=provider, model="offline",
+                    source_refs=("label contains spaces",))
+            self.assertEqual(provider.calls, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

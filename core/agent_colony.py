@@ -60,6 +60,19 @@ class AgentColony:
                     task TEXT NOT NULL, lesson TEXT NOT NULL,
                     evidence TEXT NOT NULL, accepted INTEGER NOT NULL,
                     created_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS colony_benchmarks (
+                    id TEXT PRIMARY KEY,
+                    agent_id TEXT NOT NULL REFERENCES colony_agents(id),
+                    dataset_ref TEXT NOT NULL,
+                    benchmark_sha256 TEXT NOT NULL,
+                    baseline_passed INTEGER NOT NULL,
+                    candidate_passed INTEGER NOT NULL,
+                    total_cases INTEGER NOT NULL,
+                    baseline_reproducible INTEGER NOT NULL,
+                    candidate_reproducible INTEGER NOT NULL,
+                    improved_cases INTEGER NOT NULL,
+                    regressed_cases INTEGER NOT NULL,
+                    created_at TEXT NOT NULL);
             """)
 
     @contextmanager
@@ -163,6 +176,93 @@ class AgentColony:
                 existing.add(role)
                 count += 1
         return created
+
+    def record_benchmark(self, agent_id, dataset_ref, measured):
+        """Save a bounded, metadata-only A/B result; never save model text.
+
+        Receipts are measurements, not a model-weight update or an instruction
+        to activate a lesson. They are kept with the owner's colony snapshot.
+        """
+        self.get(agent_id)
+        if (not isinstance(dataset_ref, str)
+                or not re.fullmatch(r"[A-Za-z0-9._:-]{1,120}", dataset_ref)):
+            raise ValueError("Benchmark reference must be a short opaque label")
+        if (not isinstance(measured, dict)
+                or measured.get("comparison") != "accepted_feedback_retrieval_only"
+                or measured.get("model_weights_updated") is not False):
+            raise ValueError("Invalid A/B measurement")
+        digest = measured.get("benchmark_sha256")
+        baseline = measured.get("baseline")
+        candidate = measured.get("candidate")
+        reproducible = measured.get("reproducible")
+        if (not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest)
+                or not isinstance(reproducible, dict)
+                or any(type(reproducible.get(k)) is not bool
+                       for k in ("baseline", "candidate"))):
+            raise ValueError("Invalid A/B evidence")
+        try:
+            total = baseline.total
+            initial = baseline.passed
+            improved = candidate.passed
+            base_repeated = baseline.reproducible
+            trial_repeated = candidate.reproducible
+            improvements = len(measured["improved_case_ids"])
+            regressions = len(measured["regressed_case_ids"])
+        except (AttributeError, KeyError, TypeError) as exc:
+            raise ValueError("Incomplete A/B measurement") from exc
+        if (any(type(v) is not int for v in
+                (total, initial, improved, improvements, regressions))
+                or not 1 <= total <= 10
+                or candidate.total != total
+                or not 0 <= initial <= total or not 0 <= improved <= total
+                or not 0 <= improvements + regressions <= total
+                or improved - initial != improvements - regressions
+                or type(base_repeated) is not bool
+                or type(trial_repeated) is not bool
+                or reproducible["baseline"] != base_repeated
+                or reproducible["candidate"] != trial_repeated):
+            raise ValueError("Inconsistent A/B measurement")
+        record = {
+            "id": str(uuid.uuid4()),
+            "agent_id": agent_id,
+            "dataset_ref": dataset_ref,
+            "benchmark_sha256": digest,
+            "baseline_passed": initial,
+            "candidate_passed": improved,
+            "total_cases": total,
+            "baseline_reproducible": int(base_repeated),
+            "candidate_reproducible": int(trial_repeated),
+            "improved_cases": improvements,
+            "regressed_cases": regressions,
+            "created_at": now(),
+        }
+        fields = tuple(record)
+        with self._db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if db.execute("SELECT COUNT(*) FROM colony_benchmarks").fetchone()[0] >= 100:
+                raise RuntimeError("Benchmark receipt quota reached; export first")
+            db.execute(
+                "INSERT INTO colony_benchmarks (" + ",".join(fields)
+                + ") VALUES (" + ",".join("?" for _ in fields) + ")",
+                tuple(record.values()))
+            observed = db.execute(
+                "SELECT * FROM colony_benchmarks WHERE id=?", (record["id"],)
+            ).fetchone()
+            if observed is None or dict(observed) != record:
+                raise RuntimeError("Benchmark receipt failed local readback")
+        return record
+
+    def list_benchmarks(self, agent_id, *, limit=10):
+        """Read per-agent non-sensitive A/B measurement summaries."""
+        self.get(agent_id)
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("Invalid benchmark list limit")
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT * FROM colony_benchmarks WHERE agent_id=? "
+                "ORDER BY created_at DESC, rowid DESC LIMIT ?",
+                (agent_id, limit)).fetchall()
+        return [dict(row) for row in rows]
 
     def feedback(self, agent_id, task, lesson, evidence, *, accepted=False):
         self.get(agent_id)
