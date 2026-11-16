@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -328,7 +329,7 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 )
                 with st.form("colony_memory_benchmark_form"):
                     dataset_ref = st.text_input(
-                        "Test takımı etiketi/sürümü (yalnız kayıt etiketi)", max_chars=120)
+                        "Test etiketi (A-Z, 0-9, tire, alt çizgi; boşluk yok)", max_chars=120)
                     cases_json = st.text_area(
                         "İnsan tarafından etiketlenmiş testler (JSON)", max_chars=12_000,
                         placeholder='[{"case_id":"vaka-1","prompt":"...","expected":"..."}]')
@@ -337,8 +338,10 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 if benchmark_run:
                     try:
                         cases = parse_memory_benchmark_cases(cases_json)
-                        if not isinstance(dataset_ref, str) or not dataset_ref.strip():
-                            raise ValueError("Test takımı etiketi/sürümü gerekli")
+                        if (not isinstance(dataset_ref, str)
+                                or not re.fullmatch(r"[A-Za-z0-9._:-]{1,120}",
+                                                    dataset_ref.strip())):
+                            raise ValueError("Geçersiz test etiketi; boşluk olmamalı")
                         # Persist and read back the current accepted lessons before
                         # making the explicitly requested provider calls.
                         _checkpoint(archive_prior=False)
