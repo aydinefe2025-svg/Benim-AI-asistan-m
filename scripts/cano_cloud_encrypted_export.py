@@ -14,13 +14,14 @@ import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import threading
 import secrets
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 import zipfile
 
-from scripts.cano_encrypted_backup import make_encrypted_backup, verify_encrypted_backup
+from scripts.cano_encrypted_backup import make_encrypted_backup, verify_encrypted_backup, _child_env
 from scripts.cano_pg_backup import BackupError, _libpq_env_from_uri
 
 _root = Path('/tmp/cano-owner-export')
@@ -63,10 +64,49 @@ def configured():
             valid_auth('Bearer ' + os.environ.get('CANO_EXPORT_ACCESS_TOKEN', '')))
 
 
+def _source_table_count(*, environ=None, runner=subprocess.run) -> int:
+    """Check the pinned source has real user tables before dumping.
+
+    Read-only catalog metadata, not proof of complete CANO DB coverage.
+    """
+    env = os.environ if environ is None else environ
+    if not source_verified(env):
+        raise BackupError('Expected Render source identity not verified')
+    exe = shutil.which('psql')
+    if not exe:
+        raise BackupError('PostgreSQL read-only source preflight unavailable')
+    child_env = _child_env(_libpq_env_from_uri(env['CANO_RENDER_INTERNAL_URL'], env))
+    sql = (
+        "SELECT count(*) FROM pg_catalog.pg_class AS c "
+        "JOIN pg_catalog.pg_namespace AS n ON c.relnamespace=n.oid "
+        "WHERE c.relkind IN ('r','p') "
+        "AND n.nspname NOT IN ('pg_catalog','information_schema') "
+        "AND n.nspname NOT LIKE 'pg_toast%' "
+        "AND n.nspname NOT LIKE 'pg_temp_%'"
+    )
+    try:
+        result = runner(
+            [exe, '-X', '--no-password', '-At', '-v', 'ON_ERROR_STOP=1', '-c', sql],
+            env=child_env, stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            timeout=30, check=False,
+        )
+    except (OSError, ValueError, subprocess.SubprocessError):
+        raise BackupError('Read-only source table inventory failed') from None
+    raw = getattr(result, 'stdout', None)
+    if (getattr(result, 'returncode', None) != 0
+            or not isinstance(raw, bytes) or len(raw) > 24
+            or not raw.strip().isdigit()):
+        raise BackupError('Read-only source table inventory failed')
+    return int(raw.strip())
+
+
 def _worker():
     try:
         if not configured():
             raise BackupError('Required owner-only configuration is missing')
+        if _source_table_count() < 1:
+            raise BackupError('No user tables at the pinned Render source')
         _root.mkdir(mode=0o700, parents=True, exist_ok=True)
         if _root.is_symlink():
             raise BackupError('Refusing linked staging directory')
