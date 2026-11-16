@@ -152,8 +152,12 @@ class EncryptedBackupTests(unittest.TestCase):
         source = {
             'source_id_sha256': 'b' * 64,
             'application_profile': 'colony',
-            'table_counts': {'private_colony_snapshots': 1},
-            'expected_table_count': 1,
+            'table_counts': {
+                'private_colony_snapshots': 1,
+                'private_colony_snapshot_revisions': 0,
+                'organism_lab_records': 0,
+            },
+            'expected_table_count': 3,
             'read_only_catalog_and_count': True,
             'same_snapshot_as_dump_verified': False,
             'live_app_env_binding_verified': False,
@@ -163,6 +167,29 @@ class EncryptedBackupTests(unittest.TestCase):
         with self.assertRaisesRegex(BackupError, 'Unsafe source preflight'):
             make_encrypted_backup(
                 self.target, dump_bin=self.fake, source_preflight=source
+            )
+        self.assertFalse(self.target.exists())
+
+    def test_forged_full_profile_with_partial_table_inventory_is_refused(self):
+        # A partial colony copy must not be presented as a full nine-table
+        # application backup merely by changing its metadata label.
+        forged = {
+            'source_id_sha256': 'c' * 64,
+            'application_profile': 'full',
+            'table_counts': {
+                'private_colony_snapshots': 2,
+                'private_colony_snapshot_revisions': 35,
+                'organism_lab_records': 2,
+            },
+            'expected_table_count': 3,
+            'read_only_catalog_and_count': True,
+            'same_snapshot_as_dump_verified': False,
+            'live_app_env_binding_verified': False,
+            'isolated_restore_verified': False,
+        }
+        with self.assertRaisesRegex(BackupError, 'Unsafe source preflight'):
+            make_encrypted_backup(
+                self.target, dump_bin=self.fake, source_preflight=forged
             )
         self.assertFalse(self.target.exists())
 
