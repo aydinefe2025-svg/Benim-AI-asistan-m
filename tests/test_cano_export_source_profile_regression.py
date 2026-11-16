@@ -61,8 +61,13 @@ class ApplicationProfilePreflightTests(unittest.TestCase):
     def test_full_profile_accepts_all_nine_tables_with_data(self):
         names = sorted(gate.APP_SOURCE_PROFILES["full"])
         seen = []
+        required = gate.APP_SOURCE_PROFILES["full"]
         def fake_run(args, **kwargs):
             seen.append((args, kwargs))
+            if "COUNT(*)" in args[-1]:
+                return CompletedProcess(args, 0, stdout=(
+                    DB + "\ttest\t" + ",".join(["3"] + ["0"] * (len(required)-1))
+                    + "\n").encode(), stderr=b"")
             return CompletedProcess(args, 0, stdout=(
                 DB + "\t" + ",".join(names) + "\t1\n").encode(), stderr=b"")
         with patch.object(gate.shutil, "which", return_value="psql"):
@@ -71,9 +76,42 @@ class ApplicationProfilePreflightTests(unittest.TestCase):
                 runner=fake_run,
             )
         self.assertEqual(9, result["required_tables_matched"])
-        self.assertEqual(1, len(seen))
+        self.assertEqual(2, len(seen))
         self.assertEqual(DB, seen[0][1]["env"]["PGDATABASE"])
         self.assertNotIn("CANO_RENDER_INTERNAL_URL", seen[0][1]["env"])
+        proof = result["source_preflight"]
+        self.assertEqual(9, proof["expected_table_count"])
+        self.assertEqual(3, sum(proof["table_counts"].values()))
+        self.assertEqual(64, len(proof["source_id_sha256"]))
+        self.assertFalse(proof["live_app_env_binding_verified"])
+        self.assertNotIn("placeholder", str(proof))
+        self.assertNotIn("test", str(proof))
+        self.assertTrue(all(call[1]["env"]["PGDATABASE"] == DB for call in seen))
+
+    def test_profile_attestation_rejects_wrong_role_or_zero_scope(self):
+        required = gate.APP_SOURCE_PROFILES["full"]
+        names = sorted(required)
+        for role, counts in [
+            ("other", ["3"] + ["0"] * (len(required)-1)),
+            ("test", ["0"] * len(required)),
+            ("test", ["bogus"] + ["0"] * (len(required)-1)),
+        ]:
+            with self.subTest(role=role, count0=counts[0]):
+                def fake_run(args, **kwargs):
+                    if "COUNT(*)" in args[-1]:
+                        return CompletedProcess(args, 0, stdout=(
+                            DB + "\t" + role + "\t" + ",".join(counts) + "\n"
+                        ).encode(), stderr=b"")
+                    return CompletedProcess(args, 0, stdout=(
+                        DB + "\t" + ",".join(names) + "\t1\n"
+                    ).encode(), stderr=b"")
+                with patch.object(gate.shutil, "which", return_value="psql"):
+                    with self.assertRaises(BackupError):
+                        exp._require_application_source(
+                            environ={**BASE,
+                                     "CANO_REQUIRED_APPLICATION_PROFILE": "full"},
+                            runner=fake_run,
+                        )
 
 if __name__ == "__main__":
     unittest.main()
