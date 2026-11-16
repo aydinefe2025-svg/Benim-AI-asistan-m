@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import re
 from typing import Callable, Sequence
 
 from core.agent_evolution import CandidateResult
@@ -258,6 +259,12 @@ def run_colony_memory_benchmark(
         raise ValueError("model is required")
     if not callable(getattr(client, "chat", None)):
         raise ValueError("client must provide a callable chat method")
+    # Validate the owner receipt label *before* any potentially billable
+    # provider request. Only opaque, non-sensitive dataset IDs are stored.
+    if (not isinstance(source_refs, tuple) or len(source_refs) != 1
+            or not isinstance(source_refs[0], str)
+            or not re.fullmatch(r"[A-Za-z0-9._:-]{1,120}", source_refs[0])):
+        raise ValueError("Benchmark suite ID must be opaque, without spaces")
     canonical = _canonical_cases(cases)
     if len(canonical) > 10:
         raise ValueError("Colony benchmark is limited to 10 cases (40 model calls)")
