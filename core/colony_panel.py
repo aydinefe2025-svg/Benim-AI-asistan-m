@@ -346,9 +346,15 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                             colony, selected, cases, client=AnswerAdapter(answer),
                             model="configured-provider",
                             source_refs=(dataset_ref.strip(),), safety_pass=False)
+                        saved, receipt = _persist_mutation(
+                            lambda: colony.record_benchmark(
+                                selected, dataset_ref.strip(), measured))
+                        if not saved:
+                            return
                         st.session_state["cano_memory_benchmark"] = {
                             "agent_id": selected,
                             "dataset_ref": dataset_ref.strip(),
+                            "receipt_id": receipt["id"],
                             "result": measured,
                         }
                     except (ValueError, RuntimeError, PermissionError, OSError,
@@ -370,7 +376,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         f"{measured['reproducible']['candidate']}. "
                         f"Geriye giden vakalar: {len(measured['regressed_case_ids'])}. "
                         "Bu küçük test seti CANO'nun genel performansını kanıtlamaz; "
-                        "dersler otomatik etkinleştirilmez. Sonuç bu oturumda tutulur."
+                        "dersler otomatik etkinleştirilmez. Ölçüm özeti kalıcı hesap yedeğine "
+                        "bağlıysa sonraki oturumda korunur."
                     )
                     safe_report = {
                         "agent_id": selected,
