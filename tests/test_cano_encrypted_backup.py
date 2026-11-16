@@ -114,6 +114,58 @@ class EncryptedBackupTests(unittest.TestCase):
         if os.name=='posix':
             self.assertTrue(all((p.stat().st_mode&0o777)==0o600 for p in files))
 
+    def test_attested_backup_receipt_binds_source_counts_to_ciphertext(self):
+        # Synthetic database stream only; no real credentials or live data.
+        counts = {
+            'private_colony_snapshots': 2,
+            'private_colony_snapshot_revisions': 35,
+            'organism_lab_records': 2,
+        }
+        source = {
+            'source_id_sha256': 'a' * 64,
+            'application_profile': 'colony',
+            'table_counts': counts,
+            'expected_table_count': len(counts),
+            'read_only_catalog_and_count': True,
+            'same_snapshot_as_dump_verified': False,
+            'live_app_env_binding_verified': False,
+            'isolated_restore_verified': False,
+        }
+        result = make_encrypted_backup(
+            self.target, dump_bin=self.fake, source_preflight=source
+        )
+        path = Path(result['receipt'])
+        receipt = json.loads(path.read_text('utf-8'))
+        self.assertEqual(source, receipt['source_preflight'])
+        self.assertEqual(64, len(receipt['source_preflight_hmac_sha256']))
+        self.assertNotIn('private-example-secret', path.read_text('utf-8'))
+        self.assertEqual(result['archive_sha256'],
+                         verify_encrypted_backup(path)['archive_sha256'])
+
+        # A CRC or plaintext SHA match must never excuse altered source counts.
+        receipt['source_preflight']['table_counts']['organism_lab_records'] += 1
+        path.write_text(json.dumps(receipt), encoding='utf-8')
+        with self.assertRaisesRegex(BackupError, 'Source attestation mismatch'):
+            verify_encrypted_backup(path)
+
+    def test_attestation_rejects_secret_fields_before_pg_dump(self):
+        source = {
+            'source_id_sha256': 'b' * 64,
+            'application_profile': 'colony',
+            'table_counts': {'private_colony_snapshots': 1},
+            'expected_table_count': 1,
+            'read_only_catalog_and_count': True,
+            'same_snapshot_as_dump_verified': False,
+            'live_app_env_binding_verified': False,
+            'isolated_restore_verified': False,
+            'database_url': 'postgresql://never-allowed',
+        }
+        with self.assertRaisesRegex(BackupError, 'Unsafe source preflight'):
+            make_encrypted_backup(
+                self.target, dump_bin=self.fake, source_preflight=source
+            )
+        self.assertFalse(self.target.exists())
+
     def test_wrong_key_and_tampering_fail_before_restore(self):
         result=make_encrypted_backup(self.target,dump_bin=self.fake)
         file=Path(result['archive'])
