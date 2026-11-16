@@ -147,7 +147,8 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
                 not isinstance(source_preflight.get('source_id_sha256'), str) or
                 not re.fullmatch(r'[0-9a-f]{64}', source_preflight['source_id_sha256']) or
                 not isinstance(source_preflight.get('table_counts'), dict) or
-                source_preflight.get('application_profile') not in APP_SOURCE_PROFILES or
+                not isinstance(source_preflight.get('application_profile'), str) or
+                source_preflight['application_profile'] not in APP_SOURCE_PROFILES or
                 set(source_preflight['table_counts']) != set(
                     APP_SOURCE_PROFILES[source_preflight['application_profile']]) or
                 any(type(count) is not int or count < 0
