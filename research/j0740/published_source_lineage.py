@@ -39,6 +39,26 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _xpsi_version_from_log(text: str) -> str:
+    """Extract one unambiguous X-PSI version from inline or boxed headers."""
+    versions = set(re.findall(
+        r'(?im)\bX[ -]?PSI\b[^\r\n]{0,90}?\bv?(\d+\.\d+\.\d+)\b', text))
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if re.fullmatch(
+            r'\s*\|\s*X-PSI: X-ray Pulse Simulation and Inference\s*\|\s*', line
+        ):
+            for next_line in lines[index + 1:index + 4]:
+                match = re.fullmatch(
+                    r'\s*\|\s*Version:\s*v?(\d+\.\d+\.\d+)\s*\|\s*', next_line
+                )
+                if match:
+                    versions.add(match.group(1))
+    if len(versions) != 1:
+        raise SourceBindingError('original out_ log has no single unambiguous X-PSI version')
+    return 'v' + versions.pop()
+
+
 def verify_published_headline_manifest(manifest_path: str | Path, *,
                                        expected_hashes: Mapping[str, str] | None = None,
                                        allow_synthetic_test: bool = False) -> dict:
@@ -92,13 +112,11 @@ def verify_published_headline_manifest(manifest_path: str | Path, *,
     if not log_path.is_absolute():
         log_path = path.parent / log_path
     log = log_path.read_text(encoding='utf-8', errors='replace')
-    match = re.search(r'(?im)\bX[\s-]?PSI\b[^\r\n]{0,90}?\bv?(\d+\.\d+\.\d+)\b', log)
-    if not match:
-        raise SourceBindingError('original out_ log contains no X-PSI version')
-    version = tuple(map(int, match.group(1).split('.')))
+    observed_version = _xpsi_version_from_log(log)
+    version = tuple(map(int, observed_version[1:].split('.')))
     if not ((0, 7, 10) <= version <= (1, 2, 1)):
         raise SourceBindingError('X-PSI version outside README documented range')
-    if m.get('xpsi_version') != 'v' + match.group(1):
+    if m.get('xpsi_version') != observed_version:
         raise SourceBindingError('X-PSI manifest version differs from pinned log')
     for label in ('stats', 'out'):
         val = m.get('reported_evidence', {}).get(label)
@@ -114,9 +132,10 @@ def verify_published_headline_manifest(manifest_path: str | Path, *,
         'full_12p9GB_archive_rehashed_this_run': False,
         'posterior_archive_rehashed_this_run': False,
         'historical_full_archive_md5_from_manifest': FULL_ARCHIVE_MD5,
-        'xpsi_version_from_pinned_out_log': 'v' + match.group(1),
+        'xpsi_version_from_pinned_out_log': observed_version,
         'native_photon_likelihood_recomputed': False,
         'source_posterior_recomputed': False,
         'EOS_Bayes': 'NOT_RUN',
         'caution': 'No evidence of actual historical execution from matching names and file bytes alone; no valid EOS Bayes factors.',
     }
+
