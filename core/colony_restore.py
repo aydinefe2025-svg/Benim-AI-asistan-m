@@ -5,6 +5,7 @@ Validate all relationships before starting a transaction; never overwrite data.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import tempfile
 from pathlib import Path
@@ -19,10 +20,13 @@ def restore_empty_colony(colony, snapshot):
     agents, feedback, reviews = (snapshot.get(k) for k in ("agents", "feedback", "reviews"))
     # Older snapshots predate collaborative missions and remain restorable.
     missions = snapshot.get("missions", [])
-    if not all(isinstance(v, list) for v in (agents, feedback, reviews, missions)):
+    benchmarks = snapshot.get("benchmarks", [])
+    if not all(isinstance(v, list) for v in
+               (agents, feedback, reviews, missions, benchmarks)):
         raise ValueError("Invalid snapshot collections")
     if (len(agents) > colony.max_agents or len(feedback) > 10000
-            or len(reviews) > 1000 or len(missions) > 1000):
+            or len(reviews) > 1000 or len(missions) > 1000
+            or len(benchmarks) > 100):
         raise ValueError("Snapshot quota exceeded")
     ids = [a.get("id") for a in agents if isinstance(a, dict)]
     if len(ids) != len(agents) or any(not isinstance(i, str) or not i for i in ids) or len(set(ids)) != len(ids):
@@ -56,6 +60,43 @@ def restore_empty_colony(colony, snapshot):
         if not all(isinstance(row.get(k), str) for k in
                    ("id", "task", "draft", "critique", "revision", "status", "created_at")):
             raise ValueError("Invalid review fields")
+    benchmark_columns = (
+        "id", "agent_id", "dataset_ref", "benchmark_sha256",
+        "baseline_passed", "candidate_passed", "total_cases",
+        "baseline_reproducible", "candidate_reproducible",
+        "improved_cases", "regressed_cases", "created_at",
+    )
+    seen_benchmark_ids = set()
+    for row in benchmarks:
+        if not isinstance(row, dict) or set(row) != set(benchmark_columns):
+            raise ValueError("Invalid benchmark receipt fields")
+        if (not isinstance(row["id"], str) or not 1 <= len(row["id"]) <= 80
+                or row["id"] in seen_benchmark_ids
+                or row["agent_id"] not in by_id
+                or not isinstance(row["dataset_ref"], str)
+                or not re.fullmatch(r"[A-Za-z0-9._:-]{1,120}", row["dataset_ref"])
+                or not isinstance(row["benchmark_sha256"], str)
+                or not re.fullmatch(r"[a-f0-9]{64}", row["benchmark_sha256"])
+                or not isinstance(row["created_at"], str)
+                or not row["created_at"] or len(row["created_at"]) > 80):
+            raise ValueError("Invalid benchmark receipt")
+        seen_benchmark_ids.add(row["id"])
+        numeric = ("baseline_passed", "candidate_passed", "total_cases",
+                   "baseline_reproducible", "candidate_reproducible",
+                   "improved_cases", "regressed_cases")
+        if any(type(row[k]) is not int for k in numeric):
+            raise ValueError("Invalid benchmark numeric fields")
+        total = row["total_cases"]
+        if (not 1 <= total <= 10
+                or not 0 <= row["baseline_passed"] <= total
+                or not 0 <= row["candidate_passed"] <= total
+                or row["baseline_reproducible"] not in (0, 1)
+                or row["candidate_reproducible"] not in (0, 1)
+                or not 0 <= row["improved_cases"] + row["regressed_cases"] <= total
+                or (row["candidate_passed"] - row["baseline_passed"]
+                    != row["improved_cases"] - row["regressed_cases"])):
+            raise ValueError("Inconsistent benchmark receipt")
+
     seen_mission_ids = set()
     for row in missions:
         if not isinstance(row, dict) or not all(
@@ -87,7 +128,8 @@ def restore_empty_colony(colony, snapshot):
     AgentReviewLoop(colony)
     with colony._db() as db:
         db.execute("BEGIN IMMEDIATE")
-        for table in ("colony_agents", "colony_feedback", "colony_reviews", "colony_missions"):
+        for table in ("colony_agents", "colony_feedback", "colony_reviews",
+                      "colony_missions", "colony_benchmarks"):
             if db.execute("SELECT COUNT(*) FROM " + table).fetchone()[0]:
                 raise RuntimeError("Restore requires empty colony")
         for a in sorted(agents, key=lambda item: item['generation']):
@@ -99,6 +141,10 @@ def restore_empty_colony(colony, snapshot):
         for row in reviews:
             db.execute("INSERT INTO colony_reviews VALUES (?,?,?,?,?,?,?,?,?)",
                        tuple(row[k] for k in ("id","task","author_id","reviewer_id","draft","critique","revision","status","created_at")))
+        for row in benchmarks:
+            db.execute("INSERT INTO colony_benchmarks VALUES (" +
+                       ",".join("?" for _ in benchmark_columns) + ")",
+                       tuple(row[k] for k in benchmark_columns))
         for row in missions:
             # An imported in-flight process is no longer running in this process;
             # require explicit operator resume rather than making duplicate calls.
@@ -112,6 +158,7 @@ def restore_empty_colony(colony, snapshot):
         collections = (
             ("colony_agents", agents), ("colony_feedback", feedback),
             ("colony_reviews", reviews),
+            ("colony_benchmarks", benchmarks),
             ("colony_missions", [
                 {**item, "status": "blocked"} if item["status"] == "running" else item
                 for item in missions
