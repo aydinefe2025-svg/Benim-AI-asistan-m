@@ -139,6 +139,39 @@ class ColonyTests(unittest.TestCase):
                 self.assertNotIn(banned, client.prompts[-1])
             self.assertEqual(reopened.lessons(founder, task='Verify DOI source citation'), [])
 
+    def test_generic_tokens_must_not_select_unrelated_ancestor_lessons(self):
+        """Brand name and filler words must not override topic relevance.
+
+        Reproduces 2026-11-17 read-only CANO fixture preflight:
+        a provider-inventory task currently also pulls an unrelated
+        candidate-improvement lesson because both mention CANO/ancak.
+        """
+        with tempfile.TemporaryDirectory() as folder:
+            colony = AgentColony(Path(folder) / "relevance.sqlite3")
+            parent = colony.create_founder("CANO guide", "Use relevant approved lessons")
+            child = colony.spawn(parent, "auditor", "Review one topic", approved=True)
+            colony.feedback(
+                parent, "CANO lesson candidate evaluation",
+                "Mevcut sabit test ve aday belleği karşılaştır; ancak başarı varsa onayla",
+                "test:evaluation", accepted=True)
+            colony.feedback(
+                parent, "CANO sağlayıcı model envanteri",
+                "Seçili model tüm envanter değildir; sağlayıcı modellerini doğrula",
+                "test:provider", accepted=True)
+            client = FakeClient()
+            provider = colony.run(
+                child, "CANO'da seçili model A, ancak sağlayıcı model envanteri hangisi?",
+                client=client, model="offline")
+            self.assertEqual(provider["lessons_used"], 1)
+            self.assertIn("Seçili model tüm envanter değildir", client.prompts[-1])
+            self.assertNotIn("Mevcut sabit test", client.prompts[-1])
+            evaluation = colony.run(
+                child, "CANO ders adayı mevcut sabit teste göre iyileşti mi?",
+                client=client, model="offline")
+            self.assertEqual(evaluation["lessons_used"], 1)
+            self.assertIn("Mevcut sabit test", client.prompts[-1])
+            self.assertNotIn("Seçili model tüm envanter değildir", client.prompts[-1])
+
     def test_own_lessons_win_ties_without_cross_branch_leaks(self):
         with tempfile.TemporaryDirectory() as folder:
             colony = AgentColony(Path(folder) / 'lineage.sqlite3')
