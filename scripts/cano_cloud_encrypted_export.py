@@ -23,6 +23,7 @@ import zipfile
 
 from scripts.cano_encrypted_backup import make_encrypted_backup, verify_encrypted_backup, _child_env
 from scripts.cano_pg_backup import BackupError, _libpq_env_from_uri
+from scripts.cano_backup_source_gate import APP_SOURCE_PROFILES, require_application_source
 
 _root = Path('/tmp/cano-owner-export')
 _lock = threading.Lock()
@@ -101,12 +102,37 @@ def _source_table_count(*, environ=None, runner=subprocess.run) -> int:
     return int(raw.strip())
 
 
+def _require_application_source(*, environ=None, runner=subprocess.run):
+    """Fail closed unless the pinned Render DB contains the declared CANO scope.
+
+    Reuses the already-tested canonical nine-table or scoped table profile.
+    This is source inventory, NOT proof of live app ENV bindings or restore.
+    """
+    env = os.environ if environ is None else environ
+    if not source_verified(env):
+        raise BackupError('Pinned Render source is not verified')
+    profile = env.get('CANO_REQUIRED_APPLICATION_PROFILE', '')
+    if profile not in APP_SOURCE_PROFILES:
+        raise BackupError('Explicit CANO application profile required')
+    try:
+        libpq = _libpq_env_from_uri(env['CANO_RENDER_INTERNAL_URL'], env)
+        return require_application_source(
+            libpq, profile,
+            expected_host=libpq['PGHOST'].lower().rstrip('.'),
+            expected_database=env['CANO_REQUIRED_RENDER_DATABASE'],
+            psql_bin='psql', runner=runner,
+        )
+    except (ValueError, KeyError, TypeError, OSError, subprocess.SubprocessError):
+        raise BackupError('Required CANO source inventory cannot be proven') from None
+
+
 def _worker():
     try:
         if not configured():
             raise BackupError('Required owner-only configuration is missing')
         if _source_table_count() < 1:
             raise BackupError('No user tables at the pinned Render source')
+        _require_application_source()
         _root.mkdir(mode=0o700, parents=True, exist_ok=True)
         if _root.is_symlink():
             raise BackupError('Refusing linked staging directory')
