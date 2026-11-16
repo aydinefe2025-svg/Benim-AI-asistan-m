@@ -31,6 +31,10 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
 try:
+    from scripts.cano_backup_source_gate import APP_SOURCE_PROFILES
+except ImportError:
+    from cano_backup_source_gate import APP_SOURCE_PROFILES
+try:
     from scripts.cano_pg_backup import _libpq_env_from_uri, BackupError
 except ImportError:  # direct CLI from scripts/ and minimal local unit harness
     from cano_pg_backup import _libpq_env_from_uri, BackupError
@@ -143,11 +147,15 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
                 not isinstance(source_preflight.get('source_id_sha256'), str) or
                 not re.fullmatch(r'[0-9a-f]{64}', source_preflight['source_id_sha256']) or
                 not isinstance(source_preflight.get('table_counts'), dict) or
-                not source_preflight['table_counts'] or
-                any(not re.fullmatch(r'[a-z_][a-z0-9_]{0,62}', str(name)) or
-                    type(count) is not int or count < 0
-                    for name, count in source_preflight['table_counts'].items()) or
-                source_preflight.get('expected_table_count') != len(source_preflight['table_counts']) or
+                source_preflight.get('application_profile') not in APP_SOURCE_PROFILES or
+                set(source_preflight['table_counts']) != set(
+                    APP_SOURCE_PROFILES[source_preflight['application_profile']]) or
+                any(type(count) is not int or count < 0
+                    for count in source_preflight['table_counts'].values()) or
+                type(source_preflight.get('expected_table_count')) is not int or
+                source_preflight['expected_table_count'] != len(
+                    source_preflight['table_counts']) or
+                not any(source_preflight['table_counts'].values()) or
                 source_preflight.get('read_only_catalog_and_count') is not True or
                 any(source_preflight.get(flag) is not False for flag in (
                     'same_snapshot_as_dump_verified',
