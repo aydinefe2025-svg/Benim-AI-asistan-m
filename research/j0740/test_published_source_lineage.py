@@ -8,10 +8,25 @@ from published_source_lineage import (
     EXPECTED, README_MD5, POSTERIOR_MEMBER, POSTERIOR_SUBSET_SHA256,
     POSTERIOR_ARCHIVE_MD5, FULL_ARCHIVE_MD5, KNOWN_LOGZ,
     KNOWN_LOGZ_ERROR, PROOF_LABEL, SourceBindingError,
-    verify_published_headline_manifest,
+    verify_published_headline_manifest, _xpsi_version_from_log,
 )
 
 class LineageTests(unittest.TestCase):
+    def test_original_boxed_out_log_banner(self):
+        banner = ('/=============================================\\\n'
+                  '| X-PSI: X-ray Pulse Simulation and Inference |\n'
+                  '|---------------------------------------------|\n'
+                  '|                Version: 1.2.0               |\n')
+        self.assertEqual(_xpsi_version_from_log(banner), 'v1.2.0')
+
+    def test_conflicting_or_unrelated_versions_fail_closed(self):
+        for text in (
+            'X-PSI started\n' + 'unrelated\n' * 20 + 'Version: 1.2.0',
+            'X-PSI version: 1.2.0\nX-PSI version: 1.2.1',
+        ):
+            with self.assertRaisesRegex(SourceBindingError, 'unambiguous'):
+                _xpsi_version_from_log(text)
+
     def fixture(self, root):
         m = {
             'schema': 'j0740-publisher-headline-v2',
@@ -96,3 +111,4 @@ class LineageTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
