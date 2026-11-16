@@ -11,6 +11,29 @@ BASE={'CANO_REQUIRED_RENDER_DATABASE': DB, 'CANO_REQUIRED_RENDER_HOST_PREFIX': P
       'CANO_RENDER_INTERNAL_URL': f'postgresql://test:password@{PREFIX}.frankfurt-postgres.render.com/{DB}'}
 
 class SecurityTests(unittest.TestCase):
+    def test_exporter_docker_image_contains_direct_script_imports(self):
+        """All exporter imports must be included in its isolated Docker image."""
+        import ast
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        tree = ast.parse(
+            (root / 'scripts' / 'cano_cloud_encrypted_export.py').read_text('utf-8')
+        )
+        required = sorted({
+            node.module.split('.')[1]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ImportFrom)
+            and node.module and node.module.startswith('scripts.')
+        })
+        dockerfile = (root / 'Dockerfile.cano-pg18-export').read_text('utf-8')
+        self.assertTrue(required)
+        for module in required:
+            self.assertIn(
+                f'COPY scripts/{module}.py /app/scripts/{module}.py',
+                dockerfile,
+                f'Exporter container omits directly imported scripts.{module}',
+            )
+
     def test_bearer_rejects_missing_wrong_truncated(self):
         for token in ['', 'x', 'a'*63, TOKEN[:-1]+'e']:
             self.assertFalse(valid_auth('Bearer '+token, TOKEN))
