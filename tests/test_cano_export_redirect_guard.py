@@ -2,12 +2,16 @@
 
 Only synthetic requests/files; never accesses Notion, Render, secrets, or DBs.
 """
+import io
 import os
 import tempfile
 import unittest
 from pathlib import Path
+from email.message import Message
+from urllib.error import HTTPError
+from urllib.response import addinfourl
 from unittest.mock import patch, MagicMock
-from urllib.request import Request, HTTPRedirectHandler, build_opener
+from urllib.request import Request, HTTPRedirectHandler, BaseHandler, build_opener
 
 from scripts import cano_cloud_encrypted_export as exporter
 
@@ -25,7 +29,57 @@ class _FakeUploadResponse:
         return b'{"status":"uploaded"}'
 
 
+class _SyntheticHTTPS(BaseHandler):
+    """No-network response transport that records every attempted destination."""
+    handler_order = 400
+
+    def __init__(self, code):
+        self.code = code
+        self.requests = []
+
+    def https_open(self, req):
+        self.requests.append((req.full_url, req.get_method(),
+                              req.get_header("Authorization")))
+        headers = Message()
+        if self.code in (301, 302, 303, 307, 308):
+            headers["Location"] = "https://untrusted.invalid/receiver"
+        response = addinfourl(
+            io.BytesIO(b'{"status":"uploaded"}'), headers,
+            req.full_url, code=self.code)
+        response.msg = "Synthetic"
+        return response
+
+
 class UploadRedirectRegression(unittest.TestCase):
+    def test_live_urllib_pipeline_blocks_all_redirect_statuses_offline(self):
+        for status in (301, 302, 303, 307, 308):
+            with self.subTest(status=status):
+                transport = _SyntheticHTTPS(status)
+                opener = build_opener(exporter._RejectUploadRedirect(), transport)
+                req = Request(
+                    "https://api.notion.com/v1/mcp/file_uploads/synthetic/send",
+                    data=b"fake-ciphertext-zip", method="POST",
+                    headers={"Authorization": "Bearer harmless-synthetic"})
+                with self.assertRaises(HTTPError) as caught:
+                    opener.open(req, timeout=1)
+                self.assertEqual(status, caught.exception.code)
+                self.assertEqual(1, len(transport.requests))
+                self.assertEqual("api.notion.com",
+                                 req.host)
+                self.assertEqual("POST", transport.requests[0][1])
+
+    def test_live_urllib_pipeline_preserves_normal_201_offline(self):
+        transport = _SyntheticHTTPS(201)
+        opener = build_opener(exporter._RejectUploadRedirect(), transport)
+        req = Request(
+            "https://api.notion.com/v1/mcp/file_uploads/synthetic/send",
+            data=b"fake-ciphertext-zip", method="POST",
+            headers={"Authorization": "Bearer harmless-synthetic"})
+        with opener.open(req, timeout=1) as reply:
+            self.assertEqual(201, reply.status)
+            self.assertEqual(b'{"status":"uploaded"}', reply.read())
+        self.assertEqual(1, len(transport.requests))
+
     def test_cross_origin_302_cannot_forward_bearer(self):
         token = "Bearer synthetic-test-not-a-real-token"
         request = Request(
