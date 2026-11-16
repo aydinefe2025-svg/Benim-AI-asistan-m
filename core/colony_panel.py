@@ -400,6 +400,20 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                         data=json.dumps(safe_report, ensure_ascii=False, indent=2),
                         file_name="cano-ders-etki-olcumu.json",
                         mime="application/json", key="cano_memory_benchmark_download")
+        stored_benchmarks = colony.list_benchmarks(selected, limit=5)
+        if stored_benchmarks:
+            st.caption("Bu uzmanın kalıcı A/B ölçüm özetleri "
+                       "(ham istem ve model yanıtları saklanmaz):")
+            for saved_benchmark in stored_benchmarks:
+                st.caption(
+                    f"{saved_benchmark['created_at']} · "
+                    f"{saved_benchmark['dataset_ref']} · "
+                    f"ders kapalı {saved_benchmark['baseline_passed']}/"
+                    f"{saved_benchmark['total_cases']} → açık "
+                    f"{saved_benchmark['candidate_passed']}/"
+                    f"{saved_benchmark['total_cases']} · "
+                    f"gerileme {saved_benchmark['regressed_cases']}."
+                )
         if answer is None:
             st.warning("Görev yürütmek için model sağlayıcısı gerekli.")
         else:
@@ -690,6 +704,9 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 "SELECT * FROM colony_reviews ORDER BY created_at,id")] if db.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='colony_reviews'"
             ).fetchone() else []
+        with colony._db() as db:
+            data["benchmarks"] = [dict(row) for row in db.execute(
+                "SELECT * FROM colony_benchmarks ORDER BY created_at,id")]
         if owner_key and database_url:
             st.caption("PostgreSQL yedeği doğrulanmış kullanıcı hesabına bağlıdır.")
             if st.button("Ajan kayıtlarını kalıcı veritabanına yedekle",
