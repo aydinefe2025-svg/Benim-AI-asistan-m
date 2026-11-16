@@ -9,6 +9,7 @@ app's environment mapping, a consistent transaction snapshot, or a restore.
 """
 from __future__ import annotations
 
+import hashlib
 import re
 import shutil
 import subprocess
@@ -39,7 +40,8 @@ _HOST = re.compile(r'[a-z0-9][a-z0-9.-]{0,253}\Z')
 def require_application_source(libpq_env: dict, profile: str, *,
                                expected_host: str, expected_database: str,
                                psql_bin: str = 'psql',
-                               runner=subprocess.run) -> dict:
+                               runner=subprocess.run,
+                               attest_counts: bool = False) -> dict:
     """Refuse a source that lacks pinned host/db, schema or populated tables.
 
     All queries are constant catalog/EXISTS reads, never dynamic identifiers
@@ -97,7 +99,7 @@ def require_application_source(libpq_env: dict, profile: str, *,
     if (observed_db != expected_database or not set(required).issubset(tables)
             or nonempty != '1'):
         raise ValueError('Cannot verify application source inventory')
-    return {
+    result = {
         'profile': profile,
         'required_tables_matched': len(required),
         'nonempty_table_verified': True,
@@ -105,3 +107,52 @@ def require_application_source(libpq_env: dict, profile: str, *,
         'source_database_pinned': True,
         'scope': 'Read-only preflight only; live app binding and restored data not proven.',
     }
+    if not attest_counts:
+        return result
+    # Fixed-profile names only. No user text or credentials enter SQL.
+    expected_role = libpq_env.get('PGUSER', '')
+    if not isinstance(expected_role, str) or not expected_role:
+        raise ValueError('Pinned PostgreSQL source role is required')
+    counts_sql = " || ',' || ".join(
+        f'(SELECT COUNT(*)::text FROM public."{table}")' for table in required
+    )
+    inventory_sql = (
+        "SELECT current_database() || E'\\t' || session_user || E'\\t' || "
+        + counts_sql
+    )
+    try:
+        inventory = runner(
+            [exe, '-X', '--no-password', '-At', '-v', 'ON_ERROR_STOP=1',
+             '-c', inventory_sql],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL, env=safe_env, check=False, timeout=45,
+        )
+    except (OSError, subprocess.SubprocessError, ValueError):
+        raise ValueError('Cannot verify source row-count inventory') from None
+    raw = getattr(inventory, 'stdout', None)
+    if (getattr(inventory, 'returncode', None) != 0 or
+            not isinstance(raw, bytes) or len(raw) > 4096):
+        raise ValueError('Cannot verify source row-count inventory')
+    parts = raw.decode('utf-8', 'replace').strip().split('\\t')
+    if (len(parts) != 3 or parts[0] != expected_database or
+            parts[1] != expected_role):
+        raise ValueError('Source database or role changed during preflight')
+    numbers = parts[2].split(',')
+    if (len(numbers) != len(required) or
+            any(not re.fullmatch(r'[0-9]{1,18}', n) for n in numbers)):
+        raise ValueError('Invalid source row-count inventory')
+    table_counts = dict(zip(required, (int(n) for n in numbers)))
+    if sum(table_counts.values()) < 1:
+        raise ValueError('Application source has no data')
+    source_key = '\\x00'.join((host, db, expected_role))
+    result['source_preflight'] = {
+        'source_id_sha256': hashlib.sha256(source_key.encode('utf-8')).hexdigest(),
+        'application_profile': profile,
+        'table_counts': table_counts,
+        'expected_table_count': len(required),
+        'read_only_catalog_and_count': True,
+        'same_snapshot_as_dump_verified': False,
+        'live_app_env_binding_verified': False,
+        'isolated_restore_verified': False,
+    }
+    return result
