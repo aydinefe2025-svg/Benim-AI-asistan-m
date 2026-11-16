@@ -192,7 +192,8 @@ def _snapshot(colony):
         for key, table in (("agents", "colony_agents"),
                            ("feedback", "colony_feedback"),
                            ("reviews", "colony_reviews"),
-                           ("missions", "colony_missions")):
+                           ("missions", "colony_missions"),
+                           ("benchmarks", "colony_benchmarks")):
             exists = db.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
                 (table,)).fetchone()
@@ -291,6 +292,11 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                         else item for item in archived_missions]}
                     if isinstance(archived_missions, list) else None
                 )
+                # Legacy owner snapshots predate persisted A/B receipts.
+                # Missing is an empty list; never reject or overwrite the owner's
+                # existing durable data just because the new field did not exist.
+                if isinstance(restored_shape, dict):
+                    restored_shape = {"benchmarks": [], **restored_shape}
                 if restored_shape != _snapshot(colony):
                     st.error("Bu oturumun CANO kayıtları hesaptaki güncel yedekle uyuşmuyor; "
                              "yeni görev başlatılmadı. Önce mevcut oturumu yedekleyin.")
