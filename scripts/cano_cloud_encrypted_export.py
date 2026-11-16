@@ -120,7 +120,7 @@ def _require_application_source(*, environ=None, runner=subprocess.run):
             libpq, profile,
             expected_host=libpq['PGHOST'].lower().rstrip('.'),
             expected_database=env['CANO_REQUIRED_RENDER_DATABASE'],
-            psql_bin='psql', runner=runner,
+            psql_bin='psql', runner=runner, attest_counts=True,
         )
     except (ValueError, KeyError, TypeError, OSError, subprocess.SubprocessError):
         raise BackupError('Required CANO source inventory cannot be proven') from None
@@ -132,14 +132,15 @@ def _worker():
             raise BackupError('Required owner-only configuration is missing')
         if _source_table_count() < 1:
             raise BackupError('No user tables at the pinned Render source')
-        _require_application_source()
+        preflight = _require_application_source()
         _root.mkdir(mode=0o700, parents=True, exist_ok=True)
         if _root.is_symlink():
             raise BackupError('Refusing linked staging directory')
         result = make_encrypted_backup(
             _root, database_env='CANO_RENDER_INTERNAL_URL',
             key_env='CANO_BACKUP_KEY_HEX', dump_bin='pg_dump',
-            max_plaintext_bytes=256 * 1024 * 1024, max_seconds=480)
+            max_plaintext_bytes=256 * 1024 * 1024, max_seconds=480,
+            source_preflight=preflight['source_preflight'])
         archive = Path(result['archive'])
         receipt = Path(result['receipt'])
         proof = verify_encrypted_backup(receipt)
