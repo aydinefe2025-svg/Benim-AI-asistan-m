@@ -25,6 +25,7 @@ _LESSON_STOP_WORDS = {
     "to", "what", "when", "where", "which", "who", "why", "with", "please",
     "task", "question", "research", "gorev", "gorevi", "soru", "konu", "ders",
     "bir", "ve", "ile", "icin", "bu", "su", "ne", "nedir", "hakkinda",
+    "cano", "ancak", "mevcut",
 }
 
 
