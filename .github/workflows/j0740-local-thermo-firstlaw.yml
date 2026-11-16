@@ -15,14 +15,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Run source-matched local first-law regression and independent quadrature
         working-directory: research/j0740/rotating_gr
         run: |
           python3 -W error -m unittest -v test_thermo_consistency_local.py
           python3 -W error run_thermo_consistency_audit.py
       - name: Retain reproducible JSON and scientific limitations
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: j0740-five-node-local-thermodynamic-audit
           retention-days: 7
