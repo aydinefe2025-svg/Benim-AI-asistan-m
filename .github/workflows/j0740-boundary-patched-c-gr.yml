@@ -42,7 +42,7 @@ jobs:
           python research/j0740/rotating_gr/rns_boundary_patch.py \
             rns-upstream/equil.c \
             --manifest patch-manifest.json
-          make -C rns-upstream rns
+          make -C rns-upstream CC='gcc -include stdlib.h' rns
       - name: Reuse existing original GR seven-star evidence without RNS repetition
         env:
           GH_TOKEN: ${{ github.token }}

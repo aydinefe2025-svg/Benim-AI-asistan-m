@@ -36,7 +36,7 @@ jobs:
         working-directory: research/j0740/rotating_gr
         run: python -m unittest -v test_j0740_absolute_enthalpy_gr
       - name: Build pinned RNS C GR solver
-        run: make -C rns-upstream rns
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
       - name: Download existing seven-EOS fixed mass GR artifact only
         env:
           GH_TOKEN: ${{ github.token }}

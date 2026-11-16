@@ -47,10 +47,10 @@ jobs:
         run: python -m unittest -v test_fixed_mass_spin_mesh_convergence
       - name: Compile pinned RNS solver at both grids
         run: |
-          make -C rns-upstream rns
+          make -C rns-upstream CC='gcc -include stdlib.h' rns
           cp rns-upstream/rns rns-upstream/rns_151x301
           rm -f rns-upstream/*.o rns-upstream/rns
-          make -C rns-upstream HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
           cp rns-upstream/rns rns-upstream/rns_201x401
       - name: Solve seven fixed-mass and fixed-spin roots on both grids
         run: |

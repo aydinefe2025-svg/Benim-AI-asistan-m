@@ -37,7 +37,7 @@ jobs:
         working-directory: research/j0740/rotating_gr
         run: python -m unittest -v test_rns_196_vs_200_resolution
       - name: Compile pinned RNS C binary
-        run: make -C rns-upstream rns
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
       - name: Fetch previous 7/7 model results, no 12.9GB archive or RNS base rerun
         env:
           GH_TOKEN: ${{ github.token }}

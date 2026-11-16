@@ -56,7 +56,7 @@ jobs:
         working-directory: research/j0740/rotating_gr
         run: python -m unittest -v test_axis_ratio_rns test_seven_eos_sequence test_resilient_mass_root test_target_mass_rns test_jester_to_rns test_rns_benchmark
       - name: Compile pinned upstream general-relativity solver
-        run: make -C rns-upstream rns
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
       - name: Compute all seven exact-source EOS tracks at 346.536369 Hz
         run: |
           python research/j0740/rotating_gr/seven_eos_sequence.py \

@@ -51,8 +51,8 @@ jobs:
           python research/j0740/rotating_gr/rns_surface_boundary_probe.py \
             --patch hmin_surface --original-c rns-upstream/findmodel.c \
             --patched-c rns-hmin-surface/findmodel.c
-          make -C rns-hmin rns
-          make -C rns-hmin-surface rns
+          make -C rns-hmin CC='gcc -include stdlib.h' rns
+          make -C rns-hmin-surface CC='gcc -include stdlib.h' rns
       - name: Retrieve original seven GR models without repeating old 12.9GB archive
         env:
           GH_TOKEN: ${{ github.token }}

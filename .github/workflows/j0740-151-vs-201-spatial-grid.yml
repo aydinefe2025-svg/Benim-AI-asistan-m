@@ -38,12 +38,12 @@ jobs:
         run: python -m unittest -v test_rns_151_vs_201_spatial_grid
       - name: Compile BOTH actual RNS C mesh binaries from one pinned source
         run: |
-          make -C rns-upstream rns
+          make -C rns-upstream CC='gcc -include stdlib.h' rns
           cp rns-upstream/rns rns-upstream/rns_151x301
           # Upstream rns makefile has no 'clean' target: erase ONLY generated
           # object files/working binary, preserving the saved baseline executable.
           rm -f rns-upstream/*.o rns-upstream/rns
-          make -C rns-upstream HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
           cp rns-upstream/rns rns-upstream/rns_201x401
       - name: Reuse pinned original seven-EOS model without rerunning mass roots
         env:
