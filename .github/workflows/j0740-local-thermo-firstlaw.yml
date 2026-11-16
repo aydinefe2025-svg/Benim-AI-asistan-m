@@ -1,0 +1,31 @@
+name: J0740 local EOS first-law audit
+on:
+  pull_request:
+    paths:
+      - 'research/j0740/rotating_gr/thermo_consistency_local.py'
+      - 'research/j0740/rotating_gr/test_thermo_consistency_local.py'
+      - 'research/j0740/rotating_gr/run_thermo_consistency_audit.py'
+      - 'research/j0740/rotating_gr/fixtures/j0740_source_crust_5pt_pinned.json'
+      - '.github/workflows/j0740-local-thermo-firstlaw.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-thermodynamic-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run source-matched local first-law regression and independent quadrature
+        working-directory: research/j0740/rotating_gr
+        run: |
+          python3 -W error -m unittest -v test_thermo_consistency_local.py
+          python3 -W error run_thermo_consistency_audit.py
+      - name: Retain reproducible JSON and scientific limitations
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-five-node-local-thermodynamic-audit
+          retention-days: 7
+          path: |
+            research/j0740/rotating_gr/J0740_LOCAL_THERMODYNAMIC_CONSISTENCY_20261116.json
+            research/j0740/rotating_gr/J0740_LOCAL_THERMODYNAMIC_CONSISTENCY_20261116.md
