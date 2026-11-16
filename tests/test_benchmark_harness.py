@@ -180,5 +180,31 @@ class BenchmarkHarnessTests(unittest.TestCase):
             self.assertEqual(target.list_benchmarks(founder), [saved])
 
 
+    def test_invalid_receipt_label_is_rejected_before_provider_calls(self):
+        """Do not spend model quota before checking owner receipt metadata."""
+        import tempfile
+        from pathlib import Path
+        from core.agent_colony import AgentColony
+        from core.benchmark_harness import run_colony_memory_benchmark
+
+        class Provider:
+            calls = 0
+
+            def chat(self, model, system, prompt):
+                self.calls += 1
+                return "4"
+
+        with tempfile.TemporaryDirectory() as folder:
+            colony = AgentColony(Path(folder) / "sandbox.sqlite3")
+            agent = colony.create_founder("research", "Fact check")
+            provider = Provider()
+            with self.assertRaises(ValueError):
+                run_colony_memory_benchmark(
+                    colony, agent, (BenchmarkCase("one", "2 + 2?", "4"),),
+                    client=provider, model="offline",
+                    source_refs=("label contains spaces",))
+            self.assertEqual(provider.calls, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
