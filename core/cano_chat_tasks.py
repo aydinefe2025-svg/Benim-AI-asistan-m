@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import unicodedata
 
+from core.cano_capabilities import is_self_development_question
+
 
 def _normalize_intent(text: str) -> str:
     """Normalize Turkish dotted/dotless-I variants for command matching."""
@@ -17,6 +19,8 @@ def parse_task_request(message):
     if not isinstance(message, str):
         return None
     text = message.strip()
+    if is_self_development_question(text):
+        return None
     prefixes = ("cano gorev:", "gorev:")
     folded = _normalize_intent(text)
     self_improvement_request = any(phrase in folded for phrase in (
