@@ -7,7 +7,8 @@ from urllib.parse import urlencode
 import streamlit as st
 
 # 📺 Rahat bir okuma için standart geniş ekran düzeni aktif ediliyor
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="CANO Sohbet", page_icon="💬", layout="wide")
+st.sidebar.page_link("app.py", label="CANO Sohbet", icon="💬")
 
 # Optional fail-closed production login. Keep APP_AUTH_REQUIRED unset locally;
 # enable it on Render only after the Google OIDC secrets file is configured.
