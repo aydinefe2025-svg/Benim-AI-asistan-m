@@ -65,6 +65,31 @@ if os.environ.get("AGENT_TASK_DATABASE_URL"):
         st.stop()
 
 
+# Authenticated owner status for the separate CANO code executor.
+if _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"):
+    with st.sidebar.expander("🛠️ CANO Kod İşçisi", expanded=False):
+        st.caption("Sohbette: CANO kod: düzeltilmesini istediğin şeyi yaz")
+        try:
+            from core.cano_code_jobs import CodeJobStore
+            _code_store = CodeJobStore(
+                os.environ["AGENT_TASK_DATABASE_URL"], _OWNER_KEY,
+            )
+            for _job in _code_store.recent():
+                st.caption(_job["id"][:8] + " · " + _job["status"]
+                           + " · " + _job["goal"])
+                if (_job["pr_url"].startswith(
+                    "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/")
+                ):
+                    st.link_button("Geliştirme PR'ını aç", _job["pr_url"])
+                if _job["reason_code"]:
+                    st.caption("Engel: " + _job["reason_code"])
+        except Exception as _code_queue_error:
+            logging.getLogger(__name__).warning(
+                "CANO code status unavailable: %s",
+                type(_code_queue_error).__name__,
+            )
+            st.warning("Geliştirme kuyruğu okunamadı; kayıtlar değiştirilmedi.")
+
 # 🔒 Her sağlayıcı bağımsız yapılandırılır. Değerleri hiçbir zaman ekranda gösterme.
 from core.provider_config import (
     available_providers,
@@ -591,6 +616,37 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     safe_response = safe_response_for_prompt(kullanici_mesaji)
     if safe_response is not None:
         return safe_response
+
+    # A signed-in user's explicit code instruction creates a real durable job;
+    # never pass this instruction to the text-only four-stage mission runner.
+    from core.cano_code_jobs import CodeJobStore, parse_code_request
+    try:
+        code_goal = parse_code_request(kullanici_mesaji)
+    except ValueError:
+        return ("CANO kod isteği reddedildi: hedef 8–1200 karakter olmalı ve "
+                "parola, bağlantı anahtarı veya özel anahtar içermemelidir.")
+    if code_goal is not None:
+        if not globals().get("_AUTH_REQUIRED") or not globals().get("_OWNER_KEY"):
+            return "CANO kod yürütücüsü için doğrulanmış Google girişi gerekli."
+        try:
+            receipt = CodeJobStore(
+                os.environ.get("AGENT_TASK_DATABASE_URL"),
+                globals()["_OWNER_KEY"],
+            ).enqueue(code_goal)
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "CANO web code enqueue rejected: category=%s", type(exc).__name__)
+            return ("CANO kod işi kalıcı kuyruğa yazılamadı; görev başlatılmadı. "
+                    "Veriler veya GitHub deposu değiştirilmedi.")
+        return (
+            "🛠️ CANO kod işi kalıcı kuyruğa alındı.\n\n"
+            f"İş kimliği: `{receipt['id'][:8]}` · Durum: `{receipt['status']}`\n\n"
+            + ("Aynı iş zaten kayıtlı; yeniden çalıştırılmadı. " if receipt["duplicate"] else "")
+            + "Ayrı zamanlanmış geliştirme işçisi bu işi inceleyip GitHub kod, "
+            "test ve dağıtım kanıtını kaydedecek. Bu mesaj henüz kod yazıldığı "
+            "veya dağıtım yapıldığı anlamına gelmez. Sol menüde 🛠️ CANO Kod İşçisi "
+            "bölümünden sonucu izle."
+        )
     local_ollama_selected = str(globals().get("secilen_model", "")).startswith("Ollama (Yerel): ")
     from core.cano_chat_tasks import parse_task_request, format_task_result
     task_goal = parse_task_request(kullanici_mesaji)
