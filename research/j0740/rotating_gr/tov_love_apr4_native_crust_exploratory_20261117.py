@@ -104,7 +104,7 @@ def solve_star(eos: EOS, pc: float, max_step: float, rtol: float = 2e-9):
         db = 4.0*math.pi*r*r*rho_b / math.sqrt(max(den, 1e-30))
         f = (1.0 - 4.0*math.pi*r*r*(e - p_eval)) / den
         q = (4.0*math.pi*(5.0*e + 9.0*p_eval + (e+p_eval)/max(cs2, 1e-30))/den
-             - 6.0/(r*r) - 4.0*grav**2/(r**4))
+             - 6.0/(r*r*den) - 4.0*grav**2/(r**4))
         dy = -(y*y + y*f + r*r*q)/r
         return [dm, dp, dy, db]
 
