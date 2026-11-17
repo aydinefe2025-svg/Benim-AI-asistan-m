@@ -34,7 +34,7 @@ _OUTPUT_RE = re.compile(
     r'star\.Omega/\(2\.0\*PI\)\);'
 )
 _PATCHED_PRINT = (
-    'printf("%.17g %.17g %.17g %.17g %.17g\\n",\n'
+    'printf("%.17g %.17g %.17g %.17g %.17g\\\\n",\n'
     '           star.e_center, star.Mass/MSUN, star.R_e*1e-5,\n'
     '           star.Omega/(2.0*PI), star.Mass_0/MSUN);'
 )
