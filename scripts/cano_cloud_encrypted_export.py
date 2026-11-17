@@ -127,12 +127,18 @@ def _require_application_source(*, environ=None, runner=subprocess.run):
 
 
 def _worker():
+    # Keep diagnostics to a fixed, non-secret stage vocabulary. Provider and
+    # libpq exception messages can contain connection details and are discarded.
+    stage = 'configuration'
     try:
         if not configured():
             raise BackupError('Required owner-only configuration is missing')
+        stage = 'source_inventory'
         if _source_table_count() < 1:
             raise BackupError('No user tables at the pinned Render source')
+        stage = 'application_scope'
         preflight = _require_application_source()
+        stage = 'encrypted_export'
         _root.mkdir(mode=0o700, parents=True, exist_ok=True)
         if _root.is_symlink():
             raise BackupError('Refusing linked staging directory')
@@ -141,6 +147,7 @@ def _worker():
             key_env='CANO_BACKUP_KEY_HEX', dump_bin='pg_dump',
             max_plaintext_bytes=256 * 1024 * 1024, max_seconds=480,
             source_preflight=preflight['source_preflight'])
+        stage = 'archive_verification'
         archive = Path(result['archive'])
         receipt = Path(result['receipt'])
         proof = verify_encrypted_backup(receipt)
@@ -153,7 +160,7 @@ def _worker():
     except Exception:
         # Never print exceptions; some error strings contain a connection URI.
         with _lock:
-            _state.update(phase='failed', error='export_or_verification_failed')
+            _state.update(phase='failed', error=stage)
 
 
 

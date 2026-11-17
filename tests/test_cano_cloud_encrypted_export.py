@@ -2,7 +2,7 @@
 import os
 import unittest
 from unittest.mock import patch
-from scripts.cano_cloud_encrypted_export import valid_auth, source_verified, _state, _auto_upload_worker
+from scripts.cano_cloud_encrypted_export import valid_auth, source_verified, _state, _auto_upload_worker, _worker
 
 PREFIX='dpg-dbkfp5bm8hqs73bba7u0-a'
 DB='research_library_persistent_db'
@@ -66,6 +66,16 @@ class SecurityTests(unittest.TestCase):
     def test_auth_fail_closed_on_bad_render_configuration(self):
         with patch.dict(os.environ, {'CANO_EXPORT_ACCESS_TOKEN': 'not64chars'}):
             self.assertFalse(valid_auth('Bearer '+TOKEN))
+
+    def test_worker_reports_safe_failure_stage_without_exception_text(self):
+        _state.update(phase='idle', error='')
+        with patch('scripts.cano_cloud_encrypted_export.configured', return_value=True), \
+             patch('scripts.cano_cloud_encrypted_export._source_table_count',
+                   side_effect=RuntimeError('postgres://secret-password')):
+            _worker()
+        self.assertEqual('failed', _state['phase'])
+        self.assertEqual('source_inventory', _state['error'])
+        self.assertNotIn('secret-password', _state['error'])
 
 if __name__ == '__main__':
     unittest.main()
