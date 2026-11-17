@@ -91,7 +91,7 @@ class LifecycleCursor(FakeCursor):
         self.latest = latest
 
     def fetchone(self):
-        if "SELECT id::text,status,goal,created_at" in self.last:
+        if "SELECT id::text,status,goal,created_at,finished_at" in self.last:
             return self.latest
         return super().fetchone()
 
@@ -105,10 +105,13 @@ class RepeatingSelfDevelopmentTests(unittest.TestCase):
     def store(self, cursor):
         return CodeJobStore(DB_URL, OWNER, connect=lambda _: FakeConnection(cursor))
 
-    def old(self, status, *, age_minutes=120, goal=None):
+    def old(self, status, *, age_minutes=120, goal=None,
+            created_minutes=180, finished=True):
         from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
         return ("prior-job-id", status, self.goal if goal is None else goal,
-                datetime.now(timezone.utc) - timedelta(minutes=age_minutes))
+                now - timedelta(minutes=created_minutes),
+                now - timedelta(minutes=age_minutes) if finished else None)
 
     def test_deployed_self_development_can_start_a_new_bounded_cycle(self):
         cur = LifecycleCursor(latest=self.old("deployed"))
@@ -127,6 +130,22 @@ class RepeatingSelfDevelopmentTests(unittest.TestCase):
         receipt = self.store(cur).enqueue(self.goal)
         self.assertTrue(receipt["duplicate"])
         self.assertEqual(receipt["status"], "deployed")
+        self.assertFalse(any("INSERT INTO" in sql for sql, _ in cur.queries))
+
+    def test_recent_completion_blocks_even_if_job_created_hours_ago(self):
+        # A two-hour build that finished a minute ago must not restart.
+        cur = LifecycleCursor(latest=self.old(
+            "deployed", age_minutes=1, created_minutes=180))
+        receipt = self.store(cur).enqueue(self.goal)
+        self.assertTrue(receipt["duplicate"])
+        self.assertFalse(any("INSERT INTO" in sql for sql, _ in cur.queries))
+
+    def test_missing_finished_at_rejects_next_cycle(self):
+        # Never infer deployment completion from created_at.
+        cur = LifecycleCursor(latest=self.old(
+            "deployed", age_minutes=240, finished=False))
+        receipt = self.store(cur).enqueue(self.goal)
+        self.assertTrue(receipt["duplicate"])
         self.assertFalse(any("INSERT INTO" in sql for sql, _ in cur.queries))
 
     def test_active_and_blocked_prior_cycles_do_not_autoretry(self):
