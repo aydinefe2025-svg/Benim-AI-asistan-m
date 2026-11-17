@@ -16,6 +16,20 @@ from core.authentication import auth_is_required, render_auth_gate
 from core.storage_config import cano_database_url, database_provider_label, memory_database_url
 
 _AUTH_REQUIRED = auth_is_required(os.environ)
+if os.environ.get("CANO_TASK_PREFLIGHT_ONCE") == "1":
+    from core.cano_runtime_db_preflight import preflight_task_store
+
+    @st.cache_resource(show_spinner=False)
+    def _cano_task_preflight_once():
+        result = preflight_task_store(os.environ.get("AGENT_TASK_DATABASE_URL"))
+        logging.getLogger(__name__).warning(
+            "CANO_TASK_SCHEMA_PREFLIGHT ok=%s error_type=%s sqlstate=%s",
+            result.get("ok"), result.get("error_type", "none"),
+            result.get("sqlstate") or "none",
+        )
+        return result.get("ok")
+
+    _cano_task_preflight_once()
 _OWNER_KEY = render_auth_gate(st, os.environ)
 if not _OWNER_KEY and hasattr(st, "session_state"):
     # Do not retain a prior owner's prepared ciphertext or password widget state
