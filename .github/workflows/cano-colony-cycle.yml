@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/cano-colony-cycle.yml"
+      - ".github/workflows/cano-colony-continuation.yml"
       - "core/virtual_generation.py"
       - "scripts/cano_colony_cycle.py"
       - "scripts/cano_specialist_agents.py"
