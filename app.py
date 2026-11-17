@@ -638,7 +638,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     # A signed-in user's explicit code instruction creates a real durable job;
     # never pass this instruction to the text-only four-stage mission runner.
     from core.cano_code_jobs import CodeJobStore, parse_code_request
-    from core.cano_solution_dispatch import infer_code_goal
+    from core.cano_solution_dispatch import infer_code_goal, SELF_DEVELOPMENT_GOAL
     try:
         code_goal = parse_code_request(kullanici_mesaji)
         if code_goal is None:
@@ -664,6 +664,28 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
         # mission preview left by older chat turns. A failed enqueue does not.
         st.session_state.pop("_cano_chat_task_pending", None)
         st.session_state.pop("cano_chat_request_id", None)
+        if receipt["duplicate"]:
+            if receipt["status"] == "deployed":
+                return (
+                    "✅ Bu CANO kod işi zaten tamamlandı; yeni iş başlatılmadı. "
+                    f"Önceki iş kimliği: `{receipt['id'][:8]}`. "
+                    + ("Bir sonraki geliştirme döngüsü tekrar koruma süresi "
+                       "sonrasında aynı komutla açılabilir."
+                       if code_goal == SELF_DEVELOPMENT_GOAL
+                       else "Farklı bir kod hedefiyle yeni iş başlatabilirsin.")
+                )
+            if receipt["status"] == "blocked":
+                return (
+                    "CANO kod işi önceki denemede engellendi; otomatik tekrar "
+                    f"başlatılmadı. İş kimliği: `{receipt['id'][:8]}`. "
+                    "Gerekçeyi sol menüde CANO Kod İşçisi bölümünde incele."
+                )
+            return (
+                "Bu CANO kod işi zaten kayıtlı; ikinci kez başlatılmadı. "
+                f"İş kimliği: `{receipt['id'][:8]}` · "
+                f"Mevcut durum: `{receipt['status']}`. "
+                "İlerlemeyi CANO Kod İşçisi bölümünden izle."
+            )
         return (
             "🛠️ CANO kod işi kalıcı kuyruğa alındı.\n\n"
             f"İş kimliği: `{receipt['id'][:8]}` · Durum: `{receipt['status']}`\n\n"
