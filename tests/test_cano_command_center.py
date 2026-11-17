@@ -204,7 +204,7 @@ class CommandCenterTests(unittest.TestCase):
         model = LessonModel()
         with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
             render_cano_command_center(st, answer=model)
-            st.task = "Kaynaksız iddialar için denetim hazırla"
+            st.task = "Kaynak kanıt iddiaları için denetim hazırla"
             st.submit = True
             render_cano_command_center(st, answer=model)
             render_cano_command_center(st, answer=model)
@@ -224,7 +224,7 @@ class CommandCenterTests(unittest.TestCase):
             self.assertEqual(manager.pending_lesson(mission_id)["accepted"], 1)
             self.assertEqual(len(model.calls), 4)
             self.assertTrue(colony.lessons(
-                pending["agent_id"], task="Kaynaksız iddialar için denetim hazırla"))
+                pending["agent_id"], task="Kaynak kanıt iddiaları için denetim hazırla"))
 
     def test_explicit_task_dois_precede_crossref_matches_in_the_real_cockpit(self):
         st = FakeStreamlit(clicks={"cano_prepare_team"}, crossref=True)
