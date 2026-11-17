@@ -24,7 +24,9 @@ jobs:
     timeout-minutes: 35
     permissions:
       actions: write
+      contents: read
     steps:
+      - uses: actions/checkout@v5
       - name: Verify the source run published a validated report
         id: report
         env:
@@ -33,22 +35,13 @@ jobs:
         run: |
           set -euo pipefail
           report_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/cano-latest/colony-cycle.json"
-          report="$(curl --fail --silent --show-error --max-time 15 "${report_url}")"
-          report_run_id="$(jq -r '.github_run_id | tostring' <<<"${report}")"
-          integrity="$(jq -r '.db_integrity // empty' <<<"${report}")"
-          specialist_status="$(jq -r '.specialist_agents.status // empty' <<<"${report}")"
-          valid_roles="$(jq -r '[.specialist_agents.roles[]? | select(.status == "passed" and .execution == "isolated_read_only_subprocess" and .model_calls == 0)] | length' <<<"${report}")"
-
-          if [[ "${report_run_id}" == "${SOURCE_RUN_ID}" &&
-                "${integrity}" == "ok" &&
-                "${specialist_status}" == "passed" &&
-                "${valid_roles}" == "4" ]]; then
-            echo "eligible=true" >> "${GITHUB_OUTPUT}"
-            echo "Source report matched and passed integrity and four specialist checks."
-          else
-            echo "eligible=false" >> "${GITHUB_OUTPUT}"
-            echo "Source report did not match or pass validation; no follow-up cycles."
-          fi
+          report_file="$(mktemp)"
+          trap 'rm -f "${report_file}"' EXIT
+          curl --fail --silent --show-error --max-time 15 "${report_url}" --output "${report_file}"
+          python scripts/cano_continuation_gate.py \
+            --report "${report_file}" \
+            --source-run-id "${SOURCE_RUN_ID}" \
+            --output "${GITHUB_OUTPUT}"
 
       - name: Run a fixed two-attempt follow-up batch
         if: steps.report.outputs.eligible == 'true'
