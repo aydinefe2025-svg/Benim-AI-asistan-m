@@ -42,6 +42,18 @@ def actionable_solution(answer):
             and any(word in normalized for word in verbs))
 
 
+SELF_DEVELOPMENT_GOAL = (
+    "CANO web uygulamasında doğrulanabilir bir yazılım iyileştirmesi yap: "
+    "mevcut kod, test ve son gerçek hata kanıtını incele; tek bir küçük "
+    "kullanıcı sorunu için başarısız RED testi oluştur, en dar kod "
+    "düzeltmesini uygula, GREEN ve regresyon testlerini çalıştır. "
+    "GitHub PR/CI makbuzu oluştur; güvenlik kapıları geçmeden "
+    "birleştirme veya Render yayını yapma. Aynı görevi kopyalama; "
+    "sırları, kullanıcı verisini, onaylı dersleri ve model "
+    "ağırlıklarını izinsiz değiştirme. Ölçülebilir fark yoksa "
+    "başarı iddiası yerine gerekçeli engel kaydet."
+)
+
 def infer_code_goal(message, history):
     """A natural CANO action request; preserve old explicit routing unchanged."""
     if not isinstance(message, str):
@@ -62,17 +74,7 @@ def infer_code_goal(message, history):
         "cano kendini gelistir",
         "cano kendini gelistirmeye devam et",
     }:
-        return (
-            "CANO web uygulamasında doğrulanabilir bir yazılım iyileştirmesi yap: "
-            "mevcut kod, test ve son gerçek hata kanıtını incele; tek bir küçük "
-            "kullanıcı sorunu için başarısız RED testi oluştur, en dar kod "
-            "düzeltmesini uygula, GREEN ve regresyon testlerini çalıştır. "
-            "GitHub PR/CI makbuzu oluştur; güvenlik kapıları geçmeden "
-            "birleştirme veya Render yayını yapma. Aynı görevi kopyalama; "
-            "sırları, kullanıcı verisini, onaylı dersleri ve model "
-            "ağırlıklarını izinsiz değiştirme. Ölçülebilir fark yoksa "
-            "başarı iddiası yerine gerekçeli engel kaydet."
-        )
+        return SELF_DEVELOPMENT_GOAL
     direct = (
         normalized.startswith("cano ")
         and any(word in normalized for word in (

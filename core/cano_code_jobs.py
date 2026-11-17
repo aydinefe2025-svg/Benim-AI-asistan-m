@@ -8,10 +8,22 @@ from __future__ import annotations
 import hashlib
 import re
 import unicodedata
+from datetime import datetime, timedelta, timezone
+
+from core.cano_solution_dispatch import SELF_DEVELOPMENT_GOAL
 
 
 MAX_ACTIVE_JOBS = 3
 ALLOWED_PREFIXES = frozenset(("cano kod", "cano gelistir", "cano yazilim"))
+_SELF_DEVELOPMENT_COOLDOWN = timedelta(minutes=30)
+_CYCLE_SUFFIX = (
+    ": Önceki tamamlanan düzeltmeyi tekrarlama; "
+    "yeni doğrulanabilir hata ve bağımsız test seç."
+)
+_CYCLE_MATCH = re.compile(
+    re.escape(SELF_DEVELOPMENT_GOAL) + r"\nDöngü ([1-9][0-9]*)" +
+    re.escape(_CYCLE_SUFFIX)
+)
 
 
 def _normalize(value: str) -> str:
@@ -69,12 +81,45 @@ class CodeJobStore:
         goal = goal.strip()
         if parse_code_request("CANO kod: " + goal) is None:
             raise ValueError("Invalid development request")
-        digest = hashlib.sha256(_normalize(goal).encode("utf-8")).hexdigest()
         with self._db() as conn, conn.cursor() as cur:
             self._scope(cur)
             # Serialize an owner's submissions across web sessions and workers.
             cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s)::bigint)",
                         ("cano-code:" + self.owner_key,))
+            if goal == SELF_DEVELOPMENT_GOAL:
+                # Preserve all prior immutable receipts. A completed cycle may
+                # advance once; running/blocked/recent cycles never auto-retry.
+                cur.execute(
+                    "SELECT id::text,status,goal,created_at "
+                    "FROM public.cano_code_jobs "
+                    "WHERE owner_key=%s AND goal LIKE %s "
+                    "ORDER BY created_at DESC,id DESC LIMIT 1",
+                    (self.owner_key, SELF_DEVELOPMENT_GOAL + "%"),
+                )
+                latest = cur.fetchone()
+                if latest:
+                    last_id, last_status, last_goal, created_at = latest
+                    blocked_by_status = last_status != "deployed"
+                    recent = (not isinstance(created_at, datetime)
+                              or created_at.tzinfo is None
+                              or datetime.now(timezone.utc) - created_at
+                              < _SELF_DEVELOPMENT_COOLDOWN)
+                    if blocked_by_status or recent:
+                        return {"id": last_id, "status": last_status,
+                                "duplicate": True}
+                    if last_goal == SELF_DEVELOPMENT_GOAL:
+                        cycle = 2
+                    else:
+                        match = _CYCLE_MATCH.fullmatch(last_goal)
+                        if not match:
+                            return {"id": last_id, "status": last_status,
+                                    "duplicate": True}
+                        cycle = int(match.group(1)) + 1
+                    goal = (SELF_DEVELOPMENT_GOAL + "\nDöngü " + str(cycle)
+                            + _CYCLE_SUFFIX)
+                    if len(goal) > 1200:
+                        raise ValueError("Self-development goal exceeds bound")
+            digest = hashlib.sha256(_normalize(goal).encode("utf-8")).hexdigest()
             cur.execute(
                 "SELECT id::text,status FROM public.cano_code_jobs "
                 "WHERE owner_key=%s AND goal_hash=%s",
