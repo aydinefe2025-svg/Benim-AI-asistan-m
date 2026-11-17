@@ -6,6 +6,8 @@ on:
       - fix/cano-render-encrypted-export-20261112
     paths:
       - .github/workflows/cano-exporter-guard-ci.yml
+      - Dockerfile.cano-pg18-export
+      - requirements-persistence.txt
       - scripts/cano_cloud_encrypted_export.py
       - scripts/cano_backup_source_gate.py
       - scripts/cano_encrypted_backup.py
@@ -24,7 +26,7 @@ jobs:
   isolated-offline-tests:
     name: exporter-synthetic-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 12
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -54,3 +56,31 @@ jobs:
         run: python -m unittest discover -s tests -p "test_cano_encrypted_backup.py" -v
       - name: PostgreSQL backup adapter regressions (synthetic only)
         run: python -m unittest discover -s tests -p "test_cano_pg_backup.py" -v
+      - name: Build real exporter Docker image (no secrets or databases)
+        if: runner.os == 'Linux'
+        run: docker build --file Dockerfile.cano-pg18-export --tag cano-exporter:ci .
+
+      - name: Smoke-test fail-closed exporter Docker startup
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          docker run --detach --name cano-exporter-smoke --publish 127.0.0.1:18080:10000 cano-exporter:ci
+          trap 'docker rm --force cano-exporter-smoke >/dev/null 2>&1 || true' EXIT
+          for attempt in {1..20}; do
+            if curl --silent --fail http://127.0.0.1:18080/healthz > /tmp/cano-health.json; then
+              break
+            fi
+            sleep 1
+          done
+          python - <<'PY'
+          import json
+          with open('/tmp/cano-health.json', encoding='utf-8') as stream:
+              data = json.load(stream)
+          assert data['service'] == 'cano-encrypted-export'
+          assert data['api'] == 'owner_only'
+          assert data['offsite_phase'] == 'not_started'
+          assert data['offsite_bytes'] == 0
+          PY
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/v1/archive)"
+          test "$status" = 401
+
