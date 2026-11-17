@@ -316,8 +316,39 @@ st.markdown(
 )
 
 # 💬 SOHBET GEÇMİŞİ VE KULLANICI DENETİMLİ HAFIZA
+# The visible conversation is distinct from explicitly saved knowledge notes.
+# It is loaded per verified OIDC owner from the existing Neon connection.
+if st.session_state.get("_cano_chat_owner") != _OWNER_KEY:
+    st.session_state.pop("messages", None)
+    st.session_state["_cano_chat_owner"] = _OWNER_KEY
+_CHAT_STORE = None
+if _AUTH_REQUIRED and _OWNER_KEY and _MEMORY_DATABASE_URL:
+    try:
+        from core.cano_chat_history import ChatHistoryStore
+        _CHAT_STORE = ChatHistoryStore(_MEMORY_DATABASE_URL, _OWNER_KEY)
+        _CHAT_STORE.verify_schema()
+    except Exception:
+        st.error("CANO sohbet geçmişi Neon bağlantısı doğrulanamadı. Eski kayıtlara dokunulmadı.")
+        st.stop()
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    if _CHAT_STORE is not None:
+        try:
+            st.session_state.messages = _CHAT_STORE.load()
+        except Exception:
+            st.error("CANO sohbet geçmişi yüklenemedi; kayıtlar değiştirilmedi.")
+            st.stop()
+    else:
+        st.session_state.messages = []
+
+
+def _save_cano_chat():
+    if _CHAT_STORE is not None:
+        try:
+            _CHAT_STORE.save(st.session_state.messages)
+        except Exception:
+            st.error("CANO sohbeti Neon'a doğrulanarak kaydedilemedi. Yeni oturum açmayın.")
+            st.stop()
+
 if "saved_memories" not in st.session_state:
     if _MEMORY_STORE is not None:
         try:
@@ -924,6 +955,7 @@ if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
+    _save_cano_chat()
 
     # Explicit memory requests are saved instead of merely promised by an LLM.
     if explicit_memory_request(prompt):
@@ -946,6 +978,7 @@ if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
             except Exception:
                 result = "Kayıt başarısız oldu; hafızaya kaydedildiğini söylemiyorum."
         st.session_state.messages.append({"role": "assistant", "content": result})
+        _save_cano_chat()
         with st.chat_message("assistant"):
             st.markdown(result)
         st.stop()
@@ -961,6 +994,7 @@ if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
             st.markdown(ajan_cevabi)
             
             st.session_state.messages.append({"role": "assistant", "content": ajan_cevabi})
+            _save_cano_chat()
 
 # CANO may propose a code change in normal chat. Its answer remains
 # untrusted content until the OIDC owner explicitly invokes this action.
