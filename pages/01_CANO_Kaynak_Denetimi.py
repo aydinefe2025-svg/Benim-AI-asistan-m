@@ -31,6 +31,7 @@ from core.targeted_research import execute_targeted_research
 from core.scientific_sources import scientific_sources
 
 st.set_page_config(page_title="CANO Kanıt Denetimi", page_icon="📑")
+st.page_link("app.py", label="CANO Sohbet", icon="💬")
 owner = render_auth_gate(st, os.environ)
 st.title("CANO Kaynak–İddia Denetimi")
 st.caption("Bilimsel kaynaktan gerçekten okunan alıntıları kontrol eder; alıntı bulunması iddiayı doğrulamaz.")
