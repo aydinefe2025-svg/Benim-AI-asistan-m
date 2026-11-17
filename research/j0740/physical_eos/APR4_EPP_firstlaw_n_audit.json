@@ -1,0 +1,27 @@
+{
+  "status": "FIRST_LAW_SHAPE_RECONSTRUCTED; ABSOLUTE_CRUST_NORMALIZATION_NOT_ESTABLISHED",
+  "source_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+  "source_rows": 865,
+  "m_avg_geom_m": 1.2429719257281245e-54,
+  "n_source_equals_e_over_m_avg_max_relative_error": 0.0,
+  "mu_proxy_over_enthalpy_first_law_log_residual_max_abs": 0.6241072834793606,
+  "first_law_shape": "n(mu0)=(e+p)*exp(-h)/mu0; mu0 is the physical zero-pressure baryon chemical potential",
+  "first_law_shape_times_mu0_units": "m^-2",
+  "firstlaw_n_over_source_n_if_mu0_mavg": {
+    "first_row": 0.9984707364081534,
+    "last_row": 0.5349201917096186,
+    "min": 0.5349201917096186,
+    "max": 0.9984707364081534
+  },
+  "first_acausal_sample_index": 812,
+  "first_acausal_p_geom_m-2": 7.212135090344588e-10,
+  "first_acausal_cs2": 1.0290674703621383,
+  "peak_cs2": 1.0982782452928908,
+  "peak_cs2_index": 813,
+  "source_shell_anchor_available_in_npz": false,
+  "physical_mu0_value": null,
+  "limitation": "The NPZ starts at P=1e26 Pa and contains no low-pressure crust table or surface chemical-potential anchor. n(mu0) supplies shape only; do not relabel a chosen m_avg or neutron mass as validated APR4 crust normalization.",
+  "original_source_modified": false,
+  "csv_sha256": "ce442eeef79753872a268e67ae5a98a7db80d5d2d5864a4e87a0c2e6c974dfd1",
+  "script_sha256": "a8f498a2689c3ac7eb91a53409beea1c9b583a560dff8930de1de29dd144f16c"
+}
