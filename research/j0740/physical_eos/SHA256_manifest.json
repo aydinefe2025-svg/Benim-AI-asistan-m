@@ -1,19 +1,108 @@
 {
-  "created_utc": "2026-11-17T10:09:52.6929819Z",
+  "created_utc": "2026-11-17T14:23:53.7177891Z",
+  "status": "SOURCE_VALIDATED_CAUSAL_CANDIDATE_TOV_ESTABLISHED; ROTATING_NEW_MODEL_AND_EOS_BAYES_NOT_RUN; ABSOLUTE_BARYON_NORMALIZATION_NOT_ESTABLISHED",
   "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
-  "status": "PARTIAL_PHYSICAL_AUDIT; native source identity and physical EOS Bayes not established",
   "artifacts": [
     {
+      "file": "APR4_causal_candidate_tests.json",
+      "sha256": "381397f9ca7ca7bc38b4b26f769a515155d97bbb85f8db94e37cc62782865835",
+      "bytes": 1660
+    },
+    {
+      "file": "APR4_causal_cut_TOV_sequence.csv",
+      "sha256": "a0eb3f9c9d16376dd9d82244edf148ff180ae4ee13cc9c3103ae460dd3e27b06",
+      "bytes": 14625
+    },
+    {
+      "file": "APR4_causal_cut_TOV.json",
+      "sha256": "32e2efdd4c2def3bb34546dbfb5a60b3eb5f174f49674f20569e0bf5f35893be",
+      "bytes": 99303
+    },
+    {
+      "file": "apr4_causal_cut_tov.py",
+      "sha256": "dc206afd0be1e0536c49aa094d10b73ab71e6b8e9e2c21442c134417d52628f4",
+      "bytes": 9170
+    },
+    {
       "file": "APR4_EPP_firstlaw_n_audit.json",
-      "sha256": "c5dbd796bc3bda67c5afe8949c5f0c572fae8ff16f3a4e15c988bb53ce23ea56"
+      "sha256": "c5dbd796bc3bda67c5afe8949c5f0c572fae8ff16f3a4e15c988bb53ce23ea56",
+      "bytes": 1465
     },
     {
       "file": "APR4_EPP_firstlaw_n_shape.csv",
-      "sha256": "ce442eeef79753872a268e67ae5a98a7db80d5d2d5864a4e87a0c2e6c974dfd1"
+      "sha256": "ce442eeef79753872a268e67ae5a98a7db80d5d2d5864a4e87a0c2e6c974dfd1",
+      "bytes": 136500
     },
     {
       "file": "apr4_firstlaw_n_audit.py",
-      "sha256": "a8f498a2689c3ac7eb91a53409beea1c9b583a560dff8930de1de29dd144f16c"
+      "sha256": "a8f498a2689c3ac7eb91a53409beea1c9b583a560dff8930de1de29dd144f16c",
+      "bytes": 4541
+    },
+    {
+      "file": "APR4_maximally_stiff_completion_TOV_sequence.csv",
+      "sha256": "b638fa35aea96144b974568e57056305174e9a0d5273719ff33144e9b619f99a",
+      "bytes": 14580
+    },
+    {
+      "file": "APR4_native_LAL_causal_candidate_test_results.json",
+      "sha256": "50e61d13e4324a62288b144acc5d0356537981e7d6c7d841f1697f681e286608",
+      "bytes": 2033
+    },
+    {
+      "file": "APR4_native_LAL_causal_completion_TOV_sequence.csv",
+      "sha256": "46af3fffce79dc289b8d2d627525e41ce7efd4a3935c197015b63ec01faf2482",
+      "bytes": 14565
+    },
+    {
+      "file": "APR4_native_LAL_causal_completion_TOV.json",
+      "sha256": "617e6fa177ea17e441e5297ae7807e9d314a609790b9e7e30c4926774a0aee46",
+      "bytes": 49543
+    },
+    {
+      "file": "JESTER_pinned_APR4_EPP.npz",
+      "sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+      "bytes": 56300
+    },
+    {
+      "file": "LALSimNeutronStarEOS_APR4_EPP_7.26.4.dat",
+      "sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+      "bytes": 72350
+    },
+    {
+      "file": "LALSimNeutronStarEOS_APR4_EPP_native_7.26.4.dat",
+      "sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+      "bytes": 72350
+    },
+    {
+      "file": "LALSimNeutronStarEOSTabular_7.26.4.c",
+      "sha256": "c92f7b25af8ba746ca00aec90b9c1b50713f980bcdbeb301387d7224730d8288",
+      "bytes": 7115
+    },
+    {
+      "file": "LALSimNeutronStarEOSTabular_native_7.26.4.c",
+      "sha256": "1c84c672e663d853b1ef87f9bb23520e85ab007c2b4e66048d2abc82bc7825df",
+      "bytes": 23457
+    },
+    {
+      "file": "native_lalsuite_apr4_causal_model.py",
+      "sha256": "b2fe5807ad3bcbee9dbef034ac7dacb36c0418482d4d12667b04d019177df9b1",
+      "bytes": 14468
+    },
+    {
+      "file": "README.md",
+      "sha256": "297faf382a28bf62ce2e8e4d8113e72ba05eda96790c4ba3811ae65eba7fe7ea",
+      "bytes": 3041
+    },
+    {
+      "file": "test_apr4_causal_candidate.py",
+      "sha256": "7d74d5f2a6dc684fdf1b0af8cbbb37510933348d231830b34ecd4dd262004fc6",
+      "bytes": 6828
+    },
+    {
+      "file": "test_native_lalsuite_apr4_causal_model.py",
+      "sha256": "695e2edc1d42ff49f697252cb41266be77ad3fd9d9b279f7e2f6fcf26ebe8d69",
+      "bytes": 5952
     }
   ]
 }
+
