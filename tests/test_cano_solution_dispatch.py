@@ -61,7 +61,9 @@ class CanoNaturalCodeDispatchTests(unittest.TestCase):
         source = ast.parse(app_file.read_text(encoding="utf-8"))
         node = next(n for n in source.body
                     if isinstance(n, ast.FunctionDef) and n.name == "asistani_calistir")
-        state = {"messages": []}
+        state = {"messages": [],
+                 "_cano_chat_task_pending": {"task": "old draft", "id": "old-id"},
+                 "cano_chat_request_id": {"task": "old draft", "id": "old-id"}}
         queued = []
 
         class RecordingJobStore:
@@ -90,3 +92,4 @@ class CanoNaturalCodeDispatchTests(unittest.TestCase):
         self.assertEqual(queued[0][:2], ("isolated-test-dsn", "isolated-test-owner"))
         self.assertIn("RED", queued[0][2])
         self.assertNotIn("_cano_chat_task_pending", state)
+        self.assertNotIn("cano_chat_request_id", state)
