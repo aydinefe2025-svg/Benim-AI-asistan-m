@@ -1,0 +1,83 @@
+name: J0740 APR4 unrounded fixed-M and spin RNS root
+
+on:
+  push:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - research/j0740/rotating_gr/precise_apr4_mass_spin_root.py
+      - research/j0740/rotating_gr/test_precise_apr4_mass_spin_root.py
+      - .github/workflows/j0740-apr4-precise-mass-spin-root.yml
+  pull_request:
+    paths:
+      - research/j0740/rotating_gr/precise_apr4_mass_spin_root.py
+      - research/j0740/rotating_gr/test_precise_apr4_mass_spin_root.py
+      - .github/workflows/j0740-apr4-precise-mass-spin-root.yml
+
+permissions:
+  contents: read
+
+jobs:
+  precise-apr4-root:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - run: python -m pip install numpy
+      - name: Unit tests for output precision and two-constraint safeguards
+        working-directory: research/j0740/rotating_gr
+        run: python -m unittest -v test_precise_apr4_mass_spin_root
+      - name: Patch only RNS final diagnostic output precision and preserve upstream hash
+        run: |
+          python research/j0740/rotating_gr/precise_apr4_mass_spin_root.py \
+            --patch-only \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
+            --rns-source rns-upstream/rns.c \
+            --binary rns-upstream/rns_151x301 rns-upstream/rns_201x401 \
+            --work results/work \
+            --out results/work/not_used.json \
+            --patch-metadata results/rns_print_patch.json \
+            --expected-npz-sha256 639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88
+      - name: Compile pinned RNS C solver at both spatial grids
+        run: |
+          make -C rns-upstream CC='gcc -include stdlib.h' rns
+          cp rns-upstream/rns rns-upstream/rns_151x301
+          rm -f rns-upstream/*.o rns-upstream/rns
+          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+          cp rns-upstream/rns rns-upstream/rns_201x401
+      - name: Solve independent exact-mass and exact-spin roots on both grids
+        run: |
+          python research/j0740/rotating_gr/precise_apr4_mass_spin_root.py \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
+            --rns-source rns-upstream/rns.c \
+            --binary rns-upstream/rns_151x301 rns-upstream/rns_201x401 \
+            --work results/work \
+            --out results/J0740_APR4_PRECISE_RNS_MF_ROOT.json \
+            --patch-metadata results/rns_print_patch.json \
+            --expected-npz-sha256 639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88
+      - name: Preserve all successful and failed root traces
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: j0740-apr4-precise-rns-mf-root
+          path: results
+          if-no-files-found: warn
+          retention-days: 30
+
