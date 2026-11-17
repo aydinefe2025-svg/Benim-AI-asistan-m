@@ -20,6 +20,7 @@ class MissingSecretsTests(unittest.TestCase):
         errors = []
         streamlit = types.ModuleType("streamlit")
         streamlit.secrets = secrets
+        streamlit.sidebar = types.SimpleNamespace(page_link=lambda *a, **kw: None)
         streamlit.set_page_config = lambda **kwargs: None
         streamlit.error = lambda msg: errors.append(str(msg))
 
@@ -81,6 +82,7 @@ class MissingSecretsTests(unittest.TestCase):
                 self[name] = value
         streamlit.session_state = FakeSessionState(messages=[])
         streamlit.sidebar = types.SimpleNamespace(
+            page_link=lambda *a, **kw: None,
             expander=lambda *a, **kw: nullcontext(),
             caption=lambda *a, **kw: None,
             title=lambda *a: None,
