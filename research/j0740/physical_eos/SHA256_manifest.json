@@ -1,0 +1,19 @@
+{
+  "created_utc": "2026-11-17T10:09:52.6929819Z",
+  "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+  "status": "PARTIAL_PHYSICAL_AUDIT; native source identity and physical EOS Bayes not established",
+  "artifacts": [
+    {
+      "file": "APR4_EPP_firstlaw_n_audit.json",
+      "sha256": "c5dbd796bc3bda67c5afe8949c5f0c572fae8ff16f3a4e15c988bb53ce23ea56"
+    },
+    {
+      "file": "APR4_EPP_firstlaw_n_shape.csv",
+      "sha256": "ce442eeef79753872a268e67ae5a98a7db80d5d2d5864a4e87a0c2e6c974dfd1"
+    },
+    {
+      "file": "apr4_firstlaw_n_audit.py",
+      "sha256": "a8f498a2689c3ac7eb91a53409beea1c9b583a560dff8930de1de29dd144f16c"
+    }
+  ]
+}
