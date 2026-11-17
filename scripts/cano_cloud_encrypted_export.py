@@ -133,8 +133,10 @@ def _worker():
     try:
         if not configured():
             raise BackupError('Required owner-only configuration is missing')
-        stage = 'source_inventory'
-        if _source_table_count() < 1:
+        stage = 'source_inventory_query'
+        source_tables = _source_table_count()
+        if source_tables < 1:
+            stage = 'source_inventory_empty'
             raise BackupError('No user tables at the pinned Render source')
         stage = 'application_scope'
         preflight = _require_application_source()

@@ -74,8 +74,16 @@ class SecurityTests(unittest.TestCase):
                    side_effect=RuntimeError('postgres://secret-password')):
             _worker()
         self.assertEqual('failed', _state['phase'])
-        self.assertEqual('source_inventory', _state['error'])
+        self.assertEqual('source_inventory_query', _state['error'])
         self.assertNotIn('secret-password', _state['error'])
+
+    def test_worker_identifies_empty_source_without_exposing_details(self):
+        _state.update(phase='idle', error='')
+        with patch('scripts.cano_cloud_encrypted_export.configured', return_value=True), \
+             patch('scripts.cano_cloud_encrypted_export._source_table_count', return_value=0):
+            _worker()
+        self.assertEqual('failed', _state['phase'])
+        self.assertEqual('source_inventory_empty', _state['error'])
 
 if __name__ == '__main__':
     unittest.main()
