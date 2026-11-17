@@ -215,7 +215,7 @@ class CommandCenterTests(unittest.TestCase):
             pending = manager.pending_lesson(mission_id)
             self.assertIsNotNone(pending)
             self.assertEqual(pending["accepted"], 0)
-            self.assertTrue(any("Öğrenme adayı" in x for x in st.messages))
+            self.assertIn(pending["lesson"], st.messages)
             self.assertEqual(len(model.calls), 4)
 
             st.checkbox_values["cano_confirm_pending_lesson_" + mission_id] = True
