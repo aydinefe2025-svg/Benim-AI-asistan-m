@@ -426,13 +426,19 @@ def verify_encrypted_backup(receipt_path: Path,*,key_env='CANO_BACKUP_KEY_HEX')-
 
 
 def restore_to_empty_database(path:Path,*,target_db_url_env='CANO_RESTORE_DATABASE_URL',
-                              confirm:bool=False,psql_bin='psql',restore_bin='pg_restore') -> dict:
+                              confirm:bool=False,psql_bin='psql',restore_bin='pg_restore',
+                              max_seconds:float=450) -> dict:
     """Never restore to production: only explicitly named, EMPTY cano_restore_* DB.
 
     Entire ciphertext is authenticated before any psql or pg_restore is executed.
     Decrypted archive streams to pg_restore stdin; no plaintext dump on disk.
     """
     if not confirm:raise BackupError('Explicit empty isolated restore confirmation required')
+    # The owner runner has a 600-second outer limit. A blocking stdin.write()
+    # must never silently outlive it. Leave preflight and teardown headroom.
+    if (type(max_seconds) not in (int, float)
+            or not math.isfinite(max_seconds) or not 0 < max_seconds <= 480):
+        raise BackupError('Invalid isolated restore deadline')
     url=os.getenv(target_db_url_env,'')
     try: parts=urlsplit(url)
     except ValueError:raise BackupError('Invalid isolated restore target') from None
@@ -474,17 +480,44 @@ def restore_to_empty_database(path:Path,*,target_db_url_env='CANO_RESTORE_DATABA
         raise BackupError('Isolated restore database is not empty or inaccessible')
     process=None
     try:
+        deadline=time.monotonic()+max_seconds
         process=subprocess.Popen([restore,'--no-password','--single-transaction',
                '--exit-on-error','--no-owner','--no-privileges','--dbname',target],
                stdin=subprocess.PIPE,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,env=env)
         assert process.stdin is not None
-        try:
-            second=decrypt_to_sink(path,process.stdin.write,expected_proof=proof)
-            if second['plaintext_sha256']!=proof['plaintext_sha256'] or second['plaintext_size_bytes']!=proof['plaintext_size_bytes']:
-                raise BackupError('Archive changed between authentication and restore')
-        finally:
-            process.stdin.close()
-        if process.wait(timeout=900)!=0:raise BackupError('Isolated restore failed')
+        outcome=[]
+        def write_authenticated_archive():
+            try:
+                second=decrypt_to_sink(path,process.stdin.write,expected_proof=proof)
+                if (second['plaintext_sha256']!=proof['plaintext_sha256'] or
+                        second['plaintext_size_bytes']!=proof['plaintext_size_bytes']):
+                    raise BackupError('Archive changed between authentication and restore')
+                outcome.append(None)
+            except Exception as error:
+                outcome.append(error)
+            finally:
+                try:
+                    process.stdin.close()
+                except (OSError,ValueError):
+                    pass
+
+        # process.wait(timeout=...) cannot bound an OS pipe.write. Kill the
+        # child on deadline to release a feeder blocked in the native pipe.
+        feeder=threading.Thread(target=write_authenticated_archive,daemon=True,
+                                name='cano-pgrestore-pipe')
+        feeder.start()
+        feeder.join(timeout=max(0,deadline-time.monotonic()))
+        if feeder.is_alive():
+            raise BackupError('Isolated restore feed timeout')
+        if len(outcome)!=1 or outcome[0] is not None:
+            if len(outcome)==1 and isinstance(outcome[0],BackupError):
+                raise outcome[0]
+            raise BackupError('Isolated restore feed failed')
+        remaining=deadline-time.monotonic()
+        if remaining<=0:
+            raise BackupError('Isolated restore completion timeout')
+        if process.wait(timeout=remaining)!=0:
+            raise BackupError('Isolated restore failed')
         return {'restored_to_new_database':True,'authenticated':True,
                 'plaintext_sha256':proof['plaintext_sha256'],
                 'target_database_name':target,
@@ -493,7 +526,11 @@ def restore_to_empty_database(path:Path,*,target_db_url_env='CANO_RESTORE_DATABA
         raise BackupError('Isolated restore failed (details redacted)') from None
     finally:
         if process is not None and process.poll() is None:
-            process.kill();process.wait()
+            process.kill()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                pass
 
 
 def main():
