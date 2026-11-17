@@ -28,6 +28,8 @@ def parse_task_request(message):
         "cano'yu gelistir", "cano yu gelistir", "modeli gelistir",
         "herseyi senin yapmani istiyorum", "her seyi senin yapmani istiyorum",
         "hepsini senin yapmani istiyorum",
+        "ilerle gelistir", "gelistirmeye devam et",
+        "devam et ve gelistir", "iyilestirmeye devam et",
     ))
     if self_improvement_request:
         return ("CANO için ölçülebilir gelişim önerisi hazırla: inceleme bekleyen "
@@ -41,6 +43,7 @@ def parse_task_request(message):
             task = text[len(prefix):].strip()
             return task if 1 <= len(task) <= 1200 else None
     return None
+
 
 def format_task_result(result):
     """Present saved role outputs with the real execution status and ID."""
