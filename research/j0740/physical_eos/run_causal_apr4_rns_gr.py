@@ -72,7 +72,7 @@ def run(args):
             "jester_npz_expected_sha256":NPZ_SHA,"rns_upstream_commit":RNS_COMMIT},
         "tables":{},"direct_RNS_models":[],"checks":{}}
     def checkpoint():
-        out.write_text(json.dumps(record,sort_keys=True,indent=2,allow_nan=False)+"\n",encoding="utf-8")
+        out.write_text(json.dumps(record,sort_keys=True,indent=2,allow_nan=False,default=lambda x: x.item() if isinstance(x,np.generic) else (_ for _ in ()).throw(TypeError(type(x).__name__)))+"\n",encoding="utf-8")
     checkpoint()
     try:
         if sha256(args.native_table)!=LAL_TABLE_SHA:raise ValueError("native LAL 7.26.4 table SHA mismatch")
