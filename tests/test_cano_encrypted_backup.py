@@ -264,11 +264,41 @@ class EncryptedBackupTests(unittest.TestCase):
         self.assertFalse(self.target.exists())
 
     def test_reject_symlink_destination_and_archive(self):
-        link=self.root/'link';link.symlink_to(self.root,target_is_directory=True)
+        link=self.root/'link'
+        try:
+            link.symlink_to(self.root,target_is_directory=True)
+        except OSError as error:
+            if os.name == 'nt' and getattr(error, 'winerror', None) == 1314:
+                self.skipTest('Windows symlink creation requires an unavailable privilege')
+            raise
         with self.assertRaises(BackupError):make_encrypted_backup(link,dump_bin=self.fake)
         result=make_encrypted_backup(self.target,dump_bin=self.fake)
-        archive=Path(result['archive']);archive.unlink();archive.symlink_to(self.dump)
+        archive=Path(result['archive'])
+        archive.unlink()
+        try:
+            archive.symlink_to(self.dump)
+        except OSError as error:
+            if os.name == 'nt' and getattr(error, 'winerror', None) == 1314:
+                self.skipTest('Windows file symlink creation requires an unavailable privilege')
+            raise
         with self.assertRaises(BackupError):verify_encrypted_backup(Path(result['receipt']))
+
+    def test_symlink_guards_even_without_windows_symlink_privilege(self):
+        # Keep guarding both destinations and archive readback on restricted
+        # Windows runners, where real os.symlink raises WinError 1314.
+        link=self.root/'synthetic-dir-link'
+        with patch('cano_encrypted_backup.Path.is_symlink',
+                   autospec=True, side_effect=lambda p: p == link):
+            with self.assertRaises(BackupError):
+                make_encrypted_backup(link,dump_bin=self.fake)
+        self.assertFalse(link.exists())
+        result=make_encrypted_backup(self.target,dump_bin=self.fake)
+        archive=Path(result['archive'])
+        with patch('cano_encrypted_backup.Path.is_symlink',
+                   autospec=True, side_effect=lambda p: p == archive):
+            with self.assertRaises(BackupError):
+                verify_encrypted_backup(Path(result['receipt']))
+
 
     def test_restore_requires_separate_safe_target_without_process_call(self):
         result=make_encrypted_backup(self.target,dump_bin=self.fake)
