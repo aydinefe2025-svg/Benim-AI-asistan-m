@@ -24,9 +24,7 @@ jobs:
     timeout-minutes: 35
     permissions:
       actions: write
-      contents: read
     steps:
-      - uses: actions/checkout@v5
       - name: Verify the source run published a validated report
         id: report
         env:
@@ -35,10 +33,13 @@ jobs:
         run: |
           set -euo pipefail
           report_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/cano-latest/colony-cycle.json"
+          gate_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/scripts/cano_continuation_gate.py"
           report_file="$(mktemp)"
-          trap 'rm -f "${report_file}"' EXIT
+          gate_file="$(mktemp)"
+          trap 'rm -f "${report_file}" "${gate_file}"' EXIT
           curl --fail --silent --show-error --max-time 15 "${report_url}" --output "${report_file}"
-          python scripts/cano_continuation_gate.py \
+          curl --fail --silent --show-error --max-time 15 "${gate_url}" --output "${gate_file}"
+          python "${gate_file}" \
             --report "${report_file}" \
             --source-run-id "${SOURCE_RUN_ID}" \
             --output "${GITHUB_OUTPUT}"
