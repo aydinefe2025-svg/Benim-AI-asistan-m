@@ -620,8 +620,12 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     # A signed-in user's explicit code instruction creates a real durable job;
     # never pass this instruction to the text-only four-stage mission runner.
     from core.cano_code_jobs import CodeJobStore, parse_code_request
+    from core.cano_solution_dispatch import infer_code_goal
     try:
         code_goal = parse_code_request(kullanici_mesaji)
+        if code_goal is None:
+            code_goal = infer_code_goal(
+                kullanici_mesaji, st.session_state.get("messages", []))
     except ValueError:
         return ("CANO kod isteği reddedildi: hedef 8–1200 karakter olmalı ve "
                 "parola, bağlantı anahtarı veya özel anahtar içermemelidir.")
@@ -898,6 +902,50 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+
+# CANO may propose a code change in normal chat. Its answer remains
+# untrusted content until the OIDC owner explicitly invokes this action.
+_last_solution = next(
+    (m.get("content", "") for m in reversed(st.session_state.messages)
+     if isinstance(m, dict) and m.get("role") == "assistant"
+     and isinstance(m.get("content"), str)),
+    "",
+)
+if (_AUTH_REQUIRED and _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL")):
+    from core.cano_solution_dispatch import actionable_solution, infer_code_goal
+    if actionable_solution(_last_solution):
+        if st.button("🛠️ Bu çözümü gerçekten uygula",
+                     key="cano_code_apply_previous_solution"):
+            _implementation_goal = infer_code_goal(
+                "CANO bunu uygula", st.session_state.messages)
+            if _implementation_goal is None:
+                st.warning("Öneri kod işine dönüştürülemedi; kayıt yapılmadı.")
+            else:
+                from core.cano_code_jobs import CodeJobStore
+                try:
+                    _code_receipt = CodeJobStore(
+                        os.environ["AGENT_TASK_DATABASE_URL"], _OWNER_KEY,
+                    ).enqueue(_implementation_goal)
+                    _result = (
+                        "🛠️ CANO kod işi kalıcı kuyruğa alındı: "
+                        + _code_receipt["id"][:8]
+                        + " · Durum: " + _code_receipt["status"]
+                        + (" · Tekrar kayıt yok." if _code_receipt["duplicate"] else "")
+                    )
+                    st.session_state.messages.append({
+                        "role": "user",
+                        "content": "CANO önceki yazılım çözümünü uygula",
+                    })
+                    st.session_state.messages.append({
+                        "role": "assistant", "content": _result,
+                    })
+                    st.rerun()
+                except Exception as exc:
+                    logging.getLogger(__name__).warning(
+                        "CANO solution enqueue rejected: category=%s",
+                        type(exc).__name__,
+                    )
+                    st.error("Kod işi kaydedilemedi; önceki kayıtlar değiştirilmedi.")
 
 # ✍️ KULLANICI GİRİŞ ALANI
 st.caption("CANO ekibine gerçekten görev vermek için ‘CANO görev:’ yazıp hedefi ekleyin. "
