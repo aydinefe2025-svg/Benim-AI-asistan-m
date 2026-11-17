@@ -54,6 +54,25 @@ def infer_code_goal(message, history):
         return None  # Existing explicit code or specialist task router owns this.
     if "?" in message or re.search(r"\b(misin|musun|miyiz|miyim)\b", normalized):
         return None
+    # An explicit self-development command is a request for one bounded
+    # developer job, not an invitation to generate another model-only plan.
+    # Keep the goal stable so the persistent queue can deduplicate retries.
+    if normalized.rstrip("!.") in {
+        "kendini gelistir", "kendini gelistir cano",
+        "cano kendini gelistir",
+        "cano kendini gelistirmeye devam et",
+    }:
+        return (
+            "CANO web uygulamasında doğrulanabilir bir yazılım iyileştirmesi yap: "
+            "mevcut kod, test ve son gerçek hata kanıtını incele; tek bir küçük "
+            "kullanıcı sorunu için başarısız RED testi oluştur, en dar kod "
+            "düzeltmesini uygula, GREEN ve regresyon testlerini çalıştır. "
+            "GitHub PR/CI makbuzu oluştur; güvenlik kapıları geçmeden "
+            "birleştirme veya Render yayını yapma. Aynı görevi kopyalama; "
+            "sırları, kullanıcı verisini, onaylı dersleri ve model "
+            "ağırlıklarını izinsiz değiştirme. Ölçülebilir fark yoksa "
+            "başarı iddiası yerine gerekçeli engel kaydet."
+        )
     direct = (
         normalized.startswith("cano ")
         and any(word in normalized for word in (
