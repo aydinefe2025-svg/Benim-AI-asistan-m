@@ -19,6 +19,7 @@ class PreciseRNSRootTests(unittest.TestCase):
             patched = path.read_text(encoding="utf-8")
         self.assertEqual(evidence["replacement_count"], 1)
         self.assertEqual(evidence["scope"], "final printf format only; no solver arithmetic changed")
+        self.assertIn(r'%.17g\n",', patched)
         self.assertIn("star.Mass_0/MSUN", patched)
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "drifted.c"
