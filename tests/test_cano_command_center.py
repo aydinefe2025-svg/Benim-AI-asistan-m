@@ -237,7 +237,7 @@ class CommandCenterTests(unittest.TestCase):
                 self.calls.append(prompt)
                 if len(self.calls) == 3:
                     return (
-                        "İnceleme: daha iyi kaynak kanıtı gerekiyor.\\n"
+                        "İnceleme: daha iyi kaynak kanıtı gerekiyor.\n"
                         "CANO_LESSON_CANDIDATE: Kaynak iddialarını birincil "
                         "kanıtlarla eşleştir; doğrulanmamış bilgiyi ayır."
                     )
