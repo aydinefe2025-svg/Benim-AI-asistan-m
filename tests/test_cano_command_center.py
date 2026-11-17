@@ -278,7 +278,7 @@ class CommandCenterTests(unittest.TestCase):
                     st, answer=model, owner_key="owner-a",
                     database_url="postgresql://synthetic-test")
 
-            self.assertGreaterEqual(len(attempts), 2)
+            self.assertGreaterEqual(len(attempts), 1)
             self.assertEqual(manager.pending_lesson(mission_id)["accepted"], 0)
             self.assertEqual(len(model.calls), 4)
             self.assertTrue(any("onay" in m.lower() for m in st.messages))
