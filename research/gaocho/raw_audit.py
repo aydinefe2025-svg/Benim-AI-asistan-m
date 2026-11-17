@@ -47,7 +47,7 @@ if payload is None:
     sys.exit(2)
 
 def wind_from_path(path):
-    m = re.search(r"(?<!\d)(0\.\d+|[1-5]\.\d+)\s*(?:m/?s|mps|m_s)(?![a-z])", path, flags=re.I)
+    m = re.search(r"(?<!\d)(0\.\d+|[1-5]\.\d+)\s*(?:m/?s|mps|m_s|m per second)(?![a-z])", path, flags=re.I)
     return float(m.group(1)) if m else None
 
 def slope_and_r2(x, y):
@@ -61,6 +61,7 @@ def slope_and_r2(x, y):
     return s, r2
 
 def parse_tsv(zf, member):
+    member = member.filename if hasattr(member, 'filename') else member
     sample = []
     rows = []
     examples = []
