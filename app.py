@@ -652,6 +652,10 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
                 "CANO web code enqueue rejected: category=%s", type(exc).__name__)
             return ("CANO kod işi kalıcı kuyruğa yazılamadı; görev başlatılmadı. "
                     "Veriler veya GitHub deposu değiştirilmedi.")
+        # A successfully accepted code job replaces any stale four-stage
+        # mission preview left by older chat turns. A failed enqueue does not.
+        st.session_state.pop("_cano_chat_task_pending", None)
+        st.session_state.pop("cano_chat_request_id", None)
         return (
             "🛠️ CANO kod işi kalıcı kuyruğa alındı.\n\n"
             f"İş kimliği: `{receipt['id'][:8]}` · Durum: `{receipt['status']}`\n\n"
