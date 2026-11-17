@@ -375,6 +375,69 @@ class EncryptedBackupTests(unittest.TestCase):
         self.assertLess(time.monotonic()-start,5.0)
         self.assertEqual(list(self.target.iterdir()),[])
 
+    def test_restore_pipe_write_timeout_kills_child_before_outer_runner_deadline(self):
+        """A blocked pg_restore stdin must not outlive the 600s owner runner."""
+        import threading
+        from types import SimpleNamespace
+
+        writing = threading.Event()
+        cancelled = threading.Event()
+
+        class BlockingPipe:
+            def write(self, data):
+                writing.set()
+                if not cancelled.wait(timeout=3):
+                    raise AssertionError("Blocked synthetic restore pipe was not cancelled")
+                raise BrokenPipeError("synthetic child terminated")
+
+            def close(self):
+                pass
+
+        class FakeRestore:
+            def __init__(self):
+                self.stdin = BlockingPipe()
+                self.killed = False
+
+            def poll(self):
+                return -9 if self.killed else None
+
+            def kill(self):
+                self.killed = True
+                cancelled.set()
+
+            def wait(self, timeout):
+                return -9 if self.killed else 0
+
+        child = FakeRestore()
+        proof = {'plaintext_sha256': '0' * 64, 'plaintext_size_bytes': 15}
+
+        def synthetic_decrypt(_path, sink, **_kwargs):
+            if sink is not None:
+                sink(b'PGDMP synthetic')
+            return proof
+
+        with patch.dict(os.environ, {
+            'RESTORE_URL': 'postgresql://user:other@localhost/cano_restore_deadline',
+        }):
+            with patch('cano_encrypted_backup.decrypt_to_sink',
+                       side_effect=synthetic_decrypt):
+                with patch('cano_encrypted_backup.shutil.which',
+                           return_value='/synthetic/client'):
+                    with patch('cano_encrypted_backup.subprocess.run',
+                               return_value=SimpleNamespace(returncode=0, stdout=b'0')):
+                        with patch('cano_encrypted_backup.subprocess.Popen',
+                                   return_value=child):
+                            started = time.monotonic()
+                            with self.assertRaisesRegex(BackupError, 'timeout'):
+                                restore_to_empty_database(
+                                    self.root / 'synthetic-only.canoenc',
+                                    target_db_url_env='RESTORE_URL',
+                                    confirm=True, max_seconds=0.12,
+                                )
+                            self.assertLess(time.monotonic() - started, 2)
+        self.assertTrue(writing.is_set())
+        self.assertTrue(child.killed)
+
     def test_receipt_archive_name_cannot_traverse(self):
         self.target.mkdir();receipt=self.target/'evil.receipt.json'
         receipt.write_text(json.dumps({'archive':'../stolen.canoenc'}))
