@@ -27,6 +27,19 @@ class CanoSelfImprovementIntentTests(unittest.TestCase):
         self.assertEqual("3D baskı projesini analiz et",
                          parse_task_request("CANO görev: 3D baskı projesini analiz et"))
 
+    def test_continued_development_commands_enter_task_preview(self):
+        for query in (
+            "İLERLE GELİŞTİR",
+            "Geliştirmeye devam et",
+            "Devam et ve geliştir",
+            "İyileştirmeye devam et",
+        ):
+            with self.subTest(query=query):
+                task = parse_task_request(query)
+                self.assertIsNotNone(task)
+                self.assertIn("öneri hazırla", task)
+                self.assertIn("önerileri otomatik uygulama", task)
+
     def test_research_or_design_requests_are_not_swallowed(self):
         self.assertIsNone(capability_reply("Kendini geliştiren bir robot tasarla"))
         self.assertIsNone(capability_reply("CANO için güneş enerjisi araştır"))
