@@ -1,17 +1,17 @@
 {
-  "checks": 16,
+  "checks": 21,
   "files": {
     "J0740_JESTER_APR4_LALSUITE_PROVENANCE_20261117.json": {
-      "bytes": 3793,
-      "sha256": "a4ccdbaa7cc24ea3cbf9bb54f6f41cbaac2d0174ab4d65a41a4401b446bc1207"
+      "bytes": 5035,
+      "sha256": "f457ee8fce22e22a5ae788ecc86972e0787a89f59921cbbca05faae74391f4fa"
     },
     "J0740_JESTER_APR4_LALSUITE_PROVENANCE_TESTS_20261117.txt": {
       "bytes": 144,
-      "sha256": "7d2879e24955ee03eb5ed98deb0123cbc00b57389917baebaf96991e4453734c"
+      "sha256": "9d8ab1e339f3e3276a6fed19fabc9ffffe97ca22bda605ba1670b910ea955c91"
     },
     "audit_jester_apr4_lalsuite_provenance_20261117.py": {
-      "bytes": 2785,
-      "sha256": "31c9b1be0af4dfdb5678bc26d49dfeb52e45d5c95239f168c301e11eb8a4b06d"
+      "bytes": 3325,
+      "sha256": "ece579ee3d5af2c2153d78b0f4bfb13ba496c1418170843dfb8e295fe1e46424"
     }
   },
   "result": "PASS",

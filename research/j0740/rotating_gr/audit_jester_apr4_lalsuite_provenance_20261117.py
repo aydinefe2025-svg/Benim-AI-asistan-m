@@ -27,13 +27,21 @@ def main() -> None:
     assert facts["documented_install_command"] == 'uv pip install -e ".[dev]"'
     assert doc["dependency_lineage"]["pyproject_dev_requirement"] == "lalsuite (unversioned)"
     assert doc["dependency_lineage"]["lockfile_resolution"] == "lalsuite==7.26.4"
+    event = doc["table_introduction_event"]
+    assert event["repository_commit"] == "882e4cd65c24b6fde82bea9e03273de4a680828a"
+    assert event["apr4_table_status"].startswith("added in this commit")
+    assert event["generator_at_introduction"]["sha256"] == (
+        "87adc459f68a32679fecc077992f9c4a59e45f22da1a42d1c3f56060e4a6ad1d"
+    )
+    assert event["uv_lock_at_introduction"]["lalsuite_resolution"] == "7.26.4"
+    assert event["pyproject_at_introduction"]["lalsuite_requirement"].startswith("unversioned")
     gates = doc["physical_gates"]
     assert gates["generator_method_and_approximate_n"] == "VERIFIED_FROM_PINNED_SOURCE"
-    assert gates["project_lock_resolution"] == "VERIFIED_7_26_4"
+    assert gates["project_lock_resolution"].startswith("LALSUITE_7_26_4_LOCK_PRESENT")
     assert gates["exact_npz_producer_binary"] == "NOT_ESTABLISHED"
     assert gates["apr4_p0_crust_and_absolute_baryon_normalization"] == "NOT_ESTABLISHED"
     assert gates["eos_bayes"] == "NOT_RUN"
-    summary = {"status": "PASS", "checks": 16,
+    summary = {"status": "PASS", "checks": 21,
                "evidence_sha256": hashlib.sha256(EVIDENCE.read_bytes()).hexdigest(),
                "evidence_bytes": EVIDENCE.stat().st_size}
     log = json.dumps(summary, sort_keys=True) + "\n"
@@ -41,7 +49,7 @@ def main() -> None:
     manifest = {
         "schema": "j0740-apr4-provenance-manifest-v1",
         "result": "PASS",
-        "checks": 16,
+        "checks": 21,
         "files": {},
     }
     for path in (Path(__file__).resolve(), EVIDENCE, TEST_LOG):

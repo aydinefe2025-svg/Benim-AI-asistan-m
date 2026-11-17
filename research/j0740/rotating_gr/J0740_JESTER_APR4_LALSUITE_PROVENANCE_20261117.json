@@ -1,7 +1,7 @@
 {
   "schema": "j0740-jester-apr4-lalsuite-producer-provenance-audit-v1",
   "date": "2026-11-17",
-  "status": "SOURCE_METHOD_VERIFIED_LOCK_RESOLUTION_FOUND_PRODUCER_BINARY_NOT_PROVEN",
+  "status": "SOURCE_METHOD_VERIFIED_LOCK_PRESENT_AT_TABLE_INTRODUCTION_ACTUAL_RUNTIME_NOT_PROVEN",
   "upstream": {
     "repository": "nuclear-multimessenger-astronomy/jester",
     "commit": "e6768650ce992abfd1153a6833857572fe5cd230",
@@ -36,6 +36,29 @@
       "lalsuite_resolution": "7.26.4"
     }
   },
+  "table_introduction_event": {
+    "repository_commit": "882e4cd65c24b6fde82bea9e03273de4a680828a",
+    "date": "2026-02-27T11:21:10Z",
+    "message": "Generate tabulated EOSs with lal TOV solver",
+    "apr4_table_status": "added in this commit with the same Git blob SHA-1 as the later pinned source",
+    "generator_status": "modified in the same commit",
+    "generator_at_introduction": {
+      "git_blob_sha1": "d56845d13eacb2b6dcbc74b84e7b21adf6594753",
+      "bytes": 13576,
+      "sha256": "87adc459f68a32679fecc077992f9c4a59e45f22da1a42d1c3f56060e4a6ad1d"
+    },
+    "pyproject_at_introduction": {
+      "git_blob_sha1": "4116118bdb952fbb5a60f43f547b74109218faf8",
+      "bytes": 4466,
+      "lalsuite_requirement": "unversioned optional dev dependency"
+    },
+    "uv_lock_at_introduction": {
+      "git_blob_sha1": "232822ab70a5805c5bdc4a639b5658342dde1e0b",
+      "bytes": 530230,
+      "lalsuite_resolution": "7.26.4",
+      "interpretation": "The 7.26.4 lock resolution was present in the same repository commit that introduced APR4_EPP.npz; this narrows provenance but does not prove the lock was used for generation."
+    }
+  },
   "generator_method": {
     "eos_constructor": "lalsimulation.SimNeutronStarEOSByName(eos_name)",
     "native_queries": [
@@ -53,12 +76,12 @@
     "pyproject_dev_requirement": "lalsuite (unversioned)",
     "lockfile_resolution": "lalsuite==7.26.4",
     "lockfile_use_in_documented_generator_command": "NOT_PROVEN",
-    "reason": "The documented command is uv pip install -e .[dev], whereas uv's lockfile-based project sync uses uv sync/uv run (or an explicit lock export/sync). The repository lock resolution does not identify which installed LALSuite binary produced this already-committed NPZ.",
+    "reason": "The 7.26.4 lock existed at table introduction, but the documented generator command is uv pip install -e .[dev] and pyproject declares unversioned lalsuite. No generating environment/build log proves that the lock resolution was installed; the exact runtime binary remains unknown.",
     "uv_documentation": "https://docs.astral.sh/uv/concepts/projects/sync/"
   },
   "physical_gates": {
     "generator_method_and_approximate_n": "VERIFIED_FROM_PINNED_SOURCE",
-    "project_lock_resolution": "VERIFIED_7_26_4",
+    "project_lock_resolution": "LALSUITE_7_26_4_LOCK_PRESENT_AT_TABLE_INTRODUCTION; ACTUAL_GENERATOR_ENV_NOT_PROVEN",
     "exact_npz_producer_binary": "NOT_ESTABLISHED",
     "apr4_p0_crust_and_absolute_baryon_normalization": "NOT_ESTABLISHED",
     "original_apr4_table_causality": "FAIL_SOURCE_TABLE_HAS_SUPERLUMINAL_HIGH_DENSITY_SEGMENT; retain original result and do not conflate with causal-cut candidate",
