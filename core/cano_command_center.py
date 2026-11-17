@@ -582,18 +582,47 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                         if confirmed and st.button(
                                 "İncelenmiş dersi onayla ve kaydet",
                                 key="cano_approve_pending_lesson_" + latest_id):
+                            # Refuse uncertain owner writes before accepting
+                            # an unverified lesson into active local prompts.
                             try:
-                                colony.approve_feedback(
-                                    pending_lesson["id"], approved=True)
                                 _checkpoint(archive_prior=False)
-                                st.success("Ders onaylandı ve kayıt güncellendi. "
-                                           "Bu bir model eğitimi değildir.")
-                                st.rerun()
-                                return
                             except Exception:
-                                st.error("Ders onayı veya kalıcı yedek doğrulanamadı; "
-                                         "yeni görev başlatılmadı. Kayıt durumunu "
-                                         "tekrar okuyarak kontrol edin.")
+                                st.error("Kalıcı yedek ön kontrolü başarısız; "
+                                         "öğrenme adayı etkinleştirilmedi.")
+                                return
+                            newly_accepted = False
+                            try:
+                                approval = colony.approve_feedback(
+                                    pending_lesson["id"], approved=True)
+                                newly_accepted = approval["status"] == "accepted"
+                                _checkpoint(archive_prior=False)
+                            except Exception:
+                                if newly_accepted:
+                                    # A failed/ambiguous CAS acknowledgement must
+                                    # not leave a newly enabled lesson in local
+                                    # model prompts. The remote state may still
+                                    # need independent reconciliation.
+                                    try:
+                                        with colony._db() as db:
+                                            db.execute("BEGIN IMMEDIATE")
+                                            db.execute(
+                                                "UPDATE colony_feedback SET accepted=0 "
+                                                "WHERE id=? AND accepted=1 AND evidence=?",
+                                                (pending_lesson["id"],
+                                                 "mission_review:" + latest_id))
+                                    except sqlite3.Error:
+                                        st.error("Öğrenme onayı yerel olarak "
+                                                 "geri alınamadı; yeni görev "
+                                                 "başlatmayın ve kayıtları doğrulayın.")
+                                        return
+                                st.error("Kalıcı yedek doğrulanmadı; yeni yerel "
+                                         "onay geri alındı. Uzak kayıt durumu "
+                                         "belirsiz olabilir; yeniden kontrol edin.")
+                                return
+                            st.success("Ders onaylandı ve kayıt güncellendi. "
+                                       "Bu bir model eğitimi değildir.")
+                            st.rerun()
+                            return
             if planner_stage.get("source_leads"):
                 with st.expander("📑 Gerçek kaynak metnini incele", expanded=False):
                     st.caption("Açık seçimle Europe PMC'den en fazla iki açık erişim "
