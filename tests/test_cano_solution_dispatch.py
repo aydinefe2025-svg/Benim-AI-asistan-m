@@ -93,3 +93,38 @@ class CanoNaturalCodeDispatchTests(unittest.TestCase):
         self.assertIn("RED", queued[0][2])
         self.assertNotIn("_cano_chat_task_pending", state)
         self.assertNotIn("cano_chat_request_id", state)
+
+    def test_completed_duplicate_does_not_pretend_to_enqueue_new_work(self):
+        import ast
+        import logging
+        import os
+        from pathlib import Path
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        app_file = Path(__file__).resolve().parents[1] / "app.py"
+        source = ast.parse(app_file.read_text(encoding="utf-8"))
+        fn = next(node for node in source.body
+                  if isinstance(node, ast.FunctionDef)
+                  and node.name == "asistani_calistir")
+
+        class CompletedStore:
+            def __init__(self, url, owner):
+                pass
+            def enqueue(self, goal):
+                return {"id": "01234567-old", "status": "deployed", "duplicate": True}
+
+        state = {"messages": []}
+        globals_ = {
+            "st": SimpleNamespace(session_state=state),
+            "_AUTH_REQUIRED": True, "_OWNER_KEY": "isolated-test-owner",
+            "os": os, "logging": logging,
+        }
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), str(app_file),
+                     "exec"), globals_)
+        with patch.dict(os.environ, {"AGENT_TASK_DATABASE_URL": "synthetic-dsn"}):
+            with patch("core.cano_code_jobs.CodeJobStore", CompletedStore):
+                text = globals_["asistani_calistir"]("Kendini geliştir cano")
+        self.assertIn("tamamlandı", text)
+        self.assertNotIn("kalıcı kuyruğa alındı", text)
+        self.assertIn("yeni iş başlatılmadı", text)
