@@ -562,6 +562,38 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             inspected = None
         if inspected and inspected["status"] == "review_pending" and inspected["stages"]:
             planner_stage = inspected["stages"][0]
+            pending_lesson = manager.pending_lesson(latest_id)
+            if pending_lesson:
+                with st.expander("🧠 CANO öğrenme adayı", expanded=False):
+                    st.caption("Eleştiri aşamasından model tarafından önerilen "
+                               "süreç kuralı; henüz bağımsız olarak doğrulanmadı.")
+                    st.caption(pending_lesson["lesson"])
+                    if pending_lesson["accepted"]:
+                        st.caption("Sahibi tarafından onaylandı; gelecekteki "
+                                   "ilgili görevlerde kullanılabilir.")
+                    else:
+                        st.caption("Bu aday hiçbir sonraki görevde kullanılmaz; "
+                                   "onaylamak model ağırlığını eğitmez.")
+                        confirmed = st.checkbox(
+                            "Bu öneriyi inceleyip ilgili görevler için kullanmayı "
+                            "onaylıyorum",
+                            value=False,
+                            key="cano_confirm_pending_lesson_" + latest_id)
+                        if confirmed and st.button(
+                                "İncelenmiş dersi onayla ve kaydet",
+                                key="cano_approve_pending_lesson_" + latest_id):
+                            try:
+                                colony.approve_feedback(
+                                    pending_lesson["id"], approved=True)
+                                _checkpoint(archive_prior=False)
+                                st.success("Ders onaylandı ve kayıt güncellendi. "
+                                           "Bu bir model eğitimi değildir.")
+                                st.rerun()
+                                return
+                            except Exception:
+                                st.error("Ders onayı veya kalıcı yedek doğrulanamadı; "
+                                         "yeni görev başlatılmadı. Kayıt durumunu "
+                                         "tekrar okuyarak kontrol edin.")
             if planner_stage.get("source_leads"):
                 with st.expander("📑 Gerçek kaynak metnini incele", expanded=False):
                     st.caption("Açık seçimle Europe PMC'den en fazla iki açık erişim "
