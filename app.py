@@ -17,17 +17,27 @@ from core.storage_config import cano_database_url, database_provider_label, memo
 
 _AUTH_REQUIRED = auth_is_required(os.environ)
 if os.environ.get("CANO_TASK_PREFLIGHT_ONCE") == "1":
-    from core.cano_runtime_db_preflight import preflight_task_store
+    from core.cano_runtime_db_preflight import (
+        preflight_authorized_queue, preflight_task_store,
+    )
 
     @st.cache_resource(show_spinner=False)
     def _cano_task_preflight_once():
-        result = preflight_task_store(os.environ.get("AGENT_TASK_DATABASE_URL"))
-        logging.getLogger(__name__).warning(
+        db_url = os.environ.get("AGENT_TASK_DATABASE_URL")
+        task_result = preflight_task_store(db_url)
+        queue_result = preflight_authorized_queue(db_url)
+        logger = logging.getLogger(__name__)
+        logger.warning(
             "CANO_TASK_SCHEMA_PREFLIGHT ok=%s error_type=%s sqlstate=%s",
-            result.get("ok"), result.get("error_type", "none"),
-            result.get("sqlstate") or "none",
+            task_result.get("ok"), task_result.get("error_type", "none"),
+            task_result.get("sqlstate") or "none",
         )
-        return result.get("ok")
+        logger.warning(
+            "CANO_AUTHORIZED_QUEUE_SCHEMA_PREFLIGHT ok=%s error_type=%s sqlstate=%s",
+            queue_result.get("ok"), queue_result.get("error_type", "none"),
+            queue_result.get("sqlstate") or "none",
+        )
+        return bool(task_result.get("ok") and queue_result.get("ok"))
 
     _cano_task_preflight_once()
 _OWNER_KEY = render_auth_gate(st, os.environ)
