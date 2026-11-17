@@ -1,0 +1,68 @@
+{
+  "schema": "j0740-jester-apr4-lalsuite-producer-provenance-audit-v1",
+  "date": "2026-11-17",
+  "status": "SOURCE_METHOD_VERIFIED_LOCK_RESOLUTION_FOUND_PRODUCER_BINARY_NOT_PROVEN",
+  "upstream": {
+    "repository": "nuclear-multimessenger-astronomy/jester",
+    "commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+    "commit_date": "2026-10-30T16:43:47Z",
+    "commit_signature": "GitHub API reports a valid signature",
+    "commit_url": "https://github.com/nuclear-multimessenger-astronomy/jester/commit/e6768650ce992abfd1153a6833857572fe5cd230"
+  },
+  "source_artifacts": {
+    "apr4_table": {
+      "path": "jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz",
+      "bytes": 56300,
+      "git_blob_sha1": "970790a9fd2aeb1f2fccd3ebfdccf206fcd80f89",
+      "sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88"
+    },
+    "generator": {
+      "path": "jesterTOV/tabulated_eos/generate_lalsuite_eos.py",
+      "bytes": 13593,
+      "git_blob_sha1": "48b2606db0679bbebab28388da6f3b387b6d6cc7",
+      "sha256": "30ff07b009b422e918dca1ee42ca967ffedc26e88ace611133a4ee486a133784",
+      "url": "https://github.com/nuclear-multimessenger-astronomy/jester/blob/e6768650ce992abfd1153a6833857572fe5cd230/jesterTOV/tabulated_eos/generate_lalsuite_eos.py"
+    },
+    "pyproject": {
+      "path": "pyproject.toml",
+      "bytes": 4984,
+      "git_blob_sha1": "9855479541115c3ac9e26ab346216a3bc97e2a6e",
+      "sha256": "f80e9eb6ddb4c433048e500178ffade09d4fbffbcee64b63cc48064ab8c0a571"
+    },
+    "uv_lock": {
+      "path": "uv.lock",
+      "bytes": 527517,
+      "git_blob_sha1": "5b7a014b2b990eae23e3773d93b787521a76385f",
+      "lalsuite_resolution": "7.26.4"
+    }
+  },
+  "generator_method": {
+    "eos_constructor": "lalsimulation.SimNeutronStarEOSByName(eos_name)",
+    "native_queries": [
+      "SimNeutronStarEOSPseudoEnthalpyOfPressureGeometerized",
+      "SimNeutronStarEOSEnergyDensityOfPressureGeometerized",
+      "SimNeutronStarEOSEnergyDensityDerivOfPressureGeometerized"
+    ],
+    "pressure_grid_si_pa": ["1e26", "1e37"],
+    "requested_pressure_points": 1000,
+    "documented_install_command": "uv pip install -e \".[dev]\"",
+    "baryon_density": "n_arr = e_arr / _m_avg_geom",
+    "baryon_density_interpretation": "The committed n column is explicitly a rest-mass approximation, not the native LAL baryon density and not a first-law-consistent n(P) reconstruction. Its shape discrepancy is therefore an intentional generator convention, not evidence that the APR4 epsilon/pressure/enthalpy columns were corrupted."
+  },
+  "dependency_lineage": {
+    "pyproject_dev_requirement": "lalsuite (unversioned)",
+    "lockfile_resolution": "lalsuite==7.26.4",
+    "lockfile_use_in_documented_generator_command": "NOT_PROVEN",
+    "reason": "The documented command is uv pip install -e .[dev], whereas uv's lockfile-based project sync uses uv sync/uv run (or an explicit lock export/sync). The repository lock resolution does not identify which installed LALSuite binary produced this already-committed NPZ.",
+    "uv_documentation": "https://docs.astral.sh/uv/concepts/projects/sync/"
+  },
+  "physical_gates": {
+    "generator_method_and_approximate_n": "VERIFIED_FROM_PINNED_SOURCE",
+    "project_lock_resolution": "VERIFIED_7_26_4",
+    "exact_npz_producer_binary": "NOT_ESTABLISHED",
+    "apr4_p0_crust_and_absolute_baryon_normalization": "NOT_ESTABLISHED",
+    "original_apr4_table_causality": "FAIL_SOURCE_TABLE_HAS_SUPERLUMINAL_CENTRAL/HIGH_DENSITY_SEGMENT; retain original result and do not conflate with causal-cut candidate",
+    "eos_bayes": "NOT_RUN"
+  },
+  "scope": "Pinned public source metadata and generator implementation were audited; no EOS table was regenerated, no RNS/TOV solve was repeated, and no physical normalization or EOS posterior is claimed."
+}
