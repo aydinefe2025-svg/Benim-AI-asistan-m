@@ -1,0 +1,115 @@
+{
+  "acceptance": {
+    "EOS_Bayes": "NOT_RUN",
+    "P_to_zero_crust": "NOT_ESTABLISHED",
+    "absolute_baryon_normalization": "NOT_ESTABLISHED",
+    "firstlaw_n_shape_pass": true,
+    "geometry_invariance_pass": true,
+    "physical_EOS_certification": "NOT_ESTABLISHED",
+    "table_hashes_pass": true
+  },
+  "classification": "INDEPENDENT_ARTIFACT_TABLE_ARITHMETIC_CHECK_ONLY; PHYSICAL_SURFACE_NORMALIZATION_NOT_ESTABLISHED",
+  "inputs": {
+    "commit": "9bb301323ee1c1dc25b3dbc239ed7b9797bec21c",
+    "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+    "source_rns_table_sha256": "c8f4da82524a5e0b3450c682198359078deb78d573a1f50f2487235df16d88c7",
+    "workflow_artifact_sha256": "997e6998209bf550e726606948ae57ea9e73d5d6e231bc1ae27161a9f8bd35f9",
+    "workflow_result_json_sha256": "36f17aea9e076310575d48bb96f7c2c73484e122ace05fe9488c6f5ce12e023d",
+    "workflow_run_id": 44050619643
+  },
+  "meshes": [
+    {
+      "conditional_M0_msun": {
+        "firstlaw_mavg": 2.450664891356869,
+        "firstlaw_rns_mb": 2.4710005541914746,
+        "native_approx": 2.7008113028643455
+      },
+      "expected_mavg_over_RNS_MB": 1.0082980185933734,
+      "factor_relative_error": -4.440892098500626e-16,
+      "first_three_columns_bitwise_equal": true,
+      "firstlaw_shape_identity": {
+        "firstlaw_mavg": {
+          "constant_within_1e-10": true,
+          "endpoint_relative_drift": -2.9976021664879227e-15,
+          "max_abs_relative_drift": 1.7541523789077473e-14,
+          "rms_relative_drift": 6.747493567820003e-15
+        },
+        "firstlaw_rns_mb": {
+          "constant_within_1e-10": true,
+          "endpoint_relative_drift": -3.3306690738754696e-15,
+          "max_abs_relative_drift": 1.7430501486614958e-14,
+          "rms_relative_drift": 6.8402621781554894e-15
+        },
+        "native_approx": {
+          "constant_within_1e-10": false,
+          "endpoint_relative_drift": 0.8665788876224934,
+          "max_abs_relative_drift": 0.8665788876224934,
+          "rms_relative_drift": 0.15633700471308085
+        }
+      },
+      "geometry_outputs_bitwise_equal": true,
+      "measured_RNS_MB_over_mavg_mass_ratio": 1.008298018593373,
+      "mesh": "rns_151x301",
+      "n_column_changed_only": true,
+      "rows": 196,
+      "table_bytes": {
+        "firstlaw_mavg": 17252,
+        "firstlaw_rns_mb": 17252,
+        "native_approx": 17252
+      },
+      "table_sha256": {
+        "firstlaw_mavg": "b5f2c4fd88aecece0ab589a6266b022394d6d7da4ea87942fb493aa064f4f1f2",
+        "firstlaw_rns_mb": "c96df32fc0907df107b8d805c009b2a39efb4836807a07373e719967fda59a16",
+        "native_approx": "c8f4da82524a5e0b3450c682198359078deb78d573a1f50f2487235df16d88c7"
+      }
+    },
+    {
+      "conditional_M0_msun": {
+        "firstlaw_mavg": 2.4507282197700024,
+        "firstlaw_rns_mb": 2.4710644081049566,
+        "native_approx": 2.7010599377005864
+      },
+      "expected_mavg_over_RNS_MB": 1.0082980185933734,
+      "factor_relative_error": -8.881784197001252e-16,
+      "first_three_columns_bitwise_equal": true,
+      "firstlaw_shape_identity": {
+        "firstlaw_mavg": {
+          "constant_within_1e-10": true,
+          "endpoint_relative_drift": -2.9976021664879227e-15,
+          "max_abs_relative_drift": 1.7541523789077473e-14,
+          "rms_relative_drift": 6.747493567820003e-15
+        },
+        "firstlaw_rns_mb": {
+          "constant_within_1e-10": true,
+          "endpoint_relative_drift": -3.3306690738754696e-15,
+          "max_abs_relative_drift": 1.7430501486614958e-14,
+          "rms_relative_drift": 6.8402621781554894e-15
+        },
+        "native_approx": {
+          "constant_within_1e-10": false,
+          "endpoint_relative_drift": 0.8665788876224934,
+          "max_abs_relative_drift": 0.8665788876224934,
+          "rms_relative_drift": 0.15633700471308085
+        }
+      },
+      "geometry_outputs_bitwise_equal": true,
+      "measured_RNS_MB_over_mavg_mass_ratio": 1.0082980185933725,
+      "mesh": "rns_201x401",
+      "n_column_changed_only": true,
+      "rows": 196,
+      "table_bytes": {
+        "firstlaw_mavg": 17252,
+        "firstlaw_rns_mb": 17252,
+        "native_approx": 17252
+      },
+      "table_sha256": {
+        "firstlaw_mavg": "b5f2c4fd88aecece0ab589a6266b022394d6d7da4ea87942fb493aa064f4f1f2",
+        "firstlaw_rns_mb": "c96df32fc0907df107b8d805c009b2a39efb4836807a07373e719967fda59a16",
+        "native_approx": "c8f4da82524a5e0b3450c682198359078deb78d573a1f50f2487235df16d88c7"
+      }
+    }
+  ],
+  "method": "Independently parse saved 196-row RNS tables; check SHA, bitwise invariance of epsilon/P/H, first-law shape invariant n*exp(h_relative)/(epsilon+P/c^2), identical M_g/R_eq/f and RNS-MB conversion ratio.",
+  "schema": "j0740-apr4-n-only-ablation-independent-firstlaw-table-check-v1"
+}
+
