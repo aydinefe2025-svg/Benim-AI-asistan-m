@@ -60,6 +60,63 @@ class StorageConfigTests(unittest.TestCase):
                          "tanınmayan PostgreSQL")
 
 
+
+
+class LiveNeonBindingAuditTests(unittest.TestCase):
+    def test_effective_live_bindings_reveal_only_provider_classes(self):
+        from core.storage_config import database_binding_providers
+        env = {
+            "DATABASE_URL": "postgresql://admin:OLD_PASSWORD@dpg-legacy.frankfurt-postgres.render.com/old",
+            "CANO_DATABASE_URL": "postgresql://user:CANO_PASSWORD@ep-cano.eu-central-1.aws.neon.tech/assistant_pg",
+            "MEMORY_DATABASE_URL": "postgresql://user:MEMORY_PASSWORD@ep-memory.eu-central-1.aws.neon.tech/assistant_pg",
+            "AGENT_TASK_DATABASE_URL": "postgresql://user:TASK_PASSWORD@ep-task.eu-central-1.aws.neon.tech/assistant_pg",
+        }
+        receipt = database_binding_providers(env)
+        self.assertEqual({"cano": "Neon", "memory": "Neon", "task": "Neon"}, receipt)
+        for forbidden in ("PASSWORD", "dpg-legacy", "ep-cano", "postgresql://", "user"):
+            self.assertNotIn(forbidden, repr(receipt))
+
+    def test_missing_explicit_memory_remains_unconfigured(self):
+        from core.storage_config import database_binding_providers
+        env = {"DATABASE_URL": "postgresql://u:p@old.frankfurt-postgres.render.com/d",
+               "CANO_DATABASE_URL": "postgresql://u:p@ep-a.eu.neon.tech/d",
+               "AGENT_TASK_DATABASE_URL": "postgresql://u:p@ep-a.eu.neon.tech/d"}
+        self.assertEqual({"cano": "Neon", "memory": "yapılandırılmamış",
+                          "task": "Neon"}, database_binding_providers(env))
+
+    def test_app_preflight_logs_only_classified_effective_bindings(self):
+        import ast
+        from pathlib import Path
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from core.storage_config import database_binding_providers
+        app = Path(__file__).resolve().parents[1] / "app.py"
+        tree = ast.parse(app.read_text(encoding="utf-8"))
+        func = next(n for n in ast.walk(tree)
+                    if isinstance(n, ast.FunctionDef)
+                    and n.name == "_cano_task_preflight_once")
+        func.decorator_list = []
+        logger = Mock()
+        namespace = {
+            "os": SimpleNamespace(environ={
+                "CANO_DATABASE_URL": "postgresql://u:KEEP_PRIVATE@ep-a.eu.neon.tech/d",
+                "MEMORY_DATABASE_URL": "postgresql://u:KEEP_PRIVATE@ep-b.eu.neon.tech/d",
+                "AGENT_TASK_DATABASE_URL": "postgresql://u:KEEP_PRIVATE@ep-c.eu.neon.tech/d"}),
+            "preflight_task_store": lambda url: {"ok": True},
+            "preflight_authorized_queue": lambda url: {"ok": True},
+            "database_binding_providers": database_binding_providers,
+            "logging": SimpleNamespace(getLogger=lambda name: logger),
+            "__name__": "cano.binding.audit.test",
+        }
+        exec(compile(ast.Module(body=[func], type_ignores=[]),
+                     str(app), "exec"), namespace)
+        self.assertTrue(namespace["_cano_task_preflight_once"]())
+        calls = [c for c in logger.warning.call_args_list
+                 if c.args and str(c.args[0]).startswith("CANO_DB_BINDINGS")]
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0].args[1:], ("Neon", "Neon", "Neon"))
+        self.assertNotIn("KEEP_PRIVATE", str(calls))
+
+
 if __name__ == "__main__":
     unittest.main()
-

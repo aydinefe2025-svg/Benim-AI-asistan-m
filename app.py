@@ -13,7 +13,8 @@ st.sidebar.page_link("app.py", label="CANO Sohbet", icon="💬")
 # Optional fail-closed production login. Keep APP_AUTH_REQUIRED unset locally;
 # enable it on Render only after the Google OIDC secrets file is configured.
 from core.authentication import auth_is_required, render_auth_gate
-from core.storage_config import cano_database_url, database_provider_label, memory_database_url
+from core.storage_config import (cano_database_url, database_binding_providers,
+                                 database_provider_label, memory_database_url)
 
 _AUTH_REQUIRED = auth_is_required(os.environ)
 if os.environ.get("CANO_TASK_PREFLIGHT_ONCE") == "1":
@@ -36,6 +37,13 @@ if os.environ.get("CANO_TASK_PREFLIGHT_ONCE") == "1":
             "CANO_AUTHORIZED_QUEUE_SCHEMA_PREFLIGHT ok=%s error_type=%s sqlstate=%s",
             queue_result.get("ok"), queue_result.get("error_type", "none"),
             queue_result.get("sqlstate") or "none",
+        )
+        # Log only effective provider classes for the live bindings. No URL,
+        # user, host, database, credentials, or owner information is emitted.
+        bindings = database_binding_providers(os.environ)
+        logger.warning(
+            "CANO_DB_BINDINGS cano=%s memory=%s task=%s",
+            bindings["cano"], bindings["memory"], bindings["task"],
         )
         return bool(task_result.get("ok") and queue_result.get("ok"))
 

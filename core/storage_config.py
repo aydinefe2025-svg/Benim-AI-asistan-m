@@ -35,3 +35,16 @@ def database_provider_label(database_url):
         return "yerel PostgreSQL"
     return "harici PostgreSQL"
 
+
+
+def database_binding_providers(environ):
+    """Safe runtime provider classes for the three effective CANO stores.
+
+    Resolves legacy fallbacks exactly like the application, never returning
+    credentials, hostnames, database names, or connection parameters.
+    """
+    return {
+        "cano": database_provider_label(cano_database_url(environ)),
+        "memory": database_provider_label(memory_database_url(environ)),
+        "task": database_provider_label(environ.get("AGENT_TASK_DATABASE_URL")),
+    }
