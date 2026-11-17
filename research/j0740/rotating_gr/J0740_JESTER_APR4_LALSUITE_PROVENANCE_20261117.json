@@ -61,7 +61,7 @@
     "project_lock_resolution": "VERIFIED_7_26_4",
     "exact_npz_producer_binary": "NOT_ESTABLISHED",
     "apr4_p0_crust_and_absolute_baryon_normalization": "NOT_ESTABLISHED",
-    "original_apr4_table_causality": "FAIL_SOURCE_TABLE_HAS_SUPERLUMINAL_CENTRAL/HIGH_DENSITY_SEGMENT; retain original result and do not conflate with causal-cut candidate",
+    "original_apr4_table_causality": "FAIL_SOURCE_TABLE_HAS_SUPERLUMINAL_HIGH_DENSITY_SEGMENT; retain original result and do not conflate with causal-cut candidate",
     "eos_bayes": "NOT_RUN"
   },
   "scope": "Pinned public source metadata and generator implementation were audited; no EOS table was regenerated, no RNS/TOV solve was repeated, and no physical normalization or EOS posterior is claimed."
