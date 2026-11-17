@@ -1,0 +1,125 @@
+name: J0740 APR4 native causal completion rotating C-GR
+
+on:
+  pull_request:
+    paths:
+      - "research/j0740/physical_eos/**"
+      - ".github/workflows/j0740-apr4-causal-rotating-gr.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/j0740/physical_eos/**"
+      - ".github/workflows/j0740-apr4-causal-rotating-gr.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  causal-apr4-rns:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Install numerical dependencies and pinned native EOS wheel
+        run: |
+          python -m pip install numpy scipy
+          mkdir -p results/wheels
+          python -m pip download --no-deps --only-binary=:all: 'lalsuite==7.26.4' -d results/wheels
+      - name: Recover and SHA-lock LALSuite 7.26.4 APR4 EPP native table
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, zipfile, urllib.request
+          target=Path('results/LALSimNeutronStarEOS_APR4_EPP_7.26.4.dat')
+          expected='2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f'
+          found=[]
+          for wheel in Path('results/wheels').glob('*.whl'):
+              with zipfile.ZipFile(wheel) as z:
+                  for name in z.namelist():
+                      if name.endswith('LALSimNeutronStarEOS_APR4_EPP.dat'):
+                          raw=z.read(name)
+                          found.append((f'{wheel.name}:{name}',hashlib.sha256(raw).hexdigest()))
+                          if hashlib.sha256(raw).hexdigest()==expected:
+                              target.write_bytes(raw)
+          if not target.exists():
+              urls=[
+                  'https://git.ligo.org/lscsoft/lalsuite/-/raw/lalsuite-v7.26.4/lalsimulation/lib/LALSimNeutronStarEOS_APR4_EPP.dat',
+                  'https://git.ligo.org/lscsoft/lalsuite/-/raw/lalsuite-v7.26.4/lalsimulation/lib/LALSimNeutronStarEOS_APR4_EPP.dat?inline=false'
+              ]
+              for url in urls:
+                  try:
+                      raw=urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'J0740-science-reproduction'}),timeout=45).read()
+                      found.append((url,hashlib.sha256(raw).hexdigest()))
+                      if hashlib.sha256(raw).hexdigest()==expected:
+                          target.write_bytes(raw);break
+                  except Exception as ex:
+                      found.append((url,str(ex)))
+          print('native source candidates:',found)
+          if not target.exists():raise SystemExit('PINNED_NATIVE_LAL_TABLE_UNAVAILABLE: fail closed')
+          assert hashlib.sha256(target.read_bytes()).hexdigest()==expected
+          print('PASS pinned LALSuite native table',target,len(target.read_bytes()))
+          PY
+      - name: Verify original JESTER APR4 NPZ source
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz')
+          assert hashlib.sha256(p.read_bytes()).hexdigest()=='639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88'
+          print('PASS original APR4 NPZ SHA-256')
+          PY
+      - name: Preserve pinned RNS physics, patch final numeric print only
+        run: |
+          python - <<'PY'
+          import json,sys
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/rotating_gr')
+          from precise_apr4_mass_spin_root import patch_output_precision
+          record=patch_output_precision(Path('rns-upstream/rns.c'))
+          Path('results/RNS_diagnostic_print_patch.json').write_text(json.dumps(record,indent=2)+'\n')
+          print(record)
+          PY
+      - name: Compile both pinned upstream C-GR spatial meshes
+        run: |
+          make -C rns-upstream CC='gcc -include stdlib.h' rns
+          cp rns-upstream/rns rns-upstream/rns_151x301
+          rm -f rns-upstream/*.o rns-upstream/rns
+          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+          cp rns-upstream/rns rns-upstream/rns_201x401
+      - name: Execute causal APR4 static-to-rotating independent C-GR validation
+        run: |
+          python -m compileall -q research/j0740/physical_eos/run_causal_apr4_rns_gr.py
+          python research/j0740/physical_eos/run_causal_apr4_rns_gr.py \
+            --native-table results/LALSimNeutronStarEOS_APR4_EPP_7.26.4.dat \
+            --npz jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
+            --rns-binary rns-upstream/rns_151x301 rns-upstream/rns_201x401 \
+            --work results/causal_apr4_rns \
+            --out results/J0740_APR4_native_causal_completion_rotating_GR.json
+      - name: Preserve numerical proof or failure checkpoint
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: j0740-apr4-native-causal-rotating-gr
+          path: |
+            results/J0740_APR4_native_causal_completion_rotating_GR.json
+            results/RNS_diagnostic_print_patch.json
+            results/causal_apr4_rns/*.rns
+          if-no-files-found: warn
+          retention-days: 30
