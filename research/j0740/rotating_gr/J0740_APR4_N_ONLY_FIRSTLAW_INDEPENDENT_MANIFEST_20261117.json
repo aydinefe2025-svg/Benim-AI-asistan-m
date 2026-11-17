@@ -1,0 +1,35 @@
+{
+  "schema": "j0740-apr4-n-only-independent-check-manifest-v2",
+  "workflow_artifact": {
+    "sha256": "997e6998209bf550e726606948ae57ea9e73d5d6e231bc1ae27161a9f8bd35f9",
+    "run_id": 44050619643,
+    "artifact_id": 14313516717,
+    "bytes": 25475,
+    "github_digest": "sha256:997e6998209bf550e726606948ae57ea9e73d5d6e231bc1ae27161a9f8bd35f9"
+  },
+  "code": {
+    "sha256": "5414cf57a8d2a12fd6e2d92293ec7501b73f491533381f867a5f213b7245b9c0",
+    "github_path": "research/j0740/rotating_gr/apr4_n_only_artifact_independent_check_20261117.py",
+    "bytes": 5852,
+    "local_path": "audit_apr4_n_ablation_firstlaw_table_independent_20261117.py",
+    "github_blob_sha": "87df6d49202a1bd3d9945299825e952e994ec2e7",
+    "readback_utf8_sha256_verified_after_removing_single_adapter_terminal_crlf": true
+  },
+  "result": {
+    "local_path": "J0740_APR4_N_ONLY_FIRSTLAW_INDEPENDENT_CHECK_20261117.json",
+    "sha256": "d0e7a7fe1fd9264fa6c96da0949920212fe06c3e4cbb3e991a24d2ee7dc3b259",
+    "github_blob_sha": "62f66913d69aed96686c874138888ac9b0ff3145",
+    "bytes": 4821,
+    "repeat_execution_sha256": "d0e7a7fe1fd9264fa6c96da0949920212fe06c3e4cbb3e991a24d2ee7dc3b259",
+    "byte_identical_repeat": true,
+    "readback_utf8_sha256_verified_after_removing_single_adapter_terminal_crlf": true,
+    "github_path": "research/j0740/rotating_gr/J0740_APR4_N_ONLY_FIRSTLAW_INDEPENDENT_CHECK_20261117.json"
+  },
+  "local_record": {
+    "commit": "6fb5deff2036a72a4271a6a3b57a591a6113fa84",
+    "physical_EOS": "NOT_ESTABLISHED",
+    "EOS_Bayes": "NOT_RUN",
+    "branch": "science/j0740-apr4-firstlaw-gr-pilot-20261117"
+  }
+}
+
