@@ -4,7 +4,8 @@ import unittest
 from pathlib import Path
 
 from core.agent_colony import AgentColony
-from core.cano_command_center import prepare_cano_team
+from core.cano_command_center import prepare_cano_team, _snapshot
+from core.colony_restore import restore_empty_colony
 from core.collaborative_mission import CollaborativeMission
 
 
@@ -63,6 +64,11 @@ class MissionLearningTests(unittest.TestCase):
             self.assertEqual(repeated["model_calls"], 0)
             reopened = CollaborativeMission(AgentColony(path))
             self.assertEqual(reopened.pending_lesson(finished["id"]), record)
+            restored = AgentColony(Path(folder) / "restored.sqlite3")
+            restore_empty_colony(restored, _snapshot(AgentColony(path)))
+            self.assertEqual(
+                CollaborativeMission(restored).pending_lesson(finished["id"]),
+                record)
 
     def test_secret_like_candidate_is_not_saved_or_applied(self):
         with tempfile.TemporaryDirectory() as folder:
