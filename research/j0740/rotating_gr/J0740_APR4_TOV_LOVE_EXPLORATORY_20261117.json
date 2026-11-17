@@ -1,0 +1,120 @@
+{
+  "schema": "j0740-apr4-independent-tov-love-exploratory-v1",
+  "status": "EXPLORATORY_TARGET_M_TOV_LOVE_ONLY; EOS_NOT_CERTIFIED; EOS_BAYES_NOT_RUN",
+  "source": {
+    "path": "C:\\Users\\User\\AppData\\Local\\SentinelX\\uploads\\j0740_20261117_sources\\APR4_EPP.npz",
+    "bytes": 56300,
+    "sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+    "rows": 865,
+    "jester_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+    "lalsuite_generator_version": "unpinned"
+  },
+  "method": {
+    "independent_solver": "SciPy solve_ivp DOP853 TOV + y-parameter Love ODE; PCHIP log(e)-log(P) source-table interpolation",
+    "crust": "LALSuite documented four-piece SLy low-density analytic reference; source table joined at first positive pressure",
+    "baryon_mass": "M_b from rho_b=(e+P)*exp(-h), with source h above table start and LAL crust h below; source n ignored",
+    "shooting_target_Mg_msun": 2.073,
+    "surface_pressure_floor_geom_m_inv2": 1e-27,
+    "spatial_max_steps_m": [
+      400.0,
+      200.0,
+      100.0
+    ],
+    "integrator_rtol": 2e-09
+  },
+  "bracketing_scan": [
+    {
+      "center_rho_g_cm3": 1449999999999998.5,
+      "Mg_msun": 1.9054729606350196,
+      "R_km": 11.016387475783963
+    },
+    {
+      "center_rho_g_cm3": 1650000000000002.0,
+      "Mg_msun": 2.0198990015727727,
+      "R_km": 10.827233275449187
+    },
+    {
+      "center_rho_g_cm3": 1800000000000001.5,
+      "Mg_msun": 2.0749036217231107,
+      "R_km": 10.692192038979115
+    },
+    {
+      "center_rho_g_cm3": 1999999999999999.2,
+      "Mg_msun": 2.120577901896923,
+      "R_km": 10.527936220055105
+    },
+    {
+      "center_rho_g_cm3": 2200000000000000.8,
+      "Mg_msun": 2.1444923543403482,
+      "R_km": 10.395416055696392
+    }
+  ],
+  "solutions": [
+    {
+      "Mg_msun": 2.073000000721386,
+      "Mb_msun_candidate": 2.4755922945654367,
+      "R_km": 10.697692802714469,
+      "Lambda": 27.828702944645624,
+      "k2": 0.08007210846117475,
+      "central_pressure_geom_m_inv2": 5.582473724772403e-10,
+      "central_e_geom_m_inv2": 1.3318491637879418e-09,
+      "central_cs2": 0.8810578929005096,
+      "surface_y": -1.1978877306208524,
+      "n_steps": 437,
+      "rtol": 2e-09,
+      "max_step_m": 400.0,
+      "mass_root_residual_msun": 7.213860619970092e-10
+    },
+    {
+      "Mg_msun": 2.073000000590871,
+      "Mb_msun_candidate": 2.4755922930163763,
+      "R_km": 10.697692801423619,
+      "Lambda": 27.82869025611116,
+      "k2": 0.0800720719752929,
+      "central_pressure_geom_m_inv2": 5.582473730867023e-10,
+      "central_e_geom_m_inv2": 1.33184916447968e-09,
+      "central_cs2": 0.8810578937834024,
+      "surface_y": -1.1978868148975645,
+      "n_steps": 482,
+      "rtol": 2e-09,
+      "max_step_m": 200.0,
+      "mass_root_residual_msun": 5.908709077573349e-10
+    },
+    {
+      "Mg_msun": 2.0730000005374154,
+      "Mb_msun_candidate": 2.475592293210949,
+      "R_km": 10.69769279815408,
+      "Lambda": 27.828683013206472,
+      "k2": 0.08007205124717018,
+      "central_pressure_geom_m_inv2": 5.58247372651056e-10,
+      "central_e_geom_m_inv2": 1.3318491639852243e-09,
+      "central_cs2": 0.8810578931523052,
+      "surface_y": -1.1978862964245511,
+      "n_steps": 487,
+      "rtol": 2e-09,
+      "max_step_m": 100.0,
+      "mass_root_residual_msun": 5.37415445478473e-10
+    }
+  ],
+  "fine_vs_previous": {
+    "delta_Mg_msun_fine_vs_previous": -5.345546227886189e-11,
+    "delta_Mb_candidate_msun_fine_vs_previous": 1.9457280231449658e-10,
+    "delta_R_km_fine_vs_previous": -3.269539305961189e-09,
+    "relative_delta_Lambda_fine_vs_previous": -2.6026753752184106e-07
+  },
+  "checks": {
+    "three_spatial_step_sizes_completed": true,
+    "mass_shooting_residual_below_1e-8_msun": true,
+    "central_cs2_below_causality": true,
+    "all_lambda_positive": true
+  },
+  "limitations": [
+    "This is a conditional tabulated-e(P) interpolation model, not a native LALSuite binary replay.",
+    "The table starts at positive pressure and the LALSuite producer version is unpinned.",
+    "The source n column is discarded; M_b is conditional on the h-based first-law density and its unresolved absolute normalization.",
+    "This is a static TOV-Love calculation, not a rotating RNS result or continuous stability proof.",
+    "No EOS prior normalization or EOS Bayes inference was evaluated."
+  ],
+  "eos_bayes": "NOT_RUN"
+}
+
