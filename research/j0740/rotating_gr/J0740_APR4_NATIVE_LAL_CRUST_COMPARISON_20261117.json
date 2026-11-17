@@ -1,0 +1,101 @@
+{
+  "schema": "j0740-apr4-native-lalsuite-crust-comparison-v1",
+  "status": "PARTIAL_REFERENCE_MATCH; N_BARYON_AND_TRANSITION_NOT_VALIDATED; EOS_BAYES_NOT_RUN",
+  "source": {
+    "name": "APR4_EPP",
+    "bytes": 56300,
+    "sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+    "rows": 865,
+    "generator_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+    "generator_lalsuite_dependency": "unpinned in JESTER commit metadata"
+  },
+  "reference": {
+    "implementation": "LALSimNeutronStarEOSPiecewisePolytrope.c low-density SLY4 constants",
+    "url": "https://adam-mercer.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_neutron_star_e_o_s_piecewise_polytrope_8c_source.html",
+    "paper_url": "https://harvest.aps.org/v2/journals/articles/10.1103/PhysRevD.79.124032/fulltext",
+    "version": "published source snapshot; generator build/version is not identified",
+    "rho_start_kg_m3": [
+      0.0,
+      24403397900.0,
+      378358138000000.0,
+      2627804870000000.0
+    ],
+    "K_si": [
+      10801158.752700761,
+      13113598989.98385,
+      6.507604807550857e+19,
+      305346107.7133694
+    ],
+    "gamma": [
+      1.58424999,
+      1.28732904,
+      0.62223344,
+      1.35692395
+    ]
+  },
+  "method": {
+    "implementation": "independent NumPy transcription; geometric conversion; LAL a_i continuity; e(P), h(P), rho(P), cs2(P)",
+    "source_rows_below_last_crust_boundary": 310,
+    "source_pressure_range_geom_m_inv2": [
+      8.262717639698037e-19,
+      2.0870137691487927e-15
+    ],
+    "reference_boundary_pressures_geom_m_inv2": [
+      2.5521796129724857e-21,
+      6.329987675218386e-16,
+      2.1141241867123916e-15
+    ],
+    "source_mu0_mev": 938.9187543404383,
+    "source_unchanged": true
+  },
+  "results": {
+    "energy_density": {
+      "max_abs_relative_error": 0.0016889708587066732,
+      "source_row": 262,
+      "source_pressure_geom_m_inv2": 6.33881091137495e-16
+    },
+    "enthalpy": {
+      "max_abs_relative_error": 2.115477613595651e-05,
+      "source_row": 261,
+      "source_pressure_geom_m_inv2": 6.180118262634687e-16
+    },
+    "sound_speed_squared_away_from_piece_boundaries": {
+      "max_abs_relative_error": 0.019998422515445702,
+      "source_row": 309,
+      "source_pressure_geom_m_inv2": 2.0870137691487927e-15
+    },
+    "baryon_density_using_source_mu0": {
+      "max_abs_relative_error": 0.011103822234187044,
+      "source_row": 309,
+      "source_pressure_geom_m_inv2": 2.0870137691487927e-15
+    },
+    "source_n_over_enthalpy_firstlaw_n_at_last_row": 1.8694377507118853,
+    "source_n_firstlaw_shape_status": "FAIL_SOURCE_N_COLUMN_NOT_FIRST_LAW_SHAPE",
+    "second_boundary_adjacent_source_row": {
+      "row": 262,
+      "pressure_geom_m_inv2": 6.33881091137495e-16,
+      "source_cs2": 0.0018909617743158344,
+      "reference_cs2": 0.0013869656335521324,
+      "relative_difference": 0.36338041013527245,
+      "source_energy_density_relative_difference": 0.0016889708587066732,
+      "source_enthalpy_relative_difference": 1.3177756029936205e-05,
+      "retained_without_clamping": true
+    }
+  },
+  "checks": {
+    "source_sha256": true,
+    "source_arrays_finite_and_monotone": true,
+    "four_piece_reference_constants_finite": true,
+    "reference_thermodynamic_quantities_finite": true,
+    "exact_native_generator_identity_proven": false
+  },
+  "limits": [
+    "The JESTER lalsuite dependency is unpinned; reference comparison is not a bit-for-bit native library validation.",
+    "The NPZ begins at positive pressure; source P=0 enthalpy and absolute baryon normalization are not independently available.",
+    "The source n column fails first-law shape at high density; no values were clamped or dropped.",
+    "A single sampled cs2 near the second crust transition differs by 36.34%; the discrepancy remains unresolved.",
+    "No independent TOV-Love solve or unrounded target rotating mass-frequency root was run; EOS_Bayes remains NOT_RUN."
+  ],
+  "eos_bayes": "NOT_RUN"
+}
+
