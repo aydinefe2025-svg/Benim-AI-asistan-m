@@ -68,7 +68,7 @@ def _extract_pending_reviewer_lesson(critique):
     rule = " ".join(final_line[len(prefix):].split())
     if rule.upper() == "NONE" or not 20 <= len(rule) <= 300:
         return None
-    if re.search(r"https?://|www\\.|[<>]", rule, flags=re.IGNORECASE):
+    if re.search(r"https?://|www\.|[<>]", rule, flags=re.IGNORECASE):
         return None
     from core.cano_autonomous_improvement import _reject_obvious_sensitive_text
     try:
