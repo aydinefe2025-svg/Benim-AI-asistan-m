@@ -1,5 +1,34 @@
 """Describe application capabilities from runtime facts, without model guessing."""
 import re
+import unicodedata
+
+
+def is_self_development_question(message):
+    """Recognize questions about CANO's own growth, not implementation requests."""
+    if not isinstance(message, str) or len(message) > 320:
+        return False
+    normalized = unicodedata.normalize("NFKD", message.casefold())
+    normalized = "".join(ch for ch in normalized
+                         if not unicodedata.combining(ch)).replace("ı", "i")
+    normalized = " ".join(normalized.split())
+    if normalized.startswith(("cano gorev:", "gorev:")):
+        return False
+    if re.search(r"\b(tasarla|kur|kodla|yaz|uret|arastir|simule|baslat|olustur)\b",
+                 normalized):
+        return False
+    subject = any(phrase in normalized for phrase in (
+        "kendini", "kendi kendine", "kendi kodunu", "kendi sistemini",
+        "sistemini", "yeteneklerini",
+    ))
+    growth = any(word in normalized for word in (
+        "gelistir", "gelisebil", "gelisiyor", "ogrenebil", "ogreniyor",
+        "degistir", "iyilestir", "egitebil",
+    ))
+    question = ("?" in message or bool(re.search(
+        r"\b(mi|misin|miyim|miyiz|musun|mu|mumkun|nasil|olabilir)\b",
+        normalized,
+    )))
+    return subject and growth and question
 
 
 def capability_reply(message, *, persistent_memory=False, persistent_colony=False,
@@ -57,7 +86,8 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
         cano_capability_subject or normalized.startswith('bizim cano')
     )
     if (normalized not in exact_matches and not natural_learning_request
-            and not general_capability_request and not status_request):
+            and not general_capability_request and not status_request
+            and not is_self_development_question(message)):
         return None
     memory = (
         'Bu oturumda hafıza kitaplığın hesap sahibine bağlı PostgreSQL üzerinde açık; '
@@ -85,7 +115,8 @@ def capability_reply(message, *, persistent_memory=False, persistent_colony=Fals
         'Organizmalar Laboratuvarı hedeflerinde de simülasyon sorusunu, değişkenleri ve ölçütü açıkça yaz; '
         'çıktıyı yeni turda iyileştirmek üzere kaydedelim.\n\n'
         'Böylece sistemin bilgi tabanı ve görevlerde kullanabildiği uzman bağlamı büyür. '
-        'Bu, temel modelin kendi ağırlıklarını otomatik eğitmesi anlamına gelmez; fiziksel deney yerine dijital simülasyon ve kanıt incelemesi yürütürüz.'
+        'Bu, temel modelin kendi ağırlıklarını otomatik eğitmesi anlamına gelmez; fiziksel deney yerine dijital simülasyon ve kanıt incelemesi yürütürüz. '
+        'Bu sohbetin içinde doğrudan GitHub kod değişikliği, komut çalıştırma veya dağıtım yetkisi yoktur; gerçek yazılım geliştirmesi ayrı ve doğrulanabilir bir geliştirme sürecinde yürütülür.'
     )
     if status_request:
         if isinstance(runtime_status, dict):
