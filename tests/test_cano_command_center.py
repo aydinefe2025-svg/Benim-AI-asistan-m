@@ -226,6 +226,66 @@ class CommandCenterTests(unittest.TestCase):
             self.assertTrue(colony.lessons(
                 pending["agent_id"], task="Kaynak kanıt iddiaları için denetim hazırla"))
 
+    def test_pending_lesson_approval_rolls_back_when_owner_backup_fails(self):
+        """Never use a locally accepted lesson unless owner backup was verified."""
+        from core.cano_command_center import _snapshot
+        from core.colony_postgres import ColonySnapshotStore
+        from core.collaborative_mission import CollaborativeMission
+
+        class LessonModel(FakeModel):
+            def __call__(self, prompt):
+                self.calls.append(prompt)
+                if len(self.calls) == 3:
+                    return (
+                        "İnceleme: daha iyi kaynak kanıtı gerekiyor.\\n"
+                        "CANO_LESSON_CANDIDATE: Kaynak iddialarını birincil "
+                        "kanıtlarla eşleştir; doğrulanmamış bilgiyi ayır."
+                    )
+                return "Aşama sonucu"
+
+        st = FakeStreamlit(clicks={"cano_prepare_team"})
+        model = LessonModel()
+        with patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}):
+            render_cano_command_center(st, answer=model)
+            st.task, st.submit = "Kaynak kanıtlarını gözden geçir", True
+            render_cano_command_center(st, answer=model)
+            render_cano_command_center(st, answer=model)
+            colony = AgentColony(_session_database_path(st, self.db_base))
+            manager = CollaborativeMission(colony)
+            mission_id = st.session_state["cano_cockpit_latest_mission"]
+            record = manager.pending_lesson(mission_id)
+            self.assertIsNotNone(record)
+            self.assertEqual(record["accepted"], 0)
+            baseline = _snapshot(colony)
+
+            attempts = []
+            def fail_on_accepted(owner, snapshot, **kwargs):
+                attempts.append(snapshot)
+                if any(row.get("accepted") == 1 and
+                       row.get("evidence") == "mission_review:" + mission_id
+                       for row in snapshot.get("feedback", [])):
+                    raise RuntimeError("PRIVATE unknown remote receipt")
+                return True
+
+            st.checkbox_values["cano_confirm_pending_lesson_" + mission_id] = True
+            st.clicks.add("cano_approve_pending_lesson_" + mission_id)
+            with (patch.object(ColonySnapshotStore, "__init__", return_value=None),
+                  patch.object(ColonySnapshotStore, "verify_schema"),
+                  patch.object(ColonySnapshotStore, "load", return_value=baseline),
+                  patch.object(ColonySnapshotStore, "save_versioned_verified",
+                               side_effect=fail_on_accepted)):
+                render_cano_command_center(
+                    st, answer=model, owner_key="owner-a",
+                    database_url="postgresql://synthetic-test")
+
+            self.assertGreaterEqual(len(attempts), 2)
+            self.assertEqual(manager.pending_lesson(mission_id)["accepted"], 0)
+            self.assertEqual(len(model.calls), 4)
+            self.assertTrue(any("onay" in m.lower() for m in st.messages))
+            self.assertNotIn("PRIVATE", " ".join(st.messages))
+            self.assertEqual(colony.lessons(
+                record["agent_id"], task="Kaynak kanıtlarını gözden geçir"), [])
+
     def test_explicit_task_dois_precede_crossref_matches_in_the_real_cockpit(self):
         st = FakeStreamlit(clicks={"cano_prepare_team"}, crossref=True)
         model = FakeModel()
