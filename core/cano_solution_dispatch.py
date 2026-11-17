@@ -30,6 +30,11 @@ def actionable_solution(answer):
     if _SECRET.search(answer):
         return False
     normalized = _ascii(answer)
+    # A model explaining it cannot edit code is not proposing a patch.
+    # Do not turn such generic explanations into executable code jobs.
+    if re.search(r"\b(?:degistiremem|gelistiremem|uygulayamam|yapamam|"
+                 r"ekleyemem|olusturamam|erisemem|calistiramam)\b", normalized):
+        return False
     software = (
         "kod", "yazilim", "github", "render", "streamlit", "neon",
         "postgresql", "uygulama", "sohbet arayuzu", "test", "gorev kuyrugu",
