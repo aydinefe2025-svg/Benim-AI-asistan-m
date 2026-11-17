@@ -37,7 +37,7 @@ class CanoSelfImprovementIntentTests(unittest.TestCase):
             with self.subTest(query=query):
                 task = parse_task_request(query)
                 self.assertIsNotNone(task)
-                self.assertIn("öneri hazırla", task)
+                self.assertIn("gelişim önerisi hazırla", task)
                 self.assertIn("önerileri otomatik uygulama", task)
 
     def test_research_or_design_requests_are_not_swallowed(self):
