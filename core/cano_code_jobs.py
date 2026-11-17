@@ -90,7 +90,7 @@ class CodeJobStore:
                 # Preserve all prior immutable receipts. A completed cycle may
                 # advance once; running/blocked/recent cycles never auto-retry.
                 cur.execute(
-                    "SELECT id::text,status,goal,created_at "
+                    "SELECT id::text,status,goal,created_at,finished_at "
                     "FROM public.cano_code_jobs "
                     "WHERE owner_key=%s AND goal LIKE %s "
                     "ORDER BY created_at DESC,id DESC LIMIT 1",
@@ -98,11 +98,14 @@ class CodeJobStore:
                 )
                 latest = cur.fetchone()
                 if latest:
-                    last_id, last_status, last_goal, created_at = latest
+                    last_id, last_status, last_goal, created_at, finished_at = latest
                     blocked_by_status = last_status != "deployed"
                     recent = (not isinstance(created_at, datetime)
+                              or not isinstance(finished_at, datetime)
                               or created_at.tzinfo is None
-                              or datetime.now(timezone.utc) - created_at
+                              or finished_at.tzinfo is None
+                              or finished_at < created_at
+                              or datetime.now(timezone.utc) - finished_at
                               < _SELF_DEVELOPMENT_COOLDOWN)
                     if blocked_by_status or recent:
                         return {"id": last_id, "status": last_status,
