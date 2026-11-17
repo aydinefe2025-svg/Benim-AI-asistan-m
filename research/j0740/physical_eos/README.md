@@ -1,21 +1,22 @@
-# PSR J0740+6620 APR4_EPP physical EOS audit — partial
+# PSR J0740+6620 APR4 physical EOS audit (2026-11-17)
 
-This bundle audits the existing JESTER-generated `APR4_EPP.npz` without modifying it. Run `python apr4_firstlaw_n_audit.py` in an environment with NumPy and the NPZ at the path embedded in the script (or adapt only the input path). The script asserts the supplied NPZ SHA-256, checks the source density proxy, reconstructs the first-law density shape, and records causality samples.
+This evidence bundle supersedes earlier partial-status descriptions. The original JESTER APR4_EPP NPZ is preserved byte-for-byte; its SHA-256 is `639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88`.
 
-## Established
+## Established evidence
 
-- Source NPZ SHA-256 matches `639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88`.
-- All 865 tabulated source `n` values equal `epsilon/m_avg` exactly within the script check. This is an energy-density proxy, not the first-law absolute baryon density.
-- The proxy's log chemical-potential/enthalpy first-law residual reaches 0.6241073.
-- First-law shape follows `n(mu0)=(epsilon+P) exp(-h)/mu0`; the physical zero-pressure chemical potential `mu0` is absent because the NPZ begins at `P=1e26 Pa` and carries no low-pressure crust anchor. Absolute crust normalization is therefore NOT_ESTABLISHED.
-- First sampled acausal point is index 812 (`cs2=1.02906747`); maximum sampled `cs2=1.09827825` at index 813.
+- Exact producer: JESTER commit `e6768650ce992abfd1153a6833857572fe5cd230`; pinned LALSuite 7.26.4 wheel SHA-256 `d37698363f9ec74255514ecadc5d8aeb4aca7ad3f04cd50534ac0caffe55f4bf`; native table SHA-256 `2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f`; source C SHA-256 `1c84c672e663d853b1ef87f9bb23520e85ab007c2b4e66048d2abc82bc7825df`.
+- All 865 JESTER exported APR4 samples reproduce from the native table's LALSuite natural cubic to relative/absolute errors below 8e-15 for epsilon, dlogepsilon/dlogP and pseudo-enthalpy.
+- The native continuous interpolant is thermodynamically monotone (`min dlogepsilon/dlogP=0.3008816956`) but acausal (`max cs2=1.1000105502`); the first cs2=1 crossing is P=7.1581887724e-10 m^-2. Original APR4 is therefore not accepted as a globally physical EOS.
+- A separately named causal completion retains the native crust and table to that crossing, uses a first-law Gamma=5/3 low-pressure anchor and cs2=1 high-pressure continuation. The original input is untouched.
+- Independent TOV turning point for that explicit completion converges at M=2.16932323 Msun, R=10.03203 km, Pc=1.24638e-9 m^-2. 61-to-121 grid changes: 2.15e-8 Msun and 5.54e-5 km. Stable-branch R at 2.073 Msun is 10.69772 km; an independently reproduced JESTER/LALSuite static point is 10.69863 km (0.00092 km difference).
+- Real tests: `test_native_lalsuite_apr4_causal_model.py` validates provenance hashes, source reproduction, continuous causality/stability, first-law shape, TOV convergence and independent source M-R agreement. Recorded result: `APR4_native_LAL_causal_candidate_test_results.json`.
 
-## Not established / not run
+## Explicit unresolved statuses
 
-- Byte-for-byte comparison of the exact JESTER source NPZ producer and a versioned native LALSuite APR4_EPP table, including high-pressure nodes and SHA: NOT_ESTABLISHED. The upstream native table can be inspected publicly, but the exact source file could not be fetched and hashed in this restricted environment; the NPZ itself does not record the producer version.
-- Continuous native LALSuite causality and thermodynamic-stability checks: NOT_RUN.
-- Physical crust matching and absolute first-law normalization: NOT_ESTABLISHED.
-- Causal replacement EOS, physical static maximum/turning point, and new rotating GR runs for such a changed EOS: NOT_RUN.
-- Source-native X-PSI effective prior, nuisance marginalization, and final EOS Bayes factor: NOT_RUN. No photons or radio mass were added or re-counted.
+- Original APR4 physical M_TOV: `NOT_ESTABLISHED` because its native high-pressure EOS is acausal.
+- Physical zero-pressure chemical potential / absolute baryon density normalization: `NOT_ESTABLISHED`; two-column native table has no baryon-density or physical mu0 anchor. First-law shape is computed, but the JESTER `m_avg` conversion is not a physical normalization proof.
+- New causal EOS RNS rotating-root run: `NOT_RUN` in this evidence package. Earlier rotating APR4 outputs apply to the prior EOS and are preserved, not relabeled as this completion.
+- Source-native X-PSI curve likelihood, nuisance marginalization and final EOS Bayes evidence: `NOT_RUN`. Prior F33/F34 are effective-prior/radius-band diagnostics only, not EOS Bayes factors. Radio mass and NICER/XMM photons have not been duplicated.
 
-The previously reported conditional turning point lies in the acausal source region and is not a physical `M_TOV`. This bundle does not revise it or claim a physical maximum mass. `NOT_RUN` means no calculation was performed; `NOT_ESTABLISHED` means available evidence does not support the claim.
+Run the test module in a Python environment with NumPy/SciPy: `python -m unittest test_native_lalsuite_apr4_causal_model -v`. The model is an explicitly defined candidate completion, not a claim that APR4 itself is causal or that a final astrophysical EOS posterior is complete.
+
