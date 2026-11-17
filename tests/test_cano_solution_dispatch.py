@@ -32,3 +32,61 @@ class CanoNaturalCodeDispatchTests(unittest.TestCase):
     def test_secret_in_context_never_queues(self):
         messages=[{"role":"assistant","content":"Çözüm: kodu güncelle, test et. sk-"+"X"*40}]
         self.assertIsNone(infer_code_goal("CANO bunu uygula",messages))
+
+    def test_self_development_command_creates_repeatable_concrete_code_goal(self):
+        instructions = (
+            "Kendini geliştir cano",
+            "CANO kendini geliştir",
+            "Kendini geliştir",
+            "CANO kendini geliştirmeye devam et",
+        )
+        goals = [infer_code_goal(message, []) for message in instructions]
+        self.assertTrue(all(isinstance(goal, str) and len(goal) <= 1200
+                            for goal in goals))
+        self.assertEqual(len(set(goals)), 1)
+        self.assertIn("test", goals[0].casefold())
+        self.assertIn("GitHub", goals[0])
+        self.assertIn("güven", goals[0].casefold())
+        self.assertIsNone(infer_code_goal("CANO kendini geliştirebilir misin?", []))
+
+    def test_authenticated_chat_self_development_enqueues_job_without_preview(self):
+        import ast
+        import logging
+        import os
+        from pathlib import Path
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        app_file = Path(__file__).resolve().parents[1] / "app.py"
+        source = ast.parse(app_file.read_text(encoding="utf-8"))
+        node = next(n for n in source.body
+                    if isinstance(n, ast.FunctionDef) and n.name == "asistani_calistir")
+        state = {"messages": []}
+        queued = []
+
+        class RecordingJobStore:
+            def __init__(self, database_url, owner_key):
+                self.database_url = database_url
+                self.owner_key = owner_key
+
+            def enqueue(self, goal):
+                queued.append((self.database_url, self.owner_key, goal))
+                return {"id": "01234567-test-job", "status": "queued", "duplicate": False}
+
+        namespace = {
+            "st": SimpleNamespace(session_state=state),
+            "_AUTH_REQUIRED": True,
+            "_OWNER_KEY": "isolated-test-owner",
+            "os": os,
+            "logging": logging,
+        }
+        exec(compile(ast.Module(body=[node], type_ignores=[]), str(app_file), "exec"),
+             namespace)
+        with patch.dict(os.environ, {"AGENT_TASK_DATABASE_URL": "isolated-test-dsn"}):
+            with patch("core.cano_code_jobs.CodeJobStore", RecordingJobStore):
+                reply = namespace["asistani_calistir"]("Kendini geliştir cano")
+        self.assertIn("kalıcı kuyruğa alındı", reply)
+        self.assertEqual(len(queued), 1)
+        self.assertEqual(queued[0][:2], ("isolated-test-dsn", "isolated-test-owner"))
+        self.assertIn("RED", queued[0][2])
+        self.assertNotIn("_cano_chat_task_pending", state)
