@@ -84,5 +84,78 @@ class CodeJobsTests(unittest.TestCase):
         self.assertEqual(OWNER,cur.queries[-1][1][0])
 
 
+
+class LifecycleCursor(FakeCursor):
+    def __init__(self, latest=None):
+        super().__init__(prior=None)
+        self.latest = latest
+
+    def fetchone(self):
+        if "SELECT id::text,status,goal,created_at" in self.last:
+            return self.latest
+        return super().fetchone()
+
+
+class RepeatingSelfDevelopmentTests(unittest.TestCase):
+    def setUp(self):
+        from core.cano_solution_dispatch import infer_code_goal
+        self.goal = infer_code_goal("Kendini geliştir cano", [])
+        self.assertIsInstance(self.goal, str)
+
+    def store(self, cursor):
+        return CodeJobStore(DB_URL, OWNER, connect=lambda _: FakeConnection(cursor))
+
+    def old(self, status, *, age_minutes=120, goal=None):
+        from datetime import datetime, timedelta, timezone
+        return ("prior-job-id", status, self.goal if goal is None else goal,
+                datetime.now(timezone.utc) - timedelta(minutes=age_minutes))
+
+    def test_deployed_self_development_can_start_a_new_bounded_cycle(self):
+        cur = LifecycleCursor(latest=self.old("deployed"))
+        receipt = self.store(cur).enqueue(self.goal)
+        self.assertFalse(receipt["duplicate"])
+        insert = next((params for sql, params in cur.queries
+                       if "INSERT INTO public.cano_code_jobs" in sql), None)
+        self.assertIsNotNone(insert)
+        self.assertIn("Döngü 2:", insert[2])
+        self.assertIn("önceki", insert[2].casefold())
+        self.assertNotEqual(self.goal, insert[2])
+        self.assertLessEqual(len(insert[2]), 1200)
+
+    def test_rapid_repeat_of_completed_cycle_is_not_requeued(self):
+        cur = LifecycleCursor(latest=self.old("deployed", age_minutes=1))
+        receipt = self.store(cur).enqueue(self.goal)
+        self.assertTrue(receipt["duplicate"])
+        self.assertEqual(receipt["status"], "deployed")
+        self.assertFalse(any("INSERT INTO" in sql for sql, _ in cur.queries))
+
+    def test_active_and_blocked_prior_cycles_do_not_autoretry(self):
+        for state in ("queued", "running", "pr_open", "ci_verified", "blocked"):
+            with self.subTest(state=state):
+                cur = LifecycleCursor(latest=self.old(state, age_minutes=120))
+                receipt = self.store(cur).enqueue(self.goal)
+                self.assertTrue(receipt["duplicate"])
+                self.assertEqual(receipt["status"], state)
+                self.assertFalse(any("INSERT INTO" in sql for sql, _ in cur.queries))
+
+    def test_second_completed_cycle_advances_to_third_not_repeat(self):
+        old_goal = self.goal + (
+            "\nDöngü 2: Önceki tamamlanan düzeltmeyi tekrarlama; "
+            "yeni doğrulanabilir hata ve bağımsız test seç."
+        )
+        cur = LifecycleCursor(latest=self.old("deployed", goal=old_goal))
+        receipt = self.store(cur).enqueue(self.goal)
+        self.assertFalse(receipt["duplicate"])
+        insert = next(params for sql, params in cur.queries if "INSERT INTO" in sql)
+        self.assertIn("Döngü 3:", insert[2])
+
+    def test_manual_explicit_code_goal_still_uses_original_deduplication(self):
+        cur = LifecycleCursor(latest=self.old("deployed"))
+        receipt = self.store(cur).enqueue("CANO rapor ekranındaki hatayı düzelt")
+        self.assertFalse(receipt["duplicate"])
+        self.assertFalse(any("SELECT id::text,status,goal,created_at" in sql
+                             for sql, _ in cur.queries))
+
+
 if __name__=="__main__":
     unittest.main()
