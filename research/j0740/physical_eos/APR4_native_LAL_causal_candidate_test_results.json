@@ -1,0 +1,35 @@
+{
+  "absolute_physical_baryon_normalization": "NOT_ESTABLISHED: two-column native table does not provide physical zero-pressure chemical potential mu0; m_avg is only the JESTER conversion convention.",
+  "conditional_causal_completion_turning_point_M_msun": 2.1693232273329097,
+  "conditional_causal_completion_turning_point_R_km": 10.0320311027508,
+  "conditional_stable_branch_at_M_2p073_Msun": {
+    "M_msun": 2.072999978139093,
+    "R_km": 10.697720143867754,
+    "hc": 0.5686055869163814,
+    "pc_geom_m-2": 5.582473028149321e-10,
+    "steps": 222
+  },
+  "continuous_native_max_cs2": 1.1000105502222017,
+  "continuous_native_min_dloge_dlogp": 0.3008816956069388,
+  "first_continuous_causal_cut_p_geom_m-2": 7.158188772369453e-10,
+  "firstlaw_n_shape_max_abs_derivative_residual": 5.470583936406648e-07,
+  "independent_JESTER_LAL_static_MR_reference_radius_at_2p073_Msun_km": 10.698631510582917,
+  "independent_TOV_minus_native_LAL_radius_at_2p073_Msun_km": -0.000911366715163453,
+  "jester_export_max_abs_dloge_error": 5.329070518200751e-15,
+  "jester_export_max_relative_e_error": 7.327471962526033e-15,
+  "jester_export_max_relative_native_h_error": 1.9984014443252818e-15,
+  "jester_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+  "native_lal_table_sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+  "native_n_vs_JESTER_e_over_mavg_ratio_at_first_and_last": [
+    0.9984707364081534,
+    0.5349201917096195
+  ],
+  "physical_MTOV": "NOT_ESTABLISHED: turning point applies to new cs2=1 completion conditional on mu0 convention.",
+  "pressure_grid_delta_M_61_vs_121_msun": 2.1505422775902616e-08,
+  "pressure_grid_delta_R_61_vs_121_km": 5.5355486287211875e-05,
+  "rotating_GR_for_new_full_crust_model": "NOT_RUN",
+  "source_native_likelihood_and_final_EOS_Bayes": "NOT_RUN",
+  "status": "PASS_NATIVE_LAL_TABLE_REPRODUCTION_AND_CONDITIONAL_TOV; PHYSICAL_MU0_NOT_ESTABLISHED",
+  "turning_point_pc_geom_m-2": 1.2463781686695932e-09
+}
+
