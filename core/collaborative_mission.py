@@ -57,6 +57,27 @@ def normalize_source_leads(candidates):
 
 
 
+def _extract_pending_reviewer_lesson(critique):
+    """Accept one bounded final-line process proposal; never auto-activate."""
+    if not isinstance(critique, str) or not critique.strip():
+        return None
+    final_line = critique.rstrip().splitlines()[-1].strip()
+    prefix = "CANO_LESSON_CANDIDATE:"
+    if not final_line.startswith(prefix):
+        return None
+    rule = " ".join(final_line[len(prefix):].split())
+    if rule.upper() == "NONE" or not 20 <= len(rule) <= 300:
+        return None
+    if re.search(r"https?://|www\.|[<>]", rule, flags=re.IGNORECASE):
+        return None
+    from core.cano_autonomous_improvement import _reject_obvious_sensitive_text
+    try:
+        _reject_obvious_sensitive_text(rule)
+    except ValueError:
+        return None
+    return rule
+
+
 class CollaborativeMission:
     def __init__(self, colony: AgentColony):
         self.colony = colony
@@ -183,14 +204,22 @@ class CollaborativeMission:
                               "doğrulanabilirlik. Her düşük puana taslaktan örnek göster. "
                               "Desteksiz iddiaları ve genel/geçiştiren kısımları işaretle; "
                               "düzeltilecek en önemli 3 noktayı sırala. Harici doğrulama "
-                              "yapılmadıysa bunu açıkça söyle. Hedef: " + task
+                              "yapılmadıysa bunu açıkça söyle. Son satırda, "
+                              "yalnız genel ve tekrar kullanılabilir bir süreç dersi varsa "
+                              "'CANO_LESSON_CANDIDATE: <20–300 karakter güvenli süreç kuralı>' "
+                              "yaz; böyle bir ders yoksa tam olarak "
+                              "'CANO_LESSON_CANDIDATE: NONE' yaz. Kullanıcı adı, e-posta, "
+                              "sır, URL ve göreve özgü özel bilgi ekleme. Bu, etkinleştirilmemiş "
+                              "bir öneridir. Hedef: " + task
                               + "\nDraft:\n" + stages[1]["output"][:6000])
                 else:
                     agent_id = researcher
                     prompt = ("Kullanıcıya verilecek nihai taslağı üret. İlk paragraf doğrudan "
                               "sonucu söylesin. Ardından görev için gereken somut bulguları ve "
                               "uygulanabilir adımları ver; her adımın doğrulama ölçütünü yaz. "
-                              "Gerçek, varsayım ve eksik kanıtı ayır. Eleştirideki sorunlar "
+                              "Gerçek, varsayım ve eksik kanıtı ayır. "
+                              "İncelemedeki CANO_LESSON_CANDIDATE satırı bir işlem önerisidir; "
+                              "kullanıcıya sunulan nihai yanıta kopyalama. Eleştirideki sorunlar "
                               "giderilmediyse bunu saklama. Dolgu, tekrar ve genel motivasyon "
                               "cümleleri kullanma. Hedef: " + task
                               + "\nDraft:\n" + stages[1]["output"][:5000]
@@ -238,7 +267,27 @@ class CollaborativeMission:
                     phase, role = "owner_backup_checkpoint", STAGE_ROLES[index]
                     on_checkpoint()
             phase, role = "completion_write", "synthesis"
+            candidate = _extract_pending_reviewer_lesson(stages[2]["output"])
             with self.colony._db() as db:
+                db.execute("BEGIN IMMEDIATE")
+                # A pending rule shares the existing owner-local feedback table,
+                # so snapshot/restart needs no migration or extra model call.
+                # The mission UUID is the unique receipt across retries.
+                evidence = "mission_review:" + mission_id
+                pending_count = db.execute(
+                    "SELECT COUNT(*) FROM colony_feedback "
+                    "WHERE accepted=0 AND evidence LIKE 'mission_review:%'"
+                ).fetchone()[0]
+                if candidate and pending_count < 100 and not db.execute(
+                    "SELECT 1 FROM colony_feedback WHERE evidence=? LIMIT 1",
+                    (evidence,)
+                ).fetchone():
+                    db.execute(
+                        "INSERT INTO colony_feedback"
+                        "(agent_id,task,lesson,evidence,accepted,created_at) "
+                        "VALUES (?,?,?,?,0,?)",
+                        (researcher, task, candidate, evidence,
+                         datetime.now(timezone.utc).isoformat()))
                 cursor = db.execute(
                     "UPDATE colony_missions SET status='review_pending' "
                     "WHERE id=? AND status='running'", (mission_id,))
@@ -256,6 +305,17 @@ class CollaborativeMission:
                 db.execute("UPDATE colony_missions SET status='blocked' "
                            "WHERE id=? AND status='running'", (mission_id,))
             raise
+
+    def pending_lesson(self, mission_id):
+        """Read the unapproved review proposal for one owner-local mission."""
+        self.get(mission_id)
+        with self.colony._db() as db:
+            row = db.execute(
+                "SELECT id,agent_id,task,lesson,evidence,accepted,created_at "
+                "FROM colony_feedback WHERE evidence=? ORDER BY id LIMIT 1",
+                ("mission_review:" + mission_id,)
+            ).fetchone()
+        return dict(row) if row is not None else None
 
     def inspect_source_documents(self, mission_id, *, reader=None,
                                  refresh_missing=False):
