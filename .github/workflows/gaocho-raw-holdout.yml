@@ -1,0 +1,32 @@
+name: Gao-Cho source-verified raw-data holdout (research only)
+on:
+  push:
+    branches:
+      - research/gaocho-raw-holdout-20261117
+    paths:
+      - research/gaocho/raw_audit.py
+      - .github/workflows/gaocho-raw-holdout.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent-source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate Python syntax
+        run: python -m py_compile research/gaocho/raw_audit.py
+      - name: Download original Zenodo data, verify MD5, inspect every TSV, perform file-level holdout when possible
+        run: python research/gaocho/raw_audit.py
+      - name: Preserve evidence, including failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gaocho-raw-data-evidence-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: research/gaocho/out/
