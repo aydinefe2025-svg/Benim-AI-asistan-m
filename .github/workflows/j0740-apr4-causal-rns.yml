@@ -1,10 +1,9 @@
-name: J0740 causal APR4 source-native rotating GR
+name: J0740 causal APR4 F38 curve integration
 on:
   push:
     branches:
       - science/j0740-apr4-firstlaw-gr-pilot-20261117
     paths:
-      - research/j0740/physical_eos/apr4_causal_rns_root.py
       - research/j0740/physical_eos/apr4_causal_f38_curve_evidence.py
       - .github/workflows/j0740-apr4-causal-rns.yml
   workflow_dispatch:
@@ -17,113 +16,34 @@ concurrency:
 jobs:
   causal-rns-gr:
     runs-on: ubuntu-latest
-    timeout-minutes: 110
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          repository: rns-alberta/rns
-          ref: 97e85d325a33e37f702306414533f6cd77812477
-          path: rns-upstream
-          persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          repository: nuclear-multimessenger-astronomy/jester
-          ref: e6768650ce992abfd1153a6833857572fe5cd230
-          path: jester-upstream
-          sparse-checkout: |
-            jesterTOV/tabulated_eos/lalsuite
-          persist-credentials: false
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.12"
-      - name: Scientific dependencies and exact lalsuite wheel
-        run: |
-          python -m pip install numpy scipy
-          mkdir -p results/source results/work
-          python -m pip download 'lalsuite==7.26.4' --no-deps --only-binary=:all: --dest results/source
-      - name: Lock NPZ, wheel and native table SHA256
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import zipfile,sys
-          sys.path.insert(0, "research/j0740/physical_eos")
-          import native_lalsuite_apr4_causal_model as native
-          npz=Path("jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz")
-          assert native.sha256(npz)==native.NPZ_SHA,"JESTER NPZ drift"
-          wheels=list(Path("results/source").glob("lalsuite-7.26.4-*.whl"))
-          assert len(wheels)==1,"Expected one native wheel"
-          wh=wheels[0]
-          assert native.sha256(wh)==native.LAL_WHEEL_SHA,"Native LAL wheel SHA drift"
-          with zipfile.ZipFile(wh) as z:
-              hits=[name for name in z.namelist() if name.endswith("LALSimNeutronStarEOS_APR4_EPP.dat")]
-              assert len(hits)==1,f"Native APR4 data not found or ambiguous: {hits}"
-              raw=z.read(hits[0])
-          path=Path("results/source/LALSimNeutronStarEOS_APR4_EPP_7.26.4.dat")
-          path.write_bytes(raw)
-          assert native.sha256(path)==native.LAL_TABLE_SHA,"Native APR4 table SHA drift"
-          print("PASS source JESTER, LAL wheel and 1447-node APR4 table")
-          PY
-      - name: Source-locked conversion preflight
-        run: python research/j0740/physical_eos/apr4_causal_rns_root.py --selftest
-      - name: Pin RNS C output precision patch only
-        run: |
-          python research/j0740/rotating_gr/precise_apr4_mass_spin_root.py \
-            --patch-only \
-            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
-            --rns-source rns-upstream/rns.c \
-            --binary rns-upstream/rns_151x301 rns-upstream/rns_201x401 \
-            --work results/work --out results/unused.json \
-            --patch-metadata results/rns_print_patch.json \
-            --expected-npz-sha256 639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88
-      - name: Compile both pinned C/GR meshes
-        run: |
-          make -C rns-upstream CC='gcc -include stdlib.h' rns
-          cp rns-upstream/rns rns-upstream/rns_151x301
-          rm -f rns-upstream/*.o rns-upstream/rns
-          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
-          cp rns-upstream/rns rns-upstream/rns_201x401
-      - name: Rebuild the pinned 200-node causal EOS table without rerunning stellar roots
-        run: |
-          python - <<'PY'
-          import sys
-          from pathlib import Path
-          sys.path.insert(0, "research/j0740/physical_eos")
-          sys.path.insert(0, "research/j0740/rotating_gr")
-          from apr4_causal_rns_root import validate_source, make_rows
-          from native_lalsuite_apr4_causal_model import NativeAPR4CausalEOS, sha256
-          from jester_to_rns import write_rns
-          table=Path("results/source/LALSimNeutronStarEOS_APR4_EPP_7.26.4.dat")
-          npz=Path("jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz")
-          mavg=validate_source(table,npz)
-          eos=NativeAPR4CausalEOS(table)
-          rows,meta=make_rows(eos,mavg,200)
-          out=Path("results/work/APR4_CAUSAL_7p26p4_200.rns")
-          write_rns(out,rows)
-          print({"rows":len(rows),"sha256":sha256(out),"causal_crossing":meta["pcut_geom_m_minus_2"]})
-          PY
-      - name: Download the already computed F38 likelihood artifact
+      - name: Install numerical dependencies
+        run: python -m pip install numpy scipy
+      - name: Download immutable existing F38 surfaces and direct RNS curve
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          mkdir -p results/f38 results/curve
           gh run download 44120237417 --repo aydinefe2025-svg/Benim-AI-asistan-m --name j0740-F38-published-source-marginalized-mr-likelihood --dir results/f38
+          gh run download 44263209159 --repo aydinefe2025-svg/Benim-AI-asistan-m --name j0740-causal-apr4-new-model-rns-gr-f36 --dir results/curve
           test "$(find results/f38 -maxdepth 1 -name 'posterior_prior_ratio_weighted_*.npz' | wc -l)" -eq 3
-      - name: Integrate the existing F38 likelihood along the new causal APR4 RNS sequence
+          test -s results/curve/J0740_CAUSAL_APR4_F38_CURVE_EVIDENCE.json
+      - name: Conditional evidence ratio with normalized prior
         run: |
           python research/j0740/physical_eos/apr4_causal_f38_curve_evidence.py \
-            --binary rns-upstream/rns_201x401 \
-            --eos-table results/work/APR4_CAUSAL_7p26p4_200.rns \
-            --anchor research/j0740/physical_eos/APR4_native_LAL_causal_completion_RNS.json \
             --surfaces results/f38 \
-            --out results/J0740_CAUSAL_APR4_F38_CURVE_EVIDENCE.json
-      - name: Preserve likelihood integration and table evidence
+            --reuse-curve-json results/curve/J0740_CAUSAL_APR4_F38_CURVE_EVIDENCE.json \
+            --out results/J0740_CAUSAL_APR4_F38_CONDITIONAL_EVIDENCE.json
+      - name: Preserve reproducible result and manifest
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: j0740-causal-apr4-new-model-rns-gr-f36
-          path: |
-            results/J0740_CAUSAL_APR4_F38_CURVE_EVIDENCE.json
-            results/rns_print_patch.json
-            results/work/*.rns
+          name: j0740-apr4-conditional-evidence-rerun
+          path: results/J0740_CAUSAL_APR4_F38_CONDITIONAL_EVIDENCE.json
           if-no-files-found: warn
           retention-days: 30
