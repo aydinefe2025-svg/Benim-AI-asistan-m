@@ -1,0 +1,45 @@
+{
+  "evidence_bytes": 3391,
+  "evidence_file": "J0740_XPSI_ABI_REAL_REFERENCE_20261118.json",
+  "evidence_sha256": "6987eaca58b2cf89e4a245bb215843af33984a072ba452cc2f1bb08fa5ce8acf",
+  "modules": [
+    {
+      "bytes": 83968,
+      "generated_c_sha256": "654e62a4b18d536a29f3d7290d9d8326340b97552e3a3162be4392f78d863a9d",
+      "module": "__init__.cp312-win_amd64.pyd",
+      "sha256": "012e06218a40c93fdfaeb5b8e55eb7a26243c9398bb21d58b44f43545a56f9db"
+    },
+    {
+      "bytes": 155648,
+      "generated_c_sha256": "8db0a3c8d80c85dfe13fe49f96e1cb2ec0275e53173436181295365d17ec1c48",
+      "module": "energy_integrator.cp312-win_amd64.pyd",
+      "sha256": "dafe9019eb040109ce597f6105df4308255dabbef6709f7e22637a0e09103db7"
+    },
+    {
+      "bytes": 156160,
+      "generated_c_sha256": "8e8047f728c8cb2de048a61fb53ddda349ef1a33a3e0951033de8d66b714b94b",
+      "module": "energy_interpolator.cp312-win_amd64.pyd",
+      "sha256": "8fae2db869307656634159cc23c58f07225460957eb187891d1223b5b75f9671"
+    },
+    {
+      "bytes": 154112,
+      "generated_c_sha256": "bf8170a45ad7c5c74c7cc8a0c3b8fbdee20d7f83e3df9620c92ad5e9d1dee0d6",
+      "module": "phase_integrator.cp312-win_amd64.pyd",
+      "sha256": "6e4ae02281356b5ca6f49667c12884f038f121c9d1a06fc1d5bb38c90b8be484"
+    },
+    {
+      "bytes": 157184,
+      "generated_c_sha256": "c3f168040fdfc1bdc196e1b9f271574b2c0a3f3edca0b66ce21fc3ce57578cb6",
+      "module": "phase_interpolator.cp312-win_amd64.pyd",
+      "sha256": "9065ee3c851e080eaaea69f5ed0779fb6d9e4eaa81479ba3b9932ca2eedeeee7"
+    },
+    {
+      "bytes": 278528,
+      "generated_c_sha256": "398b9d438f802cbdc66704aecf023e333bd64655aa1098c3bc059c6d5f5486cd",
+      "module": "synthesise.cp312-win_amd64.pyd",
+      "sha256": "c383f10bb4079cdf6deddac3dc252b7daf87916c580d429aea67b6332fcd036b"
+    }
+  ],
+  "schema": "j0740_xpsi_abi_rebuild_manifest_v1"
+}
+
