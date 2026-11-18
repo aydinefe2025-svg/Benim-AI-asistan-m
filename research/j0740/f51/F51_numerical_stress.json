@@ -1,0 +1,230 @@
+{
+  "dense_integration_nodes": 1601,
+  "method": "PCHIP of R(M) between real C roots for quadrature diagnostic ONLY; not direct RNS stars or an EOS family model",
+  "number_of_real_GR_stars": 168,
+  "per_surface": {
+    "posterior_prior_ratio_resampled_0.015_0.20.npz": {
+      "APR4_EPP": {
+        "coarse_actual_direct_root_quadrature": 0.8841249404054302,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.884607632218376,
+        "relative_fractional_disagreement": 0.0005456563965374459
+      },
+      "ENG": {
+        "coarse_actual_direct_root_quadrature": 2.531932471032357,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.5321854161534922,
+        "relative_fractional_disagreement": 9.989202193554543e-05
+      },
+      "MPA1": {
+        "coarse_actual_direct_root_quadrature": 2.484119142953157,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.483889658261926,
+        "relative_fractional_disagreement": 9.238924541912412e-05
+      },
+      "MS1": {
+        "coarse_actual_direct_root_quadrature": 0.31927810741689366,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.31922083280243446,
+        "relative_fractional_disagreement": 0.00017942003958948695
+      },
+      "MS1B": {
+        "coarse_actual_direct_root_quadrature": 0.3770017352289147,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.37690312627265654,
+        "relative_fractional_disagreement": 0.0002616294463603064
+      },
+      "WFF1": {
+        "coarse_actual_direct_root_quadrature": 0.043880200322528984,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.04394374357624449,
+        "relative_fractional_disagreement": 0.001446013665295848
+      },
+      "WFF2": {
+        "coarse_actual_direct_root_quadrature": 0.5893615269577495,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.5898720706831047,
+        "relative_fractional_disagreement": 0.0008655160173356856
+      }
+    },
+    "posterior_prior_ratio_resampled_0.025_0.35.npz": {
+      "APR4_EPP": {
+        "coarse_actual_direct_root_quadrature": 0.9544230859220255,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.9546762928143908,
+        "relative_fractional_disagreement": 0.00026522800898181237
+      },
+      "ENG": {
+        "coarse_actual_direct_root_quadrature": 2.375681361674819,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.3758257811104686,
+        "relative_fractional_disagreement": 6.078704793832382e-05
+      },
+      "MPA1": {
+        "coarse_actual_direct_root_quadrature": 2.4229134443438674,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.422880777596415,
+        "relative_fractional_disagreement": 1.3482606224148955e-05
+      },
+      "MS1": {
+        "coarse_actual_direct_root_quadrature": 0.3267284577905314,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.32671479391929553,
+        "relative_fractional_disagreement": 4.1822015685134696e-05
+      },
+      "MS1B": {
+        "coarse_actual_direct_root_quadrature": 0.3841354466112966,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.3841168991252453,
+        "relative_fractional_disagreement": 4.828604545524719e-05
+      },
+      "WFF1": {
+        "coarse_actual_direct_root_quadrature": 0.08846164615768501,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.08846759986778044,
+        "relative_fractional_disagreement": 6.72981984854119e-05
+      },
+      "WFF2": {
+        "coarse_actual_direct_root_quadrature": 0.6830438986126953,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.6832775002468185,
+        "relative_fractional_disagreement": 0.0003418839842360429
+      }
+    },
+    "posterior_prior_ratio_resampled_0.040_0.50.npz": {
+      "APR4_EPP": {
+        "coarse_actual_direct_root_quadrature": 1.003076275919344,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 1.0032051551837358,
+        "relative_fractional_disagreement": 0.0001284675060987539
+      },
+      "ENG": {
+        "coarse_actual_direct_root_quadrature": 2.161326808209944,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.1615041203754606,
+        "relative_fractional_disagreement": 8.203184247718167e-05
+      },
+      "MPA1": {
+        "coarse_actual_direct_root_quadrature": 2.291497083221333,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.291576728437951,
+        "relative_fractional_disagreement": 3.475564035429085e-05
+      },
+      "MS1": {
+        "coarse_actual_direct_root_quadrature": 0.3443398868140961,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.3443414994171618,
+        "relative_fractional_disagreement": 4.6831505015288105e-06
+      },
+      "MS1B": {
+        "coarse_actual_direct_root_quadrature": 0.40047134724548417,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.4004749682864332,
+        "relative_fractional_disagreement": 9.04186587372737e-06
+      },
+      "WFF1": {
+        "coarse_actual_direct_root_quadrature": 0.16111702443294998,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.1611093360132068,
+        "relative_fractional_disagreement": 4.772175178327402e-05
+      },
+      "WFF2": {
+        "coarse_actual_direct_root_quadrature": 0.7681564041287312,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.7682771535284438,
+        "relative_fractional_disagreement": 0.00015716906217771182
+      }
+    },
+    "posterior_prior_ratio_weighted_0.015_0.20.npz": {
+      "APR4_EPP": {
+        "coarse_actual_direct_root_quadrature": 0.8868104482183293,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.8872112082341735,
+        "relative_fractional_disagreement": 0.0004517075665013881
+      },
+      "ENG": {
+        "coarse_actual_direct_root_quadrature": 2.5360329957341006,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.5361771087871117,
+        "relative_fractional_disagreement": 5.682294525559245e-05
+      },
+      "MPA1": {
+        "coarse_actual_direct_root_quadrature": 2.4837150843154734,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.4835225346584306,
+        "relative_fractional_disagreement": 7.753086769120942e-05
+      },
+      "MS1": {
+        "coarse_actual_direct_root_quadrature": 0.3175231042511573,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.3174753495281939,
+        "relative_fractional_disagreement": 0.00015042025478321862
+      },
+      "MS1B": {
+        "coarse_actual_direct_root_quadrature": 0.37647167497058076,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.3764171712837513,
+        "relative_fractional_disagreement": 0.0001447959630629594
+      },
+      "WFF1": {
+        "coarse_actual_direct_root_quadrature": 0.04367605725069496,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.04374456499964692,
+        "relative_fractional_disagreement": 0.001566085957250034
+      },
+      "WFF2": {
+        "coarse_actual_direct_root_quadrature": 0.5902472602114124,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.5906186108313746,
+        "relative_fractional_disagreement": 0.0006287485919880846
+      }
+    },
+    "posterior_prior_ratio_weighted_0.025_0.35.npz": {
+      "APR4_EPP": {
+        "coarse_actual_direct_root_quadrature": 0.9559809745906077,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.9562383809130555,
+        "relative_fractional_disagreement": 0.00026918635309531154
+      },
+      "ENG": {
+        "coarse_actual_direct_root_quadrature": 2.377363754588472,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.3775033559683076,
+        "relative_fractional_disagreement": 5.871763734219415e-05
+      },
+      "MPA1": {
+        "coarse_actual_direct_root_quadrature": 2.421533623485581,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.421515751833323,
+        "relative_fractional_disagreement": 7.380357631187381e-06
+      },
+      "MS1": {
+        "coarse_actual_direct_root_quadrature": 0.32586525578708264,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.32585139637723276,
+        "relative_fractional_disagreement": 4.25329153226534e-05
+      },
+      "MS1B": {
+        "coarse_actual_direct_root_quadrature": 0.3834600464235087,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.3834437858499517,
+        "relative_fractional_disagreement": 4.2406668609798305e-05
+      },
+      "WFF1": {
+        "coarse_actual_direct_root_quadrature": 0.08844723860359267,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.08845371781216714,
+        "relative_fractional_disagreement": 7.324970317500542e-05
+      },
+      "WFF2": {
+        "coarse_actual_direct_root_quadrature": 0.6841495755383039,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.6843849014894786,
+        "relative_fractional_disagreement": 0.0003438502963208939
+      }
+    },
+    "posterior_prior_ratio_weighted_0.040_0.50.npz": {
+      "APR4_EPP": {
+        "coarse_actual_direct_root_quadrature": 1.0042931014594023,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 1.0044221620455482,
+        "relative_fractional_disagreement": 0.0001284923720550793
+      },
+      "ENG": {
+        "coarse_actual_direct_root_quadrature": 2.162334427245193,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.1625119085228492,
+        "relative_fractional_disagreement": 8.207181516863814e-05
+      },
+      "MPA1": {
+        "coarse_actual_direct_root_quadrature": 2.29088379786281,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 2.290964451378346,
+        "relative_fractional_disagreement": 3.520504889871343e-05
+      },
+      "MS1": {
+        "coarse_actual_direct_root_quadrature": 0.3437850170348211,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.3437870318961782,
+        "relative_fractional_disagreement": 5.860783479755769e-06
+      },
+      "MS1B": {
+        "coarse_actual_direct_root_quadrature": 0.3998634917634594,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.3998678285880302,
+        "relative_fractional_disagreement": 1.0845645137564405e-05
+      },
+      "WFF1": {
+        "coarse_actual_direct_root_quadrature": 0.16126381566974682,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.16125657038520788,
+        "relative_fractional_disagreement": 4.493016639030317e-05
+      },
+      "WFF2": {
+        "coarse_actual_direct_root_quadrature": 0.7691135575094695,
+        "dense_quadrature_with_interpolated_radius_fine_not_new_GR_roots": 0.7692345941332273,
+        "relative_fractional_disagreement": 0.0001573468284978978
+      }
+    }
+  },
+  "surface_max_relative_disagreement": 0.001566085957250034
+}

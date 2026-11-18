@@ -1,0 +1,112 @@
+name: J0740 F51 pinned real GR expanded mass-support likelihood
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f51/**'
+      - '.github/workflows/j0740-f51-extended-mass-support.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  f51-pinned-seven-real-GR-extended-mass-integrals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numerical packages
+        run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
+      - name: Run twelve independent acceptance/fail-closed tests
+        run: python -m unittest discover -s research/j0740/f51 -p 'test_f51_*.py' -v
+      - name: Retrieve exactly the 10 SHA-locked real input artifact ZIPs (seven RNS curves plus F38/F44/F48)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/F51/raw results/F51/input
+          while read -r id file expected; do
+            curl -fL --retry 3 --max-time 180 \
+              -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/${id}/zip" \
+              -o "results/F51/input/${file}"
+            echo "${expected}  results/F51/input/${file}" | sha256sum -c -
+          done <<'PINNED'
+          14344049589 F38.zip 4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307
+          14413168551 F44.zip b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98
+          14421121729 F48.zip 8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786
+          PINNED
+          while read -r id name expected; do
+            curl -fL --retry 3 --max-time 120 \
+              -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/${id}/zip" \
+              -o "results/F51/raw/F46_${name}.zip"
+            echo "${expected}  results/F51/raw/F46_${name}.zip" | sha256sum -c -
+          done <<'PINNED'
+          14418969143 APR4_EPP c7a8f4e64ad5b3de92e0b0d924edea8e1a0f10f2d390905324369945dc534c66
+          14419366608 ENG 7b1aea08c5f3cd466fe9b245ededfb5c7c9c87f590111107d09f4e7a028de2ae
+          14418944014 MPA1 0cff4621ddef0da0c02d2bae9a2e45f85d364f05244fd193d3528d336406d70c
+          14419716928 MS1 2fc7266e295a954ef5ca4c7b7a75fc4728c2591ed891bbd1362b46c1d1d23ec8
+          14420300768 MS1B 3975c9561b2a0bdc81ff03b666fcaed8f7666233fd39f9ccf9342575253e867e
+          14418493809 WFF1 bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3
+          14420450015 WFF2 23a59ccc8a606943d54841569a847c3dcf99ff0a251b2d53c248d6d5d809bfcb
+          PINNED
+          echo '4600ffa338606847fd2981583f38c44945c01525dd24e950ca5c90a14ccb04e8  research/j0740/f49/F49_7EOS_all_22_real_direct_RNS_integrals.json' | sha256sum -c -
+      - name: Compute 7×24 extended C/GR-root likelihood integrals from 6 F38 surfaces (42 scores)
+        run: |
+          set -euo pipefail
+          python research/j0740/f51/f51_extended_support_audit.py \
+            --f38 results/F51/input/F38.zip --f44 results/F51/input/F44.zip \
+            --f48 results/F51/input/F48.zip --f49 research/j0740/f49/F49_7EOS_all_22_real_direct_RNS_integrals.json \
+            --curves-dir results/F51/raw --out results/F51/F51_results.json
+          python research/j0740/f51/f51_numerical_stress.py \
+            --f38 results/F51/input/F38.zip --f44 results/F51/input/F44.zip \
+            --f48 results/F51/input/F48.zip --curves-dir results/F51/raw \
+            --out results/F51/F51_numerical_stress.json
+      - name: Reject any upstream or numeric drift relative to independently generated F51 golden results
+        run: |
+          python - <<'PY'
+          import json,math
+          from pathlib import Path
+          expected=json.loads(Path('research/j0740/f51/F51_results.json').read_text())
+          actual=json.loads(Path('results/F51/F51_results.json').read_text())
+          assert actual['direct_C_RNS_models_on_common_support']==168
+          assert actual['old_F49_42_values_max_absolute_reproduction_error'] < 1e-9
+          assert actual['status']==expected['status']
+          assert actual['per_eos_real_mass_support']==expected['per_eos_real_mass_support']
+          for surf,rec in expected['surfaces'].items():
+            got=actual['surfaces'][surf]
+            assert got['new_common_window_highest_score']==rec['new_common_window_highest_score'], surf
+            for eos,integ in rec['common_24_direct_root_observational_integrals'].items():
+              a=got['common_24_direct_root_observational_integrals'][eos]
+              for k in ('likelihood_full_radio_prior_window_contribution','conditional_on_verified_mass_window_L_over_Z'):
+                assert math.isclose(a[k],integ[k],rel_tol=1e-8,abs_tol=1e-10),(surf,eos,k)
+          sensitivity=json.loads(Path('results/F51/F51_numerical_stress.json').read_text())
+          assert sensitivity['surface_max_relative_disagreement']<0.005
+          print('F51 PASS: 168 direct GR source stars; 42/42 independent source surface values; old F49 42/42 reproduced; quadrature stress <0.5%')
+          PY
+      - name: Always preserve run output and failure SHA receipts
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          root=Path('results/F51');root.mkdir(parents=True,exist_ok=True)
+          files={str(p.relative_to(root)):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in root.rglob('*.json') if p.name!='F51_CI_manifest.json'}
+          (root/'F51_CI_manifest.json').write_text(json.dumps(files,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-F51-sha-locked-seven-new-causal-cgr-mass-support-integrals
+          path: |
+            results/F51/F51_results.json
+            results/F51/F51_numerical_stress.json
+            results/F51/F51_CI_manifest.json
+          if-no-files-found: warn
+          retention-days: 30

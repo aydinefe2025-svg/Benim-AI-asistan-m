@@ -1,0 +1,54 @@
+{
+  "external:F38_original_Salmi_six_KDE_20261118.zip": {
+    "bytes": 6032445,
+    "sha256": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307"
+  },
+  "external:J0740_F44_Real_Seven_Candidate_Direct_RNS_GR_20261118.zip": {
+    "bytes": 60112,
+    "sha256": "b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98"
+  },
+  "external:J0740_F48_real_WFF1_direct_GR_rescue_20261118.zip": {
+    "bytes": 7066,
+    "sha256": "8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786"
+  },
+  "external:J0740_F49_Seven_Complete_GR_22node_Likelihood_20261118.zip": {
+    "bytes": 45309,
+    "sha256": "47cf64987a976b75e181bb4bfc06702c73de9835908d758331566f07fa60f22a"
+  },
+  "out/F51_numerical_stress.json": {
+    "bytes": 11339,
+    "sha256": "21a721082cb56e9c0decf25b011fb86dc3191d2032341bc121fe31976d21ec14"
+  },
+  "out/F51_results.json": {
+    "bytes": 63722,
+    "sha256": "3c3584905190012ee61f4b7fee343e3d1c9e28300f9d681e8bf34dd157b5d67d"
+  },
+  "out/F51_science_report.md": {
+    "bytes": 3402,
+    "sha256": "892b92fa36c1e9bce3e5ea7af7c42626deadc6512a113c09adb8c05f1e7dd73d"
+  },
+  "out/F51_unittest.log": {
+    "bytes": 1511,
+    "sha256": "d030114cabef35b30aeb0eef303efd1fbb93070b21e7eeda7209a394848ae716"
+  },
+  "src/README.md": {
+    "bytes": 2777,
+    "sha256": "33caf7c4518a036aa8dc88c8e30098efbe8b0c10d5bcb9123ea7a9054534bf20"
+  },
+  "src/f51_extended_support_audit.py": {
+    "bytes": 11654,
+    "sha256": "b1b8420ec0994e59aafea9544795ad5b82e61b0b17d8cee34c85200f34fb29fc"
+  },
+  "src/f51_numerical_stress.py": {
+    "bytes": 2181,
+    "sha256": "c89e3cc3dba76ecfc1b5a5800a4ff10a0802e49db74e10f05091312e7fb3c08d"
+  },
+  "src/j0740-f51-extended-mass-support.yml": {
+    "bytes": 6412,
+    "sha256": "6c719227015c9869f06f3b0861e3448f17374c323412724b539e3be7ac8ccc03"
+  },
+  "src/test_f51_extended_support_audit.py": {
+    "bytes": 3033,
+    "sha256": "8a87ca508da8cfa91dc6fe1b29b3dadec7b24e10d9d9a9be5c398cdd319ece2f"
+  }
+}
