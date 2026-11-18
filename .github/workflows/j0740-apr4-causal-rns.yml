@@ -83,15 +83,6 @@ jobs:
           rm -f rns-upstream/*.o rns-upstream/rns
           make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
           cp rns-upstream/rns rns-upstream/rns_201x401
-      - name: New causal APR4 rotating M 2.073 Msun f 346.536369 Hz GR roots
-        run: |
-          python research/j0740/physical_eos/apr4_causal_rns_root.py \
-            --table results/source/LALSimNeutronStarEOS_APR4_EPP_7.26.4.dat \
-            --npz jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
-            --binary-coarse rns-upstream/rns_151x301 \
-            --binary-fine rns-upstream/rns_201x401 \
-            --work results/work \
-            --out results/J0740_CAUSAL_APR4_RNS_FIXED_MASS_SPIN.json
       - name: Download the already computed F38 likelihood artifact
         env:
           GH_TOKEN: ${{ github.token }}
@@ -106,13 +97,12 @@ jobs:
             --anchor research/j0740/physical_eos/APR4_native_LAL_causal_completion_RNS.json \\
             --surfaces results/f38 \\
             --out results/J0740_CAUSAL_APR4_F38_CURVE_EVIDENCE.json
-      - name: Preserve root or failure evidence
+      - name: Preserve likelihood integration and table evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: j0740-causal-apr4-new-model-rns-gr-f36
           path: |
-            results/J0740_CAUSAL_APR4_RNS_FIXED_MASS_SPIN.json
             results/J0740_CAUSAL_APR4_F38_CURVE_EVIDENCE.json
             results/rns_print_patch.json
             results/work/*.rns
