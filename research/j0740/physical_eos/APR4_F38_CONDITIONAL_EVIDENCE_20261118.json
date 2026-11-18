@@ -1,0 +1,60 @@
+{
+  "schema": "j0740-apr4-conditional-f38-evidence-summary-v1",
+  "date": "2026-11-18",
+  "model": "APR4_EPP_LALSuite_7.26.4_NATIVE_CAUSAL_COMPLETION",
+  "result_status": "PASS_APPROXIMATE_CURVE_INTEGRAL_NOT_FINAL_EOS_BAYES",
+  "model_prior": "normalized uniform central-energy-density over the numerically resolved single-valued rising fixed-spin sequence; M=1.923..2.123 Msun",
+  "likelihood_construction": "F38 published-posterior-derived nuisance-marginalized L/Z surfaces; normalized radio Gaussian applied once after removal from source effective prior",
+  "spin_hz": 346.536369,
+  "mass_range_msun": [
+    1.923,
+    2.123
+  ],
+  "fine_conditional_evidence_ratio_by_kde_bandwidth": {
+    "sigmaM_0.015_sigmaR_0.20": 2.215913076979936,
+    "sigmaM_0.025_sigmaR_0.35": 2.545478636234279,
+    "sigmaM_0.040_sigmaR_0.50": 2.830868566020175
+  },
+  "coarse_conditional_evidence_ratio_by_kde_bandwidth": {
+    "sigmaM_0.015_sigmaR_0.20": 2.216829583513101,
+    "sigmaM_0.025_sigmaR_0.35": 2.545881606632135,
+    "sigmaM_0.040_sigmaR_0.50": 2.8305410258058545
+  },
+  "coarse_fine_relative_difference": {
+    "sigmaM_0.015_sigmaR_0.20": 0.0004134312082361147,
+    "sigmaM_0.025_sigmaR_0.35": 0.00015828324333932997,
+    "sigmaM_0.040_sigmaR_0.50": 0.00011571646951380465
+  },
+  "mass_grid_convergence": "PASS_2_PERCENT",
+  "kde_bandwidth_systematic": "~28%; material; results remain approximate and bandwidth-sensitive",
+  "native_compiled_xpsi_photon_reanalysis": "NOT_RUN",
+  "final_seven_eos_bayes": "NOT_RUN",
+  "fixed_spin_turning_point": "NOT_ESTABLISHED",
+  "full_stable_branch": "NOT_ESTABLISHED",
+  "omitted_mass_tail_correction": "NOT_ESTABLISHED",
+  "absolute_baryon_density_normalization": "NOT_ESTABLISHED",
+  "causal_completion_uniqueness": "NOT_ESTABLISHED",
+  "original_apr4_epp_global_causality": "FAIL_Cs2_ABOVE_1",
+  "no_double_counting": "Radio Gaussian used once in current conditional integral; no photons or radio mass independently multiplied a second time.",
+  "provenance": {
+    "source_APR4_EPP_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+    "source_Salmi_mr_samples_sha256": "1549467c64a8801c39213bd28c89737d087cc5ab7a70da1d8d3a32b2d09185c8",
+    "F38_run": 44120237417,
+    "F38_artifact_id": 14344049589,
+    "F38_artifact_sha256": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307",
+    "RNS_curve_run": 44263209159,
+    "RNS_curve_artifact_id": 14410045606,
+    "RNS_curve_artifact_sha256": "fffe10cf25aee6d4ed1dd36728ca3a9d71f9ecc4807c52f2f1cbcd152b4d7191",
+    "RNS_200_point_table_sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89",
+    "current_evidence_run": 44265095377,
+    "current_evidence_artifact_id": 14409468800,
+    "current_evidence_artifact_sha256": "011fd29e2333b230d2213976d3c9650089f90a9c3f92dfbb4e5842aae8dd6187",
+    "source_code_commit": "7a29123cd2f3734ec4148a19e24cb32b0ecf1599",
+    "source_code_git_blob_sha1": "d0e222b23084d57fb059e242384811daa70c3715"
+  },
+  "links": {
+    "action_run": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44265095377",
+    "issue_280": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/280"
+  },
+  "interpretation": "Conditional approximate likelihood evidence ratio for one chosen causal APR4 completion and one explicit central-energy prior. This is not a final EOS posterior probability, model ranking, or seven-EOS Bayes factor."
+}
