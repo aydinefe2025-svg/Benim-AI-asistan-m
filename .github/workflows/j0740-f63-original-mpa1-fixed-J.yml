@@ -126,3 +126,96 @@ jobs:
             results/F63/F63_SHA256_receipt.json
           if-no-files-found: warn
           retention-days: 30
+
+  original-mpa1-fine-spatial-C:
+    needs: native-source-fixed-J
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite/MPA1.npz
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: NumPy and SciPy same pinned math dependencies as 151x301
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: j0740-F63-original-MPA1-direct-C-constant-J-or-failure
+          path: results/F63/parents
+      - name: 20 math/physics tests and exact source lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f63 -p 'test_f63_*.py' -v
+          echo '0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22  jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz' | sha256sum -c -
+      - name: Only C printf diagnostic patch and explicit 201x401 spacetime grid
+        shell: bash
+        run: |
+          python - <<'PY'
+          import sys,hashlib,json
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f63')
+          from f63_original_mpa1_fixed_J import patch_output_only
+          p=Path('rns-upstream/rns.c');raw=p.read_bytes()
+          p.write_bytes(patch_output_only(raw.decode('utf8')).encode('utf8'))
+          make=Path('rns-upstream/makefile');before=make.read_text()
+          old='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+          new='HIGHSIZE=-DMDIV=201 -DSDIV=401'
+          if before.count(old)!=1 or new in before:
+              raise ValueError('F63_FINE_SPATIAL_MAKEFILE_GRID_IDENTITY_DRIFT')
+          make.write_text(before.replace(old,new))
+          out=Path('results/F63/fine');out.mkdir(parents=True,exist_ok=True)
+          record={'original_makefile_sha256':hashlib.sha256(before.encode()).hexdigest(),
+                  'fine_makefile_sha256':hashlib.sha256(make.read_bytes()).hexdigest(),
+                  'patched_printf_C_source_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),
+                  'source_commit':'97e85d325a33e37f702306414533f6cd77812477',
+                  'spacetime_mesh':'201x401','modified_physics_source':False}
+          (out/'F63_fine_grid_C_compilation_receipt.json').write_text(json.dumps(record,sort_keys=True,indent=2)+'\n')
+          PY
+          grep -F 'HIGHSIZE=-DMDIV=201 -DSDIV=401' rns-upstream/makefile
+      - name: Compile fine-spatial 201x401 full-GR RNS C binary
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Direct 201x401 full-GR C stars at SAME original MPA1 fixed J and densities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f63/f63_spatial_constant_j_crosscheck.py \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz \
+            --f63 results/F63/parents/F63_original_MPA1_constant_J_C_RNS.json \
+            --rns rns-upstream/rns \
+            --out results/F63/fine/F63_MPA1_two_spatial_mesh_fixed_J.json
+      - name: Preserve exact C and physics evidence member checksums
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json,hashlib
+          d=Path('results/F63/fine');d.mkdir(parents=True,exist_ok=True)
+          paths=[*d.glob('*.json'),Path('rns-upstream/rns.c'),Path('rns-upstream/rns'),Path('rns-upstream/makefile'),
+                 Path('results/F63/parents/F63_original_MPA1_constant_J_C_RNS.json'),
+                 Path('research/j0740/f63/f63_spatial_constant_j_crosscheck.py')]
+          rec={str(p):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size} for p in paths if p.is_file()}
+          (d/'F63_fine_spatial_SHA256_receipt.json').write_text(json.dumps(rec,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-F63-original-MPA1-fine-spatial-fixed-J-or-failure
+          path: results/F63/fine/
+          if-no-files-found: warn
+          retention-days: 30
