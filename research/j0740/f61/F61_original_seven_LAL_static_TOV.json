@@ -1,0 +1,1252 @@
+{
+  "EOS_original_not_F42_modified": true,
+  "jester_source_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+  "lalsimulation_version": "6.2.1",
+  "lalsuite_version": "7.7.1",
+  "results": {
+    "APR4_EPP": {
+      "direct_LAL_sampled_ascending_branch_mass_range_msun": [
+        0.09484602091654248,
+        2.1591669533846765
+      ],
+      "direct_static_TOV_failures": [
+        {
+          "message": "INVALID_LAL_TOV_SOLUTION",
+          "pc_pa": 1e+32,
+          "reason": "ValueError"
+        },
+        {
+          "message": "INVALID_LAL_TOV_SOLUTION",
+          "pc_pa": 1.1205407948597767e+32,
+          "reason": "ValueError"
+        }
+      ],
+      "number_direct_static_TOV_scan_failures": 2,
+      "number_direct_static_TOV_scan_successes": 62,
+      "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+      "source_static_reference": {
+        "native_min_stable_msun": 0.09448563000445322,
+        "native_mmax_msun": 2.1591669543848258,
+        "native_reference_points": 500,
+        "original_low_mass_minimum_index": 19,
+        "original_peak_index": 499,
+        "reference_is_original_LAL_TOV_NOT_new_solution": true
+      },
+      "stars": {
+        "2.073": {
+          "bracket_pc_pa": [
+            6.567155786225416e+34,
+            7.358765964665131e+34
+          ],
+          "central_pressure_si_pa": 6.75068171548488e+34,
+          "direct_TOV_solver_calls_in_root": 14,
+          "love_k2": 0.02687195818839217,
+          "mass_msun": 2.0730000000964757,
+          "native_LAL_vs_original_JESTER_source_R_km": 3.281438961977301e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 10.698664324972537,
+          "root_mass_residual_msun": 9.6475716304667e-11,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 10.698631510582917,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.88188446244799,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 1792764389065082.5,
+            "central_pressure_geom_m_minus_2": 5.577897689052392e-10,
+            "full_interior_screen": "SAMPLED_PASS_NOT_CONTINUOUS_PROOF",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 802,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.9483289176324265,
+            "sampled_core_min_cs2": 0.037348629331574824,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 0,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.175": {
+          "native_new_star_not_claimed": true,
+          "rotation_346p536Hz_max_mass": "NOT_INFERRED_FROM_STATIC",
+          "source_static_Mmax_msun": 2.1591669543848258,
+          "status": "NOT_BRACKETED_ON_NATIVE_STATIC_ASCENDING_BRANCH"
+        },
+        "2.200": {
+          "native_new_star_not_claimed": true,
+          "rotation_346p536Hz_max_mass": "NOT_INFERRED_FROM_STATIC",
+          "source_static_Mmax_msun": 2.1591669543848258,
+          "status": "NOT_BRACKETED_ON_NATIVE_STATIC_ASCENDING_BRANCH"
+        },
+        "2.225": {
+          "native_new_star_not_claimed": true,
+          "rotation_346p536Hz_max_mass": "NOT_INFERRED_FROM_STATIC",
+          "source_static_Mmax_msun": 2.1591669543848258,
+          "status": "NOT_BRACKETED_ON_NATIVE_STATIC_ASCENDING_BRANCH"
+        },
+        "2.250": {
+          "native_new_star_not_claimed": true,
+          "rotation_346p536Hz_max_mass": "NOT_INFERRED_FROM_STATIC",
+          "source_static_Mmax_msun": 2.1591669543848258,
+          "status": "NOT_BRACKETED_ON_NATIVE_STATIC_ASCENDING_BRANCH"
+        }
+      },
+      "static_max_prior_mass_below_source_M_TOV_not_rotating": 0.8638282421155976
+    },
+    "ENG": {
+      "direct_LAL_sampled_ascending_branch_mass_range_msun": [
+        0.0967376472310496,
+        2.2520900374414117
+      ],
+      "direct_static_TOV_failures": [],
+      "number_direct_static_TOV_scan_failures": 0,
+      "number_direct_static_TOV_scan_successes": 64,
+      "source_npz_sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953",
+      "source_static_reference": {
+        "native_min_stable_msun": 0.09673763871298718,
+        "native_mmax_msun": 2.252090040159999,
+        "native_reference_points": 500,
+        "original_low_mass_minimum_index": 0,
+        "original_peak_index": 499,
+        "reference_is_original_LAL_TOV_NOT_new_solution": true
+      },
+      "stars": {
+        "2.073": {
+          "bracket_pc_pa": [
+            4.165495117131805e+34,
+            4.667607209535469e+34
+          ],
+          "central_pressure_si_pa": 4.552578043378488e+34,
+          "direct_TOV_solver_calls_in_root": 15,
+          "love_k2": 0.03498453917302251,
+          "mass_msun": 2.072999999681233,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.5031311288993265e-06,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 11.504801798697187,
+          "root_mass_residual_msun": -3.187667907411651e-10,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 11.504800295566058,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 1.0632353145609283,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 1502548785312617.0,
+            "central_pressure_geom_m_minus_2": 3.761666690512541e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 787,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 4,
+            "sampled_core_max_cs2": 1.0632353145609283,
+            "sampled_core_min_cs2": 0.04296296759713185,
+            "sampled_core_screen": "SAMPLED_FAIL",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 4
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.175": {
+          "bracket_pc_pa": [
+            6.567155786225416e+34,
+            7.358765964665131e+34
+          ],
+          "central_pressure_si_pa": 6.796967616181387e+34,
+          "direct_TOV_solver_calls_in_root": 18,
+          "love_k2": 0.02556770077726643,
+          "mass_msun": 2.175000002744265,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.4116848909395685e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 11.15686438880759,
+          "root_mass_residual_msun": 2.7442652594800165e-09,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 11.15685027195868,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.987232940469484,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 1738377550411514.8,
+            "central_pressure_geom_m_minus_2": 5.616142421867826e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 803,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 16,
+            "sampled_core_max_cs2": 1.1148688420214583,
+            "sampled_core_min_cs2": 0.04296296759713185,
+            "sampled_core_screen": "SAMPLED_FAIL",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 16
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.200": {
+          "bracket_pc_pa": [
+            7.358765964665131e+34,
+            8.245797463232938e+34
+          ],
+          "central_pressure_si_pa": 7.72033163574065e+34,
+          "direct_TOV_solver_calls_in_root": 17,
+          "love_k2": 0.02315280966899165,
+          "mass_msun": 2.1999999811709148,
+          "native_LAL_vs_original_JESTER_source_R_km": 3.225661451011774e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 11.041811313229807,
+          "root_mass_residual_msun": -1.8829085401961265e-08,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 11.041779056615297,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.9989430262485255,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 1842067029540111.2,
+            "central_pressure_geom_m_minus_2": 6.379092039095307e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 808,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 16,
+            "sampled_core_max_cs2": 1.1148688420214583,
+            "sampled_core_min_cs2": 0.04296296759713185,
+            "sampled_core_screen": "SAMPLED_FAIL",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 16
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.225": {
+          "bracket_pc_pa": [
+            8.245797463232938e+34,
+            9.239752443703768e+34
+          ],
+          "central_pressure_si_pa": 9.078026499940212e+34,
+          "direct_TOV_solver_calls_in_root": 16,
+          "love_k2": 0.020467859883070743,
+          "mass_msun": 2.2249999976862025,
+          "native_LAL_vs_original_JESTER_source_R_km": 2.15117540136589e-06,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 10.892480615519068,
+          "root_mass_residual_msun": -2.313797597963685e-09,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 10.892478464343666,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 1.0005227373567502,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 1992883858819197.5,
+            "central_pressure_geom_m_minus_2": 7.500916969470222e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 814,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 23,
+            "sampled_core_max_cs2": 1.1148688420214583,
+            "sampled_core_min_cs2": 0.04296296759713185,
+            "sampled_core_screen": "SAMPLED_FAIL",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 23
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.250": {
+          "bracket_pc_pa": [
+            1.1601541023436548e+35,
+            1.3e+35
+          ],
+          "central_pressure_si_pa": 1.2162883859409546e+35,
+          "direct_TOV_solver_calls_in_root": 23,
+          "love_k2": 0.016584622951040316,
+          "mass_msun": 2.2500000119303554,
+          "native_LAL_vs_original_JESTER_source_R_km": 0.00017105038337206224,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 10.614604381327602,
+          "root_mass_residual_msun": 1.1930355370282086e-08,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 10.61443333094423,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 1.0000333760390083,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 2336124277929910.0,
+            "central_pressure_geom_m_minus_2": 1.004984750147418e-09,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 826,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 29,
+            "sampled_core_max_cs2": 1.1148688420214583,
+            "sampled_core_min_cs2": 0.04296296759713185,
+            "sampled_core_screen": "SAMPLED_FAIL",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 29
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        }
+      },
+      "static_max_prior_mass_below_source_M_TOV_not_rotating": 0.9922291056895395
+    },
+    "MPA1": {
+      "direct_LAL_sampled_ascending_branch_mass_range_msun": [
+        0.09513021277417269,
+        2.468572047237564
+      ],
+      "direct_static_TOV_failures": [],
+      "number_direct_static_TOV_scan_failures": 0,
+      "number_direct_static_TOV_scan_successes": 64,
+      "source_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+      "source_static_reference": {
+        "native_min_stable_msun": 0.09513022633067426,
+        "native_mmax_msun": 2.4686392693496426,
+        "native_reference_points": 491,
+        "original_low_mass_minimum_index": 0,
+        "original_peak_index": 490,
+        "reference_is_original_LAL_TOV_NOT_new_solution": true
+      },
+      "stars": {
+        "2.073": {
+          "bracket_pc_pa": [
+            2.357915668763736e+34,
+            2.6421406976888384e+34
+          ],
+          "central_pressure_si_pa": 2.556395397967942e+34,
+          "direct_TOV_solver_calls_in_root": 6,
+          "love_k2": 0.049175824893113625,
+          "mass_msun": 2.072999999996653,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.2324359488502523e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 12.45154456013543,
+          "root_mass_residual_msun": -3.347100374639922e-12,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 12.451532235775941,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.7246047437246871,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 1028865692655830.1,
+            "central_pressure_geom_m_minus_2": 2.1122773348832598e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 764,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.7246047437246871,
+            "sampled_core_min_cs2": 0.04624152914607309,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.175": {
+          "bracket_pc_pa": [
+            2.9606264375196647e+34,
+            3.3175027015811547e+34
+          ],
+          "central_pressure_si_pa": 3.1320928459209336e+34,
+          "direct_TOV_solver_calls_in_root": 11,
+          "love_k2": 0.042114896186160274,
+          "mass_msun": 2.1749999998770773,
+          "native_LAL_vs_original_JESTER_source_R_km": 4.619694584206968e-06,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 12.368963566765684,
+          "root_mass_residual_msun": -1.2292256101886778e-10,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 12.3689589470711,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.7732358497820666,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 1114334700070271.8,
+            "central_pressure_geom_m_minus_2": 2.5879598807162925e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 772,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.7732358497820666,
+            "sampled_core_min_cs2": 0.04624152914607309,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.200": {
+          "bracket_pc_pa": [
+            2.9606264375196647e+34,
+            3.3175027015811547e+34
+          ],
+          "central_pressure_si_pa": 3.307567679809978e+34,
+          "direct_TOV_solver_calls_in_root": 14,
+          "love_k2": 0.0403714679341352,
+          "mass_msun": 2.199999999433762,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.9375799633181146e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 12.342575532537188,
+          "root_mass_residual_msun": -5.662381674653716e-10,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 12.342556156737555,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.786211760891684,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 1139369304782333.0,
+            "central_pressure_geom_m_minus_2": 2.732949781246101e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 774,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.786211760891684,
+            "sampled_core_min_cs2": 0.04624152914607309,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.225": {
+          "bracket_pc_pa": [
+            3.3175027015811547e+34,
+            3.7173971141792038e+34
+          ],
+          "central_pressure_si_pa": 3.5015578533172516e+34,
+          "direct_TOV_solver_calls_in_root": 12,
+          "love_k2": 0.0386177455452615,
+          "mass_msun": 2.2249999996894525,
+          "native_LAL_vs_original_JESTER_source_R_km": 2.2094377037262802e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 12.313107057279343,
+          "root_mass_residual_msun": -3.1054758764526014e-10,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 12.313084962902305,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.7995933815646339,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 1166571023653691.5,
+            "central_pressure_geom_m_minus_2": 2.8932383841027646e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 776,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.7995933815646339,
+            "sampled_core_min_cs2": 0.04624152914607309,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.250": {
+          "bracket_pc_pa": [
+            3.7173971141792038e+34,
+            4.165495117131805e+34
+          ],
+          "central_pressure_si_pa": 3.71780492828759e+34,
+          "direct_TOV_solver_calls_in_root": 10,
+          "love_k2": 0.036849998260840455,
+          "mass_msun": 2.2500000000488503,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.1836568615919418e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 12.280081477140659,
+          "root_mass_residual_msun": 4.885025717271674e-11,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 12.280069640572043,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.8134375935958146,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 1196424982470093.0,
+            "central_pressure_geom_m_minus_2": 3.0719172361918165e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 779,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.8134375935958146,
+            "sampled_core_min_cs2": 0.04624152914607309,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        }
+      },
+      "static_max_prior_mass_below_source_M_TOV_not_rotating": 1.0
+    },
+    "MS1": {
+      "direct_LAL_sampled_ascending_branch_mass_range_msun": [
+        0.09857656019017527,
+        2.798894534931187
+      ],
+      "direct_static_TOV_failures": [],
+      "number_direct_static_TOV_scan_failures": 0,
+      "number_direct_static_TOV_scan_successes": 64,
+      "source_npz_sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad",
+      "source_static_reference": {
+        "native_min_stable_msun": 0.09857656094030814,
+        "native_mmax_msun": 2.799082457834451,
+        "native_reference_points": 455,
+        "original_low_mass_minimum_index": 0,
+        "original_peak_index": 454,
+        "reference_is_original_LAL_TOV_NOT_new_solution": true
+      },
+      "stars": {
+        "2.073": {
+          "bracket_pc_pa": [
+            9.486519207030456e+33,
+            1.0630031772698448e+34
+          ],
+          "central_pressure_si_pa": 1.0389525363805201e+34,
+          "direct_TOV_solver_calls_in_root": 13,
+          "love_k2": 0.0734532931789902,
+          "mass_msun": 2.0729999999312416,
+          "native_LAL_vs_original_JESTER_source_R_km": 7.792380822380096e-06,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 15.011630050016239,
+          "root_mass_residual_msun": -6.87583323610852e-11,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 15.011622257635416,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.5320895125183693,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 619367990634721.0,
+            "central_pressure_geom_m_minus_2": 8.58457144916034e-11,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 729,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.5320895125183693,
+            "sampled_core_min_cs2": 0.10599172590373726,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.175": {
+          "bracket_pc_pa": [
+            1.19113842519642e+34,
+            1.334719197757641e+34
+          ],
+          "central_pressure_si_pa": 1.2065156575516407e+34,
+          "direct_TOV_solver_calls_in_root": 17,
+          "love_k2": 0.06666909959885778,
+          "mass_msun": 2.1749999988359994,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.6954866620011444e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 14.965846199069649,
+          "root_mass_residual_msun": -1.1640004515811597e-09,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 14.965829244203029,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.5649571363523112,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 653329624480323.8,
+            "central_pressure_geom_m_minus_2": 9.969098206223817e-11,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 734,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.5649571363523112,
+            "sampled_core_min_cs2": 0.10599172590373726,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.200": {
+          "bracket_pc_pa": [
+            1.19113842519642e+34,
+            1.334719197757641e+34
+          ],
+          "central_pressure_si_pa": 1.2526421689854e+34,
+          "direct_TOV_solver_calls_in_root": 7,
+          "love_k2": 0.06501588076871026,
+          "mass_msun": 2.1999999999881648,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.0079864148693218e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 14.95239734329975,
+          "root_mass_residual_msun": -1.1835421531714019e-11,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 14.952387263435602,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.5727993185355722,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 662360904090718.4,
+            "central_pressure_geom_m_minus_2": 1.0350228545905273e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 736,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.5727993185355722,
+            "sampled_core_min_cs2": 0.10599172590373726,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.225": {
+          "bracket_pc_pa": [
+            1.19113842519642e+34,
+            1.334719197757641e+34
+          ],
+          "central_pressure_si_pa": 1.3010978191451633e+34,
+          "direct_TOV_solver_calls_in_root": 22,
+          "love_k2": 0.06336662704360184,
+          "mass_msun": 2.225000003682967,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.1664641890618554e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 14.93796139969766,
+          "root_mass_residual_msun": 3.6829668204063637e-09,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 14.937949735055769,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.5805602353644902,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 671700749248953.4,
+            "central_pressure_geom_m_minus_2": 1.0750603901223387e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 737,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.5805602353644902,
+            "sampled_core_min_cs2": 0.10599172590373726,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.250": {
+          "bracket_pc_pa": [
+            1.334719197757641e+34,
+            1.4956073107699507e+34
+          ],
+          "central_pressure_si_pa": 1.3520870446613872e+34,
+          "direct_TOV_solver_calls_in_root": 15,
+          "love_k2": 0.06172106855597392,
+          "mass_msun": 2.250000000966387,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.9494942277376026e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 14.922473256787638,
+          "root_mass_residual_msun": 9.663869704468198e-10,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 14.922453761845361,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.5882884127885495,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 681417746158294.5,
+            "central_pressure_geom_m_minus_2": 1.1171913474330832e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 739,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.5882884127885495,
+            "sampled_core_min_cs2": 0.10599172590373726,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        }
+      },
+      "static_max_prior_mass_below_source_M_TOV_not_rotating": 1.0
+    },
+    "MS1B": {
+      "direct_LAL_sampled_ascending_branch_mass_range_msun": [
+        0.09709809447902129,
+        2.7967108941637546
+      ],
+      "direct_static_TOV_failures": [],
+      "number_direct_static_TOV_scan_failures": 0,
+      "number_direct_static_TOV_scan_successes": 64,
+      "source_npz_sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c",
+      "source_static_reference": {
+        "native_min_stable_msun": 0.09709809587572525,
+        "native_mmax_msun": 2.797101204989841,
+        "native_reference_points": 456,
+        "original_low_mass_minimum_index": 0,
+        "original_peak_index": 455,
+        "reference_is_original_LAL_TOV_NOT_new_solution": true
+      },
+      "stars": {
+        "2.073": {
+          "bracket_pc_pa": [
+            1.0630031772698448e+34,
+            1.19113842519642e+34
+          ],
+          "central_pressure_si_pa": 1.0869019811994977e+34,
+          "direct_TOV_solver_calls_in_root": 9,
+          "love_k2": 0.07378827640898222,
+          "mass_msun": 2.072999999951542,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.4471607119759256e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 14.777992087034184,
+          "root_mass_residual_msun": -4.845812640041913e-11,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 14.777977615427064,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.5430016623296658,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 625643177383732.0,
+            "central_pressure_geom_m_minus_2": 8.980764172679833e-11,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 730,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.5430016623296658,
+            "sampled_core_min_cs2": 0.11135485020212578,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.175": {
+          "bracket_pc_pa": [
+            1.19113842519642e+34,
+            1.334719197757641e+34
+          ],
+          "central_pressure_si_pa": 1.2553892822462718e+34,
+          "direct_TOV_solver_calls_in_root": 16,
+          "love_k2": 0.06702625207978337,
+          "mass_msun": 2.174999999977448,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.7201015378276452e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 14.752721557916214,
+          "root_mass_residual_msun": -2.255173825460588e-11,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 14.752704356900836,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.5736371439895097,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 659203561206219.0,
+            "central_pressure_geom_m_minus_2": 1.0372927167104128e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 736,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.5736371439895097,
+            "sampled_core_min_cs2": 0.11135485020212578,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.200": {
+          "bracket_pc_pa": [
+            1.19113842519642e+34,
+            1.334719197757641e+34
+          ],
+          "central_pressure_si_pa": 1.3018190947270486e+34,
+          "direct_TOV_solver_calls_in_root": 12,
+          "love_k2": 0.06537437082929039,
+          "mass_msun": 2.199999999841816,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.023646861852967e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 14.744132515512444,
+          "root_mass_residual_msun": -1.5818413245938245e-10,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 14.744122279043825,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.5810503056842574,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 668141072663550.9,
+            "central_pressure_geom_m_minus_2": 1.0756563597696913e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 737,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.5810503056842574,
+            "sampled_core_min_cs2": 0.11135485020212578,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.225": {
+          "bracket_pc_pa": [
+            1.334719197757641e+34,
+            1.4956073107699507e+34
+          ],
+          "central_pressure_si_pa": 1.3506147498214476e+34,
+          "direct_TOV_solver_calls_in_root": 7,
+          "love_k2": 0.0637249108232613,
+          "mass_msun": 2.225000000056068,
+          "native_LAL_vs_original_JESTER_source_R_km": 2.023997235234276e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 14.73449314677999,
+          "root_mass_residual_msun": 5.6068039100409806e-11,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 14.734472906807637,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.5884409308795021,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 677436016244987.0,
+            "central_pressure_geom_m_minus_2": 1.1159748317786027e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 739,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.5884409308795021,
+            "sampled_core_min_cs2": 0.11135485020212578,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.250": {
+          "bracket_pc_pa": [
+            1.334719197757641e+34,
+            1.4956073107699507e+34
+          ],
+          "central_pressure_si_pa": 1.4019846426382537e+34,
+          "direct_TOV_solver_calls_in_root": 11,
+          "love_k2": 0.06207759816699038,
+          "mass_msun": 2.2500000000499076,
+          "native_LAL_vs_original_JESTER_source_R_km": 7.797757035632458e-07,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 14.723740824326896,
+          "root_mass_residual_msun": 4.990763358136974e-11,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 14.723740044551192,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 0.5958092415854894,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 687081590068747.4,
+            "central_pressure_geom_m_minus_2": 1.1584203237312848e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 740,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 0,
+            "sampled_core_max_cs2": 0.5958092415854894,
+            "sampled_core_min_cs2": 0.11135485020212578,
+            "sampled_core_screen": "SAMPLED_PASS_NOT_CONTINUOUS_OR_FULL_STAR_PROOF",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 0
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        }
+      },
+      "static_max_prior_mass_below_source_M_TOV_not_rotating": 1.0
+    },
+    "WFF1": {
+      "direct_LAL_sampled_ascending_branch_mass_range_msun": [
+        0.09410964624169758,
+        2.113670331662516
+      ],
+      "direct_static_TOV_failures": [],
+      "number_direct_static_TOV_scan_failures": 0,
+      "number_direct_static_TOV_scan_successes": 64,
+      "source_npz_sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3",
+      "source_static_reference": {
+        "native_min_stable_msun": 0.09403821000515546,
+        "native_mmax_msun": 2.1136703143450717,
+        "native_reference_points": 500,
+        "original_low_mass_minimum_index": 4,
+        "original_peak_index": 499,
+        "reference_is_original_LAL_TOV_NOT_new_solution": true
+      },
+      "stars": {
+        "2.073": {
+          "bracket_pc_pa": [
+            9.239752443703768e+34,
+            1.0353519547575386e+35
+          ],
+          "central_pressure_si_pa": 9.955020243910858e+34,
+          "direct_TOV_solver_calls_in_root": 10,
+          "love_k2": 0.021420431775247287,
+          "mass_msun": 2.0729999997496398,
+          "native_LAL_vs_original_JESTER_source_R_km": 3.426926865657265e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 9.929517486833475,
+          "root_mass_residual_msun": -2.5036017703428115e-10,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 9.929483217564819,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 1.1584427291003858,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 2130265425179375.0,
+            "central_pressure_geom_m_minus_2": 8.225552137291329e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 818,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 20,
+            "sampled_core_max_cs2": 1.1584427291003858,
+            "sampled_core_min_cs2": 0.021179788769276186,
+            "sampled_core_screen": "SAMPLED_FAIL",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 20
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.175": {
+          "native_new_star_not_claimed": true,
+          "rotation_346p536Hz_max_mass": "NOT_INFERRED_FROM_STATIC",
+          "source_static_Mmax_msun": 2.1136703143450717,
+          "status": "NOT_BRACKETED_ON_NATIVE_STATIC_ASCENDING_BRANCH"
+        },
+        "2.200": {
+          "native_new_star_not_claimed": true,
+          "rotation_346p536Hz_max_mass": "NOT_INFERRED_FROM_STATIC",
+          "source_static_Mmax_msun": 2.1136703143450717,
+          "status": "NOT_BRACKETED_ON_NATIVE_STATIC_ASCENDING_BRANCH"
+        },
+        "2.225": {
+          "native_new_star_not_claimed": true,
+          "rotation_346p536Hz_max_mass": "NOT_INFERRED_FROM_STATIC",
+          "source_static_Mmax_msun": 2.1136703143450717,
+          "status": "NOT_BRACKETED_ON_NATIVE_STATIC_ASCENDING_BRANCH"
+        },
+        "2.250": {
+          "native_new_star_not_claimed": true,
+          "rotation_346p536Hz_max_mass": "NOT_INFERRED_FROM_STATIC",
+          "source_static_Mmax_msun": 2.1136703143450717,
+          "status": "NOT_BRACKETED_ON_NATIVE_STATIC_ASCENDING_BRANCH"
+        }
+      },
+      "static_max_prior_mass_below_source_M_TOV_not_rotating": 0.6738259652007894
+    },
+    "WFF2": {
+      "direct_LAL_sampled_ascending_branch_mass_range_msun": [
+        0.09458317220676647,
+        2.1850702847069745
+      ],
+      "direct_static_TOV_failures": [],
+      "number_direct_static_TOV_scan_failures": 0,
+      "number_direct_static_TOV_scan_successes": 64,
+      "source_npz_sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae",
+      "source_static_reference": {
+        "native_min_stable_msun": 0.09458316605607091,
+        "native_mmax_msun": 2.185070287239653,
+        "native_reference_points": 500,
+        "original_low_mass_minimum_index": 0,
+        "original_peak_index": 499,
+        "reference_is_original_LAL_TOV_NOT_new_solution": true
+      },
+      "stars": {
+        "2.073": {
+          "bracket_pc_pa": [
+            6.567155786225416e+34,
+            7.358765964665131e+34
+          ],
+          "central_pressure_si_pa": 7.033426899648509e+34,
+          "direct_TOV_solver_calls_in_root": 17,
+          "love_k2": 0.026319398267080015,
+          "mass_msun": 2.0730000001342272,
+          "native_LAL_vs_original_JESTER_source_R_km": 1.8980420861680614e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 10.575412607430012,
+          "root_mass_residual_msun": 1.3422729594481098e-10,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 10.57539362700915,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 1.1144178521814698,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 1788738521487451.8,
+            "central_pressure_geom_m_minus_2": 5.811522051125241e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 804,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 11,
+            "sampled_core_max_cs2": 1.1144178521814698,
+            "sampled_core_min_cs2": 0.027094813849956524,
+            "sampled_core_screen": "SAMPLED_FAIL",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 11
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.175": {
+          "bracket_pc_pa": [
+            1.1601541023436548e+35,
+            1.3e+35
+          ],
+          "central_pressure_si_pa": 1.183313949459616e+35,
+          "direct_TOV_solver_calls_in_root": 16,
+          "love_k2": 0.017521508332038208,
+          "mass_msun": 2.1750000004051837,
+          "native_LAL_vs_original_JESTER_source_R_km": 5.302515477545455e-05,
+          "native_TOV_not_source_interpolation": true,
+          "radius_km": 10.193505192089624,
+          "root_mass_residual_msun": 4.051838864427282e-10,
+          "source_JESTER_interpolated_static_radius_km_at_mass": 10.193452166934849,
+          "source_agreement_0p10km": true,
+          "source_native_physics": {
+            "central_cs2_over_c2_native_LAL_derivative": 1.2379966405658858,
+            "central_energy_rho_g_cm3_log_pressure_source_interpolated": 2236788788691115.8,
+            "central_pressure_geom_m_minus_2": 9.77738904350072e-10,
+            "full_interior_screen": "SAMPLED_FAIL",
+            "limitations": [
+              "Source analytical derivatives at JESTER pressure knots + exact native central derivative; not rigorous continuum extrema",
+              "Subnuclear negative-cs2 source knots are NOT erased by the separate core-only screen",
+              "Static star not observed-spin rotating star"
+            ],
+            "original_microphysical_EOS_modified": false,
+            "original_source_knots_below_center": 825,
+            "sampled_core_cs2_nonpositive_above_2p8e14": 0,
+            "sampled_core_cs2_superluminal_above_2p8e14": 32,
+            "sampled_core_max_cs2": 1.2379966405658858,
+            "sampled_core_min_cs2": 0.027094813849956524,
+            "sampled_core_screen": "SAMPLED_FAIL",
+            "sampled_full_interior_cs2_nonpositive": 1,
+            "sampled_full_interior_cs2_superluminal": 32
+          },
+          "status": "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+        },
+        "2.200": {
+          "native_new_star_not_claimed": true,
+          "rotation_346p536Hz_max_mass": "NOT_INFERRED_FROM_STATIC",
+          "source_static_Mmax_msun": 2.185070287239653,
+          "status": "NOT_BRACKETED_ON_NATIVE_STATIC_ASCENDING_BRANCH"
+        },
+        "2.225": {
+          "native_new_star_not_claimed": true,
+          "rotation_346p536Hz_max_mass": "NOT_INFERRED_FROM_STATIC",
+          "source_static_Mmax_msun": 2.185070287239653,
+          "status": "NOT_BRACKETED_ON_NATIVE_STATIC_ASCENDING_BRANCH"
+        },
+        "2.250": {
+          "native_new_star_not_claimed": true,
+          "rotation_346p536Hz_max_mass": "NOT_INFERRED_FROM_STATIC",
+          "source_static_Mmax_msun": 2.185070287239653,
+          "status": "NOT_BRACKETED_ON_NATIVE_STATIC_ASCENDING_BRANCH"
+        }
+      },
+      "static_max_prior_mass_below_source_M_TOV_not_rotating": 0.9286964205396414
+    }
+  },
+  "schema": "F61_J0740_ORIGINAL_SEVEN_LALSUITE_STATIC_TOV_PHYSICAL_SCREEN_v1",
+  "source_provenance_failures": [],
+  "status": "DIRECT_NATIVE_STATIC_TOV_ONLY_NOT_ROTATING_OR_EOS_POSTERIOR",
+  "target_masses_msun": [
+    2.073,
+    2.175,
+    2.2,
+    2.225,
+    2.25
+  ],
+  "targets_attempted_direct_native_LAL_TOV": [
+    [
+      "APR4_EPP",
+      2.073,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "ENG",
+      2.073,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "ENG",
+      2.175,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "ENG",
+      2.2,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "ENG",
+      2.225,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "ENG",
+      2.25,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MPA1",
+      2.073,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MPA1",
+      2.175,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MPA1",
+      2.2,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MPA1",
+      2.225,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MPA1",
+      2.25,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MS1",
+      2.073,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MS1",
+      2.175,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MS1",
+      2.2,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MS1",
+      2.225,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MS1",
+      2.25,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MS1B",
+      2.073,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MS1B",
+      2.175,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MS1B",
+      2.2,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MS1B",
+      2.225,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "MS1B",
+      2.25,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "WFF1",
+      2.073,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "WFF2",
+      2.073,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ],
+    [
+      "WFF2",
+      2.175,
+      "DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK"
+    ]
+  ]
+}
