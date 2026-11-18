@@ -32,8 +32,8 @@ def sha(path):
     return h.hexdigest()
 
 def source_surfaces(folder):
-    paths=sorted(Path(folder).glob("posterior_prior_ratio_weighted_*.npz"))
-    if len(paths)!=3: raise ValueError(f"expected 3 weighted F38 surfaces, found {len(paths)}")
+    paths=sorted(Path(folder).glob("posterior_prior_ratio_*.npz"))
+    if len(paths)!=6: raise ValueError(f"expected 6 weighted/equal F38 surfaces, found {len(paths)}")
     out=[]
     for p in paths:
         with np.load(p) as z:
@@ -45,7 +45,10 @@ def source_surfaces(folder):
         if q.shape!=(m.size,r.size) or mask.shape!=q.shape or not np.isfinite(q).all():
             raise ValueError(f"invalid F38 surface: {p}")
         q=np.where(mask,q,0.)
-        out.append({"path":str(p),"sha256":sha(p),"m":m,"r":r,"q":q,
+        key=p.stem.removeprefix("posterior_prior_ratio_")
+        if not (key.startswith("weighted_") or key.startswith("resampled_")):
+            raise ValueError(f"unknown F38 source representation: {p.name}")
+        out.append({"path":str(p),"key":key,"sha256":sha(p),"m":m,"r":r,"q":q,
                     "sm":sm,"sr":sr,
                     "interp":RegularGridInterpolator((m,r),q,bounds_error=False,fill_value=0.)})
     return out
@@ -105,7 +108,7 @@ def evidence(curve, surfaces):
         pts=np.column_stack((m,rad))
         ll=s["interp"](pts)
         num=trapezoid(ll*radio,ec)/prior_span
-        values[f'{s["sm"]:.3f}_{s["sr"]:.2f}']=float(num)
+        values[s["key"]]=float(num)
     return values
 
 def main():
@@ -172,6 +175,10 @@ def main():
     vals={k:evidence(curves[k],surfaces) for k in curves}
     names=sorted(vals["fine"])
     deltas={n:abs(vals["fine"][n]/vals["coarse"][n]-1) for n in names}
+    rep_delta={}
+    for bw in ("0.015_0.20","0.025_0.35","0.040_0.50"):
+        w=vals["fine"]["weighted_"+bw]; r=vals["fine"]["resampled_"+bw]
+        rep_delta[bw]=abs(r/w-1)
     result={
       "schema":"j0740-apr4-causal-candidate-F38-curve-integral-v1",
       "status":"PASS_APPROXIMATE_CURVE_INTEGRAL_NOT_FINAL_EOS_BAYES",
@@ -185,6 +192,8 @@ def main():
       "input_rns_eos_table_sha256":reanchor["eos_table_sha256"] if reanchor else "RECORDED_WITH_CURVE_ARTIFACT",
       "conditional_evidence_ratio_L_over_Z_uniform_ec_by_bandwidth":vals,
       "coarse_fine_relative_delta":deltas,
+      "weighted_vs_published_equal_relative_delta":rep_delta,
+      "max_weighted_vs_published_equal_percent":100*max(rep_delta.values()),
       "grid_convergence":"PASS_2_PERCENT" if max(deltas.values())<.02 else "FAIL_OR_NOT_CONVERGED",
       "curves":{k:{"mass_min":float(v["mass"].min()),"mass_max":float(v["mass"].max()),
         "central_energy_density_min_g_cm3":float(v["ec"].min()),"central_energy_density_max_g_cm3":float(v["ec"].max()),
@@ -202,6 +211,7 @@ def main():
     print(json.dumps({"status":result["status"],"values":vals,
       "grid_convergence":result["grid_convergence"],"deltas":deltas,
       "anchor_recalculation":result["rns_curve_anchor_recomputed_on_curve_table"],
+      "weighted_vs_published_equal_relative_delta":rep_delta,
       "input_rns_eos_table_sha256":result["input_rns_eos_table_sha256"]},indent=2))
     if result["grid_convergence"]!="PASS_2_PERCENT": raise SystemExit(2)
 
