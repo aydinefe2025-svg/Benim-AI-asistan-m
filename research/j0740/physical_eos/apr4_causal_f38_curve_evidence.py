@@ -200,7 +200,9 @@ def main():
     out=Path(a.out); out.parent.mkdir(parents=True,exist_ok=True)
     out.write_text(json.dumps(result,indent=2,sort_keys=True)+"\n",encoding="utf-8")
     print(json.dumps({"status":result["status"],"values":vals,
-      "grid_convergence":result["grid_convergence"],"deltas":deltas},indent=2))
+      "grid_convergence":result["grid_convergence"],"deltas":deltas,
+      "anchor_recalculation":result["rns_curve_anchor_recomputed_on_curve_table"],
+      "input_rns_eos_table_sha256":result["input_rns_eos_table_sha256"]},indent=2))
     if result["grid_convergence"]!="PASS_2_PERCENT": raise SystemExit(2)
 
 if __name__=="__main__": main()
