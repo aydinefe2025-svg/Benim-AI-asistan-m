@@ -48,6 +48,54 @@ def restricted_connect(dsn):
     return conn
 
 
+
+def reject_preexisting_table_before_migration(conn):
+    """An additive migration must not repurpose an already-existing owner table.
+
+    Runs only on the disposable ci_persistence database after strict URL checks.
+    Its synthetic sentinel must survive a refused migration unchanged.
+    """
+    conn.execute(
+        "CREATE TABLE public.cano_chat_histories("
+        "owner_key text PRIMARY KEY, payload jsonb NOT NULL DEFAULT '[]'::jsonb,"
+        "updated_at timestamptz NOT NULL DEFAULT now())"
+    )
+    marker = '[{"role":"user","content":"synthetic-ci-sentinel"}]'
+    conn.execute(
+        "INSERT INTO public.cano_chat_histories(owner_key,payload)"
+        " VALUES(%s,%s::jsonb)", (OWNER_A, marker)
+    )
+    try:
+        try:
+            conn.execute(MIGRATION.read_text(encoding="utf-8"))
+        except psycopg.Error as exc:
+            # Any accidental SQL error is not evidence of a deliberate guard.
+            conn.execute("ROLLBACK")
+            if "CANO_CHAT_MIGRATION_PREEXISTING_TABLE" not in str(exc):
+                raise AssertionError(
+                    "Migration must explicitly refuse an existing chat table"
+                ) from exc
+        else:
+            raise AssertionError(
+                "Migration silently modified a pre-existing chat table"
+            )
+        if conn.execute(
+            "SELECT payload::text FROM public.cano_chat_histories"
+            " WHERE owner_key=%s", (OWNER_A,)
+        ).fetchone()[0] != marker.replace(" ", ""):
+            raise AssertionError("Rejected migration changed the synthetic row")
+        rls = conn.execute(
+            "SELECT relrowsecurity,relforcerowsecurity FROM pg_class "
+            "WHERE oid='public.cano_chat_histories'::regclass"
+        ).fetchone()
+        if rls != (False, False):
+            raise AssertionError("Rejected migration altered owner-table RLS")
+    finally:
+        conn.execute("ROLLBACK")
+        conn.execute("DROP TABLE IF EXISTS public.cano_chat_histories")
+
+
+
 def bootstrap_disposable_db(dsn):
     with psycopg.connect(dsn, autocommit=True) as conn:
         if conn.execute("SELECT current_user").fetchone()[0] != "ci_user":
@@ -67,6 +115,7 @@ def bootstrap_disposable_db(dsn):
         ).fetchone()
         if flags != (False, False):
             raise AssertionError("Unsafe CI app role privileges")
+        reject_preexisting_table_before_migration(conn)
         conn.execute(MIGRATION.read_text(encoding="utf-8"))
         relation = conn.execute(
             "SELECT relrowsecurity,relforcerowsecurity "
