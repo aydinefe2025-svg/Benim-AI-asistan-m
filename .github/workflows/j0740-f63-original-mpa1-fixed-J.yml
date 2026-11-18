@@ -1,0 +1,128 @@
+name: J0740 F63 original MPA1 direct C-RNS fixed-J turning point
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f63/**'
+      - '.github/workflows/j0740-f63-original-mpa1-fixed-J.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  native-source-fixed-J:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite/MPA1.npz
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numeric dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Source hash, 13 fail-closed scientific tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22  jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz' | sha256sum -c -
+          python -m unittest discover -s research/j0740/f63 -p 'test_f63_*.py' -v
+      - name: Download immutable original F62 evidence and reject source drift
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F63/parents
+          curl -fLsS --retry 3 --max-time 180 \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14467011970/zip' \
+            -o results/F63/parents/F62_original_CI.zip
+          echo 'c7a378b66ed6a4c4cb8e07ffd9b48f070f0e197570735f83125e257a6cb90809  results/F63/parents/F62_original_CI.zip' | sha256sum -c -
+          unzip -tq results/F63/parents/F62_original_CI.zip
+          unzip -q results/F63/parents/F62_original_CI.zip -d results/F63/parents/
+          echo 'aca15e711f18ef7646dc5520d8874700475def17f0bcf5e57e354cfcf3cc8f84  results/F63/parents/F62_original_MPA1_rotating_direct_C.json' | sha256sum -c -
+      - name: Patch strictly C printf diagnostics to add genuine star.ang_mom in five columns
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import sys,hashlib,json
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f63')
+          from f63_original_mpa1_fixed_J import patch_output_only
+          p=Path('rns-upstream/rns.c');raw=p.read_bytes()
+          s=patch_output_only(raw.decode('utf-8'))
+          p.write_bytes(s.encode('utf-8'))
+          receipt={'source_original_sha256':hashlib.sha256(raw).hexdigest(),
+                   'patched_C_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),
+                   'patch_type':'one original printf+1 existing star.ang_mom argument; physics equations unmodified',
+                   'RNS_source_commit':'97e85d325a33e37f702306414533f6cd77812477'}
+          Path('results/F63/F63_C_J_output_patch_provenance.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
+          PY
+      - name: Compile original upstream full-GR C RNS equations
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Real original MPA1 fixed-J direct C rotating-star density sweep
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f63/f63_original_mpa1_fixed_J.py \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz \
+            --f62 results/F63/parents/F62_original_MPA1_rotating_direct_C.json \
+            --rns rns-upstream/rns \
+            --out results/F63/F63_original_MPA1_constant_J_C_RNS.json
+      - name: Independently enforce honest science labels
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('results/F63/F63_original_MPA1_constant_J_C_RNS.json').read_text())
+          assert d['schema']=='J0740_F63_ORIGINAL_MPA1_PINNED_RNS_CONSTANT_J_V1'
+          assert d['source_npz_sha256']=='0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22'
+          assert d['RNS_C_printf_J_from']=='star.ang_mom'
+          assert d['physical_EOS_acceptance'].startswith('NOT_ESTABLISHED')
+          assert d['XPSI_photon_source_likelihood']=='NOT_RUN' and d['original_7EOS_Bayes']=='NOT_RUN'
+          assert len(d['direct_C_constant_J_stars'])>=17
+          print('F63 physical-qualification gate PASS (no invented stability or posterior)')
+          PY
+      - name: Persistent SHA256 evidence receipt
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          root=Path('results/F63');root.mkdir(exist_ok=True,parents=True)
+          files=[*root.glob('*.json'),Path('research/j0740/f63/f63_original_mpa1_fixed_J.py'),
+                 Path('research/j0740/f63/test_f63_original_mpa1_fixed_J.py'),
+                 Path('jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz'),Path('rns-upstream/rns'),Path('rns-upstream/rns.c'),
+                 Path('results/F63/parents/F62_original_MPA1_rotating_direct_C.json')]
+          x={str(p):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size} for p in files if p.is_file()}
+          (root/'F63_SHA256_receipt.json').write_text(json.dumps(x,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-F63-original-MPA1-direct-C-constant-J-or-failure
+          path: |
+            results/F63/F63_original_MPA1_constant_J_C_RNS.json
+            results/F63/F63_C_J_output_patch_provenance.json
+            results/F63/F63_SHA256_receipt.json
+          if-no-files-found: warn
+          retention-days: 30
