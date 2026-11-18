@@ -1,0 +1,88 @@
+name: J0740 F54 WFF1 constant-J authentic C-RNS spatial mesh convergence
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f54/**'
+      - '.github/workflows/j0740-f54-wff1-two-mesh.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  f54-WFF1-151x301-vs-201x401-direct-C-fixed-J:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install compatible solver packages
+        run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
+      - name: Numerical and scientific guardrail tests (all seven)
+        run: python -m unittest discover -s research/j0740/f54 -p 'test_f54_*.py' -v
+      - name: Get exact F44 WFF1 EOS and existing F53 27-star fine mesh artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F54/input
+          curl -fL --retry 3 --max-time 150 -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14413168551/zip' \
+            -o results/F54/input/F44.zip
+          curl -fL --retry 3 --max-time 150 -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14435795810/zip' \
+            -o results/F54/input/F53.zip
+          echo 'b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98  results/F54/input/F44.zip' | sha256sum -c -
+          echo 'e35a52b02745d596cdea93427e15d5f7eb1e52c6f591fb21eb61501d57de2ae7  results/F54/input/F53.zip' | sha256sum -c -
+      - name: Print source C ang_mom only, no physics source arithmetic modifications
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          python research/j0740/physical_eos/apr4_causal_fixed_J_turning.py \
+            --mode patch --source rns-upstream/rns.c --out results/F54/F54_C_J_print_patch.json
+      - name: Compile independent coarse spatial C mesh (151x301)
+        run: make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=151 -DSDIV=301' rns
+      - name: Seven exact-density direct C fixed-J pairs vs source fine RNS solutions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f54/f54_wff1_constant_J_two_mesh.py \
+            --f44 results/F54/input/F44.zip --f53 results/F54/input/F53.zip \
+            --binary rns-upstream/rns --patch results/F54/F54_C_J_print_patch.json \
+            --work results/F54/source_table \
+            --out results/F54/F54_WFF1_151v201_direct_constant_J_mesh.json
+      - name: Save provenance manifest including partial failure
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F54');root.mkdir(parents=True,exist_ok=True)
+          d={str(p.relative_to(root)):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+            for p in root.rglob('*.json') if p.name!='F54_manifest.json'}
+          (root/'F54_manifest.json').write_text(json.dumps(d,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f54-WFF1-fixed-J-two-mesh-C-results-or-failure
+          path: |
+            results/F54/F54_WFF1_151v201_direct_constant_J_mesh.json
+            results/F54/F54_C_J_print_patch.json
+            results/F54/F54_manifest.json
+          if-no-files-found: warn
+          retention-days: 30
