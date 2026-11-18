@@ -103,5 +103,50 @@ class AuthenticationTests(unittest.TestCase):
         self.assertLess(reset, memory)
 
 
+    def test_logout_gate_discards_previous_owner_data_before_stopping(self):
+        from types import SimpleNamespace
+        from core.authentication import render_auth_gate
+
+        class Stopped(Exception):
+            pass
+
+        def stop():
+            raise Stopped()
+
+        state = {
+            "_cano_session_owner": "oidc_" + "a" * 64,
+            "messages": [{"role": "user", "content": "A private conversation"}],
+            "saved_memories": [{"content": "A private note"}],
+            "_cano_secure_export_buffer": "A encrypted export",
+            "user_theme": "dark",
+        }
+        auth = {
+            "redirect_uri": "https://example.test/oauth2callback",
+            "cookie_secret": "unit-test-cookie",
+            "owner_key_secret": "unit-test-owner-secret",
+            "client_id": "synthetic-client",
+            "client_secret": "synthetic-secret",
+            "server_metadata_url": "https://accounts.google.com/.well-known/openid-configuration",
+        }
+        st = SimpleNamespace(
+            secrets={"auth": auth},
+            user={"is_logged_in": False},
+            session_state=state,
+            title=lambda *_: None,
+            button=lambda *_, **__: False,
+            stop=stop,
+        )
+        with self.assertRaises(Stopped):
+            render_auth_gate(
+                st, {"APP_AUTH_REQUIRED": "true",
+                     "RENDER_EXTERNAL_URL": "https://example.test"}
+            )
+        self.assertNotIn("messages", state)
+        self.assertNotIn("saved_memories", state)
+        self.assertNotIn("_cano_secure_export_buffer", state)
+        self.assertEqual(state["user_theme"], "dark")
+        self.assertIsNone(state["_cano_session_owner"])
+
+
 if __name__ == "__main__":
     unittest.main()
