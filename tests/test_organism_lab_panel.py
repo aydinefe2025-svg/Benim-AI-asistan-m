@@ -167,5 +167,39 @@ class OrganismPanelTests(unittest.TestCase):
         self.assertLess(app.index("render_auth_gate(st"), call)
 
 
+    def test_write_failure_logs_safe_error_type_and_sqlstate(self):
+        class SyntheticDatabaseError(Exception):
+            sqlstate = "23505"
+
+        class BrokenStore:
+            def __init__(self, *_args, **_kwargs):
+                pass
+
+            def verify_schema(self):
+                return "synthetic"
+
+            def save_verified(self, *_args):
+                raise SyntheticDatabaseError("SECRET private provider details")
+
+            def list_recent(self, limit=10):
+                return []
+
+        ui = FakeStreamlit(pressed=("cano_organism_world_run",))
+        ui.subheader = lambda *_args, **_kwargs: None
+        with patch("core.organism_lab_persistence.OrganismLabStore", BrokenStore), \
+             self.assertLogs("core.organism_lab_panel", level="WARNING") as log:
+            render_organism_lab_panel(
+                ui, owner_key="oidc_" + "a" * 64,
+                database_url="postgresql://synthetic.invalid/test",
+            )
+
+        message = " ".join(log.output)
+        self.assertIn("error_type=SyntheticDatabaseError", message)
+        self.assertIn("sqlstate=23505", message)
+        self.assertNotIn("SECRET", message)
+        self.assertTrue(ui.errors)
+        self.assertFalse(any("kalıcı arşive kaydedildi" in value for value in ui.successes))
+
+
 if __name__ == "__main__":
     unittest.main()
