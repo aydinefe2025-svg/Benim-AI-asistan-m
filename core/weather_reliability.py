@@ -184,6 +184,12 @@ def weather_direct_reply(question: str, source: str) -> str | None:
             return source.replace("HAVA TAHMİNİ ->", "Doğrulanmış hava tahmini:", 1) + (
                 "\n\nKaynak: wttr.in (günlük hava tahmini; kesin ölçüm değil)."
             )
+    # Open-Meteo is a separate model-data provider, never a wttr.in quote.
+    # The envelope is revalidated before any value reaches the user.
+    from core.open_meteo_weather import render_open_meteo_reply
+    backup_answer = render_open_meteo_reply(question, source)
+    if backup_answer is not None:
+        return backup_answer
     if isinstance(source, str):
         current = weather_fallback_on_model_failure(question, source)
         if current is not None:

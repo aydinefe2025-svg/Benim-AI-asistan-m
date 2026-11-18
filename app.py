@@ -200,35 +200,51 @@ def internette_ara(sorgu: str) -> str:
                 "Ğ": "G", "ğ": "g", "Ö": "O", "ö": "o", "Ü": "U", "ü": "u",
             }))
 
-            headers = {"Accept-Language": "tr", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-            # For a forecast request, use the API's separate dated daily
-            # predictions. If unavailable, provide current conditions only.
+            headers = {"Accept-Language": "tr", "User-Agent": "CANO/1.0 weather lookup"}
             url = f"https://wttr.in/{sehir}"
-            if forecast_requested(sorgu):
+            wants_forecast = forecast_requested(sorgu)
+            from core.open_meteo_weather import fetch_open_meteo_weather
+
+            if wants_forecast:
+                # Get a dated forecast rather than silently answering a
+                # multi-day question with current conditions only.
                 try:
-                    forecast_response = requests.get(
-                        url, params={"format": "j1"}, headers=headers, timeout=6,
+                    response = requests.get(
+                        url, params={"format": "j1"}, headers=headers, timeout=5,
                     )
-                    if forecast_response.status_code == 200:
-                        forecast = parse_wttr_forecast(
-                            sehir_adi, forecast_response.json()
-                        )
-                        if forecast is not None:
-                            return forecast
-                except (ValueError, TypeError, requests.RequestException):
+                    if response.status_code == 200:
+                        result = parse_wttr_forecast(sehir_adi, response.json())
+                        if result is not None:
+                            return result
+                except Exception:
                     pass
+                backup = fetch_open_meteo_weather(
+                    sehir_adi, get=requests.get, forecast=True,
+                )
+                if backup is not None:
+                    return backup
 
-            # The condition (%C) can contain spaces; never split it by whitespace.
-            # Encode the exact four-field source format through requests params.
-            url = f"https://wttr.in/{sehir}"
-            response = requests.get(
-                url, params={"format": "%C|%t|%h|%w"}, headers=headers, timeout=6
-            )
+            # Current weather remains valid as a strictly labeled fallback
+            # if a future forecast cannot be checked from either provider.
+            try:
+                response = requests.get(
+                    url, params={"format": "%C|%t|%h|%w"},
+                    headers=headers, timeout=5,
+                )
+                if response.status_code == 200:
+                    result = parse_wttr_current(sehir_adi, response.text)
+                    if result is not None:
+                        return result
+            except Exception:
+                pass
 
-            if response.status_code == 200:
-                verified_weather = parse_wttr_current(sehir_adi, response.text)
-                if verified_weather is not None:
-                    return verified_weather
+            if not wants_forecast:
+                backup = fetch_open_meteo_weather(
+                    sehir_adi, get=requests.get, forecast=False,
+                )
+                if backup is not None:
+                    return backup
+
             return "Hava servisi şu anda güvenilir bilgi sunamıyor; güncel hava durumu doğrulanamadı."
                     
         # Instant Answer API is not a full search engine. Return explicit source metadata.
