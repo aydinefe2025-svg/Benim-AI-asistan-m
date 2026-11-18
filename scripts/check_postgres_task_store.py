@@ -45,7 +45,13 @@ if __name__ == "__main__":
         print(json.dumps({"status": "not_configured"}))
         raise SystemExit(2)
     try:
-        print(json.dumps(run(url), sort_keys=True))
+        results = run(url)
+        # Reuse the existing disposable PostgreSQL CI service without changing
+        # its workflow or creating another runner/paid resource.
+        if os.environ.get("GITHUB_ACTIONS", "").lower() == "true":
+            from scripts.check_cano_code_jobs_postgres import run as check_code_jobs
+            results["cano_code_jobs"] = check_code_jobs(url)
+        print(json.dumps(results, sort_keys=True))
     except Exception as exc:
         # Avoid printing exception text because drivers may include connection details.
         print(json.dumps({"status": "failed", "error_type": type(exc).__name__}))
