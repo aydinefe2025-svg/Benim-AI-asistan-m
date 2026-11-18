@@ -33,6 +33,13 @@ class TestF39(unittest.TestCase):
             result=f.analyze_grid('synthetic',curve)
             self.assertAlmostEqual(result['curve_conditional_L_over_Z'],1,places=5)
             self.assertAlmostEqual(result['model_to_flexible_envelope_fraction'],1,places=9)
+    def test_uncalibrated_m0_does_not_reject_physical_gr(self):
+        v=f.parse_native_rns_gr_row('1.7593486615 2.073 10.782 346.536369 4.50e60\n',1.7593486615e15,.986)
+        self.assertAlmostEqual(v['radius_eq_km'],10.782)
+        self.assertIn('NOT_PHYSICALLY',v['rns_M0_column'])
+    def test_invalid_gr_mass_cannot_hide_behind_m0(self):
+        with self.assertRaises(ValueError):
+            f.parse_native_rns_gr_row('1.7593486615 5.73 10.782 346.536369 4.50e60\n',1.7593486615e15,.986)
     def test_known_mass_axis_bounds(self):
         m=np.linspace(f.M_MIN,f.M_MAX,25)
         self.assertTrue(np.all(np.diff(m)>0))
