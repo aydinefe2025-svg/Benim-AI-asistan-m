@@ -1,0 +1,65 @@
+name: J0740 F42 causal first-law EOS candidate construction
+
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f42/**'
+      - '.github/workflows/j0740-f42-causal-firstlaw-candidates.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  f42-candidate-construction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned major dependencies
+        run: python -m pip install 'numpy>=1.26,<3'
+      - name: Independent synthetic first-law and causality tests
+        working-directory: research/j0740/f42
+        run: python -m unittest -v test_f42_causal_firstlaw_candidates.py
+      - name: Download seven source NPZs at exact pinned JESTER commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source_npz
+          PIN=e6768650ce992abfd1153a6833857572fe5cd230
+          for eos in APR4_EPP ENG MPA1 MS1 MS1B WFF1 WFF2; do
+            curl -fsSL --retry 3 --max-time 90 \
+              "https://raw.githubusercontent.com/nuclear-multimessenger-astronomy/jester/${PIN}/jesterTOV/tabulated_eos/lalsuite/${eos}.npz" \
+              -o "source_npz/${eos}.npz"
+          done
+      - name: Reconstruct seven physically distinct mathematical candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f42/f42_causal_firstlaw_candidates.py \
+            --fixture research/j0740/rotating_gr/fixtures/pinned_eos_center_fixture.json \
+            --source-dir source_npz \
+            --out "$RUNNER_TEMP/f42_outputs"
+          python - <<'PY'
+          import json,os,pathlib
+          d=pathlib.Path(os.environ['RUNNER_TEMP'])/'f42_outputs'
+          j=json.loads((d/'F42_candidate_build_report.json').read_text())
+          files=list(d.glob('*.rns'))
+          assert len(files)==7 and len(j['results'])==7, (len(files),len(j['results']))
+          assert all(v['physical_EOS_acceptance']=='NOT_ESTABLISHED' for v in j['results'].values())
+          assert j['TOV_RNS_and_EOS_Bayes']=='NOT_RUN'
+          print('F42 seven NEW candidate tables built, pinned hashes checked; physical model acceptance NOT established')
+          PY
+      - name: Upload source-locked candidate tabulations and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-F42-explicit-causal-firstlaw-candidate-7EOS
+          path: ${{ runner.temp }}/f42_outputs/
+          if-no-files-found: warn
+          retention-days: 30
