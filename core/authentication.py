@@ -71,6 +71,29 @@ def authenticated_owner_key(claims: Any, owner_key_secret: str) -> str | None:
     return "oidc_" + digest
 
 
+
+def isolate_owner_session(state: Any, owner_key: str | None) -> bool:
+    """Prevent a previous OIDC owner's Streamlit in-memory data from leaking.
+
+    Streamlit can rerun inside the same browser session with a different
+    authenticated user. An owner-key change must invalidate ALL old session
+    data, not just visible chat: memory notes, tasks, export buffers, model
+    results and unknown future data-bearing widget keys. Retain only harmless
+    non-owner appearance and the already-created logout widget key.
+    """
+    marker = "_cano_session_owner"
+    if marker in state and state.get(marker) == owner_key:
+        return False
+    # A legacy session without a marker is NOT a trusted same-owner session.
+    # Fail closed so a hot deployment cannot expose stale owner-owned data.
+    harmless_ui_keys = frozenset(("user_theme", "logout"))
+    for key in list(state):
+        if key not in harmless_ui_keys:
+            state.pop(key, None)
+    state[marker] = owner_key
+    return True
+
+
 def render_auth_gate(st: Any, environment: Mapping[str, str]) -> str | None:
     """Stop the Streamlit run unless required Google OIDC is configured and valid."""
     if not auth_is_required(environment):
