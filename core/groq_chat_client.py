@@ -38,6 +38,8 @@ class GroqChatClient:
             copy_safe_failure_metadata(exc, failure)
             raise failure from None
         if not isinstance(content, str) or not content.strip():
-            raise RuntimeError("Groq returned no usable text")
+            error = RuntimeError("Groq returned no usable text")
+            error.failure_kind = "response"
+            raise error
         return content.strip()
 
