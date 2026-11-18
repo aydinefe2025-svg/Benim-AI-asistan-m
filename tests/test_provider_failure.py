@@ -90,6 +90,32 @@ class ProviderFailureTests(unittest.TestCase):
         self.assertEqual(failure_category(OpenRouterError("safe", failure_kind="network")), "network")
         self.assertEqual(failure_category(OpenRouterError("safe", failure_kind="response")), "response")
 
+    def test_safe_error_parameter_survives_wrapping_without_provider_body(self):
+        from core import provider_failure as m
+        self.assertTrue(callable(getattr(m, "safe_failure_param", None)))
+        class SyntheticError(Exception):
+            status_code = 400
+            body = {"error": {"type": "invalid_request_error",
+                              "param": "temperature",
+                              "message": "PRIVATE key or request content"}}
+        incoming = SyntheticError("PRIVATE provider details")
+        wrapped = RuntimeError("safe wrapper")
+        copy_safe_failure_metadata(incoming, wrapped)
+        self.assertEqual(m.safe_failure_param(wrapped), "temperature")
+        self.assertEqual(failure_diagnostics(wrapped), (400, "invalid_request_error"))
+        self.assertNotIn("PRIVATE", repr(wrapped))
+
+    def test_unknown_parameter_is_not_emitted_as_diagnostic(self):
+        from core import provider_failure as m
+        self.assertTrue(callable(getattr(m, "safe_failure_param", None)))
+        error = RuntimeError("PRIVATE")
+        error.param = "CANO_SECRET_RAW_OWNER_EMAIL"
+        error.body = {"error": {"param": "CANO_SECRET_RAW_OWNER_EMAIL"}}
+        self.assertIsNone(m.safe_failure_param(error))
+        for expected in ("model", "messages", "max_tokens", "max_output_tokens"):
+            error.param = expected
+            self.assertEqual(m.safe_failure_param(error), expected)
+
     def test_malformed_body_is_safe(self):
         error = RuntimeError("private")
         error.body = {"error": ["private"]}
