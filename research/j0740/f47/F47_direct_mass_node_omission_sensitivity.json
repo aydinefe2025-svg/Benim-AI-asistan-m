@@ -1,0 +1,286 @@
+{
+  "WFF1_missing_mass_msun": 2.0175,
+  "max_abs_drop_2p0175_pct_other_six": 0.015126375185503527,
+  "max_abs_leave_one_out_pct_all_surfaces": 0.16100882366472113,
+  "method": "For each of six published F38 likelihood grids and each existing F46 seven-EOS direct-GR sampled curve, recompute Simpson(q_radio*L) with one internal observed RNS point removed at a time; WFF1 already lacks M=2.0175. This is an empirical numerical sensitivity probe, NOT an absolute bound on unknown true RNS radius or global physical stability.",
+  "schema": "J0740_F47_EMPIRICAL_MASS_NODE_LEAVE_ONE_OUT_SENSITIVITY_V1",
+  "status": "SOURCE_INTERIOR_NODE_SENSITIVITY_PROBED_NO_NEW_RNS_ROOT",
+  "surfaces": {
+    "posterior_prior_ratio_resampled_0.015_0.20.npz": {
+      "APR4_EPP": {
+        "delta_pct_when_2p0175_omitted": -0.015126375185503527,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.020140973339166646,
+        "worst_mass_msun": 2.0325
+      },
+      "ENG": {
+        "delta_pct_when_2p0175_omitted": 0.006724665361357296,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.009624934010876718,
+        "worst_mass_msun": 1.995
+      },
+      "MPA1": {
+        "delta_pct_when_2p0175_omitted": 0.0017172516056040976,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.006307214456746646,
+        "worst_mass_msun": 2.04
+      },
+      "MS1": {
+        "delta_pct_when_2p0175_omitted": 0.0077176631741116,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.016489833852517677,
+        "worst_mass_msun": 2.0475
+      },
+      "MS1B": {
+        "delta_pct_when_2p0175_omitted": 0.007772737536115848,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.011087059219527795,
+        "worst_mass_msun": 2.0475
+      },
+      "WFF1": {
+        "delta_pct_when_2p0175_omitted": null,
+        "existing_missing_RNS_target_msun": [
+          2.0175
+        ],
+        "max_single_interior_node_leave_out_abs_pct": 0.16100882366472113,
+        "worst_mass_msun": 1.98
+      },
+      "WFF2": {
+        "delta_pct_when_2p0175_omitted": -0.010045518268397835,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.020517617981008485,
+        "worst_mass_msun": 2.025
+      }
+    },
+    "posterior_prior_ratio_resampled_0.025_0.35.npz": {
+      "APR4_EPP": {
+        "delta_pct_when_2p0175_omitted": -0.006544049798951068,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.017756118682232813,
+        "worst_mass_msun": 2.0475
+      },
+      "ENG": {
+        "delta_pct_when_2p0175_omitted": 0.004563150176339903,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.007425918796610809,
+        "worst_mass_msun": 2.085
+      },
+      "MPA1": {
+        "delta_pct_when_2p0175_omitted": 0.003966227601948091,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.004277189728907338,
+        "worst_mass_msun": 2.025
+      },
+      "MS1": {
+        "delta_pct_when_2p0175_omitted": 0.004529278812848148,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.005191816332184018,
+        "worst_mass_msun": 2.0325
+      },
+      "MS1B": {
+        "delta_pct_when_2p0175_omitted": 0.004390889802086129,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.004590645195845511,
+        "worst_mass_msun": 2.0325
+      },
+      "WFF1": {
+        "delta_pct_when_2p0175_omitted": null,
+        "existing_missing_RNS_target_msun": [
+          2.0175
+        ],
+        "max_single_interior_node_leave_out_abs_pct": 0.08778688908059884,
+        "worst_mass_msun": 2.01
+      },
+      "WFF2": {
+        "delta_pct_when_2p0175_omitted": -0.0004848821350211807,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.01153247999376994,
+        "worst_mass_msun": 2.04
+      }
+    },
+    "posterior_prior_ratio_resampled_0.040_0.50.npz": {
+      "APR4_EPP": {
+        "delta_pct_when_2p0175_omitted": -0.00395256247420761,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.011530965034101115,
+        "worst_mass_msun": 2.0475
+      },
+      "ENG": {
+        "delta_pct_when_2p0175_omitted": 0.002750487217650921,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.004796920854044373,
+        "worst_mass_msun": 2.085
+      },
+      "MPA1": {
+        "delta_pct_when_2p0175_omitted": 0.0031953574930687623,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.003346562472261727,
+        "worst_mass_msun": 2.025
+      },
+      "MS1": {
+        "delta_pct_when_2p0175_omitted": 0.0032159534812503665,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.0035119604381961267,
+        "worst_mass_msun": 2.0325
+      },
+      "MS1B": {
+        "delta_pct_when_2p0175_omitted": 0.0032413294741573395,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.0033346463560235406,
+        "worst_mass_msun": 2.0325
+      },
+      "WFF1": {
+        "delta_pct_when_2p0175_omitted": null,
+        "existing_missing_RNS_target_msun": [
+          2.0175
+        ],
+        "max_single_interior_node_leave_out_abs_pct": 0.045650873357794275,
+        "worst_mass_msun": 1.9575
+      },
+      "WFF2": {
+        "delta_pct_when_2p0175_omitted": 0.001810426865800352,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.007753018812151069,
+        "worst_mass_msun": 1.9575
+      }
+    },
+    "posterior_prior_ratio_weighted_0.015_0.20.npz": {
+      "APR4_EPP": {
+        "delta_pct_when_2p0175_omitted": -0.010741560376492654,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.02291073103279917,
+        "worst_mass_msun": 2.0475
+      },
+      "ENG": {
+        "delta_pct_when_2p0175_omitted": 0.006784696064010554,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.009382067627183854,
+        "worst_mass_msun": 2.01
+      },
+      "MPA1": {
+        "delta_pct_when_2p0175_omitted": 0.00192973625607884,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.005826250482166007,
+        "worst_mass_msun": 2.04
+      },
+      "MS1": {
+        "delta_pct_when_2p0175_omitted": 0.006861156937243429,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.01426096129872878,
+        "worst_mass_msun": 2.0475
+      },
+      "MS1B": {
+        "delta_pct_when_2p0175_omitted": 0.0077091042520738284,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.00944331988355085,
+        "worst_mass_msun": 2.0475
+      },
+      "WFF1": {
+        "delta_pct_when_2p0175_omitted": null,
+        "existing_missing_RNS_target_msun": [
+          2.0175
+        ],
+        "max_single_interior_node_leave_out_abs_pct": 0.13608814205448017,
+        "worst_mass_msun": 2.01
+      },
+      "WFF2": {
+        "delta_pct_when_2p0175_omitted": -0.004607786809007752,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.025282581433727636,
+        "worst_mass_msun": 1.9575
+      }
+    },
+    "posterior_prior_ratio_weighted_0.025_0.35.npz": {
+      "APR4_EPP": {
+        "delta_pct_when_2p0175_omitted": -0.0062562730477222495,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.017825896161993704,
+        "worst_mass_msun": 2.0475
+      },
+      "ENG": {
+        "delta_pct_when_2p0175_omitted": 0.0047427704367386525,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.007317676078533175,
+        "worst_mass_msun": 2.085
+      },
+      "MPA1": {
+        "delta_pct_when_2p0175_omitted": 0.004012039403411549,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.004308789483487008,
+        "worst_mass_msun": 2.025
+      },
+      "MS1": {
+        "delta_pct_when_2p0175_omitted": 0.0042412919780465685,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.00471129913968138,
+        "worst_mass_msun": 2.0325
+      },
+      "MS1B": {
+        "delta_pct_when_2p0175_omitted": 0.00421545213074026,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.00433768996892514,
+        "worst_mass_msun": 2.0325
+      },
+      "WFF1": {
+        "delta_pct_when_2p0175_omitted": null,
+        "existing_missing_RNS_target_msun": [
+          2.0175
+        ],
+        "max_single_interior_node_leave_out_abs_pct": 0.08878833766989835,
+        "worst_mass_msun": 2.01
+      },
+      "WFF2": {
+        "delta_pct_when_2p0175_omitted": -0.00018685490308367747,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.011524371584825666,
+        "worst_mass_msun": 1.9575
+      }
+    },
+    "posterior_prior_ratio_weighted_0.040_0.50.npz": {
+      "APR4_EPP": {
+        "delta_pct_when_2p0175_omitted": -0.003947981935337186,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.011519319083852508,
+        "worst_mass_msun": 2.0475
+      },
+      "ENG": {
+        "delta_pct_when_2p0175_omitted": 0.002756049440599817,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.004785840083454396,
+        "worst_mass_msun": 2.085
+      },
+      "MPA1": {
+        "delta_pct_when_2p0175_omitted": 0.0031942724792566324,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.003343725083593263,
+        "worst_mass_msun": 2.025
+      },
+      "MS1": {
+        "delta_pct_when_2p0175_omitted": 0.0031780695750827093,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.003479049284860203,
+        "worst_mass_msun": 2.0325
+      },
+      "MS1B": {
+        "delta_pct_when_2p0175_omitted": 0.0032099786365868965,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.0033090766750065725,
+        "worst_mass_msun": 2.0325
+      },
+      "WFF1": {
+        "delta_pct_when_2p0175_omitted": null,
+        "existing_missing_RNS_target_msun": [
+          2.0175
+        ],
+        "max_single_interior_node_leave_out_abs_pct": 0.04562933267269198,
+        "worst_mass_msun": 1.9575
+      },
+      "WFF2": {
+        "delta_pct_when_2p0175_omitted": 0.0018128534075234626,
+        "existing_missing_RNS_target_msun": [],
+        "max_single_interior_node_leave_out_abs_pct": 0.007730886498080736,
+        "worst_mass_msun": 1.9575
+      }
+    }
+  }
+}
