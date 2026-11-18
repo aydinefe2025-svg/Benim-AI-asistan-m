@@ -99,6 +99,8 @@ def render_auth_gate(st: Any, environment: Mapping[str, str]) -> str | None:
     if not auth_is_required(environment):
         return None
     if not oidc_is_configured(st.secrets, environment):
+        if hasattr(st, "session_state"):
+            isolate_owner_session(st.session_state, None)
         st.error(
             "Güvenli giriş yapılandırılmamış. Google OIDC ayarlarını Streamlit "
             "Secrets içinde tamamlayın; uygulama kapalı kalacak."
@@ -106,12 +108,18 @@ def render_auth_gate(st: Any, environment: Mapping[str, str]) -> str | None:
         st.stop()
     user = st.user
     if not user.get("is_logged_in", False):
+        # The login screen must not retain the previously authenticated
+        # owner's data in an existing Streamlit browser session.
+        if hasattr(st, "session_state"):
+            isolate_owner_session(st.session_state, None)
         st.title("Giriş gerekli")
         st.button("Google ile giriş yap", on_click=st.login)
         st.stop()
     auth = st.secrets["auth"]
     owner_key = authenticated_owner_key(user, auth["owner_key_secret"])
     if owner_key is None:
+        if hasattr(st, "session_state"):
+            isolate_owner_session(st.session_state, None)
         st.error("Giriş kimliği doğrulanamadı; oturum başlatılmadı.")
         st.stop()
     st.sidebar.button("Güvenli çıkış", on_click=st.logout, key="logout")
