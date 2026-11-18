@@ -7,6 +7,8 @@ from pathlib import Path
 from urllib.parse import urlsplit, parse_qs, urlencode
 from unittest.mock import Mock
 
+from core.weather_reliability import parse_wttr_current
+
 
 APP = Path(__file__).resolve().parents[1] / "app.py"
 
@@ -17,7 +19,8 @@ def load_search_function(path=APP):
     helper = next(n for n in source.body
                   if isinstance(n, ast.FunctionDef) and n.name == "internette_ara")
     mocked_requests = types.SimpleNamespace(get=Mock())
-    namespace = {"re": re, "requests": mocked_requests, "urlencode": urlencode}
+    namespace = {"re": re, "requests": mocked_requests, "urlencode": urlencode,
+                 "parse_wttr_current": parse_wttr_current}
     exec(compile(ast.Module(body=[helper], type_ignores=[]), str(path), "exec"), namespace)
     return namespace["internette_ara"], mocked_requests
 
@@ -31,18 +34,25 @@ class SearchProviderTests(unittest.TestCase):
     def test_weather_uses_valid_location_path(self):
         search, requests = self.load_search()
         requests.get.return_value = types.SimpleNamespace(
-            status_code=200, text="Sunny +20C 40% 5km/h")
+            status_code=200, text=("Sunny|+20°C|40%|5km/h"
+                                   if self.source == APP else "Sunny +20C 40% 5km/h"))
         answer = search("İzmir hava durumu")
         url = requests.get.call_args.args[0]
         self.assertEqual(urlsplit(url).netloc, "wttr.in")
         self.assertEqual(urlsplit(url).path, "/Izmir")
-        self.assertIn("format", parse_qs(urlsplit(url).query))
+        if self.source == APP:
+            self.assertEqual(requests.get.call_args.kwargs["params"]["format"],
+                             "%C|%t|%h|%w")
+            self.assertIn("Sıcaklık: +20°C", answer)
+        else:
+            self.assertIn("format", parse_qs(urlsplit(url).query))
         self.assertIn("İzmir", answer)
 
     def test_explicit_city_is_not_replaced_with_izmir(self):
         search, requests = self.load_search()
         requests.get.return_value = types.SimpleNamespace(
-            status_code=200, text="Sunny +20C 40% 5km/h")
+            status_code=200, text=("Sunny|+20°C|40%|5km/h"
+                                   if self.source == APP else "Sunny +20C 40% 5km/h"))
         answer = search("Ankara hava durumu")
         url = requests.get.call_args.args[0]
         self.assertEqual(urlsplit(url).path, "/Ankara")
