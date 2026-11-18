@@ -28,6 +28,45 @@ class CodeJobReceiptLinksTests(unittest.TestCase):
         self.assertIn("https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44315632105", urls)
         self.assertIn("https://dashboard.render.com/web/srv-dbiulm8473hc73amkjtg/deploys/dep-dbuqqtrm8hqs73b5i87g", urls)
 
+    def test_recent_valid_complete_receipt_is_not_hidden_by_newer_incomplete_row(self):
+        """A stale deployed status without CI/deploy must not hide actual proof."""
+        ui = FakeUI()
+        render_owner_code_status(ui, [
+            {"status": "deployed",
+             "pr_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/610",
+             "ci_run_url": "",
+             "deploy_id": ""},
+            {"status": "deployed",
+             "pr_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/605",
+             "ci_run_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44315632105",
+             "deploy_id": "dep-dbuqqtrm8hqs73b5i87g"},
+        ])
+        urls = [url for _, url in ui.links]
+        self.assertIn(
+            "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44315632105",
+            urls)
+        self.assertIn(
+            "https://dashboard.render.com/web/srv-dbiulm8473hc73amkjtg/deploys/dep-dbuqqtrm8hqs73b5i87g",
+            urls)
+
+    def test_authenticated_app_actually_renders_verified_job_receipts(self):
+        import ast
+        from pathlib import Path
+        app = Path(__file__).resolve().parents[1] / "app.py"
+        source = app.read_text("utf-8")
+        section = source.split("# Authenticated owner status", 1)[1].split(
+            "# 🔒 Her sağlayıcı", 1)[0]
+        self.assertIn('if _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"):', section)
+        self.assertIn("render_owner_code_status(", section)
+        tree = ast.parse(section)
+        calls = [node for node in ast.walk(tree)
+                 if isinstance(node, ast.Call)
+                 and isinstance(node.func, ast.Name)
+                 and node.func.id == "render_owner_code_status"]
+        self.assertEqual(len(calls), 1)
+        self.assertEqual([ast.unparse(arg) for arg in calls[0].args],
+                         ["st", "_CODE_JOB_RECEIPTS"])
+
     def test_unsafe_urls_and_non_deployed_rows_never_render_receipt_links(self):
         ui = FakeUI()
         render_owner_code_status(ui, [
