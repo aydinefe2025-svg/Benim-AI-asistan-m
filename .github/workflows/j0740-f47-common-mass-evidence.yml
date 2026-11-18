@@ -48,9 +48,15 @@ jobs:
           fi
           mkdir -p results/F47/curves
           printf '{"source_F46_run_id":44286241129,"source_F46_conclusion":"%s","exception":"WFF1_direct_mass_root_2.0175_failed; 21/22 measured mass nodes, no interpolated star"}\n' "$result" > results/F47/F46_source_exception.json
+          # Each GH artifact also contains an identically named F46_manifest.json.
+          # Extract to distinct subfolders first; otherwise gh refuses overwrites.
           for name in APR4_EPP ENG MPA1 MS1 MS1B WFF1 WFF2; do
+            mkdir -p "results/F47/curves/artifacts/${name}"
             gh run download 44286241129 --repo "$GITHUB_REPOSITORY" \
-              --name "j0740-f46-direct-mass-curve-${name}" --dir results/F47/curves
+              --name "j0740-f46-direct-mass-curve-${name}" \
+              --dir "results/F47/curves/artifacts/${name}"
+            cp "results/F47/curves/artifacts/${name}/${name}_fixed_spin_direct_curve.json" \
+              "results/F47/curves/${name}_fixed_spin_direct_curve.json"
             test -s "results/F47/curves/${name}_fixed_spin_direct_curve.json"
           done
       - name: Download SHA-pinned real source F38 KDE and F44 RNS evidence
