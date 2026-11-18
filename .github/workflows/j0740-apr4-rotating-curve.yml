@@ -1,0 +1,108 @@
+name: J0740 causal APR4 fixed-frequency RNS curve and F38 integral
+on:
+  push:
+    branches:
+      - science/j0740-apr4-rotating-curve-20261118
+    paths:
+      - research/j0740/physical_eos/apr4_causal_rotating_curve.py
+      - .github/workflows/j0740-apr4-rotating-curve.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: j0740-apr4-rotating-curve
+  cancel-in-progress: false
+jobs:
+  rotating-curve-integral:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Install pinned scientific runtime and retrieve F38 likelihood surface
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m pip install numpy scipy
+          python -m pip download 'lalsuite==7.26.4' --no-deps --only-binary=:all: --dest results/source
+          gh run download 44120237417 --repo "$GITHUB_REPOSITORY" --name j0740-F38-published-source-marginalized-mr-likelihood --dir results/F38
+      - name: Verify pinned source and unpack native table
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile,sys
+          sys.path.insert(0,"research/j0740/physical_eos")
+          import native_lalsuite_apr4_causal_model as native
+          npz=Path("jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz")
+          assert native.sha256(npz)==native.NPZ_SHA,"JESTER APR4 source SHA mismatch"
+          wheels=list(Path("results/source").glob("lalsuite-7.26.4-*.whl"))
+          assert len(wheels)==1,"expected exactly one pinned LALSuite wheel"
+          assert native.sha256(wheels[0])==native.LAL_WHEEL_SHA,"LALSuite wheel SHA mismatch"
+          with zipfile.ZipFile(wheels[0]) as z:
+              hits=[n for n in z.namelist() if n.endswith("LALSimNeutronStarEOS_APR4_EPP.dat")]
+              assert len(hits)==1,"native APR4 table not unique"
+              raw=z.read(hits[0])
+          p=Path("results/source/LALSimNeutronStarEOS_APR4_EPP_7.26.4.dat")
+          p.write_bytes(raw)
+          assert native.sha256(p)==native.LAL_TABLE_SHA,"native EOS table SHA mismatch"
+          f38=list(Path("results/F38").glob("posterior_prior_ratio_*.npz"))
+          assert len(f38)==6,"expected six F38 likelihood surfaces"
+          print("PASS: pinned EOS provenance and all six F38 surfaces present")
+          PY
+      - name: Run curve-integral preflight
+        run: python research/j0740/physical_eos/apr4_causal_rotating_curve.py --selftest
+      - name: Pin output precision diagnostic only and compile two RNS grids
+        run: |
+          python research/j0740/rotating_gr/precise_apr4_mass_spin_root.py \
+            --patch-only \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
+            --rns-source rns-upstream/rns.c \
+            --binary rns-upstream/rns_151x301 rns-upstream/rns_201x401 \
+            --work results/work --out results/unused.json \
+            --patch-metadata results/rns_print_patch.json \
+            --expected-npz-sha256 639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88
+          make -C rns-upstream CC='gcc -include stdlib.h' rns
+          cp rns-upstream/rns rns-upstream/rns_151x301
+          rm -f rns-upstream/*.o rns-upstream/rns
+          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+          cp rns-upstream/rns rns-upstream/rns_201x401
+      - name: Generate source-locked fixed-frequency curve and conditional F38 integral
+        run: |
+          mkdir -p results/work
+          python research/j0740/physical_eos/apr4_causal_rotating_curve.py \
+            --source-npz jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
+            --native-table results/source/LALSimNeutronStarEOS_APR4_EPP_7.26.4.dat \
+            --binary-coarse rns-upstream/rns_151x301 \
+            --binary-fine rns-upstream/rns_201x401 \
+            --work results/work --f38-dir results/F38 \
+            --out results/J0740_APR4_FIXED_FREQUENCY_CURVE_F38_INTEGRAL.json
+      - name: Preserve full roots, likelihood summary, and failure traces
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: j0740-apr4-fixed-frequency-curve-f38-integral
+          path: |
+            results/J0740_APR4_FIXED_FREQUENCY_CURVE_F38_INTEGRAL.json
+            results/J0740_APR4_FIXED_FREQUENCY_CURVE_F38_INTEGRAL.csv
+            results/rns_print_patch.json
+            results/work/*.rns
+          if-no-files-found: warn
+          retention-days: 30
+
