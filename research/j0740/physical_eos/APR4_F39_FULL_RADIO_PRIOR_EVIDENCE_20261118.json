@@ -47,8 +47,27 @@
   "limitations": {
     "published_sample_reconstructed_likelihood": "APPROXIMATE; compiled photon-level X-PSI not run",
     "physical_microphysics_family_prior": "NOT_ESTABLISHED",
-    "fixed_J_turning_point": "IN_PROGRESS_IN_ACTIONS_44314552006",
+    "fixed_J_turning_point": "PASS_SAMPLED_CONSTANT_J_TURNING_BRACKET_NOT_DYNAMICAL_CERTIFICATION",
     "final_multi_EOS_bayes_posterior": "NOT_RUN",
     "source_native_xpsi_and_nuisance_refit": "NOT_RUN"
+  },
+  "fixed_J_validation": {
+    "workflow_run_id": 44314552006,
+    "workflow_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44314552006",
+    "artifact_id": 14430514568,
+    "artifact_zip_sha256": "96a6cca43dbddbb26037db33be28106dd0b8bcf6b89336507eb54267be128a95",
+    "direct_rns_fixed_J_models_passed": 17,
+    "direct_rns_fixed_J_models_failed": 0,
+    "fixed_J_anchor_cgs": 4.819590227083398e+48,
+    "max_relative_J_residual": 7.622348086044894e-9,
+    "turning_point_status": "PASS_SAMPLED_CONSTANT_J_TURNING_BRACKET_NOT_DYNAMICAL_CERTIFICATION",
+    "central_energy_density_bracket_g_cm3": [
+      2600000000000000,
+      2800000000000000
+    ],
+    "sampled_peak_density_g_cm3": 2700000000000000,
+    "sampled_peak_mass_msun": 2.1770302840020337,
+    "sampled_peak_equatorial_radius_km": 10.084790829976793,
+    "interpretation": "17 directly computed constant-J RNS models bracket the sampled mass maximum of the separate causal completion; this is not a nonlinear/dynamical stability proof."
   }
 }
