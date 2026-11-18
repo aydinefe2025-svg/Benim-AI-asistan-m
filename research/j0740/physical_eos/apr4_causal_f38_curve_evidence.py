@@ -118,6 +118,7 @@ def main():
     p.add_argument("--reanchor-eos-table")
     a=p.parse_args()
     surfaces=source_surfaces(a.surfaces)
+    reanchor=None
     if not a.reuse_curve_json and not all((a.binary,a.eos_table,a.anchor)):
         p.error("--binary, --eos-table and --anchor are required unless --reuse-curve-json is supplied")
     if a.reuse_curve_json:
