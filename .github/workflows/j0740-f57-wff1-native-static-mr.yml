@@ -1,0 +1,65 @@
+name: J0740 F57 source native versus new candidate WFF1 static equal-mass radius
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f57/**'
+      - '.github/workflows/j0740-f57-wff1-native-static-mr.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-locked-static-2p073-radius-delta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numeric source curve interpolation tools
+        run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
+      - name: Test source TOV local rising-branch interpolation, no global overclaim
+        run: python -m unittest discover -s research/j0740/f57 -p 'test_f57_*.py' -v
+      - name: Load immutable source JESTER WFF1 at pinned commit, check original SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/F57/input results/F57/out
+          curl -fL --retry 3 --max-time 120 \
+            'https://raw.githubusercontent.com/nuclear-multimessenger-astronomy/jester/e6768650ce992abfd1153a6833857572fe5cd230/jesterTOV/tabulated_eos/lalsuite/WFF1.npz' \
+            -o results/F57/input/WFF1_original.npz
+          echo '119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3  results/F57/input/WFF1_original.npz' | sha256sum -c -
+      - name: Compare previous native JESTER static TOV and real F43 candidate TOV at same 2.073 M☉
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f57/f57_native_vs_modified_static_MR.py \
+            --npz results/F57/input/WFF1_original.npz \
+            --f43 research/j0740/f43/F43_candidate_tov_results.json \
+            --out results/F57/out/F57_native_vs_F42_WFF1_static_2p073_MR.json
+      - name: Save exact source/output SHA256 receipt also on failure
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F57')
+          out=root/'out';out.mkdir(parents=True,exist_ok=True)
+          files={}
+          for p in root.rglob('*'):
+            if p.is_file() and p.name!='F57_manifest.json':
+              files[str(p.relative_to(root))]={'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+          (out/'F57_manifest.json').write_text(json.dumps(files,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-F57-unique-native-vs-F42-static-MR-or-failure
+          path: |
+            results/F57/out/F57_native_vs_F42_WFF1_static_2p073_MR.json
+            results/F57/out/F57_manifest.json
+          if-no-files-found: warn
+          retention-days: 30
