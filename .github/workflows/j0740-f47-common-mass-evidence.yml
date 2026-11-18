@@ -1,0 +1,93 @@
+name: J0740 F47 seven model common mass source-likelihood integral
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f47/**'
+      - '.github/workflows/j0740-f47-common-mass-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  f47-seven-common-window-integrals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numerical packages
+        run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
+      - name: Run 12 mathematical and fail-closed regression tests
+        run: python -m unittest discover -s research/j0740/f47 -p 'test_f47_mass_integrated_likelihood.py' -v
+      - name: Wait for and verify ALL seven F46 genuine full-GR Actions jobs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for n in {1..100}; do
+            state=$(gh run view 44286241129 --repo "$GITHUB_REPOSITORY" --json status --jq '.status')
+            if [ "$state" = completed ]; then break; fi
+            echo "F46 full-GR matrix still ${state}, check ${n}"
+            sleep 25
+          done
+          state=$(gh run view 44286241129 --repo "$GITHUB_REPOSITORY" --json status --jq '.status')
+          result=$(gh run view 44286241129 --repo "$GITHUB_REPOSITORY" --json conclusion --jq '.conclusion')
+          echo "F46 state=${state}, conclusion=${result}"
+          test "$state" = completed
+          test "$result" = success
+          mkdir -p results/F47/curves
+          for name in APR4_EPP ENG MPA1 MS1 MS1B WFF1 WFF2; do
+            gh run download 44286241129 --repo "$GITHUB_REPOSITORY" \
+              --name "j0740-f46-direct-mass-curve-${name}" --dir results/F47/curves
+            test -s "results/F47/curves/${name}_fixed_spin_direct_curve.json"
+          done
+      - name: Download SHA-pinned real source F38 KDE and F44 RNS evidence
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F47/input
+          curl -fL --retry 3 --max-time 120 -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14344049589/zip' \
+            -o results/F47/input/F38.zip
+          curl -fL --retry 3 --max-time 120 -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14413168551/zip' \
+            -o results/F47/input/F44.zip
+          echo '4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307  results/F47/input/F38.zip' | sha256sum -c -
+          echo 'b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98  results/F47/input/F44.zip' | sha256sum -c -
+      - name: REAL seven source-MR marginal common-window integrals (no invented extrapolation)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f47/f47_mass_integrated_source_likelihood.py \
+            --f38 results/F47/input/F38.zip --f44 results/F47/input/F44.zip \
+            --curves-dir results/F47/curves \
+            --out results/F47/F47_seven_mass_window_source_likelihood.json
+      - name: Manifest and permanently saved partial error evidence
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F47');root.mkdir(parents=True,exist_ok=True)
+          d={str(p.relative_to(root)):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+             for p in root.rglob('*.json') if p.name!='F47_manifest.json'}
+          (root/'F47_manifest.json').write_text(json.dumps(d,indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f47-seven-causal-hypotheses-marginal-common-mass-sources
+          path: |
+            results/F47/F47_seven_mass_window_source_likelihood.json
+            results/F47/F47_manifest.json
+            results/F47/curves/*_fixed_spin_direct_curve.json
+          if-no-files-found: warn
+          retention-days: 30
