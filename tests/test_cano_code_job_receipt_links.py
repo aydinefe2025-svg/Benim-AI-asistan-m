@@ -49,15 +49,12 @@ class CodeJobReceiptLinksTests(unittest.TestCase):
             "https://dashboard.render.com/web/srv-dbiulm8473hc73amkjtg/deploys/dep-dbuqqtrm8hqs73b5i87g",
             urls)
 
-    def test_authenticated_app_actually_renders_verified_job_receipts(self):
+    def test_app_has_one_phone_visible_receipt_renderer_and_no_unsafe_sidebar_pr(self):
+        """Owner-only receipt links must come from the validated link renderer."""
         import ast
         from pathlib import Path
         app = Path(__file__).resolve().parents[1] / "app.py"
         source = app.read_text("utf-8")
-        section = source.split("# Authenticated owner status", 1)[1].split(
-            "# 🔒 Her sağlayıcı", 1)[0]
-        self.assertIn('if _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"):', section)
-        self.assertIn("render_owner_code_status(", section)
         tree = ast.parse(source)
         calls = [node for node in ast.walk(tree)
                  if isinstance(node, ast.Call)
@@ -66,6 +63,12 @@ class CodeJobReceiptLinksTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual([ast.unparse(arg) for arg in calls[0].args],
                          ["st", "_CODE_JOB_RECEIPTS"])
+        self.assertIn(
+            "if _OWNER_KEY and _CODE_JOB_RECEIPTS is not None:", source)
+        sidebar = source.split("# Authenticated owner status", 1)[1].split(
+            "# 🔒 Her sağlayıcı", 1)[0]
+        self.assertNotIn('st.link_button("Geliştirme PR', sidebar)
+        self.assertIn("_CODE_JOB_RECEIPTS = _code_store.recent()", sidebar)
 
     def test_unsafe_urls_and_non_deployed_rows_never_render_receipt_links(self):
         ui = FakeUI()
