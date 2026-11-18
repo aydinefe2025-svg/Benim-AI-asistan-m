@@ -73,8 +73,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p results/F47/f48
-          curl -fL --retry 3 --max-time 120 -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \\
-            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14421121729/zip' \\
+          curl -fL --retry 3 --max-time 120 -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14421121729/zip' \
             -o results/F47/input/F48.zip
           echo '8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786  results/F47/input/F48.zip' | sha256sum -c -
           unzip -q results/F47/input/F48.zip -d results/F47/f48
@@ -97,7 +97,7 @@ jobs:
           assert recovered['F48_source_original_failed_21node_sha256']=='bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3'
           assert recovered['common_window_all_roots_present'] and recovered['successful_common_targets']==22
           shutil.copyfile(root/'WFF1_fixed_spin_direct_curve_F48_recovered.json','results/F47/curves/WFF1_fixed_spin_direct_curve.json')
-          Path('results/F47/F48_source_receipt.json').write_text(json.dumps({'artifact_id':14421121729,'artifact_sha256':'8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786','status':solved['status'],'root':r,'recovered_curve_sha256':solved['recovered_curve_sha256']},indent=2)+'\\n')
+          Path('results/F47/F48_source_receipt.json').write_text(json.dumps({'artifact_id':14421121729,'artifact_sha256':'8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786','status':solved['status'],'root':r,'recovered_curve_sha256':solved['recovered_curve_sha256']},indent=2)+'\n')
           print('PASS F48 immutable artifact, exact nested C/GR root and recovered 22-node WFF1 curve')
           PY
       - name: Download SHA-pinned real source F38 KDE and F44 RNS evidence
