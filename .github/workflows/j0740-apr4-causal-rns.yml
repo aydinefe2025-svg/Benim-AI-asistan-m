@@ -83,6 +83,25 @@ jobs:
           rm -f rns-upstream/*.o rns-upstream/rns
           make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
           cp rns-upstream/rns rns-upstream/rns_201x401
+      - name: Rebuild the pinned 200-node causal EOS table without rerunning stellar roots
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, "research/j0740/physical_eos")
+          sys.path.insert(0, "research/j0740/rotating_gr")
+          from apr4_causal_rns_root import validate_source, make_rows
+          from native_lalsuite_apr4_causal_model import NativeAPR4CausalEOS, sha256
+          from jester_to_rns import write_rns
+          table=Path("results/source/LALSimNeutronStarEOS_APR4_EPP_7.26.4.dat")
+          npz=Path("jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz")
+          mavg=validate_source(table,npz)
+          eos=NativeAPR4CausalEOS(table)
+          rows,meta=make_rows(eos,mavg,200)
+          out=Path("results/work/APR4_CAUSAL_7p26p4_200.rns")
+          write_rns(out,rows)
+          print({"rows":len(rows),"sha256":sha256(out),"causal_crossing":meta["pcut_geom_m_minus_2"]})
+          PY
       - name: Download the already computed F38 likelihood artifact
         env:
           GH_TOKEN: ${{ github.token }}
