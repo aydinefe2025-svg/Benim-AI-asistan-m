@@ -42,16 +42,22 @@ def generate_team_stage(prompt, *, api_key, client_factory=None,
                 {"role": "user", "content": prompt},
             ],
             max_tokens=650, temperature=0.2)
-    try:
-        retry_options = {} if sleep is None else {"sleep": sleep}
-        result = retry_transient(create, **retry_options)
-    except Exception as exc:
-        if (getattr(exc, "status_code", None) == 429
-                or getattr(getattr(exc, "response", None), "status_code", None) == 429):
-            raise TeamRateLimitError(
-                "Modelin dakikalık kotası doldu; görevi kaldığı yerden sürdürmek "
-                "için kota yenilenince tekrar deneyin.") from None
-        raise
+    def create_without_rate_limit_retry():
+        try:
+            return create()
+        except Exception as exc:
+            if (getattr(exc, "status_code", None) == 429
+                    or getattr(getattr(exc, "response", None), "status_code", None) == 429):
+                # Retrying a quota rejection repeats a known-failing request and
+                # can consume more of a free tier. Preserve the completed stage
+                # and let the user resume after the provider limit resets.
+                raise TeamRateLimitError(
+                    "Model sağlayıcı kotası doldu; kayıtlı aşamalar korunarak "
+                    "daha sonra sürdürülmek üzere görev durduruldu.") from None
+            raise
+
+    retry_options = {} if sleep is None else {"sleep": sleep}
+    result = retry_transient(create_without_rate_limit_retry, **retry_options)
     if not getattr(result, "choices", None):
         raise RuntimeError("Team model returned no choices")
     message = getattr(result.choices[0], "message", None)
