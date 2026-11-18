@@ -124,19 +124,18 @@
       "bytes": 11421
     },
     {
-      "file": "../../.github/workflows/j0740-apr4-causal-rns.yml",
+      "file": "../../../.github/workflows/j0740-apr4-causal-rns.yml",
       "sha256": "5a588f4a3c8c3eda18df37cd824231547dadd38d985826dd60a172fa24ae61c4",
       "bytes": 3901
     },
     {
-      "file": "APR4_CAUSAL_APR4_F38_CONDITIONAL_EVIDENCE_ACTIONS_ARTIFACT.zip",
+      "file": "J0740_F38_CONDITIONAL_EVIDENCE_ACTIONS_ARTIFACT_14409613719.zip",
       "sha256": "fd8b8447689fd364116b7b6dcadfa87e366d749ec2cbb7039d80cbd53d603801",
       "bytes": 33659
     },
     {
       "file": "APR4_CAUSAL_APR4_RNS_curve_artifact_200pt_table.rns",
-      "sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89",
-      "bytes": null
+      "sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89"
     }
   ],
   "provenance": {
