@@ -38,15 +38,24 @@ def _safe_deployed_receipts(jobs):
 
 
 def summarize_recent_code_jobs(jobs):
-    """Summarize only the owner-visible recent rows, not the entire database."""
+    """Summarize owner entries with complete, canonical PR/CI/Render receipts.
+
+    A stored deployed status is not evidence without its own PR, CI and
+    Render identifiers. Even a complete receipt is not a fresh remote check.
+    """
     records = [row for row in jobs if isinstance(row, dict)]
-    latest_pr = next((r["pr"] for r in _safe_deployed_receipts(records) if r["pr"]), None)
+    completed = [
+        receipt for receipt in _safe_deployed_receipts(records)
+        if receipt["pr"] and receipt["ci"] and receipt["deploy"]
+    ]
+    labeled_deployed = sum(row.get("status") == "deployed" for row in records)
     return {
         "total": len(records),
-        "deployed": sum(row.get("status") == "deployed" for row in records),
+        "deployed": len(completed),
+        "unverified_deployments": labeled_deployed - len(completed),
         "active": sum(row.get("status") in _ACTIVE for row in records),
         "blocked": sum(row.get("status") == "blocked" for row in records),
-        "last_pr_url": latest_pr,
+        "last_pr_url": completed[0]["pr"] if completed else None,
     }
 
 
@@ -55,27 +64,21 @@ def render_owner_code_status(st, jobs):
     stats = summarize_recent_code_jobs(jobs)
     st.info(
         f"🛠️ CANO kod işleri — Son {stats['total']} kayıt: "
-        f"{stats['deployed']} yayınlandı · "
+        f"{stats['deployed']} tam makbuzlu yayın kaydı · "
+        f"{stats['unverified_deployments']} makbuzu eksik yayın etiketi · "
         f"{stats['active']} sırada/çalışıyor · "
         f"{stats['blocked']} engellendi. "
-        "Bu, giriş yaptığın hesaba ait kalıcı görev makbuzudur; "
-        "sıradaki veya engellenen işler tamamlanmış sayılmaz."
+        "Görünen bağlantılar kayıt kanıtıdır; CI başarısı ve Render LIVE "
+        "bu ekranda bağımsız olarak yeniden kontrol edilmemiştir."
     )
     if stats["last_pr_url"]:
         st.link_button("Son yayınlanan kod değişikliğini aç", stats["last_pr_url"])
-    # An incomplete newer receipt must not hide an older complete
-    # PR -> CI -> Render chain. Choose one single job's evidence to avoid
-    # accidentally pairing the CI of one job with another job's deployment.
-    receipts = list(_safe_deployed_receipts(
-        [row for row in jobs if isinstance(row, dict)]
-    ))
+    # Only show a complete same-job PR/CI/Render receipt; never mix
+    # evidence from different jobs or present partial evidence as proof.
     receipt = next(
-        (r for r in receipts if r["ci"] and r["deploy"]), None
+        (r for r in _safe_deployed_receipts(jobs)
+         if r["pr"] and r["ci"] and r["deploy"]), None
     )
-    if receipt is None:
-        receipt = next(
-            (r for r in receipts if r["ci"] or r["deploy"]), None
-        )
     if receipt is not None:
         if receipt["ci"]:
             st.link_button("GitHub CI makbuzunu aç", receipt["ci"])

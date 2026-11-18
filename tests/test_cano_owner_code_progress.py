@@ -22,7 +22,7 @@ class FakeStreamlit:
 
 
 class OwnerCodeStatusTests(unittest.TestCase):
-    def test_actual_owner_receipts_are_visible_without_leaking_details(self):
+    def test_owner_jobs_without_ci_deploy_are_unverified_and_private(self):
         st = FakeStreamlit()
         jobs = [
             {"status": "deployed", "pr_url": CANONICAL_PR,
@@ -31,15 +31,17 @@ class OwnerCodeStatusTests(unittest.TestCase):
             {"status": "queued", "pr_url": ""},
         ]
         result = render_owner_code_status(st, jobs)
-        self.assertEqual((3, 1, 1, 1), (
-            result["total"], result["deployed"], result["active"], result["blocked"]))
+        self.assertEqual((3, 0, 1, 1, 1), (
+            result["total"], result["deployed"], result["active"],
+            result["blocked"], result["unverified_deployments"]))
         visible = " ".join(st.messages)
-        self.assertIn("1 yayınlandı", visible)
+        self.assertIn("0 tam makbuzlu", visible)
+        self.assertIn("1 makbuzu eksik", visible)
         self.assertIn("1 sırada/çalışıyor", visible)
         self.assertIn("1 engellendi", visible)
         self.assertNotIn("private user request", visible)
         self.assertNotIn("secret-owner", visible)
-        self.assertEqual(CANONICAL_PR, st.links[0][1])
+        self.assertEqual([], st.links)
 
     def test_untrusted_pr_url_never_becomes_external_link(self):
         st = FakeStreamlit()
@@ -56,7 +58,7 @@ class OwnerCodeStatusTests(unittest.TestCase):
         result = render_owner_code_status(st, [])
         self.assertEqual((0, 0, 0), (
             result["deployed"], result["active"], result["blocked"]))
-        self.assertIn("0 yayınlandı", " ".join(st.messages))
+        self.assertIn("0 tam makbuzlu", " ".join(st.messages))
 
     def test_main_mobile_view_is_owner_gated_and_not_sidebar_only(self):
         source = (ROOT / "app.py").read_text(encoding="utf-8")

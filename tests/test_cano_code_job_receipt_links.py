@@ -1,6 +1,6 @@
 """Authenticated owner code-job receipts: safe CI and Render links."""
 import unittest
-from core.cano_development_status import render_owner_code_status
+from core.cano_development_status import render_owner_code_status, summarize_recent_code_jobs
 
 
 class FakeUI:
@@ -69,6 +69,56 @@ class CodeJobReceiptLinksTests(unittest.TestCase):
             "# 🔒 Her sağlayıcı", 1)[0]
         self.assertNotIn('st.link_button("Geliştirme PR', sidebar)
         self.assertIn("_CODE_JOB_RECEIPTS = _code_store.recent()", sidebar)
+
+    def test_deployed_status_without_full_receipts_does_not_count_as_proven(self):
+        complete = {
+            "status": "deployed",
+            "pr_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/605",
+            "ci_run_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44315632105",
+            "deploy_id": "dep-dbuqqtrm8hqs73b5i87g",
+        }
+        incomplete = {
+            "status": "deployed",
+            "pr_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/610",
+            "ci_run_url": "",
+            "deploy_id": "",
+        }
+        untrusted = {
+            "status": "deployed",
+            "pr_url": "https://github.com/evil-org/fake/pull/3",
+            "ci_run_url": complete["ci_run_url"],
+            "deploy_id": complete["deploy_id"],
+        }
+        rows = [incomplete, untrusted, complete, {"status": "queued"},
+                {"status": "blocked"}]
+        stats = summarize_recent_code_jobs(rows)
+        self.assertEqual(1, stats["deployed"])
+        self.assertEqual(2, stats["unverified_deployments"])
+        self.assertEqual(1, stats["active"])
+        self.assertEqual(1, stats["blocked"])
+        self.assertEqual(complete["pr_url"], stats["last_pr_url"])
+        ui = FakeUI()
+        render_owner_code_status(ui, rows)
+        self.assertIn("1 tam makbuzlu", ui.messages[0])
+        self.assertIn("2 makbuzu eksik", ui.messages[0])
+        urls = [link for _, link in ui.links]
+        self.assertIn(complete["pr_url"], urls)
+        self.assertNotIn(incomplete["pr_url"], urls)
+        self.assertNotIn(untrusted["pr_url"], urls)
+
+    def test_partial_ci_receipt_never_becomes_a_verified_deployment(self):
+        rows = [{
+            "status": "deployed",
+            "pr_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/610",
+            "ci_run_url": "",
+            "deploy_id": "dep-dbuqqtrm8hqs73b5i87g",
+        }]
+        ui = FakeUI()
+        stats = render_owner_code_status(ui, rows)
+        self.assertEqual(0, stats["deployed"])
+        self.assertEqual(1, stats["unverified_deployments"])
+        self.assertEqual([], ui.links)
+        self.assertIn("1 makbuzu eksik", ui.messages[0])
 
     def test_unsafe_urls_and_non_deployed_rows_never_render_receipt_links(self):
         ui = FakeUI()
