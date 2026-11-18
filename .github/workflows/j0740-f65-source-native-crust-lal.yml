@@ -1,0 +1,88 @@
+name: J0740 F65 original 7 nuclear EOS direct LAL low-pressure derivative localization
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f65/**'
+      - '.github/workflows/j0740-f65-source-native-crust-lal.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  direct-native-seven-source-crust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-original
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned LALSuite original EOS and numeric libraries
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3' 'lalsuite==7.26.4'
+      - name: Fifteen fail-closed analytic and source identity tests
+        run: python -m unittest discover -s research/j0740/f65 -p 'test_f65_*.py' -v
+      - name: Direct ORIGINAL LALSuite energy and pressure derivatives at 1201 points for SEVEN EOS
+        run: |
+          python -u research/j0740/f65/f65_native_crust_derivative_map.py \
+            --source-dir jester-original/jesterTOV/tabulated_eos/lalsuite \
+            --fixture research/j0740/rotating_gr/fixtures/pinned_eos_center_fixture.json \
+            --out results/F65/F65_original_seven_LAL_crust_derivative_20261119.json
+      - name: Hard scientific gate source-matched negative crust pressure and no false physical repair claim
+        run: |
+          python - <<'PY'
+          import json,math
+          from pathlib import Path
+          f=Path('results/F65/F65_original_seven_LAL_crust_derivative_20261119.json')
+          d=json.loads(f.read_text())
+          assert d['original_source_not_F42_lift'] is True
+          assert d['status']=='F65_DIRECT_LAL_CRUST_SIX_OF_SEVEN_NEGATIVE_LOCALIZED_FINITE_SCAN_NOT_PHYSICAL_CERT'
+          assert d['direct_LAL_samples_per_EOS']==1201
+          assert len(d['eos'])==7
+          assert d['same_as_source_expected_six_classification'] is True
+          assert d['source_EOS_globally_physically_accepted']=='NOT_ESTABLISHED'
+          assert d['exact_source_photon_XPSI_likelihood']=='NOT_RUN'
+          assert d['seven_original_EOS_Bayesian_evidence']=='NOT_RUN'
+          for name,v in d['eos'].items():
+              assert len(v['diagnostic_p_grid_geom'])==len(v['diagnostic_dedp_grid'])==1201
+              assert len(v['original_source_bridge'])==5
+              assert max(abs(x['cs2_direct']-x['cs2_source']) for x in v['original_source_bridge']) < 1e-4
+              if name=='APR4_EPP':
+                  assert v['negative_inverse_cs2_sample_nodes']==0
+              else:
+                  assert v['negative_inverse_cs2_sample_nodes']>0
+          print('F65 independent original native LAL source-thermo science acceptance: PASS')
+          PY
+      - name: Immutable result and seven source SHA256 receipt
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p results/F65
+          python - <<'PY'
+          import hashlib,json, pathlib,importlib.metadata
+          paths=[pathlib.Path('results/F65/F65_original_seven_LAL_crust_derivative_20261119.json'),
+             pathlib.Path('research/j0740/f65/f65_native_crust_derivative_map.py'),
+             pathlib.Path('research/j0740/f65/test_f65_native_crust_derivative_map.py'),
+             pathlib.Path('research/j0740/rotating_gr/fixtures/pinned_eos_center_fixture.json'),
+             *pathlib.Path('jester-original/jesterTOV/tabulated_eos/lalsuite').glob('*.npz')]
+          entries={str(p):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in paths if p.exists()}
+          rec={'source_jester_commit':'e6768650ce992abfd1153a6833857572fe5cd230',
+             'lalsuite_distribution_version':importlib.metadata.version('lalsuite'),
+             'files':entries}
+          pathlib.Path('results/F65/F65_source_SHA256_manifest_20261119.json').write_text(json.dumps(rec,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-F65-original-seven-direct-LAL-crust-source-or-failure
+          path: results/F65/
+          if-no-files-found: warn
+          retention-days: 30
