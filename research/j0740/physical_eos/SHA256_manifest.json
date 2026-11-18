@@ -146,12 +146,6 @@
       "artifact_id": 14410043372
     },
     {
-      "file": "APR4_F39_FULL_RADIO_PRIOR_EVIDENCE_20261118.json",
-      "git_blob_sha": "408e7f57f0e4f3a7e98d1b477800166d7f23585a",
-      "run_id": 44256261379,
-      "artifact_id": 14408011818
-    },
-    {
       "file": "J0740_BARYON_NORMALIZATION_ACTIONS_14431972111.zip",
       "sha256": "47c80c0218de22c667b37beedc19d25a1a3397b0873517c6ef0cdc54e30a59a4",
       "run_id": 44314178799,
@@ -200,6 +194,7 @@
         "artifact_zip_sha256": "96a6cca43dbddbb26037db33be28106dd0b8bcf6b89336507eb54267be128a95",
         "calculation": "17 fixed-J RNS models; sampled bracket, not dynamical certification"
       }
-    ]
+    ],
+    "current_f39_json_git_blob": "408e7f57f0e4f3a7e98d1b477800166d7f23585a"
   }
 }
