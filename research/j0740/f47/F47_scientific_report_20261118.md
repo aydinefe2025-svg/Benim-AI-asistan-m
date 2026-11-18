@@ -61,3 +61,15 @@ The narrowest KDE bandwidth produces a **near tie** between MPA1 and ENG (ratios
 - `F47_real_seven_common_window_integrals_20261118.json`, `F47_direct_mass_node_omission_sensitivity.json`, `F47_real_seven_source_conditional_likelihood_20261118.csv`, this report, sources, tests and SHA manifest packaged as local derived scientific work; original source EOS and previous F31-F46 archived work unchanged.
 
 **Stage status: `F47_REAL_CONDITIONAL_COMMON_WINDOW_INTEGRAL=COMPUTED`, `F46_WFF1_MISSING_DIRECT_ROOT=OPEN`, `FINAL_SEVEN_PHYSICAL_EOS_BAYES=NOT_ESTABLISHED`.**
+
+
+## F48 direct-root rescue and F47 re-integration — 18 November 2026
+
+This section supersedes the older sampled-grid gap and score values above for the **post-F48 common-window calculation only**. It does not supersede the recorded failed F46 run.
+
+- F48 real direct RNS C nested root for WFF1 at 2.0175 M☉ and 346.536369 Hz used 94 actual solver models; no stellar model was interpolated. Measured mass 2.0174999999861853 M☉, R_eq 10.101642217945683 km, central energy density 1.9122318463178555×10^15 g/cm³, spin 346.5363703320838 Hz; residuals −1.38147×10^−11 M☉ and +1.33208×10^−6 Hz. F48 Actions run [44290378892](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44290378892) SUCCESS; artifact 14421121729 SHA256 `8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786`. Original F46 failed artifact remains retained by SHA256 `bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3`.
+- F47 Actions run [44306741205](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44306741205) SUCCESS re-ran 18 unit/fail-closed tests, verified the immutable F48/F38/F44 inputs, and integrated the seven 22-node direct C/GR curves against all six F38 likelihood surfaces. Raw result is in artifact 14428273094, ZIP SHA256 `8c1706269fdae407562f60f5015749204c78bb8dac51a51bf917f2abf21edd32`. The 42 logged scores and gates are also in `F47_F48_postroot_conditional_score_summary_20261118.json` (scores rounded to 12 decimal places).
+
+Central weighted KDE conditional common-window scores after the F48 root are: MPA1 2.413655036291, ENG 2.307996890446, APR4_EPP 0.853017186096, WFF2 0.592499085413, MS1B 0.386392503489, MS1 0.329342084015, WFF1 0.061839814696. MPA1 ranks first on all six surfaces. At the narrowest weighted bandwidth MPA1/ENG = 1.002817227, still a near tie. The common window contains 0.5708291254 of the radio prior; the remaining 0.4291708746 has unknown likelihood and was not set to zero. These are source-normalizer-relative conditional window scores, not Bayes factors or EOS posterior probabilities.
+
+**Open gates:** the seven models are F42 artificial causal-lift/cold-gas hypotheses, not validated original nuclear EOS. Physical microphysics acceptance and global fixed-J stability remain `NOT_ESTABLISHED`; native photon-level X-PSI fit, source-native prior/nuisance reanalysis, and the full physical seven-EOS Bayes posterior remain `NOT_RUN`. The original F46 CI failure is preserved even though the missing sampled WFF1 direct root is now recovered.
