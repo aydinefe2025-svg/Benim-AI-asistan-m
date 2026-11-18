@@ -8,7 +8,7 @@ import json
 import types
 import unittest
 
-from tests.test_search_provider_urls import load_search_function
+from test_search_provider_urls import load_search_function
 
 
 def fake_response(*, status=200, payload=None, text=""):
