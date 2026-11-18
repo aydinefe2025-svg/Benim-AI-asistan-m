@@ -54,7 +54,7 @@ def audit(table_path: Path, roots_path: Path) -> dict:
                 "mass_msun": float(seed["mass_msun"]),
                 "spin_hz": float(seed["spin_hz"]),
                 "radius_eq_km": float(seed["radius_eq_km"]),
-                "local_stability_and_causality_pass": bool(np.all(dlog > 0.0) and max_cs2 < 1.0),
+                "local_thermodynamic_stability_and_causality_pass": bool(np.all(dlog > 0.0) and max_cs2 < 1.0),
             })
     whole_lp = np.linspace(float(np.log(p[0])), float(np.log(p[-1])), 250001)
     whole_p = np.exp(whole_lp)
@@ -92,14 +92,14 @@ def audit(table_path: Path, roots_path: Path) -> dict:
             "global_source_eos_causal": bool(np.all(whole_cs2 <= 1.0)),
         },
         "acceptance": {
-            "all_four_target_star_interiors_causal_and_stable": all(x["local_stability_and_causality_pass"] for x in solved),
+            "all_four_target_star_interiors_causal_and_thermodynamically_stable": all(x["local_thermodynamic_stability_and_causality_pass"] for x in solved),
             "original_apr4_global_causality": "FAIL" if np.any(whole_cs2 > 1.0) else "PASS",
             "target_star_specific_eos_screen": "PASS_CONDITIONAL",
             "fixed_J_turning_point_stability": "NOT_ESTABLISHED",
             "absolute_baryon_mass_normalization": "NOT_ESTABLISHED",
             "EOS_Bayes": "NOT_RUN",
         },
-        "status": "TARGET_CONFIG_CAUSAL_STABLE_TO_CENTER; ORIGINAL_APR4_GLOBAL_EOS_NOT_CERTIFIED; EOS_Bayes=NOT_RUN",
+        "status": "TARGET_STAR_LOCAL_EOS_SCREEN_PASS; ORIGINAL_APR4_GLOBAL_EOS_NOT_CERTIFIED; EOS_Bayes=NOT_RUN",
     }
 
 def main() -> None:
