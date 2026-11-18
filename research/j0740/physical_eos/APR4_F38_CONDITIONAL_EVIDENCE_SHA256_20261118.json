@@ -1,0 +1,35 @@
+{
+  "schema": "j0740-apr4-conditional-evidence-artifact-manifest-v1",
+  "date": "2026-11-18",
+  "entries": [
+    {
+      "name": "F38 source-derived likelihood surfaces Actions artifact",
+      "sha256": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307",
+      "run_id": 44120237417,
+      "artifact_id": 14344049589
+    },
+    {
+      "name": "direct RNS curve and EOS table Actions artifact",
+      "sha256": "fffe10cf25aee6d4ed1dd36728ca3a9d71f9ecc4807c52f2f1cbcd152b4d7191",
+      "run_id": 44263209159,
+      "artifact_id": 14410045606
+    },
+    {
+      "name": "conditional evidence JSON Actions artifact",
+      "sha256": "011fd29e2333b230d2213976d3c9650089f90a9c3f92dfbb4e5842aae8dd6187",
+      "run_id": 44265095377,
+      "artifact_id": 14409468800
+    },
+    {
+      "name": "JESTER APR4_EPP.npz source",
+      "sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88"
+    },
+    {
+      "name": "200-point causal-completion RNS table",
+      "sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89"
+    }
+  ],
+  "analysis_commit": "7a29123cd2f3734ec4148a19e24cb32b0ecf1599",
+  "analysis_blob_git_sha1": "d0e222b23084d57fb059e242384811daa70c3715",
+  "status": "Artifacts refer to immutable GitHub Actions ZIPs; each SHA256 is GitHub's published artifact digest, not the inner JSON's hash."
+}
