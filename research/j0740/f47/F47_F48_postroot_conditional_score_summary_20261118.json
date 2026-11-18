@@ -1,0 +1,104 @@
+{
+  "schema": "J0740_F47_F48_postroot_conditional_window_score_summary_v1",
+  "generated_utc": "2026-11-18T12:44:31Z",
+  "status": "SEVEN_CONDITIONAL_COMMON_WINDOW_INTEGRALS_AFTER_F48_WFF1_ROOT_RESCUE_NOT_FULL_BAYES",
+  "precision": "Scores rounded to 12 decimal places from F47 Actions output; full-precision raw JSON remains in the referenced Actions artifact.",
+  "method": "F38 source-prior-corrected KDE, same truncated radio mass prior applied once, fixed-spin direct C/GR curves on [1.95,2.10] M_sun; conditional common-window scores, not EOS Bayes factors.",
+  "inputs": {
+    "F38_sha256": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307",
+    "F44_sha256": "b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98",
+    "F48_artifact_id": 14421121729,
+    "F48_artifact_sha256": "8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786",
+    "F47_run_id": 44306741205,
+    "F47_artifact_id": 14428007684,
+    "F47_artifact_sha256": "84dca4887dd5f082c0a5b944ba8a11ab3bebb41b20eaf972be193ad38a77a601",
+    "original_F46_failed_WFF1_archive_sha256": "bc4795ab244cc169f5fdf3f3"
+  },
+  "F48_WFF1_target_root": {
+    "target_mass_msun": 2.0175,
+    "actual_mass_msun": 2.0174999999861853,
+    "equatorial_radius_km": 10.101642217945683,
+    "central_energy_density_g_cm3": 1912231846317855.5,
+    "axis_ratio": 0.9882940757607835,
+    "target_spin_hz": 346.536369,
+    "actual_spin_hz": 346.5363703320838,
+    "mass_residual_msun": -1.3814727140015748e-11,
+    "spin_residual_hz": 0.000001332083797933592,
+    "direct_solver_models": 94,
+    "direct_nested_C_RNS_no_interpolated_star": true
+  },
+  "common_window_msun": [
+    1.95,
+    2.1
+  ],
+  "radio_prior_probability_in_window": 0.5708291253531559,
+  "prior_tail_likelihood_outside_window": "UNKNOWN_NOT_ASSUMED_ZERO",
+  "all_six_surfaces_rank_MPA1_first": true,
+  "conditional_scores": {
+    "posterior_prior_ratio_resampled_0.015_0.20.npz": {
+      "APR4_EPP": 0.782927954659,
+      "ENG": 2.485920319746,
+      "MPA1": 2.497391654118,
+      "MS1": 0.325166350786,
+      "MS1B": 0.382502021441,
+      "WFF1": 0.024272734324,
+      "WFF2": 0.497439530408
+    },
+    "posterior_prior_ratio_resampled_0.025_0.35.npz": {
+      "APR4_EPP": 0.852313048028,
+      "ENG": 2.3063431213,
+      "MPA1": 2.414961498806,
+      "MS1": 0.330276955782,
+      "MS1B": 0.387090936747,
+      "WFF1": 0.061724415304,
+      "WFF2": 0.591972826424
+    },
+    "posterior_prior_ratio_resampled_0.040_0.50.npz": {
+      "APR4_EPP": 0.888349250852,
+      "ENG": 2.047815514285,
+      "MPA1": 2.237470734839,
+      "MS1": 0.342280749441,
+      "MS1B": 0.396913659943,
+      "WFF1": 0.125020444136,
+      "WFF2": 0.667601157854
+    },
+    "posterior_prior_ratio_weighted_0.015_0.20.npz": {
+      "APR4_EPP": 0.784827018131,
+      "ENG": 2.490407202307,
+      "MPA1": 2.497423245358,
+      "MS1": 0.32312874714,
+      "MS1B": 0.381904903131,
+      "WFF1": 0.024412716116,
+      "WFF2": 0.498125728852
+    },
+    "posterior_prior_ratio_weighted_0.025_0.35.npz": {
+      "APR4_EPP": 0.853017186096,
+      "ENG": 2.307996890446,
+      "MPA1": 2.413655036291,
+      "MS1": 0.329342084015,
+      "MS1B": 0.386392503489,
+      "WFF1": 0.061839814696,
+      "WFF2": 0.592499085413
+    },
+    "posterior_prior_ratio_weighted_0.040_0.50.npz": {
+      "APR4_EPP": 0.888976886104,
+      "ENG": 2.048638992264,
+      "MPA1": 2.236753960631,
+      "MS1": 0.341693919359,
+      "MS1B": 0.3962781047,
+      "WFF1": 0.125128351062,
+      "WFF2": 0.668053837324
+    }
+  },
+  "narrowest_weighted_bandwidth_MPA1_over_ENG_ratio": 1.002817227256852,
+  "gates": {
+    "original_F46_CI_failure": "PRESERVED",
+    "sampled_common_window_direct_RNS_roots": "7_OF_7_22_OF_22_AFTER_F48",
+    "EOS_physical_microphysics_accepted": "NOT_ESTABLISHED",
+    "global_rotating_fixed_J_stability": "NOT_ESTABLISHED",
+    "compiled_photon_level_XPSI_refit": "NOT_RUN",
+    "full_seven_model_Bayes_posterior": "NOT_RUN",
+    "source_native_effective_prior_and_nuisance_recalculation": "NOT_RUN",
+    "double_counted_radio_or_photon_data": "NOT_INTRODUCED"
+  }
+}
