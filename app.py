@@ -45,6 +45,10 @@ if os.environ.get("CANO_TASK_PREFLIGHT_ONCE") == "1":
             "CANO_DB_BINDINGS cano=%s memory=%s task=%s",
             bindings["cano"], bindings["memory"], bindings["task"],
         )
+        from core.storage_config import cano_login_role_class
+        logger.warning(
+            "CANO_LAB_CONNECTION_ROLE role=%s", cano_login_role_class(os.environ),
+        )
         return bool(task_result.get("ok") and queue_result.get("ok"))
 
     _cano_task_preflight_once()

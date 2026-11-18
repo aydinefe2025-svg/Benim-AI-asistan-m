@@ -48,3 +48,23 @@ def database_binding_providers(environ):
         "memory": database_provider_label(memory_database_url(environ)),
         "task": database_provider_label(environ.get("AGENT_TASK_DATABASE_URL")),
     }
+
+
+# A startup RLS diagnosis may expose only known internal role names, never
+# arbitrary URI usernames, passwords, hosts, paths or query parameters.
+_ALLOWED_CANO_ROLE_CLASSES = frozenset({
+    "cano_runtime_rw", "cano_snapshot_app", "organism_lab_runtime",
+    "cano_snapshot_runtime", "assistant_owner",
+})
+
+
+def cano_login_role_class(environ):
+    """Return an allowlisted class of the effective CANO DB login, not a URI."""
+    url = cano_database_url(environ)
+    if not isinstance(url, str) or not url.strip():
+        return "unconfigured"
+    try:
+        username = urlsplit(url.strip()).username
+    except ValueError:
+        return "other"
+    return username if username in _ALLOWED_CANO_ROLE_CLASSES else "other"
