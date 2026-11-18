@@ -1,0 +1,1 @@
+F50: J0740 2026 updated hotspot geometry posterior radius summary cross-model diagnostic. Only published marginal summaries; **not** a new EOS likelihood or independent photon data. Run `python f50_crossmodel_radius_audit.py --f44 F44.zip --out F50_crossmodel_radius_audit.json`; 6 tests `python -m unittest -v test_f50_crossmodel_radius_audit.py`.
