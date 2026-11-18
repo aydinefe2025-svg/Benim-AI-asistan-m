@@ -1,0 +1,603 @@
+{
+  "EOS_physical_microphysics_accepted": "NOT_ESTABLISHED",
+  "F46_mixed_grid_acceptance": "6_OF_7_22_OF_22_AND_WFF1_21_OF_22; COMMON_MASS_INTERVAL_ENDPOINTS_COMPLETE",
+  "F46_original_CI_status": "F46_INITIAL_SINGLE_WFF1_FAILURE_PRESERVED; NEW_F48_DIRECT_C_GR_STAR_RECOVERED_AND_CHECKED",
+  "F46_original_WFF1_failed_C_root": "PRESERVED_IN_SOURCE_ARTIFACT_44286241129",
+  "F48_direct_C_GR_WFF1_recovery_sha256": "8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786",
+  "F48_real_direct_rescued_mass_2p0175": {
+    "axis_ratio": 0.9882940757607835,
+    "baryonic_M0": "NOT_INTERPRETED_SOURCE_CALIBRATION_NOT_CERTIFIED",
+    "central_energy_density_g_cm3": 1912231846317855.5,
+    "mass_msun": 2.0174999999861853,
+    "mass_residual_msun": -1.3814727140015748e-11,
+    "number_of_actual_direct_solver_models": 94,
+    "radius_eq_km": 10.101642217945683,
+    "source": "F48_REAL_DIRECT_C_RNS_NESTED_BRENT_NO_INTERPOLATED_STAR",
+    "spin_hz": 346.5363703320838,
+    "spin_residual_hz": 1.332083797933592e-06,
+    "target_mass_msun": 2.0175
+  },
+  "F49_all_seven_22_real_direct_star_mass_nodes": true,
+  "F49_all_seven_full_rising_interval_mass_grid_completed": true,
+  "F49_global_rotating_fixed_J_stability": "NOT_ESTABLISHED",
+  "F49_memo": "All original 7 EOS raw nuclear theories are NOT this nonunique new seven barotrope family; L/Z is conditional [1.95,2.10]M_sun and model-prior choice is unvalidated",
+  "F49_non_WFF1_max_difference": 0.0,
+  "F49_nuclear_EOS_physical_family_verified": "NOT_ESTABLISHED",
+  "F49_old_F47_vs_now_relative_percent_by_surface_and_new_model": {
+    "posterior_prior_ratio_resampled_0.015_0.20.npz": {
+      "APR4_EPP": 0.0,
+      "ENG": 0.0,
+      "MPA1": 0.0,
+      "MS1": 0.0,
+      "MS1B": 0.0,
+      "WFF1": 0.14081062969590885,
+      "WFF2": 0.0
+    },
+    "posterior_prior_ratio_resampled_0.025_0.35.npz": {
+      "APR4_EPP": 0.0,
+      "ENG": 0.0,
+      "MPA1": 0.0,
+      "MS1": 0.0,
+      "MS1B": 0.0,
+      "WFF1": 0.11796076459247296,
+      "WFF2": 0.0
+    },
+    "posterior_prior_ratio_resampled_0.040_0.50.npz": {
+      "APR4_EPP": 0.0,
+      "ENG": 0.0,
+      "MPA1": 0.0,
+      "MS1": 0.0,
+      "MS1B": 0.0,
+      "WFF1": 0.08178309562856256,
+      "WFF2": 0.0
+    },
+    "posterior_prior_ratio_weighted_0.015_0.20.npz": {
+      "APR4_EPP": 0.0,
+      "ENG": 0.0,
+      "MPA1": 0.0,
+      "MS1": 0.0,
+      "MS1B": 0.0,
+      "WFF1": 0.13030003469296503,
+      "WFF2": 0.0
+    },
+    "posterior_prior_ratio_weighted_0.025_0.35.npz": {
+      "APR4_EPP": 0.0,
+      "ENG": 0.0,
+      "MPA1": 0.0,
+      "MS1": 0.0,
+      "MS1B": 0.0,
+      "WFF1": 0.1179428525327042,
+      "WFF2": 0.0
+    },
+    "posterior_prior_ratio_weighted_0.040_0.50.npz": {
+      "APR4_EPP": 0.0,
+      "ENG": 0.0,
+      "MPA1": 0.0,
+      "MS1": 0.0,
+      "MS1B": 0.0,
+      "WFF1": 0.0817153187594899,
+      "WFF2": 0.0
+    }
+  },
+  "F49_real_WFF1_correction_max_pct": 0.14081062969590885,
+  "F49_source_derived_F38_not_native_photon_XPSI": true,
+  "common_mass_window_msun": [
+    1.95,
+    2.1
+  ],
+  "compiled_photon_level_XPSI_refit": "NOT_RUN",
+  "curve_sha256": {
+    "APR4_EPP": "e3a6220e1406376faa6ffa6f21ce108954684a1066841d405644857cfa4937fc",
+    "ENG": "98a94bffc29a60eb70211961678eb17abbad98414630ad11fb74353fbcd58ad8",
+    "MPA1": "bf59ba4f0c3f43caf0942e748bf036fe80716131e7b4abe8b975d0f507dba4bf",
+    "MS1": "e55ed502781abeb2ab2f78c85fcf7f6f3c143fb3feddb50a88b6849ecc9b8f94",
+    "MS1B": "3aede27e6508f32af7c944fadf4c87a4867a333ea58b3d40617452bda3cac774",
+    "WFF1": "4d8d4f25d4de2d27b7d41786109f0670c1404ad6f017193e499456ac756f3700",
+    "WFF2": "cb0f3e52bcfe2f17566934ab9bd4bf6d75d68e9aa2f6cc282656d9eba9e77798"
+  },
+  "full_seven_model_Bayes_posterior": "NOT_RUN",
+  "global_rotating_fixed_J_stability": "NOT_ESTABLISHED",
+  "integration_numerics": "Actual uneven-grid Simpson mass quadrature; no stellar root invented at missing WFF1 point",
+  "mass_uncovered_prior_likelihood": "UNKNOWN_NOT_ASSUMED_ZERO",
+  "missing_direct_RNS_targets": {
+    "APR4_EPP": [],
+    "ENG": [],
+    "MPA1": [],
+    "MS1": [],
+    "MS1B": [],
+    "WFF1": [],
+    "WFF2": []
+  },
+  "note": "Only conditional common-window integrals for seven new artificial cold-gas causal-lift EOS candidates; original nuclear EOS not validated",
+  "original_F46_failed_matrix_independent": "RETAINED_UNALTERED",
+  "radio_mass_prior_probability_in_common_window": 0.5708291253531559,
+  "same_original_radio_mass_prior_applied_once": "N(2.082,0.0703\u00b2) +/-5sigma normalized on full source support",
+  "schema": "J0740_F49_SEVEN_ALL_DIRECT_22_NODE_COMMON_MASS_SOURCE_INTEGRALS_v1",
+  "source_F38_sha256": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307",
+  "source_F42_sha256": "c8d8cdc9804a702860ab1af65b60fa25dfac0f74fce9ec6347c4271ea3353115",
+  "source_F44_sha256": "b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98",
+  "source_complete_WFF1_recovered_curve_sha256": "4d8d4f25d4de2d27b7d41786109f0670c1404ad6f017193e499456ac756f3700",
+  "status": "F49_SEVEN_22_NODE_DIRECT_RNS_MASS_INTEGRALS_VALIDATED_NOT_FULL_NUCLEAR_EOS_BAYES",
+  "surfaces": {
+    "posterior_prior_ratio_resampled_0.015_0.20.npz": {
+      "conditional_scores_relative_to_best": {
+        "APR4_EPP": 0.3134982666287135,
+        "ENG": 0.9954066738580162,
+        "MPA1": 1.0,
+        "MS1": 0.1302023854569428,
+        "MS1B": 0.15316060691170374,
+        "WFF1": 0.009719234179478389,
+        "WFF2": 0.1991836280815147
+      },
+      "equal_model_prior_hypothetical_window_normalized_weights_not_EOS_posterior": {
+        "APR4_EPP": 0.11191686960869154,
+        "ENG": 0.35535379548916934,
+        "MPA1": 0.35699358344854404,
+        "MS1": 0.0464814161578226,
+        "MS1B": 0.05467735390456296,
+        "WFF1": 0.00346970423810756,
+        "WFF2": 0.07110727715310197
+      },
+      "highest_conditional_common_window_model": "MPA1",
+      "interpretation": "F38 approximate source-prior corrected KDE surface, shared radio mass prior; no extrapolation, no global physics acceptance",
+      "seven_integrals": {
+        "APR4_EPP": {
+          "conditional_on_common_window_source_Z_ratio": 0.7829279546589121,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.08259912095343047,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.4469180795724821
+        },
+        "ENG": {
+          "conditional_on_common_window_source_Z_ratio": 2.485920319746061,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.07603343243827165,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.4190357218182816
+        },
+        "MPA1": {
+          "conditional_on_common_window_source_Z_ratio": 2.497391654117692,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.03440519608031156,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.4255838935842733
+        },
+        "MS1": {
+          "conditional_on_common_window_source_Z_ratio": 0.3251663507863837,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.008705292318045288,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.18561442361366887
+        },
+        "MS1B": {
+          "conditional_on_common_window_source_Z_ratio": 0.3825020214408894,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.01190504770045564,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.21834329434491698
+        },
+        "WFF1": {
+          "conditional_on_common_window_source_Z_ratio": 0.024272734324244743,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.025260366758472763,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.013855583704238152
+        },
+        "WFF2": {
+          "conditional_on_common_window_source_Z_ratio": 0.49743953040765715,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.0742892267300066,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.2839529720586875
+        }
+      }
+    },
+    "posterior_prior_ratio_resampled_0.025_0.35.npz": {
+      "conditional_scores_relative_to_best": {
+        "APR4_EPP": 0.35293028416787375,
+        "ENG": 0.9550227291163798,
+        "MPA1": 1.0,
+        "MS1": 0.13676282456051364,
+        "MS1B": 0.1602886575785157,
+        "WFF1": 0.02555917157879479,
+        "WFF2": 0.2451272315176184
+      },
+      "equal_model_prior_hypothetical_window_normalized_weights_not_EOS_posterior": {
+        "APR4_EPP": 0.12272886642634291,
+        "ENG": 0.33210201054918376,
+        "MPA1": 0.34774252007222495,
+        "MS1": 0.047558249264868596,
+        "MS1B": 0.055739181725346996,
+        "WFF1": 0.008888010735768488,
+        "WFF2": 0.08524116122626435
+      },
+      "highest_conditional_common_window_model": "MPA1",
+      "interpretation": "F38 approximate source-prior corrected KDE surface, shared radio mass prior; no extrapolation, no global physics acceptance",
+      "seven_integrals": {
+        "APR4_EPP": {
+          "conditional_on_common_window_source_Z_ratio": 0.8523130480279454,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.0802755138350264,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.4865251117328744
+        },
+        "ENG": {
+          "conditional_on_common_window_source_Z_ratio": 2.3063431213003356,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.06950110046517466,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.316527826696138
+        },
+        "MPA1": {
+          "conditional_on_common_window_source_Z_ratio": 2.41496149880563,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.03449649255347076,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.3785303601247643
+        },
+        "MS1": {
+          "conditional_on_common_window_source_Z_ratio": 0.3302769557815495,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.014295467623237634,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.18853170579308481
+        },
+        "MS1B": {
+          "conditional_on_common_window_source_Z_ratio": 0.38709093674735473,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.01623741823300051,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.2209627808556263
+        },
+        "WFF1": {
+          "conditional_on_common_window_source_Z_ratio": 0.061724415304156524,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.06832254286297523,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.03523409400100662
+        },
+        "WFF2": {
+          "conditional_on_common_window_source_Z_ratio": 0.5919728264238624,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.07348837525285035,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.33791533074036895
+        }
+      }
+    },
+    "posterior_prior_ratio_resampled_0.040_0.50.npz": {
+      "conditional_scores_relative_to_best": {
+        "APR4_EPP": 0.39703279109736556,
+        "ENG": 0.9152367816031289,
+        "MPA1": 1.0,
+        "MS1": 0.15297663746462747,
+        "MS1B": 0.17739390006867997,
+        "WFF1": 0.05587578965345296,
+        "WFF2": 0.2983731351025089
+      },
+      "equal_model_prior_hypothetical_window_normalized_weights_not_EOS_posterior": {
+        "APR4_EPP": 0.1324816456204631,
+        "ENG": 0.3053956188959312,
+        "MPA1": 0.3336793549326112,
+        "MS1": 0.05104514570895682,
+        "MS1B": 0.059192682143897224,
+        "WFF1": 0.018644597447914454,
+        "WFF2": 0.09956095525022601
+      },
+      "highest_conditional_common_window_model": "MPA1",
+      "interpretation": "F38 approximate source-prior corrected KDE surface, shared radio mass prior; no extrapolation, no global physics acceptance",
+      "seven_integrals": {
+        "APR4_EPP": {
+          "conditional_on_common_window_source_Z_ratio": 0.888349250851674,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.07089786725540392,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.5070956258717924
+        },
+        "ENG": {
+          "conditional_on_common_window_source_Z_ratio": 2.04781551428494,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.06076463089932371,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.1689527389038954
+        },
+        "MPA1": {
+          "conditional_on_common_window_source_Z_ratio": 2.2374707348386784,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.03450415195986878,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.2772134625712457
+        },
+        "MS1": {
+          "conditional_on_common_window_source_Z_ratio": 0.3422807494411301,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.017838448059404044,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.195383820828703
+        },
+        "MS1B": {
+          "conditional_on_common_window_source_Z_ratio": 0.39691365994256844,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.019397433063561564,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.22656987734573628
+        },
+        "WFF1": {
+          "conditional_on_common_window_source_Z_ratio": 0.12502044413560282,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.07606758889486809,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.07136531077718924
+        },
+        "WFF2": {
+          "conditional_on_common_window_source_Z_ratio": 0.6676011578539308,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.06596358297334959,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.38108618502251346
+        }
+      }
+    },
+    "posterior_prior_ratio_weighted_0.015_0.20.npz": {
+      "conditional_scores_relative_to_best": {
+        "APR4_EPP": 0.3142547101655799,
+        "ENG": 0.9971906872153684,
+        "MPA1": 1.0,
+        "MS1": 0.12938485606751446,
+        "MS1B": 0.15291957574304801,
+        "WFF1": 0.009775161723863774,
+        "WFF2": 0.19945587107739318
+      },
+      "equal_model_prior_hypothetical_window_normalized_weights_not_EOS_posterior": {
+        "APR4_EPP": 0.11211446871676525,
+        "ENG": 0.3557607904987335,
+        "MPA1": 0.3567630494947633,
+        "MS1": 0.046159735809087485,
+        "MS1B": 0.05455605416953525,
+        "WFF1": 0.0034874165059101273,
+        "WFF2": 0.07115848480520515
+      },
+      "highest_conditional_common_window_model": "MPA1",
+      "interpretation": "F38 approximate source-prior corrected KDE surface, shared radio mass prior; no extrapolation, no global physics acceptance",
+      "seven_integrals": {
+        "APR4_EPP": {
+          "conditional_on_common_window_source_Z_ratio": 0.7848270181308792,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.08422760455064626,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.4480021203131752
+        },
+        "ENG": {
+          "conditional_on_common_window_source_Z_ratio": 2.4904072023065575,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.07576533812589936,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.4215969650658522
+        },
+        "MPA1": {
+          "conditional_on_common_window_source_Z_ratio": 2.497423245358379,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.03507309103925049,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.4256019267845634
+        },
+        "MS1": {
+          "conditional_on_common_window_source_Z_ratio": 0.3231287471403587,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.01020807626634923,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.18445130010659205
+        },
+        "MS1B": {
+          "conditional_on_common_window_source_Z_ratio": 0.3819049031310294,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.014121158008983947,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.21800244182236725
+        },
+        "WFF1": {
+          "conditional_on_common_window_source_Z_ratio": 0.024412716116314872,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.0314892822245838,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.013935489388170911
+        },
+        "WFF2": {
+          "conditional_on_common_window_source_Z_ratio": 0.4981257288518857,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.0756474177795452,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.2843446741164252
+        }
+      }
+    },
+    "posterior_prior_ratio_weighted_0.025_0.35.npz": {
+      "conditional_scores_relative_to_best": {
+        "APR4_EPP": 0.3534130492012279,
+        "ENG": 0.9562248356720111,
+        "MPA1": 1.0,
+        "MS1": 0.13644952533123433,
+        "MS1B": 0.16008605110477347,
+        "WFF1": 0.02562081729411193,
+        "WFF2": 0.2454779479687422
+      },
+      "equal_model_prior_hypothetical_window_normalized_weights_not_EOS_posterior": {
+        "APR4_EPP": 0.12282920119180867,
+        "ENG": 0.33233728350105746,
+        "MPA1": 0.3475514032926148,
+        "MS1": 0.04742322400748168,
+        "MS1B": 0.055638131709037274,
+        "WFF1": 0.008904551004072295,
+        "WFF2": 0.08531620529392783
+      },
+      "highest_conditional_common_window_model": "MPA1",
+      "interpretation": "F38 approximate source-prior corrected KDE surface, shared radio mass prior; no extrapolation, no global physics acceptance",
+      "seven_integrals": {
+        "APR4_EPP": {
+          "conditional_on_common_window_source_Z_ratio": 0.8530171860955268,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.08050028263191233,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.4869270542501198
+        },
+        "ENG": {
+          "conditional_on_common_window_source_Z_ratio": 2.307996890446349,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.06941852555579775,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.3174718462912929
+        },
+        "MPA1": {
+          "conditional_on_common_window_source_Z_ratio": 2.4136550362910683,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.03446359496179774,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.3777845932702701
+        },
+        "MS1": {
+          "conditional_on_common_window_source_Z_ratio": 0.32934208401525944,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.014378068706788483,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.18799805376041612
+        },
+        "MS1B": {
+          "conditional_on_common_window_source_Z_ratio": 0.38639250348898585,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.01641462793517956,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.22056409480963401
+        },
+        "WFF1": {
+          "conditional_on_common_window_source_Z_ratio": 0.061839814695826556,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.06893830640017917,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.03529996733481991
+        },
+        "WFF2": {
+          "conditional_on_common_window_source_Z_ratio": 0.5924990854131514,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.07377478579948527,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.33821573469893407
+        }
+      }
+    },
+    "posterior_prior_ratio_weighted_0.040_0.50.npz": {
+      "conditional_scores_relative_to_best": {
+        "APR4_EPP": 0.39744062232627353,
+        "ENG": 0.9158982294530965,
+        "MPA1": 1.0,
+        "MS1": 0.15276330136112087,
+        "MS1B": 0.17716660467576711,
+        "WFF1": 0.055941937854841625,
+        "WFF2": 0.2986711319538862
+      },
+      "equal_model_prior_hypothetical_window_normalized_weights_not_EOS_posterior": {
+        "APR4_EPP": 0.1325738121709548,
+        "ENG": 0.3055151210475495,
+        "MPA1": 0.3335688521092343,
+        "MS1": 0.050957079079446126,
+        "MS1B": 0.059097260953786146,
+        "WFF1": 0.018660487995005644,
+        "WFF2": 0.09962738664402349
+      },
+      "highest_conditional_common_window_model": "MPA1",
+      "interpretation": "F38 approximate source-prior corrected KDE surface, shared radio mass prior; no extrapolation, no global physics acceptance",
+      "seven_integrals": {
+        "APR4_EPP": {
+          "conditional_on_common_window_source_Z_ratio": 0.8889768861039664,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.07089855975122017,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.5074538983538992
+        },
+        "ENG": {
+          "conditional_on_common_window_source_Z_ratio": 2.0486389922641908,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.06077106930837406,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.1694228041185388
+        },
+        "MPA1": {
+          "conditional_on_common_window_source_Z_ratio": 2.236753960631062,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.034504238641619445,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 1.2768043069772363
+        },
+        "MS1": {
+          "conditional_on_common_window_source_Z_ratio": 0.34169391935856364,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.01780292422539631,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.19504884112594068
+        },
+        "MS1B": {
+          "conditional_on_common_window_source_Z_ratio": 0.39627810470007974,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.019373823626378517,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.22620708390255284
+        },
+        "WFF1": {
+          "conditional_on_common_window_source_Z_ratio": 0.12512835106219375,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.07609915576820558,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.0714269071937147
+        },
+        "WFF2": {
+          "conditional_on_common_window_source_Z_ratio": 0.6680538373240176,
+          "quadrature_window_mass_normalization": 0.5708300983860443,
+          "radio_prior_window_probability": 0.5708291253531559,
+          "simpson_minus_trap_percent": 0.06596563753473728,
+          "uncomputed_full_prior_outside_window_probability": 0.4291708746468441,
+          "window_contribution_to_full_prior_source_Z_ratio": 0.38134458764848844
+        }
+      }
+    }
+  }
+}
