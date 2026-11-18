@@ -110,12 +110,14 @@ def evidence(curve, surfaces):
 
 def main():
     p=argparse.ArgumentParser()
-    p.add_argument("--binary",required=True); p.add_argument("--eos-table",required=True)
-    p.add_argument("--anchor",required=True); p.add_argument("--surfaces",required=True)
+    p.add_argument("--binary"); p.add_argument("--eos-table")
+    p.add_argument("--anchor"); p.add_argument("--surfaces",required=True)
     p.add_argument("--out",required=True)
     p.add_argument("--reuse-curve-json")
     a=p.parse_args()
     surfaces=source_surfaces(a.surfaces)
+    if not a.reuse_curve_json and not all((a.binary,a.eos_table,a.anchor)):
+        p.error("--binary, --eos-table and --anchor are required unless --reuse-curve-json is supplied")
     if a.reuse_curve_json:
         saved=json.loads(Path(a.reuse_curve_json).read_text(encoding="utf-8"))
         curves={}
