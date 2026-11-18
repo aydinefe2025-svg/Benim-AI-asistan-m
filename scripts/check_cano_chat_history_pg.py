@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import psycopg
 
-from core.cano_chat_history import ChatHistoryStore
+from core.cano_chat_history import ChatHistoryConflict, ChatHistoryStore
 
 OWNER_A = "oidc_" + "a" * 64
 OWNER_B = "oidc_" + "b" * 64
@@ -140,12 +140,54 @@ def test_owner_sessions(dsn):
         raise AssertionError("Cross-owner rejection damaged saved messages")
 
 
+def test_stale_device_never_overwrites(dsn):
+    # Real independent PostgreSQL connections using the same OIDC owner.
+    a = ChatHistoryStore(dsn, OWNER_A, connect=restricted_connect)
+    b = ChatHistoryStore(dsn, OWNER_A, connect=restricted_connect)
+    prior = a.load()
+    if prior != b.load() or not prior:
+        raise AssertionError("Test sessions did not read the same baseline")
+
+    update_a = prior + [{"role": "user", "content": "Device A newest"}]
+    update_b = prior + [{"role": "user", "content": "Device B stale"}]
+    if a.save(update_a) != len(update_a):
+        raise AssertionError("First device write failed")
+    try:
+        b.save(update_b)
+    except ChatHistoryConflict:
+        pass
+    else:
+        raise AssertionError("Device B silently overwrote Device A's chat")
+
+    latest = ChatHistoryStore(dsn, OWNER_A, connect=restricted_connect)
+    if latest.load() != update_a:
+        raise AssertionError("Rejected stale save corrupted Device A messages")
+
+    # A newly constructed store may NOT blindly overwrite an existing row.
+    uninitialized = ChatHistoryStore(dsn, OWNER_A, connect=restricted_connect)
+    try:
+        uninitialized.save([{"role": "user", "content": "Unloaded tab"}])
+    except ChatHistoryConflict:
+        pass
+    else:
+        raise AssertionError("Unloaded tab replaced existing chat history")
+
+    # After explicit reload, both devices' new messages can be retained.
+    if b.load() != update_a:
+        raise AssertionError("Stale device could not refresh")
+    merged = update_a + [{"role": "user", "content": "Device B retried"}]
+    if b.save(merged) != len(merged) or latest.load() != merged:
+        raise AssertionError("Refreshed device could not append safely")
+
+
 def main():
     dsn = disposable_url()
     bootstrap_disposable_db(dsn)
     test_owner_sessions(dsn)
-    print("PASS: synthetic PostgreSQL chat migration + two owner RLS "
-          "+ fresh-session persistence, no production data accessed")
+    test_stale_device_never_overwrites(dsn)
+    print("PASS: synthetic PostgreSQL chat migration + owner A/B RLS "
+          "+ fresh-session persistence + stale-device CAS protection, "
+          "no production data accessed")
 
 
 if __name__ == "__main__":
