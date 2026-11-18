@@ -1,6 +1,6 @@
 {
-  "created_utc": "2026-11-18T08:21:04Z",
-  "status": "SOURCE_APR4_ACAUSAL; CONDITIONAL_F38_CURVE_INTEGRAL_PASS_APPROXIMATE; FINAL_SEVEN_EOS_BAYES_NOT_RUN; STABILITY_AND_ABSOLUTE_BARYON_NORMALIZATION_NOT_ESTABLISHED",
+  "created_utc": "2026-11-18T08:33:16Z",
+  "status": "SOURCE_APR4_ACAUSAL; F39_CONDITIONAL_CURVE_INTEGRAL_PASS_APPROXIMATE; FINAL_SEVEN_EOS_BAYES_NOT_RUN; STABILITY_AND_ABSOLUTE_BARYON_NORMALIZATION_NOT_ESTABLISHED",
   "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
   "artifacts": [
     {
@@ -90,8 +90,8 @@
     },
     {
       "file": "README.md",
-      "sha256": "91f58e0d669a95b964b7bc9370eea7912b33138e1420c24a92a2ae904e0a8742",
-      "bytes": 3413
+      "sha256": "6412c0c188ae40958a5991840e55ef86bce90fe5ea6c03d07f14c933b84c0576",
+      "bytes": 4257
     },
     {
       "file": "test_apr4_causal_candidate.py",
@@ -115,13 +115,13 @@
     },
     {
       "file": "APR4_F38_CONDITIONAL_EVIDENCE_20261118.json",
-      "sha256": "28728c452d8bf6edd328874688c695b2c7428d8ce7e0e6b2722b72cb0a643e18",
-      "bytes": 4426
+      "sha256": "a83bc9ef4996d1468852037946cc56afc8c7ac3dfea169d9f7b9565392f87e49",
+      "bytes": 5812
     },
     {
       "file": "apr4_causal_f38_curve_evidence.py",
-      "sha256": "b825742ccd2f8c9c6958b8ec43c3217f89f24db3787c420e57b17fe2aecc46e5",
-      "bytes": 11421
+      "sha256": "7d5215fb5d6d58d7a5e3c4c866e99de6e428fb2d3be86626f320f4c310764ff4",
+      "bytes": 11998
     },
     {
       "file": "../../../.github/workflows/j0740-apr4-causal-rns.yml",
@@ -131,17 +131,25 @@
     {
       "file": "J0740_F38_CONDITIONAL_EVIDENCE_ACTIONS_ARTIFACT_14409613719.zip",
       "sha256": "fd8b8447689fd364116b7b6dcadfa87e366d749ec2cbb7039d80cbd53d603801",
-      "bytes": 33659
+      "bytes": 33659,
+      "superseded": true
     },
     {
       "file": "APR4_CAUSAL_APR4_RNS_curve_artifact_200pt_table.rns",
       "sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89"
+    },
+    {
+      "file": "J0740_F39_CONDITIONAL_EVIDENCE_ACTIONS_ARTIFACT_14410043372.zip",
+      "sha256": "fd91f0825b5079f0f264266b7f6ea197a3129b5e345ecbbca06d09721a471ea9",
+      "bytes": 34038,
+      "run_id": 44266823083,
+      "artifact_id": 14410043372
     }
   ],
   "provenance": {
-    "current_evidence_run": 44266168585,
-    "current_evidence_artifact_id": 14409613719,
-    "current_evidence_artifact_sha256": "fd8b8447689fd364116b7b6dcadfa87e366d749ec2cbb7039d80cbd53d603801",
+    "current_evidence_run": 44266823083,
+    "current_evidence_artifact_id": 14410043372,
+    "current_evidence_artifact_sha256": "fd91f0825b5079f0f264266b7f6ea197a3129b5e345ecbbca06d09721a471ea9",
     "RNS_curve_table_sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89",
     "reanchored_root": {
       "mass_msun": 2.0730000001003552,
@@ -149,6 +157,8 @@
       "spin_hz": 346.53636862142935
     },
     "superseded_run": 44265095377,
-    "superseded_reason": "Anchor was not from the curve artifact's exact EOS table; replacement run directly re-solved anchor on the curve table."
+    "superseded_reason": "Anchor was not from the curve artifact's exact EOS table; replacement run directly re-solved anchor on the curve table.",
+    "source_code_commit": "446ccd0ae81d64eb739b2d166215c190a7a58fd8",
+    "source_code_sha256": "7d5215fb5d6d58d7a5e3c4c866e99de6e428fb2d3be86626f320f4c310764ff4"
   }
 }
