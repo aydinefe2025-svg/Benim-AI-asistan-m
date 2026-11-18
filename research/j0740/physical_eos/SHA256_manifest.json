@@ -1,6 +1,6 @@
 {
-  "created_utc": "2026-11-17T14:23:53.7177891Z",
-  "status": "SOURCE_VALIDATED_CAUSAL_CANDIDATE_TOV_AND_RNS_ESTABLISHED; EOS_BAYES_NOT_RUN; ABSOLUTE_BARYON_NORMALIZATION_NOT_ESTABLISHED",
+  "created_utc": "2026-11-18T08:21:04Z",
+  "status": "SOURCE_APR4_ACAUSAL; CONDITIONAL_F38_CURVE_INTEGRAL_PASS_APPROXIMATE; FINAL_SEVEN_EOS_BAYES_NOT_RUN; STABILITY_AND_ABSOLUTE_BARYON_NORMALIZATION_NOT_ESTABLISHED",
   "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
   "artifacts": [
     {
@@ -90,8 +90,8 @@
     },
     {
       "file": "README.md",
-      "sha256": "297faf382a28bf62ce2e8e4d8113e72ba05eda96790c4ba3811ae65eba7fe7ea",
-      "bytes": 3041
+      "sha256": "91f58e0d669a95b964b7bc9370eea7912b33138e1420c24a92a2ae904e0a8742",
+      "bytes": 3413
     },
     {
       "file": "test_apr4_causal_candidate.py",
@@ -112,6 +112,44 @@
       "file": "APR4_native_LAL_causal_completion_200pt.rns",
       "sha256": "5071ae5c70db9b374275fd2b4f2c6b8cc3365924285cbe84d75e14cf02b0b9c7",
       "bytes": 17805
+    },
+    {
+      "file": "APR4_F38_CONDITIONAL_EVIDENCE_20261118.json",
+      "sha256": "28728c452d8bf6edd328874688c695b2c7428d8ce7e0e6b2722b72cb0a643e18",
+      "bytes": 4426
+    },
+    {
+      "file": "apr4_causal_f38_curve_evidence.py",
+      "sha256": "b825742ccd2f8c9c6958b8ec43c3217f89f24db3787c420e57b17fe2aecc46e5",
+      "bytes": 11421
+    },
+    {
+      "file": "../../.github/workflows/j0740-apr4-causal-rns.yml",
+      "sha256": "5a588f4a3c8c3eda18df37cd824231547dadd38d985826dd60a172fa24ae61c4",
+      "bytes": 3901
+    },
+    {
+      "file": "APR4_CAUSAL_APR4_F38_CONDITIONAL_EVIDENCE_ACTIONS_ARTIFACT.zip",
+      "sha256": "fd8b8447689fd364116b7b6dcadfa87e366d749ec2cbb7039d80cbd53d603801",
+      "bytes": 33659
+    },
+    {
+      "file": "APR4_CAUSAL_APR4_RNS_curve_artifact_200pt_table.rns",
+      "sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89",
+      "bytes": null
     }
-  ]
+  ],
+  "provenance": {
+    "current_evidence_run": 44266168585,
+    "current_evidence_artifact_id": 14409613719,
+    "current_evidence_artifact_sha256": "fd8b8447689fd364116b7b6dcadfa87e366d749ec2cbb7039d80cbd53d603801",
+    "RNS_curve_table_sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89",
+    "reanchored_root": {
+      "mass_msun": 2.0730000001003552,
+      "radius_eq_km": 10.782351452812563,
+      "spin_hz": 346.53636862142935
+    },
+    "superseded_run": 44265095377,
+    "superseded_reason": "Anchor was not from the curve artifact's exact EOS table; replacement run directly re-solved anchor on the curve table."
+  }
 }
