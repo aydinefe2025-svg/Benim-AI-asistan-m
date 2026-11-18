@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 
 from organism_lab.reproduction_study import run_study
 from organism_lab.shared_world import run_shared_world
@@ -158,9 +159,17 @@ def render_organism_lab_panel(st, *, owner_key=None, database_url=None):
             record = store.save_verified(kind, data)
             st.session_state["_organism_lab_latest_record"] = record["record_id"]
             return True
-        except Exception:
+        except Exception as exc:
+            # Log only bounded metadata, never error messages or SQL payloads.
+            error_type = type(exc).__name__
+            if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,79}", error_type):
+                error_type = "unknown"
+            sqlstate = getattr(exc, "sqlstate", None)
+            if not isinstance(sqlstate, str) or not re.fullmatch(r"[0-9A-Z]{5}", sqlstate):
+                sqlstate = "none"
             logging.getLogger(__name__).warning(
-                "Organism Lab persistence write/readback failed")
+                "Organism Lab persistence write/readback failed: "
+                "error_type=%s sqlstate=%s", error_type, sqlstate)
             return False
 
     page_expander = getattr(st, "expander", None)
