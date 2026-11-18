@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 import sys
+import subprocess
 from pathlib import Path
 import numpy as np
 from scipy.integrate import simpson
@@ -106,6 +107,45 @@ def analyze_grid(path,curve):
             'interpolation_verified_interior':True}
 
 
+
+def parse_native_rns_gr_row(stdout, centre_g_cm3, ratio):
+    """Read ONLY physically calibrated C/GR geometric output fields.
+
+    RNS fifth column M_0 depends on arbitrary source n/mu0 normalization
+    and cannot be bounded by 0..5 solar masses for this source EOS.
+    The first four printed fields remain strictly checked against source.
+    """
+    rows=[]
+    for line in stdout.splitlines():
+        a=line.split()
+        if len(a)!=5:continue
+        try:values=[float(t) for t in a]
+        except ValueError:continue
+        if all(math.isfinite(x) for x in values[:4]):rows.append(values)
+    if len(rows)!=1:
+        raise ValueError('RNS_GR_GEOMETRIC_ROW_COUNT:'+str(len(rows))+' stdout_tail='+repr(stdout[-220:]))
+    ec,m,r,f,m0=rows[0]
+    if not (.5<m<3.5 and 6<r<30 and 0<=f<2000):
+        raise ValueError('RNS physical M/R/spin bounds failed: '+repr((m,r,f,m0)))
+    if abs(ec-centre_g_cm3/1e15)>2e-7:
+        raise ValueError('RNS central density echo mismatch')
+    return {'central_energy_density_g_cm3':centre_g_cm3,'axis_ratio':ratio,
+            'mass_msun':m,'radius_eq_km':r,'spin_hz':f,
+            'rns_M0_column':'NOT_PHYSICALLY_INTERPRETED_UNNORMALIZED_MU0'}
+
+
+def run_c_gr_geometry(binary,table,centre_g_cm3,ratio):
+    if not(1e15<=centre_g_cm3<=2.5e15 and .8<=ratio<=1.):
+        raise ValueError('Outside pinned native RNS centre/oblateness domain')
+    result=subprocess.run([str(Path(binary).resolve()),'-f','./'+Path(table).name,
+                          '-e',f'{centre_g_cm3:.12g}','-r',f'{ratio:.10f}'],
+                          cwd=Path(table).resolve().parent,
+                          capture_output=True,text=True,timeout=180)
+    if result.returncode:
+        raise RuntimeError('RNS nonzero exit: '+result.stderr[-450:])
+    return parse_native_rns_gr_row(result.stdout,centre_g_cm3,ratio)
+
+
 def run(args):
     out=Path(args.out);out.parent.mkdir(parents=True,exist_ok=True)
     original=args.table
@@ -144,7 +184,7 @@ def run(args):
         for s in (seed,anchor,(1.65,.987),(1.95,.985)):
             try:
                 result=solver.solve_fixed_mf(
-                    lambda ec, ratio:solver.run_model(args.binary_fine,original,ec,ratio),s,
+                    lambda ec, ratio:run_c_gr_geometry(args.binary_fine,original,ec,ratio),s,
                     max_iterations=23)
                 break
             except Exception as exc:
@@ -171,7 +211,7 @@ def run(args):
     for idx in [0,6,12,18,24]:
         a=curve[idx];solver.TARGET_MASS_MSUN=a['target_mass_msun']
         s=(a['central_energy_density_g_cm3']/1e15,a['axis_ratio'])
-        b=solver.solve_fixed_mf(lambda ec,ratio:solver.run_model(args.binary_coarse,original,ec,ratio),s,max_iterations=23)
+        b=solver.solve_fixed_mf(lambda ec,ratio:run_c_gr_geometry(args.binary_coarse,original,ec,ratio),s,max_iterations=23)
         a['coarse_mesh_radius_km']=b['radius_eq_km']
         a['coarse_minus_fine_radius_km']=b['radius_eq_km']-a['radius_eq_km']
         if abs(a['coarse_minus_fine_radius_km'])>=0.03:raise ValueError('RNS mesh fails tolerance')
