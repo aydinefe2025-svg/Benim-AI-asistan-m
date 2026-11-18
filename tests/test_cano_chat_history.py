@@ -93,5 +93,32 @@ class CanoChatHistoryTests(unittest.TestCase):
             store.save([{"role": "user", "content": "x" * 8001}])
 
 
+    def test_secondary_chat_routes_persist_messages_before_rerun(self):
+        # Streamlit app is not importable without a live session; validate its
+        # two actual chat append branches at the source boundary.
+        import re
+        from pathlib import Path
+        app = (Path(__file__).resolve().parents[1] / "app.py").read_text(
+            encoding="utf-8")
+        self.assertIn('key="cano_code_apply_previous_solution"', app)
+        code_action = app.split(
+            'key="cano_code_apply_previous_solution"', 1)[1].split(
+            "# A team task preview", 1)[0]
+        self.assertEqual(code_action.count("st.session_state.messages.append("), 2)
+        self.assertRegex(
+            code_action,
+            r'(?s)"role": "assistant", "content": _result,.*?'
+            r'\}\)\s*_save_cano_chat\(\)\s*st\.rerun\(\)',
+        )
+
+        approved = app.split("_chat_task_result = asistani_calistir(", 1)[1]
+        self.assertRegex(
+            approved,
+            r'(?s)"role": "assistant", "content": _chat_task_result,.*?'
+            r'\}\)\s*_save_cano_chat\(\)',
+        )
+
+
+
 if __name__ == "__main__":
     unittest.main()
