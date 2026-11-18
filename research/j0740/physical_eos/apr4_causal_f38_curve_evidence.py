@@ -3,7 +3,7 @@
 
 This is not a native X-PSI photon reanalysis.  It integrates the published-
 posterior-derived L/Z surface over the explicitly chosen uniform-central-
-energy-density prior on the fixed-spin stable branch.  The result is a
+energy-density prior on the single-valued fixed-spin rising branch.  The result is a
 conditional, exploratory evidence ratio and must not be called the final
 seven-EOS Bayes result.
 """
@@ -23,7 +23,7 @@ SPIN_HZ = 346.536369
 ANCHOR_M = 2.073
 RADIO_MU = 2.082
 RADIO_SIGMA = 0.0703
-GRID_RANGES = {"coarse": (1.923, 2.163, 0.010), "fine": (1.923, 2.163, 0.005)}
+GRID_RANGES = {"coarse": (1.923, 2.123, 0.010), "fine": (1.923, 2.123, 0.005)}
 
 def sha(path):
     h=hashlib.sha256()
@@ -125,7 +125,7 @@ def main():
       "model":"APR4_EPP_LALSuite_7.26.4_NATIVE_CAUSAL_COMPLETION",
       "spin_hz":SPIN_HZ,
       "source":"F38 published-posterior-derived nuisance-marginal relative L/Z surfaces; photon-level X-PSI was not rerun",
-      "prior_assumption":"uniform central energy density over sampled monotonically rising fixed-spin sequence; radio Gaussian applied exactly once after dividing it out of source effective prior",
+      "prior_assumption":"uniform central energy density over sampled single-valued rising fixed-spin branch M=1.923..2.123 Msun; radio Gaussian applied exactly once after dividing it out of source effective prior; turning point, full stable branch, and omitted-tail correction NOT_ESTABLISHED",
       "radio_mass":{"mu_msun":RADIO_MU,"sigma_msun":RADIO_SIGMA},
       "surface_sha256":{s["path"]:s["sha256"] for s in surfaces},
       "evidence_ratio_L_over_Z_by_bandwidth":vals,
@@ -137,6 +137,8 @@ def main():
         "points":len(v["mass"]),"roots":v["roots"]} for k,v in curves.items()},
       "native_compiled_xpsi_photon_reanalysis":"NOT_RUN",
       "full_seven_eos_bayes":"NOT_RUN",
+      "fixed_spin_turning_point":"NOT_ESTABLISHED",
+      "global_stability":"NOT_ESTABLISHED",
       "absolute_baryon_density_normalization":"NOT_ESTABLISHED",
       "causal_completion_uniqueness":"NOT_ESTABLISHED"}
     out=Path(a.out); out.parent.mkdir(parents=True,exist_ok=True)
