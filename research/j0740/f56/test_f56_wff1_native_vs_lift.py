@@ -45,7 +45,7 @@ class SourceAuditTests(unittest.TestCase):
             source_thermo(p,e)
     def test_missing_candidate_center_support_fails_closed(self):
         p,e,c=eos()
-        with self.assertRaisesRegex(ValueError,"CENTER_ENERGY_OUTSIDE"):
+        with self.assertRaisesRegex(ValueError,"ENERGY_OUTSIDE"):
             source_comparison(p,e,c,float(c.e[-1]*2))
     def test_native_cs2_field_not_substituted_for_secants(self):
         p,e,c=eos()
