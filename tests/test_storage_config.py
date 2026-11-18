@@ -42,6 +42,22 @@ class StorageConfigTests(unittest.TestCase):
             ast.unparse(keywords["database_url"]),
             "cano_database_url(os.environ) if _CANO_OWNER_KEY else None")
 
+    def test_cano_live_login_role_receipt_is_allowlisted_and_secret_free(self):
+        from core.storage_config import cano_login_role_class
+        env = {
+            "CANO_DATABASE_URL": "postgresql://cano_runtime_rw:NEVER_LOG_THIS@ep-live.neon.tech/assistant_pg",
+            "DATABASE_URL": "postgresql://assistant_owner:PRIVATE@legacy/render",
+        }
+        self.assertEqual(cano_login_role_class(env), "cano_runtime_rw")
+        self.assertEqual(cano_login_role_class({
+            "CANO_DATABASE_URL": "postgresql://unknown_username:SECRET@ep-live.neon.tech/assistant_pg",
+        }), "other")
+        self.assertEqual(cano_login_role_class({}), "unconfigured")
+        from pathlib import Path
+        app = (Path(__file__).resolve().parents[1] / "app.py").read_text("utf-8")
+        self.assertIn("CANO_LAB_CONNECTION_ROLE", app)
+        self.assertNotIn("NEVER_LOG_THIS", app)
+
     def test_unconfigured_urls_remain_unconfigured(self):
         self.assertIsNone(cano_database_url({}))
         self.assertIsNone(memory_database_url({}))
