@@ -1,0 +1,78 @@
+{
+  "method": "Recompiled six X-PSI tools CPython 3.12 extensions from the existing generated C sources into an isolated D: scratch package; no upstream likelihood source or constants changed.",
+  "modules": [
+    {
+      "bytes": 83968,
+      "generated_c_sha256": "654e62a4b18d536a29f3d7290d9d8326340b97552e3a3162be4392f78d863a9d",
+      "module": "__init__.cp312-win_amd64.pyd",
+      "sha256": "012e06218a40c93fdfaeb5b8e55eb7a26243c9398bb21d58b44f43545a56f9db"
+    },
+    {
+      "bytes": 155648,
+      "generated_c_sha256": "8db0a3c8d80c85dfe13fe49f96e1cb2ec0275e53173436181295365d17ec1c48",
+      "module": "energy_integrator.cp312-win_amd64.pyd",
+      "sha256": "dafe9019eb040109ce597f6105df4308255dabbef6709f7e22637a0e09103db7"
+    },
+    {
+      "bytes": 156160,
+      "generated_c_sha256": "8e8047f728c8cb2de048a61fb53ddda349ef1a33a3e0951033de8d66b714b94b",
+      "module": "energy_interpolator.cp312-win_amd64.pyd",
+      "sha256": "8fae2db869307656634159cc23c58f07225460957eb187891d1223b5b75f9671"
+    },
+    {
+      "bytes": 154112,
+      "generated_c_sha256": "bf8170a45ad7c5c74c7cc8a0c3b8fbdee20d7f83e3df9620c92ad5e9d1dee0d6",
+      "module": "phase_integrator.cp312-win_amd64.pyd",
+      "sha256": "6e4ae02281356b5ca6f49667c12884f038f121c9d1a06fc1d5bb38c90b8be484"
+    },
+    {
+      "bytes": 157184,
+      "generated_c_sha256": "c3f168040fdfc1bdc196e1b9f271574b2c0a3f3edca0b66ce21fc3ce57578cb6",
+      "module": "phase_interpolator.cp312-win_amd64.pyd",
+      "sha256": "9065ee3c851e080eaaea69f5ed0779fb6d9e4eaa81479ba3b9932ca2eedeeee7"
+    },
+    {
+      "bytes": 278528,
+      "generated_c_sha256": "398b9d438f802cbdc66704aecf023e333bd64655aa1098c3bc059c6d5f5486cd",
+      "module": "synthesise.cp312-win_amd64.pyd",
+      "sha256": "c383f10bb4079cdf6deddac3dc252b7daf87916c580d429aea67b6332fcd036b"
+    }
+  ],
+  "regression": {
+    "EOS_Bayes": "NOT_RUN",
+    "absolute_difference": 7.914648449514061e-06,
+    "actual_loglikelihood": -21863.34860791465,
+    "archived_MLE_absolute_difference": 3.2741809263825417e-11,
+    "archived_MLE_native_loglikelihood": -21861.000851842866,
+    "archived_MLE_tolerance_pass": true,
+    "archived_stats_sha256": "779167d6d11e40d21eb733523e4759773ef1e1f9eb913227e8550d7dd30f5b14",
+    "archived_weighted_table_max_loglikelihood_previous_full_scan": -21861.0008518429,
+    "nuisance_dimensions": 15,
+    "real_inputs_existing_count": 21,
+    "reference_relative_tolerance": 1e-06,
+    "sampler_launched": false,
+    "source_reference_loglikelihood": -21863.3486,
+    "source_reference_tolerance_pass": true,
+    "status": "REAL_NICER_XMM_SOURCE_REFERENCE_EVALUATED"
+  },
+  "runtime": {
+    "architecture": "64bit",
+    "cython_build_version": "3.0.12",
+    "gsl": "2.8",
+    "msvc": "14.51.36231",
+    "numpy": "2.5.4",
+    "python": "3.12.10",
+    "scipy": "1.18.1",
+    "xpsi": "1.2.0"
+  },
+  "schema": "j0740_xpsi_abi_rebuild_real_reference_v1",
+  "scope": "One 15-dimensional real NICER/XMM source reference point and archived MLE point; not a nuisance marginalization, EOS likelihood integral, or EOS Bayes result.",
+  "status": "PASS_XPSI_TOOLS_ABI_REBUILD_AND_REAL_REFERENCE_LOG_L",
+  "tests": {
+    "archived_MLE_logL_regression": "PASS",
+    "phase_energy_interpolants": "PASS",
+    "source_reference_logL": "PASS",
+    "xpsi_import": "PASS"
+  }
+}
+
