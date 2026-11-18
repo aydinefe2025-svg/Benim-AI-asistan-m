@@ -46,15 +46,31 @@
     "RNS_curve_artifact_id": 14410045606,
     "RNS_curve_artifact_sha256": "fffe10cf25aee6d4ed1dd36728ca3a9d71f9ecc4807c52f2f1cbcd152b4d7191",
     "RNS_200_point_table_sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89",
-    "current_evidence_run": 44265095377,
-    "current_evidence_artifact_id": 14409468800,
-    "current_evidence_artifact_sha256": "011fd29e2333b230d2213976d3c9650089f90a9c3f92dfbb4e5842aae8dd6187",
-    "source_code_commit": "7a29123cd2f3734ec4148a19e24cb32b0ecf1599",
-    "source_code_git_blob_sha1": "d0e222b23084d57fb059e242384811daa70c3715"
+    "current_evidence_run": 44266168585,
+    "current_evidence_artifact_id": 14409613719,
+    "current_evidence_artifact_sha256": "fd8b8447689fd364116b7b6dcadfa87e366d749ec2cbb7039d80cbd53d603801",
+    "source_code_commit": "e9365805e31583ef9957d418782d58e077ef2f10",
+    "source_code_git_blob_sha1": "ac5a500d4c57d7fe8f7b954794523b63d708b6fa",
+    "source_code_sha256": "b825742ccd2f8c9c6958b8ec43c3217f89f24db3787c420e57b17fe2aecc46e5",
+    "workflow_sha256": "5a588f4a3c8c3eda18df37cd824231547dadd38d985826dd60a172fa24ae61c4",
+    "anchor_root_on_RNS_curve_table": {
+      "status": "PASS_DIRECT_RNS_ON_CURVE_EOS_TABLE",
+      "mass_msun": 2.0730000001003552,
+      "radius_eq_km": 10.782351452812563,
+      "spin_hz": 346.53636862142935,
+      "central_energy_density_g_cm3": 1758497964930456.8,
+      "eos_table_sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89"
+    },
+    "superseded_nonreanchored_evidence": {
+      "run_id": 44265095377,
+      "artifact_id": 14409468800,
+      "artifact_sha256": "011fd29e2333b230d2213976d3c9650089f90a9c3f92dfbb4e5842aae8dd6187",
+      "reason": "The stored anchor root referenced a different RNS EOS table SHA; replaced by a direct re-solve on the curve artifact's exact table."
+    }
   },
   "links": {
     "action_run": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44265095377",
     "issue_280": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/280"
   },
-  "interpretation": "Conditional approximate likelihood evidence ratio for one chosen causal APR4 completion and one explicit central-energy prior. This is not a final EOS posterior probability, model ranking, or seven-EOS Bayes factor."
+  "interpretation": "Conditional approximate likelihood evidence ratio for one chosen causal APR4 completion and explicit uniform central-energy prior. Anchor is now directly solved on the exact EOS table used for the mass curve. This is not a final EOS posterior probability, ranking, or seven-EOS Bayes factor."
 }
