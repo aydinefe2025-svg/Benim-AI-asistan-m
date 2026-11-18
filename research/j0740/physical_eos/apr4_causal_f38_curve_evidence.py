@@ -74,8 +74,14 @@ def root_curve(binary, eos_table, anchor_json, step):
         current_seed=seed
         for mt in seq:
             root.TARGET_MASS_MSUN=float(mt)
-            ans=root.solve_fixed_mf(lambda e,rr:root.run_model(
-                Path(binary),Path(eos_table),e,rr),current_seed)
+            try:
+                ans=root.solve_fixed_mf(lambda e,rr:root.run_model(
+                    Path(binary),Path(eos_table),e,rr),current_seed)
+            except Exception as exc:
+                print(json.dumps({"mass_target":float(mt),"seed":current_seed,
+                    "error":type(exc).__name__+": "+str(exc),
+                    "trace":getattr(exc,"trace",[])},sort_keys=True),flush=True)
+                raise
             ans["target_mass_msun"]=float(mt)
             if abs(ans["mass_msun"]-mt)>root.MASS_TOL_MSUN or abs(ans["spin_hz"]-SPIN_HZ)>root.SPIN_TOL_HZ:
                 raise ValueError(f"root tolerance failed at M={mt}")
