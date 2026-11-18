@@ -1,0 +1,88 @@
+name: J0740 F48 WFF1 one missing direct C-RNS mass node rescue
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f48/**'
+      - '.github/workflows/j0740-f48-wff1-one-root-rescue.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  f48-restore-missing-WFF1-direct-C-GR-root:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numeric packages
+        run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
+      - name: Test nested direct-C mass spin bracketing and fail-closed logic
+        run: python -m unittest discover -s research/j0740/f48 -p 'test_f48_nested_root.py' -v
+      - name: Retrieve immutable F44 successful seven roots and F46 WFF1 original FAILED real experiment
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F48/input
+          curl -fL --retry 3 --max-time 120 -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14413168551/zip' \
+            -o results/F48/input/F44.zip
+          curl -fL --retry 3 --max-time 120 -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14418493809/zip' \
+            -o results/F48/input/F46_WFF1_failed.zip
+          echo 'b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98  results/F48/input/F44.zip' | sha256sum -c -
+          echo 'bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3  results/F48/input/F46_WFF1_failed.zip' | sha256sum -c -
+      - name: Compile pinned RNS solver without changing physics C source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/rotating_gr')
+          from precise_apr4_mass_spin_root import patch_output_precision
+          print(patch_output_precision(Path('rns-upstream/rns.c')))
+          PY
+          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+      - name: Solve exact missing WFF1 mass-frequency root using two nested direct RNS brackets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f48/f48_wff1_nested_bracket_root.py \
+            --f44 results/F48/input/F44.zip --f46 results/F48/input/F46_WFF1_failed.zip \
+            --binary rns-upstream/rns --work results/F48/eos_table \
+            --out results/F48/F48_WFF1_real_direct_rescue.json
+      - name: Save exact run hashes, including any failure
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F48');root.mkdir(parents=True,exist_ok=True)
+          d={str(p.relative_to(root)):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+            for p in root.rglob('*.json') if p.name!='F48_manifest.json'}
+          (root/'F48_manifest.json').write_text(json.dumps(d,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f48-recovered-direct-WFF1-2p0175-mass-root-or-failure
+          path: |
+            results/F48/F48_WFF1_real_direct_rescue.json
+            results/F48/WFF1_fixed_spin_direct_curve_F48_recovered.json
+            results/F48/F48_manifest.json
+          if-no-files-found: warn
+          retention-days: 30
