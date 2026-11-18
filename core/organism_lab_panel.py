@@ -143,6 +143,16 @@ def render_organism_lab_panel(st, *, owner_key=None, database_url=None):
                 logging.getLogger(__name__).warning(
                     "Organism Lab persistence grants incomplete: role=%s select=%s insert=%s",
                     exc.role_name, exc.can_select, exc.can_insert)
+            elif type(exc).__name__ == "OrganismLabRlsPolicyError":
+                role = getattr(exc, "role_name", None)
+                safe_role = role if role in {
+                    "cano_runtime_rw", "organism_lab_runtime",
+                    "cano_snapshot_runtime", "cano_snapshot_app",
+                    "assistant_owner",
+                } else "other"
+                logging.getLogger(__name__).warning(
+                    "Organism Lab persistence RLS preflight failed: role=%s",
+                    safe_role)
             else:
                 logging.getLogger(__name__).warning(
                     "Organism Lab persistence preflight failed: error_type=%s",
