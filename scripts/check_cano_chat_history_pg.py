@@ -80,9 +80,11 @@ def reject_preexisting_table_before_migration(conn):
                 "Migration silently modified a pre-existing chat table"
             )
         if conn.execute(
-            "SELECT payload::text FROM public.cano_chat_histories"
+            "SELECT payload FROM public.cano_chat_histories"
             " WHERE owner_key=%s", (OWNER_A,)
-        ).fetchone()[0] != marker.replace(" ", ""):
+        ).fetchone()[0] != [
+            {"role": "user", "content": "synthetic-ci-sentinel"}
+        ]:
             raise AssertionError("Rejected migration changed the synthetic row")
         rls = conn.execute(
             "SELECT relrowsecurity,relforcerowsecurity FROM pg_class "
