@@ -44,6 +44,31 @@ def _provider_error_code(error):
     return code if isinstance(code, str) and code in SAFE_PROVIDER_ERROR_CODES else None
 
 
+SAFE_REQUEST_PARAMS = frozenset({
+    "model", "messages", "temperature", "max_tokens", "max_output_tokens",
+    "max_completion_tokens", "response_format", "reasoning_effort",
+    "top_p", "stop", "tools", "tool_choice", "system_instruction",
+    "contents", "generation_config",
+})
+
+
+def safe_failure_param(error):
+    """Expose only a known API parameter name; never log provider error text."""
+    for candidate in (
+        getattr(error, "failure_param", None),
+        getattr(error, "param", None),
+    ):
+        if isinstance(candidate, str) and candidate in SAFE_REQUEST_PARAMS:
+            return candidate
+    body = getattr(error, "body", None)
+    details = body.get("error", body) if isinstance(body, dict) else None
+    if isinstance(details, dict):
+        candidate = details.get("param")
+        if isinstance(candidate, str) and candidate in SAFE_REQUEST_PARAMS:
+            return candidate
+    return None
+
+
 def failure_diagnostics(error):
     """Expose only numeric HTTP status and allowlisted code for logs."""
     return _http_status(error), _provider_error_code(error)
@@ -118,3 +143,6 @@ def copy_safe_failure_metadata(source, target):
         target.status_code = status
     if code is not None:
         target.failure_code = code
+    param = safe_failure_param(source)
+    if param is not None:
+        target.failure_param = param
