@@ -1,0 +1,70 @@
+{
+  "files": {
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz": {
+      "bytes": 56300,
+      "sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88"
+    },
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/ENG.npz": {
+      "bytes": 57432,
+      "sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953"
+    },
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/H4.npz": {
+      "bytes": 52484,
+      "sha256": "5b02112900ff93fe3227f12bfcb9b1d788edcf7bcdf39454ca38e1b5323946ba"
+    },
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/HQC18.npz": {
+      "bytes": 55136,
+      "sha256": "23913ef545d113fdfa8e7a6db62790604083cd8530a8ce3a0ed5bf987afdaaa4"
+    },
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/MPA1.npz": {
+      "bytes": 54676,
+      "sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22"
+    },
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/MS1.npz": {
+      "bytes": 56640,
+      "sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad"
+    },
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/MS1B.npz": {
+      "bytes": 56668,
+      "sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c"
+    },
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/SLY.npz": {
+      "bytes": 55896,
+      "sha256": "2859485b4e843ac66f883a7816e2b187f7da78e07289e2528977be991d05148d"
+    },
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/SLY230A.npz": {
+      "bytes": 55648,
+      "sha256": "61c8ccf6361a43a7d9674ab9e77bdd0b85687f4bdf14d8dbeef7283a63163ea8"
+    },
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/SLY4.npz": {
+      "bytes": 55900,
+      "sha256": "2f6d18c10b6dbc20a8f8c8822866cba06c62374146136e1617b1edb57d4b7cc2"
+    },
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/WFF1.npz": {
+      "bytes": 56428,
+      "sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3"
+    },
+    "jester-original/jesterTOV/tabulated_eos/lalsuite/WFF2.npz": {
+      "bytes": 56620,
+      "sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae"
+    },
+    "research/j0740/f65/f65_native_crust_derivative_map.py": {
+      "bytes": 9385,
+      "sha256": "af69c910f36368fbc3bd641c7c72497f469e5d59a834cd01f0122eb36ad6eaaa"
+    },
+    "research/j0740/f65/test_f65_native_crust_derivative_map.py": {
+      "bytes": 3503,
+      "sha256": "d6e4d018b58e27a884229e90bb07741c78ee0e8e50ac816884bda25163c205b3"
+    },
+    "research/j0740/rotating_gr/fixtures/pinned_eos_center_fixture.json": {
+      "bytes": 2656,
+      "sha256": "a8e4a91d67b88d557bc58ee048184596077a52c22e2417efc5f6e8d0be21fb2d"
+    },
+    "results/F65/F65_original_seven_LAL_crust_derivative_20261119.json": {
+      "bytes": 781016,
+      "sha256": "6e35cd5ea33d3f3e9e3d0fb7cee585f809638e4b8507804bd7c0789148cd6e74"
+    }
+  },
+  "lalsuite_distribution_version": "7.26.4",
+  "source_jester_commit": "e6768650ce992abfd1153a6833857572fe5cd230"
+}
