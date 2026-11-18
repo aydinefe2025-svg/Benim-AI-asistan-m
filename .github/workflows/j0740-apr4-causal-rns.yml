@@ -22,8 +22,34 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.12"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
       - name: Install numerical dependencies
         run: python -m pip install numpy scipy
+      - name: Pin precision-only RNS output and compile the fine direct solver
+        run: |
+          python research/j0740/rotating_gr/precise_apr4_mass_spin_root.py \
+            --patch-only \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
+            --rns-source rns-upstream/rns.c \
+            --binary rns-upstream/rns_151x301 rns-upstream/rns_201x401 \
+            --work results/work --out results/unused.json \
+            --patch-metadata results/rns_print_patch.json \
+            --expected-npz-sha256 639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88
+          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+          cp rns-upstream/rns rns-upstream/rns_201x401
       - name: Download immutable existing F38 surfaces and direct RNS curve
         env:
           GH_TOKEN: ${{ github.token }}
@@ -33,17 +59,23 @@ jobs:
           gh run download 44263209159 --repo aydinefe2025-svg/Benim-AI-asistan-m --name j0740-causal-apr4-new-model-rns-gr-f36 --dir results/curve
           test "$(find results/f38 -maxdepth 1 -name 'posterior_prior_ratio_weighted_*.npz' | wc -l)" -eq 3
           test -s results/curve/J0740_CAUSAL_APR4_F38_CURVE_EVIDENCE.json
+          test -s results/curve/work/APR4_CAUSAL_7p26p4_200.rns
       - name: Conditional evidence ratio with normalized prior
         run: |
           python research/j0740/physical_eos/apr4_causal_f38_curve_evidence.py \
             --surfaces results/f38 \
             --reuse-curve-json results/curve/J0740_CAUSAL_APR4_F38_CURVE_EVIDENCE.json \
+            --reanchor-binary rns-upstream/rns_201x401 \
+            --reanchor-eos-table results/curve/work/APR4_CAUSAL_7p26p4_200.rns \
+            --anchor research/j0740/physical_eos/APR4_native_LAL_causal_completion_RNS.json \
             --out results/J0740_CAUSAL_APR4_F38_CONDITIONAL_EVIDENCE.json
       - name: Preserve reproducible result and manifest
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: j0740-apr4-conditional-evidence-rerun
-          path: results/J0740_CAUSAL_APR4_F38_CONDITIONAL_EVIDENCE.json
+          path: |
+            results/J0740_CAUSAL_APR4_F38_CONDITIONAL_EVIDENCE.json
+            results/rns_print_patch.json
           if-no-files-found: warn
           retention-days: 30
