@@ -123,6 +123,20 @@ jobs:
             --f38 results/F47/input/F38.zip --f44 results/F47/input/F44.zip \
             --curves-dir results/F47/curves \
             --out results/F47/F47_seven_mass_window_source_likelihood.json
+          python - <<'PY'
+          import json
+          p='results/F47/F47_seven_mass_window_source_likelihood.json'
+          d=json.load(open(p))
+          summary={k:{n:round(v['conditional_on_common_window_source_Z_ratio'],12)
+                      for n,v in s['seven_integrals'].items()}
+                   for k,s in d['surfaces'].items()}
+          print('F47_F48_REINTEGRATED_ALL_42_CONDITIONAL_SCORES='+json.dumps(summary,sort_keys=True))
+          print('F47_F48_REINTEGRATED_GATES='+json.dumps({k:d[k] for k in (
+              'status','F46_original_CI_status','F46_mixed_grid_acceptance',
+              'full_seven_model_Bayes_posterior','EOS_physical_microphysics_accepted',
+              'global_rotating_fixed_J_stability','compiled_photon_level_XPSI_refit',
+              'radio_mass_prior_probability_in_common_window','mass_uncovered_prior_likelihood')},sort_keys=True))
+          PY
       - name: Manifest and permanently saved partial error evidence
         if: always()
         shell: bash
