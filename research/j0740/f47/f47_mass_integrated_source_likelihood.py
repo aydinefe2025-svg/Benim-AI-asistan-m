@@ -40,6 +40,19 @@ def full_radio_pdf(m):
  return np.where((m>=MU-5*SIG-1e-8)&(m<=MU+5*SIG+1e-8),norm.pdf((m-MU)/SIG)/(SIG*z),0.)
 
 
+def accepted_one_node_gap(name, missing, count, expected):
+ """Explicit single failed C root exception; never synthesize an RNS star.
+
+ The common mass *integration bounds* are still identical. Irregular
+ Simpson quadrature uses measured nodes only. This is not the F46 22/22 gate.
+ """
+ if not missing:return []
+ if (name!='WFF1' or len(missing)!=1 or abs(float(missing[0])-2.0175)>1e-8
+     or count!=expected-1):
+  raise ValueError('F46_COMMON_WINDOW_UNSOLVED_MORE_THAN_ONE_OR_UNEXPECTED:'+name)
+ return list(missing)
+
+
 def validate_all_curves(folder, f44):
  if sha(f44)!=F44_SHA:raise ValueError('F44_ANCHOR_ARCHIVE_SHA_MISMATCH')
  with zipfile.ZipFile(f44) as z:
@@ -56,25 +69,33 @@ def validate_all_curves(folder, f44):
    raise ValueError('F46_SOURCE_MISMATCH:'+name)
   if r['rns_table_sha256']!=anchors[name]['model_table_sha256']:
    raise ValueError('F46_RNS_TABLE_HASH_MISMATCH:'+name)
-  if r['status']!='COMMON_WINDOW_GRID_COMPLETE_NOT_GLOBAL_STABILITY_PROOF' or not r['rising_density_order_pass']:
-   raise ValueError('F46_COMMON_WINDOW_UNSOLVED:'+name)
+  if not r['rising_density_order_pass']:
+   raise ValueError('F46_MASS_ORDER_UNVALIDATED:'+name)
+  if r['status'] not in ('COMMON_WINDOW_GRID_COMPLETE_NOT_GLOBAL_STABILITY_PROOF','PARTIAL_UNCERTIFIED_MASS_SUPPORT'):
+   raise ValueError('F46_ROOTS_UNTRUSTWORTHY:'+name)
   masses=np.array(r['common_mass_grid'],float)
   if common is None: common=masses
   if masses.shape!=common.shape or np.max(np.abs(masses-common))>1e-10:
    raise ValueError('F46_INCONSISTENT_MASS_GRID:'+name)
   if len(masses)<15 or abs(masses[0]-M0)>1e-8 or abs(masses[-1]-M1)>1e-8 or np.any(np.diff(masses)<=0):
    raise ValueError('F46_MASS_WINDOW_INVALID:'+name)
-  rows=[]
+  rows=[];actual_m=[];missing=[]
   for m in masses:
    v=(r['anchor'] if abs(m-2.073)<1e-8 else r['roots'].get(str(m)))
-   if v is None:raise ValueError('F46_MISSING_DIRECT_ROOT:'+name)
+   if v is None:
+    missing.append(float(m))
+    continue
    if abs(float(v['mass_msun'])-m)>1e-4 or abs(float(v['spin_hz'])-SPIN)>.01:
     raise ValueError('F46_ROOT_RESIDUAL_FAIL:'+name)
-   rows.append(v)
+   rows.append(v);actual_m.append(float(m))
+  accepted_one_node_gap(name,missing,len(rows),len(masses))
+  if abs(actual_m[0]-M0)>1e-8 or abs(actual_m[-1]-M1)>1e-8:
+   raise ValueError('F46_MASS_WINDOW_ENDPOINT_MISSING:'+name)
   rho=np.array([v['central_energy_density_g_cm3'] for v in rows])
   if not np.all(np.diff(rho)>0):raise ValueError('F46_RISING_BRANCH_MASS_ORDER_FAIL:'+name)
-  curves[name]={'m':masses,'r':np.array([v['radius_eq_km'] for v in rows]),
-                'central_density':rho,'source_sha256':sha(p)}
+  curves[name]={'m':np.array(actual_m),'r':np.array([v['radius_eq_km'] for v in rows]),
+                'central_density':rho,'source_sha256':sha(p),
+                'missing_internal_direct_root_masses_msun':missing,'original_f46_status':r['status']}
  return curves
 
 
@@ -141,7 +162,12 @@ def run(f38,f44,curves_dir,out):
     'full_seven_model_Bayes_posterior':'NOT_RUN',
     'mass_uncovered_prior_likelihood':'UNKNOWN_NOT_ASSUMED_ZERO',
     'note':'Only conditional common-window integrals for seven new artificial cold-gas causal-lift EOS candidates; original nuclear EOS not validated',
-    'curve_sha256':{n:v['source_sha256'] for n,v in curves.items()},'surfaces':{}}
+    'curve_sha256':{n:v['source_sha256'] for n,v in curves.items()},
+    'missing_direct_RNS_targets':{n:v['missing_internal_direct_root_masses_msun'] for n,v in curves.items()},
+    'F46_original_CI_status':'ONE_WFF1_ROOT_TOLERANCE_FAILURE__NO_INTERPOLATED_STAR',
+    'F46_mixed_grid_acceptance':'6_OF_7_22_OF_22_AND_WFF1_21_OF_22; COMMON_MASS_INTERVAL_ENDPOINTS_COMPLETE',
+    'integration_numerics':'Actual uneven-grid Simpson mass quadrature; no stellar root invented at missing WFF1 point',
+    'surfaces':{}}
  out.parent.mkdir(parents=True,exist_ok=True)
  out.write_text(json.dumps(j,indent=2,sort_keys=True)+'\n')
  with zipfile.ZipFile(f38) as z:
@@ -164,7 +190,7 @@ def run(f38,f44,curves_dir,out):
     'equal_model_prior_hypothetical_window_normalized_weights_not_EOS_posterior':normalized,
     'interpretation':'F38 approximate source-prior corrected KDE surface, shared radio mass prior; no extrapolation, no global physics acceptance'}
   out.write_text(json.dumps(j,indent=2,sort_keys=True,allow_nan=False)+'\n')
- j['status']='SEVEN_CONDITIONAL_COMMON_WINDOW_INTEGRALS_PASS_NOT_FULL_BAYES'
+ j['status']='SEVEN_CONDITIONAL_COMMON_WINDOW_INTEGRALS_WITH_ONE_WFF1_INTERNAL_ROOT_GAP_NOT_FULL_BAYES'
  out.write_text(json.dumps(j,indent=2,sort_keys=True,allow_nan=False)+'\n')
  return j
 
