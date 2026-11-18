@@ -1,0 +1,68 @@
+name: J0740 F56 pinned JESTER native WFF1 vs F42 lift causal and static M-R audit
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f56/**'
+      - '.github/workflows/j0740-f56-source-native-wff1-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  F56-source-native-vs-F42-candidate-physical-identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install exact numerical major dependencies
+        run: python -m pip install 'numpy>=1.26,<3'
+      - name: Verify source and physical interpretations via seven fail-closed mock tests
+        run: python -m unittest discover -s research/j0740/f56 -p 'test_f56_*.py' -v
+      - name: Fetch pinned unmodified native JESTER WFF1 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/F56/input results/F56/outputs
+          curl -fL --retry 3 --max-time 120 \
+            'https://raw.githubusercontent.com/nuclear-multimessenger-astronomy/jester/e6768650ce992abfd1153a6833857572fe5cd230/jesterTOV/tabulated_eos/lalsuite/WFF1.npz' \
+            -o results/F56/input/JESTER_original_WFF1.npz
+          echo '119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3  results/F56/input/JESTER_original_WFF1.npz' | sha256sum -c -
+      - name: Real source physics identity, native causality and two existing source M-R comparisons
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f56/f56_wff1_original_vs_lifted_source.py \
+            --npz results/F56/input/JESTER_original_WFF1.npz \
+            --f43 research/j0740/f43/F43_candidate_tov_results.json \
+            --out results/F56/outputs/F56_native_WFF1_vs_lifted_source_physics.json
+      - name: Preserve source hash and result receipt even if experiment fails
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path("results/F56")
+          out=root/"outputs";out.mkdir(parents=True,exist_ok=True)
+          entries={}
+          for p in root.rglob("*.json"):
+            if p.name=="F56_manifest.json": continue
+            entries[str(p.relative_to(root))]={"sha256":hashlib.sha256(p.read_bytes()).hexdigest(),"bytes":p.stat().st_size}
+          src=root/"input/JESTER_original_WFF1.npz"
+          if src.is_file():
+            entries["input/JESTER_original_WFF1.npz"]={"sha256":hashlib.sha256(src.read_bytes()).hexdigest(),"bytes":src.stat().st_size,"archive_only_sha_not_reuploaded":True}
+          (out/"F56_manifest.json").write_text(json.dumps(entries,sort_keys=True,indent=2)+"\n")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f56-native-WFF1-vs-lifted-candidate-source-audit-or-failure
+          path: |
+            results/F56/outputs/F56_native_WFF1_vs_lifted_source_physics.json
+            results/F56/outputs/F56_manifest.json
+          if-no-files-found: warn
+          retention-days: 30
