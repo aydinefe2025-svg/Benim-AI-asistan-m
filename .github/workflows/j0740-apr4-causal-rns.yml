@@ -5,9 +5,11 @@ on:
       - science/j0740-apr4-firstlaw-gr-pilot-20261117
     paths:
       - research/j0740/physical_eos/apr4_causal_rns_root.py
+      - research/j0740/physical_eos/apr4_causal_f38_curve_evidence.py
       - .github/workflows/j0740-apr4-causal-rns.yml
   workflow_dispatch:
 permissions:
+  actions: read
   contents: read
 concurrency:
   group: j0740-causal-apr4-rotating
@@ -90,6 +92,20 @@ jobs:
             --binary-fine rns-upstream/rns_201x401 \
             --work results/work \
             --out results/J0740_CAUSAL_APR4_RNS_FIXED_MASS_SPIN.json
+      - name: Download the already computed F38 likelihood artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 44120237417 --repo aydinefe2025-svg/Benim-AI-asistan-m --name j0740-F38-published-source-marginalized-mr-likelihood --dir results/f38
+          test "$(find results/f38 -maxdepth 1 -name 'posterior_prior_ratio_weighted_*.npz' | wc -l)" -eq 3
+      - name: Integrate the existing F38 likelihood along the new causal APR4 RNS sequence
+        run: |
+          python research/j0740/physical_eos/apr4_causal_f38_curve_evidence.py \\
+            --binary rns-upstream/rns_201x401 \\
+            --eos-table results/work/APR4_CAUSAL_7p26p4_200.rns \\
+            --anchor research/j0740/physical_eos/APR4_native_LAL_causal_completion_RNS.json \\
+            --surfaces results/f38 \\
+            --out results/J0740_CAUSAL_APR4_F38_CURVE_EVIDENCE.json
       - name: Preserve root or failure evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -97,6 +113,7 @@ jobs:
           name: j0740-causal-apr4-new-model-rns-gr-f36
           path: |
             results/J0740_CAUSAL_APR4_RNS_FIXED_MASS_SPIN.json
+            results/J0740_CAUSAL_APR4_F38_CURVE_EVIDENCE.json
             results/rns_print_patch.json
             results/work/*.rns
           if-no-files-found: warn
