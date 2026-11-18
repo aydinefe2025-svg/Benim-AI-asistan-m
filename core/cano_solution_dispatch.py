@@ -16,6 +16,16 @@ _SECRET = re.compile(
 )
 
 
+# Software terms must begin at a word boundary: biology 'ekosistem' is not
+# 'sistem', and a genetic 'kodon' is not a source-code change. Turkish
+# inflections on common software nouns remain supported.
+_SOFTWARE_CONTEXT = re.compile(
+    r"\b(?:kod(?!on)|yazilim|uygulama|sohbet|test(?!is)|yurutucu|sistem(?!atik))\w*"
+    r"|\b(?:github|render|streamlit|neon|postgresql|web)\b"
+    r"|\bgorev\s+kuyrug\w*\b"
+)
+
+
 def _ascii(text):
     value = unicodedata.normalize("NFKD", text.casefold())
     return "".join(ch for ch in value if not unicodedata.combining(ch)).replace("ı", "i")
@@ -35,10 +45,6 @@ def actionable_solution(answer):
     if re.search(r"\b(?:degistiremem|gelistiremem|uygulayamam|yapamam|"
                  r"ekleyemem|olusturamam|erisemem|calistiramam)\b", normalized):
         return False
-    software = (
-        "kod", "yazilim", "github", "render", "streamlit", "neon",
-        "postgresql", "uygulama", "sohbet arayuzu", "test", "gorev kuyrugu",
-    )
     # Match whole imperative words, not prefixes of explanations such as
     # 'ekleyebiliriz' (we can add a memory note) or 'gelistirme' (job status).
     # A plain noun 'test' is not a command; 'test et' is.
@@ -46,7 +52,7 @@ def actionable_solution(answer):
         r"\b(?:duzelt|ekle|bagla|kur|gelistir|yayimla|yayinla|"
         r"uygula|guncelle|onar)\b|\btest\s+et\b", normalized
     )
-    return any(word in normalized for word in software) and bool(command)
+    return bool(_SOFTWARE_CONTEXT.search(normalized)) and bool(command)
 
 
 SELF_DEVELOPMENT_GOAL = (
@@ -84,10 +90,7 @@ def infer_code_goal(message, history):
         return SELF_DEVELOPMENT_GOAL
     direct = (
         normalized.startswith("cano ")
-        and any(word in normalized for word in (
-            "kod", "yazilim", "web", "uygulama", "sohbet", "github",
-            "render", "test", "yurutucu", "sistem",
-        ))
+        and bool(_SOFTWARE_CONTEXT.search(normalized))
         and bool(re.search(
             r"\b(duzelt|gelistir|uygula|kur|onar|yaz|ekle|bagla|test et|guncelle)\b",
             normalized,
