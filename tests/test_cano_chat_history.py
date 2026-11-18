@@ -120,5 +120,52 @@ class CanoChatHistoryTests(unittest.TestCase):
 
 
 
+    def test_two_sessions_must_not_silently_overwrite_newer_messages(self):
+        db = FakeDatabase()
+        left = ChatHistoryStore("postgresql://test-host/db", OWNER, connect=db)
+        right = ChatHistoryStore("postgresql://test-host/db", OWNER, connect=db)
+        self.assertEqual(left.load(), [])
+        self.assertEqual(right.load(), [])
+        newer = [{"role": "user", "content": "Saved from another device"}]
+        stale = [{"role": "user", "content": "Written from a stale device"}]
+        left.save(newer)
+        with self.assertRaisesRegex(RuntimeError, "another session"):
+            right.save(stale)
+        self.assertEqual(
+            ChatHistoryStore("postgresql://test-host/db", OWNER, connect=db).load(),
+            newer,
+        )
+        # The stale session may safely refresh and then add new messages.
+        self.assertEqual(right.load(), newer)
+        self.assertEqual(right.save(newer + stale), 2)
+
+    def test_session_expected_baseline_survives_streamlit_rerun(self):
+        db = FakeDatabase()
+        first = ChatHistoryStore("postgresql://test-host/db", OWNER, connect=db)
+        initial = [{"role": "user", "content": "Initial message"}]
+        self.assertEqual(first.load(), [])
+        first.save(initial)
+        # Streamlit recreates ChatHistoryStore on every rerun, but the browser
+        # session must retain the exact last-acknowledged chat baseline.
+        rerun = ChatHistoryStore("postgresql://test-host/db", OWNER, connect=db)
+        updated = initial + [{"role": "assistant", "content": "New reply"}]
+        self.assertEqual(rerun.save(updated, expected=initial), 2)
+        self.assertEqual(rerun.load(), updated)
+
+        older = ChatHistoryStore("postgresql://test-host/db", OWNER, connect=db)
+        with self.assertRaisesRegex(RuntimeError, "another session"):
+            older.save(initial + [{"role": "user", "content": "Stale"}],
+                       expected=initial)
+        self.assertEqual(older.load(), updated)
+
+    def test_streamlit_tracks_last_acknowledged_transcript_across_reruns(self):
+        from pathlib import Path
+        app = (Path(__file__).resolve().parents[1] / "app.py").read_text(
+            encoding="utf-8")
+        self.assertIn('"_cano_chat_saved"', app)
+        self.assertIn("expected=st.session_state", app)
+        self.assertIn("Sohbet başka bir oturumda", app)
+
+
 if __name__ == "__main__":
     unittest.main()
