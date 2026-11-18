@@ -124,6 +124,7 @@ jobs:
             results/F63/F63_original_MPA1_constant_J_C_RNS.json
             results/F63/F63_C_J_output_patch_provenance.json
             results/F63/F63_SHA256_receipt.json
+            results/F63/MPA1_F63_sourceoriginal_196knots.rns
           if-no-files-found: warn
           retention-days: 30
 
@@ -196,6 +197,7 @@ jobs:
           python -u research/j0740/f63/f63_spatial_constant_j_crosscheck.py \
             --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz \
             --f63 results/F63/parents/F63_original_MPA1_constant_J_C_RNS.json \
+            --source-rns-table results/F63/parents/MPA1_F63_sourceoriginal_196knots.rns \
             --rns rns-upstream/rns \
             --out results/F63/fine/F63_MPA1_two_spatial_mesh_fixed_J.json
       - name: Preserve exact C and physics evidence member checksums
