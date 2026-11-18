@@ -1,0 +1,57 @@
+{
+  "direct_LAL_samples_per_eos": 1201,
+  "direct_native_energy_and_derivative_evaluations": 8407,
+  "eos_negative_region_sample_counts": {
+    "APR4_EPP": 0,
+    "ENG": 205,
+    "MPA1": 205,
+    "MS1": 205,
+    "MS1B": 205,
+    "WFF1": 205,
+    "WFF2": 205
+  },
+  "full_continuous_causality_proof": "NOT_RUN",
+  "full_native_XPSI_Bayes": "NOT_RUN",
+  "gitHub_CI_zip_sha256": "5e11ff7bde936ddb6deaff5055f7de708ec861516471a5f3f2f05adefb1dd4ba",
+  "lalsuite_version": "7.26.4",
+  "library_data_json_sha256": "6e35cd5ea33d3f3e9e3d0fb7cee585f809638e4b8507804bd7c0789148cd6e74",
+  "limitations": [
+    "Local 1201 point finite scan only, no continuous bound or branch phase-transition identity",
+    "A shared negative-pressure band across six EOS is compatible with shared source crust behavior but does not uniquely establish the crust implementation",
+    "Original seven source EOS tables unchanged; no physically certified EOS repair",
+    "No 12.9 GB photon archive read or reprocessed; no source-native X-PSI likelihood or Bayes"
+  ],
+  "microphysical_source_crust_cause": "NOT_UNIQUELY_IDENTIFIED",
+  "negative_eos": [
+    "ENG",
+    "MPA1",
+    "MS1",
+    "MS1B",
+    "WFF1",
+    "WFF2"
+  ],
+  "negative_pressure_sample_range_geom_mminus2": [
+    5.057294464870183e-16,
+    5.215732229518938e-16
+  ],
+  "negative_pressure_sample_relative_width": 0.03084539140451943,
+  "negative_pressure_sample_width_geom_mminus2": 1.5843776464875443e-17,
+  "original_EOS_modified": false,
+  "physically_certified_source_eos": false,
+  "schema": "J0740_F65_ORIGINAL_SEVEN_NATIVE_LAL_CRUST_DIAGNOSIS_SUMMARY_V1",
+  "six_eos_energy_density_max_pairwise_relative_spread_over_1201_samples": 1.2436405669026698e-08,
+  "six_eos_energy_density_median_relative_spread": 6.210754557028796e-09,
+  "source_five_knot_analytic_crosschecks_per_eos": 5,
+  "source_npz_sha256": {
+    "APR4_EPP": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+    "ENG": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953",
+    "MPA1": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+    "MS1": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad",
+    "MS1B": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c",
+    "WFF1": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3",
+    "WFF2": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae"
+  },
+  "source_original_JESTER_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+  "source_vs_direct_native_energy_max_fractional_mismatch": 0.0,
+  "status": "DIRECT_ORIGINAL_LAL_7X1201_NEGATIVE_CRUST_SIX_OF_SEVEN_PASS_NOT_PHYSICAL_EOS_CERT"
+}
