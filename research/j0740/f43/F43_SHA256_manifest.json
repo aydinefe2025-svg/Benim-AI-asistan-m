@@ -1,0 +1,26 @@
+{
+  "files": {
+    "F43_Static_TOV_Seven_Candidate_Report_20261118.md": {
+      "bytes": 3520,
+      "sha256": "b1ffd4ab1bee957634d0273e46bda9dc01e9d54e480881d5c55bb01b7c14b0de"
+    },
+    "F43_candidate_tov_results.json": {
+      "bytes": 75308,
+      "sha256": "69f912dee004702f76e4d1ae4476ecb0cbf57236596c6d473b776de50c16b4e3"
+    },
+    "F43_tests.log": {
+      "bytes": 1297,
+      "sha256": "a553ae74f80dc041198e5fa1a36e08c5c59624a56d7971d966b62dc2121dbb74"
+    },
+    "f43_tov_screen.py": {
+      "bytes": 8722,
+      "sha256": "fa98a4e2ecc7c5783089ab46bfa48e194fac6188fd45f1c3172997ef4248a848"
+    },
+    "test_f43_tov_screen.py": {
+      "bytes": 3256,
+      "sha256": "860c1f21ab9531faec834f6aa1a95b6328baff215646ecc91050cc8f0aaf7a7f"
+    }
+  },
+  "schema": "j0740-f43-manifest-v1",
+  "source_F42_sha256": "c8d8cdc9804a702860ab1af65b60fa25dfac0f74fce9ec6347c4271ea3353115"
+}

@@ -1,0 +1,2002 @@
+{
+  "eos": {
+    "APR4_EPP": {
+      "at_sampled_mass_max_central_density": 2618148416187093.5,
+      "candidate_supports_2p073_sampled_static": true,
+      "failed_models": [],
+      "first_stable_2p073_root": {
+        "coarse": {
+          "center_density_g_cm3": 1787915982316682.8,
+          "compactness": 0.2861438724175711,
+          "mass_msun": 2.073038551052409,
+          "radius_km": 10.69776753723407,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "coarse_minus_fine_mass_msun": 3.855903754512724e-05,
+        "coarse_minus_fine_radius_m": -0.058776566575602374,
+        "fine": {
+          "center_density_g_cm3": 1787915982316682.8,
+          "compactness": 0.286136977952052,
+          "mass_msun": 2.072999992014864,
+          "radius_km": 10.697826313800645,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "physical_admissibility": "NOT_ESTABLISHED",
+        "resampled_resolution_study": "SEPARATE_EXPERIMENT_PENDING",
+        "rotating_equatorial_radius": "NOT_RUN"
+      },
+      "max_mass_refinement": {
+        "convergence": "NUMERICAL_LOCAL_STATIC_TOV_ONLY",
+        "method": "bounded local max on 26-node density scan using DOP853",
+        "peak_star": {
+          "center_density_g_cm3": 2682219838856266.5,
+          "compactness": 0.31368923085978084,
+          "mass_msun": 2.1602716147211103,
+          "radius_km": 10.16901710824767,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      },
+      "max_sampled_mass_grid_index": 20,
+      "max_tabulated_causal_cs2": 0.954692644571722,
+      "maximum_mass_interpretation": "finite density scan; independent peak refinement only when bracketed",
+      "maximum_original_vs_reconstructed_h_abs": 0.0006139681011236853,
+      "maximum_sampled_mass_msun": 2.160076691066657,
+      "new_model_label": "APR4_EPP__CAUSAL_LIFT_FIRSTLAW_GAS_V1",
+      "sampled_branch_mass_increasing_before_peak": true,
+      "source_rns_sha256": "cacbec1c023697f029d71a73aa9edde6a5b21d5a093a6782e706652ebd303f44",
+      "star_count": 26,
+      "stars": [
+        {
+          "center_density_g_cm3": 300000000000000.0,
+          "compactness": 0.013790653028555467,
+          "mass_msun": 0.16142028258075306,
+          "radius_km": 17.283969831908216,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 334321960645658.5,
+          "compactness": 0.01946780647102056,
+          "mass_msun": 0.19685733249616816,
+          "radius_km": 14.931546937263235,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 372570577899858.8,
+          "compactness": 0.026227757166812606,
+          "mass_msun": 0.24047732630782268,
+          "radius_km": 13.53889464703454,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 415195086941222.7,
+          "compactness": 0.034138425495671226,
+          "mass_msun": 0.29304625437733695,
+          "radius_km": 12.675436263902998,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 462696118388780.5,
+          "compactness": 0.04326958538516184,
+          "mass_msun": 0.3553019082655071,
+          "radius_km": 12.125091773857175,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 515631578276244.7,
+          "compactness": 0.05400658857233854,
+          "mass_msun": 0.43014901810960293,
+          "radius_km": 11.760950414087835,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 574623200733764.6,
+          "compactness": 0.06885715103702529,
+          "mass_msun": 0.5361686774219859,
+          "radius_km": 11.498008293631086,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 640363850339319.8,
+          "compactness": 0.0867083686452816,
+          "mass_msun": 0.6672605806649519,
+          "radius_km": 11.363305476827808,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 713625659906817.4,
+          "compactness": 0.1075951715529232,
+          "mass_msun": 0.8244350000130025,
+          "radius_km": 11.314460915797296,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 795269099290330.0,
+          "compactness": 0.13033154048239362,
+          "mass_msun": 0.9982817907972451,
+          "radius_km": 11.310292826009084,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 886253081718832.9,
+          "compactness": 0.15424101985580885,
+          "mass_msun": 1.1819224936167887,
+          "radius_km": 11.315124528745532,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 987646226361661.1,
+          "compactness": 0.17905317626318448,
+          "mass_msun": 1.370778084666358,
+          "radius_km": 11.304603937623211,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1100639409405054.2,
+          "compactness": 0.20310899384277217,
+          "mass_msun": 1.5494347616362536,
+          "radius_km": 11.264563526066315,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1226559751053924.0,
+          "compactness": 0.22536798484595244,
+          "mass_msun": 1.7079198909638948,
+          "radius_km": 11.190397232796752,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1366886202737995.2,
+          "compactness": 0.24564732492586808,
+          "mass_msun": 1.8435114101088472,
+          "radius_km": 11.081639529025276,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1523266917596224.2,
+          "compactness": 0.2639962036106225,
+          "mass_msun": 1.9559395494689307,
+          "radius_km": 10.940268352942674,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1697538608258127.5,
+          "compactness": 0.27976093806490715,
+          "mass_msun": 2.0419063798963832,
+          "radius_km": 10.777523505478637,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1891748119281864.8,
+          "compactness": 0.2923317200357081,
+          "mass_msun": 2.100543533696915,
+          "radius_km": 10.61025869855067,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2108176467620174.8,
+          "compactness": 0.30252219974868155,
+          "mass_msun": 2.138630286634275,
+          "radius_km": 10.438754679821637,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2349365633472717.0,
+          "compactness": 0.3082489361919705,
+          "mass_msun": 2.154057835494087,
+          "radius_km": 10.318724121460503,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2618148416187093.5,
+          "compactness": 0.312798591413354,
+          "mass_msun": 2.160076691066657,
+          "radius_km": 10.197051437237766,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2917681705869993.0,
+          "compactness": 0.3164236593602805,
+          "mass_msun": 2.1581329349830303,
+          "radius_km": 10.071159450210715,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3251483561488084.0,
+          "compactness": 0.3192125254769961,
+          "mass_msun": 2.1494257238874526,
+          "radius_km": 9.942892549653262,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3623474530946081.0,
+          "compactness": 0.32132102318302797,
+          "mass_msun": 2.1354214608774083,
+          "radius_km": 9.813291283231877,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 4038023698451687.0,
+          "compactness": 0.3228400598842247,
+          "mass_msun": 2.116985329889013,
+          "radius_km": 9.682793220952655,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 4500000000000000.0,
+          "compactness": 0.32383063365334863,
+          "mass_msun": 2.0952694806648338,
+          "radius_km": 9.554152865982209,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      ]
+    },
+    "ENG": {
+      "at_sampled_mass_max_central_density": 2618148416187093.5,
+      "candidate_supports_2p073_sampled_static": true,
+      "failed_models": [],
+      "first_stable_2p073_root": {
+        "coarse": {
+          "center_density_g_cm3": 1535222613077355.8,
+          "compactness": 0.26848680499233557,
+          "mass_msun": 2.072979386068146,
+          "radius_km": 11.400982126169598,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "coarse_minus_fine_mass_msun": -2.0508532654783806e-05,
+        "coarse_minus_fine_radius_m": 0.009709091180809537,
+        "fine": {
+          "center_density_g_cm3": 1535222613077355.8,
+          "compactness": 0.26848968984938804,
+          "mass_msun": 2.072999894600801,
+          "radius_km": 11.400972417078417,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "physical_admissibility": "NOT_ESTABLISHED",
+        "resampled_resolution_study": "SEPARATE_EXPERIMENT_PENDING",
+        "rotating_equatorial_radius": "NOT_RUN"
+      },
+      "max_mass_refinement": {
+        "convergence": "NUMERICAL_LOCAL_STATIC_TOV_ONLY",
+        "method": "bounded local max on 26-node density scan using DOP853",
+        "peak_star": {
+          "center_density_g_cm3": 2563957521922447.5,
+          "compactness": 0.3161911877819317,
+          "mass_msun": 2.2334311119881085,
+          "radius_km": 10.430209405444502,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      },
+      "max_sampled_mass_grid_index": 20,
+      "max_tabulated_causal_cs2": 0.9900000000000034,
+      "maximum_mass_interpretation": "finite density scan; independent peak refinement only when bracketed",
+      "maximum_original_vs_reconstructed_h_abs": 0.0005141193372173447,
+      "maximum_sampled_mass_msun": 2.2332889930257815,
+      "new_model_label": "ENG__CAUSAL_LIFT_FIRSTLAW_GAS_V1",
+      "sampled_branch_mass_increasing_before_peak": true,
+      "source_rns_sha256": "664d2d50741d0f6eac665a0f6a0c7833763d61d3011ed6b5399a9344d08e874a",
+      "star_count": 26,
+      "stars": [
+        {
+          "center_density_g_cm3": 300000000000000.0,
+          "compactness": 0.015017171228548785,
+          "mass_msun": 0.16759138634846726,
+          "radius_km": 16.479111377062814,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 334321960645658.5,
+          "compactness": 0.021951184937276366,
+          "mass_msun": 0.21160772222866955,
+          "radius_km": 14.23455097209796,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 372570577899858.8,
+          "compactness": 0.03118435190784915,
+          "mass_msun": 0.27326008322086026,
+          "radius_km": 12.939267808930184,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 415195086941222.7,
+          "compactness": 0.044060250295250326,
+          "mass_msun": 0.3640268825753397,
+          "radius_km": 12.199912749747245,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 462696118388780.5,
+          "compactness": 0.059706964272536224,
+          "mass_msun": 0.48050325717188386,
+          "radius_km": 11.883423467419624,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 515631578276244.7,
+          "compactness": 0.07804006118060411,
+          "mass_msun": 0.6235720058620646,
+          "radius_km": 11.798837968003962,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 574623200733764.6,
+          "compactness": 0.09798259761990884,
+          "mass_msun": 0.78488031218997,
+          "radius_km": 11.828364924026257,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 640363850339319.8,
+          "compactness": 0.11928283537253466,
+          "mass_msun": 0.9611672057621428,
+          "radius_km": 11.898472712762594,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 713625659906817.4,
+          "compactness": 0.14149721535233428,
+          "mass_msun": 1.146792743846012,
+          "radius_km": 11.96760568609514,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 795269099290330.0,
+          "compactness": 0.1634820188877504,
+          "mass_msun": 1.3296265216443914,
+          "radius_km": 12.009637674365166,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 886253081718832.9,
+          "compactness": 0.18460851049567764,
+          "mass_msun": 1.5018446060864952,
+          "radius_km": 12.012779598586109,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 987646226361661.1,
+          "compactness": 0.20425004821753578,
+          "mass_msun": 1.6562760342197838,
+          "radius_km": 11.974042030318227,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1100639409405054.2,
+          "compactness": 0.2214306780849551,
+          "mass_msun": 1.7842803368859286,
+          "radius_km": 11.898590760470091,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1226559751053924.0,
+          "compactness": 0.2360602967510897,
+          "mass_msun": 1.8854065057111018,
+          "radius_km": 11.793759863697863,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1366886202737995.2,
+          "compactness": 0.2505347915546843,
+          "mass_msun": 1.9754971402735224,
+          "radius_km": 11.643367062205387,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1523266917596224.2,
+          "compactness": 0.26729969100584394,
+          "mass_msun": 2.0669591666664164,
+          "radius_km": 11.418358347672477,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1697538608258127.5,
+          "compactness": 0.282669256676938,
+          "mass_msun": 2.139997198202484,
+          "radius_km": 11.17904890461586,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1891748119281864.8,
+          "compactness": 0.2947393846422373,
+          "mass_msun": 2.1879051484610232,
+          "radius_km": 10.96126168213947,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2108176467620174.8,
+          "compactness": 0.3041543926877157,
+          "mass_msun": 2.2164607027504024,
+          "radius_km": 10.760592147343353,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2349365633472717.0,
+          "compactness": 0.311490293419743,
+          "mass_msun": 2.230395996743733,
+          "radius_km": 10.573230187691664,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2618148416187093.5,
+          "compactness": 0.3171833361274685,
+          "mass_msun": 2.2332889930257815,
+          "radius_km": 10.396922122599591,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2917681705869993.0,
+          "compactness": 0.3215902564899042,
+          "mass_msun": 2.227990514611549,
+          "radius_km": 10.23011895423168,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3251483561488084.0,
+          "compactness": 0.32495585491291146,
+          "mass_msun": 2.2164924211599537,
+          "radius_km": 10.071916404184437,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3623474530946081.0,
+          "compactness": 0.3274658329380166,
+          "mass_msun": 2.200302702204433,
+          "radius_km": 9.921713151611133,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 4038023698451687.0,
+          "compactness": 0.3292800626069664,
+          "mass_msun": 2.1806983720025834,
+          "radius_km": 9.779133880868118,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 4500000000000000.0,
+          "compactness": 0.3304954097946846,
+          "mass_msun": 2.158472836105822,
+          "radius_km": 9.643870805119368,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      ]
+    },
+    "MPA1": {
+      "at_sampled_mass_max_central_density": 2194705617524968.0,
+      "candidate_supports_2p073_sampled_static": true,
+      "failed_models": [
+        {
+          "density": 2384442758472616.0,
+          "reason": "central density outside EOS table"
+        }
+      ],
+      "first_stable_2p073_root": {
+        "coarse": {
+          "center_density_g_cm3": 1036222859309577.2,
+          "compactness": 0.24698182391846837,
+          "mass_msun": 2.0730221587217463,
+          "radius_km": 12.39393399658328,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "coarse_minus_fine_mass_msun": 2.178381303963306e-05,
+        "coarse_minus_fine_radius_m": -0.02879551429302296,
+        "fine": {
+          "center_density_g_cm3": 1036222859309577.2,
+          "compactness": 0.24697865475513794,
+          "mass_msun": 2.0730003749087067,
+          "radius_km": 12.393962792097573,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "physical_admissibility": "NOT_ESTABLISHED",
+        "resampled_resolution_study": "SEPARATE_EXPERIMENT_PENDING",
+        "rotating_equatorial_radius": "NOT_RUN"
+      },
+      "max_mass_refinement": "NOT_ESTABLISHED",
+      "max_sampled_mass_grid_index": 24,
+      "max_tabulated_causal_cs2": 0.9812396109257602,
+      "maximum_mass_interpretation": "finite density scan; independent peak refinement only when bracketed",
+      "maximum_original_vs_reconstructed_h_abs": 0.0004295495906811997,
+      "maximum_sampled_mass_msun": 2.462614839422481,
+      "new_model_label": "MPA1__CAUSAL_LIFT_FIRSTLAW_GAS_V1",
+      "sampled_branch_mass_increasing_before_peak": true,
+      "source_rns_sha256": "c2ec61d7efb08e0a706c50f9d4e51a3b5c3fa153d45a2dd910c7258d0946f0e5",
+      "star_count": 25,
+      "stars": [
+        {
+          "center_density_g_cm3": 300000000000000.0,
+          "compactness": 0.019272296363719094,
+          "mass_msun": 0.1965852589824828,
+          "radius_km": 15.062175780545369,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 325935661634878.94,
+          "compactness": 0.025206477898383737,
+          "mass_msun": 0.23646248333180303,
+          "radius_km": 13.85224960245793,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 354113518417886.06,
+          "compactness": 0.032775544765628446,
+          "mass_msun": 0.2892543181452286,
+          "radius_km": 13.031672595882524,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 384727413064628.5,
+          "compactness": 0.04231645403399517,
+          "mass_msun": 0.3585379804072124,
+          "radius_km": 12.511118217417208,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 417987946420983.4,
+          "compactness": 0.0538919776581651,
+          "mass_msun": 0.44618507297777504,
+          "radius_km": 12.225345570768523,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 454123926240423.1,
+          "compactness": 0.06735163156926278,
+          "mass_msun": 0.5522727085345732,
+          "radius_km": 12.108091374375535,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 493383941211337.44,
+          "compactness": 0.08193564533290344,
+          "mass_msun": 0.6712368126635306,
+          "radius_km": 12.096872856896894,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 536038071062471.4,
+          "compactness": 0.09784945116007249,
+          "mass_msun": 0.8046060092431949,
+          "radius_km": 12.142136362834268,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 582379744510767.0,
+          "compactness": 0.11532772920013891,
+          "mass_msun": 0.9541354220900287,
+          "radius_km": 12.216491764124353,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 632727757832895.0,
+          "compactness": 0.13425888540211317,
+          "mass_msun": 1.118452038106006,
+          "radius_km": 12.301117191454995,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 687428467946726.8,
+          "compactness": 0.1543402625432086,
+          "mass_msun": 1.2940741071496489,
+          "radius_km": 12.380840852687893,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 746858175089555.2,
+          "compactness": 0.17492986398463095,
+          "mass_msun": 1.4740684668908406,
+          "radius_km": 12.44296632050439,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 811425711484107.9,
+          "compactness": 0.1950798212747164,
+          "mass_msun": 1.6484212712818205,
+          "radius_km": 12.477457209689522,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 881575253800416.6,
+          "compactness": 0.21408401966136265,
+          "mass_msun": 1.809375001179132,
+          "radius_km": 12.479999367487935,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 957789378761250.0,
+          "compactness": 0.2317344654490607,
+          "mass_msun": 1.953854163639799,
+          "radius_km": 12.450068543486514,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1040592382911354.4,
+          "compactness": 0.2477258817394941,
+          "mass_msun": 2.0786776253381514,
+          "radius_km": 12.390418821222193,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1130553889388091.5,
+          "compactness": 0.26187735564432696,
+          "mass_msun": 2.182439549356336,
+          "radius_km": 12.305931815606405,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1228292766505310.8,
+          "compactness": 0.27419599766465375,
+          "mass_msun": 2.265833906474619,
+          "radius_km": 12.202173287938727,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1334481385107475.2,
+          "compactness": 0.2848408647303805,
+          "mass_msun": 2.33101296272025,
+          "radius_km": 12.08405299580248,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1449850243981448.2,
+          "compactness": 0.2940663455791418,
+          "mass_msun": 2.380680539143462,
+          "radius_km": 11.954351609922044,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1575192995145279.2,
+          "compactness": 0.3020296808810213,
+          "mass_msun": 2.4169040734557,
+          "radius_km": 11.816259445163297,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1711371903584336.5,
+          "compactness": 0.30875490524506416,
+          "mass_msun": 2.4412620236953813,
+          "radius_km": 11.6753728196425,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1859323778993676.0,
+          "compactness": 0.3144360801653519,
+          "mass_msun": 2.4559060764102996,
+          "radius_km": 11.533194287436276,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2020066420332556.8,
+          "compactness": 0.31911487622474916,
+          "mass_msun": 2.4624478877722265,
+          "radius_km": 11.394367598886989,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2194705617524968.0,
+          "compactness": 0.3229708390365067,
+          "mass_msun": 2.462614839422481,
+          "radius_km": 11.259093055624106,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      ]
+    },
+    "MS1": {
+      "at_sampled_mass_max_central_density": 1523266917596224.2,
+      "candidate_supports_2p073_sampled_static": true,
+      "failed_models": [],
+      "first_stable_2p073_root": {
+        "coarse": {
+          "center_density_g_cm3": 640780021631521.9,
+          "compactness": 0.207326170183362,
+          "mass_msun": 2.072986297646673,
+          "radius_km": 14.764288888048704,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "coarse_minus_fine_mass_msun": -1.356870912694319e-05,
+        "coarse_minus_fine_radius_m": 0.02331974969571604,
+        "fine": {
+          "center_density_g_cm3": 640780021631521.9,
+          "compactness": 0.20732785470264337,
+          "mass_msun": 2.0729998663558,
+          "radius_km": 14.764265568299008,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "physical_admissibility": "NOT_ESTABLISHED",
+        "resampled_resolution_study": "SEPARATE_EXPERIMENT_PENDING",
+        "rotating_equatorial_radius": "NOT_RUN"
+      },
+      "max_mass_refinement": {
+        "convergence": "NUMERICAL_LOCAL_STATIC_TOV_ONLY",
+        "method": "bounded local max on 26-node density scan using DOP853",
+        "peak_star": {
+          "center_density_g_cm3": 1546312835767897.0,
+          "compactness": 0.30702141992143406,
+          "mass_msun": 2.771497712851652,
+          "radius_km": 13.329568069689257,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      },
+      "max_sampled_mass_grid_index": 15,
+      "max_tabulated_causal_cs2": 0.8856071330439853,
+      "maximum_mass_interpretation": "finite density scan; independent peak refinement only when bracketed",
+      "maximum_original_vs_reconstructed_h_abs": 0.0005331371013470587,
+      "maximum_sampled_mass_msun": 2.7713699477090503,
+      "new_model_label": "MS1__CAUSAL_LIFT_FIRSTLAW_GAS_V1",
+      "sampled_branch_mass_increasing_before_peak": true,
+      "source_rns_sha256": "5ea679410eaeb0dd825cb02626e31ff88a2810f2dba408a72f030b4229ad550c",
+      "star_count": 26,
+      "stars": [
+        {
+          "center_density_g_cm3": 300000000000000.0,
+          "compactness": 0.06917793875742896,
+          "mass_msun": 0.6807567399077058,
+          "radius_km": 14.530968470943996,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 334321960645658.5,
+          "compactness": 0.08280103425821247,
+          "mass_msun": 0.8174914728489149,
+          "radius_km": 14.578663032599193,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 372570577899858.8,
+          "compactness": 0.09860928387564012,
+          "mass_msun": 0.977761632670584,
+          "radius_km": 14.641494708215992,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 415195086941222.7,
+          "compactness": 0.1165609238689343,
+          "mass_msun": 1.1609261316759092,
+          "radius_km": 14.706923525133492,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 462696118388780.5,
+          "compactness": 0.1369964864259664,
+          "mass_msun": 1.369789616201053,
+          "radius_km": 14.764361458544446,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 515631578276244.7,
+          "compactness": 0.16004135560900495,
+          "mass_msun": 1.604367985206859,
+          "radius_km": 14.802736006499952,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 574623200733764.6,
+          "compactness": 0.18409214367917504,
+          "mass_msun": 1.8459287682725178,
+          "radius_km": 14.806414783449393,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 640363850339319.8,
+          "compactness": 0.2071973581737762,
+          "mass_msun": 2.0717506947199746,
+          "radius_km": 14.76466194060017,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 713625659906817.4,
+          "compactness": 0.22817012258474237,
+          "mass_msun": 2.2676899698246338,
+          "radius_km": 14.67557518068363,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 795269099290330.0,
+          "compactness": 0.24642018604558796,
+          "mass_msun": 2.4272217861336376,
+          "radius_km": 14.54465447746482,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 886253081718832.9,
+          "compactness": 0.26185359238662986,
+          "mass_msun": 2.550230480255773,
+          "radius_km": 14.381067472177804,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 987646226361661.1,
+          "compactness": 0.27466034757945873,
+          "mass_msun": 2.6402705065863468,
+          "radius_km": 14.194584590055554,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1100639409405054.2,
+          "compactness": 0.28517376465002686,
+          "mass_msun": 2.702499744178699,
+          "radius_km": 13.99349898990769,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1226559751053924.0,
+          "compactness": 0.29375104847071226,
+          "mass_msun": 2.742184377917312,
+          "radius_km": 13.784386923767261,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1366886202737995.2,
+          "compactness": 0.3007034291525952,
+          "mass_msun": 2.763851121909468,
+          "radius_km": 13.572082565055867,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1523266917596224.2,
+          "compactness": 0.3063361626920737,
+          "mass_msun": 2.7713699477090503,
+          "radius_km": 13.358769720571209,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1697538608258127.5,
+          "compactness": 0.31085313695332,
+          "mass_msun": 2.767743188048286,
+          "radius_km": 13.147426885959,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1891748119281864.8,
+          "compactness": 0.3144132466100058,
+          "mass_msun": 2.755456437840142,
+          "radius_km": 12.940854150518726,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2108176467620174.8,
+          "compactness": 0.3171752133805705,
+          "mass_msun": 2.736242228511034,
+          "radius_km": 12.738712277436026,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2349365633472717.0,
+          "compactness": 0.31926444003884014,
+          "mass_msun": 2.7119631504747344,
+          "radius_km": 12.543058944407077,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2618148416187093.5,
+          "compactness": 0.3207473380305967,
+          "mass_msun": 2.6836388146090426,
+          "radius_km": 12.354672344488351,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2917681705869993.0,
+          "compactness": 0.3217186106515422,
+          "mass_msun": 2.6522304187074854,
+          "radius_km": 12.173215080751083,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3251483561488084.0,
+          "compactness": 0.3222453113557547,
+          "mass_msun": 2.6188507584578953,
+          "radius_km": 12.000362657212731,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3623474530946081.0,
+          "compactness": 0.3223791664953695,
+          "mass_msun": 2.5837931158539935,
+          "radius_km": 11.834802011209849,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 4038023698451687.0,
+          "compactness": 0.32216925490253784,
+          "mass_msun": 2.5480114207420637,
+          "radius_km": 11.678511850063458,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 4500000000000000.0,
+          "compactness": 0.3216459768835369,
+          "mass_msun": 2.511535069269953,
+          "radius_km": 11.530054263877187,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      ]
+    },
+    "MS1B": {
+      "at_sampled_mass_max_central_density": 1523266917596224.2,
+      "candidate_supports_2p073_sampled_static": true,
+      "failed_models": [],
+      "first_stable_2p073_root": {
+        "coarse": {
+          "center_density_g_cm3": 637729108900704.8,
+          "compactness": 0.20937440927715767,
+          "mass_msun": 2.0729906063089523,
+          "radius_km": 14.61988522611899,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "coarse_minus_fine_mass_msun": -9.308564476562253e-06,
+        "coarse_minus_fine_radius_m": 0.004757421484313795,
+        "fine": {
+          "center_density_g_cm3": 637729108900704.8,
+          "compactness": 0.20937541758510647,
+          "mass_msun": 2.072999914873429,
+          "radius_km": 14.619880468697506,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "physical_admissibility": "NOT_ESTABLISHED",
+        "resampled_resolution_study": "SEPARATE_EXPERIMENT_PENDING",
+        "rotating_equatorial_radius": "NOT_RUN"
+      },
+      "max_mass_refinement": {
+        "convergence": "NUMERICAL_LOCAL_STATIC_TOV_ONLY",
+        "method": "bounded local max on 26-node density scan using DOP853",
+        "peak_star": {
+          "center_density_g_cm3": 1540879413113460.5,
+          "compactness": 0.30874570443493193,
+          "mass_msun": 2.7800579618175876,
+          "radius_km": 13.29606577414131,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      },
+      "max_sampled_mass_grid_index": 15,
+      "max_tabulated_causal_cs2": 0.8908479148699014,
+      "maximum_mass_interpretation": "finite density scan; independent peak refinement only when bracketed",
+      "maximum_original_vs_reconstructed_h_abs": 0.0005189457537289055,
+      "maximum_sampled_mass_msun": 2.7800129516206638,
+      "new_model_label": "MS1B__CAUSAL_LIFT_FIRSTLAW_GAS_V1",
+      "sampled_branch_mass_increasing_before_peak": true,
+      "source_rns_sha256": "0d67cddd38371dc2713cac3ae3e89a7f482e2261d2985dea39abebcf4fec6e7f",
+      "star_count": 26,
+      "stars": [
+        {
+          "center_density_g_cm3": 300000000000000.0,
+          "compactness": 0.06069263211252938,
+          "mass_msun": 0.5768018211200497,
+          "radius_km": 14.033334548411284,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 334321960645658.5,
+          "compactness": 0.07628205910980908,
+          "mass_msun": 0.7268653626056725,
+          "radius_km": 14.070249364531152,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 372570577899858.8,
+          "compactness": 0.09444914897723027,
+          "mass_msun": 0.9067894585260966,
+          "radius_km": 14.176814012610656,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 415195086941222.7,
+          "compactness": 0.11498205603029402,
+          "mass_msun": 1.1145310634853298,
+          "radius_km": 14.313054843909482,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 462696118388780.5,
+          "compactness": 0.13756180871266707,
+          "mass_msun": 1.3458979937091549,
+          "radius_km": 14.44722699396554,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 515631578276244.7,
+          "compactness": 0.16217977446587684,
+          "mass_msun": 1.5988505936683433,
+          "radius_km": 14.557319656457679,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 574623200733764.6,
+          "compactness": 0.18691437100779862,
+          "mass_msun": 1.8503982136575794,
+          "radius_km": 14.618160807635304,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 640363850339319.8,
+          "compactness": 0.2102022945101111,
+          "mass_msun": 2.081038369341965,
+          "radius_km": 14.61883833606553,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 713625659906817.4,
+          "compactness": 0.23110314156231856,
+          "mass_msun": 2.278824754827911,
+          "radius_km": 14.56046710381885,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 795269099290330.0,
+          "compactness": 0.249170186251078,
+          "mass_msun": 2.438627747165381,
+          "radius_km": 14.451724117265222,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 886253081718832.9,
+          "compactness": 0.26440066330482104,
+          "mass_msun": 2.5612788820825028,
+          "radius_km": 14.304232370067188,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 987646226361661.1,
+          "compactness": 0.2770359302071908,
+          "mass_msun": 2.6508830385964797,
+          "radius_km": 14.12943174846118,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1100639409405054.2,
+          "compactness": 0.2873948542975022,
+          "mass_msun": 2.7125667396576425,
+          "radius_km": 13.93707613503114,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1226559751053924.0,
+          "compactness": 0.29584034532987,
+          "mass_msun": 2.751702507343242,
+          "radius_km": 13.734545959502999,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1366886202737995.2,
+          "compactness": 0.30269247204570304,
+          "mass_msun": 2.7729432600464663,
+          "radius_km": 13.52725232710351,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1523266917596224.2,
+          "compactness": 0.3082317016056321,
+          "mass_msun": 2.7800129516206638,
+          "radius_km": 13.318022478164503,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1697538608258127.5,
+          "compactness": 0.31266853995428834,
+          "mass_msun": 2.775938123401605,
+          "radius_km": 13.109792682346479,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1891748119281864.8,
+          "compactness": 0.316164684523967,
+          "mass_msun": 2.7632624065080553,
+          "radius_km": 12.905623733074233,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2108176467620174.8,
+          "compactness": 0.3188823935562234,
+          "mass_msun": 2.7438063388701877,
+          "radius_km": 12.705540416805785,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2349365633472717.0,
+          "compactness": 0.32091802481422743,
+          "mass_msun": 2.719165291947109,
+          "radius_km": 12.51156757246741,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2618148416187093.5,
+          "compactness": 0.3223686767945742,
+          "mass_msun": 2.690645308157858,
+          "radius_km": 12.324628652025591,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2917681705869993.0,
+          "compactness": 0.32332019547922053,
+          "mass_msun": 2.659084487041692,
+          "radius_km": 12.144217363337534,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3251483561488084.0,
+          "compactness": 0.3238216753981085,
+          "mass_msun": 2.6255113984724785,
+          "radius_km": 11.972317368515181,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3623474530946081.0,
+          "compactness": 0.3239452387609344,
+          "mass_msun": 2.590341008430788,
+          "radius_km": 11.807435123192729,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 4038023698451687.0,
+          "compactness": 0.3237204876300006,
+          "mass_msun": 2.5543880348889174,
+          "radius_km": 11.651636128522485,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 4500000000000000.0,
+          "compactness": 0.32318570352063636,
+          "mass_msun": 2.517792665873036,
+          "radius_km": 11.503713346681815,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      ]
+    },
+    "WFF1": {
+      "at_sampled_mass_max_central_density": 2917681705869993.0,
+      "candidate_supports_2p073_sampled_static": true,
+      "failed_models": [
+        {
+          "density": 4500000000000000.0,
+          "reason": "central density outside EOS table"
+        }
+      ],
+      "first_stable_2p073_root": {
+        "coarse": {
+          "center_density_g_cm3": 2199038810371690.0,
+          "compactness": 0.3092662749513475,
+          "mass_msun": 2.0729882041175,
+          "radius_km": 9.897704773221752,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "coarse_minus_fine_mass_msun": -1.1549731107063366e-05,
+        "coarse_minus_fine_radius_m": 0.019759230738713995,
+        "fine": {
+          "center_density_g_cm3": 2199038810371690.0,
+          "compactness": 0.30926861544670475,
+          "mass_msun": 2.072999753848607,
+          "radius_km": 9.897685013991014,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "physical_admissibility": "NOT_ESTABLISHED",
+        "resampled_resolution_study": "SEPARATE_EXPERIMENT_PENDING",
+        "rotating_equatorial_radius": "NOT_RUN"
+      },
+      "max_mass_refinement": {
+        "convergence": "NUMERICAL_LOCAL_STATIC_TOV_ONLY",
+        "method": "bounded local max on 26-node density scan using DOP853",
+        "peak_star": {
+          "center_density_g_cm3": 2956619711104594.5,
+          "compactness": 0.3275591617961599,
+          "mass_msun": 2.114317897994872,
+          "radius_km": 9.531269800108943,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      },
+      "max_sampled_mass_grid_index": 21,
+      "max_tabulated_causal_cs2": 0.9900000000000032,
+      "maximum_mass_interpretation": "finite density scan; independent peak refinement only when bracketed",
+      "maximum_original_vs_reconstructed_h_abs": 0.00038554361157405737,
+      "maximum_sampled_mass_msun": 2.1142092695563885,
+      "new_model_label": "WFF1__CAUSAL_LIFT_FIRSTLAW_GAS_V1",
+      "sampled_branch_mass_increasing_before_peak": true,
+      "source_rns_sha256": "0ac47df0d250baef55c2b046a809ed433215a31332b268177babf667e306f02f",
+      "star_count": 25,
+      "stars": [
+        {
+          "center_density_g_cm3": 300000000000000.0,
+          "compactness": 0.0065858921408380585,
+          "mass_msun": 0.1134847174154293,
+          "radius_km": 25.44444573159105,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 334321960645658.5,
+          "compactness": 0.00887290535456142,
+          "mass_msun": 0.12495006642319163,
+          "radius_km": 20.79413554114608,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 372570577899858.8,
+          "compactness": 0.011771278927503372,
+          "mass_msun": 0.139895198491389,
+          "radius_km": 17.548879273663605,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 415195086941222.7,
+          "compactness": 0.01586453064262043,
+          "mass_msun": 0.16155469579172835,
+          "radius_km": 15.037048003156913,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 462696118388780.5,
+          "compactness": 0.02195138004864871,
+          "mass_msun": 0.1948651044181875,
+          "radius_km": 13.10818233698526,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 515631578276244.7,
+          "compactness": 0.03058812335281576,
+          "mass_msun": 0.24419693924979452,
+          "radius_km": 11.788474583821055,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 574623200733764.6,
+          "compactness": 0.04201768422647115,
+          "mass_msun": 0.312596031030002,
+          "radius_km": 10.9855441753069,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 640363850339319.8,
+          "compactness": 0.055897501199566324,
+          "mass_msun": 0.3994624083784562,
+          "radius_km": 10.552460866998626,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 713625659906817.4,
+          "compactness": 0.07416256911856313,
+          "mass_msun": 0.5187384580682494,
+          "radius_km": 10.328420448306233,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 795269099290330.0,
+          "compactness": 0.09629965879936414,
+          "mass_msun": 0.669326786376752,
+          "radius_km": 10.263221113386388,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 886253081718832.9,
+          "compactness": 0.12112417746367593,
+          "mass_msun": 0.8438337231980108,
+          "radius_km": 10.287178247290168,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 987646226361661.1,
+          "compactness": 0.14649205517508124,
+          "mass_msun": 1.0253794773794784,
+          "radius_km": 10.335720991774597,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1100639409405054.2,
+          "compactness": 0.1746570392329322,
+          "mass_msun": 1.2274311798282562,
+          "radius_km": 10.377226251961243,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1226559751053924.0,
+          "compactness": 0.20411890950493053,
+          "mass_msun": 1.436383376364894,
+          "radius_km": 10.391000338595017,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1366886202737995.2,
+          "compactness": 0.23268734304367727,
+          "mass_msun": 1.633313032687757,
+          "radius_km": 10.36494244806264,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1523266917596224.2,
+          "compactness": 0.2574148306866252,
+          "mass_msun": 1.7952375966120562,
+          "radius_km": 10.298135415645374,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1697538608258127.5,
+          "compactness": 0.27759976266720565,
+          "mass_msun": 1.9172921654626582,
+          "radius_km": 10.198573621165274,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1891748119281864.8,
+          "compactness": 0.2934110450781988,
+          "mass_msun": 2.0026305124431794,
+          "radius_km": 10.078469799419535,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2108176467620174.8,
+          "compactness": 0.305420520047371,
+          "mass_msun": 2.0578702014922547,
+          "radius_km": 9.94924199627914,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2349365633472717.0,
+          "compactness": 0.3145571853278039,
+          "mass_msun": 2.091064419259333,
+          "radius_km": 9.816078670834766,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2618148416187093.5,
+          "compactness": 0.32158272288074885,
+          "mass_msun": 2.1084631543842356,
+          "radius_km": 9.681519758523969,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2917681705869993.0,
+          "compactness": 0.32698223467127785,
+          "mass_msun": 2.1142092695563885,
+          "radius_km": 9.547596205778994,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3251483561488084.0,
+          "compactness": 0.33113149001368025,
+          "mass_msun": 2.1114122922888234,
+          "radius_km": 9.415487051115795,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3623474530946081.0,
+          "compactness": 0.33427909467650296,
+          "mass_msun": 2.10220191626647,
+          "radius_km": 9.286144524233743,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 4038023698451687.0,
+          "compactness": 0.3366145642806021,
+          "mass_msun": 2.0882028468420892,
+          "radius_km": 9.16030658021136,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      ]
+    },
+    "WFF2": {
+      "at_sampled_mass_max_central_density": 2917681705869993.0,
+      "candidate_supports_2p073_sampled_static": true,
+      "failed_models": [
+        {
+          "density": 4500000000000000.0,
+          "reason": "central density outside EOS table"
+        }
+      ],
+      "first_stable_2p073_root": {
+        "coarse": {
+          "center_density_g_cm3": 1808091808607827.8,
+          "compactness": 0.2899401051427033,
+          "mass_msun": 2.072978857061354,
+          "radius_km": 10.557395922094843,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "coarse_minus_fine_mass_msun": -2.113973168249572e-05,
+        "coarse_minus_fine_radius_m": -0.00394518841773106,
+        "fine": {
+          "center_density_g_cm3": 1808091808607827.8,
+          "compactness": 0.2899429535323763,
+          "mass_msun": 2.0729999967930364,
+          "radius_km": 10.55739986728326,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        "physical_admissibility": "NOT_ESTABLISHED",
+        "resampled_resolution_study": "SEPARATE_EXPERIMENT_PENDING",
+        "rotating_equatorial_radius": "NOT_RUN"
+      },
+      "max_mass_refinement": {
+        "convergence": "NUMERICAL_LOCAL_STATIC_TOV_ONLY",
+        "method": "bounded local max on 26-node density scan using DOP853",
+        "peak_star": {
+          "center_density_g_cm3": 2767659061275036.5,
+          "compactness": 0.3229021653215479,
+          "mass_msun": 2.1739881872172493,
+          "radius_km": 9.941603787244631,
+          "solver_method": "DOP853",
+          "solver_rel_tol": 1e-08,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      },
+      "max_sampled_mass_grid_index": 21,
+      "max_tabulated_causal_cs2": 0.9900000000000032,
+      "maximum_mass_interpretation": "finite density scan; independent peak refinement only when bracketed",
+      "maximum_original_vs_reconstructed_h_abs": 0.0004501837045449708,
+      "maximum_sampled_mass_msun": 2.1730323110304695,
+      "new_model_label": "WFF2__CAUSAL_LIFT_FIRSTLAW_GAS_V1",
+      "sampled_branch_mass_increasing_before_peak": true,
+      "source_rns_sha256": "7345384532cc974a9dbf62aef951eeaffb27757a3f52a38c5f1cf9ebffdf9508",
+      "star_count": 25,
+      "stars": [
+        {
+          "center_density_g_cm3": 300000000000000.0,
+          "compactness": 0.010593022728792234,
+          "mass_msun": 0.13878761815449753,
+          "radius_km": 19.34643936723027,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 334321960645658.5,
+          "compactness": 0.014872298759653221,
+          "mass_msun": 0.16341946783080052,
+          "radius_km": 16.225418935129944,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 372570577899858.8,
+          "compactness": 0.021174212421377313,
+          "mass_msun": 0.20117516218710355,
+          "radius_km": 14.02934265547285,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 415195086941222.7,
+          "compactness": 0.029420420954950427,
+          "mass_msun": 0.2528017989504826,
+          "radius_km": 12.688243535535957,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 462696118388780.5,
+          "compactness": 0.03966912960313821,
+          "mass_msun": 0.3197918726199286,
+          "radius_km": 11.90378238190954,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 515631578276244.7,
+          "compactness": 0.05220961694021383,
+          "mass_msun": 0.40513466155781713,
+          "radius_km": 11.458271868251444,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 574623200733764.6,
+          "compactness": 0.0667183215617781,
+          "mass_msun": 0.5074097679079641,
+          "radius_km": 11.230108166769869,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 640363850339319.8,
+          "compactness": 0.0837519963172608,
+          "mass_msun": 0.631068198020072,
+          "radius_km": 11.126315107566738,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 713625659906817.4,
+          "compactness": 0.10386242773157535,
+          "mass_msun": 0.7806189283234604,
+          "radius_km": 11.098156281473566,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 795269099290330.0,
+          "compactness": 0.1260545510278319,
+          "mass_msun": 0.9484671210135194,
+          "radius_km": 11.110509594744057,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 886253081718832.9,
+          "compactness": 0.15010220839527522,
+          "mass_msun": 1.1315855844273426,
+          "radius_km": 11.13193219823802,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 987646226361661.1,
+          "compactness": 0.17473504324377856,
+          "mass_msun": 1.3180429121777144,
+          "radius_km": 11.138321937121857,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1100639409405054.2,
+          "compactness": 0.19873921795147834,
+          "mass_msun": 1.495919347044933,
+          "radius_km": 11.11462541474548,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1226559751053924.0,
+          "compactness": 0.22165399806187056,
+          "mass_msun": 1.6593180561420864,
+          "radius_km": 11.054123134310183,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1366886202737995.2,
+          "compactness": 0.24361042408385775,
+          "mass_msun": 1.8069975899772752,
+          "radius_km": 10.952970896426773,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1523266917596224.2,
+          "compactness": 0.2638641576797036,
+          "mass_msun": 1.9325968017269648,
+          "radius_km": 10.815113545469373,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1697538608258127.5,
+          "compactness": 0.28143012452109334,
+          "mass_msun": 2.0304933509759104,
+          "radius_km": 10.653718491392725,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 1891748119281864.8,
+          "compactness": 0.2952628759746849,
+          "mass_msun": 2.097372189974631,
+          "radius_km": 10.489067681140163,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2108176467620174.8,
+          "compactness": 0.30583185428679394,
+          "mass_msun": 2.139122140081505,
+          "radius_km": 10.328163228313237,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2349365633472717.0,
+          "compactness": 0.31397207238495883,
+          "mass_msun": 2.162661323786466,
+          "radius_km": 10.171095267385027,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2618148416187093.5,
+          "compactness": 0.32025878354798004,
+          "mass_msun": 2.172813973357088,
+          "radius_km": 10.018246745771382,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 2917681705869993.0,
+          "compactness": 0.3251057811192826,
+          "mass_msun": 2.1730323110304695,
+          "radius_km": 9.869876530378317,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3251483561488084.0,
+          "compactness": 0.3288125887679066,
+          "mass_msun": 2.165873863967221,
+          "radius_km": 9.726463298671987,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 3623474530946081.0,
+          "compactness": 0.33160760160386515,
+          "mass_msun": 2.1532015092801564,
+          "radius_km": 9.588053003587532,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        },
+        {
+          "center_density_g_cm3": 4038023698451687.0,
+          "compactness": 0.33364550967944967,
+          "mass_msun": 2.1363568413233756,
+          "radius_km": 9.454939181224281,
+          "solver_method": "RK45",
+          "solver_rel_tol": 3e-07,
+          "tov_spherical": "STATIC_ONLY_NOT_ROTATING"
+        }
+      ]
+    }
+  },
+  "physical_model_acceptance": "NOT_ESTABLISHED",
+  "rotating_GR_stability": "NOT_RUN",
+  "schema": "J0740_F43_NEW_F42_CANDIDATE_STATIC_TOV_v1",
+  "seven_EOS_Bayes": "NOT_RUN",
+  "source_F42_artifact_sha256": "c8d8cdc9804a702860ab1af65b60fa25dfac0f74fce9ec6347c4271ea3353115",
+  "status": "STATIC_TOV_FINITE_GRID_DIAGNOSTIC"
+}

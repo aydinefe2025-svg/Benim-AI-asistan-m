@@ -1,0 +1,63 @@
+name: J0740 F43 source-locked seven candidate static TOV
+
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f43/**'
+      - '.github/workflows/j0740-f43-static-tov.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  f43-static-tov:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numerical dependencies
+        run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
+      - name: Retrieve the exact F42 real seven-candidate artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --max-time 120 \
+            -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14412145963/zip' \
+            -o 'research/j0740/J0740_F42_real_7EOS_candidates_20261118.zip'
+          echo 'c8d8cdc9804a702860ab1af65b60fa25dfac0f74fce9ec6347c4271ea3353115  research/j0740/J0740_F42_real_7EOS_candidates_20261118.zip' | sha256sum -c -
+      - name: Independent full seven candidate spherical GR TOV (NO rotation)
+        working-directory: research/j0740/f43
+        shell: bash
+        run: |
+          set -euo pipefail
+          python f43_tov_screen.py --f42-artifact ../J0740_F42_real_7EOS_candidates_20261118.zip --out F43_candidate_tov_results.json
+          python -m unittest -v test_f43_tov_screen.py 2>&1 | tee F43_CI_tests.log
+          python - <<'PY'
+          import json
+          r=json.load(open('F43_candidate_tov_results.json'))
+          assert len(r['eos'])==7
+          assert r['seven_EOS_Bayes']=='NOT_RUN'
+          assert r['rotating_GR_stability']=='NOT_RUN'
+          assert all(v['candidate_supports_2p073_sampled_static'] and isinstance(v['first_stable_2p073_root'],dict) for v in r['eos'].values())
+          print('7/7 F43 static TOV targets verified; rotating GR and final Bayes NOT_RUN')
+          PY
+      - name: Archive actual source-locked model integration + tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: j0740-F43-seven-new-candidate-static-TOV
+          path: |
+            research/j0740/f43/F43_candidate_tov_results.json
+            research/j0740/f43/F43_CI_tests.log
+          if-no-files-found: warn
+          retention-days: 30
