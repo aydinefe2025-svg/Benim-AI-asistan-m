@@ -1,0 +1,21 @@
+{
+  "files": {
+    "reproduction_code": {
+      "bytes": 5948,
+      "path": "audit_apr4_target_star_causality_20261118.py",
+      "sha256": "fc25bb2d821bf7388f8f84562389db40f5021b3d9d1185bd966e09cb2f414a77"
+    },
+    "result_json": {
+      "bytes": 3873,
+      "path": "J0740_APR4_TARGET_STAR_CAUSALITY_20261118.json",
+      "sha256": "9a7e1273d232dee4d226ef19d192b43c6f8bbc10b8d94173e4dfd121a9726c4d"
+    }
+  },
+  "inputs": {
+    "official_lalsuite_table_sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+    "root_eos_table_sha256": "c8f4da82524a5e0b3450c682198359078deb78d573a1f50f2487235df16d88c7",
+    "saved_direct_root_json_sha256": "0065c93bbb95b4d0d05a5a934b541f782169c2f7f52123edeaed1ff89da00bb4"
+  },
+  "schema": "j0740_apr4_target_star_causality_manifest_v1",
+  "status": "TARGET_CONFIG_CAUSAL_STABLE_TO_CENTER; ORIGINAL_APR4_GLOBAL_EOS_NOT_CERTIFIED; EOS_Bayes=NOT_RUN"
+}
