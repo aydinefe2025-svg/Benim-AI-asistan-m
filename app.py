@@ -200,14 +200,14 @@ def internette_ara(sorgu: str) -> str:
                 "Ğ": "G", "ğ": "g", "Ö": "O", "ö": "o", "Ü": "U", "ü": "u",
             }))
 
-            headers = {"Accept-Language": "tr", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-            # For a forecast request, use the API's separate dated daily
-            # predictions. If unavailable, provide current conditions only.
-            url = f"https://wttr.in/{sehir}"
-            if forecast_requested(sorgu):
-                try:
+            headers = {"Accept-Language": "tr", "User-Agent": "CANO/1.0 weather lookup"}
+            # wttr.in is the original free provider. A timeout, failed response,
+            # or unvalidated payload must NOT short-circuit the backup source.
+            try:
+                url = f"https://wttr.in/{sehir}"
+                if forecast_requested(sorgu):
                     forecast_response = requests.get(
-                        url, params={"format": "j1"}, headers=headers, timeout=6,
+                        url, params={"format": "j1"}, headers=headers, timeout=5,
                     )
                     if forecast_response.status_code == 200:
                         forecast = parse_wttr_forecast(
@@ -215,20 +215,26 @@ def internette_ara(sorgu: str) -> str:
                         )
                         if forecast is not None:
                             return forecast
-                except (ValueError, TypeError, requests.RequestException):
-                    pass
 
-            # The condition (%C) can contain spaces; never split it by whitespace.
-            # Encode the exact four-field source format through requests params.
-            url = f"https://wttr.in/{sehir}"
-            response = requests.get(
-                url, params={"format": "%C|%t|%h|%w"}, headers=headers, timeout=6
+                # Multiword conditions are delimited by pipes, not spaces.
+                response = requests.get(
+                    url, params={"format": "%C|%t|%h|%w"},
+                    headers=headers, timeout=5,
+                )
+                if response.status_code == 200:
+                    verified_weather = parse_wttr_current(sehir_adi, response.text)
+                    if verified_weather is not None:
+                        return verified_weather
+            except Exception:
+                # No untrusted upstream text or user prompt goes to the log.
+                pass
+
+            from core.open_meteo_weather import fetch_open_meteo_weather
+            fallback = fetch_open_meteo_weather(
+                sehir_adi, get=requests.get, forecast=forecast_requested(sorgu),
             )
-
-            if response.status_code == 200:
-                verified_weather = parse_wttr_current(sehir_adi, response.text)
-                if verified_weather is not None:
-                    return verified_weather
+            if fallback is not None:
+                return fallback
             return "Hava servisi şu anda güvenilir bilgi sunamıyor; güncel hava durumu doğrulanamadı."
                     
         # Instant Answer API is not a full search engine. Return explicit source metadata.
