@@ -163,7 +163,8 @@ class CodeJobStore:
             self._scope(cur)
             cur.execute(
                 "SELECT id::text,status,left(goal,100),COALESCE(pr_url,''),"
-                "COALESCE(deploy_id,''),COALESCE(reason_code,'') "
+                "COALESCE(deploy_id,''),COALESCE(reason_code,''),"
+                "COALESCE(ci_run_url,'') "
                 "FROM public.cano_code_jobs WHERE owner_key=%s "
                 "ORDER BY created_at DESC,id DESC LIMIT %s",
                 (self.owner_key, limit),
@@ -171,6 +172,6 @@ class CodeJobStore:
             result = cur.fetchall()
         return [
             {"id": row[0], "status": row[1], "goal": row[2], "pr_url": row[3],
-             "deploy_id": row[4], "reason_code": row[5]}
+             "deploy_id": row[4], "reason_code": row[5], "ci_run_url": row[6]}
             for row in result
         ]
