@@ -58,7 +58,7 @@ class CodeJobReceiptLinksTests(unittest.TestCase):
             "# 🔒 Her sağlayıcı", 1)[0]
         self.assertIn('if _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"):', section)
         self.assertIn("render_owner_code_status(", section)
-        tree = ast.parse(section)
+        tree = ast.parse(source)
         calls = [node for node in ast.walk(tree)
                  if isinstance(node, ast.Call)
                  and isinstance(node.func, ast.Name)
