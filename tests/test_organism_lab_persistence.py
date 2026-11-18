@@ -18,6 +18,9 @@ class FakeDatabase:
         self.rls_active = True
         self.rls_bypass = False
         self.policy_member = True
+        self.runtime_role_member = False
+        self.runtime_select_policy = False
+        self.runtime_insert_policy = False
         self.fail_second_connection_with = None
 
     def connect(self, *args, **kwargs):
@@ -60,9 +63,16 @@ class FakeCursor:
         elif "has_table_privilege" in sql:
             self.row = ("assistant_test", self.database.can_select, self.database.can_insert)
         elif "pg_has_role" in sql:
+            runtime_query_present = (
+                "organism_lab_records_cano_runtime_select" in sql
+                and "organism_lab_records_cano_runtime_insert" in sql)
+            runtime_authorized = (
+                runtime_query_present and self.database.runtime_role_member
+                and self.database.runtime_select_policy
+                and self.database.runtime_insert_policy)
             self.row = (self.database.rls_active,
                         self.database.rls_bypass,
-                        self.database.policy_member)
+                        self.database.policy_member or runtime_authorized)
         elif sql.lstrip().startswith("INSERT INTO"):
             owner, collection, record_id, encoded = params
             self.database.records.setdefault(
@@ -123,6 +133,29 @@ class OrganismLabPersistenceTests(unittest.TestCase):
         self.assertEqual(caught.exception.role_name, "assistant_test")
         self.assertNotIn("assistant_test", str(caught.exception))
         self.assertEqual(db.records, {})
+
+    def test_cano_runtime_role_with_exact_two_policies_passes_preflight(self):
+        # Production RLS has both narrowly scoped policies for cano_runtime_rw.
+        from core.organism_lab_persistence import OrganismLabRlsPolicyError
+        db = FakeDatabase()
+        db.policy_member = False  # not the old cano_snapshot_app
+        db.runtime_role_member = True
+        db.runtime_select_policy = True
+        db.runtime_insert_policy = True
+        store = OrganismLabStore(self.OWNER, "postgresql://test", connect=db.connect)
+        self.assertEqual(store.verify_schema(), "assistant_test")
+        # A removed read or insert policy must immediately fail closed.
+        db.runtime_insert_policy = False
+        with self.assertRaises(OrganismLabRlsPolicyError):
+            store.verify_schema()
+        db.runtime_insert_policy = True
+        db.runtime_select_policy = False
+        with self.assertRaises(OrganismLabRlsPolicyError):
+            store.verify_schema()
+        db.runtime_select_policy = True
+        db.runtime_role_member = False
+        with self.assertRaises(OrganismLabRlsPolicyError):
+            store.verify_schema()
 
     def test_transient_readback_connection_failure_retries_once_without_rewriting(self):
         db = FakeDatabase()

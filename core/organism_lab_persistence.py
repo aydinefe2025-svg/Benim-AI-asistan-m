@@ -77,12 +77,34 @@ class OrganismLabStore:
             role_name, can_select, can_insert = result
             if not can_select or not can_insert:
                 raise OrganismLabPermissionsError(role_name, can_select, can_insert)
-            # Table grants alone do not prove that a matching RLS policy
-            # permits an owner-scoped lab record. Production Neon has roles
-            # with grants but no applicable CANO lab RLS policy.
+            # Table grants alone do not prove a matching RLS policy. The
+            # authenticated runtime role must have BOTH named, owner-scoped
+            # policies; a missing policy must fail closed. Also accept the
+            # original dedicated cano_snapshot_app policy role.
             cur.execute("""SELECT c.relrowsecurity,
                 (r.rolbypassrls OR c.relowner = r.oid),
-                pg_has_role(current_user, 'cano_snapshot_app', 'USAGE')
+                (
+                    pg_has_role(current_user, 'cano_snapshot_app', 'USAGE')
+                    OR (
+                        pg_has_role(current_user, 'cano_runtime_rw', 'USAGE')
+                        AND EXISTS (
+                            SELECT 1 FROM pg_policies p
+                            WHERE p.schemaname = 'public'
+                              AND p.tablename = 'organism_lab_records'
+                              AND p.policyname = 'organism_lab_records_cano_runtime_select'
+                              AND p.cmd = 'SELECT'
+                              AND 'cano_runtime_rw' = ANY(p.roles)
+                        )
+                        AND EXISTS (
+                            SELECT 1 FROM pg_policies p
+                            WHERE p.schemaname = 'public'
+                              AND p.tablename = 'organism_lab_records'
+                              AND p.policyname = 'organism_lab_records_cano_runtime_insert'
+                              AND p.cmd = 'INSERT'
+                              AND 'cano_runtime_rw' = ANY(p.roles)
+                        )
+                    )
+                )
                 FROM pg_class c JOIN pg_roles r ON r.rolname = current_user
                 WHERE c.oid = 'public.organism_lab_records'::regclass""")
             rls = cur.fetchone()
