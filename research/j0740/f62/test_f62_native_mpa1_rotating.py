@@ -24,6 +24,7 @@ except ImportError:
     axis_ratio_rns=types.ModuleType('axis_ratio_rns')
     axis_ratio_rns.run_rns_at_spin_with_ratio_fallback=lambda *a,**k: (_ for _ in ()).throw(NotImplementedError())
     sys.modules.update({'jester_to_rns':jester_to_rns,'rns_benchmark':rns_benchmark,'axis_ratio_rns':axis_ratio_rns})
+from f62_rns_precision_patch import precision_patch,OLD,NEW
 from f62_native_mpa1_rotating import (gate_star,trial_root,compare_results,rho_from_F61_static,
                                      load_sources,OBSERVED_SPIN_HZ,GRID_POINTS,TARGETS,F61_REPORT_SHA,
                                      MESH_RADIUS_TOL_KM)
@@ -36,6 +37,18 @@ def model(m=2.073,r=12.5,f=346.536369,rho=1e15):
 
 
 class F62Tests(unittest.TestCase):
+    def test_C_print_precision_only_patch_is_unique(self):
+        original='before\n    '+OLD+'\n equations unchanged\n'
+        updated=precision_patch(original)
+        self.assertIn(NEW,updated)
+        self.assertNotIn(OLD,updated)
+        self.assertIn('equations unchanged',updated)
+        self.assertEqual(len(updated.splitlines()),len(original.splitlines()))
+
+    def test_reject_unexpected_upstream_RNS_source(self):
+        with self.assertRaisesRegex(ValueError,'PRINTF_SIGNATURE_DRIFT'):
+            precision_patch('some different upstream C source')
+
     def test_physics_identity_unmodified(self):
         self.assertEqual(GRID_POINTS,(151,196))
         self.assertEqual(TARGETS,(2.073,2.175,2.2,2.25))
