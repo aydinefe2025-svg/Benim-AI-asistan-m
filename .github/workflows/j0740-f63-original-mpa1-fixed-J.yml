@@ -175,7 +175,7 @@ jobs:
           make=Path('rns-upstream/makefile');before=make.read_text()
           old='HIGHSIZE=-DMDIV=151 -DSDIV=301'
           new='HIGHSIZE=-DMDIV=201 -DSDIV=401'
-          if before.count(old)!=1 or new in before:
+          if sum(line==old for line in before.splitlines())!=1 or sum(line==new for line in before.splitlines())!=0:
               raise ValueError('F63_FINE_SPATIAL_MAKEFILE_GRID_IDENTITY_DRIFT')
           make.write_text(before.replace(old,new))
           out=Path('results/F63/fine');out.mkdir(parents=True,exist_ok=True)
