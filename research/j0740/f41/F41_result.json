@@ -1,0 +1,234 @@
+{
+  "F38_six_grids_common_window_cross_check": {
+    "posterior_prior_ratio_resampled_0.015_0.20.npz": {
+      "F39_25_direct": 0.644290834141427,
+      "cross_curve_relative_difference_percent": -0.006902518678975067,
+      "same_explicit_mass_window_msun": [
+        1.92,
+        2.15
+      ],
+      "sweep165_interpolated": 0.6442463618462534
+    },
+    "posterior_prior_ratio_resampled_0.025_0.35.npz": {
+      "F39_25_direct": 0.7083475970838023,
+      "cross_curve_relative_difference_percent": 0.017595154796579138,
+      "same_explicit_mass_window_msun": [
+        1.92,
+        2.15
+      ],
+      "sweep165_interpolated": 0.7084722319400071
+    },
+    "posterior_prior_ratio_resampled_0.040_0.50.npz": {
+      "F39_25_direct": 0.7645125759453697,
+      "cross_curve_relative_difference_percent": 0.03487046640711089,
+      "same_explicit_mass_window_msun": [
+        1.92,
+        2.15
+      ],
+      "sweep165_interpolated": 0.7647791650463429
+    },
+    "posterior_prior_ratio_weighted_0.015_0.20.npz": {
+      "F39_25_direct": 0.6458761375775337,
+      "cross_curve_relative_difference_percent": -0.007897726416583595,
+      "same_explicit_mass_window_msun": [
+        1.92,
+        2.15
+      ],
+      "sweep165_interpolated": 0.6458251280471978
+    },
+    "posterior_prior_ratio_weighted_0.025_0.35.npz": {
+      "F39_25_direct": 0.7090184257438438,
+      "cross_curve_relative_difference_percent": 0.017333599347013617,
+      "same_explicit_mass_window_msun": [
+        1.92,
+        2.15
+      ],
+      "sweep165_interpolated": 0.7091413241570588
+    },
+    "posterior_prior_ratio_weighted_0.040_0.50.npz": {
+      "F39_25_direct": 0.7650351786505677,
+      "cross_curve_relative_difference_percent": 0.03476194979790126,
+      "same_explicit_mass_window_msun": [
+        1.92,
+        2.15
+      ],
+      "sweep165_interpolated": 0.7653011197953065
+    }
+  },
+  "archive_sha256": {
+    "F38": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307",
+    "F39": "6402c4fd97baf1b0766e1f1d5ccb3642b5b50de2d87789f50277b916896033c2",
+    "independent_165_RNS": "2c12790459c62c3d758dcbe8e3a425cec6f8328dec3c6701af28e1ca13a96d5c"
+  },
+  "branch": {
+    "first_mass_reversal_after_index": 137,
+    "sampled_full_sweep_nodes": 165,
+    "sampled_turning_point_not_global_stability": true,
+    "usable_rising_prefix_mass_range_msun": [
+      1.023030508767847,
+      2.176864950867342
+    ],
+    "usable_rising_prefix_nodes": 138
+  },
+  "explicit_guard": "Different table SHA: no EOS object identity. Geometrical agreement is not thermodynamic model proof.",
+  "final_seven_EOS_Bayes": "NOT_RUN",
+  "geom_cross_check": {
+    "all_point_differences_m": [
+      -0.10938255333137192,
+      -0.15073079492466945,
+      -0.15191789088930818,
+      -0.2236555596564216,
+      -0.22909781289470743,
+      -0.2870686778564391,
+      -0.313840731463344,
+      -0.32306225922873466,
+      -0.3552679529637004,
+      -0.3567245832893917,
+      -0.33774167205891104,
+      -0.27522248445066566,
+      -0.18790642704225036,
+      -0.06251812959945369,
+      0.06690806200460031,
+      0.24119698867686168,
+      0.41403895505176536,
+      0.566913920854617,
+      0.6967980403977947,
+      0.8307485975382889,
+      0.8562507483542703,
+      0.866663468789497,
+      10.682451023843242,
+      0.6419358070139936,
+      0.5932153142147456
+    ],
+    "count": 25,
+    "max_abs_delta_m": 10.682451023843242,
+    "median_abs_delta_m": 0.32306225922873466,
+    "rms_delta_m": 2.181945979345875,
+    "source_table_identity_inferred": false
+  },
+  "identical_table_sha256": false,
+  "limitations": [
+    "No native X-PSI photon model re-evaluation",
+    "No physical six-EOS repairs or TOV/RNS reruns",
+    "Different EOS table hashes: numerical MR agreement not a source-physics certificate",
+    "No physical stability proof",
+    "NO final 7-EOS posterior or Bayes factors"
+  ],
+  "max_abs_F38_integral_percent_difference": 0.03487046640711089,
+  "model_labels": {
+    "165": "APR4_EPP_LALSuite_7.26.4_NATIVE_CAUSAL_COMPLETION",
+    "F39": "LALSuite 7.26.4 APR4 native causal completion"
+  },
+  "physical_source_7EOS_gate": {
+    "fully_physically_admissible_seven_model_count": "NOT_ESTABLISHED",
+    "interpretation": "Unmodified JESTER NPZ data only; original nuclear EOS theory is not excluded by table artifacts. No source EOS family becomes validated by passing a finite-node screen.",
+    "onstar_sampled_screen_pass_count": 1,
+    "per_eos": {
+      "APR4_EPP": {
+        "global_physical_model_acceptance": "NOT_ESTABLISHED",
+        "source_counts": {
+          "native_cs2_nonpositive_nodes_global": 0,
+          "native_cs2_superluminal_nodes_global": 2,
+          "negative_native_cs2_below_center": 0,
+          "negative_secants_below_center": 0,
+          "source_energy_nonincreasing_edges_global": 0,
+          "superluminal_native_cs2_below_center": 0,
+          "superluminal_secants_below_center": 0
+        },
+        "source_sampled_onstar_pass": true,
+        "source_whole_tabulation_node_causality_pass": false
+      },
+      "ENG": {
+        "global_physical_model_acceptance": "NOT_ESTABLISHED",
+        "source_counts": {
+          "native_cs2_nonpositive_nodes_global": 1,
+          "native_cs2_superluminal_nodes_global": 58,
+          "negative_native_cs2_below_center": 1,
+          "negative_secants_below_center": 1,
+          "source_energy_nonincreasing_edges_global": 1,
+          "superluminal_native_cs2_below_center": 1,
+          "superluminal_secants_below_center": 0
+        },
+        "source_sampled_onstar_pass": false,
+        "source_whole_tabulation_node_causality_pass": false
+      },
+      "MPA1": {
+        "global_physical_model_acceptance": "NOT_ESTABLISHED",
+        "source_counts": {
+          "native_cs2_nonpositive_nodes_global": 1,
+          "native_cs2_superluminal_nodes_global": 0,
+          "negative_native_cs2_below_center": 1,
+          "negative_secants_below_center": 1,
+          "source_energy_nonincreasing_edges_global": 1,
+          "superluminal_native_cs2_below_center": 0,
+          "superluminal_secants_below_center": 0
+        },
+        "source_sampled_onstar_pass": false,
+        "source_whole_tabulation_node_causality_pass": false
+      },
+      "MS1": {
+        "global_physical_model_acceptance": "NOT_ESTABLISHED",
+        "source_counts": {
+          "native_cs2_nonpositive_nodes_global": 1,
+          "native_cs2_superluminal_nodes_global": 0,
+          "negative_native_cs2_below_center": 1,
+          "negative_secants_below_center": 1,
+          "source_energy_nonincreasing_edges_global": 1,
+          "superluminal_native_cs2_below_center": 0,
+          "superluminal_secants_below_center": 0
+        },
+        "source_sampled_onstar_pass": false,
+        "source_whole_tabulation_node_causality_pass": false
+      },
+      "MS1B": {
+        "global_physical_model_acceptance": "NOT_ESTABLISHED",
+        "source_counts": {
+          "native_cs2_nonpositive_nodes_global": 1,
+          "native_cs2_superluminal_nodes_global": 0,
+          "negative_native_cs2_below_center": 1,
+          "negative_secants_below_center": 1,
+          "source_energy_nonincreasing_edges_global": 1,
+          "superluminal_native_cs2_below_center": 0,
+          "superluminal_secants_below_center": 0
+        },
+        "source_sampled_onstar_pass": false,
+        "source_whole_tabulation_node_causality_pass": false
+      },
+      "WFF1": {
+        "global_physical_model_acceptance": "NOT_ESTABLISHED",
+        "source_counts": {
+          "native_cs2_nonpositive_nodes_global": 1,
+          "native_cs2_superluminal_nodes_global": 69,
+          "negative_native_cs2_below_center": 1,
+          "negative_secants_below_center": 1,
+          "source_energy_nonincreasing_edges_global": 1,
+          "superluminal_native_cs2_below_center": 17,
+          "superluminal_secants_below_center": 16
+        },
+        "source_sampled_onstar_pass": false,
+        "source_whole_tabulation_node_causality_pass": false
+      },
+      "WFF2": {
+        "global_physical_model_acceptance": "NOT_ESTABLISHED",
+        "source_counts": {
+          "native_cs2_nonpositive_nodes_global": 1,
+          "native_cs2_superluminal_nodes_global": 78,
+          "negative_native_cs2_below_center": 1,
+          "negative_secants_below_center": 1,
+          "source_energy_nonincreasing_edges_global": 1,
+          "superluminal_native_cs2_below_center": 8,
+          "superluminal_secants_below_center": 8
+        },
+        "source_sampled_onstar_pass": false,
+        "source_whole_tabulation_node_causality_pass": false
+      }
+    },
+    "raw_whole_table_node_screen_pass_count": 0
+  },
+  "schema": "J0740_F41_two_source_curve_reconciliation_v1",
+  "source_EOS_table_sha256": {
+    "165_table": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89",
+    "F39_table": "e3ce6c6f314ea40e2dd3f5f1593ccb552516977bc005a5242e2629d4ba5398b7"
+  },
+  "status": "PASS_NUMERICAL_CROSS_CHECK_NOT_SEVEN_EOS_BAYES"
+}
