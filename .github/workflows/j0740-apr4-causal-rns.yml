@@ -91,11 +91,11 @@ jobs:
           test "$(find results/f38 -maxdepth 1 -name 'posterior_prior_ratio_weighted_*.npz' | wc -l)" -eq 3
       - name: Integrate the existing F38 likelihood along the new causal APR4 RNS sequence
         run: |
-          python research/j0740/physical_eos/apr4_causal_f38_curve_evidence.py \\
-            --binary rns-upstream/rns_201x401 \\
-            --eos-table results/work/APR4_CAUSAL_7p26p4_200.rns \\
-            --anchor research/j0740/physical_eos/APR4_native_LAL_causal_completion_RNS.json \\
-            --surfaces results/f38 \\
+          python research/j0740/physical_eos/apr4_causal_f38_curve_evidence.py \
+            --binary rns-upstream/rns_201x401 \
+            --eos-table results/work/APR4_CAUSAL_7p26p4_200.rns \
+            --anchor research/j0740/physical_eos/APR4_native_LAL_causal_completion_RNS.json \
+            --surfaces results/f38 \
             --out results/J0740_CAUSAL_APR4_F38_CURVE_EVIDENCE.json
       - name: Preserve likelihood integration and table evidence
         if: always()
