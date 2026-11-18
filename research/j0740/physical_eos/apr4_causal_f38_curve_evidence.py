@@ -114,6 +114,8 @@ def main():
     p.add_argument("--anchor"); p.add_argument("--surfaces",required=True)
     p.add_argument("--out",required=True)
     p.add_argument("--reuse-curve-json")
+    p.add_argument("--reanchor-binary")
+    p.add_argument("--reanchor-eos-table")
     a=p.parse_args()
     surfaces=source_surfaces(a.surfaces)
     if not a.reuse_curve_json and not all((a.binary,a.eos_table,a.anchor)):
@@ -130,6 +132,40 @@ def main():
               "radius":np.asarray([float(x["radius_eq_km"]) for x in rows])}
             if np.any(np.diff(curves[k]["mass"])<=0) or np.any(np.diff(curves[k]["ec"])<=0):
                 raise ValueError(f"saved {k} sequence is not the validated rising branch")
+        reanchor=None
+        if a.reanchor_binary or a.reanchor_eos_table:
+            if not (a.reanchor_binary and a.reanchor_eos_table and a.anchor):
+                p.error("--reanchor-binary, --reanchor-eos-table and --anchor must be provided together")
+            seed_record=None
+            for rec in json.loads(Path(a.anchor).read_text(encoding="utf-8")).get("results",[]):
+                model=rec.get("model",{})
+                if rec.get("grid")=="rns-candidate-201" and rec.get("status")=="PASS":
+                    seed_record=model
+                    break
+            if seed_record is None: raise ValueError("verified fine-grid seed root missing")
+            ec0=float(seed_record.get("central_energy_density_g_cm3",seed_record.get("central_density_g_cm3")))/1e15
+            seed=(ec0,float(seed_record["axis_ratio"]))
+            root.TARGET_MASS_MSUN=ANCHOR_M
+            fresh=root.solve_fixed_mf(lambda e,rr:root.run_model(
+                Path(a.reanchor_binary),Path(a.reanchor_eos_table),e,rr),seed)
+            fresh["target_mass_msun"]=ANCHOR_M
+            for k in curves:
+                idx=int(np.argmin(np.abs(curves[k]["mass"]-ANCHOR_M)))
+                if abs(curves[k]["mass"][idx]-ANCHOR_M)>1e-5:
+                    raise ValueError(f"{k} grid lacks exact anchor mass")
+                curves[k]["roots"][idx]=fresh
+                rows=sorted(curves[k]["roots"],key=lambda x:float(x["central_energy_density_g_cm3"]))
+                curves[k]["roots"]=rows
+                curves[k]["mass"]=np.asarray([float(x["mass_msun"]) for x in rows])
+                curves[k]["ec"]=np.asarray([float(x["central_energy_density_g_cm3"]) for x in rows])
+                curves[k]["radius"]=np.asarray([float(x["radius_eq_km"]) for x in rows])
+                if np.any(np.diff(curves[k]["mass"])<=0) or np.any(np.diff(curves[k]["ec"])<=0):
+                    raise ValueError(f"reanchored {k} sequence is not monotonic")
+            reanchor={"mass_msun":fresh["mass_msun"],"radius_eq_km":fresh["radius_eq_km"],
+              "central_energy_density_g_cm3":fresh["central_energy_density_g_cm3"],
+              "spin_hz":fresh["spin_hz"],"eos_table_sha256":root.sha256(Path(a.reanchor_eos_table)),
+              "root_status":"PASS_DIRECT_RNS_ON_CURVE_EOS_TABLE"}
+        else: reanchor=None
     else:
         curves={k:root_curve(a.binary,a.eos_table,a.anchor,k) for k in GRID_RANGES}
     vals={k:evidence(curves[k],surfaces) for k in curves}
@@ -144,6 +180,8 @@ def main():
       "prior_assumption":"normalized uniform central energy density over sampled single-valued rising fixed-spin branch M=1.923..2.123 Msun; normalized radio Gaussian likelihood applied exactly once after dividing it out of source effective prior; turning point, full stable branch, and omitted-tail correction NOT_ESTABLISHED",
       "radio_mass":{"mu_msun":RADIO_MU,"sigma_msun":RADIO_SIGMA},
       "surface_sha256":{s["path"]:s["sha256"] for s in surfaces},
+      "rns_curve_anchor_recomputed_on_curve_table":reanchor,
+      "input_rns_eos_table_sha256":reanchor["eos_table_sha256"] if reanchor else "RECORDED_WITH_CURVE_ARTIFACT",
       "conditional_evidence_ratio_L_over_Z_uniform_ec_by_bandwidth":vals,
       "coarse_fine_relative_delta":deltas,
       "grid_convergence":"PASS_2_PERCENT" if max(deltas.values())<.02 else "FAIL_OR_NOT_CONVERGED",
