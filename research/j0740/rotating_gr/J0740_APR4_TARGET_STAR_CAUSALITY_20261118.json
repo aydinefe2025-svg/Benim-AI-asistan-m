@@ -1,0 +1,91 @@
+{
+  "acceptance": {
+    "EOS_Bayes": "NOT_RUN",
+    "absolute_baryon_mass_normalization": "NOT_ESTABLISHED",
+    "all_four_target_star_interiors_causal_and_stable": true,
+    "fixed_J_turning_point_stability": "NOT_ESTABLISHED",
+    "original_apr4_global_causality": "FAIL",
+    "target_star_specific_eos_screen": "PASS_CONDITIONAL"
+  },
+  "method": {
+    "cs2": "P / (epsilon * d(log epsilon)/d(log P))",
+    "interpolation": "natural cubic spline in log(epsilon)-log(P), identical to tabular replay convention",
+    "sample_count_per_target": 50001,
+    "surface_model_for_target_screen": "epsilon=epsilon0*(P/P0)^0.6; cs2=5P/(3epsilon), down to P->0",
+    "target_models": "four saved direct RNS roots; no stellar solver rerun",
+    "whole_table_sample_count": 250001
+  },
+  "schema": "j0740_apr4_target_star_causality_audit_v1",
+  "source": {
+    "lalsuite_release_commit": "fc92814767cd01523d546a07d325b1dd6759a1a0",
+    "lalsuite_tag": "lalsuite-v7.26.4",
+    "root_evidence_sha256": "0065c93bbb95b4d0d05a5a934b541f782169c2f7f52123edeaed1ff89da00bb4",
+    "root_table_sha256": "c8f4da82524a5e0b3450c682198359078deb78d573a1f50f2487235df16d88c7",
+    "table_rows": 1447,
+    "table_sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f"
+  },
+  "status": "TARGET_CONFIG_CAUSAL_STABLE_TO_CENTER; ORIGINAL_APR4_GLOBAL_EOS_NOT_CERTIFIED; EOS_Bayes=NOT_RUN",
+  "target_roots": [
+    {
+      "central_cs2": 0.862101569543249,
+      "central_density_g_cm3": 1754499753449583.5,
+      "central_pressure_geom_m2": 5.331407604242784e-10,
+      "grid": "rns_151x301",
+      "local_stability_and_causality_pass": true,
+      "low_p_extension_cs2_at_join": 4.351889812730272e-08,
+      "mass_msun": 2.0730000000395616,
+      "max_cs2_from_surface_to_center": 0.9511795607168241,
+      "min_dlogeps_dlogp_from_surface_to_center": 0.30088209417033823,
+      "radius_eq_km": 10.75176387402104,
+      "spin_hz": 346.53636942065197
+    },
+    {
+      "central_cs2": 0.8621017919815308,
+      "central_density_g_cm3": 1754499105104207.2,
+      "central_pressure_geom_m2": 5.331403453467428e-10,
+      "grid": "rns_151x301",
+      "local_stability_and_causality_pass": true,
+      "low_p_extension_cs2_at_join": 4.351889812730272e-08,
+      "mass_msun": 2.0729997907574154,
+      "max_cs2_from_surface_to_center": 0.9511795717273459,
+      "min_dlogeps_dlogp_from_surface_to_center": 0.30088209296590124,
+      "radius_eq_km": 10.75176443084242,
+      "spin_hz": 346.5363273692342
+    },
+    {
+      "central_cs2": 0.861675037054133,
+      "central_density_g_cm3": 1755892141395923.5,
+      "central_pressure_geom_m2": 5.340319524099945e-10,
+      "grid": "rns_201x401",
+      "local_stability_and_causality_pass": true,
+      "low_p_extension_cs2_at_join": 4.351889812730272e-08,
+      "mass_msun": 2.0730000000561586,
+      "max_cs2_from_surface_to_center": 0.9511820480430133,
+      "min_dlogeps_dlogp_from_surface_to_center": 0.3008817014910854,
+      "radius_eq_km": 10.750230172228584,
+      "spin_hz": 346.53636971125115
+    },
+    {
+      "central_cs2": 0.8616750379368704,
+      "central_density_g_cm3": 1755892138123356.2,
+      "central_pressure_geom_m2": 5.340319503159023e-10,
+      "grid": "rns_201x401",
+      "local_stability_and_causality_pass": true,
+      "low_p_extension_cs2_at_join": 4.351889812730272e-08,
+      "mass_msun": 2.072999998202672,
+      "max_cs2_from_surface_to_center": 0.9511820480508045,
+      "min_dlogeps_dlogp_from_surface_to_center": 0.3008817014903478,
+      "radius_eq_km": 10.750230171224958,
+      "spin_hz": 346.5363566104969
+    }
+  ],
+  "whole_original_source_table": {
+    "first_superluminal_crossing": {
+      "cs2": 1.0006615729676012,
+      "pressure_geom_m2": 7.159545492397342e-10
+    },
+    "global_source_eos_causal": false,
+    "max_cs2": 1.1000091383968276,
+    "min_dlogeps_dlogp": 0.3008816962762957
+  }
+}
