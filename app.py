@@ -103,13 +103,13 @@ if _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"):
                 os.environ["AGENT_TASK_DATABASE_URL"], _OWNER_KEY,
             )
             _CODE_JOB_RECEIPTS = _code_store.recent()
+            # The same owner-scoped rows now expose verified-format PR,
+            # CI and Render deployment receipts, not merely status labels.
+            from core.cano_development_status import render_owner_code_status
+            render_owner_code_status(st, _CODE_JOB_RECEIPTS)
             for _job in _CODE_JOB_RECEIPTS:
                 st.caption(_job["id"][:8] + " · " + _job["status"]
                            + " · " + _job["goal"])
-                if (_job["pr_url"].startswith(
-                    "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/")
-                ):
-                    st.link_button("Geliştirme PR'ını aç", _job["pr_url"])
                 if _job["reason_code"]:
                     st.caption("Engel: " + _job["reason_code"])
         except Exception as _code_queue_error:
