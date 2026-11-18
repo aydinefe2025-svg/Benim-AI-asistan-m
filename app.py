@@ -320,6 +320,7 @@ st.markdown(
 # It is loaded per verified OIDC owner from the existing Neon connection.
 if st.session_state.get("_cano_chat_owner") != _OWNER_KEY:
     st.session_state.pop("messages", None)
+    st.session_state.pop("_cano_chat_saved", None)
     st.session_state["_cano_chat_owner"] = _OWNER_KEY
 _CHAT_STORE = None
 if _AUTH_REQUIRED and _OWNER_KEY and _MEMORY_DATABASE_URL:
@@ -334,17 +335,43 @@ if "messages" not in st.session_state:
     if _CHAT_STORE is not None:
         try:
             st.session_state.messages = _CHAT_STORE.load()
+            # Explicit last-confirmed baseline persists across Streamlit reruns.
+            # A tab with stale messages must not overwrite another device.
+            st.session_state["_cano_chat_saved"] = [
+                dict(item) for item in st.session_state.messages
+            ]
         except Exception:
             st.error("CANO sohbet geçmişi yüklenemedi; kayıtlar değiştirilmedi.")
             st.stop()
     else:
         st.session_state.messages = []
+elif _CHAT_STORE is not None and "_cano_chat_saved" not in st.session_state:
+    # An old in-memory Streamlit session has no version receipt. Do not guess
+    # that it matches the database and overwrite a newer owner's messages.
+    st.error("Sohbet geçmişi sürümü doğrulanamadı. Yeni oturum açıp kayıtlı sohbeti yeniden yükleyin.")
+    st.stop()
 
 
 def _save_cano_chat():
     if _CHAT_STORE is not None:
+        from core.cano_chat_history import ChatHistoryConflict, MAX_MESSAGES
         try:
-            _CHAT_STORE.save(st.session_state.messages)
+            _CHAT_STORE.save(
+                st.session_state.messages,
+                expected=st.session_state["_cano_chat_saved"],
+            )
+            # Update the snapshot only AFTER commit and readback verification.
+            st.session_state["_cano_chat_saved"] = [
+                {"role":m["role"], "content":m["content"]}
+                for m in st.session_state.messages[-MAX_MESSAGES:]
+            ]
+        except ChatHistoryConflict:
+            st.error(
+                "Sohbet başka bir oturumda değişti; eski kayıt üzerine yazılmadı. "
+                "Bu oturumdaki yeni mesajı kaybetmemek için kopyalayın, "
+                "sonra kayıtlı sohbeti yeniden yükleyin."
+            )
+            st.stop()
         except Exception:
             st.error("CANO sohbeti Neon'a doğrulanarak kaydedilemedi. Yeni oturum açmayın.")
             st.stop()
