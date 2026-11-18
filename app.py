@@ -184,8 +184,8 @@ def internette_ara(sorgu: str) -> str:
     # Keep the source helper independently executable by the app's offline
     # regression harness; these pure guards perform no network activity.
     from core.weather_reliability import (
-        weather_requested, weather_location, forecast_requested,
-        parse_wttr_forecast,
+        weather_requested, weather_location, weather_region,
+        forecast_requested, parse_wttr_forecast,
     )
     try:
         # Resolve district names (e.g. Ödemiş) instead of confusing the
@@ -220,6 +220,7 @@ def internette_ara(sorgu: str) -> str:
                     pass
                 backup = fetch_open_meteo_weather(
                     sehir_adi, get=requests.get, forecast=True,
+                    province=weather_region(sorgu, sehir_adi),
                 )
                 if backup is not None:
                     return backup
@@ -241,6 +242,7 @@ def internette_ara(sorgu: str) -> str:
             if not wants_forecast:
                 backup = fetch_open_meteo_weather(
                     sehir_adi, get=requests.get, forecast=False,
+                    province=weather_region(sorgu, sehir_adi),
                 )
                 if backup is not None:
                     return backup

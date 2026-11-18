@@ -58,7 +58,76 @@ GEOCODED_ODEMIS = {
 }
 
 
+# Real geocoding API on 18 Nov 2026 returned all five same-name locations.
+# A naive count of Turkish exact matches rejects even the correct district.
+MULTIPLE_ODEMIS = {
+    "results": [
+        {"name": "Ödemiş", "country_code": "TR", "admin1": "İzmir",
+         "admin2": "Ödemiş İlçesi", "latitude": 38.2278, "longitude": 27.96955},
+        {"name": "Ödemiş", "country_code": "TR", "admin1": "Karabük",
+         "admin2": "Karabuk", "latitude": 41.15884, "longitude": 32.5935},
+        {"name": "Ödemiş", "country_code": "TR", "admin1": "Çankırı",
+         "admin2": "Ilgaz İlçesi", "latitude": 40.948, "longitude": 33.55396},
+        {"name": "Ödemiş", "country_code": "TR", "admin1": "Batman",
+         "admin2": "Batman", "latitude": 38.03066, "longitude": 41.22681},
+        {"name": "Ödemiş", "country_code": "TR", "admin1": "Adıyaman",
+         "admin2": "Kâhta İlçesi", "latitude": 37.65812, "longitude": 38.76215},
+    ]
+}
+
+
 class OpenMeteoFailoverTests(unittest.TestCase):
+    def test_real_odemis_five_geocodes_select_explicit_izmir(self):
+        from core.open_meteo_weather import fetch_open_meteo_weather
+        from core.weather_reliability import weather_direct_reply
+        search, requests = load_search_function()
+        requests.get.side_effect = [
+            fake_response(status=503),
+            fake_response(payload=MULTIPLE_ODEMIS),
+            fake_response(payload=valid_meteo_payload()),
+        ]
+        result = search("İzmir Ödemiş hava durumu")
+        answer = weather_direct_reply("İzmir Ödemiş hava durumu", result)
+        self.assertIn("Open-Meteo", answer)
+        self.assertIn("Ödemiş", answer)
+        self.assertEqual(
+            38.2278, requests.get.call_args.kwargs["params"]["latitude"])
+        self.assertEqual(
+            27.96955, requests.get.call_args.kwargs["params"]["longitude"])
+
+    def test_unqualified_odemis_uniquely_resolves_self_named_district(self):
+        from core.open_meteo_weather import fetch_open_meteo_weather
+        calls = []
+        def get(url, **kwargs):
+            calls.append((url, kwargs))
+            return fake_response(payload=(
+                MULTIPLE_ODEMIS if "geocoding" in url
+                else valid_meteo_payload()))
+        source = fetch_open_meteo_weather("Ödemiş", get=get)
+        self.assertIsNotNone(source)
+        self.assertEqual(38.2278, calls[1][1]["params"]["latitude"])
+
+    def test_explicit_other_province_never_silently_falls_back_to_izmir(self):
+        from core.open_meteo_weather import fetch_open_meteo_weather
+        calls = []
+        def get(url, **kwargs):
+            calls.append((url, kwargs))
+            return fake_response(payload=(
+                MULTIPLE_ODEMIS if "geocoding" in url
+                else valid_meteo_payload()))
+        self.assertIsNotNone(fetch_open_meteo_weather(
+            "Ödemiş", province="Karabük", get=get))
+        self.assertEqual(41.15884, calls[-1][1]["params"]["latitude"])
+        self.assertIsNone(fetch_open_meteo_weather(
+            "Ödemiş", province="İstanbul", get=get))
+
+    def test_cano_ignores_non_location_time_word_before_district(self):
+        from core.weather_reliability import weather_region
+        self.assertEqual("İzmir", weather_region("İzmir Ödemiş hava durumu", "Ödemiş"))
+        self.assertEqual("Karabük", weather_region("Karabük Ödemiş hava durumu", "Ödemiş"))
+        self.assertIsNone(weather_region("Yarın Ödemiş hava durumu", "Ödemiş"))
+        self.assertIsNone(weather_region("Ödemiş hava durumu", "Ödemiş"))
+
     def test_odemis_fallback_when_wttr_returns_non_200(self):
         from core.open_meteo_weather import render_open_meteo_reply
         search, requests = load_search_function()

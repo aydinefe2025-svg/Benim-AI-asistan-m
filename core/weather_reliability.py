@@ -123,6 +123,30 @@ def weather_location(question: str) -> str | None:
     return city[0].upper() + city[1:]
 
 
+
+def weather_region(question: str, city: str) -> str | None:
+    """Extract an explicit province directly before the named weather city.
+
+    Do not infer province from the account location, IP, or chat history.
+    Temporal words ('yarın Ödemiş') are never treated as provinces.
+    """
+    if (not isinstance(question, str) or not isinstance(city, str)
+            or not _CITY.fullmatch(city) or not weather_requested(question)):
+        return None
+    match = re.search(
+        rf"(?P<region>{_LOCATION_TOKEN})\s+{re.escape(city)}"
+        rf"(?:['’](?:da|de|ta|te))?\s+"
+        r"(?:hava|sıcaklık|sicaklik|yağış|yagis|rüzgar|ruzgar|tahmin)\b",
+        question, re.I,
+    )
+    if match is None:
+        return None
+    province = match.group("region")
+    if province.casefold() in _NON_LOCATIONS or not _CITY.fullmatch(province):
+        return None
+    return province[0].upper() + province[1:]
+
+
 def parse_wttr_forecast(city: str, data: object) -> str | None:
     """Fail closed on malformed or stale wttr.in j1 three-day forecast."""
     if not isinstance(city, str) or not _CITY.fullmatch(city):
