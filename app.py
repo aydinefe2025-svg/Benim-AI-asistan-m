@@ -1032,6 +1032,7 @@ if (_AUTH_REQUIRED and _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"))
                     st.session_state.messages.append({
                         "role": "assistant", "content": _result,
                     })
+                    _save_cano_chat()
                     st.rerun()
                 except Exception as exc:
                     logging.getLogger(__name__).warning(
@@ -1073,4 +1074,5 @@ if isinstance(_chat_pending_task, dict):
                 st.session_state.messages.append({
                     "role": "assistant", "content": _chat_task_result,
                 })
+                _save_cano_chat()
 
