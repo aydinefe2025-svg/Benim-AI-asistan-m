@@ -39,12 +39,14 @@ def actionable_solution(answer):
         "kod", "yazilim", "github", "render", "streamlit", "neon",
         "postgresql", "uygulama", "sohbet arayuzu", "test", "gorev kuyrugu",
     )
-    verbs = (
-        "duzelt", "ekle", "bagla", "test", "kur", "gelistir",
-        "yayimla", "yayinla", "uygula", "guncelle", "onar",
+    # Match whole imperative words, not prefixes of explanations such as
+    # 'ekleyebiliriz' (we can add a memory note) or 'gelistirme' (job status).
+    # A plain noun 'test' is not a command; 'test et' is.
+    command = re.search(
+        r"\b(?:duzelt|ekle|bagla|kur|gelistir|yayimla|yayinla|"
+        r"uygula|guncelle|onar)\b|\btest\s+et\b", normalized
     )
-    return (any(word in normalized for word in software)
-            and any(word in normalized for word in verbs))
+    return any(word in normalized for word in software) and bool(command)
 
 
 SELF_DEVELOPMENT_GOAL = (

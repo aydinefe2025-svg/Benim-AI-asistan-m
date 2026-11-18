@@ -128,3 +128,20 @@ class CanoNaturalCodeDispatchTests(unittest.TestCase):
         self.assertIn("tamamlandı", text)
         self.assertNotIn("kalıcı kuyruğa alındı", text)
         self.assertIn("yeni iş başlatılmadı", text)
+
+
+    def test_status_message_with_memory_note_is_not_an_executable_code_solution(self):
+        # A real queued job came from "CANO bunu uygula" after an assistant
+        # described a previous queued job and offered to save a MEMORY NOTE.
+        # 'ekleyebiliriz' must not count as the code-edit command 'ekle'.
+        previous = (
+            "Merhaba! Cano'nun her şeyi öğrenmesi model eğitimi demek değil. "
+            "Kod geliştirme işi hâlâ kuyruğa alınmış. "
+            "Kullanıcı notunu kalıcı hafızaya ekleyebiliriz; "
+            "bir not oluşturup saklamak mümkün. Notu kaydedebiliriz."
+        )
+        self.assertFalse(actionable_solution(previous))
+        self.assertIsNone(infer_code_goal(
+            "CANO bunu uygula", [{"role": "assistant", "content": previous}]
+        ))
+
