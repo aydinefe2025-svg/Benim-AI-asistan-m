@@ -1,0 +1,55 @@
+name: J0740 F60 source-locked analytic radio-prior tails
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f60/**'
+      - '.github/workflows/j0740-f60-radio-prior-tail.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-locked-analytic-tail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify source archive F51 hash
+        run: echo '3c3584905190012ee61f4b7fee343e3d1c9e28300f9d681e8bf34dd157b5d67d  research/j0740/f51/F51_results.json' | sha256sum -c -
+      - name: Eleven fail-closed scientific tests
+        run: python -m unittest discover -s research/j0740/f60 -p 'test_f60_*.py' -v
+      - name: Recompute original analytic radio-prior mass budget
+        run: python research/j0740/f60/f60_two_sided_tail.py --out results/F60/F60_two_sided_prior_tail.json
+      - name: Independent erf CDF cross-check and probability partition
+        run: |
+          python - <<'PY'
+          import json,math
+          from pathlib import Path
+          d=json.loads(Path('results/F60/F60_two_sided_prior_tail.json').read_text())
+          mu,s=2.082,.0703
+          f=lambda x: .5*(1+math.erf((x-mu)/(s*math.sqrt(2))))
+          norm=f(mu+5*s)-f(mu-5*s)
+          c=lambda x: (f(x)-f(mu-5*s))/norm
+          actual=[d['mass_prior_below_1p89'],d['mass_prior_above_2p175'],d['total_outside_pair_interval']]
+          check=[c(1.89),1-c(2.175),c(1.89)+1-c(2.175)]
+          assert len(d['conditional_only_comparisons'])==6
+          for a,b in zip(actual,check):assert abs(a-b)<2e-12
+          assert abs(actual[0]+actual[1]-actual[2])<1e-12
+          print('F60 independent erf-CDF and partition: PASS (4/4)')
+          PY
+      - name: SHA256 output receipt
+        if: always()
+        run: |
+          mkdir -p results/F60
+          sha256sum results/F60/F60_two_sided_prior_tail.json > results/F60/F60_SHA256.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f60-analytic-tail-original-F51-or-failure
+          path: results/F60/
+          if-no-files-found: warn
+          retention-days: 30
