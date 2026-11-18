@@ -77,14 +77,47 @@ class OrganismLabStore:
             role_name, can_select, can_insert = result
             if not can_select or not can_insert:
                 raise OrganismLabPermissionsError(role_name, can_select, can_insert)
-            # Table grants alone do not prove that a matching RLS policy
-            # permits an owner-scoped lab record. Production Neon has roles
-            # with grants but no applicable CANO lab RLS policy.
+            # Production CANO logs in as cano_runtime_rw, not as the old
+            # cano_snapshot_app role. It has its own pair of owner-scoped RLS
+            # policies. Verify BOTH exact SELECT and INSERT policies for an
+            # inherited/active role: a table grant alone is not permission.
+            # Compare the PostgreSQL-rendered predicate to prevent a broader
+            # policy from passing this owner-isolation preflight.
+            expected_scope = (
+                "((owner_key = current_setting('cano.owner_key'::text, true)) "
+                "AND (collection = 'simulation'::text) "
+                "AND (record_id ~~ 'cano-organism-lab-v1-%'::text))"
+            )
             cur.execute("""SELECT c.relrowsecurity,
                 (r.rolbypassrls OR c.relowner = r.oid),
-                pg_has_role(current_user, 'cano_snapshot_app', 'USAGE')
+                EXISTS (
+                    SELECT 1 FROM (VALUES
+                        ('cano_snapshot_app'::name,
+                         'organism_lab_records_cano_lab_select'::name,
+                         'organism_lab_records_cano_lab_insert'::name),
+                        ('cano_runtime_rw'::name,
+                         'organism_lab_records_cano_runtime_select'::name,
+                         'organism_lab_records_cano_runtime_insert'::name)
+                    ) AS spec(role_name, select_name, insert_name)
+                    JOIN pg_policies sel
+                      ON sel.schemaname='public'
+                     AND sel.tablename='organism_lab_records'
+                     AND sel.policyname=spec.select_name
+                     AND sel.cmd='SELECT'
+                    JOIN pg_policies ins
+                      ON ins.schemaname='public'
+                     AND ins.tablename='organism_lab_records'
+                     AND ins.policyname=spec.insert_name
+                     AND ins.cmd='INSERT'
+                    WHERE pg_has_role(current_user, spec.role_name, 'USAGE')
+                      AND sel.roles=ARRAY[spec.role_name]
+                      AND ins.roles=ARRAY[spec.role_name]
+                      AND sel.qual=%s
+                      AND ins.with_check=%s
+                )
                 FROM pg_class c JOIN pg_roles r ON r.rolname = current_user
-                WHERE c.oid = 'public.organism_lab_records'::regclass""")
+                WHERE c.oid = 'public.organism_lab_records'::regclass""",
+                (expected_scope, expected_scope))
             rls = cur.fetchone()
             if not rls or (rls[0] and not (rls[1] or rls[2])):
                 raise OrganismLabRlsPolicyError(role_name)
