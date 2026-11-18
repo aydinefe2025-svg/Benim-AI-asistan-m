@@ -71,11 +71,36 @@ def authenticated_owner_key(claims: Any, owner_key_secret: str) -> str | None:
     return "oidc_" + digest
 
 
+
+def isolate_owner_session(state: Any, owner_key: str | None) -> bool:
+    """Prevent a previous OIDC owner's Streamlit in-memory data from leaking.
+
+    Streamlit can rerun inside the same browser session with a different
+    authenticated user. An owner-key change must invalidate ALL old session
+    data, not just visible chat: memory notes, tasks, export buffers, model
+    results and unknown future data-bearing widget keys. Retain only harmless
+    non-owner appearance and the already-created logout widget key.
+    """
+    marker = "_cano_session_owner"
+    if marker in state and state.get(marker) == owner_key:
+        return False
+    # A legacy session without a marker is NOT a trusted same-owner session.
+    # Fail closed so a hot deployment cannot expose stale owner-owned data.
+    harmless_ui_keys = frozenset(("user_theme", "logout"))
+    for key in list(state):
+        if key not in harmless_ui_keys:
+            state.pop(key, None)
+    state[marker] = owner_key
+    return True
+
+
 def render_auth_gate(st: Any, environment: Mapping[str, str]) -> str | None:
     """Stop the Streamlit run unless required Google OIDC is configured and valid."""
     if not auth_is_required(environment):
         return None
     if not oidc_is_configured(st.secrets, environment):
+        if hasattr(st, "session_state"):
+            isolate_owner_session(st.session_state, None)
         st.error(
             "Güvenli giriş yapılandırılmamış. Google OIDC ayarlarını Streamlit "
             "Secrets içinde tamamlayın; uygulama kapalı kalacak."
@@ -83,12 +108,18 @@ def render_auth_gate(st: Any, environment: Mapping[str, str]) -> str | None:
         st.stop()
     user = st.user
     if not user.get("is_logged_in", False):
+        # The login screen must not retain the previously authenticated
+        # owner's data in an existing Streamlit browser session.
+        if hasattr(st, "session_state"):
+            isolate_owner_session(st.session_state, None)
         st.title("Giriş gerekli")
         st.button("Google ile giriş yap", on_click=st.login)
         st.stop()
     auth = st.secrets["auth"]
     owner_key = authenticated_owner_key(user, auth["owner_key_secret"])
     if owner_key is None:
+        if hasattr(st, "session_state"):
+            isolate_owner_session(st.session_state, None)
         st.error("Giriş kimliği doğrulanamadı; oturum başlatılmadı.")
         st.stop()
     st.sidebar.button("Güvenli çıkış", on_click=st.logout, key="logout")

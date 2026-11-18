@@ -12,7 +12,7 @@ st.sidebar.page_link("app.py", label="CANO Sohbet", icon="💬")
 
 # Optional fail-closed production login. Keep APP_AUTH_REQUIRED unset locally;
 # enable it on Render only after the Google OIDC secrets file is configured.
-from core.authentication import auth_is_required, render_auth_gate
+from core.authentication import auth_is_required, isolate_owner_session, render_auth_gate
 from core.storage_config import (cano_database_url, database_binding_providers,
                                  database_provider_label, memory_database_url)
 
@@ -49,6 +49,11 @@ if os.environ.get("CANO_TASK_PREFLIGHT_ONCE") == "1":
 
     _cano_task_preflight_once()
 _OWNER_KEY = render_auth_gate(st, os.environ)
+# Clear a previous account's chat, memory, drafts and export widgets before
+# loading any owner-scoped data. Same-owner Streamlit reruns remain untouched.
+# Some credential-preflight test stubs intentionally omit Streamlit session state.
+if hasattr(st, "session_state"):
+    isolate_owner_session(st.session_state, _OWNER_KEY)
 if not _OWNER_KEY and hasattr(st, "session_state"):
     # Do not retain a prior owner's prepared ciphertext or password widget state
     # in a shared Streamlit session after logout.
