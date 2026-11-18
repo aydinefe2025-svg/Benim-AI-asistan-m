@@ -18,6 +18,10 @@ class OrganismLabPersistenceError(RuntimeError):
     """A safe, user-presentable persistence failure."""
 
 
+class OrganismLabRlsPolicyError(RuntimeError):
+    """Runtime role has table grants but cannot write owner-scoped lab rows."""
+
+
 class OrganismLabPermissionsError(RuntimeError):
     """Non-sensitive runtime grant details for safe operations diagnostics."""
 
@@ -69,6 +73,19 @@ class OrganismLabStore:
             role_name, can_select, can_insert = result
             if not can_select or not can_insert:
                 raise OrganismLabPermissionsError(role_name, can_select, can_insert)
+            # Table grants alone do not prove that a matching RLS policy
+            # permits an owner-scoped lab record. Production Neon has roles
+            # with grants but no applicable CANO lab RLS policy.
+            cur.execute("""SELECT c.relrowsecurity,
+                (r.rolbypassrls OR c.relowner = r.oid),
+                pg_has_role(current_user, 'cano_snapshot_app', 'USAGE')
+                FROM pg_class c JOIN pg_roles r ON r.rolname = current_user
+                WHERE c.oid = 'public.organism_lab_records'::regclass""")
+            rls = cur.fetchone()
+            if not rls or (rls[0] and not (rls[1] or rls[2])):
+                raise OrganismLabRlsPolicyError(
+                    "Organism Lab RLS does not authorize the current runtime role"
+                )
             cur.execute("""SELECT owner_key, collection, record_id, payload, updated_at
                 FROM public.organism_lab_records LIMIT 0""")
             return role_name
@@ -113,7 +130,20 @@ class OrganismLabStore:
                 (self.owner_key, self.COLLECTION, record_id, payload))
         # Read through a new connection so success means durable, owner-scoped
         # data can actually be recovered after the write transaction commits.
-        row = self._load_row(record_id)
+        try:
+            row = self._load_row(record_id)
+        except Exception as exc:
+            # The write has already committed. A single read-only retry
+            # may recover a transient network failure without duplicate data.
+            sqlstate = getattr(exc, "sqlstate", None)
+            transient = (
+                isinstance(exc, (ConnectionError, TimeoutError))
+                or type(exc).__name__ in {"OperationalError", "InterfaceError"}
+                or (isinstance(sqlstate, str) and sqlstate.startswith("08"))
+            )
+            if not transient:
+                raise
+            row = self._load_row(record_id)
         if row is None:
             raise OrganismLabPersistenceError("Organism Lab record readback failed")
         actual, actual_digest = self._decode_payload(row[0])
