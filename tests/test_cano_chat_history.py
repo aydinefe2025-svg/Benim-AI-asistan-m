@@ -25,11 +25,17 @@ class FakeCursor:
         elif "LIMIT 0" in statement:
             self.current = None
         elif "INSERT INTO public.cano_chat_histories" in statement:
-            owner, raw = args
+            owner, raw, expected = args
             if self.owner != owner:
                 raise PermissionError("RLS scope mismatch")
-            self.db.rows[owner] = json.loads(raw)
-            self.current = None
+            current = self.db.rows.get(owner)
+            # Simulate the atomic PostgreSQL ON CONFLICT ... WHERE ... RETURNING
+            # compare-and-swap contract for independent concurrent sessions.
+            if current is not None and current != json.loads(expected):
+                self.current = None
+            else:
+                self.db.rows[owner] = json.loads(raw)
+                self.current = (self.db.rows[owner],)
         elif "SELECT payload" in statement:
             if self.owner != args[0]:
                 raise PermissionError("RLS scope mismatch")
