@@ -48,5 +48,60 @@ class AuthenticationTests(unittest.TestCase):
         self.assertIsNone(authenticated_owner_key({"iss": "issuer"}, "secret"))
 
 
+    def test_owner_switch_purges_private_session_data_not_ui_preferences(self):
+        from core import authentication
+        isolate = getattr(authentication, "isolate_owner_session", None)
+        self.assertTrue(callable(isolate), "Account session isolation missing")
+        state = {
+            "_cano_session_owner": "oidc_" + "a" * 64,
+            "messages": [{"role": "user", "content": "Owner A private"}],
+            "saved_memories": [{"id": "A", "content": "Owner A secret"}],
+            "_cano_chat_saved": [{"role": "user", "content": "A baseline"}],
+            "cano_cockpit_latest_mission": {"task": "A private mission"},
+            "cano_organism_lab_campaign_result": {"result": "A"},
+            "_cano_chat_task_pending": {"task": "Owner A"},
+            "_cano_secure_export_ciphertext": "A ciphertext",
+            "_browser_pending": {"note": "A"},
+            "lora_specialist_mission_result": {"result": "A"},
+            "last_model_used": "Owner A model",
+            "last_provider_used": "Owner A provider",
+            "user_theme": "dark",
+        }
+        self.assertTrue(isolate(state, "oidc_" + "b" * 64))
+        self.assertEqual(state, {
+            "_cano_session_owner": "oidc_" + "b" * 64,
+            "user_theme": "dark",
+        })
+
+    def test_same_owner_keeps_work_and_unmarked_legacy_session_fails_closed(self):
+        from core import authentication
+        isolate = getattr(authentication, "isolate_owner_session", None)
+        self.assertTrue(callable(isolate), "Account session isolation missing")
+        owner = "oidc_" + "a" * 64
+        state = {"_cano_session_owner": owner, "messages": ["A"],
+                 "saved_memories": ["A"], "user_theme": "light"}
+        self.assertFalse(isolate(state, owner))
+        self.assertEqual(state["messages"], ["A"])
+        self.assertEqual(state["saved_memories"], ["A"])
+
+        # Existing Streamlit clients upgraded mid-session lack the owner marker.
+        legacy = {"messages": ["Unknown owner's chat"],
+                  "saved_memories": ["Unknown owner's memory"], "user_theme": "dark"}
+        self.assertTrue(isolate(legacy, owner))
+        self.assertNotIn("messages", legacy)
+        self.assertNotIn("saved_memories", legacy)
+        self.assertEqual(legacy["user_theme"], "dark")
+
+    def test_live_app_enforces_owner_reset_before_memory_bindings(self):
+        from pathlib import Path
+        source = (Path(__file__).resolve().parents[1] / "app.py").read_text(
+            encoding="utf-8")
+        auth = source.index("_OWNER_KEY = render_auth_gate(st, os.environ)")
+        reset = source.index("isolate_owner_session(st.session_state, _OWNER_KEY)")
+        memory = source.index("_MEMORY_STORE = None")
+        self.assertLess(auth, reset)
+        self.assertLess(reset, memory)
+
+
 if __name__ == "__main__":
     unittest.main()
