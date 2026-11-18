@@ -55,7 +55,7 @@ def root_curve(binary, eos_table, anchor_json, step):
     candidates=[]
     for rec in j.get("results",[]):
         model=rec.get("model",{})
-        if rec.get("status")=="PASS" and rec.get("grid")=="rns-candidate-201x401":
+        if rec.get("status")=="PASS" and rec.get("grid")=="rns-candidate-201":
             candidates.append(model)
     if not candidates:
         raise ValueError("cannot find the recorded fine-grid anchor root")
