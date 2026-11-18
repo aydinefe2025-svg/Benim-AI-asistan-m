@@ -15,7 +15,7 @@ This evidence bundle supersedes earlier partial-status descriptions. The origina
 
 - Original APR4 physical M_TOV: `NOT_ESTABLISHED` because its native high-pressure EOS is acausal.
 - Physical zero-pressure chemical potential / absolute baryon density normalization: `NOT_ESTABLISHED`; two-column native table has no baryon-density or physical mu0 anchor. First-law shape is computed, but the JESTER `m_avg` conversion is not a physical normalization proof.
-- New causal EOS RNS rotating-root run: `NOT_RUN` in this evidence package. Earlier rotating APR4 outputs apply to the prior EOS and are preserved, not relabeled as this completion.
+- New causal EOS RNS rotating-root run: PASS. Direct roots on 151x301 and 201x401 grids, two independent seeds each; targets M=2.073 M_sun and f=346.536369 Hz. Grid radii 10.78271188 and 10.78085229 km (difference 0.00185959 km, below 0.02 km). Results and exact 200-point RNS table are in APR4_native_LAL_causal_completion_RNS.json and APR4_native_LAL_causal_completion_200pt.rns. Physical absolute baryon normalization remains NOT_ESTABLISHED. Earlier rotating APR4 outputs apply to the prior EOS and are preserved, not relabeled as this completion.
 - Source-native X-PSI curve likelihood, nuisance marginalization and final EOS Bayes evidence: `NOT_RUN`. Prior F33/F34 are effective-prior/radius-band diagnostics only, not EOS Bayes factors. Radio mass and NICER/XMM photons have not been duplicated.
 
 Run the test module in a Python environment with NumPy/SciPy: `python -m unittest test_native_lalsuite_apr4_causal_model -v`. The model is an explicitly defined candidate completion, not a claim that APR4 itself is causal or that a final astrophysical EOS posterior is complete.
