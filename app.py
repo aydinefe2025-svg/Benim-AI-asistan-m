@@ -181,6 +181,12 @@ OPENROUTER_KEY = _credentials.get("OPENROUTER_API_KEY")
 
 # 🌐 ENGELSİZ CANLI İNTERNET VE METEOROLOJİ MOTORU
 def internette_ara(sorgu: str) -> str:
+    # Keep the source helper independently executable by the app's offline
+    # regression harness; these pure guards perform no network activity.
+    from core.weather_reliability import (
+        weather_requested, weather_location, forecast_requested,
+        parse_wttr_forecast,
+    )
     try:
         # Resolve district names (e.g. Ödemiş) instead of confusing the
         # final word preceding 'hava' with a different city.
@@ -873,6 +879,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     
     # Weather is a structured live data lookup, NOT an academic research
     # question. Never attach Crossref leads or require [W#] citations.
+    from core.weather_reliability import weather_direct_reply
     _weather_answer = weather_direct_reply(kullanici_mesaji, arama_sonucu)
     if _weather_answer is not None:
         return _weather_answer
