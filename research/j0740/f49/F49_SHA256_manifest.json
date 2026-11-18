@@ -1,0 +1,62 @@
+{
+  "F49_7EOS_all_22_real_direct_RNS_integrals.json": {
+    "bytes": 30393,
+    "sha256": "4600ffa338606847fd2981583f38c44945c01525dd24e950ca5c90a14ccb04e8"
+  },
+  "F49_all_complete_7EOS_source_likelihood_20261118.csv": {
+    "bytes": 4932,
+    "sha256": "a082c8a13a2ff9274914467159684b542b31a8673242ebdfa828f70ae509772f"
+  },
+  "F49_local_tests.log": {
+    "bytes": 672,
+    "sha256": "a100ac7803af534ae54e20ba0db38bba88c7c250c11d4e8db334fabe7b5cd457"
+  },
+  "F49_scientific_report_20261118.md": {
+    "bytes": 5032,
+    "sha256": "9b843540997d251f83b542ed1967239b4f1918f7bf16bb2657fbf404dd0a8e4b"
+  },
+  "README.md": {
+    "bytes": 1877,
+    "sha256": "ca35d43ed2c9a836b129281132d008111705b8e2d61369f02157c84dad97e368"
+  },
+  "f49_reconcile_seven_complete_c_gr.py": {
+    "bytes": 6429,
+    "sha256": "e8c0309998f3151b8524b257276c14813f7f34ded14b9b9538c0fefeb4d4de68"
+  },
+  "j0740-f49-complete-real-curves-evidence.yml": {
+    "bytes": 4604,
+    "sha256": "540de5baa2913e5e1cea5ab246f7437593b81f33c4a41b717c6e1ca2070928fb"
+  },
+  "real_curves/APR4_EPP_fixed_spin_direct_curve.json": {
+    "bytes": 18600,
+    "sha256": "e3a6220e1406376faa6ffa6f21ce108954684a1066841d405644857cfa4937fc"
+  },
+  "real_curves/ENG_fixed_spin_direct_curve.json": {
+    "bytes": 18433,
+    "sha256": "98a94bffc29a60eb70211961678eb17abbad98414630ad11fb74353fbcd58ad8"
+  },
+  "real_curves/MPA1_fixed_spin_direct_curve.json": {
+    "bytes": 18429,
+    "sha256": "bf59ba4f0c3f43caf0942e748bf036fe80716131e7b4abe8b975d0f507dba4bf"
+  },
+  "real_curves/MS1B_fixed_spin_direct_curve.json": {
+    "bytes": 18402,
+    "sha256": "3aede27e6508f32af7c944fadf4c87a4867a333ea58b3d40617452bda3cac774"
+  },
+  "real_curves/MS1_fixed_spin_direct_curve.json": {
+    "bytes": 18393,
+    "sha256": "e55ed502781abeb2ab2f78c85fcf7f6f3c143fb3feddb50a88b6849ecc9b8f94"
+  },
+  "real_curves/WFF1_fixed_spin_direct_curve.json": {
+    "bytes": 20403,
+    "sha256": "4d8d4f25d4de2d27b7d41786109f0670c1404ad6f017193e499456ac756f3700"
+  },
+  "real_curves/WFF2_fixed_spin_direct_curve.json": {
+    "bytes": 18443,
+    "sha256": "cb0f3e52bcfe2f17566934ab9bd4bf6d75d68e9aa2f6cc282656d9eba9e77798"
+  },
+  "test_f49_source_reconciliation.py": {
+    "bytes": 1157,
+    "sha256": "9422c97ae681f8f01d8f979e3a18cbf8c2e8dc20247518220ffdaefdd01bae03"
+  }
+}
