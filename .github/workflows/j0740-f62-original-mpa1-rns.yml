@@ -1,0 +1,89 @@
+name: J0740 F62 original MPA1 source-derived direct rotating GR RNS roots
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f62/**'
+      - '.github/workflows/j0740-f62-original-mpa1-rns.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-mpa1-rns-direct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite/MPA1.npz
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numeric requirements without any photon archive
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Confirm original source and F61 JESTER/LALSuite static experiment hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22  jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz' | sha256sum -c -
+          echo '7b2cbcf6df2dc55d33046d9af587dba179dcb2ec77bad0395e628742479cce0a  research/j0740/f61/F61_original_seven_LAL_static_TOV.json' | sha256sum -c -
+      - name: Fifteen fail-closed source-identity, direct-star and mesh tests
+        run: python -m unittest discover -s research/j0740/f62 -p 'test_f62_*.py' -v
+      - name: Build exact pinned full general relativistic RNS C binary
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Direct C/RNS original MPA1 rotating+static roots 2.073 to 2.250 solar masses, two EOS meshes
+        run: |
+          python -u research/j0740/f62/f62_native_mpa1_rotating.py \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz \
+            --f61 research/j0740/f61/F61_original_seven_LAL_static_TOV.json \
+            --rns rns-upstream/rns \
+            --out results/F62/F62_original_MPA1_rotating_direct_C.json
+      - name: Verify no falsely certified physical original EOS / Bayesian claim
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          x=json.load(open('results/F62/F62_original_MPA1_rotating_direct_C.json'))
+          assert x['status']=='DIRECT_SOURCE_DERIVED_MPA1_RNS_ROTATING_4_MASSES_TWO_MESHES_PASS_NOT_PHYSICAL_EOS_BAYES'
+          assert len(x['verified_rotating_static_mesh_comparisons'])==4
+          assert x['posterior']=='NOT_RUN' and x['fixed_J_stability']=='NOT_RUN'
+          assert x['original_MPA1_negative_cs2_source_indices'] and x['source_EOS_physical_acceptance']!='PASS'
+          for y in x['verified_rotating_static_mesh_comparisons'].values():
+            assert y['source_original_EOS_global_physical_certification'].startswith('FAIL_ORIGINAL')
+          print('Independent physical qualification receipt: PASS')
+          PY
+      - name: SHA256 of data, code, input table, and failure artifacts
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p results/F62
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          root=Path('results/F62')
+          files=[*root.glob('*.json'),*root.glob('*.rns'),Path('research/j0740/f62/f62_native_mpa1_rotating.py'),Path('research/j0740/f62/test_f62_native_mpa1_rotating.py'),Path('research/j0740/f61/F61_original_seven_LAL_static_TOV.json'),Path('jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.npz'),Path('rns-upstream/rns')]
+          receipts={str(f):{'sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'bytes':f.stat().st_size} for f in files if f.is_file()}
+          (root/'F62_SHA256_manifest.json').write_text(json.dumps(receipts,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f62-original-mpa1-direct-rotating-RNS-or-failure
+          path: |
+            results/F62/F62_original_MPA1_rotating_direct_C.json
+            results/F62/F62_SHA256_manifest.json
+          if-no-files-found: warn
+          retention-days: 30
