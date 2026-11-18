@@ -1,0 +1,80 @@
+name: J0740 F56 WFF1 original source vs modified F42 physical admissibility
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f56/**'
+      - '.github/workflows/j0740-f56-wff1-native-vs-lift.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  f56-original-WFF1-source-native-causality-and-F42-changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Numerical dependencies
+        run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
+      - name: Source-native vs modified EOS no-fabricated-star tests
+        run: python -m unittest discover -s research/j0740/f56 -p 'test_f56_*.py' -v
+      - name: Download original JESTER WFF1 and immutable prior real C-RNS sources
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F56/input
+          curl -fL --retry 3 --max-time 120 \
+            'https://raw.githubusercontent.com/nuclear-multimessenger-astronomy/jester/e6768650ce992abfd1153a6833857572fe5cd230/jesterTOV/tabulated_eos/lalsuite/WFF1.npz' \
+            -o results/F56/input/WFF1.npz
+          curl -fL --retry 3 --max-time 120 -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14435795810/zip' \
+            -o results/F56/input/F53_original_real_C.zip
+          curl -fL --retry 3 --max-time 120 -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14438841023/zip' \
+            -o results/F56/input/F55_original_knot_C.zip
+          echo '119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3  results/F56/input/WFF1.npz' | sha256sum -c -
+          echo 'e35a52b02745d596cdea93427e15d5f7eb1e52c6f591fb21eb61501d57de2ae7  results/F56/input/F53_original_real_C.zip' | sha256sum -c -
+          echo '2285023c17b7ce8eb7bf9d6ec07dfdd9a18fef64db0dca251ed37bcd487901a4  results/F56/input/F55_original_knot_C.zip' | sha256sum -c -
+      - name: Quantify original native sound speed, causal lift and reference pressure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f56/f56_native_vs_modified_wff1.py \
+            --npz results/F56/input/WFF1.npz \
+            --f53 results/F56/input/F53_original_real_C.zip \
+            --f55 results/F56/input/F55_original_knot_C.zip \
+            --out results/F56/F56_WFF1_source_vs_candidate.json \
+            --detail results/F56/F56_WFF1_native_vs_lift_source_knots.csv
+      - name: Preserve SHA256 manifest and failure record even if physical source fails
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F56')
+          root.mkdir(parents=True,exist_ok=True)
+          files=list(root.glob('*.json'))+list(root.glob('*.csv'))
+          result={str(p.relative_to(root)):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+                  for p in files if p.name!='F56_manifest.json'}
+          (root/'F56_manifest.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f56-original-WFF1-vs-F42-source-physics-or-failure
+          path: |
+            results/F56/F56_WFF1_source_vs_candidate.json
+            results/F56/F56_WFF1_native_vs_lift_source_knots.csv
+            results/F56/F56_manifest.json
+          if-no-files-found: warn
+          retention-days: 30
