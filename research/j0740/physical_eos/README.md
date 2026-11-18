@@ -20,3 +20,11 @@ This evidence bundle supersedes earlier partial-status descriptions. The origina
 
 Run the test module in a Python environment with NumPy/SciPy: `python -m unittest test_native_lalsuite_apr4_causal_model -v`. The model is an explicitly defined candidate completion, not a claim that APR4 itself is causal or that a final astrophysical EOS posterior is complete.
 
+
+## Baryon-density normalization under the LALSuite convention (2026-11-18)
+
+The native two-column table does not store an independent microscopic surface chemical potential. However, LALSuite defines reconstructed rest-mass density as baryon number density times the chosen baryon rest mass and computes density from the cold first law, rho_b=(e+p) exp(-h). With the explicit standard atomic-mass convention m_u=1.66053906660e-27 kg, this fixes n_b=rho_b/m_u absolutely within the APR4_EPP model convention; it does not claim an independent microscopic determination of the approximate crust surface chemical potential. The native crust table has 1447 nodes down to P=1.9389363e-31 m^-2, followed by the documented Gamma=5/3 surface continuation.
+
+The SHA-locked 865-row first-law audit gives n_b=1.3095758892e-6 fm^-3 at the first JESTER export sample and 1.8046024826 fm^-3 at the last. Relative to the old JESTER e/m_avg proxy the first-law values are factors 1.0064292384 and 0.5391838754. Four provenance/numerical tests pass in [Actions run 44314178799](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44314178799); result artifact ZIP SHA-256 is 47c80c0218de22c667b37beedc19d25a1a3397b0873517c6ef0cdc54e30a59a4.
+
+This makes the absolute baryon-number normalization established under the stated LALSuite m_u convention. A microscopic crust-specific mu0 remains NOT_ESTABLISHED, the existing RNS M0 output is not reinterpreted by this audit, and fixed-J RNS is being run against the separate causal completion. Native photon X-PSI and final EOS Bayes remain NOT_RUN. LALSuite rest-mass density definition: [7.26 EOS API documentation](https://lscsoft.docs.ligo.org/lalsuite/7.26/lalsimulation/group___l_a_l_sim_neutron_star_e_o_s__c.html).
