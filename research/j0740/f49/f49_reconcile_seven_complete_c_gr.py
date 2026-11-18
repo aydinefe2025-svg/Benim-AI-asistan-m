@@ -50,7 +50,7 @@ def restore_wff1(f48, curves_dir):
 
 def reconcile(result,prior, f48_report):
  if result['status']!='SEVEN_CONDITIONAL_COMMON_WINDOW_INTEGRALS_WITH_ONE_WFF1_INTERNAL_ROOT_GAP_NOT_FULL_BAYES':
-  raise ValueError('UNEXPECTED_F47_BACKEND_RESULT_STATUS')
+  raise ValueError('UNEXPECTED_F47_BACKEND_RESULT_STATUS:'+repr(result.get('status')))
  if len(result['surfaces'])!=6 or set(result['curve_sha256'])!=set(previous.EOS):
   raise ValueError('SEVEN_SOURCE_F38_INTEGRALS_MISSING')
  old=prior['surfaces'];changed={};unchanged_max=0.
@@ -96,6 +96,7 @@ def run(f38,f44,f48,curves_dir,old_f47,out):
  resc,rev_sha=restore_wff1(f48,curves_dir)
  tmp=out.with_name('F49_source_F47_backend_intermediate.json')
  j=previous.run(f38,f44,curves_dir,tmp)
+ print('F49_BACKEND_DIAGNOSTIC_STATUS',repr(j.get('status')), 'SURFACES',len(j.get('surfaces',{})),flush=True)
  j=reconcile(j,orig,resc)
  j['source_complete_WFF1_recovered_curve_sha256']=rev_sha
  out.parent.mkdir(parents=True,exist_ok=True)
