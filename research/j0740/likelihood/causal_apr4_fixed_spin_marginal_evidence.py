@@ -148,7 +148,7 @@ def run(args):
                     max_iterations=23)
                 break
             except Exception as exc:
-                trace_fail.append({'seed':list(s),'exception':str(exc)[:260]})
+                trace_fail.append({'seed':list(s),'exception':str(exc)[:260], 'root_trace':getattr(exc,'trace',[])[:8]})
         else:
             report['status']='FAIL_RNS_MASS_ROOT';report['failed_mass_msun']=float(m)
             report['root_failures']=trace_fail;save()
