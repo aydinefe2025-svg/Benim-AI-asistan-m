@@ -53,7 +53,16 @@ def source_thermo(p,e,alpha=.6):
     return {"secant_cs2":source_cs2,"h":h,"n":n}
 
 def source_comparison(p,e,candidate,ref_central_energy_geo,source_cs2=None):
-    orig=source_thermo(p,e,candidate.alpha)
+    try:
+        orig=source_thermo(p,e,candidate.alpha)
+        source_thermo_status="PASS_NATIVE_PIECEWISE_FIRSTLAW_RECONSTRUCTION"
+    except ValueError as exc:
+        if "UNMODIFIED_SOURCE_NONMONOTONIC_OR_NONFINITE" not in str(exc):
+            raise
+        # Preserve original physical source without sorting, clipping, or
+        # silently fabricating an unmodified h(P)/n(P) first-law reconstruction.
+        orig=None
+        source_thermo_status="SOURCE_FAIL_NONMONOTONIC_NO_H_N_RECONSTRUCTION"
     p=np.asarray(p,float);e=np.asarray(e,float)
     el=np.asarray(candidate.e,float)
     if not (el.shape==e.shape and np.all(el>=e) and np.all(np.diff(el)>0)):
@@ -80,13 +89,20 @@ def source_comparison(p,e,candidate,ref_central_energy_geo,source_cs2=None):
     frac_center=float(cp/native_energy_at_same_pressure-1)
     # Compare first-law reconstructed h,n only at native pressure knots.
     n_candidate=(el+p)*np.exp(-candidate.hknots)*C*C/(G*MB)/1e6
-    raw_sec=orig["secant_cs2"]
+    de=np.diff(e);dp=np.diff(p)
+    raw_sec=np.divide(dp,de,out=np.full(len(dp),np.nan,dtype=float),where=de>0)
+    valid_sec=raw_sec[np.isfinite(raw_sec)&(raw_sec>0)]
+    if not len(valid_sec):
+        raise ValueError("SOURCE_NO_POSITIVE_FINITE_PHYSICAL_SECANTS")
     result={
       "source_original_n_pressure_knots":len(p),
+      "raw_source_energy_nonincreasing_segments":int(np.count_nonzero(np.diff(e)<=0)),
+      "unmodified_source_firstlaw_reconstruction":source_thermo_status,
+      "original_source_nonmonotonicity_preserved_not_repaired":orig is None,
       "source_causal_secant_segments_total":len(raw_sec),
       "source_original_superluminal_secant_segments":int(np.count_nonzero(raw_sec>1+1e-11)),
-      "source_original_max_secant_cs2_over_c2":float(np.max(raw_sec)),
-      "source_original_min_secant_cs2_over_c2":float(np.min(raw_sec)),
+      "source_original_max_secant_cs2_over_c2":float(np.max(valid_sec)),
+      "source_original_min_secant_cs2_over_c2":float(np.min(valid_sec)),
       "source_original_first_superluminal_segment":next((int(i) for i in np.flatnonzero(raw_sec>1+1e-11)),None),
       "candidate_max_secant_cs2_over_c2":float(np.max(lifted_cs2)),
       "candidate_min_secant_cs2_over_c2":float(np.min(lifted_cs2)),
@@ -95,8 +111,8 @@ def source_comparison(p,e,candidate,ref_central_energy_geo,source_cs2=None):
       "source_energy_median_fractional_lift":float(np.median(frac)),
       "source_energy_first_changed_node":first_changed,
       "source_raw_firstlaw_model_assumption":"same analytic piecewise e(p), explicit low-P alpha=0.6 cold-gas continuation and mu0=m_u; NOT native source baryon chemical potential",
-      "source_vs_candidate_max_abs_enthalpy_knot_difference":float(np.max(np.abs(candidate.hknots-orig["h"]))),
-      "source_vs_candidate_max_abs_n_knot_fraction_difference":float(np.max(np.abs(n_candidate/orig["n"]-1))),
+      "source_vs_candidate_max_abs_enthalpy_knot_difference":(float(np.max(np.abs(candidate.hknots-orig["h"]))) if orig is not None else None),
+      "source_vs_candidate_max_abs_n_knot_fraction_difference":(float(np.max(np.abs(n_candidate/orig["n"]-1))) if orig is not None else None),
       "F53_201x401_star_center_reference_rho_g_cm3":float(cp*C*C/G*1e-3),
       "F53_candidate_center_pressure_geom_m_minus_2":pcenter,
       "F53_candidate_center_pressure_index":idx,
@@ -126,7 +142,7 @@ def source_comparison(p,e,candidate,ref_central_energy_geo,source_cs2=None):
         rows.append({"source_index":i,"pressure_geom_m_minus_2":float(p[i]),
          "source_e_geom_m_minus_2":float(e[i]),"candidate_e_geom_m_minus_2":float(el[i]),
          "fractional_energy_lift":float(frac[i]),
-         "source_h_with_explicit_coldgas_assumption":float(orig["h"][i]),
+         "source_h_with_explicit_coldgas_assumption":(float(orig["h"][i]) if orig is not None else None),
          "candidate_firstlaw_h":float(candidate.hknots[i]),
          "source_candidate_secant_cs2_raw":float(raw_sec[i]) if i<len(raw_sec) else None,
          "source_candidate_secant_cs2_lifted":float(lifted_cs2[i]) if i<len(raw_sec) else None})
