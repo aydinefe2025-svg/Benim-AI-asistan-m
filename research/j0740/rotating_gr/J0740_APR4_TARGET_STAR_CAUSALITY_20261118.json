@@ -2,7 +2,7 @@
   "acceptance": {
     "EOS_Bayes": "NOT_RUN",
     "absolute_baryon_mass_normalization": "NOT_ESTABLISHED",
-    "all_four_target_star_interiors_causal_and_stable": true,
+    "all_four_target_star_interiors_causal_and_thermodynamically_stable": true,
     "fixed_J_turning_point_stability": "NOT_ESTABLISHED",
     "original_apr4_global_causality": "FAIL",
     "target_star_specific_eos_screen": "PASS_CONDITIONAL"
@@ -24,14 +24,14 @@
     "table_rows": 1447,
     "table_sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f"
   },
-  "status": "TARGET_CONFIG_CAUSAL_STABLE_TO_CENTER; ORIGINAL_APR4_GLOBAL_EOS_NOT_CERTIFIED; EOS_Bayes=NOT_RUN",
+  "status": "TARGET_STAR_LOCAL_EOS_SCREEN_PASS; ORIGINAL_APR4_GLOBAL_EOS_NOT_CERTIFIED; EOS_Bayes=NOT_RUN",
   "target_roots": [
     {
       "central_cs2": 0.862101569543249,
       "central_density_g_cm3": 1754499753449583.5,
       "central_pressure_geom_m2": 5.331407604242784e-10,
       "grid": "rns_151x301",
-      "local_stability_and_causality_pass": true,
+      "local_thermodynamic_stability_and_causality_pass": true,
       "low_p_extension_cs2_at_join": 4.351889812730272e-08,
       "mass_msun": 2.0730000000395616,
       "max_cs2_from_surface_to_center": 0.9511795607168241,
@@ -44,7 +44,7 @@
       "central_density_g_cm3": 1754499105104207.2,
       "central_pressure_geom_m2": 5.331403453467428e-10,
       "grid": "rns_151x301",
-      "local_stability_and_causality_pass": true,
+      "local_thermodynamic_stability_and_causality_pass": true,
       "low_p_extension_cs2_at_join": 4.351889812730272e-08,
       "mass_msun": 2.0729997907574154,
       "max_cs2_from_surface_to_center": 0.9511795717273459,
@@ -57,7 +57,7 @@
       "central_density_g_cm3": 1755892141395923.5,
       "central_pressure_geom_m2": 5.340319524099945e-10,
       "grid": "rns_201x401",
-      "local_stability_and_causality_pass": true,
+      "local_thermodynamic_stability_and_causality_pass": true,
       "low_p_extension_cs2_at_join": 4.351889812730272e-08,
       "mass_msun": 2.0730000000561586,
       "max_cs2_from_surface_to_center": 0.9511820480430133,
@@ -70,7 +70,7 @@
       "central_density_g_cm3": 1755892138123356.2,
       "central_pressure_geom_m2": 5.340319503159023e-10,
       "grid": "rns_201x401",
-      "local_stability_and_causality_pass": true,
+      "local_thermodynamic_stability_and_causality_pass": true,
       "low_p_extension_cs2_at_join": 4.351889812730272e-08,
       "mass_msun": 2.072999998202672,
       "max_cs2_from_surface_to_center": 0.9511820480508045,
