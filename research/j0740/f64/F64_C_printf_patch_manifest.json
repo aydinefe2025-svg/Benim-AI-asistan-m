@@ -1,0 +1,14 @@
+{
+  "diagnostic_columns": [
+    "e_c",
+    "M",
+    "R_eq",
+    "spin",
+    "M0_uncertified",
+    "J_cgs"
+  ],
+  "patched_C_sha256": "ae07d6d9800fbea3688d3668c21b55d5f14f415ce29427986664adfba14a773a",
+  "physics_equations_changed": false,
+  "source_C_sha256": "3e909d0bd44b9ed8823aee54d95aff60b27624cbd7e57fb7c162a18b406e123b",
+  "upstream_commit": "97e85d325a33e37f702306414533f6cd77812477"
+}

@@ -1,0 +1,38 @@
+{
+  "research/j0740/f63/MPA1_F63_sourceoriginal_196knots.rns": {
+    "bytes": 17252,
+    "sha256": "15cd0e83830635fe46264ff5e5c52f97f4b8846dc73c1a64768e1237417d9e51"
+  },
+  "research/j0740/f64/f64_mpa1_firstlaw_baryon_ablation.py": {
+    "bytes": 10135,
+    "sha256": "44a974a8ea2a6685cccdb4204dc6cce901da9b741bc03c7e59cb8be9c58f111d"
+  },
+  "research/j0740/f64/test_f64_mpa1_firstlaw_baryon_ablation.py": {
+    "bytes": 3512,
+    "sha256": "0f95376a2ca6ee173924c9d1838859bdf5f9ce069b5912fcabf840f4ffbf18b9"
+  },
+  "results/F64/F64_C_printf_patch_manifest.json": {
+    "bytes": 394,
+    "sha256": "2325c170a6f9ef04bbbd83382df49b3cd96538639c75ab9eda16357828a531f2"
+  },
+  "results/F64/F64_original_MPA1_n_only_ablation.json": {
+    "bytes": 3314,
+    "sha256": "033344658ef0784ecff58ae60d6cb317c70dcca9df5bc7d1f0c1d0a6aa51ad7a"
+  },
+  "results/F64/MPA1_F64_firstlaw_n_ONLY.rns": {
+    "bytes": 17252,
+    "sha256": "8c4b89442b9603ad273ec332008307f26c7fe2dcc89a7affbaed63d0c9d2d6f4"
+  },
+  "results/F64/MPA1_F64_original_n_proxy.rns": {
+    "bytes": 17252,
+    "sha256": "15cd0e83830635fe46264ff5e5c52f97f4b8846dc73c1a64768e1237417d9e51"
+  },
+  "rns-upstream/rns": {
+    "bytes": 230376,
+    "sha256": "6974d53e0fd464b48b5c7c70dca157110f3f91ac51047fe33f0f0edf7694f3c8"
+  },
+  "rns-upstream/rns.c": {
+    "bytes": 5436,
+    "sha256": "ae07d6d9800fbea3688d3668c21b55d5f14f415ce29427986664adfba14a773a"
+  }
+}
