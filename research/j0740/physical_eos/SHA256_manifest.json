@@ -1,6 +1,6 @@
 {
   "created_utc": "2026-11-17T14:23:53.7177891Z",
-  "status": "SOURCE_VALIDATED_CAUSAL_CANDIDATE_TOV_ESTABLISHED; ROTATING_NEW_MODEL_AND_EOS_BAYES_NOT_RUN; ABSOLUTE_BARYON_NORMALIZATION_NOT_ESTABLISHED",
+  "status": "SOURCE_VALIDATED_CAUSAL_CANDIDATE_TOV_AND_RNS_ESTABLISHED; EOS_BAYES_NOT_RUN; ABSOLUTE_BARYON_NORMALIZATION_NOT_ESTABLISHED",
   "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
   "artifacts": [
     {
@@ -102,7 +102,16 @@
       "file": "test_native_lalsuite_apr4_causal_model.py",
       "sha256": "695e2edc1d42ff49f697252cb41266be77ad3fd9d9b279f7e2f6fcf26ebe8d69",
       "bytes": 5952
+    },
+    {
+      "file": "APR4_native_LAL_causal_completion_RNS.json",
+      "sha256": "e8799323ea1e95748815cac085ab714e49b0681c4eb42dd5e7625df74b1de228",
+      "bytes": 24328
+    },
+    {
+      "file": "APR4_native_LAL_causal_completion_200pt.rns",
+      "sha256": "5071ae5c70db9b374275fd2b4f2c6b8cc3365924285cbe84d75e14cf02b0b9c7",
+      "bytes": 17805
     }
   ]
 }
-
