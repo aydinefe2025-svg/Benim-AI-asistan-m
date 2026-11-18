@@ -1,0 +1,33 @@
+name: J0740 APR4 LAL baryon normalization
+on:
+  push:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - research/j0740/physical_eos/apr4_lal_rest_mass_baryon_normalization.py
+      - research/j0740/physical_eos/test_apr4_lal_rest_mass_baryon_normalization.py
+      - research/j0740/physical_eos/APR4_EPP_firstlaw_n_shape.csv
+      - research/j0740/physical_eos/SHA256_manifest.json
+      - .github/workflows/j0740-apr4-baryon-normalization.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: science/j0740-apr4-firstlaw-gr-pilot-20261117
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run numerical and provenance tests
+        run: python -m unittest discover -s research/j0740/physical_eos -p 'test_apr4_lal_rest_mass_baryon_normalization.py' -v
+      - name: Recompute normalized baryon density
+        run: python research/j0740/physical_eos/apr4_lal_rest_mass_baryon_normalization.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: j0740-apr4-lal-baryon-normalization
+          path: research/j0740/physical_eos/APR4_LAL_rest_mass_baryon_normalization_20261118.json
+          if-no-files-found: error
