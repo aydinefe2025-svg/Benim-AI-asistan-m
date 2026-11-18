@@ -128,6 +128,7 @@ from core.trained_lora_client import TRAINED_LORA_LABEL, trained_lora_metadata
 from core.groq_diagnostics import check_groq_connection
 from core.provider_failure import failure_category, failure_diagnostics, safe_failure_message
 from core.connection_diagnostics import check_provider
+from core.weather_reliability import parse_wttr_current, weather_fallback_on_model_failure
 from core.public_research import research_sources
 from core.scientific_sources import scientific_sources
 from core.research_evidence import (
@@ -205,17 +206,17 @@ def internette_ara(sorgu: str) -> str:
             }))
             
             headers = {"Accept-Language": "tr", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-            url = f"https://wttr.in/{sehir}?format=%C+%t+%h+%w"
-            response = requests.get(url, headers=headers, timeout=6)
-            
-            if response.status_code == 200 and "error" not in response.text.lower():
-                ham_veri = response.text.strip().split()
-                if len(ham_veri) >= 3:
-                    durum = ham_veri[0]
-                    sicaklik = ham_veri[1]
-                    nem = ham_veri[2]
-                    ruzgar = ham_veri[3] if len(ham_veri) > 3 else "Hafif"
-                    return f"HAVA SERVİSİ BİLGİSİ -> Şehir: {sehir_adi} | Durum: {durum} | Sıcaklık: {sicaklik} | Nem: {nem} | Rüzgar: {ruzgar}."
+            # The condition (%C) can contain spaces; never split it by whitespace.
+            # Encode the exact four-field source format through requests params.
+            url = f"https://wttr.in/{sehir}"
+            response = requests.get(
+                url, params={"format": "%C|%t|%h|%w"}, headers=headers, timeout=6
+            )
+
+            if response.status_code == 200:
+                verified_weather = parse_wttr_current(sehir_adi, response.text)
+                if verified_weather is not None:
+                    return verified_weather
             return "Hava servisi şu anda güvenilir bilgi sunamıyor; güncel hava durumu doğrulanamadı."
                     
         # Instant Answer API is not a full search engine. Return explicit source metadata.
@@ -952,6 +953,13 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
             "Provider request failed: category=%s status=%s code=%s",
             failure_category(e), _provider_status, _provider_code,
         )
+        # Current weather is a separate, already-fetched source. Do not erase
+        # verified readings merely because the language model is unavailable.
+        _weather_direct_answer = weather_fallback_on_model_failure(
+            kullanici_mesaji, arama_sonucu
+        )
+        if _weather_direct_answer is not None:
+            return _weather_direct_answer
         return safe_failure_message(e)
 
 # 🔄 SOHBET AKIŞINI EKRANA BASMA (Temiz Hafıza Akışı)
