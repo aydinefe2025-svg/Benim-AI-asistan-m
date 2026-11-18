@@ -99,11 +99,12 @@ out={'method':'Replace old J0740 NICER likelihood in Legred PSR+GW+NICER EOS pos
 for tag,w in keys_weights.items():
  out['metrics'][tag]={'ESS':ess(w),'R14_km':quant(r14,w),'Lambda14':quant(lam14,w),'R_at_2.073_km':quant(r2073,w),'Mmax_Msun':quant(mmax,w),'nonzero':int(np.sum(w>0))}
 # Hash all downloaded inputs and compare the freshly recomputed primary summary with the separately preserved 2025-10-25 result.
-def sha256_file(path):
- h=hashlib.sha256()
+def hash_file(path,algorithm):
+ h=hashlib.new(algorithm)
  with open(path,'rb') as f:
   for block in iter(lambda:f.read(1<<20),b''):h.update(block)
  return h.hexdigest()
+def sha256_file(path):return hash_file(path,'sha256')
 files={
  'salmi_mr_archive':('mr_samples_and_contours.tar.gz',40605003,'ca8e70eeca81feb71321f1a88a24f2f9'),
  'miller_original_weighted':('NICER+XMM_J0740_full.txt',168073694,'c28a3995e60f364b34a66c29a37bf79d'),
@@ -112,7 +113,7 @@ source_manifest={}
 for label,(filename,expected_bytes,expected_md5) in files.items():
  path=base/filename
  if path.stat().st_size!=expected_bytes:raise ValueError('SOURCE_SIZE_MISMATCH:'+filename)
- md5=hashlib.md5(path.read_bytes()).hexdigest()
+ md5=hash_file(path,'md5')
  if md5!=expected_md5:raise ValueError('SOURCE_MD5_MISMATCH:'+filename+':'+md5)
  source_manifest[label]={'filename':filename,'bytes':expected_bytes,'md5':md5,'sha256':sha256_file(path)}
 primary='KDE_new_bw=0.16|KDE_old_bw=0.16|offset=0.0'
@@ -131,6 +132,7 @@ out['method']='Re-execution of the 2025-10-25 KDE/KDE source-posterior-ratio upd
 out['inputs_verified']=source_manifest
 out['checks_against_historical_result']=checks
 out['historical_result_source']='../J0740_EOS_FINAL_RESULT.json and ../J0740_final_weighted_old_source_update.json'
+out['runner_code_sha256']=sha256_file(Path(__file__))
 out['new_native_xpsi_photon_likelihood']='NOT_RUN'
 out['final_physical_eos_bayes']='NOT_RUN'
 output=base.parent/'J0740_reproduction_20261118.json'
