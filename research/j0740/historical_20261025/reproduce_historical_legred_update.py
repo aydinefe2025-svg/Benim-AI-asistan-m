@@ -136,5 +136,5 @@ out['runner_code_sha256']=sha256_file(Path(__file__))
 out['new_native_xpsi_photon_likelihood']='NOT_RUN'
 out['final_physical_eos_bayes']='NOT_RUN'
 output=base.parent/'J0740_reproduction_20261118.json'
-output.write_text(json.dumps(out,indent=2,sort_keys=True)+'\\n')
+output.write_text(json.dumps(out,indent=2,sort_keys=True)+chr(10))
 print(json.dumps({'status':out['status'],'samples':{'salmi':int(len(mn)),'miller':int(len(mo)),'legred_eos':int(n)},'primary':actual,'checks':checks,'source_sha256':{k:v['sha256'] for k,v in source_manifest.items()}},indent=2,sort_keys=True))
