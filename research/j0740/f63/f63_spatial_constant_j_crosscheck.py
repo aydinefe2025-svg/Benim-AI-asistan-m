@@ -5,7 +5,7 @@ Same original JESTER NPZ and fixed target J, identical central densities as F63
 validate low-pressure source microphysics or source-native X-PSI/Bayes.
 """
 from __future__ import annotations
-import argparse,json,hashlib,math,sys
+import argparse,json,hashlib,math,sys,shutil
 from pathlib import Path
 import numpy as np
 
@@ -44,7 +44,7 @@ def fine_turning(rows):
             'physical_dynamic_stability':'NOT_ESTABLISHED'}
 
 
-def run(source,f63_json,rns,out):
+def run(source,f63_json,rns,out,source_rns_table):
     if sha(source)!=SOURCE_SHA:raise ValueError('F63_FINE_MPA1_SOURCE_SHA_DRIFT')
     base=json.loads(Path(f63_json).read_text())
     if not (base['schema']=='J0740_F63_ORIGINAL_MPA1_PINNED_RNS_CONSTANT_J_V1'
@@ -61,16 +61,21 @@ def run(source,f63_json,rns,out):
         if len(match)!=1:raise ValueError('F63_FINE_MISSING_OR_DUPLICATE_COARSE_DENSITY')
         matches[ec15]=match[0]
     out=Path(out);out.parent.mkdir(parents=True,exist_ok=True)
-    tab,conv=from_jester_npz(source,points=196)
+    # Reuse exact *bytes* produced by the separate coarse C/RNS job. This
+    # isolates the spatial grid: no second NumPy text resampling is allowed.
+    if sha(source_rns_table)!=base["source_196pt_table_sha256"]:
+        raise ValueError("F63_FINE_COARSE_RNS_TABLE_BYTE_IDENTITY_DRIFT")
     table=out.parent/'MPA1_F63_fine_grid_original_196.rns'
-    write_rns(table,tab)
+    shutil.copyfile(source_rns_table,table)
+    if sha(table)!=base["source_196pt_table_sha256"]:
+        raise ValueError("F63_FINE_TABLE_COPY_INTEGRITY_FAIL")
     report={'schema':'F63_original_MPA1_fixed_J_151x301_vs_201x401_real_C_v1',
            'status':'IN_PROGRESS','source_npz_sha256':SOURCE_SHA,'F63_fixed_J_JSON_sha256':sha(f63_json),
            'fine_RNS_C_binary_sha256':sha(rns),'F63_J_anchor_cgs':base['target_J_cgs'],
            'original_MPA1_crust_physical_validation':'NOT_ESTABLISHED_NEGATIVE_CS2',
            'photon_level_likelihood':'NOT_RUN','seven_original_EOS_Bayes':'NOT_RUN',
            'EOS_table_knot_count_both':196,'coarse_spatial_grid':'151x301','fine_spatial_grid':'201x401',
-           'source_RNS_table_sha256':sha(table),'pairs':[]}
+           'source_RNS_table_sha256':sha(table),'coarse_source_RNS_table_sha256':base['source_196pt_table_sha256'],'exact_same_original_RNS_EOS_table_bytes':True,'pairs':[]}
     def save():out.write_text(json.dumps(report,sort_keys=True,indent=2,allow_nan=False)+'\n')
     save()
     for ec15 in NEAR_PEAK_E15:
@@ -94,7 +99,8 @@ def run(source,f63_json,rns,out):
 def main():
     p=argparse.ArgumentParser()
     for k in ('source','f63','rns','out'):p.add_argument('--'+k,type=Path,required=True)
-    a=p.parse_args();r=run(a.source,a.f63,a.rns,a.out)
+    p.add_argument('--source-rns-table',type=Path,required=True)
+    a=p.parse_args();r=run(a.source,a.f63,a.rns,a.out,a.source_rns_table)
     print(json.dumps({'status':r['status'],'fine_turning':r['fine_fixed_J_turning_summary']},sort_keys=True),flush=True)
     if not r['status'].startswith('TWO_REAL_'):raise SystemExit('F63 fine spatial independent physics not accepted')
 
