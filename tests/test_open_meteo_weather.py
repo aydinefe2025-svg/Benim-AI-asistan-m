@@ -83,6 +83,21 @@ class OpenMeteoFailoverTests(unittest.TestCase):
         self.assertEqual("https://api.open-meteo.com/v1/forecast", calls[2].args[0])
         self.assertEqual(38.23, calls[2].kwargs["params"]["latitude"])
 
+    def test_forecast_prefers_three_day_backup_before_current_only_wttr(self):
+        from core.weather_reliability import weather_direct_reply
+        search, requests = load_search_function()
+        requests.get.side_effect = [
+            fake_response(status=503),  # Primary daily forecast unavailable
+            fake_response(payload=GEOCODED_ODEMIS),
+            fake_response(payload=valid_meteo_payload(forecast=True)),
+        ]
+        source = search("İzmir Ödemiş hava tahminleri")
+        self.assertTrue(source.startswith("OPEN_METEO_JSON:"), source)
+        result = weather_direct_reply("İzmir Ödemiş hava tahminleri", source)
+        self.assertIn("3 günlük", result)
+        self.assertEqual(3, requests.get.call_count)
+        self.assertNotIn("Crossref", result)
+
     def test_request_exception_from_wttr_reaches_backup_instead_of_generic_failure(self):
         from core.open_meteo_weather import render_open_meteo_reply
         search, requests = load_search_function()
