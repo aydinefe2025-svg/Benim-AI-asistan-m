@@ -89,6 +89,7 @@ if os.environ.get("AGENT_TASK_DATABASE_URL"):
 
 
 # Authenticated owner status for the separate CANO code executor.
+_CODE_JOB_RECEIPTS = None
 if _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"):
     with st.sidebar.expander("🛠️ CANO Kod İşçisi", expanded=False):
         st.caption("Sohbette: CANO kod: düzeltilmesini istediğin şeyi yaz")
@@ -97,7 +98,8 @@ if _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"):
             _code_store = CodeJobStore(
                 os.environ["AGENT_TASK_DATABASE_URL"], _OWNER_KEY,
             )
-            for _job in _code_store.recent():
+            _CODE_JOB_RECEIPTS = _code_store.recent()
+            for _job in _CODE_JOB_RECEIPTS:
                 st.caption(_job["id"][:8] + " · " + _job["status"]
                            + " · " + _job["goal"])
                 if (_job["pr_url"].startswith(
@@ -311,6 +313,11 @@ if "OpenRouter" in secilen_model and OPENROUTER_KEY and st.sidebar.button("OpenR
 # Web Sayfası Başlığı ve Sade Tasarım
 st.title("🧠 CANO — Yapay Zekâ Komuta Merkezi")
 st.caption("Gerçek görevler · Uzman ekip · Denetim aşamaları · Bilimsel kaynak adayları · Açık kayıt durumu")
+
+# Phone-visible evidence, only for the signed-in owner; sidebar alone is hidden on mobile.
+from core.cano_development_status import render_owner_code_status
+if _OWNER_KEY and _CODE_JOB_RECEIPTS is not None:
+    render_owner_code_status(st, _CODE_JOB_RECEIPTS)
 
 # 🎨 Tarayıcı düzeyinde <think> etiketlerini tamamen yok eden CSS kodu
 st.markdown(
@@ -890,7 +897,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     - internette_ara() DuckDuckGo anlık yanıtını ve şehir belirtilirse wttr.in hava servisini sorgular. Ayrıca açık ansiklopedi arama bağlantıları toplanabilir; bunlar bağımsız doğrulama değildir. Tam web tarayıcısı değildir.
     - Araştırma/görev paneli kullanıcı denetimli taslak ve kayıt işlevi sunar; görevleri arka planda kendiliğinden yürütmez.
     - Hafıza notları DATABASE_URL ve doğrulanmış giriş yapılandırılmışsa PostgreSQL üzerinde kalıcıdır. Aksi halde yalnızca bu tarayıcının yerel deposunda saklanır; başka cihazlarla eşitlenmez, kullanıcı tarayıcı verilerini silerse kaybolabilir. Sohbet geçmişi hâlâ oturuma özeldir.\n    - Sol menüde 🧬 Öğrenen uzman ajanlar paneli bulunur: kurucu uzman, izinli alt uzman, onaylı geri bildirimden ders çağırma ve modelle taslak üretme sunar.\n    - En az iki farklı ajan varsa panelde üç aşamalı taslak → eleştiri → düzeltme döngüsü vardır. İnceleme kayıtları oturuma özel SQLite dosyasındadır; sunucu yeniden başlatılınca korunacağı garanti değildir.\n    - Bu geri bildirim kullanımı model ağırlıklarını eğitmez. Uzmanlar otomatik olarak arka planda çoğalan bağımsız süreçler değildir.
-    - Kod geliştirme mümkündür ancak bu sohbet arayüzünde doğrudan GitHub, Render, Notion, dosya sistemi veya kod çalıştırma aracı bağlı değildir.
+    - Doğrulanmış Google sahibi, CANO sohbetinde somut yazılım geliştirme emri veya 'CANO kod:' talimatıyla Neon'a sahip-sınırlı kalıcı bir kod işi kaydedebilir. ayrı zamanlanmış kod işçisi bu işi alıp GitHub dalı/PR, güvenli PR/CI doğrulaması ve uygun koşullarda Render canlı yayını gerçekleştirebilir. Bu sohbet yanıtı kendisi doğrudan GitHub, Render veya dosya sistemi üzerinde kod çalıştırmaz; işi gerçekten tamamlandı saymak için ayrı makbuzu ve gerçek dağıtımı doğrula. Görev engellendiyse asla yayınlandı deme.
     - Kullanıcı ajan özelliklerini sorarsa önce bu uygulamada gerçekten mevcut olan paneli ve somut kullanım adımlarını anlat; genel bir "kalıcı hafızam yok, kendimi geliştiremem" metniyle mevcut özellikleri inkâr etme.\n    - Kullanıcı senden geliştirme, araştırma, hata giderme veya ajan koordinasyonu istediğinde kategorik olarak "imkansız" deme. Mevcut işlevleri dürüstçe anlat, uygulanabilir teknik çözüm ve kod taslağı sun, eksik bağlantıyı açıkça belirt.
     - Gerçekte çağrılmayan araçları çağırmış, kaydedilmemiş dosyaları kaydetmiş, doğrulanmamış kaynakları doğrulamış gibi gösterme.
     - Yalnızca uygulamaya gerçekten verilen güncel veri varsa bunu güncel olarak sun; veri yoksa güncelliği doğrulayamadığını söyle.
