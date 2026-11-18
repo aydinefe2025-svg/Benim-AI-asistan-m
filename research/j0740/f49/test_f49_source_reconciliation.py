@@ -21,4 +21,18 @@ class Tests(unittest.TestCase):
   self.assertAlmostEqual(f.previous.prior_window_probability(),0.5708291253531559,places=12)
  def test_original_7_posterior_not_run(self):
   self.assertEqual(len(f.ORIGINAL_F47_RESULT_SHA),64)
+ def test_upstream_f47_receipt_versions_are_both_accepted_only_when_complete(self):
+  for version in f.F47_ALLOWED_BACKEND_STATUSES:
+   good={'status':version,'missing_direct_RNS_targets':{n:[] for n in f.previous.EOS}}
+   self.assertEqual(f.validate_backend_state(good),version)
+ def test_upstream_f47_missing_star_fails_closed(self):
+  good={'status':next(iter(sorted(f.F47_ALLOWED_BACKEND_STATUSES))),
+        'missing_direct_RNS_targets':{n:[] for n in f.previous.EOS}}
+  good['missing_direct_RNS_targets']['WFF1']=[2.0175]
+  with self.assertRaisesRegex(ValueError,'MISSING_OR_UNEXPECTED_DIRECT'):
+   f.validate_backend_state(good)
+ def test_unknown_upstream_status_fails_closed(self):
+  bad={'status':'untrusted','missing_direct_RNS_targets':{n:[] for n in f.previous.EOS}}
+  with self.assertRaisesRegex(ValueError,'UNEXPECTED_F47_BACKEND'):
+   f.validate_backend_state(bad)
 if __name__=='__main__':unittest.main(verbosity=2)
