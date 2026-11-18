@@ -1,0 +1,67 @@
+name: J0740 F50 published 2026 hotspot systematic model check
+on:
+  pull_request:
+    branches: [science/j0740-apr4-firstlaw-gr-pilot-20261117]
+    paths:
+      - 'research/j0740/f50/**'
+      - '.github/workflows/j0740-f50-external-radius-systematics.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  f50-published-radius-comparison:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Six local synthetic and fail-closed scientific-interpretation checks
+        run: python -m unittest discover -s research/j0740/f50 -p 'test_f50_crossmodel_radius_audit.py' -v
+      - name: Fetch genuine F44 pinned 7-star RNS C/GR result ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p results/F50
+          curl -fL --retry 3 --max-time 120 \
+             -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/14413168551/zip" \
+             -o results/F50/F44.zip
+          echo 'b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98  results/F50/F44.zip' | sha256sum -c -
+      - name: Independently reproduce updated-literature radius-diagnostic JSON
+        run: |
+          python research/j0740/f50/f50_crossmodel_radius_audit.py \
+            --f44 results/F50/F44.zip --out results/F50/F50_crossmodel_radius_audit.json
+          python - <<'PY'
+          import json, math
+          from pathlib import Path
+          a=json.loads(Path('results/F50/F50_crossmodel_radius_audit.json').read_text())
+          b=json.loads(Path('research/j0740/f50/F50_crossmodel_radius_audit.json').read_text())
+          assert a==b, 'F50 source-locked published-summary regression mismatch'
+          assert len(a['seven_new_hypothetical_EOS_fixed_mass_RNS'])==7
+          assert a['do_not_multiply_posteriors_or_Bayes_factors'] is True
+          assert a['full_support_EOS_model_evidence']=='NOT_RUN'
+          print('PASS F50 exact independent result comparison; no new EOS likelihood claimed')
+          PY
+      - name: Save source SHA and output evidence even on error
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          p=Path('results/F50');p.mkdir(exist_ok=True,parents=True)
+          d={x.name:{'bytes':x.stat().st_size,'sha256':hashlib.sha256(x.read_bytes()).hexdigest()}
+            for x in p.iterdir() if x.is_file()}
+          (p/'F50_CI_manifest.json').write_text(json.dumps(d,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-F50-published-2026-hotspot-model-diagnostic
+          path: |
+            results/F50/F50_crossmodel_radius_audit.json
+            results/F50/F50_CI_manifest.json
+          if-no-files-found: warn
+          retention-days: 30
