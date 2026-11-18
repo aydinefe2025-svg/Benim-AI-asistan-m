@@ -74,8 +74,8 @@ class TeamBudgetTests(unittest.TestCase):
             generate_team_stage(
                 "Görev", api_key="private",
                 client_factory=lambda **kw: client, sleep=delays.append)
-        self.assertEqual(len(calls), 3)
-        self.assertEqual(delays, [1, 2])
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(delays, [])
         self.assertNotIn("secret", str(failure.exception))
         self.assertIn("kota", str(failure.exception).casefold())
 
