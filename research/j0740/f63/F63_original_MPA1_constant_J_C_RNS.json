@@ -1,0 +1,1615 @@
+{
+  "F62_anchor_original": {
+    "allowed_spin_residual_hz": 0.25,
+    "central_energy_density_g_cm3": 1015366308866642.6,
+    "mass_msun": 2.073,
+    "radius_eq_km": 12.53329593,
+    "requested_spin_hz": 346.536369,
+    "solver_mode": "RNS_C_SETSPIN",
+    "spin_hz_reported": 346.614535604,
+    "spin_residual_hz": 0.07816660400004594
+  },
+  "F62_source_json_sha256": "aca15e711f18ef7646dc5520d8874700475def17f0bcf5e57e354cfcf3cc8f84",
+  "F62_table_sha256": "15cd0e83830635fe46264ff5e5c52f97f4b8846dc73c1a64768e1237417d9e51",
+  "F63_recomputed_196pt_table_sha256": "15cd0e83830635fe46264ff5e5c52f97f4b8846dc73c1a64768e1237417d9e51",
+  "RNS_C_printf_J_from": "star.ang_mom",
+  "RNS_binary_sha256": "9bdf87a398bbd6ebe4de9e3665b24215ff9bc0c6120c089f4292f1d79bb52666",
+  "RNS_commit": "97e85d325a33e37f702306414533f6cd77812477",
+  "RNS_global_angular_momentum_turning_diagnostic": "NOT_RUN",
+  "XPSI_photon_source_likelihood": "NOT_RUN",
+  "anchor_direct_C_at_original_F62_ec": {
+    "J_cgs": 6.104310398721e+48,
+    "axis_ratio": null,
+    "ec_g_cm3": 1015366308866642.6,
+    "mass_msun": 2.073,
+    "radius_eq_km": 12.53329593,
+    "requested_frequency_hz": 346.536369,
+    "spin_hz": 346.614535604
+  },
+  "direct_C_constant_J_stars": [
+    {
+      "J_cgs": 6.10431039798e+48,
+      "axis_ratio": 0.9502162288,
+      "direct_C_evaluations": 11,
+      "ec_g_cm3": 820000000000000.0,
+      "mass_msun": 1.72231326,
+      "radius_eq_km": 12.762823854,
+      "relative_J_residual": -1.213894540441629e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 443.687911278,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.976,
+          "mass_msun": 1.700329159,
+          "relative_J_residual": -0.329653508027971,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.984,
+          "mass_msun": 1.69381174,
+          "relative_J_residual": -0.4595824024754386,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.965,
+          "mass_msun": 1.709652795,
+          "relative_J_residual": -0.17816253460405118,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.995,
+          "mass_msun": 1.68512442,
+          "relative_J_residual": -0.7051710713975019,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.945,
+          "mass_msun": 1.726889976,
+          "relative_J_residual": 0.058610452658004464,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 1.0,
+          "mass_msun": 1.680653553,
+          "relative_J_residual": -1.0,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9480451002,
+          "mass_msun": 1.724208497,
+          "relative_J_residual": 0.02458330852350543,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9501922836,
+          "mass_msun": 1.722334065,
+          "relative_J_residual": 0.00027236105217531836,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9502160872,
+          "mass_msun": 1.722313383,
+          "relative_J_residual": 1.6105750457739987e-06,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9502162288,
+          "mass_msun": 1.72231326,
+          "relative_J_residual": -1.213894540441629e-10,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9502162286,
+          "mass_msun": 1.72231326,
+          "relative_J_residual": 2.1535602190425607e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310404061e+48,
+      "axis_ratio": 0.9653401647,
+      "direct_C_evaluations": 12,
+      "ec_g_cm3": 900000000000000.0,
+      "mass_msun": 1.887039783,
+      "radius_eq_km": 12.664746646,
+      "relative_J_residual": 8.747917945584049e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 392.564022411,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9462162288,
+          "mass_msun": 1.904718768,
+          "relative_J_residual": 0.27715796547231375,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9542162288,
+          "mass_msun": 1.897090646,
+          "relative_J_residual": 0.16592589174269712,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9352162288,
+          "mass_msun": 1.91517328,
+          "relative_J_residual": 0.4224229529003438,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9652162288,
+          "mass_msun": 1.8871519,
+          "relative_J_residual": 0.0019674439152892464,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9152162288,
+          "mass_msun": 1.934702911,
+          "relative_J_residual": 0.6702922721043649,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9852162288,
+          "mass_msun": 1.869586565,
+          "relative_J_residual": -0.3635483954538056,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9606008422,
+          "mass_msun": 1.891338471,
+          "relative_J_residual": 0.07327280347698495,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9647298506,
+          "mass_msun": 1.887592288,
+          "relative_J_residual": 0.009663603082890493,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9653408933,
+          "mass_msun": 1.887039124,
+          "relative_J_residual": -1.1573109063078846e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9653401624,
+          "mass_msun": 1.887039785,
+          "relative_J_residual": 3.741077803098847e-08,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9653401647,
+          "mass_msun": 1.887039783,
+          "relative_J_residual": 8.747917945584049e-10,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9653401649,
+          "mass_msun": 1.887039783,
+          "relative_J_residual": -2.302143697896497e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310397615e+48,
+      "axis_ratio": 0.9766652053,
+      "direct_C_evaluations": 9,
+      "ec_g_cm3": 1015366308866642.6,
+      "mass_msun": 2.073007595,
+      "radius_eq_km": 12.533298281,
+      "relative_J_residual": -1.8118340161521473e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 346.461126115,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9613401647,
+          "mass_msun": 2.087461099,
+          "relative_J_residual": 0.31053073862744096,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9693401647,
+          "mass_msun": 2.079686858,
+          "relative_J_residual": 0.15534195945010953,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9503401647,
+          "mass_msun": 2.098118194,
+          "relative_J_residual": 0.5065105281942786,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9803401647,
+          "mass_msun": 2.069612682,
+          "relative_J_residual": -0.08695223617989856,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9759446622,
+          "mass_msun": 2.073671491,
+          "relative_J_residual": 0.016253401154008973,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9766368905,
+          "mass_msun": 2.073033715,
+          "relative_J_residual": 0.0006435412664833606,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.976665219,
+          "mass_msun": 2.073007583,
+          "relative_J_residual": -3.116492897081713e-07,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9766652053,
+          "mass_msun": 2.073007595,
+          "relative_J_residual": -1.8118340161521473e-10,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9766652051,
+          "mass_msun": 2.073007595,
+          "relative_J_residual": 4.36576774731634e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310396659e+48,
+      "axis_ratio": 0.9816485013,
+      "direct_C_evaluations": 9,
+      "ec_g_cm3": 1120000000000000.1,
+      "mass_msun": 2.195303304,
+      "radius_eq_km": 12.410511081,
+      "relative_J_residual": -3.377941260040984e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 321.837617781,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9726652053,
+          "mass_msun": 2.204013893,
+          "relative_J_residual": 0.23901933534698805,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9806652053,
+          "mass_msun": 2.196208224,
+          "relative_J_residual": 0.028242978389028783,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9616652053,
+          "mass_msun": 2.214486197,
+          "relative_J_residual": 0.48697025618599543,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9916652053,
+          "mass_msun": 2.186115372,
+          "relative_J_residual": -0.3427330980446792,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9792728329,
+          "mass_msun": 2.197492866,
+          "relative_J_residual": 0.06715376662528327,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9813031358,
+          "mass_msun": 2.195621059,
+          "relative_J_residual": 0.009999477444788907,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9816482794,
+          "mass_msun": 2.195303508,
+          "relative_J_residual": 6.4538166355543325e-06,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9816485013,
+          "mass_msun": 2.195303304,
+          "relative_J_residual": -3.377941260040984e-10,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9816485011,
+          "mass_msun": 2.195303304,
+          "relative_J_residual": 5.4794069281882685e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310419104e+48,
+      "axis_ratio": 0.9845498197,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 1220000000000000.0,
+      "mass_msun": 2.280078899,
+      "radius_eq_km": 12.288258062,
+      "relative_J_residual": 3.3391158726914227e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 307.701792538,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9776485013,
+          "mass_msun": 2.286753658,
+          "relative_J_residual": 0.217707811394789,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9856485013,
+          "mass_msun": 2.279099095,
+          "relative_J_residual": -0.03804972180865274,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9844583202,
+          "mass_msun": 2.280161179,
+          "relative_J_residual": 0.003125093776030319,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9845486528,
+          "mass_msun": 2.280079948,
+          "relative_J_residual": 3.9900839749584804e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9845498199,
+          "mass_msun": 2.280078899,
+          "relative_J_residual": -3.4993303810182397e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9845498197,
+          "mass_msun": 2.280078899,
+          "relative_J_residual": 3.3391158726914227e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310416447e+48,
+      "axis_ratio": 0.9865439171,
+      "direct_C_evaluations": 7,
+      "ec_g_cm3": 1320000000000000.0,
+      "mass_msun": 2.341640712,
+      "radius_eq_km": 12.165649305,
+      "relative_J_residual": 2.903849827262661e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 299.260450317,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9805498197,
+          "mass_msun": 2.347275227,
+          "relative_J_residual": 0.21038975252603298,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9885498197,
+          "mass_msun": 2.339858233,
+          "relative_J_residual": -0.07945981955203796,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9863566871,
+          "mass_msun": 2.341804152,
+          "relative_J_residual": 0.007047220974217394,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9865353487,
+          "mass_msun": 2.3416482,
+          "relative_J_residual": 0.000323670493789896,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9865439146,
+          "mass_msun": 2.341640715,
+          "relative_J_residual": 9.735645178921004e-08,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9865439171,
+          "mass_msun": 2.341640712,
+          "relative_J_residual": 2.903849827262661e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9865439173,
+          "mass_msun": 2.341640712,
+          "relative_J_residual": -4.652286222928126e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310406741e+48,
+      "axis_ratio": 0.987793121,
+      "direct_C_evaluations": 7,
+      "ec_g_cm3": 1420000000000000.0,
+      "mass_msun": 2.386366113,
+      "radius_eq_km": 12.04635763,
+      "relative_J_residual": 1.3138259369327443e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 294.467896162,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9825439171,
+          "mass_msun": 2.391120477,
+          "relative_J_residual": 0.20340761323443823,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9905439171,
+          "mass_msun": 2.382923504,
+          "relative_J_residual": -0.12708433541199682,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9874676707,
+          "mass_msun": 2.386668215,
+          "relative_J_residual": 0.013921177075432611,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.987771382,
+          "mass_msun": 2.386386306,
+          "relative_J_residual": 0.0009359861779305589,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9877931138,
+          "mass_msun": 2.386366119,
+          "relative_J_residual": 3.1146204504395314e-07,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.987793121,
+          "mass_msun": 2.386366113,
+          "relative_J_residual": 1.3138259369327443e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9877931212,
+          "mass_msun": 2.386366113,
+          "relative_J_residual": -7.301561799621936e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310397543e+48,
+      "axis_ratio": 0.9885723822,
+      "direct_C_evaluations": 7,
+      "ec_g_cm3": 1520000000000000.0,
+      "mass_msun": 2.416964104,
+      "radius_eq_km": 11.927884765,
+      "relative_J_residual": -1.9297830000652993e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 292.28306082,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.983793121,
+          "mass_msun": 2.422730856,
+          "relative_J_residual": 0.20367308617423818,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.991793121,
+          "mass_msun": 2.414397,
+          "relative_J_residual": -0.1619674723890443,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9882493681,
+          "mass_msun": 2.417222378,
+          "relative_J_residual": 0.014910282950564069,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9885480962,
+          "mass_msun": 2.416983523,
+          "relative_J_residual": 0.0011283958578587328,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9885723855,
+          "mass_msun": 2.416964101,
+          "relative_J_residual": -1.536022806725157e-07,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9885723822,
+          "mass_msun": 2.416964104,
+          "relative_J_residual": -1.9297830000652993e-10,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.988572382,
+          "mass_msun": 2.416964104,
+          "relative_J_residual": 9.104550224847685e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310392099e+48,
+      "axis_ratio": 0.9891282973,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 1620000000000000.0,
+      "mass_msun": 2.439131129,
+      "radius_eq_km": 11.816333564,
+      "relative_J_residual": -1.0848071330116227e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 291.774965958,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9845723822,
+          "mass_msun": 2.442523876,
+          "relative_J_residual": 0.20392222265758586,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9925723822,
+          "mass_msun": 2.436592221,
+          "relative_J_residual": -0.18381663554037175,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9887797959,
+          "mass_msun": 2.439390703,
+          "relative_J_residual": 0.01694147332951279,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9890998427,
+          "mass_msun": 2.439152311,
+          "relative_J_residual": 0.0013928624807122425,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9891282973,
+          "mass_msun": 2.439131129,
+          "relative_J_residual": -1.0848071330116227e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9891282971,
+          "mass_msun": 2.439131129,
+          "relative_J_residual": 8.711385390824944e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310406458e+48,
+      "axis_ratio": 0.9895216118,
+      "direct_C_evaluations": 7,
+      "ec_g_cm3": 1720000000000000.0,
+      "mass_msun": 2.45404637,
+      "radius_eq_km": 11.71038229,
+      "relative_J_residual": 1.267465021825842e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 292.548318196,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9851282973,
+          "mass_msun": 2.457026919,
+          "relative_J_residual": 0.2042594771974977,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9931282973,
+          "mass_msun": 2.451628584,
+          "relative_J_residual": -0.20077371157318424,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9891627218,
+          "mass_msun": 2.454288675,
+          "relative_J_residual": 0.01804880614198212,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9894898083,
+          "mass_msun": 2.454067821,
+          "relative_J_residual": 0.0016106455972588751,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9895216019,
+          "mass_msun": 2.454046376,
+          "relative_J_residual": 5.029690171021173e-07,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9895216118,
+          "mass_msun": 2.45404637,
+          "relative_J_residual": 1.267465021825842e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.989521612,
+          "mass_msun": 2.454046369,
+          "relative_J_residual": -8.867995893169223e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310377735e+48,
+      "axis_ratio": 0.9898084703,
+      "direct_C_evaluations": 7,
+      "ec_g_cm3": 1820000000000000.0,
+      "mass_msun": 2.463794005,
+      "radius_eq_km": 11.610733106,
+      "relative_J_residual": -3.4378985214189584e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 294.186626158,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9855216118,
+          "mass_msun": 2.466361442,
+          "relative_J_residual": 0.2042731526993231,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9935216118,
+          "mass_msun": 2.461559384,
+          "relative_J_residual": -0.21390779264461834,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9894294542,
+          "mass_msun": 2.464019702,
+          "relative_J_residual": 0.019464734899931724,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9898067141,
+          "mass_msun": 2.463795034,
+          "relative_J_residual": 9.061684856592755e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9898084626,
+          "mass_msun": 2.463794009,
+          "relative_J_residual": 3.946535880317015e-07,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9898084703,
+          "mass_msun": 2.463794005,
+          "relative_J_residual": -3.4378985214189584e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9898084701,
+          "mass_msun": 2.463794005,
+          "relative_J_residual": 6.902171945100122e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310402089e+48,
+      "axis_ratio": 0.990066754,
+      "direct_C_evaluations": 7,
+      "ec_g_cm3": 1920000000000000.0,
+      "mass_msun": 2.472199372,
+      "radius_eq_km": 11.521957904,
+      "relative_J_residual": 5.517413192990261e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 295.837230552,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9858084703,
+          "mass_msun": 2.475818455,
+          "relative_J_residual": 0.208176605910515,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9938084703,
+          "mass_msun": 2.467315083,
+          "relative_J_residual": -0.224818099797242,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9896547364,
+          "mass_msun": 2.47254588,
+          "relative_J_residual": 0.02169922505640498,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9900629065,
+          "mass_msun": 2.472202608,
+          "relative_J_residual": 0.00020464027472488766,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9900667503,
+          "mass_msun": 2.472199375,
+          "relative_J_residual": 1.9736529122127422e-07,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.990066754,
+          "mass_msun": 2.472199372,
+          "relative_J_residual": 5.517413192990261e-10,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9900667542,
+          "mass_msun": 2.472199372,
+          "relative_J_residual": -1.0086642965312365e-08,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310392958e+48,
+      "axis_ratio": 0.9902099717,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 2020000000000000.0,
+      "mass_msun": 2.475112929,
+      "radius_eq_km": 11.435748393,
+      "relative_J_residual": -9.44086808729594e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 298.409689752,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.986066754,
+          "mass_msun": 2.478258987,
+          "relative_J_residual": 0.20571704393687318,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.994066754,
+          "mass_msun": 2.471878886,
+          "relative_J_residual": -0.23540455942854444,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9897975537,
+          "mass_msun": 2.475457063,
+          "relative_J_residual": 0.022045829786964566,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.990207011,
+          "mass_msun": 2.475115401,
+          "relative_J_residual": 0.0001599421772859877,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902099715,
+          "mass_msun": 2.475112929,
+          "relative_J_residual": 9.861228722485293e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902099717,
+          "mass_msun": 2.475112929,
+          "relative_J_residual": -9.44086808729594e-10,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310381858e+48,
+      "axis_ratio": 0.9903024565,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 2120000000000000.0,
+      "mass_msun": 2.475789142,
+      "radius_eq_km": 11.355921445,
+      "relative_J_residual": -2.7624740273068937e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 301.260741773,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9862099717,
+          "mass_msun": 2.478177597,
+          "relative_J_residual": 0.2043892112315282,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9942099717,
+          "mass_msun": 2.472507191,
+          "relative_J_residual": -0.24199320222846277,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9898730051,
+          "mass_msun": 2.475420585,
+          "relative_J_residual": 0.023275896776279614,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903024559,
+          "mass_msun": 2.475789143,
+          "relative_J_residual": 3.003385939948089e-08,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903024565,
+          "mass_msun": 2.475789142,
+          "relative_J_residual": -2.7624740273068937e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903024563,
+          "mass_msun": 2.475789143,
+          "relative_J_residual": 8.169473320052134e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310413577e+48,
+      "axis_ratio": 0.9903482411,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 2220000000000000.2,
+      "mass_msun": 2.473400318,
+      "radius_eq_km": 11.279937718,
+      "relative_J_residual": 2.4336903603483506e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 304.440431386,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9863024565,
+          "mass_msun": 2.476139999,
+          "relative_J_residual": 0.2027074912198541,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9943024565,
+          "mass_msun": 2.471476975,
+          "relative_J_residual": -0.24658667257867228,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9899118066,
+          "mass_msun": 2.473698877,
+          "relative_J_residual": 0.023704644904413597,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903478603,
+          "mass_msun": 2.473400579,
+          "relative_J_residual": 2.0929117075629833e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903482413,
+          "mass_msun": 2.473400318,
+          "relative_J_residual": -8.557395791974898e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903482411,
+          "mass_msun": 2.473400318,
+          "relative_J_residual": 2.4336903603483506e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310394962e+48,
+      "axis_ratio": 0.9903580269,
+      "direct_C_evaluations": 7,
+      "ec_g_cm3": 2320000000000000.0,
+      "mass_msun": 2.470202084,
+      "radius_eq_km": 11.209151898,
+      "relative_J_residual": -6.15794304437145e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 307.863107047,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9863482411,
+          "mass_msun": 2.472522585,
+          "relative_J_residual": 0.20095410026987182,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9943482411,
+          "mass_msun": 2.469228573,
+          "relative_J_residual": -0.2490417554578359,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9899207913,
+          "mass_msun": 2.470460328,
+          "relative_J_residual": 0.023781280630883028,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903585227,
+          "mass_msun": 2.47020179,
+          "relative_J_residual": -2.7288570881633945e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903580209,
+          "mass_msun": 2.470202087,
+          "relative_J_residual": 3.296090580473532e-07,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903580269,
+          "mass_msun": 2.470202084,
+          "relative_J_residual": -6.15794304437145e-10,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903580267,
+          "mass_msun": 2.470202084,
+          "relative_J_residual": 1.039183739059979e-08,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310429723e+48,
+      "axis_ratio": 0.9903758807,
+      "direct_C_evaluations": 7,
+      "ec_g_cm3": 2420000000000000.0,
+      "mass_msun": 2.467846468,
+      "radius_eq_km": 11.145343109,
+      "relative_J_residual": 5.078706344363582e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 311.003901213,
+      "stage": "coarse",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9863580269,
+          "mass_msun": 2.470726984,
+          "relative_J_residual": 0.20223528942870583,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9943580269,
+          "mass_msun": 2.466103905,
+          "relative_J_residual": -0.24978315761948666,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9899372665,
+          "mass_msun": 2.468165113,
+          "relative_J_residual": 0.02397986737333535,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903765887,
+          "mass_msun": 2.467845952,
+          "relative_J_residual": -3.916382316493383e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903758724,
+          "mass_msun": 2.467846474,
+          "relative_J_residual": 4.642532596133009e-07,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903758807,
+          "mass_msun": 2.467846468,
+          "relative_J_residual": 5.078706344363582e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903758809,
+          "mass_msun": 2.467846467,
+          "relative_J_residual": -5.985770212824093e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310389129e+48,
+      "axis_ratio": 0.9902212632,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 2029999999999999.8,
+      "mass_msun": 2.475269948,
+      "radius_eq_km": 11.427496239,
+      "relative_J_residual": -1.5713487178103946e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 298.683726786,
+      "stage": "peak-refinement",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9863758807,
+          "mass_msun": 2.478114149,
+          "relative_J_residual": 0.19209076597623276,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9943758807,
+          "mass_msun": 2.471787063,
+          "relative_J_residual": -0.2569155954843966,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9897983848,
+          "mass_msun": 2.475622728,
+          "relative_J_residual": 0.022628038899191738,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902183928,
+          "mass_msun": 2.475272344,
+          "relative_J_residual": 0.00015527118086899883,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902212632,
+          "mass_msun": 2.475269948,
+          "relative_J_residual": -1.5713487178103946e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.990221263,
+          "mass_msun": 2.475269948,
+          "relative_J_residual": 9.248382948356948e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310373195e+48,
+      "axis_ratio": 0.9902403061,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 2048000000000000.0,
+      "mass_msun": 2.475496953,
+      "radius_eq_km": 11.412795289,
+      "relative_J_residual": -4.181635260280814e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 299.184626743,
+      "stage": "peak-refinement",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9862212632,
+          "mass_msun": 2.478373241,
+          "relative_J_residual": 0.20037201187660392,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9942212632,
+          "mass_msun": 2.472160519,
+          "relative_J_residual": -0.2451458261574544,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9898192697,
+          "mass_msun": 2.475848155,
+          "relative_J_residual": 0.022580408980657607,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902376933,
+          "mass_msun": 2.475499134,
+          "relative_J_residual": 0.0001416624271239897,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902403061,
+          "mass_msun": 2.475496953,
+          "relative_J_residual": -4.181635260280814e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902403059,
+          "mass_msun": 2.475496953,
+          "relative_J_residual": 6.663160467823559e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.10431040568e+48,
+      "axis_ratio": 0.9902579302,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 2065999999999999.8,
+      "mass_msun": 2.475661004,
+      "radius_eq_km": 11.398295883,
+      "relative_J_residual": 1.1400143051787381e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 299.692248782,
+      "stage": "peak-refinement",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9862403061,
+          "mass_msun": 2.478413354,
+          "relative_J_residual": 0.20050311811215304,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9942403061,
+          "mass_msun": 2.472323222,
+          "relative_J_residual": -0.24583764286911514,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9898340288,
+          "mass_msun": 2.476014678,
+          "relative_J_residual": 0.022780191959133722,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902556011,
+          "mass_msun": 2.475662949,
+          "relative_J_residual": 0.0001265588888079705,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902579304,
+          "mass_msun": 2.475661004,
+          "relative_J_residual": -9.72837144175287e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902579302,
+          "mass_msun": 2.475661004,
+          "relative_J_residual": 1.1400143051787381e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310404151e+48,
+      "axis_ratio": 0.9902741315,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 2084000000000000.0,
+      "mass_msun": 2.475762976,
+      "radius_eq_km": 11.383989037,
+      "relative_J_residual": 8.895353342808221e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 300.207379719,
+      "stage": "peak-refinement",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9862579302,
+          "mass_msun": 2.478381781,
+          "relative_J_residual": 0.2006031056172326,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9942579302,
+          "mass_msun": 2.472422775,
+          "relative_J_residual": -0.24648717366309825,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9898474174,
+          "mass_msun": 2.47611922,
+          "relative_J_residual": 0.022975252215776232,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.990272113,
+          "mass_msun": 2.475764663,
+          "relative_J_residual": 0.0001099114316240879,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902741319,
+          "mass_msun": 2.475762976,
+          "relative_J_residual": -2.089228612334182e-08,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902741315,
+          "mass_msun": 2.475762976,
+          "relative_J_residual": 8.895353342808221e-10,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310406897e+48,
+      "axis_ratio": 0.9902888629,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 2101999999999999.8,
+      "mass_msun": 2.47580186,
+      "radius_eq_km": 11.369861115,
+      "relative_J_residual": 1.339381494602776e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 300.731715752,
+      "stage": "peak-refinement",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9862741315,
+          "mass_msun": 2.478283677,
+          "relative_J_residual": 0.2006798396198317,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9942741315,
+          "mass_msun": 2.472458206,
+          "relative_J_residual": -0.24709292710738162,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9898595186,
+          "mass_msun": 2.476160648,
+          "relative_J_residual": 0.02315833876102036,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902871653,
+          "mass_msun": 2.47580328,
+          "relative_J_residual": 9.261640022750761e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902888633,
+          "mass_msun": 2.47580186,
+          "relative_J_residual": -2.0484213769655923e-08,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9902888629,
+          "mass_msun": 2.47580186,
+          "relative_J_residual": 1.339381494602776e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.10431039173e+48,
+      "axis_ratio": 0.9903148214,
+      "direct_C_evaluations": 7,
+      "ec_g_cm3": 2138000000000000.0,
+      "mass_msun": 2.474919355,
+      "radius_eq_km": 11.341318668,
+      "relative_J_residual": -1.1452562231895058e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 301.798493619,
+      "stage": "peak-refinement",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9862888629,
+          "mass_msun": 2.477901077,
+          "relative_J_residual": 0.20138564664070358,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9942888629,
+          "mass_msun": 2.472375922,
+          "relative_J_residual": -0.24718192466460187,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9898804849,
+          "mass_msun": 2.475242167,
+          "relative_J_residual": 0.02349050549772902,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903135883,
+          "mass_msun": 2.474920273,
+          "relative_J_residual": 6.747107160332e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903148218,
+          "mass_msun": 2.474919355,
+          "relative_J_residual": -2.303306845252706e-08,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903148214,
+          "mass_msun": 2.474919355,
+          "relative_J_residual": -1.1452562231895058e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903148212,
+          "mass_msun": 2.474919355,
+          "relative_J_residual": 9.798649891479272e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310397037e+48,
+      "axis_ratio": 0.9903243399,
+      "direct_C_evaluations": 7,
+      "ec_g_cm3": 2156000000000000.2,
+      "mass_msun": 2.47468249,
+      "radius_eq_km": 11.327568528,
+      "relative_J_residual": -2.758705486272106e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 302.364174551,
+      "stage": "peak-refinement",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9863148214,
+          "mass_msun": 2.477600887,
+          "relative_J_residual": 0.20074811916637736,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9943148214,
+          "mass_msun": 2.472241682,
+          "relative_J_residual": -0.248632856476794,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.989888593,
+          "mass_msun": 2.475001227,
+          "relative_J_residual": 0.0235945338243575,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903233183,
+          "mass_msun": 2.474683239,
+          "relative_J_residual": 5.596882492597821e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903243402,
+          "mass_msun": 2.47468249,
+          "relative_J_residual": -1.6712125128215405e-08,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903243399,
+          "mass_msun": 2.47468249,
+          "relative_J_residual": -2.758705486272106e-10,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903243397,
+          "mass_msun": 2.47468249,
+          "relative_J_residual": 1.0681468598505717e-08,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.104310399472e+48,
+      "axis_ratio": 0.9903324993,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 2174000000000000.0,
+      "mass_msun": 2.474386815,
+      "radius_eq_km": 11.313972403,
+      "relative_J_residual": 1.2302803220620717e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 302.939669505,
+      "stage": "peak-refinement",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9863243399,
+          "mass_msun": 2.477250517,
+          "relative_J_residual": 0.20078838984872216,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9943243399,
+          "mass_msun": 2.472078672,
+          "relative_J_residual": -0.24893523849121235,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9898961049,
+          "mass_msun": 2.474700598,
+          "relative_J_residual": 0.023654204020367997,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903316831,
+          "mass_msun": 2.474387402,
+          "relative_J_residual": 4.476279401810501e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903324996,
+          "mass_msun": 2.474386814,
+          "relative_J_residual": -1.6330100049977148e-08,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903324993,
+          "mass_msun": 2.474386815,
+          "relative_J_residual": 1.2302803220620717e-10,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.10431039382e+48,
+      "axis_ratio": 0.9903396697,
+      "direct_C_evaluations": 7,
+      "ec_g_cm3": 2192000000000000.2,
+      "mass_msun": 2.47404325,
+      "radius_eq_km": 11.3005424,
+      "relative_J_residual": -8.02875321781471e-10,
+      "requested_frequency_hz": null,
+      "spin_hz": 303.519405616,
+      "stage": "peak-refinement",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9863324993,
+          "mass_msun": 2.476849995,
+          "relative_J_residual": 0.20082688820081285,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9943324993,
+          "mass_msun": 2.471856699,
+          "relative_J_residual": -0.2492045658362544,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9899025056,
+          "mass_msun": 2.474351862,
+          "relative_J_residual": 0.02371741352918999,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903390334,
+          "mass_msun": 2.4740437,
+          "relative_J_residual": 3.492744799560299e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903396699,
+          "mass_msun": 2.47404325,
+          "relative_J_residual": -1.1781510766972758e-08,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903396697,
+          "mass_msun": 2.47404325,
+          "relative_J_residual": -8.02875321781471e-10,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903396695,
+          "mass_msun": 2.47404325,
+          "relative_J_residual": 1.0175924325395158e-08,
+          "status": "DIRECT_C"
+        }
+      ]
+    },
+    {
+      "J_cgs": 6.10431036807e+48,
+      "axis_ratio": 0.9903455602,
+      "direct_C_evaluations": 6,
+      "ec_g_cm3": 2210000000000000.0,
+      "mass_msun": 2.473645409,
+      "radius_eq_km": 11.287258539,
+      "relative_J_residual": -5.0212058955168e-09,
+      "requested_frequency_hz": null,
+      "spin_hz": 304.108400407,
+      "stage": "peak-refinement",
+      "status": "DIRECT_C_FIXED_J_NUMERICAL_PASS_NOT_STABILITY_CERTIFICATE",
+      "trace": [
+        {
+          "axis_ratio": 0.9863396697,
+          "mass_msun": 2.476392197,
+          "relative_J_residual": 0.2008303371379776,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9943396697,
+          "mass_msun": 2.471597839,
+          "relative_J_residual": -0.24943322252109335,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9899078969,
+          "mass_msun": 2.473948315,
+          "relative_J_residual": 0.023762115553198626,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903450948,
+          "mass_msun": 2.473645731,
+          "relative_J_residual": 2.5561173467414378e-05,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.9903455602,
+          "mass_msun": 2.473645409,
+          "relative_J_residual": -5.0212058955168e-09,
+          "status": "DIRECT_C"
+        },
+        {
+          "axis_ratio": 0.99034556,
+          "mass_msun": 2.473645409,
+          "relative_J_residual": 5.966112048838568e-09,
+          "status": "DIRECT_C"
+        }
+      ]
+    }
+  ],
+  "failed_density_attempts": [],
+  "fixed_J_turning_summary": {
+    "global_dynamical_stability": "NOT_ESTABLISHED",
+    "neighbor_densities_g_cm3": [
+      2084000000000000.0,
+      2101999999999999.8,
+      2120000000000000.0
+    ],
+    "neighbor_masses_msun": [
+      2.475762976,
+      2.47580186,
+      2.475789142
+    ],
+    "original_source_microphysics_causal": "NO",
+    "passed": 27,
+    "peak_mass_msun": 2.47580186,
+    "peak_radius_eq_km": 11.369861115,
+    "peak_rho_g_cm3": 2101999999999999.8,
+    "peak_spin_hz": 300.731715752,
+    "status": "SAMPLED_CONSTANT_J_TURNOVER_BRACKETED_NOT_GLOBAL_PROOF"
+  },
+  "original_7EOS_Bayes": "NOT_RUN",
+  "original_n_e_over_mavg_proxy_firstlaw_certified": false,
+  "physical_EOS_acceptance": "NOT_ESTABLISHED_SOURCE_NEGATIVE_CS2",
+  "sampled_anchor_is_below_peak": true,
+  "schema": "J0740_F63_ORIGINAL_MPA1_PINNED_RNS_CONSTANT_J_V1",
+  "source_196pt_table_sha256": "15cd0e83830635fe46264ff5e5c52f97f4b8846dc73c1a64768e1237417d9e51",
+  "source_crust_bad_node": {
+    "P_geom_m_minus_2": 5.175111469637044e-16,
+    "cs2_over_c2": -0.17517448133854174,
+    "index": 254,
+    "rho_g_cm3": 332423420088.3387,
+    "source_energy_reversal_edge": 253
+  },
+  "source_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+  "status": "SOURCE_ORIGINAL_MPA1_FIXED_J_TURNOVER_NUMERICAL_DIAGNOSTIC_NOT_PHYSICAL_CERTIFICATION",
+  "table_bytes_identical": true,
+  "table_change_assessment": "BYTE_IDENTICAL",
+  "target_J_cgs": 6.104310398721e+48
+}

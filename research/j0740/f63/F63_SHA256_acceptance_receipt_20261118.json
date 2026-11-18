@@ -1,0 +1,15 @@
+{
+  "all_7_pairs_pass": true,
+  "coarse_CI_json_sha256": "681900f1e582815ccc7a0d6b73223b2211e767b96f2c7ff73641aedf44b12e0b",
+  "coarse_CI_zip_sha256": "0faa0f78a4b5b9a48def4c90dd945acc4a5dee7e2f95fca329c4bb4a510c057e",
+  "fine_CI_json_sha256": "f9f2af9b56a018d455a856dd210bf0bc82a67ec1971fc7756aafaf962dc5c79b",
+  "fine_CI_zip_sha256": "2230431bd52042fb0443d7f2094b4ef18b6300783c3c0e02b800e45228f24523",
+  "identical_RNS_EOS_table_SHA256": "15cd0e83830635fe46264ff5e5c52f97f4b8846dc73c1a64768e1237417d9e51",
+  "number_direct_C_constJ_coarse": 27,
+  "number_direct_C_constJ_fine": 7,
+  "physical_MPA1_global_EOS_certification": false,
+  "same_bytes_EOS": true,
+  "schema": "F63_A01_01_51_evidence_receipt_v1",
+  "source_MPA1_SHA256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+  "source_native_XPSI_Bayes": "NOT_RUN"
+}

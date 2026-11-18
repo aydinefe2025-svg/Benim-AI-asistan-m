@@ -1,0 +1,263 @@
+{
+  "EOS_table_knot_count_both": 196,
+  "F63_J_anchor_cgs": 6.104310398721e+48,
+  "F63_fixed_J_JSON_sha256": "681900f1e582815ccc7a0d6b73223b2211e767b96f2c7ff73641aedf44b12e0b",
+  "coarse_source_RNS_table_sha256": "15cd0e83830635fe46264ff5e5c52f97f4b8846dc73c1a64768e1237417d9e51",
+  "coarse_spatial_grid": "151x301",
+  "exact_same_original_RNS_EOS_table_bytes": true,
+  "fine_RNS_C_binary_sha256": "77520d491da345ec7ee1ac93fd531f90354d7593593e031aa60b5103e1d5556a",
+  "fine_fixed_J_turning_summary": {
+    "fine_neighbor_masses": [
+      2.475168545,
+      2.475205943,
+      2.475191677
+    ],
+    "fine_peak_M_msun": 2.475205943,
+    "fine_peak_ec_e15": 2.102,
+    "physical_dynamic_stability": "NOT_ESTABLISHED",
+    "status": "FINE_201x401_SAMPLED_FIXED_J_PEAK_BRACKETED"
+  },
+  "fine_spatial_grid": "201x401",
+  "max_abs_spatial_mass_sensitivity_msun": 0.0005974649999997972,
+  "max_abs_spatial_radius_sensitivity_km": 0.001043699000000231,
+  "original_MPA1_crust_physical_validation": "NOT_ESTABLISHED_NEGATIVE_CS2",
+  "pairs": [
+    {
+      "coarse": {
+        "J_cgs": 6.104310373195e+48,
+        "axis_ratio": 0.9902403061,
+        "ec_g_cm3": 2048000000000000.0,
+        "mass_msun": 2.475496953,
+        "radius_eq_km": 11.412795289,
+        "relative_J_residual": -4.181635260280814e-09,
+        "spin_hz": 299.184626743
+      },
+      "comparison": {
+        "coarse_M_msun": 2.475496953,
+        "coarse_radius_km": 11.412795289,
+        "fine_J_relative_residual": -4.3117076575782676e-10,
+        "fine_M_msun": 2.474905734,
+        "fine_minus_coarse_mass_msun": -0.0005912189999999207,
+        "fine_minus_coarse_radius_km": -0.0009618019999990679,
+        "fine_radius_km": 11.411833487,
+        "mesh_acceptance": true,
+        "same_rho_c_g_cm3": 2048000000000000.0
+      },
+      "ec_e15": 2.048,
+      "fine": {
+        "J_cgs": 6.104310396089e+48,
+        "axis_ratio": 0.9903280302,
+        "direct_C_evaluations": 7,
+        "ec_g_cm3": 2048000000000000.0,
+        "mass_msun": 2.474905734,
+        "radius_eq_km": 11.411833487,
+        "relative_J_residual": -4.3117076575782676e-10,
+        "spin_hz": 299.177734476
+      }
+    },
+    {
+      "coarse": {
+        "J_cgs": 6.10431040568e+48,
+        "axis_ratio": 0.9902579302,
+        "ec_g_cm3": 2065999999999999.8,
+        "mass_msun": 2.475661004,
+        "radius_eq_km": 11.398295883,
+        "relative_J_residual": 1.1400143051787381e-09,
+        "spin_hz": 299.692248782
+      },
+      "comparison": {
+        "coarse_M_msun": 2.475661004,
+        "coarse_radius_km": 11.398295883,
+        "fine_J_relative_residual": -2.3694731732248897e-09,
+        "fine_M_msun": 2.475068182,
+        "fine_minus_coarse_mass_msun": -0.0005928220000002149,
+        "fine_minus_coarse_radius_km": -0.0009830920000002408,
+        "fine_radius_km": 11.397312791,
+        "mesh_acceptance": true,
+        "same_rho_c_g_cm3": 2065999999999999.8
+      },
+      "ec_e15": 2.066,
+      "fine": {
+        "J_cgs": 6.104310384257e+48,
+        "axis_ratio": 0.9903482418,
+        "direct_C_evaluations": 7,
+        "ec_g_cm3": 2065999999999999.8,
+        "mass_msun": 2.475068182,
+        "radius_eq_km": 11.397312791,
+        "relative_J_residual": -2.3694731732248897e-09,
+        "spin_hz": 299.684863208
+      }
+    },
+    {
+      "coarse": {
+        "J_cgs": 6.104310404151e+48,
+        "axis_ratio": 0.9902741315,
+        "ec_g_cm3": 2084000000000000.0,
+        "mass_msun": 2.475762976,
+        "radius_eq_km": 11.383989037,
+        "relative_J_residual": 8.895353342808221e-10,
+        "spin_hz": 300.207379719
+      },
+      "comparison": {
+        "coarse_M_msun": 2.475762976,
+        "coarse_radius_km": 11.383989037,
+        "fine_J_relative_residual": 2.381104424742375e-09,
+        "fine_M_msun": 2.475168545,
+        "fine_minus_coarse_mass_msun": -0.0005944310000001174,
+        "fine_minus_coarse_radius_km": -0.0010039279999993767,
+        "fine_radius_km": 11.382985109,
+        "mesh_acceptance": true,
+        "same_rho_c_g_cm3": 2084000000000000.0
+      },
+      "ec_e15": 2.084,
+      "fine": {
+        "J_cgs": 6.104310413256e+48,
+        "axis_ratio": 0.9903671332,
+        "direct_C_evaluations": 7,
+        "ec_g_cm3": 2084000000000000.0,
+        "mass_msun": 2.475168545,
+        "radius_eq_km": 11.382985109,
+        "relative_J_residual": 2.381104424742375e-09,
+        "spin_hz": 300.199516054
+      }
+    },
+    {
+      "coarse": {
+        "J_cgs": 6.104310406897e+48,
+        "axis_ratio": 0.9902888629,
+        "ec_g_cm3": 2101999999999999.8,
+        "mass_msun": 2.47580186,
+        "radius_eq_km": 11.369861115,
+        "relative_J_residual": 1.339381494602776e-09,
+        "spin_hz": 300.731715752
+      },
+      "comparison": {
+        "coarse_M_msun": 2.47580186,
+        "coarse_radius_km": 11.369861115,
+        "fine_J_relative_residual": -1.8015137159821393e-09,
+        "fine_M_msun": 2.475205943,
+        "fine_minus_coarse_mass_msun": -0.0005959169999996128,
+        "fine_minus_coarse_radius_km": -0.0010240750000001242,
+        "fine_radius_km": 11.36883704,
+        "mesh_acceptance": true,
+        "same_rho_c_g_cm3": 2101999999999999.8
+      },
+      "ec_e15": 2.102,
+      "fine": {
+        "J_cgs": 6.104310387724e+48,
+        "axis_ratio": 0.9903846376,
+        "direct_C_evaluations": 7,
+        "ec_g_cm3": 2101999999999999.8,
+        "mass_msun": 2.475205943,
+        "radius_eq_km": 11.36883704,
+        "relative_J_residual": -1.8015137159821393e-09,
+        "spin_hz": 300.723340236
+      }
+    },
+    {
+      "coarse": {
+        "J_cgs": 6.104310381858e+48,
+        "axis_ratio": 0.9903024565,
+        "ec_g_cm3": 2120000000000000.0,
+        "mass_msun": 2.475789142,
+        "radius_eq_km": 11.355921445,
+        "relative_J_residual": -2.7624740273068937e-09,
+        "spin_hz": 301.260741773
+      },
+      "comparison": {
+        "coarse_M_msun": 2.475789142,
+        "coarse_radius_km": 11.355921445,
+        "fine_J_relative_residual": 1.125270543411716e-09,
+        "fine_M_msun": 2.475191677,
+        "fine_minus_coarse_mass_msun": -0.0005974649999997972,
+        "fine_minus_coarse_radius_km": -0.001043699000000231,
+        "fine_radius_km": 11.354877746,
+        "mesh_acceptance": true,
+        "same_rho_c_g_cm3": 2120000000000000.0
+      },
+      "ec_e15": 2.12,
+      "fine": {
+        "J_cgs": 6.10431040559e+48,
+        "axis_ratio": 0.9904010528,
+        "direct_C_evaluations": 7,
+        "ec_g_cm3": 2120000000000000.0,
+        "mass_msun": 2.475191677,
+        "radius_eq_km": 11.354877746,
+        "relative_J_residual": 1.125270543411716e-09,
+        "spin_hz": 301.251885028
+      }
+    },
+    {
+      "coarse": {
+        "J_cgs": 6.10431039173e+48,
+        "axis_ratio": 0.9903148214,
+        "ec_g_cm3": 2138000000000000.0,
+        "mass_msun": 2.474919355,
+        "radius_eq_km": 11.341318668,
+        "relative_J_residual": -1.1452562231895058e-09,
+        "spin_hz": 301.798493619
+      },
+      "comparison": {
+        "coarse_M_msun": 2.474919355,
+        "coarse_radius_km": 11.341318668,
+        "fine_J_relative_residual": 1.9338795009815613e-09,
+        "fine_M_msun": 2.475119588,
+        "fine_minus_coarse_mass_msun": 0.00020023300000016064,
+        "fine_minus_coarse_radius_km": -0.00022863999999955809,
+        "fine_radius_km": 11.341090028,
+        "mesh_acceptance": true,
+        "same_rho_c_g_cm3": 2138000000000000.0
+      },
+      "ec_e15": 2.138,
+      "fine": {
+        "J_cgs": 6.104310410526e+48,
+        "axis_ratio": 0.9904161739,
+        "direct_C_evaluations": 7,
+        "ec_g_cm3": 2138000000000000.0,
+        "mass_msun": 2.475119588,
+        "radius_eq_km": 11.341090028,
+        "relative_J_residual": 1.9338795009815613e-09,
+        "spin_hz": 301.789116287
+      }
+    },
+    {
+      "coarse": {
+        "J_cgs": 6.104310397037e+48,
+        "axis_ratio": 0.9903243399,
+        "ec_g_cm3": 2156000000000000.2,
+        "mass_msun": 2.47468249,
+        "radius_eq_km": 11.327568528,
+        "relative_J_residual": -2.758705486272106e-10,
+        "spin_hz": 302.364174551
+      },
+      "comparison": {
+        "coarse_M_msun": 2.47468249,
+        "coarse_radius_km": 11.327568528,
+        "fine_J_relative_residual": 1.017969264438534e-09,
+        "fine_M_msun": 2.475002441,
+        "fine_minus_coarse_mass_msun": 0.00031995099999981846,
+        "fine_minus_coarse_radius_km": -8.186700000045732e-05,
+        "fine_radius_km": 11.327486661,
+        "mesh_acceptance": true,
+        "same_rho_c_g_cm3": 2156000000000000.2
+      },
+      "ec_e15": 2.156,
+      "fine": {
+        "J_cgs": 6.104310404935e+48,
+        "axis_ratio": 0.9904303225,
+        "direct_C_evaluations": 7,
+        "ec_g_cm3": 2156000000000000.2,
+        "mass_msun": 2.475002441,
+        "radius_eq_km": 11.327486661,
+        "relative_J_residual": 1.017969264438534e-09,
+        "spin_hz": 302.329762047
+      }
+    }
+  ],
+  "photon_level_likelihood": "NOT_RUN",
+  "schema": "F63_original_MPA1_fixed_J_151x301_vs_201x401_real_C_v1",
+  "seven_original_EOS_Bayes": "NOT_RUN",
+  "source_RNS_table_sha256": "15cd0e83830635fe46264ff5e5c52f97f4b8846dc73c1a64768e1237417d9e51",
+  "source_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+  "status": "TWO_REAL_RNS_SPATIAL_GRIDS_FIXED_J_PEAK_BRACKETED_NOT_PHYSICAL_EOS_CERT"
+}
