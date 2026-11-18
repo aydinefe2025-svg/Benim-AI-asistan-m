@@ -1,0 +1,7 @@
+# F48 — Direct C/GR rescue of missing F46 WFF1 mass point M=2.0175 Msun
+
+F46 seven-model RNS mass curves achieved 6/7 complete 22-point grids and 21/22 real C/GR stars for WFF1. Rather than accept an interpolated star or silently weaken the source target-mass tolerance, F48 uses the **real RNS C solver again** to solve only the one missing WFF1 mass node.
+
+We already possess two validated direct C/GR WFF1 solutions at M=2.01 and 2.025 solar masses. They strictly bracket the target in central energy density on the same increasing-mass branch. F48 solves the axis-ratio spin residual with a brentq bracket for each central density, and brackets the resulting mass residual with another brentq over those measured central densities. The only interpolated thing is the *starting axis-ratio guess*; every accepted star geometry is a **new real C/GR output** at the measured spin and mass. Both the original failed F46 ZIP and newly created F48 output remain SHA-pinned separately. The code fails closed if no real nested bracket or acceptable mass/spin residual is found.
+
+Any verified new direct WFF1 root would close only the F46 **numerical single-node gate**. It does not retroactively prove microphysical validity, constant-J global dynamic stability, native X-PSI photon likelihood or final physical seven-EOS Bayes posterior. The causal-lift WFF1 candidate differs from the original nuclear EOS source by ~20% in energy density in its largest deformation and is a separately named mathematical hypothesis.
