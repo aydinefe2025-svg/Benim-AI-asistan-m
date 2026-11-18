@@ -1,0 +1,92 @@
+name: J0740 F49 seven actual full 22-node C-GR source likelihood integrals
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f49/**'
+      - '.github/workflows/j0740-f49-complete-real-curves-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  f49-seven-22-node-independent-integrals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pinned numerical packages
+        run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
+      - name: Verify F49 5 and original F47 16 numerical/fail closed tests
+        run: |
+          python -m unittest discover -s research/j0740/f47 -p 'test_f47_mass_integrated_likelihood.py' -v
+          python -m unittest discover -s research/j0740/f49 -p 'test_f49_source_reconciliation.py' -v
+      - name: Download six immutable original genuine source RNS curves (one failed F46 job excluded)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F49/curves
+          for name in APR4_EPP ENG MPA1 MS1 MS1B WFF2; do
+            mkdir -p "results/F49/staging/${name}"
+            gh run download 44286241129 --repo "$GITHUB_REPOSITORY" \
+              --name "j0740-f46-direct-mass-curve-${name}" --dir "results/F49/staging/${name}"
+            cp "results/F49/staging/${name}/${name}_fixed_spin_direct_curve.json" \
+               "results/F49/curves/${name}_fixed_spin_direct_curve.json"
+            test -s "results/F49/curves/${name}_fixed_spin_direct_curve.json"
+          done
+      - name: Download pinned F38/F44 originals and F48 REAL WFF1 direct-C recovery archive
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F49/input
+          for pair in '14344049589 F38.zip' '14413168551 F44.zip' '14421121729 F48.zip'; do
+            set -- $pair
+            curl -fL --retry 3 --max-time 120 \
+              -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/${1}/zip" \
+              -o "results/F49/input/${2}"
+          done
+          echo '4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307  results/F49/input/F38.zip' | sha256sum -c -
+          echo 'b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98  results/F49/input/F44.zip' | sha256sum -c -
+          echo '8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786  results/F49/input/F48.zip' | sha256sum -c -
+          cp research/j0740/f47/F47_real_seven_common_window_integrals_20261118.json results/F49/input/F47_original.json
+          echo '4e8f13eb5e4788dcf6106108e396df52abca0822f3775b08aa5b2821fd92d2ad  results/F49/input/F47_original.json' | sha256sum -c -
+      - name: Recompute seven full 22-star direct RNS conditional integrals, independent of local output
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f49/f49_reconcile_seven_complete_c_gr.py \
+            --f38 results/F49/input/F38.zip --f44 results/F49/input/F44.zip \
+            --f48 results/F49/input/F48.zip --old-f47 results/F49/input/F47_original.json \
+            --curves-dir results/F49/curves \
+            --out results/F49/F49_7EOS_all_22_real_direct_RNS_integrals.json
+      - name: Source JSON hashes and complete-or-failed evidence
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          root=Path('results/F49');root.mkdir(parents=True,exist_ok=True)
+          d={str(p.relative_to(root)):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+              for p in root.rglob('*.json') if p.name!='F49_manifest.json'}
+          (root/'F49_manifest.json').write_text(json.dumps(d,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f49-genuine-complete-seven-direct-RNS-likelihood-integrals
+          path: |
+            results/F49/F49_7EOS_all_22_real_direct_RNS_integrals.json
+            results/F49/F49_manifest.json
+            results/F49/curves/*_fixed_spin_direct_curve.json
+          if-no-files-found: warn
+          retention-days: 30
