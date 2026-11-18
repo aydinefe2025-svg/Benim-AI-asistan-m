@@ -1,0 +1,78 @@
+name: J0740 F56 genuine JESTER WFF1 original vs F42 causal-lift physical-input audit
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f56/**'
+      - '.github/workflows/j0740-f56-wff1-original-versus-lift.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  source-locked-WFF1-original-versus-lift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install fixed-major NumPy for EOS source audit
+        run: python -m pip install 'numpy>=1.26,<3'
+      - name: Verify mathematical and scientific separation with 8 unit tests
+        run: python -m unittest discover -s research/j0740/f56 -p 'test_f56_*.py' -v
+      - name: Obtain exact source original WFF1 and locked authentic F44 and F53 parent artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F56/input
+          curl -fL --retry 3 --max-time 150 \
+            'https://raw.githubusercontent.com/nuclear-multimessenger-astronomy/jester/e6768650ce992abfd1153a6833857572fe5cd230/jesterTOV/tabulated_eos/lalsuite/WFF1.npz' \
+            -o results/F56/input/WFF1_source.npz
+          echo '119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3  results/F56/input/WFF1_source.npz' | sha256sum -c -
+          curl -fL --retry 3 --max-time 150 -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14413168551/zip' \
+            -o results/F56/input/F44.zip
+          curl -fL --retry 3 --max-time 150 -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14435795810/zip' \
+            -o results/F56/input/F53.zip
+          echo 'b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98  results/F56/input/F44.zip' | sha256sum -c -
+          echo 'e35a52b02745d596cdea93427e15d5f7eb1e52c6f591fb21eb61501d57de2ae7  results/F56/input/F53.zip' | sha256sum -c -
+      - name: Audit original-vs-lift EOS at same pressures and F53 central density, no fake source star
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f56/f56_wff1_native_vs_lift.py \
+            --npz results/F56/input/WFF1_source.npz \
+            --f44 results/F56/input/F44.zip \
+            --f53 results/F56/input/F53.zip \
+            --out results/F56/F56_WFF1_native_vs_lift_source_audit.json \
+            --table-out results/F56/F56_WFF1_pressure_aligned_eos_rows.csv
+      - name: SHA256 audit output, retain failures without concealing them
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          root=Path('results/F56');root.mkdir(parents=True,exist_ok=True)
+          d={str(p.relative_to(root)):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+            for p in root.glob('*') if p.is_file() and p.name!='F56_manifest.json'}
+          (root/'F56_manifest.json').write_text(json.dumps(d,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f56-authentic-WFF1-original-vs-F42-lift-or-failure
+          path: |
+            results/F56/F56_WFF1_native_vs_lift_source_audit.json
+            results/F56/F56_WFF1_pressure_aligned_eos_rows.csv
+            results/F56/F56_manifest.json
+          if-no-files-found: warn
+          retention-days: 30
