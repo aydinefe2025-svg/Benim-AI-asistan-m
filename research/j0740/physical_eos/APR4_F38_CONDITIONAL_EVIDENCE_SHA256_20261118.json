@@ -15,10 +15,11 @@
       "artifact_id": 14410045606
     },
     {
-      "name": "conditional evidence JSON Actions artifact",
+      "name": "superseded non-reanchored conditional evidence artifact",
       "sha256": "011fd29e2333b230d2213976d3c9650089f90a9c3f92dfbb4e5842aae8dd6187",
       "run_id": 44265095377,
-      "artifact_id": 14409468800
+      "artifact_id": 14409468800,
+      "status": "SUPERSEDED_TABLE_MISMATCH"
     },
     {
       "name": "JESTER APR4_EPP.npz source",
@@ -27,9 +28,24 @@
     {
       "name": "200-point causal-completion RNS table",
       "sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89"
+    },
+    {
+      "name": "superseded exact-table weighted-only evidence artifact",
+      "sha256": "fd8b8447689fd364116b7b6dcadfa87e366d749ec2cbb7039d80cbd53d603801",
+      "run_id": 44266168585,
+      "artifact_id": 14409613719,
+      "status": "SUPERSEDED_WEIGHTED_ONLY"
+    },
+    {
+      "name": "current exact-table weighted and published-equal evidence artifact",
+      "sha256": "fd91f0825b5079f0f264266b7f6ea197a3129b5e345ecbbca06d09721a471ea9",
+      "run_id": 44266823083,
+      "artifact_id": 14410043372,
+      "bytes": 34038,
+      "status": "CURRENT"
     }
   ],
-  "analysis_commit": "7a29123cd2f3734ec4148a19e24cb32b0ecf1599",
-  "analysis_blob_git_sha1": "d0e222b23084d57fb059e242384811daa70c3715",
-  "status": "Artifacts refer to immutable GitHub Actions ZIPs; each SHA256 is GitHub's published artifact digest, not the inner JSON's hash."
+  "analysis_commit": "446ccd0ae81d64eb739b2d166215c190a7a58fd8",
+  "analysis_blob_git_sha1": "11e797809c129032f400b1bc5b7a76a753777ca4",
+  "status": "Current evidence is exact-table re-anchored six-surface weighted + published-equal result (run 44266823083); earlier conditional artifacts are retained as superseded provenance."
 }
