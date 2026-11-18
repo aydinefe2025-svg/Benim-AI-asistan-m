@@ -1,0 +1,91 @@
+name: J0740 F53 WFF1 direct C-RNS constant-J turning diagnostic
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f53/**'
+      - '.github/workflows/j0740-f53-wff1-constant-J.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  f53-WFF1-direct-C-GR-fixed-J-turning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install compatible numerical solver dependencies
+        run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
+      - name: Test fixed-J numerical rooting and all hard-stop scientific guardrails
+        run: python -m unittest discover -s research/j0740/f53 -p 'test_f53_*.py' -v
+      - name: Fetch immutable pinned F44, F46 and real F52 results (not rerun)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F53/input
+          for entry in 'F44 14413168551' 'F46_WFF1 14418493809' 'F52_real_C 14432968834'; do
+            set -- $entry
+            curl -fL --retry 3 --max-time 150 -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/$2/zip" \
+              -o "results/F53/input/$1.zip"
+          done
+          echo 'b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98  results/F53/input/F44.zip' | sha256sum -c -
+          echo 'bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3  results/F53/input/F46_WFF1.zip' | sha256sum -c -
+          echo '68c72ac72783f55d514483215c893f17084bfe672ea55121af66810d71e17650  results/F53/input/F52_real_C.zip' | sha256sum -c -
+      - name: Expose original RNS star.ang_mom in C output, without modifying solver arithmetic
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          python research/j0740/physical_eos/apr4_causal_fixed_J_turning.py \
+            --mode patch --source rns-upstream/rns.c --out results/F53/F53_RNS_J_print_patch.json
+      - name: Compile authentic C-RNS fine 201x401 spatial mesh
+        run: make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+      - name: Regenerate F52 C-star J anchor, then solve true constant-J WFF1 sequence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f53/f53_wff1_constant_j.py \
+            --f44 results/F53/input/F44.zip \
+            --f46 results/F53/input/F46_WFF1.zip \
+            --f52 results/F53/input/F52_real_C.zip \
+            --binary rns-upstream/rns \
+            --patch results/F53/F53_RNS_J_print_patch.json \
+            --work results/F53/WFF1_pinned_eos_table \
+            --out results/F53/F53_WFF1_direct_C_constant_J_stars.json
+      - name: Audit all output SHA256 hashes even if a scientific gate failed
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F53');root.mkdir(parents=True,exist_ok=True)
+          d={str(p.relative_to(root)):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+            for p in root.rglob('*.json') if p.name!='F53_manifest.json'}
+          (root/'F53_manifest.json').write_text(json.dumps(d,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f53-wff1-constant-J-direct-RNS-or-failure
+          path: |
+            results/F53/F53_WFF1_direct_C_constant_J_stars.json
+            results/F53/F53_RNS_J_print_patch.json
+            results/F53/F53_manifest.json
+          if-no-files-found: warn
+          retention-days: 30
