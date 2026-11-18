@@ -129,6 +129,7 @@ def run(args):
             'fixed_spin_hz':SPIN_HZ,'curve':[],'likelihood_grids':{}}
     def save():out.write_text(json.dumps(report,indent=2,sort_keys=True,allow_nan=False)+'\n')
     save()
+    sys.path.insert(0,str(Path(__file__).resolve().parent.parent/'rotating_gr'))
     import precise_apr4_mass_spin_root as solver
     masses=np.linspace(M_MIN,M_MAX,25)
     # The source RNS solved center starts at 2.073, then walks to adjacent masses.
