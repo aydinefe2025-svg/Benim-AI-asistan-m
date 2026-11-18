@@ -18,6 +18,8 @@ class FakeDatabase:
         self.rls_active = True
         self.rls_bypass = False
         self.policy_member = True
+        self.runtime_select_policy = False
+        self.runtime_insert_policy = False
         self.fail_second_connection_with = None
 
     def connect(self, *args, **kwargs):
@@ -59,6 +61,12 @@ class FakeCursor:
             self.row = (params[0],)
         elif "has_table_privilege" in sql:
             self.row = ("assistant_test", self.database.can_select, self.database.can_insert)
+        elif "pg_policies" in sql:
+            self.row = (self.database.rls_active,
+                        self.database.rls_bypass,
+                        self.database.policy_member or (
+                            self.database.runtime_select_policy
+                            and self.database.runtime_insert_policy))
         elif "pg_has_role" in sql:
             self.row = (self.database.rls_active,
                         self.database.rls_bypass,
@@ -123,6 +131,32 @@ class OrganismLabPersistenceTests(unittest.TestCase):
         self.assertEqual(caught.exception.role_name, "assistant_test")
         self.assertNotIn("assistant_test", str(caught.exception))
         self.assertEqual(db.records, {})
+
+    def test_live_neon_runtime_role_succeeds_only_with_both_owner_scoped_rls_policies(self):
+        # The production CANO_DATABASE_URL authenticates as cano_runtime_rw.
+        # Neon now has its *own* owner-bound SELECT and INSERT policies for
+        # that role, rather than membership in cano_snapshot_app.
+        db = FakeDatabase()
+        db.policy_member = False
+        db.runtime_select_policy = True
+        db.runtime_insert_policy = True
+        store = OrganismLabStore(self.OWNER, "postgresql://test", connect=db.connect)
+        self.assertEqual(store.verify_schema(), "assistant_test")
+        self.assertEqual(db.records, {})
+
+    def test_neon_runtime_role_still_denied_when_either_policy_missing(self):
+        from core.organism_lab_persistence import OrganismLabRlsPolicyError
+        for has_select, has_insert in ((False, False), (True, False), (False, True)):
+            with self.subTest(select=has_select, insert=has_insert):
+                db = FakeDatabase()
+                db.policy_member = False
+                db.runtime_select_policy = has_select
+                db.runtime_insert_policy = has_insert
+                store = OrganismLabStore(self.OWNER, "postgresql://test",
+                                         connect=db.connect)
+                with self.assertRaises(OrganismLabRlsPolicyError):
+                    store.verify_schema()
+                self.assertEqual(db.records, {})
 
     def test_transient_readback_connection_failure_retries_once_without_rewriting(self):
         db = FakeDatabase()
