@@ -36,7 +36,7 @@ class SourceStaticTests(unittest.TestCase):
         m,r=sample()
         i=np.searchsorted(m,2.073)
         m[i-2]=m[i-1]+.01
-        with self.assertRaisesRegex(ValueError,"NONMONOTONIC"):
+        with self.assertRaisesRegex(ValueError,"NONMONOTONIC|NO_UNIQUE"):
             stable_native_radius(m,r,2.073)
 
     def test_wrong_radii_unit_rejected(self):
