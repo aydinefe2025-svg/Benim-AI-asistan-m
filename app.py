@@ -106,10 +106,6 @@ if _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"):
             for _job in _CODE_JOB_RECEIPTS:
                 st.caption(_job["id"][:8] + " · " + _job["status"]
                            + " · " + _job["goal"])
-                if (_job["pr_url"].startswith(
-                    "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/")
-                ):
-                    st.link_button("Geliştirme PR'ını aç", _job["pr_url"])
                 if _job["reason_code"]:
                     st.caption("Engel: " + _job["reason_code"])
         except Exception as _code_queue_error:
