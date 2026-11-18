@@ -52,6 +52,8 @@ class GoogleChatClient:
             copy_safe_failure_metadata(exc, failure)
             raise failure from None
         if not isinstance(content, str) or not content.strip():
-            raise RuntimeError("Google returned no usable text")
+            error = RuntimeError("Google returned no usable text")
+            error.failure_kind = "response"
+            raise error
         return content.strip()
 
