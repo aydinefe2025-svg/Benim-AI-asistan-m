@@ -13,6 +13,57 @@ C_SI = 299792458.0
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+
+def continuous_profile(spline, start_x: float, end_x: float) -> dict:
+    """Find continuous extrema interval-by-interval for cs2 and dlog(e)/dlog(P)."""
+    knots = spline.x
+    i0 = max(0, int(np.searchsorted(knots, start_x, side="right") - 1))
+    i1 = min(len(knots) - 2, int(np.searchsorted(knots, end_x, side="left")))
+    max_cs2 = -math.inf
+    min_cs2 = math.inf
+    min_slope = math.inf
+    first_cross = None
+    interval_count = 0
+    def cs2_at(xv: float) -> float:
+        slope = float(spline(xv, 1))
+        return math.exp(xv - float(spline(xv))) / slope
+    for i in range(i0, i1 + 1):
+        xa = max(start_x, float(knots[i]))
+        xb = min(end_x, float(knots[i + 1]))
+        if xb < xa:
+            continue
+        interval_count += 1
+        a, b, c, _ = (float(v) for v in spline.c[:, i])
+        dlog_poly = np.poly1d([3.0 * a, 2.0 * b, c])
+        d2log_poly = np.poly1d([6.0 * a, 2.0 * b])
+        stationary_poly = dlog_poly - dlog_poly * dlog_poly - d2log_poly
+        tlo, thi = xa - float(knots[i]), xb - float(knots[i])
+        ts = [tlo, thi]
+        for z in stationary_poly.r:
+            if abs(float(np.imag(z))) <= 1.0e-10:
+                zr = float(np.real(z))
+                if tlo < zr < thi:
+                    ts.append(zr)
+        ts = sorted(set(ts))
+        xs = [float(knots[i]) + t for t in ts]
+        vals = [cs2_at(xv) for xv in xs]
+        max_cs2 = max(max_cs2, *vals)
+        min_cs2 = min(min_cs2, *vals)
+        for xv in (xs[0], xs[-1]):
+            min_slope = min(min_slope, float(spline(xv, 1)))
+        if a != 0.0:
+            vertex = -b / (3.0 * a)
+            if tlo < vertex < thi:
+                min_slope = min(min_slope, float(dlog_poly(vertex)))
+        for xleft, xright, cleft, cright in zip(xs[:-1], xs[1:], vals[:-1], vals[1:]):
+            if first_cross is None and cleft <= 1.0 < cright:
+                xc = brentq(lambda xv: cs2_at(xv) - 1.0, xleft, xright)
+                first_cross = {"log_pressure": float(xc), "pressure_geom_m2": math.exp(float(xc))}
+    return {"max_cs2": max_cs2, "min_cs2": min_cs2,
+            "min_dlogeps_dlogp": min_slope, "first_cs2_gt_1_crossing": first_cross,
+            "spline_interval_count": interval_count}
+
+
 def audit(table_path: Path, roots_path: Path) -> dict:
     if sha(table_path) != TABLE_SHA256:
         raise ValueError("official LALSuite table SHA-256 mismatch")
@@ -36,36 +87,27 @@ def audit(table_path: Path, roots_path: Path) -> dict:
             lp_c = brentq(lambda lp: float(spline(lp)) - math.log(eps_geom),
                           float(np.log(p[0])), float(np.log(p[-1])))
             pc = math.exp(lp_c)
-            lp = np.linspace(float(np.log(p[0])), lp_c, 50001)
-            pp = np.exp(lp)
-            ee = np.exp(spline(lp))
-            dlog = spline(lp, 1)
-            cs2 = pp / (ee * dlog)
+            profile = continuous_profile(spline, float(np.log(p[0])), lp_c)
             low_p_extension_join_cs2 = 5.0 * p[0] / (3.0 * e[0])
-            max_cs2 = max(float(np.max(cs2)), float(low_p_extension_join_cs2))
+            max_cs2 = max(profile["max_cs2"], float(low_p_extension_join_cs2))
+            min_slope = min(profile["min_dlogeps_dlogp"], 0.6)
+            central_cs2 = math.exp(lp_c - float(spline(lp_c))) / float(spline(lp_c, 1))
             solved.append({
                 "grid": grid["grid"],
                 "central_density_g_cm3": rho_cgs,
                 "central_pressure_geom_m2": pc,
-                "central_cs2": float(cs2[-1]),
+                "central_cs2": central_cs2,
                 "max_cs2_from_surface_to_center": max_cs2,
-                "min_dlogeps_dlogp_from_surface_to_center": float(np.min(dlog)),
+                "spline_intervals_from_surface_to_center": profile["spline_interval_count"],
+                "min_dlogeps_dlogp_from_surface_to_center": min_slope,
                 "low_p_extension_cs2_at_join": float(low_p_extension_join_cs2),
                 "mass_msun": float(seed["mass_msun"]),
                 "spin_hz": float(seed["spin_hz"]),
                 "radius_eq_km": float(seed["radius_eq_km"]),
-                "local_thermodynamic_stability_and_causality_pass": bool(np.all(dlog > 0.0) and max_cs2 < 1.0),
+                "local_thermodynamic_stability_and_causality_pass": bool(min_slope > 0.0 and max_cs2 < 1.0),
             })
-    whole_lp = np.linspace(float(np.log(p[0])), float(np.log(p[-1])), 250001)
-    whole_p = np.exp(whole_lp)
-    whole_e = np.exp(spline(whole_lp))
-    whole_d = spline(whole_lp, 1)
-    whole_cs2 = whole_p / (whole_e * whole_d)
-    crossings = np.flatnonzero(whole_cs2 > 1.0)
-    first_cross = None
-    if len(crossings):
-        j = int(crossings[0])
-        first_cross = {"pressure_geom_m2": float(whole_p[j]), "cs2": float(whole_cs2[j])}
+    whole = continuous_profile(spline, float(np.log(p[0])), float(np.log(p[-1])))
+    first_cross = whole["first_cs2_gt_1_crossing"]
     return {
         "schema": "j0740_apr4_target_star_causality_audit_v1",
         "source": {
@@ -79,21 +121,22 @@ def audit(table_path: Path, roots_path: Path) -> dict:
         "method": {
             "interpolation": "natural cubic spline in log(epsilon)-log(P), identical to tabular replay convention",
             "cs2": "P / (epsilon * d(log epsilon)/d(log P))",
-            "sample_count_per_target": 50001,
-            "whole_table_sample_count": int(len(whole_lp)),
+            "extrema_method": "continuous interval search: quartic roots of d(log cs2)/dlogP on every natural-cubic interval; dlogeps/dlogP extrema from endpoint and quadratic vertex",
+            "target_spline_intervals_per_root": "reported per root profile",
+            "whole_table_spline_intervals": whole["spline_interval_count"],
             "surface_model_for_target_screen": "epsilon=epsilon0*(P/P0)^0.6; cs2=5P/(3epsilon), down to P->0",
             "target_models": "four saved direct RNS roots; no stellar solver rerun",
         },
         "target_roots": solved,
         "whole_original_source_table": {
-            "min_dlogeps_dlogp": float(np.min(whole_d)),
-            "max_cs2": float(np.max(whole_cs2)),
+            "min_dlogeps_dlogp": min(whole["min_dlogeps_dlogp"], 0.6),
+            "max_cs2": max(whole["max_cs2"], float(5.0 * p[0] / (3.0 * e[0]))),
             "first_superluminal_crossing": first_cross,
-            "global_source_eos_causal": bool(np.all(whole_cs2 <= 1.0)),
+            "global_source_eos_causal": bool(whole["max_cs2"] <= 1.0),
         },
         "acceptance": {
             "all_four_target_star_interiors_causal_and_thermodynamically_stable": all(x["local_thermodynamic_stability_and_causality_pass"] for x in solved),
-            "original_apr4_global_causality": "FAIL" if np.any(whole_cs2 > 1.0) else "PASS",
+            "original_apr4_global_causality": "FAIL" if whole["max_cs2"] > 1.0 else "PASS",
             "target_star_specific_eos_screen": "PASS_CONDITIONAL",
             "fixed_J_turning_point_stability": "NOT_ESTABLISHED",
             "absolute_baryon_mass_normalization": "NOT_ESTABLISHED",
