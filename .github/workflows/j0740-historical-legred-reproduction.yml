@@ -55,7 +55,7 @@ jobs:
                 last=exc; target.unlink(missing_ok=True)
                 if attempt==2: raise
                 time.sleep(3)
-          Path('research/j0740/historical_20261025/source_integrity_20261118.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\\n')
+          Path('research/j0740/historical_20261025/source_integrity_20261118.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+chr(10))
           PY
       - name: Syntax check and reproduce historical weighted KDE-to-KDE update
         run: |
@@ -81,7 +81,7 @@ jobs:
             'reproduction_json':output.name,
             'raw_inputs_in_artifact':False
           }
-          (base/'J0740_reproduction_manifest_20261118.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\\n')
+          (base/'J0740_reproduction_manifest_20261118.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+chr(10))
           print(json.dumps(manifest,indent=2,sort_keys=True))
           PY
         env:
