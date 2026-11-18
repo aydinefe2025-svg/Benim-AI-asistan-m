@@ -40,6 +40,17 @@ class Tests(unittest.TestCase):
   z=np.ones((11,13));s=np.ones_like(z,dtype=bool)
   with self.assertRaisesRegex(ValueError,'OUTSIDE_GRID'):
    f.sample_masked(mm,rr,z,s,np.array([2.01]),np.array([30.2]))
+ def test_one_known_wff1_gap_may_integrate_without_imaginary_root(self):
+  self.assertEqual(f.accepted_one_node_gap('WFF1',[2.0175],21,22),[2.0175])
+ def test_non_wff1_gap_must_fail_closed(self):
+  with self.assertRaisesRegex(ValueError,'F46_COMMON_WINDOW_UNSOLVED'):
+   f.accepted_one_node_gap('ENG',[2.0175],21,22)
+ def test_unknown_wff1_missing_mass_must_fail_closed(self):
+  with self.assertRaisesRegex(ValueError,'F46_COMMON_WINDOW_UNSOLVED'):
+   f.accepted_one_node_gap('WFF1',[2.085],21,22)
+ def test_double_wff1_gap_must_fail_closed(self):
+  with self.assertRaisesRegex(ValueError,'F46_COMMON_WINDOW_UNSOLVED'):
+   f.accepted_one_node_gap('WFF1',[2.0175,2.025],20,22)
  def test_source_pins(self):self.assertEqual(len(f.EOS),7);self.assertEqual(len(f.F38_SHA),64)
  def test_wrong_f44_archive_rejected(self):
   with tempfile.TemporaryDirectory() as d:
