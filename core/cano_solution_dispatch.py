@@ -88,6 +88,35 @@ def infer_code_goal(message, history):
         "cano kendini gelistirmeye devam et",
     }:
         return SELF_DEVELOPMENT_GOAL
+    # A user's explicit request to fix the immediately preceding *known*
+    # provider error is an authorized code task, not another call to the
+    # failed text model. Never turn arbitrary assistant output into commands.
+    if normalized.rstrip("!.") in {
+        "bu sorunu coz cano", "bu sorunu coz", "bu hatayi duzelt cano",
+    } and isinstance(history, (list, tuple)):
+        from core.provider_failure import MESSAGES
+        previous = next(
+            (item.get("content", "") for item in reversed(history)
+             if isinstance(item, dict) and item.get("role") == "assistant"
+             and isinstance(item.get("content"), str)), ""
+        )
+        category = next(
+            (name for name in ("request", "unknown", "response")
+             if previous == MESSAGES[name]), None
+        )
+        if category is not None:
+            return (
+                "CANO web sohbetindeki doğrulanmış model sağlayıcı hatasını "
+                "gerçek kod ve testlerle incele ve düzelt: güvenli hata "
+                f"kategorisi {category}. Önce mevcut gerçek günlükleri, "
+                "kullandığı model istemcisini ve ilgili API parametrelerini "
+                "incele. Repro için başarısız RED testi, en dar güvenli "
+                "düzeltme, GREEN ve regresyon testleri, GitHub PR/CI ve "
+                "doğrulanmış Render dağıtımı yap. Hatanın gerçek nedenini "
+                "kanıtlamadan başarı ilan etme; sırları, kimlik bilgilerini "
+                "ve kullanıcı içeriğini loglama veya başka yere gönderme."
+            )
+
     direct = (
         normalized.startswith("cano ")
         and bool(_SOFTWARE_CONTEXT.search(normalized))

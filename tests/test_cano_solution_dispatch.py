@@ -2,6 +2,29 @@ import unittest
 from core.cano_solution_dispatch import infer_code_goal, actionable_solution
 
 class CanoNaturalCodeDispatchTests(unittest.TestCase):
+    def test_owner_explicit_fix_followup_after_known_provider_error_routes_to_code(self):
+        from core.provider_failure import MESSAGES
+        for category in ("request", "unknown", "response"):
+            with self.subTest(category=category):
+                history = [
+                    {"role": "user", "content": "İzmir Ödemiş hava tahminleri"},
+                    {"role": "assistant", "content": MESSAGES[category]},
+                ]
+                goal = infer_code_goal("Bu sorunu çöz cano", history)
+                self.assertIsInstance(goal, str)
+                self.assertIn("CANO", goal)
+                self.assertIn("test", goal.casefold())
+                self.assertLessEqual(len(goal), 1200)
+
+        self.assertIsNone(infer_code_goal("Bu sorunu çöz cano", []))
+        self.assertIsNone(infer_code_goal("Bu sorunu çöz cano", [
+            {"role": "assistant", "content": "Merhaba, bugün hava güzel."}
+        ]))
+        self.assertIsNone(infer_code_goal(
+            "Bu sorunu çöz cano sk-" + "x" * 30,
+            [{"role": "assistant", "content": MESSAGES["request"]}],
+        ))
+
     def test_direct_software_imperative_requires_no_special_prefix(self):
         self.assertEqual("CANO web sohbetindeki kod hatasını düzelt",
                          infer_code_goal("CANO web sohbetindeki kod hatasını düzelt", []))
