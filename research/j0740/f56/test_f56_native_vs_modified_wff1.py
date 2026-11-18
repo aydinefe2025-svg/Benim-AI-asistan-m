@@ -25,8 +25,9 @@ class F56NativeTests(unittest.TestCase):
         self.assertEqual(result['native_cs2_superluminal_count_global'],len(p))
         self.assertTrue(result['F42_candidate_all_source_interval_cs2_positive_causal'])
         self.assertEqual(result['native_original_GR_stellar_mass_at_same_pressure'],'NOT_COMPUTED')
-        self.assertAlmostEqual(result['F53_anchor_central_e15_g_cm3']*1e15,
-                               center*299792458.0**2/6.67430e-11*1e-3)
+        self.assertTrue(np.isclose(result['F53_anchor_central_e15_g_cm3']*1e15,
+                                   center*299792458.0**2/6.67430e-11*1e-3,
+                                   rtol=1e-13,atol=0))
 
     def test_native_at_equal_pressure_distinguished_from_modified(self):
         p,e,cs,c=data()
