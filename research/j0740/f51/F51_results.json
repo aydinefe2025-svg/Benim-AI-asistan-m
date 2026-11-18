@@ -1,0 +1,1302 @@
+{
+  "common_radio_prior_mass_fraction_before": 0.5708291253531559,
+  "common_radio_prior_mass_fraction_now": 0.597886832314311,
+  "common_verified_mass_window_msun": [
+    1.89,
+    2.1
+  ],
+  "direct_C_RNS_models_on_common_support": 168,
+  "global_fixed_J_rotating_stability": "NOT_ESTABLISHED",
+  "model_kind": "seven explicitly new, nonunique F42 causal-lift first-law cold-gas candidate EOS (NOT source nuclear EOS)",
+  "native_photon_XPSI_joint_refit": "NOT_RUN",
+  "observed_frequency_hz": 346.536369,
+  "old_F49_42_values_max_absolute_reproduction_error": 0.0,
+  "per_eos_real_mass_support": {
+    "APR4_EPP": {
+      "direct_root_masses_exploratory_above_2p10": [
+        2.125,
+        2.15
+      ],
+      "f46_zip_sha256": "c7a8f4e64ad5b3de92e0b0d924edea8e1a0f10f2d390905324369945dc534c66",
+      "matched_direct_roots_in_extended_common_window": 24,
+      "max_m": 2.15,
+      "table_sha256": "cacbec1c023697f029d71a73aa9edde6a5b21d5a093a6782e706652ebd303f44"
+    },
+    "ENG": {
+      "direct_root_masses_exploratory_above_2p10": [
+        2.125,
+        2.15,
+        2.175
+      ],
+      "f46_zip_sha256": "7b1aea08c5f3cd466fe9b245ededfb5c7c9c87f590111107d09f4e7a028de2ae",
+      "matched_direct_roots_in_extended_common_window": 24,
+      "max_m": 2.175,
+      "table_sha256": "664d2d50741d0f6eac665a0f6a0c7833763d61d3011ed6b5399a9344d08e874a"
+    },
+    "MPA1": {
+      "direct_root_masses_exploratory_above_2p10": [
+        2.125,
+        2.15,
+        2.175
+      ],
+      "f46_zip_sha256": "0cff4621ddef0da0c02d2bae9a2e45f85d364f05244fd193d3528d336406d70c",
+      "matched_direct_roots_in_extended_common_window": 24,
+      "max_m": 2.175,
+      "table_sha256": "c2ec61d7efb08e0a706c50f9d4e51a3b5c3fa153d45a2dd910c7258d0946f0e5"
+    },
+    "MS1": {
+      "direct_root_masses_exploratory_above_2p10": [
+        2.125,
+        2.15,
+        2.175
+      ],
+      "f46_zip_sha256": "2fc7266e295a954ef5ca4c7b7a75fc4728c2591ed891bbd1362b46c1d1d23ec8",
+      "matched_direct_roots_in_extended_common_window": 24,
+      "max_m": 2.175,
+      "table_sha256": "5ea679410eaeb0dd825cb02626e31ff88a2810f2dba408a72f030b4229ad550c"
+    },
+    "MS1B": {
+      "direct_root_masses_exploratory_above_2p10": [
+        2.125,
+        2.15,
+        2.175
+      ],
+      "f46_zip_sha256": "3975c9561b2a0bdc81ff03b666fcaed8f7666233fd39f9ccf9342575253e867e",
+      "matched_direct_roots_in_extended_common_window": 24,
+      "max_m": 2.175,
+      "table_sha256": "0d67cddd38371dc2713cac3ae3e89a7f482e2261d2985dea39abebcf4fec6e7f"
+    },
+    "WFF1": {
+      "direct_root_masses_exploratory_above_2p10": [],
+      "f46_zip_sha256": "bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3",
+      "matched_direct_roots_in_extended_common_window": 24,
+      "max_m": 2.1,
+      "table_sha256": "0ac47df0d250baef55c2b046a809ed433215a31332b268177babf667e306f02f"
+    },
+    "WFF2": {
+      "direct_root_masses_exploratory_above_2p10": [
+        2.125,
+        2.15,
+        2.175
+      ],
+      "f46_zip_sha256": "23a59ccc8a606943d54841569a847c3dcf99ff0a251b2d53c248d6d5d809bfcb",
+      "matched_direct_roots_in_extended_common_window": 24,
+      "max_m": 2.175,
+      "table_sha256": "7345384532cc974a9dbf62aef951eeaffb27757a3f52a38c5f1cf9ebffdf9508"
+    }
+  },
+  "physical_eos_microphysics_and_crust_acceptance": "NOT_ESTABLISHED",
+  "previous_verified_mass_window_msun": [
+    1.95,
+    2.1
+  ],
+  "remaining_prior_mass_fraction_uncomputed_for_all_seven": 0.40211316768568905,
+  "schema": "F51_pinned_F46_F48_F38_mass_support_expansion_v1",
+  "seven_source_nuclear_EOS_Bayes": "NOT_RUN",
+  "source_hashes": {
+    "APR4_EPP": "c7a8f4e64ad5b3de92e0b0d924edea8e1a0f10f2d390905324369945dc534c66",
+    "ENG": "7b1aea08c5f3cd466fe9b245ededfb5c7c9c87f590111107d09f4e7a028de2ae",
+    "F38": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307",
+    "F44": "b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98",
+    "F48": "8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786",
+    "F49": "47cf64987a976b75e181bb4bfc06702c73de9835908d758331566f07fa60f22a",
+    "F49_JSON": "4600ffa338606847fd2981583f38c44945c01525dd24e950ca5c90a14ccb04e8",
+    "MPA1": "0cff4621ddef0da0c02d2bae9a2e45f85d364f05244fd193d3528d336406d70c",
+    "MS1": "2fc7266e295a954ef5ca4c7b7a75fc4728c2591ed891bbd1362b46c1d1d23ec8",
+    "MS1B": "3975c9561b2a0bdc81ff03b666fcaed8f7666233fd39f9ccf9342575253e867e",
+    "WFF1": "bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3",
+    "WFF2": "23a59ccc8a606943d54841569a847c3dcf99ff0a251b2d53c248d6d5d809bfcb"
+  },
+  "status": "F51_NUMERICAL_MASS_SUPPORT_EXPANDED_NOT_NUCLEAR_EOS_BAYES",
+  "surfaces": {
+    "posterior_prior_ratio_resampled_0.015_0.20.npz": {
+      "common_24_direct_root_observational_integrals": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.8841249404054302,
+          "likelihood_full_radio_prior_window_contribution": 0.5286066599890816,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.004252985251128625,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.531932471032357,
+          "likelihood_full_radio_prior_window_contribution": 1.5138090847392818,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0029468627216507736,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.484119142953157,
+          "likelihood_full_radio_prior_window_contribution": 1.485222125471604,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.002086921942482115,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.31927810741689366,
+          "likelihood_full_radio_prior_window_contribution": 0.19089217627079486,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0019483443626548992,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3770017352289147,
+          "likelihood_full_radio_prior_window_contribution": 0.2254043732530144,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0018148151762415357,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.043880200322528984,
+          "likelihood_full_radio_prior_window_contribution": 0.02623539397215426,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.008728544589323864,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.5893615269577495,
+          "likelihood_full_radio_prior_window_contribution": 0.3523714964406942,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.004184036549340235,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        }
+      },
+      "new_common_window_highest_score": "ENG",
+      "per_EOS_exploratory_actual_direct_C_GR_support_scores_NOT_DIRECTLY_COMPARABLE": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.6464122223824674,
+          "likelihood_full_radio_prior_window_contribution": 0.5366149295348017,
+          "mass_hi_msun": 2.15,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.8301435383709358,
+          "simpson_vs_trapezoid_fractional_difference": -0.006984903165363069,
+          "unobserved_mass_tail_prior_fraction": 0.1698564616290642
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 1.9189379619352387,
+          "likelihood_full_radio_prior_window_contribution": 1.7345488293888063,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.005942787978766307,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.490543140121212,
+          "likelihood_full_radio_prior_window_contribution": 2.251228947434499,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.00046517762484566023,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.35832552015796426,
+          "likelihood_full_radio_prior_window_contribution": 0.32389432272386715,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.0011890944206850722,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.4186760792213581,
+          "likelihood_full_radio_prior_window_contribution": 0.3784458473968167,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.001365677867985855,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.043880200322528984,
+          "likelihood_full_radio_prior_window_contribution": 0.02623539397215426,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.008728544589323864,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3933577196854349,
+          "likelihood_full_radio_prior_window_contribution": 0.3555603077044384,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.005861611923790865,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        }
+      },
+      "previous_F49_22_node_window_diagnostic": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.7829279546589121,
+          "likelihood_full_radio_prior_window_contribution": 0.4469180795724821,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0008259912095343905,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.485920319746061,
+          "likelihood_full_radio_prior_window_contribution": 1.4190357218182816,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0007603343243827793,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.497391654117692,
+          "likelihood_full_radio_prior_window_contribution": 1.4255838935842733,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0003440519608031879,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3251663507863837,
+          "likelihood_full_radio_prior_window_contribution": 0.18561442361366887,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 8.705292318049172e-05,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3825020214408894,
+          "likelihood_full_radio_prior_window_contribution": 0.21834329434491698,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00011905047700452592,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.024272734324244743,
+          "likelihood_full_radio_prior_window_contribution": 0.013855583704238152,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00025260366758471836,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.49743953040765715,
+          "likelihood_full_radio_prior_window_contribution": 0.2839529720586875,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0007428922673000975,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        }
+      }
+    },
+    "posterior_prior_ratio_resampled_0.025_0.35.npz": {
+      "common_24_direct_root_observational_integrals": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.9544230859220255,
+          "likelihood_full_radio_prior_window_contribution": 0.5706369955295693,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.003042832400168905,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.375681361674819,
+          "likelihood_full_radio_prior_window_contribution": 1.4203886039199065,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0027667597724798415,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.4229134443438674,
+          "likelihood_full_radio_prior_window_contribution": 1.4486280442105115,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.002253343120703768,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3267284577905314,
+          "likelihood_full_radio_prior_window_contribution": 0.19534664265532087,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.002028398874712429,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3841354466112966,
+          "likelihood_full_radio_prior_window_contribution": 0.22966952535407126,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0020209670456686835,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.08846164615768501,
+          "likelihood_full_radio_prior_window_contribution": 0.052890053402527726,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.002285491618398786,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.6830438986126953,
+          "likelihood_full_radio_prior_window_contribution": 0.4083829528731618,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0027320459534473157,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        }
+      },
+      "new_common_window_highest_score": "MPA1",
+      "per_EOS_exploratory_actual_direct_C_GR_support_scores_NOT_DIRECTLY_COMPARABLE": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.7148295355231079,
+          "likelihood_full_radio_prior_window_contribution": 0.5934111199512053,
+          "mass_hi_msun": 2.15,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.8301435383709358,
+          "simpson_vs_trapezoid_fractional_difference": -0.005659403768432985,
+          "unobserved_mass_tail_prior_fraction": 0.1698564616290642
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 1.8529789598585613,
+          "likelihood_full_radio_prior_window_contribution": 1.6749277722680365,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.00481796057712113,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.3950708344323615,
+          "likelihood_full_radio_prior_window_contribution": 2.164930495188217,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 1.5282270819228263e-05,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.36375341553404794,
+          "likelihood_full_radio_prior_window_contribution": 0.32880065620488075,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.001543193636425997,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.4222630328254023,
+          "likelihood_full_radio_prior_window_contribution": 0.3816881336501421,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.0014088145362596927,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.08846164615768501,
+          "likelihood_full_radio_prior_window_contribution": 0.052890053402527726,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.002285491618398786,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.46622406170678476,
+          "likelihood_full_radio_prior_window_contribution": 0.42142498429226977,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.005143232040078505,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        }
+      },
+      "previous_F49_22_node_window_diagnostic": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.8523130480279454,
+          "likelihood_full_radio_prior_window_contribution": 0.4865251117328744,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0008027551383502672,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.3063431213003356,
+          "likelihood_full_radio_prior_window_contribution": 1.316527826696138,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0006950110046516586,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.41496149880563,
+          "likelihood_full_radio_prior_window_contribution": 1.3785303601247643,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00034496492553475155,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3302769557815495,
+          "likelihood_full_radio_prior_window_contribution": 0.18853170579308481,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00014295467623227492,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.38709093674735473,
+          "likelihood_full_radio_prior_window_contribution": 0.2209627808556263,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00016237418233001593,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.061724415304156524,
+          "likelihood_full_radio_prior_window_contribution": 0.03523409400100662,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.000683225428629649,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.5919728264238624,
+          "likelihood_full_radio_prior_window_contribution": 0.33791533074036895,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0007348837525285493,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        }
+      }
+    },
+    "posterior_prior_ratio_resampled_0.040_0.50.npz": {
+      "common_24_direct_root_observational_integrals": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 1.003076275919344,
+          "likelihood_full_radio_prior_window_contribution": 0.5997260971790522,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0017691742126014838,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.161326808209944,
+          "likelihood_full_radio_prior_window_contribution": 1.2922288389566439,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.002300804654289905,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.291497083221333,
+          "likelihood_full_radio_prior_window_contribution": 1.3700559323446857,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0021691370927913647,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3443398868140961,
+          "likelihood_full_radio_prior_window_contribution": 0.20587628416674827,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0021190621770216813,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.40047134724548417,
+          "likelihood_full_radio_prior_window_contribution": 0.23943654523724697,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0021148626516554864,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.16111702443294998,
+          "likelihood_full_radio_prior_window_contribution": 0.0963297473701239,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.000730007195009491,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.7681564041287312,
+          "likelihood_full_radio_prior_window_contribution": 0.4592705991864788,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0014973827425474745,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        }
+      },
+      "new_common_window_highest_score": "MPA1",
+      "per_EOS_exploratory_actual_direct_C_GR_support_scores_NOT_DIRECTLY_COMPARABLE": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.7802511575413106,
+          "likelihood_full_radio_prior_window_contribution": 0.6477204567393621,
+          "mass_hi_msun": 2.15,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.8301435383709358,
+          "simpson_vs_trapezoid_fractional_difference": -0.003213656894081256,
+          "unobserved_mass_tail_prior_fraction": 0.1698564616290642
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 1.7434543203441952,
+          "likelihood_full_radio_prior_window_contribution": 1.5759272631180246,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.0031721774380519935,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.23079360115995,
+          "likelihood_full_radio_prior_window_contribution": 2.0164385228992714,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.00014782785879043864,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.37452700632543495,
+          "likelihood_full_radio_prior_window_contribution": 0.33853902173112643,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.0011479741244020817,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.4306959462992879,
+          "likelihood_full_radio_prior_window_contribution": 0.38931073557090135,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.0010320597303472103,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.16111702443294998,
+          "likelihood_full_radio_prior_window_contribution": 0.0963297473701239,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.000730007195009491,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.547714740076148,
+          "likelihood_full_radio_prior_window_contribution": 0.4950852920122381,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.0036019161223342583,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        }
+      },
+      "previous_F49_22_node_window_diagnostic": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.888349250851674,
+          "likelihood_full_radio_prior_window_contribution": 0.5070956258717924,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0007089786725540185,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.04781551428494,
+          "likelihood_full_radio_prior_window_contribution": 1.1689527389038954,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0006076463089932064,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.2374707348386784,
+          "likelihood_full_radio_prior_window_contribution": 1.2772134625712457,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0003450415195986413,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3422807494411301,
+          "likelihood_full_radio_prior_window_contribution": 0.195383820828703,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00017838448059404697,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.39691365994256844,
+          "likelihood_full_radio_prior_window_contribution": 0.22656987734573628,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00019397433063570406,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.12502044413560282,
+          "likelihood_full_radio_prior_window_contribution": 0.07136531077718924,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0007606758889487856,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.6676011578539308,
+          "likelihood_full_radio_prior_window_contribution": 0.38108618502251346,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0006596358297334882,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        }
+      }
+    },
+    "posterior_prior_ratio_weighted_0.015_0.20.npz": {
+      "common_24_direct_root_observational_integrals": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.8868104482183293,
+          "likelihood_full_radio_prior_window_contribution": 0.5302122897484912,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.004314141497527052,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.5360329957341006,
+          "likelihood_full_radio_prior_window_contribution": 1.5162607344640338,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.002878871173166419,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.4837150843154734,
+          "likelihood_full_radio_prior_window_contribution": 1.4849805441326502,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.002126459271295243,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3175231042511573,
+          "likelihood_full_radio_prior_window_contribution": 0.18984288298733115,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0018904622992102415,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.37647167497058076,
+          "likelihood_full_radio_prior_window_contribution": 0.2250874572042234,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0018673051350919588,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.04367605725069496,
+          "likelihood_full_radio_prior_window_contribution": 0.026113339517596503,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.00781350120198279,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.5902472602114124,
+          "likelihood_full_radio_prior_window_contribution": 0.35290106469000215,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.004113366486217468,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        }
+      },
+      "new_common_window_highest_score": "ENG",
+      "per_EOS_exploratory_actual_direct_C_GR_support_scores_NOT_DIRECTLY_COMPARABLE": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.6478103888540226,
+          "likelihood_full_radio_prior_window_contribution": 0.5377756083967302,
+          "mass_hi_msun": 2.15,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.8301435383709358,
+          "simpson_vs_trapezoid_fractional_difference": -0.007178797483018863,
+          "unobserved_mass_tail_prior_fraction": 0.1698564616290642
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 1.9214704975374177,
+          "likelihood_full_radio_prior_window_contribution": 1.7368380157779875,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.00587323356814812,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.487792520880617,
+          "likelihood_full_radio_prior_window_contribution": 2.2487426328800377,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.00043429407938229447,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3567207458636157,
+          "likelihood_full_radio_prior_window_contribution": 0.32244374983984936,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.001327395017870922,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.417754935350715,
+          "likelihood_full_radio_prior_window_contribution": 0.3776132154648749,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.0013898001885681952,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.04367605725069496,
+          "likelihood_full_radio_prior_window_contribution": 0.026113339517596503,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.00781350120198279,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3937046035582726,
+          "likelihood_full_radio_prior_window_contribution": 0.3558738597980963,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.005838613811919258,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        }
+      },
+      "previous_F49_22_node_window_diagnostic": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.7848270181308792,
+          "likelihood_full_radio_prior_window_contribution": 0.4480021203131752,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0008422760455065665,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.4904072023065575,
+          "likelihood_full_radio_prior_window_contribution": 1.4215969650658522,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0007576533812590294,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.497423245358379,
+          "likelihood_full_radio_prior_window_contribution": 1.4256019267845634,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00035073091039242843,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3231287471403587,
+          "likelihood_full_radio_prior_window_contribution": 0.18445130010659205,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00010208076266354392,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3819049031310294,
+          "likelihood_full_radio_prior_window_contribution": 0.21800244182236725,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00014121158008988338,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.024412716116314872,
+          "likelihood_full_radio_prior_window_contribution": 0.013935489388170911,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00031489282224579575,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.4981257288518857,
+          "likelihood_full_radio_prior_window_contribution": 0.2843446741164252,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0007564741777953659,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        }
+      }
+    },
+    "posterior_prior_ratio_weighted_0.025_0.35.npz": {
+      "common_24_direct_root_observational_integrals": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.9559809745906077,
+          "likelihood_full_radio_prior_window_contribution": 0.5715684366507262,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.003051222144805924,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.377363754588472,
+          "likelihood_full_radio_prior_window_contribution": 1.4213944844897584,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0027625896474693626,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.421533623485581,
+          "likelihood_full_radio_prior_window_contribution": 1.4478030674883893,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.002270926157112196,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.32586525578708264,
+          "likelihood_full_radio_prior_window_contribution": 0.19483054554383153,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0020322722664617176,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3834600464235087,
+          "likelihood_full_radio_prior_window_contribution": 0.22926571247525027,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0020476589146873106,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.08844723860359267,
+          "likelihood_full_radio_prior_window_contribution": 0.052881439315650064,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.002132726392187737,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.6841495755383039,
+          "likelihood_full_radio_prior_window_contribution": 0.40904402254777694,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.002746767691778375,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        }
+      },
+      "new_common_window_highest_score": "MPA1",
+      "per_EOS_exploratory_actual_direct_C_GR_support_scores_NOT_DIRECTLY_COMPARABLE": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.7156244288091088,
+          "likelihood_full_radio_prior_window_contribution": 0.5940709954762734,
+          "mass_hi_msun": 2.15,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.8301435383709358,
+          "simpson_vs_trapezoid_fractional_difference": -0.005691095088276199,
+          "unobserved_mass_tail_prior_fraction": 0.1698564616290642
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 1.8538980916513208,
+          "likelihood_full_radio_prior_window_contribution": 1.6757585854609638,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.004812337096530536,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.39334381827765,
+          "likelihood_full_radio_prior_window_contribution": 2.163369426561241,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 3.0694674239363984e-06,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3629381803101065,
+          "likelihood_full_radio_prior_window_contribution": 0.32806375624698003,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.0015812455012930383,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.42163124900032667,
+          "likelihood_full_radio_prior_window_contribution": 0.38111705740070123,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.001434267959967919,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.08844723860359267,
+          "likelihood_full_radio_prior_window_contribution": 0.052881439315650064,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.002132726392187737,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.4667016180486311,
+          "likelihood_full_radio_prior_window_contribution": 0.42185665264744754,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.005163621602716627,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        }
+      },
+      "previous_F49_22_node_window_diagnostic": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.8530171860955268,
+          "likelihood_full_radio_prior_window_contribution": 0.4869270542501198,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0008050028263190545,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.307996890446349,
+          "likelihood_full_radio_prior_window_contribution": 1.3174718462912929,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0006941852555580617,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.4136550362910683,
+          "likelihood_full_radio_prior_window_contribution": 1.3777845932702701,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0003446359496178836,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.32934208401525944,
+          "likelihood_full_radio_prior_window_contribution": 0.18799805376041612,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00014378068706786447,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.38639250348898585,
+          "likelihood_full_radio_prior_window_contribution": 0.22056409480963401,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00016414627935180723,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.061839814695826556,
+          "likelihood_full_radio_prior_window_contribution": 0.03529996733481991,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0006893830640017147,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.5924990854131514,
+          "likelihood_full_radio_prior_window_contribution": 0.33821573469893407,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0007377478579947523,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        }
+      }
+    },
+    "posterior_prior_ratio_weighted_0.040_0.50.npz": {
+      "common_24_direct_root_observational_integrals": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 1.0042931014594023,
+          "likelihood_full_radio_prior_window_contribution": 0.600453621146677,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0017570266323679157,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.162334427245193,
+          "likelihood_full_radio_prior_window_contribution": 1.2928312811098084,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0022998799318328317,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.29088379786281,
+          "likelihood_full_radio_prior_window_contribution": 1.3696892571043737,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0021714333393413323,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3437850170348211,
+          "likelihood_full_radio_prior_window_contribution": 0.20554453483207064,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.002127275108264714,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3998634917634594,
+          "likelihood_full_radio_prior_window_contribution": 0.2390731164485943,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0021256086193185467,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.16126381566974682,
+          "likelihood_full_radio_prior_window_contribution": 0.09641751191770387,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.0007130894510549464,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.7691135575094695,
+          "likelihood_full_radio_prior_window_contribution": 0.4598428685893274,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": -0.0014844530153780647,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        }
+      },
+      "new_common_window_highest_score": "MPA1",
+      "per_EOS_exploratory_actual_direct_C_GR_support_scores_NOT_DIRECTLY_COMPARABLE": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.7809269137971057,
+          "likelihood_full_radio_prior_window_contribution": 0.648281431428624,
+          "mass_hi_msun": 2.15,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.8301435383709358,
+          "simpson_vs_trapezoid_fractional_difference": -0.0032081505298369663,
+          "unobserved_mass_tail_prior_fraction": 0.1698564616290642
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 1.7439101924395488,
+          "likelihood_full_radio_prior_window_contribution": 1.5763393308476916,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.003172667115286836,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.2299434555768847,
+          "likelihood_full_radio_prior_window_contribution": 2.015670067089252,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.00014801624708684767,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.3739618082871058,
+          "likelihood_full_radio_prior_window_contribution": 0.3380281330962651,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.0011573465783436118,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.43009340093519666,
+          "likelihood_full_radio_prior_window_contribution": 0.3887660882833548,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": 0.0010391221552942219,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.16126381566974682,
+          "likelihood_full_radio_prior_window_contribution": 0.09641751191770387,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.597886832314311,
+          "simpson_vs_trapezoid_fractional_difference": 0.0007130894510549464,
+          "unobserved_mass_tail_prior_fraction": 0.40211316768568905
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.5481363995090783,
+          "likelihood_full_radio_prior_window_contribution": 0.4954664345453988,
+          "mass_hi_msun": 2.175,
+          "mass_lo_msun": 1.89,
+          "mass_prior_coverage": 0.903910842245011,
+          "simpson_vs_trapezoid_fractional_difference": -0.0035977490805061177,
+          "unobserved_mass_tail_prior_fraction": 0.09608915775498905
+        }
+      },
+      "previous_F49_22_node_window_diagnostic": {
+        "APR4_EPP": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.8889768861039664,
+          "likelihood_full_radio_prior_window_contribution": 0.5074538983538992,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.000708985597512094,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "ENG": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.0486389922641908,
+          "likelihood_full_radio_prior_window_contribution": 1.1694228041185388,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0006077106930838033,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MPA1": {
+          "conditional_on_verified_mass_window_L_over_Z": 2.236753960631062,
+          "likelihood_full_radio_prior_window_contribution": 1.2768043069772363,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0003450423864162529,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.34169391935856364,
+          "likelihood_full_radio_prior_window_contribution": 0.19504884112594068,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.00017802924225387369,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "MS1B": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.39627810470007974,
+          "likelihood_full_radio_prior_window_contribution": 0.22620708390255284,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0001937382362638717,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF1": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.12512835106219375,
+          "likelihood_full_radio_prior_window_contribution": 0.0714269071937147,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0007609915576819596,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        },
+        "WFF2": {
+          "conditional_on_verified_mass_window_L_over_Z": 0.6680538373240176,
+          "likelihood_full_radio_prior_window_contribution": 0.38134458764848844,
+          "mass_hi_msun": 2.1,
+          "mass_lo_msun": 1.95,
+          "mass_prior_coverage": 0.5708291253531559,
+          "simpson_vs_trapezoid_fractional_difference": 0.0006596563753474832,
+          "unobserved_mass_tail_prior_fraction": 0.4291708746468441
+        }
+      }
+    }
+  },
+  "upper_exploratory_is_not_common_model_bayes": true
+}
