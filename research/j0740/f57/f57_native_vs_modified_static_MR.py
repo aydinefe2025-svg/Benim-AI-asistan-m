@@ -32,7 +32,7 @@ def stable_native_radius(mass, radius, target=TARGET_M):
     r=np.asarray(radius,dtype=float)
     if (m.ndim!=1 or r.shape!=m.shape or len(m)<50 or
         not (np.isfinite(m).all() and np.isfinite(r).all()) or
-        np.any(m<=0) or np.any(r<5) or np.any(r>30) or
+        np.any(m<=0) or np.any(r<=0) or
         not math.isfinite(target)):
         raise ValueError("BAD_JESTER_NATIVE_TOV_MR_ARRAY_OR_RADIUS_UNITS")
     peak=int(np.argmax(m))
@@ -43,6 +43,8 @@ def stable_native_radius(mass, radius, target=TARGET_M):
     lo,hi=max(0,i-5),min(peak+1,i+7)
     local_m=m[lo:hi]
     local_r=r[lo:hi]
+    if np.any(local_r<5) or np.any(local_r>30):
+        raise ValueError("BAD_JESTER_NATIVE_TOV_MR_ARRAY_OR_RADIUS_UNITS")
     if len(local_m)<6 or np.any(np.diff(local_m)<=0):
         raise ValueError("LOCAL_SOURCE_TOV_NONMONOTONIC_BEFORE_TARGET")
     if not m[i]<target<m[i+1]:
