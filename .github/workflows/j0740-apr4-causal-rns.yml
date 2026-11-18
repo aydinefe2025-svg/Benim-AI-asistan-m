@@ -11,7 +11,7 @@ permissions:
   actions: read
   contents: read
 concurrency:
-  group: j0740-causal-apr4-rotating
+  group: j0740-causal-apr4-conditional-integration
   cancel-in-progress: false
 jobs:
   causal-rns-gr:
