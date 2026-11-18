@@ -93,7 +93,7 @@ jobs:
         run: |
           set -euo pipefail
           title='CANO verifier: live acceptance regression'
-          existing="$(gh issue list --repo "$GH_REPO" --state open --limit 100 \
+          existing="$(gh issue list --repo "$GH_REPO" --state open --search "$title in:title" --limit 100 \
             --json number,title | jq -r --arg title "$title" \
             '.[] | select(.title == $title) | .number' | head -n 1)"
           if [ -n "$existing" ]; then
