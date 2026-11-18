@@ -63,15 +63,22 @@ def render_owner_code_status(st, jobs):
     )
     if stats["last_pr_url"]:
         st.link_button("Son yayınlanan kod değişikliğini aç", stats["last_pr_url"])
-    # A status label is not evidence: expose only stored CI and deploy receipts,
-    # and never promote queued/blocked records to completed.
-    for receipt in _safe_deployed_receipts(
+    # An incomplete newer receipt must not hide an older complete
+    # PR -> CI -> Render chain. Choose one single job's evidence to avoid
+    # accidentally pairing the CI of one job with another job's deployment.
+    receipts = list(_safe_deployed_receipts(
         [row for row in jobs if isinstance(row, dict)]
-    ):
+    ))
+    receipt = next(
+        (r for r in receipts if r["ci"] and r["deploy"]), None
+    )
+    if receipt is None:
+        receipt = next(
+            (r for r in receipts if r["ci"] or r["deploy"]), None
+        )
+    if receipt is not None:
         if receipt["ci"]:
-            st.link_button("Doğrulanmış GitHub CI makbuzunu aç", receipt["ci"])
+            st.link_button("GitHub CI makbuzunu aç", receipt["ci"])
         if receipt["deploy"]:
             st.link_button("Render dağıtım makbuzunu aç", receipt["deploy"])
-        # Keep mobile UI bounded even if an owner has many completed jobs.
-        break
     return stats
