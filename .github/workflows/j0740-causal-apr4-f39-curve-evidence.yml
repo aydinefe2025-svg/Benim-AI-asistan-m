@@ -31,7 +31,7 @@ jobs:
           python-version: '3.12'
       - name: Install fixed numerical packages
         run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
-      - name: Validate seven independent F39 numerical unit tests
+      - name: Validate nine independent F39 numerical unit tests
         run: python -m unittest discover -s research/j0740/likelihood -p 'test_causal_apr4_evidence.py' -v
       - name: Retrieve pinned successful F38 genuine Salmi likelihood artifact, no repeated photon analysis
         env:
