@@ -51,7 +51,7 @@ def _number(value, low, high):
     return low <= value <= high
 
 
-def _geo_location(city, response):
+def _geo_location(city, response, *, province=None):
     if not isinstance(response, dict) or not isinstance(response.get("results"), list):
         return None
     matches = []
@@ -66,8 +66,21 @@ def _geo_location(city, response):
         matches.append(entry)
     local = [e for e in matches if e.get("country_code") == "TR"]
     choices = local if local else matches
-    # A place name in multiple countries or provinces is ambiguous; do not
-    # silently assign weather to an arbitrary city with the same name.
+    if province is not None:
+        # An explicitly named province wins only when exactly one matching
+        # location exists. Do not silently fall back to a different province.
+        choices = [
+            e for e in local
+            if _norm(e.get("admin1")) == _norm(province)
+        ]
+    elif len(choices) > 1:
+        # One town may share its name with several hamlets in other provinces.
+        # Select only a uniquely named administrative district when provable.
+        district = _norm(city + " İlçesi")
+        choices = [
+            e for e in choices
+            if _norm(e.get("admin2")) == district
+        ]
     if len(choices) != 1:
         return None
     return choices[0]["latitude"], choices[0]["longitude"]
@@ -135,13 +148,17 @@ def _verified_context(value):
     return raw
 
 
-def fetch_open_meteo_weather(city, *, get, forecast=False):
+def fetch_open_meteo_weather(city, *, get, forecast=False, province=None):
     """Return an internal, bounded source envelope; never a raw API answer.
 
     The injected HTTP GET seam permits independent offline regression tests.
     Only requested city is sent to geocoding; no chat history or owner token.
     """
     if not isinstance(city, str) or not _CITY.fullmatch(city):
+        return None
+    if province is not None and (
+        not isinstance(province, str) or not _CITY.fullmatch(province)
+    ):
         return None
     try:
         geo_response = get(
@@ -151,7 +168,7 @@ def fetch_open_meteo_weather(city, *, get, forecast=False):
         )
         if geo_response.status_code != 200:
             return None
-        coords = _geo_location(city, geo_response.json())
+        coords = _geo_location(city, geo_response.json(), province=province)
         if coords is None:
             return None
         latitude, longitude = coords
