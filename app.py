@@ -51,7 +51,9 @@ if os.environ.get("CANO_TASK_PREFLIGHT_ONCE") == "1":
 _OWNER_KEY = render_auth_gate(st, os.environ)
 # Clear a previous account's chat, memory, drafts and export widgets before
 # loading any owner-scoped data. Same-owner Streamlit reruns remain untouched.
-isolate_owner_session(st.session_state, _OWNER_KEY)
+# Some credential-preflight test stubs intentionally omit Streamlit session state.
+if hasattr(st, "session_state"):
+    isolate_owner_session(st.session_state, _OWNER_KEY)
 if not _OWNER_KEY and hasattr(st, "session_state"):
     # Do not retain a prior owner's prepared ciphertext or password widget state
     # in a shared Streamlit session after logout.
