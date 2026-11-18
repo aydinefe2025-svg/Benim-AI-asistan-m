@@ -1,0 +1,81 @@
+name: J0740 F61 original nuclear EOS native LAL 7.26.4 static TOV roots
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f61/**'
+      - '.github/workflows/j0740-f61-seven-native-lal-static.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-original-native-LAL-TOV:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-original
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install original LALSuite generation version and numeric solvers
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3' 'lalsuite==7.26.4'
+      - name: Ten fail-closed maths/label tests (no LAL binary needed)
+        run: python -m unittest discover -s research/j0740/f61 -p 'test_f61_*.py' -v
+      - name: Run seven original nuclear EOS native LAL TOV integrations, no F42 repair
+        run: |
+          python research/j0740/f61/f61_original_lal_static.py \
+            --source-dir jester-original/jesterTOV/tabulated_eos/lalsuite \
+            --fixture research/j0740/rotating_gr/fixtures/pinned_eos_center_fixture.json \
+            --nscan 64 \
+            --out results/F61/F61_original_seven_LAL_static_TOV.json
+      - name: Independent source-root acceptance and no Bayesian/rotating mislabel
+        run: |
+          python - <<'PY'
+          import json,math
+          from pathlib import Path
+          p=Path('results/F61/F61_original_seven_LAL_static_TOV.json')
+          d=json.loads(p.read_text())
+          assert d['EOS_original_not_F42_modified'] is True
+          assert len(d['results']) == 7
+          assert d['status'] == 'DIRECT_NATIVE_STATIC_TOV_ONLY_NOT_ROTATING_OR_EOS_POSTERIOR'
+          matched=[]
+          for name,r in d['results'].items():
+              s=r['stars']['2.073']
+              assert s['status'] == 'DIRECT_NATIVE_LAL_TOV_WITH_SOURCE_MR_CROSSCHECK'
+              assert s['native_TOV_not_source_interpolation'] is True
+              assert s['source_agreement_0p10km'] is True
+              assert abs(s['mass_msun']-2.073)<2e-7
+              matched.append((name,s['radius_km'],s['central_pressure_si_pa']))
+          print('F61 7 native JESTER/LAL static roots source cross-check OK:',matched)
+          PY
+      - name: SHA-256 input and result receipt and wheel provenance
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib,importlib.metadata
+          out=pathlib.Path('results/F61');out.mkdir(parents=True,exist_ok=True)
+          p=out/'F61_original_seven_LAL_static_TOV.json'
+          if p.is_file():
+              record={'result_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),
+                      'result_bytes':p.stat().st_size,
+                      'jester_version_pin':'e6768650ce992abfd1153a6833857572fe5cd230',
+                      'lalsuite_distribution_version':importlib.metadata.version('lalsuite')}
+          else:record={'status':'RUN_FAILED_OUTPUT_MISSING'}
+          (out/'F61_SHA256_receipt.json').write_text(json.dumps(record,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f61-original-seven-native-LAL-physical-static-TOV-or-failure
+          path: results/F61/
+          if-no-files-found: warn
+          retention-days: 30
