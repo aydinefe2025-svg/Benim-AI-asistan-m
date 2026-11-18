@@ -1,0 +1,30 @@
+{
+  "files": {
+    "F41_result.json": {
+      "bytes": 8985,
+      "sha256": "908d2c681f2e5b1b87ff68f15d321013bc06eaaff29916884bffedf54dc85db3"
+    },
+    "F41_tests.log": {
+      "bytes": 1507,
+      "sha256": "85acab2d230d42bd486ecfe06afeb10fe171aa6deff474b31f4ba44513400229"
+    },
+    "J0740_F41_GR_Crosscheck_and_Physics_Gate_20261118.md": {
+      "bytes": 6379,
+      "sha256": "53aa1e401d1c4cdc69e0b7e9927545b6e1fc4a82edd5c969d97cf269895d6ff8"
+    },
+    "f41_curve_reconciliation.py": {
+      "bytes": 11311,
+      "sha256": "fd57116bf3403ad9922763c1e3977c8197597fc89f6e4286b470d6e124afe264"
+    },
+    "test_f41_curve_reconciliation.py": {
+      "bytes": 3556,
+      "sha256": "be093a4ecc7aceb3dad84911c44c7ddc3ba4e07c63e36c72cb272badce3a4932"
+    }
+  },
+  "generated_from_pinned_prior_archives": {
+    "F38": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307",
+    "F39": "6402c4fd97baf1b0766e1f1d5ccb3642b5b50de2d87789f50277b916896033c2",
+    "independent_165_RNS": "2c12790459c62c3d758dcbe8e3a425cec6f8328dec3c6701af28e1ca13a96d5c"
+  },
+  "schema": "F41_sha256_manifest_v1"
+}
