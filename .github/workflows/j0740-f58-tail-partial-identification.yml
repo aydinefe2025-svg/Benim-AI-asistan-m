@@ -1,0 +1,62 @@
+name: J0740 F58 mass-prior tail partial-identification check
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f58/**'
+      - '.github/workflows/j0740-f58-tail-partial-identification.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  f58-pinned-F51-source-six-kde-partial-identification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Source-locked authentic F51 input (no new stars or NICER data)
+        run: |
+          set -euo pipefail
+          echo '3c3584905190012ee61f4b7fee343e3d1c9e28300f9d681e8bf34dd157b5d67d  research/j0740/f51/F51_results.json' | sha256sum -c -
+      - name: Nine fail-closed algebraic and physical-scope tests
+        run: python -m unittest discover -s research/j0740/f58 -p 'test_f58_*.py' -v
+      - name: Real original F51 six-KDE × seven-candidate prior-tail analysis
+        run: |
+          set -euo pipefail
+          mkdir -p results/F58
+          python research/j0740/f58/f58_common_tail_partial_identification.py \
+            --f51 research/j0740/f51/F51_results.json \
+            --out results/F58/F58_seven_model_mass_tail_partial_identification.json
+      - name: Independent Decimal precision numerical replication (78 comparisons)
+        run: |
+          set -euo pipefail
+          python research/j0740/f58/verify_f58_independent.py \
+            --f51 research/j0740/f51/F51_results.json \
+            --f58 results/F58/F58_seven_model_mass_tail_partial_identification.json \
+            --out results/F58/F58_independent_decimal_verification.json
+      - name: Emit independent SHA256 output manifest
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          r=Path('results/F58')
+          r.mkdir(parents=True,exist_ok=True)
+          rows={p.name:{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+                for p in r.glob('*.json') if p.name!='F58_CI_manifest.json'}
+          (r/'F58_CI_manifest.json').write_text(json.dumps(rows,indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f58-original-F51-common-tail-algebra-or-failure
+          path: |
+            results/F58/F58_seven_model_mass_tail_partial_identification.json
+            results/F58/F58_independent_decimal_verification.json
+            results/F58/F58_CI_manifest.json
+          if-no-files-found: warn
+          retention-days: 30
