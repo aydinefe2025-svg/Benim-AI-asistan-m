@@ -13,14 +13,14 @@
   "date": "2026-11-18",
   "files": {
     "reproduction_code": {
-      "bytes": 9636,
+      "bytes": 9635,
       "path": "codex-psr-j0740-6620-ara-tirmasina\\records\\A01.01.51\\PSR_J0740+6620\\audit_apr4_lalsuite_7264_native_tov_love_surface_20261118.py",
-      "sha256": "c74e3ca4459b27b5ad2e0cbea58aa3d07c88de32d746484c8dbd034e4777f9eb"
+      "sha256": "91695addc67ae9331292693c9de15f525e556fbbb7127dd3df4c2f3d286bdd76"
     },
     "result_json": {
-      "bytes": 5302,
+      "bytes": 5301,
       "path": "codex-psr-j0740-6620-ara-tirmasina\\records\\A01.01.51\\PSR_J0740+6620\\J0740_APR4_NATIVE_LALSUITE_7264_TOV_LOVE_SURFACE_20261118.json",
-      "sha256": "95e894e50a1a491ab33b2d5d21e1c98bfcc0e5583ff04d119d48bba1aa2fe674"
+      "sha256": "7992f4a8aec38992cf657042d53653610a757d7f3738ab3b8321769bb1d7b31e"
     }
   },
   "inputs": {
