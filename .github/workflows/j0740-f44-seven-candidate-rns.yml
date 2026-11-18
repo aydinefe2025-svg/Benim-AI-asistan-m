@@ -1,0 +1,92 @@
+name: J0740 F44 seven-new-candidate fixed-mass-spin direct RNS GR
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f44/**'
+      - '.github/workflows/j0740-f44-seven-candidate-rns.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  f44-direct-seven-RNS:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numerical packages
+        run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
+      - name: Source-independent synthetic two-variable root / fail-closed regression
+        run: python -m unittest discover -s research/j0740/f44 -p 'test_f44_new_candidate_rns.py' -v
+      - name: Fetch exactly pinned real F42 JESTER-seven-source candidate ZIP
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --max-time 120 \
+            -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14412145963/zip' \
+            -o 'research/j0740/J0740_F42_real_7EOS_candidates_20261118.zip'
+          echo 'c8d8cdc9804a702860ab1af65b60fa25dfac0f74fce9ec6347c4271ea3353115  research/j0740/J0740_F42_real_7EOS_candidates_20261118.zip' | sha256sum -c -
+      - name: Patch output-only five-column diagnostic precision (not GR physics)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import sys,json
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/rotating_gr')
+          from precise_apr4_mass_spin_root import patch_output_precision
+          p=patch_output_precision(Path('rns-upstream/rns.c'))
+          print(json.dumps(p,sort_keys=True))
+          PY
+      - name: Build two pinned RNS C full-GR spatial mesh binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          make -C rns-upstream CC='gcc -include stdlib.h' rns
+          cp rns-upstream/rns rns-upstream/rns_151x301
+          rm -f rns-upstream/*.o rns-upstream/rns
+          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+          cp rns-upstream/rns rns-upstream/rns_201x401
+      - name: Direct C/GR 7 new-candidate root solves at observed mass and spin
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/F44
+          python research/j0740/f44/f44_seven_new_candidate_rns.py \
+            --f42 research/j0740/J0740_F42_real_7EOS_candidates_20261118.zip \
+            --f43 research/j0740/f43/F43_candidate_tov_results.json \
+            --fine rns-upstream/rns_201x401 --coarse rns-upstream/rns_151x301 \
+            --work results/F44/eos_tables --out results/F44/F44_direct_RNS_seven_candidates.json
+      - name: Save SHA / failure evidence no matter whether solver converged
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F44');root.mkdir(parents=True,exist_ok=True)
+          j={str(p.relative_to(root)):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+            for p in root.rglob('*') if p.is_file()}
+          (root/'F44_manifest.json').write_text(json.dumps(j,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-F44-direct-seven-new-candidate-rns-c-gr
+          path: results/F44/
+          if-no-files-found: warn
+          retention-days: 30
