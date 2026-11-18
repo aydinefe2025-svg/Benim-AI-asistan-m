@@ -48,9 +48,26 @@ def restore_wff1(f48, curves_dir):
  return report,sha(out)
 
 
-def reconcile(result,prior, f48_report):
- if result['status']!='SEVEN_CONDITIONAL_COMMON_WINDOW_INTEGRALS_WITH_ONE_WFF1_INTERNAL_ROOT_GAP_NOT_FULL_BAYES':
+F47_ALLOWED_BACKEND_STATUSES=frozenset({
+ 'SEVEN_CONDITIONAL_COMMON_WINDOW_INTEGRALS_WITH_ONE_WFF1_INTERNAL_ROOT_GAP_NOT_FULL_BAYES',
+ 'SEVEN_CONDITIONAL_COMMON_WINDOW_INTEGRALS_AFTER_F48_WFF1_ROOT_RESCUE_NOT_FULL_BAYES',
+})
+
+
+def validate_backend_state(result):
+ # F47 backend evolved after the actual F48 RNS rescue. Both represent
+ # conditional F38 source likelihoods, but F49 requires an exact COMPLETE
+ # 7x22 C/GR mass grid regardless of which upstream receipt label it emits.
+ if result.get('status') not in F47_ALLOWED_BACKEND_STATUSES:
   raise ValueError('UNEXPECTED_F47_BACKEND_RESULT_STATUS:'+repr(result.get('status')))
+ expected={name:[] for name in previous.EOS}
+ if result.get('missing_direct_RNS_targets')!=expected:
+  raise ValueError('F49_BACKEND_MISSING_OR_UNEXPECTED_DIRECT_C_RNS_MASS_TARGET')
+ return result['status']
+
+
+def reconcile(result,prior, f48_report):
+ validate_backend_state(result)
  if len(result['surfaces'])!=6 or set(result['curve_sha256'])!=set(previous.EOS):
   raise ValueError('SEVEN_SOURCE_F38_INTEGRALS_MISSING')
  old=prior['surfaces'];changed={};unchanged_max=0.
