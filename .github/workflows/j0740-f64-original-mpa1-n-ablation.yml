@@ -1,0 +1,85 @@
+name: J0740 F64 original MPA1 exact F63 RNS n-only first-law ablation
+on:
+  pull_request:
+    branches: [science/j0740-apr4-firstlaw-gr-pilot-20261117]
+    paths:
+      - 'research/j0740/f64/**'
+      - '.github/workflows/j0740-f64-original-mpa1-n-ablation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-MPA1-firstlaw-n-sole-column-direct-C:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pinned minimal math dependencies
+        run: python -m pip install 'numpy==2.3.5'
+      - name: Exact F63 source identity SHA256 lock
+        run: |
+          echo '15cd0e83830635fe46264ff5e5c52f97f4b8846dc73c1a64768e1237417d9e51  research/j0740/f63/MPA1_F63_sourceoriginal_196knots.rns' | sha256sum -c -
+      - name: Fourteen fail-closed analytic source and ablation tests
+        run: python -m unittest discover -s research/j0740/f64 -p 'test_f64_*.py' -v
+      - name: Patch ONLY unique upstream RNS C diagnostic printf to expose real M0 and J
+        run: |
+          python - <<'PY'
+          import sys,hashlib,json
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f64')
+          from f64_mpa1_firstlaw_baryon_ablation import patch_C_output
+          p=Path('rns-upstream/rns.c');original=p.read_text()
+          patched=patch_C_output(original)
+          p.write_text(patched)
+          out=Path('results/F64');out.mkdir(exist_ok=True,parents=True)
+          (out/'F64_C_printf_patch_manifest.json').write_text(json.dumps({'upstream_commit':'97e85d325a33e37f702306414533f6cd77812477','source_C_sha256':hashlib.sha256(original.encode()).hexdigest(),'patched_C_sha256':hashlib.sha256(patched.encode()).hexdigest(),'physics_equations_changed':False,'diagnostic_columns':['e_c','M','R_eq','spin','M0_uncertified','J_cgs']},sort_keys=True,indent=2)+'\n')
+          PY
+      - name: Compile same original RNS GR equations on 151x301 spacetime grid
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: NEW native C RNS MPA1 n-only first-law ablation at F62 real star center
+        run: |
+          python -u research/j0740/f64/f64_mpa1_firstlaw_baryon_ablation.py \
+            --source research/j0740/f63/MPA1_F63_sourceoriginal_196knots.rns \
+            --binary rns-upstream/rns \
+            --outdir results/F64
+      - name: Fail closed on any physical-certification or posterior mislabeling
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          x=json.loads(Path('results/F64/F64_original_MPA1_n_only_ablation.json').read_text())
+          assert x['status']=='DIRECT_C_RNS_TWO_REAL_MODELS_N_ONLY_ABLATION_PASS_NOT_PHYSICAL_EOS'
+          assert x['global_microphysical_certification']=='NOT_ESTABLISHED' and x['XPSI_Bayes']=='NOT_RUN'
+          assert x['n_firstlaw_normalization'].startswith('ANCHOR_')
+          assert x['altered_column'].endswith('ONLY')
+          assert x['original_and_n_only_same_direct_GR_solution'] is True
+          print('F64 source-native physics qualification receipt PASS')
+          PY
+      - name: SHA-256 content receipt of source/probes/results
+        if: always()
+        run: |
+          mkdir -p results/F64
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F64')
+          paths=[*root.glob('*.json'),*root.glob('*.rns'),Path('research/j0740/f63/MPA1_F63_sourceoriginal_196knots.rns'),Path('research/j0740/f64/f64_mpa1_firstlaw_baryon_ablation.py'),Path('research/j0740/f64/test_f64_mpa1_firstlaw_baryon_ablation.py'),Path('rns-upstream/rns'),Path('rns-upstream/rns.c')]
+          d={str(p):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size} for p in paths if p.is_file()}
+          (root/'F64_SHA256_manifest.json').write_text(json.dumps(d,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F64-original-MPA1-n-only-ablation-or-failure
+          path: results/F64/
+          retention-days: 30
+          if-no-files-found: warn

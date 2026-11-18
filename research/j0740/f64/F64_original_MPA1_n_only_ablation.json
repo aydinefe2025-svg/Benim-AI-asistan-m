@@ -1,0 +1,60 @@
+{
+  "XPSI_Bayes": "NOT_RUN",
+  "altered_column": "RNS baryon number density n_cm_minus3 ONLY",
+  "firstlaw_minus_proxy_RNS_C": {
+    "J_cgs": 0.0,
+    "mass_msun": 0.0,
+    "radius_km": 0.0,
+    "rns_M0_msun_UNCERTIFIED": -0.1578574899999996,
+    "spin_hz": 0.0
+  },
+  "firstlaw_n_RNS_C": {
+    "J_cgs": 6.10431039899e+48,
+    "central_density_e15_echo": 1.015366309,
+    "mass_msun": 2.073,
+    "radius_km": 12.53329593,
+    "rns_M0_msun_UNCERTIFIED": 2.402956565,
+    "spin_hz": 346.61453561
+  },
+  "global_microphysical_certification": "NOT_ESTABLISHED",
+  "independent_32_64_128_gauss_n_max_relative": 1.4432899320127035e-14,
+  "model": "ORIGINAL_MPA1_UNMODIFIED_PRESSURE_ENERGY_ENTHALPY_SOURCE_DERIVED_EOS",
+  "n_firstlaw_normalization": "ANCHOR_TO_SOURCE_N_AT_LOWEST_PRESSURE_NOT_PHYSICAL_MU0",
+  "n_rebuilt_RNS_file_sha256": "8c4b89442b9603ad273ec332008307f26c7fe2dcc89a7affbaed63d0c9d2d6f4",
+  "n_reconstructed_from_cold_firstlaw_LOG_LINEAR_E_of_P": true,
+  "n_source_divided_by_firstlaw_minus1_at_F62_center": 0.13913410853434302,
+  "n_source_divided_by_firstlaw_minus1_at_F63_peak": 0.41904553539287825,
+  "n_source_divided_by_firstlaw_minus1_at_firstnode": -5.551115123125783e-16,
+  "n_source_divided_by_firstlaw_minus1_at_lastnode": 0.539530717358522,
+  "original_RNS_file_reprinted_SHA256": "15cd0e83830635fe46264ff5e5c52f97f4b8846dc73c1a64768e1237417d9e51",
+  "original_and_n_only_same_direct_GR_solution": true,
+  "original_proxy_RNS_C": {
+    "J_cgs": 6.10431039899e+48,
+    "central_density_e15_echo": 1.015366309,
+    "mass_msun": 2.073,
+    "radius_km": 12.53329593,
+    "rns_M0_msun_UNCERTIFIED": 2.560814055,
+    "spin_hz": 346.61453561
+  },
+  "rns_executable_sha256": "6974d53e0fd464b48b5c7c70dca157110f3f91ac51047fe33f0f0edf7694f3c8",
+  "rotating_MPA1_fixed_J_F63_peak": "PREEXISTING_F63_NOT_RERUN",
+  "schema": "J0740_F64_ORIGINAL_MPA1_F63_EXACT_RNS_FIRSTLAW_N_ONLY_ABLATION_v1",
+  "source_F63_exact_196point_EOS_SHA256": "15cd0e83830635fe46264ff5e5c52f97f4b8846dc73c1a64768e1237417d9e51",
+  "source_H_terminal_vs_loglinear_E_P_firstlaw_H_terminal_fraction": 0.0025641323250155386,
+  "source_JESTER_NPZ_sha256_from_F63_provenance": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+  "source_mavg_number_density_proxy": true,
+  "status": "DIRECT_C_RNS_TWO_REAL_MODELS_N_ONLY_ABLATION_PASS_NOT_PHYSICAL_EOS",
+  "unchanged_columns": [
+    "rho_g_cm3",
+    "pressure_dyn_cm2",
+    "enthalpy_cm2_s2"
+  ],
+  "warnings": [
+    "n(P) depends on arbitrary reference anchor; first-law consistency is not physical rest-mass normalization nor a native original nuclear EOS repair",
+    "RNS source input E,P,H retains original low-pressure source negative cs2 knot in the upstream NPZ, which its 196-knot resampling may skip; physically uncertified",
+    "Replacing n does not repair original H(P) mismatch or establish first-law consistency of full upstream LAL EOS",
+    "RNS M0 sensitivity under this ablation must not be interpreted as observed baryonic mass correction; normalization to physical rest-mass chemical potential not independently fixed",
+    "Direct RNS gravitating properties at one central density and spin are not independent rotating global nonlinear stability or seven-EOS Bayes",
+    "Source-native X-PSI photon nuisance-marginal likelihood is NOT_RUN"
+  ]
+}
