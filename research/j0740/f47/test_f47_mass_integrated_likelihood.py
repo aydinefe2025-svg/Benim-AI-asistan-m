@@ -60,4 +60,11 @@ class Tests(unittest.TestCase):
  def test_radiomass_pdf_integral_full(self):
   m=np.linspace(f.MU-5*f.SIG,f.MU+5*f.SIG,1001)
   self.assertAlmostEqual(simpson(f.full_radio_pdf(m),x=m),1,places=5)
+ def test_f48_exact_root_is_direct_tolerance_and_source_locked(self):
+  root={'source':'F48_REAL_DIRECT_C_RNS_NESTED_BRENT_NO_INTERPOLATED_STAR','target_mass_msun':2.0175,'mass_msun':2.0174999999861853,'mass_residual_msun':-1.3814727140015748e-11,'spin_hz':346.5363703320838,'spin_residual_hz':1.332083797933592e-06}
+  self.assertEqual(f.validate_f48_root_record(root,'bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3'),root)
+ def test_f48_rejects_non_direct_or_wrong_source(self):
+  root={'source':'INTERPOLATED','target_mass_msun':2.0175,'mass_msun':2.0175,'mass_residual_msun':0,'spin_hz':346.536369,'spin_residual_hz':0}
+  with self.assertRaisesRegex(ValueError,'F48_WFF1_ROOT_NOT_REAL_DIRECT_C_GR'):
+   f.validate_f48_root_record(root,'bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3')
 if __name__=='__main__':unittest.main(verbosity=2)

@@ -16,6 +16,8 @@ from scipy.stats import norm
 F38_SHA='4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307'
 F42_SHA='c8d8cdc9804a702860ab1af65b60fa25dfac0f74fce9ec6347c4271ea3353115'
 F44_SHA='b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98'
+F48_SHA='8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786'
+F48_ORIGINAL_F46_SHA='bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3'
 EOS=('APR4_EPP','ENG','MPA1','MS1','MS1B','WFF1','WFF2')
 M0,M1=1.95,2.10
 MU,SIG=2.082,0.0703
@@ -53,6 +55,17 @@ def accepted_one_node_gap(name, missing, count, expected):
  return list(missing)
 
 
+def validate_f48_root_record(root, original_f46_sha):
+ if original_f46_sha!=F48_ORIGINAL_F46_SHA:raise ValueError('F48_WFF1_ORIGINAL_FAILURE_SHA_MISMATCH')
+ if not isinstance(root,dict) or root.get('source')!='F48_REAL_DIRECT_C_RNS_NESTED_BRENT_NO_INTERPOLATED_STAR':
+  raise ValueError('F48_WFF1_ROOT_NOT_REAL_DIRECT_C_GR')
+ if abs(float(root.get('target_mass_msun',-1))-2.0175)>1e-10 or abs(float(root.get('mass_msun',-1))-2.0175)>1e-4 or abs(float(root.get('mass_residual_msun',99)))>1e-4:
+  raise ValueError('F48_WFF1_ROOT_MASS_RESIDUAL_FAIL')
+ if abs(float(root.get('spin_hz',-1))-SPIN)>.01 or abs(float(root.get('spin_residual_hz',99)))>.01:
+  raise ValueError('F48_WFF1_ROOT_SPIN_RESIDUAL_FAIL')
+ return root
+
+
 def validate_all_curves(folder, f44):
  if sha(f44)!=F44_SHA:raise ValueError('F44_ANCHOR_ARCHIVE_SHA_MISMATCH')
  with zipfile.ZipFile(f44) as z:
@@ -88,14 +101,26 @@ def validate_all_curves(folder, f44):
    if abs(float(v['mass_msun'])-m)>1e-4 or abs(float(v['spin_hz'])-SPIN)>.01:
     raise ValueError('F46_ROOT_RESIDUAL_FAIL:'+name)
    rows.append(v);actual_m.append(float(m))
-  accepted_one_node_gap(name,missing,len(rows),len(masses))
+  original_f46_missing=[]
+  f48_root=None
+  if name=='WFF1':
+   original_f46_missing=[2.0175]
+   f48_root=r.get('F48_direct_RNS_Root')
+   if not f48_root or r.get('F48_source_original_failed_21node_sha256')!=F48_ORIGINAL_F46_SHA:
+    raise ValueError('F48_WFF1_DIRECT_ROOT_PROVENANCE_REQUIRED')
+   validate_f48_root_record(f48_root,F48_ORIGINAL_F46_SHA)
+   if missing:raise ValueError('F48_WFF1_RESCUE_CURVE_STILL_HAS_MISSING_DIRECT_ROOT')
+   if '2.0175' not in r.get('roots',{}):raise ValueError('F48_WFF1_ROOT_NOT_INSERTED')
+  else:
+   accepted_one_node_gap(name,missing,len(rows),len(masses))
   if abs(actual_m[0]-M0)>1e-8 or abs(actual_m[-1]-M1)>1e-8:
    raise ValueError('F46_MASS_WINDOW_ENDPOINT_MISSING:'+name)
   rho=np.array([v['central_energy_density_g_cm3'] for v in rows])
   if not np.all(np.diff(rho)>0):raise ValueError('F46_RISING_BRANCH_MASS_ORDER_FAIL:'+name)
   curves[name]={'m':np.array(actual_m),'r':np.array([v['radius_eq_km'] for v in rows]),
                 'central_density':rho,'source_sha256':sha(p),
-                'missing_internal_direct_root_masses_msun':missing,'original_f46_status':r['status']}
+                'missing_internal_direct_root_masses_msun':missing,'original_f46_missing_targets_msun':original_f46_missing,
+                'F48_direct_root':f48_root,'original_f46_status':r['status']}
  return curves
 
 
@@ -164,8 +189,11 @@ def run(f38,f44,curves_dir,out):
     'note':'Only conditional common-window integrals for seven new artificial cold-gas causal-lift EOS candidates; original nuclear EOS not validated',
     'curve_sha256':{n:v['source_sha256'] for n,v in curves.items()},
     'missing_direct_RNS_targets':{n:v['missing_internal_direct_root_masses_msun'] for n,v in curves.items()},
-    'F46_original_CI_status':'ONE_WFF1_ROOT_TOLERANCE_FAILURE__NO_INTERPOLATED_STAR',
-    'F46_mixed_grid_acceptance':'6_OF_7_22_OF_22_AND_WFF1_21_OF_22; COMMON_MASS_INTERVAL_ENDPOINTS_COMPLETE',
+    'F46_original_CI_status':'FAILURE_PRESERVED__WFF1_2P0175_ROOT_FAILED_IN_ORIGINAL_RUN',
+    'F46_mixed_grid_acceptance':'F48_ROOT_RESCUE__7_OF_7_22_OF_22_DIRECT_C_GR_STARS; F46_FAILURE_PRESERVED',
+    'F48_WFF1_root_rescue':curves['WFF1']['F48_direct_root'],
+    'F48_artifact_sha256':F48_SHA,
+    'original_F46_failed_targets_msun':{'WFF1':[2.0175]},
     'integration_numerics':'Actual uneven-grid Simpson mass quadrature; no stellar root invented at missing WFF1 point',
     'surfaces':{}}
  out.parent.mkdir(parents=True,exist_ok=True)
@@ -190,7 +218,7 @@ def run(f38,f44,curves_dir,out):
     'equal_model_prior_hypothetical_window_normalized_weights_not_EOS_posterior':normalized,
     'interpretation':'F38 approximate source-prior corrected KDE surface, shared radio mass prior; no extrapolation, no global physics acceptance'}
   out.write_text(json.dumps(j,indent=2,sort_keys=True,allow_nan=False)+'\n')
- j['status']='SEVEN_CONDITIONAL_COMMON_WINDOW_INTEGRALS_WITH_ONE_WFF1_INTERNAL_ROOT_GAP_NOT_FULL_BAYES'
+ j['status']='SEVEN_CONDITIONAL_COMMON_WINDOW_INTEGRALS_AFTER_F48_WFF1_ROOT_RESCUE_NOT_FULL_BAYES'
  out.write_text(json.dumps(j,indent=2,sort_keys=True,allow_nan=False)+'\n')
  return j
 

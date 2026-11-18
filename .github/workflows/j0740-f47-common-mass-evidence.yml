@@ -6,6 +6,13 @@ on:
     paths:
       - 'research/j0740/f47/**'
       - '.github/workflows/j0740-f47-common-mass-evidence.yml'
+  push:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f47/f47_mass_integrated_source_likelihood.py'
+      - 'research/j0740/f47/test_f47_mass_integrated_likelihood.py'
+      - '.github/workflows/j0740-f47-common-mass-evidence.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -59,6 +66,40 @@ jobs:
               "results/F47/curves/${name}_fixed_spin_direct_curve.json"
             test -s "results/F47/curves/${name}_fixed_spin_direct_curve.json"
           done
+      - name: Verify and install immutable F48 direct WFF1 rescue curve
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F47/f48
+          curl -fL --retry 3 --max-time 120 -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \\
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14421121729/zip' \\
+            -o results/F47/input/F48.zip
+          echo '8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786  results/F47/input/F48.zip' | sha256sum -c -
+          unzip -q results/F47/input/F48.zip -d results/F47/f48
+          python - <<'PY'
+          import hashlib,json,shutil
+          from pathlib import Path
+          root=Path('results/F47/f48')
+          manifest=json.loads((root/'F48_manifest.json').read_text())
+          for name,rec in manifest.items():
+              p=root/name
+              assert p.is_file() and p.stat().st_size==rec['bytes']
+              assert hashlib.sha256(p.read_bytes()).hexdigest()==rec['sha256']
+          solved=json.loads((root/'F48_WFF1_real_direct_rescue.json').read_text())
+          assert solved['status']=='DIRECT_C_GR_WFF1_MISSING_MASS_ROOT_RECOVERED_NOT_PHYSICAL_STABILITY'
+          r=solved['root']
+          assert r['source']=='F48_REAL_DIRECT_C_RNS_NESTED_BRENT_NO_INTERPOLATED_STAR'
+          assert r['target_mass_msun']==2.0175 and abs(r['mass_residual_msun'])<1e-4 and abs(r['spin_residual_hz'])<0.01
+          recovered=json.loads((root/'WFF1_fixed_spin_direct_curve_F48_recovered.json').read_text())
+          assert recovered['F48_direct_RNS_Root']['source']==r['source']
+          assert recovered['F48_source_original_failed_21node_sha256']=='bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3'
+          assert recovered['common_window_all_roots_present'] and recovered['successful_common_targets']==22
+          shutil.copyfile(root/'WFF1_fixed_spin_direct_curve_F48_recovered.json','results/F47/curves/WFF1_fixed_spin_direct_curve.json')
+          Path('results/F47/F48_source_receipt.json').write_text(json.dumps({'artifact_id':14421121729,'artifact_sha256':'8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786','status':solved['status'],'root':r,'recovered_curve_sha256':solved['recovered_curve_sha256']},indent=2)+'\\n')
+          print('PASS F48 immutable artifact, exact nested C/GR root and recovered 22-node WFF1 curve')
+          PY
       - name: Download SHA-pinned real source F38 KDE and F44 RNS evidence
         shell: bash
         env:
@@ -102,6 +143,7 @@ jobs:
             results/F47/F47_seven_mass_window_source_likelihood.json
             results/F47/F47_manifest.json
             results/F47/F46_source_exception.json
+            results/F47/F48_source_receipt.json
             results/F47/curves/*_fixed_spin_direct_curve.json
           if-no-files-found: warn
           retention-days: 30
