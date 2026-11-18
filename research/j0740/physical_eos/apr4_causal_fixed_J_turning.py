@@ -18,6 +18,10 @@ PINNED_EOS_SHA="623be1716201463c775e8bfc4b560f4646ecbbac14ba30335599ea38311e4a19
 ROOT_F36_SHA="d7e59a07142da2f4227ba0d0fd8f6610fd11487ec741e3f96833f42738b33fc0"
 DENSITY_SEQUENCE_E15=[1.45,1.60,1.70,1.7593486615105065,1.90,2.05,2.20,2.35,2.50,2.60,2.70,2.80,2.90,3.00,3.15,3.30,3.45]
 CANDIDATE_RATIOS=(1.0,.995,.990,.985,.980,.970,.955,.94,.92,.90)
+# Constant normalization maps the existing m_avg first-law n table to LAL's
+# standard m_u convention; fixed-J turning depends on M,J and is unchanged.
+BARYON_MASS_UNIT_KG=1.66053906660e-27
+NUMBER_DENSITY_SCALE_MAVG_TO_MU=1.0079706912840662
 
 def sha256(p):
     return hashlib.sha256(Path(p).read_bytes()).hexdigest()
@@ -106,9 +110,10 @@ def run(sequence_out,table,binary,patch_record):
          "rns_upstream_commit":PINNED_SOURCE_RNS,
          "table_sha256":sha256(table),
          "binary_sha256":sha256(binary),
+         "baryon_density_convention":{"target":"LAL standard atomic mass unit","m_u_kg":BARYON_MASS_UNIT_KG,"scale_from_existing_m_avg_firstlaw_number_density":NUMBER_DENSITY_SCALE_MAVG_TO_MU,"fixed_J_turning_uses_gravitational_M_and_direct_J":"constant n normalization does not alter the M(J=constant) sequence","RNS_M0":"NOT_REINTERPRETED_OR_CLAIMED_PHYSICAL"},
          "patch_record":patch_record,
          "reference_F36":GR_REF,
-         "sequence":[],"limitations":["Absolute mu0/M0 unknown","True nonlinear/dynamical stability not measured",
+         "sequence":[],"limitations":["Microphysical surface mu0 not independently measured; conventional m_u normalization is fixed; RNS M0 remains uninterpreted","True nonlinear/dynamical stability not measured",
                                        "Final source XPSI 15D Bayes NOT_RUN"]}
     out=Path(sequence_out);out.parent.mkdir(parents=True,exist_ok=True)
     def save():
