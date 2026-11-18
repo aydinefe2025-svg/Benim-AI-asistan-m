@@ -1,0 +1,691 @@
+{
+  "model": "APR4_EPP_LALSuite_7.26.4_native_crust_firstlaw_h_causal_limit_completion",
+  "eos_table_sha256": "5071ae5c70db9b374275fd2b4f2c6b8cc3365924285cbe84d75e14cf02b0b9c7",
+  "targets": {
+    "mass_msun": 2.073,
+    "spin_hz": 346.536369
+  },
+  "results": [
+    {
+      "grid": "rns-candidate-151",
+      "seed": [
+        1.75,
+        0.96
+      ],
+      "status": "PASS",
+      "model": {
+        "mass_msun": 2.07300000012,
+        "radius_eq_km": 10.7827118764,
+        "spin_hz": 346.536369309,
+        "central_density_g_cm3": 1758935569071806.5,
+        "axis_ratio": 0.9860899141023227,
+        "rns_output_format": "legacy 4-column direct output; no baryon mass inferred",
+        "central_energy_density_g_cm3": 1758935569071806.5,
+        "root_seed": [
+          1.75,
+          0.96
+        ],
+        "root_trace": [
+          {
+            "eval": "seed",
+            "u_ec_1e15": 1.75,
+            "axis_ratio": 0.96,
+            "mass_msun": 2.09146319672,
+            "spin_hz": 589.027015261,
+            "delta_mass_msun": 0.018463196719999964,
+            "delta_spin_hz": 242.490646261,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_0",
+            "u_ec_1e15": 1.750035,
+            "axis_ratio": 0.96,
+            "mass_msun": 2.09147509223,
+            "spin_hz": 589.032773543,
+            "delta_mass_msun": 0.0184750922300001,
+            "delta_spin_hz": 242.49640454299998,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_0",
+            "u_ec_1e15": 1.75,
+            "axis_ratio": 0.9600019999999999,
+            "mass_msun": 2.09146152177,
+            "spin_hz": 589.012318957,
+            "delta_mass_msun": 0.018461521769999933,
+            "delta_spin_hz": 242.47594995700007,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_0_bt0",
+            "u_ec_1e15": 1.778567627331263,
+            "axis_ratio": 0.9936398402265818,
+            "mass_msun": 2.07289879125,
+            "spin_hz": 231.532130424,
+            "delta_mass_msun": -0.00010120874999985929,
+            "delta_spin_hz": -115.00423857599998,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_1",
+            "u_ec_1e15": 1.7786031986838096,
+            "axis_ratio": 0.9936398402265818,
+            "mass_msun": 2.07290984348,
+            "spin_hz": 231.533792903,
+            "delta_mass_msun": -9.015651999977337e-05,
+            "delta_spin_hz": -115.00257609699997,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_1",
+            "u_ec_1e15": 1.778567627331263,
+            "axis_ratio": 0.9936418402265818,
+            "mass_msun": 2.07289735745,
+            "spin_hz": 231.493175184,
+            "delta_mass_msun": -0.00010264254999992062,
+            "delta_spin_hz": -115.04319381599998,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_1_bt0",
+            "u_ec_1e15": 1.765195886947517,
+            "axis_ratio": 0.9877033250697157,
+            "mass_msun": 2.07361151056,
+            "spin_hz": 326.121274833,
+            "delta_mass_msun": 0.0006115105600001947,
+            "delta_spin_hz": -20.415094167000007,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_2",
+            "u_ec_1e15": 1.765231190865256,
+            "axis_ratio": 0.9877033250697157,
+            "mass_msun": 2.07362299013,
+            "spin_hz": 326.124253582,
+            "delta_mass_msun": 0.0006229901300001117,
+            "delta_spin_hz": -20.412115417999985,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_2",
+            "u_ec_1e15": 1.765195886947517,
+            "axis_ratio": 0.9877053250697156,
+            "mass_msun": 2.07360996245,
+            "spin_hz": 326.094289977,
+            "delta_mass_msun": 0.0006099624500000012,
+            "delta_spin_hz": -20.442079022999962,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_2_bt0",
+            "u_ec_1e15": 1.7596305284396632,
+            "axis_ratio": 0.9861554444149799,
+            "mass_msun": 2.07318214494,
+            "spin_hz": 345.786912307,
+            "delta_mass_msun": 0.00018214494000012849,
+            "delta_spin_hz": -0.7494566929999564,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_3",
+            "u_ec_1e15": 1.759665721050232,
+            "axis_ratio": 0.9861554444149799,
+            "mass_msun": 2.07319379818,
+            "spin_hz": 345.790286172,
+            "delta_mass_msun": 0.0001937981800002042,
+            "delta_spin_hz": -0.7460828279999987,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_3",
+            "u_ec_1e15": 1.7596305284396632,
+            "axis_ratio": 0.9861574444149799,
+            "mass_msun": 2.07318059679,
+            "spin_hz": 345.761921965,
+            "delta_mass_msun": 0.00018059678999993167,
+            "delta_spin_hz": -0.7744470349999801,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_3_bt0",
+            "u_ec_1e15": 1.7589276321487877,
+            "axis_ratio": 0.9860900717721987,
+            "mass_msun": 2.07299724515,
+            "spin_hz": 346.533640317,
+            "delta_mass_msun": -2.7548500001195464e-06,
+            "delta_spin_hz": -0.0027286829999866313,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_4",
+            "u_ec_1e15": 1.7589628107014306,
+            "axis_ratio": 0.9860900717721987,
+            "mass_msun": 2.073008915,
+            "spin_hz": 346.537030391,
+            "delta_mass_msun": 8.91499999999823e-06,
+            "delta_spin_hz": 0.0006613909999941825,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_4",
+            "u_ec_1e15": 1.7589276321487877,
+            "axis_ratio": 0.9860920717721986,
+            "mass_msun": 2.07299569864,
+            "spin_hz": 346.508729782,
+            "delta_mass_msun": -4.301359999736576e-06,
+            "delta_spin_hz": -0.02763921799999025,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_4_bt0",
+            "u_ec_1e15": 1.7589355690718065,
+            "axis_ratio": 0.9860899141023227,
+            "mass_msun": 2.07300000012,
+            "spin_hz": 346.536369309,
+            "delta_mass_msun": 1.2000000992884452e-10,
+            "delta_spin_hz": 3.090000291194883e-07,
+            "status": "OK"
+          }
+        ],
+        "mass_residual_tolerance_msun": 1e-05,
+        "spin_residual_tolerance_hz": 0.0001
+      }
+    },
+    {
+      "grid": "rns-candidate-151",
+      "seed": [
+        1.8,
+        0.965
+      ],
+      "status": "PASS",
+      "model": {
+        "mass_msun": 2.0729999997,
+        "radius_eq_km": 10.7827118676,
+        "spin_hz": 346.536348396,
+        "central_density_g_cm3": 1758935571767081.5,
+        "axis_ratio": 0.9860899157717545,
+        "rns_output_format": "legacy 4-column direct output; no baryon mass inferred",
+        "central_energy_density_g_cm3": 1758935571767081.5,
+        "root_seed": [
+          1.8,
+          0.965
+        ],
+        "root_trace": [
+          {
+            "eval": "seed",
+            "u_ec_1e15": 1.8,
+            "axis_ratio": 0.965,
+            "mass_msun": 2.10270443642,
+            "spin_hz": 557.880878687,
+            "delta_mass_msun": 0.02970443641999987,
+            "delta_spin_hz": 211.34450968699997,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_0",
+            "u_ec_1e15": 1.800036,
+            "axis_ratio": 0.965,
+            "mass_msun": 2.10271511769,
+            "spin_hz": 557.886064506,
+            "delta_mass_msun": 0.029715117689999904,
+            "delta_spin_hz": 211.34969550600005,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_0",
+            "u_ec_1e15": 1.8,
+            "axis_ratio": 0.9650019999999999,
+            "mass_msun": 2.10270279291,
+            "spin_hz": 557.864661917,
+            "delta_mass_msun": 0.02970279291000022,
+            "delta_spin_hz": 211.32829291700006,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_0_bt0",
+            "u_ec_1e15": 1.7706297026572897,
+            "axis_ratio": 0.9905431510534862,
+            "mass_msun": 2.07261500309,
+            "spin_hz": 285.161515829,
+            "delta_mass_msun": -0.00038499690999982406,
+            "delta_spin_hz": -61.374853170999984,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_1",
+            "u_ec_1e15": 1.7706651152513428,
+            "axis_ratio": 0.9905431510534862,
+            "mass_msun": 2.07262619586,
+            "spin_hz": 285.163782776,
+            "delta_mass_msun": -0.0003738041400001002,
+            "delta_spin_hz": -61.372586223999974,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_1",
+            "u_ec_1e15": 1.7706297026572897,
+            "axis_ratio": 0.9905451510534862,
+            "mass_msun": 2.07261354478,
+            "spin_hz": 285.130024306,
+            "delta_mass_msun": -0.000386455220000137,
+            "delta_spin_hz": -61.40634469399998,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_1_bt0",
+            "u_ec_1e15": 1.7627819648166783,
+            "axis_ratio": 0.9866133806020037,
+            "mass_msun": 2.07387052485,
+            "spin_hz": 340.298014217,
+            "delta_mass_msun": 0.0008705248499998319,
+            "delta_spin_hz": -6.238354782999977,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_2",
+            "u_ec_1e15": 1.7628172204559747,
+            "axis_ratio": 0.9866133806020037,
+            "mass_msun": 2.07388210174,
+            "spin_hz": 340.301270933,
+            "delta_mass_msun": 0.0008821017400002518,
+            "delta_spin_hz": -6.235098066999967,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_2",
+            "u_ec_1e15": 1.7627819648166783,
+            "axis_ratio": 0.9866153806020036,
+            "mass_msun": 2.07386896342,
+            "spin_hz": 340.272421177,
+            "delta_mass_msun": 0.0008689634199998686,
+            "delta_spin_hz": -6.263947822999967,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_2_bt0",
+            "u_ec_1e15": 1.7589053170102456,
+            "axis_ratio": 0.9860978922098227,
+            "mass_msun": 2.07298379458,
+            "spin_hz": 346.434073275,
+            "delta_mass_msun": -1.620542000013714e-05,
+            "delta_spin_hz": -0.1022957249999763,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_3",
+            "u_ec_1e15": 1.7589404951165857,
+            "axis_ratio": 0.9860978922098227,
+            "mass_msun": 2.0729954649,
+            "spin_hz": 346.43746186,
+            "delta_mass_msun": -4.535099999980474e-06,
+            "delta_spin_hz": -0.09890713999999434,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_3",
+            "u_ec_1e15": 1.7589053170102456,
+            "axis_ratio": 0.9860998922098226,
+            "mass_msun": 2.07298224792,
+            "spin_hz": 346.409154536,
+            "delta_mass_msun": -1.775207999976658e-05,
+            "delta_spin_hz": -0.1272144639999624,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_3_bt0",
+            "u_ec_1e15": 1.7589355717670816,
+            "axis_ratio": 0.9860899157717545,
+            "mass_msun": 2.0729999997,
+            "spin_hz": 346.536348396,
+            "delta_mass_msun": -3.000000248221113e-10,
+            "delta_spin_hz": -2.0603999985269184e-05,
+            "status": "OK"
+          }
+        ],
+        "mass_residual_tolerance_msun": 1e-05,
+        "spin_residual_tolerance_hz": 0.0001
+      }
+    },
+    {
+      "grid": "rns-candidate-201",
+      "seed": [
+        1.75,
+        0.96
+      ],
+      "status": "PASS",
+      "model": {
+        "mass_msun": 2.0730000001,
+        "radius_eq_km": 10.7808522898,
+        "spin_hz": 346.536369099,
+        "central_density_g_cm3": 1760536470112864.0,
+        "axis_ratio": 0.9861862661310709,
+        "rns_output_format": "legacy 4-column direct output; no baryon mass inferred",
+        "central_energy_density_g_cm3": 1760536470112864.0,
+        "root_seed": [
+          1.75,
+          0.96
+        ],
+        "root_trace": [
+          {
+            "eval": "seed",
+            "u_ec_1e15": 1.75,
+            "axis_ratio": 0.96,
+            "mass_msun": 2.09106090626,
+            "spin_hz": 589.704618656,
+            "delta_mass_msun": 0.01806090626000012,
+            "delta_spin_hz": 243.168249656,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_0",
+            "u_ec_1e15": 1.750035,
+            "axis_ratio": 0.96,
+            "mass_msun": 2.09107279402,
+            "spin_hz": 589.71036925,
+            "delta_mass_msun": 0.01807279402000006,
+            "delta_spin_hz": 243.17400025,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_0",
+            "u_ec_1e15": 1.75,
+            "axis_ratio": 0.9600019999999999,
+            "mass_msun": 2.09105923218,
+            "spin_hz": 589.689909152,
+            "delta_mass_msun": 0.018059232180000162,
+            "delta_spin_hz": 243.15354015200006,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_0_bt0",
+            "u_ec_1e15": 1.7799544990559735,
+            "axis_ratio": 0.99373191295929,
+            "mass_msun": 2.07288202029,
+            "spin_hz": 231.938669572,
+            "delta_mass_msun": -0.00011797971000016005,
+            "delta_spin_hz": -114.59769942799997,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_1",
+            "u_ec_1e15": 1.7799900981459547,
+            "axis_ratio": 0.99373191295929,
+            "mass_msun": 2.07289304324,
+            "spin_hz": 231.940703497,
+            "delta_mass_msun": -0.00010695675999983223,
+            "delta_spin_hz": -114.59566550299999,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_1",
+            "u_ec_1e15": 1.7799544990559735,
+            "axis_ratio": 0.9937339129592899,
+            "mass_msun": 2.07288062425,
+            "spin_hz": 231.900278244,
+            "delta_mass_msun": -0.00011937574999976164,
+            "delta_spin_hz": -114.63609075599999,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_1_bt0",
+            "u_ec_1e15": 1.766789148326309,
+            "axis_ratio": 0.9877227490660911,
+            "mass_msun": 2.07362607858,
+            "spin_hz": 326.740666629,
+            "delta_mass_msun": 0.0006260785799998558,
+            "delta_spin_hz": -19.795702371000004,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_2",
+            "u_ec_1e15": 1.7668244841092755,
+            "axis_ratio": 0.9877227490660911,
+            "mass_msun": 2.07363751086,
+            "spin_hz": 326.743626593,
+            "delta_mass_msun": 0.0006375108599998569,
+            "delta_spin_hz": -19.79274240699999,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_2",
+            "u_ec_1e15": 1.766789148326309,
+            "axis_ratio": 0.9877247490660911,
+            "mass_msun": 2.07362451706,
+            "spin_hz": 326.713384197,
+            "delta_mass_msun": 0.000624517059999885,
+            "delta_spin_hz": -19.822984802999997,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_2_bt0",
+            "u_ec_1e15": 1.7612702220495413,
+            "axis_ratio": 0.9862376904807055,
+            "mass_msun": 2.07320328836,
+            "spin_hz": 345.94795035,
+            "delta_mass_msun": 0.00020328835999983141,
+            "delta_spin_hz": -0.5884186499999942,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_3",
+            "u_ec_1e15": 1.7613054474539822,
+            "axis_ratio": 0.9862376904807055,
+            "mass_msun": 2.07321488159,
+            "spin_hz": 345.951178601,
+            "delta_mass_msun": 0.00021488158999982687,
+            "delta_spin_hz": -0.5851903989999983,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_3",
+            "u_ec_1e15": 1.7612702220495413,
+            "axis_ratio": 0.9862396904807055,
+            "mass_msun": 2.07320169588,
+            "spin_hz": 345.922368386,
+            "delta_mass_msun": 0.00020169587999996352,
+            "delta_spin_hz": -0.6140006139999628,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_3_bt0",
+            "u_ec_1e15": 1.760528386608233,
+            "axis_ratio": 0.9861863727198681,
+            "mass_msun": 2.07299724973,
+            "spin_hz": 346.534265535,
+            "delta_mass_msun": -2.7502699997405955e-06,
+            "delta_spin_hz": -0.0021034650000046895,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_4",
+            "u_ec_1e15": 1.7605635971759652,
+            "axis_ratio": 0.9861863727198681,
+            "mass_msun": 2.07300885989,
+            "spin_hz": 346.53750317,
+            "delta_mass_msun": 8.8598899998793e-06,
+            "delta_spin_hz": 0.0011341700000002675,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_4",
+            "u_ec_1e15": 1.760528386608233,
+            "axis_ratio": 0.986188372719868,
+            "mass_msun": 2.07299565754,
+            "spin_hz": 346.508743502,
+            "delta_mass_msun": -4.342460000028581e-06,
+            "delta_spin_hz": -0.0276254979999635,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_4_bt0",
+            "u_ec_1e15": 1.760536470112864,
+            "axis_ratio": 0.9861862661310709,
+            "mass_msun": 2.0730000001,
+            "spin_hz": 346.536369099,
+            "delta_mass_msun": 1.000000082740371e-10,
+            "delta_spin_hz": 9.900003306029248e-08,
+            "status": "OK"
+          }
+        ],
+        "mass_residual_tolerance_msun": 1e-05,
+        "spin_residual_tolerance_hz": 0.0001
+      }
+    },
+    {
+      "grid": "rns-candidate-201",
+      "seed": [
+        1.8,
+        0.965
+      ],
+      "status": "PASS",
+      "model": {
+        "mass_msun": 2.07299999996,
+        "radius_eq_km": 10.7808522836,
+        "spin_hz": 346.53635527,
+        "central_density_g_cm3": 1760536472356650.5,
+        "axis_ratio": 0.9861862672001747,
+        "rns_output_format": "legacy 4-column direct output; no baryon mass inferred",
+        "central_energy_density_g_cm3": 1760536472356650.5,
+        "root_seed": [
+          1.8,
+          0.965
+        ],
+        "root_trace": [
+          {
+            "eval": "seed",
+            "u_ec_1e15": 1.8,
+            "axis_ratio": 0.965,
+            "mass_msun": 2.10234250851,
+            "spin_hz": 559.037566069,
+            "delta_mass_msun": 0.029342508510000087,
+            "delta_spin_hz": 212.50119706900006,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_0",
+            "u_ec_1e15": 1.800036,
+            "axis_ratio": 0.965,
+            "mass_msun": 2.10235318209,
+            "spin_hz": 559.042819255,
+            "delta_mass_msun": 0.02935318208999993,
+            "delta_spin_hz": 212.50645025500006,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_0",
+            "u_ec_1e15": 1.8,
+            "axis_ratio": 0.9650019999999999,
+            "mass_msun": 2.10234087595,
+            "spin_hz": 559.021498926,
+            "delta_mass_msun": 0.02934087595000001,
+            "delta_spin_hz": 212.48512992600007,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_0_bt0",
+            "u_ec_1e15": 1.7724827129109757,
+            "axis_ratio": 0.9909518228086699,
+            "mass_msun": 2.07244505434,
+            "spin_hz": 279.67357241,
+            "delta_mass_msun": -0.0005549456599998059,
+            "delta_spin_hz": -66.86279658999996,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_1",
+            "u_ec_1e15": 1.772518162565234,
+            "axis_ratio": 0.9909518228086699,
+            "mass_msun": 2.07245622366,
+            "spin_hz": 279.67611195,
+            "delta_mass_msun": -0.0005437763399998019,
+            "delta_spin_hz": -66.86025704999997,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_1",
+            "u_ec_1e15": 1.7724827129109757,
+            "axis_ratio": 0.9909538228086698,
+            "mass_msun": 2.07244365024,
+            "spin_hz": 279.641848243,
+            "delta_mass_msun": -0.0005563497600000744,
+            "delta_spin_hz": -66.89452075699995,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_1_bt0",
+            "u_ec_1e15": 1.7647740260719986,
+            "axis_ratio": 0.9867017486623112,
+            "mass_msun": 2.0739866229,
+            "spin_hz": 340.270578631,
+            "delta_mass_msun": 0.000986622900000178,
+            "delta_spin_hz": -6.265790369000001,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_2",
+            "u_ec_1e15": 1.76480932155252,
+            "axis_ratio": 0.9867017486623112,
+            "mass_msun": 2.07399813582,
+            "spin_hz": 340.273726346,
+            "delta_mass_msun": 0.00099813582000019,
+            "delta_spin_hz": -6.26264265399999,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_2",
+            "u_ec_1e15": 1.7647740260719986,
+            "axis_ratio": 0.9867037486623111,
+            "mass_msun": 2.07398502817,
+            "spin_hz": 340.244464828,
+            "delta_mass_msun": 0.000985028170000124,
+            "delta_spin_hz": -6.291904171999988,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_2_bt0",
+            "u_ec_1e15": 1.7605049528681616,
+            "axis_ratio": 0.9861927064470526,
+            "mass_msun": 2.07298447998,
+            "spin_hz": 346.451279841,
+            "delta_mass_msun": -1.5520019999826218e-05,
+            "delta_spin_hz": -0.08508915900000602,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_u_3",
+            "u_ec_1e15": 1.7605401629672188,
+            "axis_ratio": 0.9861927064470526,
+            "mass_msun": 2.07299609068,
+            "spin_hz": 346.454516502,
+            "delta_mass_msun": -3.909320000161642e-06,
+            "delta_spin_hz": -0.08185249799998928,
+            "status": "OK"
+          },
+          {
+            "eval": "jacobian_r_3",
+            "u_ec_1e15": 1.7605049528681616,
+            "axis_ratio": 0.9861947064470525,
+            "mass_msun": 2.07298288777,
+            "spin_hz": 346.425751466,
+            "delta_mass_msun": -1.7112230000115858e-05,
+            "delta_spin_hz": -0.11061753399997087,
+            "status": "OK"
+          },
+          {
+            "eval": "newton_3_bt0",
+            "u_ec_1e15": 1.7605364723566506,
+            "axis_ratio": 0.9861862672001747,
+            "mass_msun": 2.07299999996,
+            "spin_hz": 346.53635527,
+            "delta_mass_msun": -4.000000330961484e-11,
+            "delta_spin_hz": -1.3729999977840635e-05,
+            "status": "OK"
+          }
+        ],
+        "mass_residual_tolerance_msun": 1e-05,
+        "spin_residual_tolerance_hz": 0.0001
+      }
+    }
+  ]
+}
+
