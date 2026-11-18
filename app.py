@@ -128,7 +128,10 @@ from core.trained_lora_client import TRAINED_LORA_LABEL, trained_lora_metadata
 from core.groq_diagnostics import check_groq_connection
 from core.provider_failure import failure_category, failure_diagnostics, safe_failure_message, safe_failure_param
 from core.connection_diagnostics import check_provider
-from core.weather_reliability import parse_wttr_current, weather_fallback_on_model_failure
+from core.weather_reliability import (
+    parse_wttr_current, parse_wttr_forecast, weather_fallback_on_model_failure,
+    weather_requested, weather_location, forecast_requested, weather_direct_reply,
+)
 from core.public_research import research_sources
 from core.scientific_sources import scientific_sources
 from core.research_evidence import (
@@ -178,34 +181,43 @@ OPENROUTER_KEY = _credentials.get("OPENROUTER_API_KEY")
 
 # 🌐 ENGELSİZ CANLI İNTERNET VE METEOROLOJİ MOTORU
 def internette_ara(sorgu: str) -> str:
+    # Keep the source helper independently executable by the app's offline
+    # regression harness; these pure guards perform no network activity.
+    from core.weather_reliability import (
+        weather_requested, weather_location, forecast_requested,
+        parse_wttr_forecast,
+    )
     try:
-        sorgu_temiz = sorgu.lower()
-        
-        # Kelime bazlı tam eşleşme kontrolü ile gereksiz tetiklenmeler önleniyor
-        hava_istegi_mi = any(re.search(rf"\b{kelime}\b", sorgu_temiz) for kelime in ["hava", "derece", "sicak", "yagis", "rüzgar", "bulut", "güneş", "durumu"])
-        
-        if hava_istegi_mi:
-            # Never silently assume a city: that would supply incorrect weather
-            # for questions about another city (or with no city at all).
-            city_pattern = r"([A-Za-zÇĞİÖŞÜçğıöşü]+)(?:['’](?:da|de|ta|te))?\s+hava\b"
-            city_match = re.search(city_pattern, sorgu, flags=re.IGNORECASE)
-            if city_match is None:
-                city_match = re.search(
-                    r"\bhava(?:\s+durumu)?\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)",
-                    sorgu, flags=re.IGNORECASE,
-                )
-            city_name = city_match.group(1) if city_match else ""
-            non_cities = {"bugün", "yarın", "şimdi", "dışarıda", "burada",
-                          "nasıl", "kaç", "ne", "bizim", "bu"}
-            if not city_name or city_name.casefold() in non_cities:
-                return "Hava durumu için şehir belirtin; konum tahmin edilmiyor."
-            sehir_adi = city_name.capitalize()
+        # Resolve district names (e.g. Ödemiş) instead of confusing the
+        # final word preceding 'hava' with a different city.
+        if weather_requested(sorgu):
+            city_name = weather_location(sorgu)
+            if city_name is None:
+                return "Hava durumu için şehir veya ilçe belirtin; konum tahmin edilmiyor."
+            sehir_adi = city_name
             sehir = city_name.translate(str.maketrans({
                 "İ": "I", "ı": "i", "Ş": "S", "ş": "s", "Ç": "C", "ç": "c",
                 "Ğ": "G", "ğ": "g", "Ö": "O", "ö": "o", "Ü": "U", "ü": "u",
             }))
-            
+
             headers = {"Accept-Language": "tr", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            # For a forecast request, use the API's separate dated daily
+            # predictions. If unavailable, provide current conditions only.
+            url = f"https://wttr.in/{sehir}"
+            if forecast_requested(sorgu):
+                try:
+                    forecast_response = requests.get(
+                        url, params={"format": "j1"}, headers=headers, timeout=6,
+                    )
+                    if forecast_response.status_code == 200:
+                        forecast = parse_wttr_forecast(
+                            sehir_adi, forecast_response.json()
+                        )
+                        if forecast is not None:
+                            return forecast
+                except (ValueError, TypeError, requests.RequestException):
+                    pass
+
             # The condition (%C) can contain spaces; never split it by whitespace.
             # Encode the exact four-field source format through requests params.
             url = f"https://wttr.in/{sehir}"
@@ -859,11 +871,19 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     arama_istegi = any(k in kullanici_mesaji.casefold() for k in (
         "araştır", "internette", "internetten", "webde", "web'de",
         "güncel", "kaynak", "haber", "hava", "sıcaklık", "yağış",
+        "tahmin", "rüzgar",
     ))
     arama_sonucu = internette_ara(kullanici_mesaji) if arama_istegi else (
         "Bu mesaj için harici kaynak sorgulanmadı; güncel veri doğrulanmadı."
     )
     
+    # Weather is a structured live data lookup, NOT an academic research
+    # question. Never attach Crossref leads or require [W#] citations.
+    from core.weather_reliability import weather_direct_reply
+    _weather_answer = weather_direct_reply(kullanici_mesaji, arama_sonucu)
+    if _weather_answer is not None:
+        return _weather_answer
+
     _research_excerpts = []
     _scholarly_sources = []
     # Run the two public providers only for an explicit research request.

@@ -118,8 +118,10 @@ class OrganismLabPersistenceTests(unittest.TestCase):
         self.assertTrue(db.can_insert)
         error_type = getattr(organism_lab_persistence, "OrganismLabRlsPolicyError", None)
         self.assertIsNotNone(error_type)
-        with self.assertRaises(error_type):
+        with self.assertRaises(error_type) as caught:
             store.verify_schema()
+        self.assertEqual(caught.exception.role_name, "assistant_test")
+        self.assertNotIn("assistant_test", str(caught.exception))
         self.assertEqual(db.records, {})
 
     def test_transient_readback_connection_failure_retries_once_without_rewriting(self):

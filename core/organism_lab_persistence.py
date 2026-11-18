@@ -21,6 +21,10 @@ class OrganismLabPersistenceError(RuntimeError):
 class OrganismLabRlsPolicyError(RuntimeError):
     """Runtime role has table grants but cannot write owner-scoped lab rows."""
 
+    def __init__(self, role_name):
+        super().__init__("Organism Lab RLS policy does not authorize experiment rows")
+        self.role_name = role_name
+
 
 class OrganismLabPermissionsError(RuntimeError):
     """Non-sensitive runtime grant details for safe operations diagnostics."""
@@ -83,9 +87,7 @@ class OrganismLabStore:
                 WHERE c.oid = 'public.organism_lab_records'::regclass""")
             rls = cur.fetchone()
             if not rls or (rls[0] and not (rls[1] or rls[2])):
-                raise OrganismLabRlsPolicyError(
-                    "Organism Lab RLS does not authorize the current runtime role"
-                )
+                raise OrganismLabRlsPolicyError(role_name)
             cur.execute("""SELECT owner_key, collection, record_id, payload, updated_at
                 FROM public.organism_lab_records LIMIT 0""")
             return role_name
