@@ -9,11 +9,12 @@
   },
   "method": {
     "cs2": "P / (epsilon * d(log epsilon)/d(log P))",
+    "extrema_method": "continuous interval search: quartic roots of d(log cs2)/dlogP on every natural-cubic interval; dlogeps/dlogP extrema from endpoint and quadratic vertex",
     "interpolation": "natural cubic spline in log(epsilon)-log(P), identical to tabular replay convention",
-    "sample_count_per_target": 50001,
     "surface_model_for_target_screen": "epsilon=epsilon0*(P/P0)^0.6; cs2=5P/(3epsilon), down to P->0",
     "target_models": "four saved direct RNS roots; no stellar solver rerun",
-    "whole_table_sample_count": 250001
+    "target_spline_intervals_per_root": "reported per root profile",
+    "whole_table_spline_intervals": 1446
   },
   "schema": "j0740_apr4_target_star_causality_audit_v1",
   "source": {
@@ -34,10 +35,11 @@
       "local_thermodynamic_stability_and_causality_pass": true,
       "low_p_extension_cs2_at_join": 4.351889812730272e-08,
       "mass_msun": 2.0730000000395616,
-      "max_cs2_from_surface_to_center": 0.9511795607168241,
-      "min_dlogeps_dlogp_from_surface_to_center": 0.30088209417033823,
+      "max_cs2_from_surface_to_center": 0.951182098027909,
+      "min_dlogeps_dlogp_from_surface_to_center": 0.3008816956069388,
       "radius_eq_km": 10.75176387402104,
-      "spin_hz": 346.53636942065197
+      "spin_hz": 346.53636942065197,
+      "spline_intervals_from_surface_to_center": 1414
     },
     {
       "central_cs2": 0.8621017919815308,
@@ -47,23 +49,25 @@
       "local_thermodynamic_stability_and_causality_pass": true,
       "low_p_extension_cs2_at_join": 4.351889812730272e-08,
       "mass_msun": 2.0729997907574154,
-      "max_cs2_from_surface_to_center": 0.9511795717273459,
-      "min_dlogeps_dlogp_from_surface_to_center": 0.30088209296590124,
+      "max_cs2_from_surface_to_center": 0.951182098027909,
+      "min_dlogeps_dlogp_from_surface_to_center": 0.3008816956069388,
       "radius_eq_km": 10.75176443084242,
-      "spin_hz": 346.5363273692342
+      "spin_hz": 346.5363273692342,
+      "spline_intervals_from_surface_to_center": 1414
     },
     {
-      "central_cs2": 0.861675037054133,
+      "central_cs2": 0.8616750370541328,
       "central_density_g_cm3": 1755892141395923.5,
       "central_pressure_geom_m2": 5.340319524099945e-10,
       "grid": "rns_201x401",
       "local_thermodynamic_stability_and_causality_pass": true,
       "low_p_extension_cs2_at_join": 4.351889812730272e-08,
       "mass_msun": 2.0730000000561586,
-      "max_cs2_from_surface_to_center": 0.9511820480430133,
-      "min_dlogeps_dlogp_from_surface_to_center": 0.3008817014910854,
+      "max_cs2_from_surface_to_center": 0.951182098027909,
+      "min_dlogeps_dlogp_from_surface_to_center": 0.3008816956069388,
       "radius_eq_km": 10.750230172228584,
-      "spin_hz": 346.53636971125115
+      "spin_hz": 346.53636971125115,
+      "spline_intervals_from_surface_to_center": 1414
     },
     {
       "central_cs2": 0.8616750379368704,
@@ -73,19 +77,20 @@
       "local_thermodynamic_stability_and_causality_pass": true,
       "low_p_extension_cs2_at_join": 4.351889812730272e-08,
       "mass_msun": 2.072999998202672,
-      "max_cs2_from_surface_to_center": 0.9511820480508045,
-      "min_dlogeps_dlogp_from_surface_to_center": 0.3008817014903478,
+      "max_cs2_from_surface_to_center": 0.951182098027909,
+      "min_dlogeps_dlogp_from_surface_to_center": 0.3008816956069388,
       "radius_eq_km": 10.750230171224958,
-      "spin_hz": 346.5363566104969
+      "spin_hz": 346.5363566104969,
+      "spline_intervals_from_surface_to_center": 1414
     }
   ],
   "whole_original_source_table": {
     "first_superluminal_crossing": {
-      "cs2": 1.0006615729676012,
-      "pressure_geom_m2": 7.159545492397342e-10
+      "log_pressure": -21.057593945721752,
+      "pressure_geom_m2": 7.158188772369453e-10
     },
     "global_source_eos_causal": false,
-    "max_cs2": 1.1000091383968276,
-    "min_dlogeps_dlogp": 0.3008816962762957
+    "max_cs2": 1.1000105502222017,
+    "min_dlogeps_dlogp": 0.3008816956069388
   }
 }
