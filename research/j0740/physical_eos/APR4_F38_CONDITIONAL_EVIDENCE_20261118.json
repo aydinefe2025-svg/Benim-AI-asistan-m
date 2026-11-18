@@ -11,14 +11,14 @@
     2.123
   ],
   "fine_conditional_evidence_ratio_by_kde_bandwidth": {
-    "sigmaM_0.015_sigmaR_0.20": 2.215913076979936,
-    "sigmaM_0.025_sigmaR_0.35": 2.545478636234279,
-    "sigmaM_0.040_sigmaR_0.50": 2.830868566020175
+    "0.015_0.20": 2.2159130769799344,
+    "0.025_0.35": 2.5454786362342774,
+    "0.040_0.50": 2.830868566020174
   },
   "coarse_conditional_evidence_ratio_by_kde_bandwidth": {
-    "sigmaM_0.015_sigmaR_0.20": 2.216829583513101,
-    "sigmaM_0.025_sigmaR_0.35": 2.545881606632135,
-    "sigmaM_0.040_sigmaR_0.50": 2.8305410258058545
+    "0.015_0.20": 2.216829583513098,
+    "0.025_0.35": 2.5458816066321317,
+    "0.040_0.50": 2.8305410258058523
   },
   "coarse_fine_relative_difference": {
     "sigmaM_0.015_sigmaR_0.20": 0.0004134312082361147,
@@ -46,12 +46,12 @@
     "RNS_curve_artifact_id": 14410045606,
     "RNS_curve_artifact_sha256": "fffe10cf25aee6d4ed1dd36728ca3a9d71f9ecc4807c52f2f1cbcd152b4d7191",
     "RNS_200_point_table_sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89",
-    "current_evidence_run": 44266168585,
-    "current_evidence_artifact_id": 14409613719,
-    "current_evidence_artifact_sha256": "fd8b8447689fd364116b7b6dcadfa87e366d749ec2cbb7039d80cbd53d603801",
-    "source_code_commit": "e9365805e31583ef9957d418782d58e077ef2f10",
-    "source_code_git_blob_sha1": "ac5a500d4c57d7fe8f7b954794523b63d708b6fa",
-    "source_code_sha256": "b825742ccd2f8c9c6958b8ec43c3217f89f24db3787c420e57b17fe2aecc46e5",
+    "current_evidence_run": 44266823083,
+    "current_evidence_artifact_id": 14410043372,
+    "current_evidence_artifact_sha256": "fd91f0825b5079f0f264266b7f6ea197a3129b5e345ecbbca06d09721a471ea9",
+    "source_code_commit": "446ccd0ae81d64eb739b2d166215c190a7a58fd8",
+    "source_code_git_blob_sha1": "11e797809c129032f400b1bc5b7a76a753777ca4",
+    "source_code_sha256": "7d5215fb5d6d58d7a5e3c4c866e99de6e428fb2d3be86626f320f4c310764ff4",
     "workflow_sha256": "5a588f4a3c8c3eda18df37cd824231547dadd38d985826dd60a172fa24ae61c4",
     "anchor_root_on_RNS_curve_table": {
       "status": "PASS_DIRECT_RNS_ON_CURVE_EOS_TABLE",
@@ -66,11 +66,42 @@
       "artifact_id": 14409468800,
       "artifact_sha256": "011fd29e2333b230d2213976d3c9650089f90a9c3f92dfbb4e5842aae8dd6187",
       "reason": "The stored anchor root referenced a different RNS EOS table SHA; replaced by a direct re-solve on the curve artifact's exact table."
+    },
+    "superseded_reanchored_weighted_only_evidence": {
+      "run_id": 44266168585,
+      "artifact_id": 14409613719,
+      "artifact_sha256": "fd8b8447689fd364116b7b6dcadfa87e366d749ec2cbb7039d80cbd53d603801",
+      "reason": "Replaced by the exact-table reanchored six-surface weighted and published-equal result."
     }
   },
   "links": {
-    "action_run": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44265095377",
-    "issue_280": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/280"
+    "action_run": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44266823083",
+    "issue_280": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/280",
+    "artifact": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44266823083/artifacts/14410043372"
   },
-  "interpretation": "Conditional approximate likelihood evidence ratio for one chosen causal APR4 completion and explicit uniform central-energy prior. Anchor is now directly solved on the exact EOS table used for the mass curve. This is not a final EOS posterior probability, ranking, or seven-EOS Bayes factor."
+  "interpretation": "Conditional approximate likelihood-integral ratio for one explicitly chosen causal APR4 completion over the numerically resolved rising branch. The exact-table anchor and all six weighted/published-equal surfaces are provenance-locked. Bandwidth dependence remains material. Not a final EOS posterior, model ranking, or seven-EOS Bayes factor.",
+  "published_equal_fine_conditional_evidence_ratio_by_kde_bandwidth": {
+    "0.015_0.20": 2.213360191037768,
+    "0.025_0.35": 2.5446366740104547,
+    "0.040_0.50": 2.8298547196944823
+  },
+  "published_equal_coarse_conditional_evidence_ratio_by_kde_bandwidth": {
+    "0.015_0.20": 2.2142655242191367,
+    "0.025_0.35": 2.5450391934821845,
+    "0.040_0.50": 2.829524748857193
+  },
+  "coarse_fine_relative_difference_all_six": {
+    "weighted_0.015_0.20": 0.0004134312082353375,
+    "resampled_0.015_0.20": 0.0004088638744840223,
+    "weighted_0.025_0.35": 0.00015828324333877486,
+    "resampled_0.025_0.35": 0.0001581584569545491,
+    "weighted_0.040_0.50": 0.00011571646951424874,
+    "resampled_0.040_0.50": 0.00011661705288945612
+  },
+  "weighted_vs_published_equal_relative_delta": {
+    "0.015_0.20": 0.0011520695322786434,
+    "0.025_0.35": 0.0003307667401020235,
+    "0.040_0.50": 0.0003581396670482295
+  },
+  "grid_convergence": "PASS_2_PERCENT_ALL_SIX_SURFACES"
 }
