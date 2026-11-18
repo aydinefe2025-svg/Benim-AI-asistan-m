@@ -25,7 +25,7 @@ class FakeCursor:
         return (None,)
     def fetchall(self):
         return [("00000000-0000-4000-8000-000000000001","queued",
-                 "Update limited fixture","https://github.com/example/pr/1","","")]
+                 "Update limited fixture","https://github.com/example/pr/1","","","")]
 
 
 class FakeConnection:
