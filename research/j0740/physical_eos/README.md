@@ -1,4 +1,4 @@
-# PSR J0740+6620 APR4 physical EOS audit (2026-11-17)
+# PSR J0740+6620 APR4 physical EOS audit (2026-11-18)
 
 This evidence bundle supersedes earlier partial-status descriptions. The original JESTER APR4_EPP NPZ is preserved byte-for-byte; its SHA-256 is `639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88`.
 
