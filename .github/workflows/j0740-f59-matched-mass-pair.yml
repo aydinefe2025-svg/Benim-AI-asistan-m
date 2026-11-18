@@ -1,0 +1,61 @@
+name: J0740 F59 matched high-mass ENG/MPA1 audit
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f59/**'
+      - '.github/workflows/j0740-f59-matched-mass-pair.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  f59-original-f51-matched-mass-pair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify original locked F51 source
+        run: echo '3c3584905190012ee61f4b7fee343e3d1c9e28300f9d681e8bf34dd157b5d67d  research/j0740/f51/F51_results.json' | sha256sum -c -
+      - name: F59 fail-closed unit tests on original F51
+        run: python -m unittest discover -s research/j0740/f59 -p 'test_f59_*.py' -v
+      - name: Recompute matched mass support from F51 without new stars
+        run: python research/j0740/f59/f59_matched_pair_extended_support.py --out results/F59/F59_matched_pair_extended_support.json
+      - name: Independently compare with high-precision Decimal arithmetic
+        run: |
+          python - <<'PY'
+          import json
+          from decimal import Decimal, localcontext
+          from pathlib import Path
+          src=json.loads(Path('research/j0740/f51/F51_results.json').read_text())
+          out=json.loads(Path('results/F59/F59_matched_pair_extended_support.json').read_text())
+          with localcontext() as ctx:
+              ctx.prec=45
+              comparisons=0
+              for row in out['six_surface_details']:
+                  a=src['surfaces'][row['kde']]['per_EOS_exploratory_actual_direct_C_GR_support_scores_NOT_DIRECTLY_COMPARABLE']
+                  E=Decimal(str(a['ENG']['likelihood_full_radio_prior_window_contribution']))
+                  M=Decimal(str(a['MPA1']['likelihood_full_radio_prior_window_contribution']))
+                  q=Decimal(1)-Decimal(str(a['MPA1']['mass_prior_coverage']))
+                  assert M>E and q>0
+                  assert abs((M-E)-Decimal(str(row['MPA1_minus_ENG_extended_integral'])))<Decimal('1e-12')
+                  assert abs((M-E)/q-Decimal(str(row['minimum_missing_tail_mean_ENG_minus_MPA1_to_reverse'])))<Decimal('1e-11')
+                  comparisons+=2
+              assert comparisons==12
+          print('F59 independent Decimal: 12/12 numeric comparisons passed')
+          PY
+      - name: Output hashes
+        if: always()
+        run: |
+          mkdir -p results/F59
+          sha256sum results/F59/F59_matched_pair_extended_support.json > results/F59/F59_matched_pair_SHA256.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f59-original-f51-matched-pair-check
+          path: results/F59/
+          if-no-files-found: warn
+          retention-days: 30
