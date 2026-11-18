@@ -1,0 +1,97 @@
+name: J0740 F55 original-JESTER-source WFF1 EOS knot sensitivity direct C-RNS
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f55/**'
+      - '.github/workflows/j0740-f55-wff1-eos-knots.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  f55-original-source-WFF1-table-knots-vs-200-direct-C:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Dependencies for exact F42 analytical EOS and numerical RNS solver
+        run: python -m pip install 'numpy>=1.26,<3' 'scipy>=1.13,<2'
+      - name: Eight fail-closed causal, first-law and grid sensitivity unit tests
+        run: python -m unittest discover -s research/j0740/f55 -p 'test_f55_*.py' -v
+      - name: Download original WFF1 JESTER NPZ and preserve F44/F53 authentic source artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F55/input results/F55/work
+          curl -fL --retry 3 --max-time 150 \
+            'https://raw.githubusercontent.com/nuclear-multimessenger-astronomy/jester/e6768650ce992abfd1153a6833857572fe5cd230/jesterTOV/tabulated_eos/lalsuite/WFF1.npz' \
+            -o results/F55/input/WFF1_original_JESTER.npz
+          echo '119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3  results/F55/input/WFF1_original_JESTER.npz' | sha256sum -c -
+          curl -fL --retry 3 --max-time 150 -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14413168551/zip' \
+            -o results/F55/input/F44.zip
+          curl -fL --retry 3 --max-time 150 -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14435795810/zip' \
+            -o results/F55/input/F53.zip
+          echo 'b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98  results/F55/input/F44.zip' | sha256sum -c -
+          echo 'e35a52b02745d596cdea93427e15d5f7eb1e52c6f591fb21eb61501d57de2ae7  results/F55/input/F53.zip' | sha256sum -c -
+      - name: Expose raw C-RNS star.ang_mom only, no change to solver physics
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          python research/j0740/physical_eos/apr4_causal_fixed_J_turning.py \
+            --mode patch --source rns-upstream/rns.c --out results/F55/F55_RNS_C_J_output_patch.json
+      - name: Compile fine C-RNS spatial grid 201x401 (only varied EOS knot count)
+        run: make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+      - name: Rebuild 200-node WFF1 from original source and compute nine new 160/180/196 node real C stars
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f55/f55_wff1_eos_knot_sensitivity.py \
+            --npz results/F55/input/WFF1_original_JESTER.npz \
+            --f44 results/F55/input/F44.zip \
+            --f53 results/F55/input/F53.zip \
+            --binary rns-upstream/rns \
+            --patch results/F55/F55_RNS_C_J_output_patch.json \
+            --work results/F55/work \
+            --out results/F55/F55_WFF1_original_source_EOS_knots_C_GR.json
+      - name: Hash exact output and regenerated tables even on failed physics gate
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          root=Path('results/F55');root.mkdir(parents=True,exist_ok=True)
+          d={str(p.relative_to(root)):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+            for p in list(root.rglob('*.json'))+list(root.rglob('*.rns'))
+            if p.name!='F55_manifest.json'}
+          (root/'F55_manifest.json').write_text(json.dumps(d,indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f55-WFF1-original-source-EOS-knots-direct-C-or-failure
+          path: |
+            results/F55/F55_WFF1_original_source_EOS_knots_C_GR.json
+            results/F55/F55_RNS_C_J_output_patch.json
+            results/F55/F55_manifest.json
+            results/F55/work/WFF1_candidate_*.rns
+          if-no-files-found: warn
+          retention-days: 30
