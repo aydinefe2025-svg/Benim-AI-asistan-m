@@ -20,7 +20,7 @@ def match(mextra=0,radius_delta=0,badJ=0,monotonic=False):
         rows=[]
         for i,rho in enumerate(f55.MATCHED_E15):
             peak=(-.0001 if i!=1 else 0)
-            mass=2.11+peak+mextra+(i*.0001 if monotonic else 0)
+            mass=2.11+peak+mextra+(i*.001 if monotonic else 0)
             rows.append({'status':'DIRECT_C_FIXED_J_PASS','density_e15':rho,
                          'variant':{'mass_msun':mass,'relative_J_residual':badJ},
                          'delta_mass_msun':mextra,'delta_radius_km':radius_delta})
