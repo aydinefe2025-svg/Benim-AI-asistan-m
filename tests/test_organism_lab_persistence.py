@@ -15,9 +15,15 @@ class FakeDatabase:
         self.configured_owners = []
         self.can_select = True
         self.can_insert = True
+        self.rls_active = True
+        self.rls_bypass = False
+        self.policy_member = True
+        self.fail_second_connection_with = None
 
     def connect(self, *args, **kwargs):
         self.connections += 1
+        if self.connections == 2 and self.fail_second_connection_with is not None:
+            raise self.fail_second_connection_with
         return FakeConnection(self)
 
 
@@ -53,6 +59,10 @@ class FakeCursor:
             self.row = (params[0],)
         elif "has_table_privilege" in sql:
             self.row = ("assistant_test", self.database.can_select, self.database.can_insert)
+        elif "pg_has_role" in sql:
+            self.row = (self.database.rls_active,
+                        self.database.rls_bypass,
+                        self.database.policy_member)
         elif sql.lstrip().startswith("INSERT INTO"):
             owner, collection, record_id, encoded = params
             self.database.records.setdefault(
@@ -98,6 +108,36 @@ class OrganismLabPersistenceTests(unittest.TestCase):
         self.assertFalse(caught.exception.can_select)
         self.assertTrue(caught.exception.can_insert)
         self.assertNotIn("assistant_test", str(caught.exception))
+
+    def test_preflight_rejects_grant_only_role_when_rls_blocks_the_record(self):
+        # Live Neon can grant SELECT+INSERT but omit a matching RLS policy.
+        from core import organism_lab_persistence
+        db = FakeDatabase()
+        db.policy_member = False
+        store = OrganismLabStore(self.OWNER, "postgresql://test", connect=db.connect)
+        self.assertTrue(db.can_insert)
+        error_type = getattr(organism_lab_persistence, "OrganismLabRlsPolicyError", None)
+        self.assertIsNotNone(error_type)
+        with self.assertRaises(error_type):
+            store.verify_schema()
+        self.assertEqual(db.records, {})
+
+    def test_transient_readback_connection_failure_retries_once_without_rewriting(self):
+        db = FakeDatabase()
+        db.fail_second_connection_with = ConnectionError("PRIVATE transient connection")
+        store = OrganismLabStore(self.OWNER, "postgresql://test", connect=db.connect)
+        outcome = store.save_verified("world", b'{"steps":5}')
+        self.assertEqual(outcome["data"], b'{"steps":5}')
+        self.assertEqual(db.connections, 3)
+        self.assertEqual(len(db.records), 1)
+
+    def test_nontransient_readback_failure_never_retries(self):
+        db = FakeDatabase()
+        db.fail_second_connection_with = PermissionError("PRIVATE access denied")
+        store = OrganismLabStore(self.OWNER, "postgresql://test", connect=db.connect)
+        with self.assertRaises(PermissionError):
+            store.save_verified("world", b'{"steps":5}')
+        self.assertEqual(db.connections, 2)
 
     def test_write_is_committed_then_read_back_on_fresh_connection(self):
         db = FakeDatabase()
