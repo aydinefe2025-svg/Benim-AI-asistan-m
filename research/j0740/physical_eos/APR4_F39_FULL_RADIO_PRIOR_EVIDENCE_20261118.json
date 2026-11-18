@@ -1,0 +1,54 @@
+{
+  "schema": "J0740_APR4_CAUSAL_COMPLETION_F39_FULL_RADIO_PRIOR_EVIDENCE_SUMMARY_v1",
+  "status": "PASS_CONDITIONAL_APPROXIMATE_FULL_RADIO_PRIOR_INTEGRAL_FOR_ONE_CAUSAL_COMPLETION; NOT_FINAL_EOS_BAYES",
+  "model": "APR4_EPP_LALSuite_7.26.4_native_crust_firstlaw_h_causal_limit_completion",
+  "source_workflow_run": {
+    "id": 44256261379,
+    "url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44256261379",
+    "branch": "science/j0740-apr4-rotating-curve-20261118",
+    "head_sha": "6f44103a99737735aa7e7c9448041e25726dd8ea",
+    "conclusion": "success"
+  },
+  "source_artifact": {
+    "id": 14408011818,
+    "name": "j0740-apr4-fixed-frequency-curve-f38-integral",
+    "zip_sha256": "2c12790459c62c3d758dcbe8e3a425cec6f8328dec3c6701af28e1ca13a96d5c"
+  },
+  "source_inputs": {
+    "jester_apr4_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+    "native_lalsuite_apr4_sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+    "causal_rns_table_sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89"
+  },
+  "calculation": {
+    "direct_rns_fixed_spin_models": 165,
+    "spin_hz": 346.536369,
+    "stable_rising_branch_mass_msun": [
+      1.023030508767847,
+      2.1769519850577455
+    ],
+    "radio_mass_prior": "N(2.082,0.0703^2), truncated and normalized at +/-5 sigma; applied once",
+    "radio_prior_probability_on_stable_branch": 0.9109398090627868,
+    "radio_prior_probability_without_stable_star": 0.0890601909372132,
+    "likelihood": "F38 published-sample nuisance-marginalized L/Z(M,R_eq) surface; no radius or mass extrapolation",
+    "outside_branch_treatment": "zero likelihood where this fixed-spin causal-completion model has no stable rising-branch configuration"
+  },
+  "evidence_ratio_z_eos_over_z_source": {
+    "weighted_kde": {
+      "0.015_Msun_0.20_km": 0.5673509553599823,
+      "0.025_Msun_0.35_km": 0.6259696356291882,
+      "0.040_Msun_0.50_km": 0.6905603554780022
+    },
+    "resampled_kde": {
+      "0.015_Msun_0.20_km": 0.5661294274297465,
+      "0.025_Msun_0.35_km": 0.6252825892724249,
+      "0.040_Msun_0.50_km": 0.6899517640080792
+    }
+  },
+  "limitations": {
+    "published_sample_reconstructed_likelihood": "APPROXIMATE; compiled photon-level X-PSI not run",
+    "physical_microphysics_family_prior": "NOT_ESTABLISHED",
+    "fixed_J_turning_point": "IN_PROGRESS_IN_ACTIONS_44314552006",
+    "final_multi_EOS_bayes_posterior": "NOT_RUN",
+    "source_native_xpsi_and_nuisance_refit": "NOT_RUN"
+  }
+}
