@@ -97,15 +97,15 @@ def root_curve(binary, eos_table, anchor_json, step):
 
 def evidence(curve, surfaces):
     m=curve["mass"]; ec=curve["ec"]; rad=curve["radius"]
-    radio=np.exp(-0.5*((m-RADIO_MU)/RADIO_SIGMA)**2)
-    den=trapezoid(radio,ec)
-    if not den>0: raise ValueError("zero radio-mass weight on sampled stable branch")
+    radio=np.exp(-0.5*((m-RADIO_MU)/RADIO_SIGMA)**2)/(math.sqrt(2*math.pi)*RADIO_SIGMA)
+    prior_span=float(ec[-1]-ec[0])
+    if not prior_span>0: raise ValueError("invalid central-energy prior span")
     values={}
     for s in surfaces:
         pts=np.column_stack((m,rad))
         ll=s["interp"](pts)
-        num=trapezoid(ll*radio,ec)
-        values[f'{s["sm"]:.3f}_{s["sr"]:.2f}']=float(num/den)
+        num=trapezoid(ll*radio,ec)/prior_span
+        values[f'{s["sm"]:.3f}_{s["sr"]:.2f}']=float(num)
     return values
 
 def main():
@@ -113,9 +113,23 @@ def main():
     p.add_argument("--binary",required=True); p.add_argument("--eos-table",required=True)
     p.add_argument("--anchor",required=True); p.add_argument("--surfaces",required=True)
     p.add_argument("--out",required=True)
+    p.add_argument("--reuse-curve-json")
     a=p.parse_args()
     surfaces=source_surfaces(a.surfaces)
-    curves={k:root_curve(a.binary,a.eos_table,a.anchor,k) for k in GRID_RANGES}
+    if a.reuse_curve_json:
+        saved=json.loads(Path(a.reuse_curve_json).read_text(encoding="utf-8"))
+        curves={}
+        for k in GRID_RANGES:
+            rows=saved["curves"][k]["roots"]
+            rows=sorted(rows,key=lambda x:float(x.get("central_energy_density_g_cm3",x.get("central_density_g_cm3"))))
+            curves[k]={"roots":rows,
+              "mass":np.asarray([float(x["mass_msun"]) for x in rows]),
+              "ec":np.asarray([float(x.get("central_energy_density_g_cm3",x.get("central_density_g_cm3"))) for x in rows]),
+              "radius":np.asarray([float(x["radius_eq_km"]) for x in rows])}
+            if np.any(np.diff(curves[k]["mass"])<=0) or np.any(np.diff(curves[k]["ec"])<=0):
+                raise ValueError(f"saved {k} sequence is not the validated rising branch")
+    else:
+        curves={k:root_curve(a.binary,a.eos_table,a.anchor,k) for k in GRID_RANGES}
     vals={k:evidence(curves[k],surfaces) for k in curves}
     names=sorted(vals["fine"])
     deltas={n:abs(vals["fine"][n]/vals["coarse"][n]-1) for n in names}
@@ -125,10 +139,10 @@ def main():
       "model":"APR4_EPP_LALSuite_7.26.4_NATIVE_CAUSAL_COMPLETION",
       "spin_hz":SPIN_HZ,
       "source":"F38 published-posterior-derived nuisance-marginal relative L/Z surfaces; photon-level X-PSI was not rerun",
-      "prior_assumption":"uniform central energy density over sampled single-valued rising fixed-spin branch M=1.923..2.123 Msun; radio Gaussian applied exactly once after dividing it out of source effective prior; turning point, full stable branch, and omitted-tail correction NOT_ESTABLISHED",
+      "prior_assumption":"normalized uniform central energy density over sampled single-valued rising fixed-spin branch M=1.923..2.123 Msun; normalized radio Gaussian likelihood applied exactly once after dividing it out of source effective prior; turning point, full stable branch, and omitted-tail correction NOT_ESTABLISHED",
       "radio_mass":{"mu_msun":RADIO_MU,"sigma_msun":RADIO_SIGMA},
       "surface_sha256":{s["path"]:s["sha256"] for s in surfaces},
-      "evidence_ratio_L_over_Z_by_bandwidth":vals,
+      "conditional_evidence_ratio_L_over_Z_uniform_ec_by_bandwidth":vals,
       "coarse_fine_relative_delta":deltas,
       "grid_convergence":"PASS_2_PERCENT" if max(deltas.values())<.02 else "FAIL_OR_NOT_CONVERGED",
       "curves":{k:{"mass_min":float(v["mass"].min()),"mass_max":float(v["mass"].max()),
@@ -138,6 +152,7 @@ def main():
       "native_compiled_xpsi_photon_reanalysis":"NOT_RUN",
       "full_seven_eos_bayes":"NOT_RUN",
       "fixed_spin_turning_point":"NOT_ESTABLISHED",
+      "native_event_level_photon_likelihood":"NOT_RUN",
       "global_stability":"NOT_ESTABLISHED",
       "absolute_baryon_density_normalization":"NOT_ESTABLISHED",
       "causal_completion_uniqueness":"NOT_ESTABLISHED"}
