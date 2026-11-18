@@ -1,0 +1,479 @@
+{
+  "do_not_multiply_posteriors_or_Bayes_factors": true,
+  "fixed_mass_Msun": 2.073,
+  "full_support_EOS_model_evidence": "NOT_RUN",
+  "huang2026_centered_model_fraction_R_gt_16km": 0.838,
+  "huang2026_delta_lnZ_5p65_is_hotspot_geometry_NOT_nuclear_EOS_Bayes": true,
+  "independent_photon_likelihood_recomputed": "NOT_RUN",
+  "interpretation": "Descriptive posterior-interval and RNS fixed-mass overlay ONLY. No model likelihood or Bayes factors.",
+  "mass_radius_posterior_correlation_not_accounted_for": true,
+  "observed_marginal_radius_summaries": [
+    {
+      "key": "Riley2021",
+      "lower_68km": 11.41,
+      "median_km": 12.39,
+      "minus_km": 0.98,
+      "plus_km": 1.3,
+      "underlying_data": "NICER_XMM_early",
+      "upper_68km": 13.690000000000001,
+      "url": "https://arxiv.org/abs/2105.06980"
+    },
+    {
+      "key": "Miller2021",
+      "lower_68km": 12.2,
+      "median_km": 13.7,
+      "minus_km": 1.5,
+      "plus_km": 2.6,
+      "underlying_data": "NICER_XMM_early",
+      "upper_68km": 16.3,
+      "url": "https://ntrs.nasa.gov/citations/20210026095"
+    },
+    {
+      "key": "Salmi2024",
+      "lower_68km": 11.61,
+      "median_km": 12.49,
+      "minus_km": 0.88,
+      "plus_km": 1.28,
+      "underlying_data": "NICER_XMM_2018_2022",
+      "upper_68km": 13.77,
+      "url": "https://doi.org/10.3847/1538-4357/ad5f1f"
+    },
+    {
+      "key": "Dittmann2024",
+      "lower_68km": 11.79,
+      "median_km": 12.92,
+      "minus_km": 1.13,
+      "plus_km": 2.09,
+      "underlying_data": "NICER_XMM_2018_2022",
+      "upper_68km": 15.01,
+      "url": "https://arxiv.org/abs/2406.14467"
+    },
+    {
+      "key": "Huang2026_shifted_dipole",
+      "lower_68km": 12.209999999999999,
+      "median_km": 13.28,
+      "minus_km": 1.07,
+      "plus_km": 1.47,
+      "underlying_data": "NICER_XMM_2018_2022",
+      "upper_68km": 14.75,
+      "url": "https://arxiv.org/abs/2609.37928"
+    },
+    {
+      "key": "Huang2026_centered_DQ",
+      "lower_68km": 15.98,
+      "median_km": 17.46,
+      "minus_km": 1.48,
+      "plus_km": 1.57,
+      "underlying_data": "NICER_XMM_2018_2022",
+      "upper_68km": 19.03,
+      "url": "https://arxiv.org/abs/2609.37928"
+    }
+  ],
+  "physical_EOS_microphysics_acceptance": "NOT_ESTABLISHED",
+  "same_photons_salmi2024_dittmann2024_huang2026": true,
+  "schema": "J0740_F50_crossmodel_radius_consistency_diagnostic_v1",
+  "seven_new_hypothetical_EOS_fixed_mass_RNS": {
+    "APR4_EPP": {
+      "R_equatorial_km": 10.7697989538569,
+      "comparison": {
+        "Dittmann2024": {
+          "distance_from_median_km": -2.150201046143099,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.79,
+            15.01
+          ]
+        },
+        "Huang2026_centered_DQ": {
+          "distance_from_median_km": -6.6902010461431,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            15.98,
+            19.03
+          ]
+        },
+        "Huang2026_shifted_dipole": {
+          "distance_from_median_km": -2.5102010461430986,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            12.209999999999999,
+            14.75
+          ]
+        },
+        "Miller2021": {
+          "distance_from_median_km": -2.9302010461430985,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            12.2,
+            16.3
+          ]
+        },
+        "Riley2021": {
+          "distance_from_median_km": -1.6202010461430998,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.41,
+            13.690000000000001
+          ]
+        },
+        "Salmi2024": {
+          "distance_from_median_km": -1.7202010461430994,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.61,
+            13.77
+          ]
+        }
+      },
+      "grid_delta_m": 1.8205466150913452,
+      "hypothetical_F42_EOS_not_original_nuclear_model": true,
+      "mass_msun": 2.073000000007922,
+      "spin_hz": 346.5363691448935
+    },
+    "ENG": {
+      "R_equatorial_km": 11.498899583649585,
+      "comparison": {
+        "Dittmann2024": {
+          "distance_from_median_km": -1.4211004163504146,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.79,
+            15.01
+          ]
+        },
+        "Huang2026_centered_DQ": {
+          "distance_from_median_km": -5.9611004163504155,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            15.98,
+            19.03
+          ]
+        },
+        "Huang2026_shifted_dipole": {
+          "distance_from_median_km": -1.781100416350414,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            12.209999999999999,
+            14.75
+          ]
+        },
+        "Miller2021": {
+          "distance_from_median_km": -2.201100416350414,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            12.2,
+            16.3
+          ]
+        },
+        "Riley2021": {
+          "distance_from_median_km": -0.8911004163504153,
+          "label": "within_marginal_68_interval_not_evidence",
+          "marginal_interval_km": [
+            11.41,
+            13.690000000000001
+          ]
+        },
+        "Salmi2024": {
+          "distance_from_median_km": -0.9911004163504149,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.61,
+            13.77
+          ]
+        }
+      },
+      "grid_delta_m": 1.7441442551167086,
+      "hypothetical_F42_EOS_not_original_nuclear_model": true,
+      "mass_msun": 2.0729999999695816,
+      "spin_hz": 346.5363685459311
+    },
+    "MPA1": {
+      "R_equatorial_km": 12.512740254726808,
+      "comparison": {
+        "Dittmann2024": {
+          "distance_from_median_km": -0.4072597452731923,
+          "label": "within_marginal_68_interval_not_evidence",
+          "marginal_interval_km": [
+            11.79,
+            15.01
+          ]
+        },
+        "Huang2026_centered_DQ": {
+          "distance_from_median_km": -4.947259745273193,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            15.98,
+            19.03
+          ]
+        },
+        "Huang2026_shifted_dipole": {
+          "distance_from_median_km": -0.7672597452731917,
+          "label": "within_marginal_68_interval_not_evidence",
+          "marginal_interval_km": [
+            12.209999999999999,
+            14.75
+          ]
+        },
+        "Miller2021": {
+          "distance_from_median_km": -1.1872597452731917,
+          "label": "within_marginal_68_interval_not_evidence",
+          "marginal_interval_km": [
+            12.2,
+            16.3
+          ]
+        },
+        "Riley2021": {
+          "distance_from_median_km": 0.12274025472680705,
+          "label": "within_marginal_68_interval_not_evidence",
+          "marginal_interval_km": [
+            11.41,
+            13.690000000000001
+          ]
+        },
+        "Salmi2024": {
+          "distance_from_median_km": 0.022740254726807407,
+          "label": "within_marginal_68_interval_not_evidence",
+          "marginal_interval_km": [
+            11.61,
+            13.77
+          ]
+        }
+      },
+      "grid_delta_m": 0.31228527189597344,
+      "hypothetical_F42_EOS_not_original_nuclear_model": true,
+      "mass_msun": 2.072999999999075,
+      "spin_hz": 346.53636903573533
+    },
+    "MS1": {
+      "R_equatorial_km": 15.032569862960077,
+      "comparison": {
+        "Dittmann2024": {
+          "distance_from_median_km": 2.1125698629600773,
+          "label": "above_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.79,
+            15.01
+          ]
+        },
+        "Huang2026_centered_DQ": {
+          "distance_from_median_km": -2.4274301370399236,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            15.98,
+            19.03
+          ]
+        },
+        "Huang2026_shifted_dipole": {
+          "distance_from_median_km": 1.7525698629600779,
+          "label": "above_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            12.209999999999999,
+            14.75
+          ]
+        },
+        "Miller2021": {
+          "distance_from_median_km": 1.332569862960078,
+          "label": "within_marginal_68_interval_not_evidence",
+          "marginal_interval_km": [
+            12.2,
+            16.3
+          ]
+        },
+        "Riley2021": {
+          "distance_from_median_km": 2.6425698629600767,
+          "label": "above_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.41,
+            13.690000000000001
+          ]
+        },
+        "Salmi2024": {
+          "distance_from_median_km": 2.542569862960077,
+          "label": "above_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.61,
+            13.77
+          ]
+        }
+      },
+      "grid_delta_m": 0.9281966246899032,
+      "hypothetical_F42_EOS_not_original_nuclear_model": true,
+      "mass_msun": 2.073000000016792,
+      "spin_hz": 346.5363690646536
+    },
+    "MS1B": {
+      "R_equatorial_km": 14.872589400914796,
+      "comparison": {
+        "Dittmann2024": {
+          "distance_from_median_km": 1.9525894009147962,
+          "label": "within_marginal_68_interval_not_evidence",
+          "marginal_interval_km": [
+            11.79,
+            15.01
+          ]
+        },
+        "Huang2026_centered_DQ": {
+          "distance_from_median_km": -2.5874105990852048,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            15.98,
+            19.03
+          ]
+        },
+        "Huang2026_shifted_dipole": {
+          "distance_from_median_km": 1.5925894009147967,
+          "label": "above_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            12.209999999999999,
+            14.75
+          ]
+        },
+        "Miller2021": {
+          "distance_from_median_km": 1.1725894009147968,
+          "label": "within_marginal_68_interval_not_evidence",
+          "marginal_interval_km": [
+            12.2,
+            16.3
+          ]
+        },
+        "Riley2021": {
+          "distance_from_median_km": 2.4825894009147955,
+          "label": "above_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.41,
+            13.690000000000001
+          ]
+        },
+        "Salmi2024": {
+          "distance_from_median_km": 2.382589400914796,
+          "label": "above_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.61,
+            13.77
+          ]
+        }
+      },
+      "grid_delta_m": 0.6317873621153325,
+      "hypothetical_F42_EOS_not_original_nuclear_model": true,
+      "mass_msun": 2.072999999998473,
+      "spin_hz": 346.53636887141255
+    },
+    "WFF1": {
+      "R_equatorial_km": 9.948242509729566,
+      "comparison": {
+        "Dittmann2024": {
+          "distance_from_median_km": -2.9717574902704342,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.79,
+            15.01
+          ]
+        },
+        "Huang2026_centered_DQ": {
+          "distance_from_median_km": -7.511757490270435,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            15.98,
+            19.03
+          ]
+        },
+        "Huang2026_shifted_dipole": {
+          "distance_from_median_km": -3.3317574902704337,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            12.209999999999999,
+            14.75
+          ]
+        },
+        "Miller2021": {
+          "distance_from_median_km": -3.7517574902704336,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            12.2,
+            16.3
+          ]
+        },
+        "Riley2021": {
+          "distance_from_median_km": -2.441757490270435,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.41,
+            13.690000000000001
+          ]
+        },
+        "Salmi2024": {
+          "distance_from_median_km": -2.5417574902704345,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.61,
+            13.77
+          ]
+        }
+      },
+      "grid_delta_m": 2.8679937522042565,
+      "hypothetical_F42_EOS_not_original_nuclear_model": true,
+      "mass_msun": 2.073000000007046,
+      "spin_hz": 346.5363691976917
+    },
+    "WFF2": {
+      "R_equatorial_km": 10.622215139582817,
+      "comparison": {
+        "Dittmann2024": {
+          "distance_from_median_km": -2.297784860417183,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.79,
+            15.01
+          ]
+        },
+        "Huang2026_centered_DQ": {
+          "distance_from_median_km": -6.837784860417184,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            15.98,
+            19.03
+          ]
+        },
+        "Huang2026_shifted_dipole": {
+          "distance_from_median_km": -2.6577848604171823,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            12.209999999999999,
+            14.75
+          ]
+        },
+        "Miller2021": {
+          "distance_from_median_km": -3.0777848604171822,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            12.2,
+            16.3
+          ]
+        },
+        "Riley2021": {
+          "distance_from_median_km": -1.7677848604171835,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.41,
+            13.690000000000001
+          ]
+        },
+        "Salmi2024": {
+          "distance_from_median_km": -1.8677848604171832,
+          "label": "below_marginal_68_interval_not_exclusion",
+          "marginal_interval_km": [
+            11.61,
+            13.77
+          ]
+        }
+      },
+      "grid_delta_m": 1.8585464426994491,
+      "hypothetical_F42_EOS_not_original_nuclear_model": true,
+      "mass_msun": 2.0730000000053455,
+      "spin_hz": 346.536369107982
+    }
+  },
+  "source_F44_sha256": "b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98",
+  "spin_Hz": 346.536369,
+  "status": "PUBLISHED_RADIUS_MODEL_SYSTEMATICS_COMPARED_NOT_INDEPENDENT_EVIDENCE"
+}
