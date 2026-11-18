@@ -1,0 +1,108 @@
+name: CANO independent live acceptance and incident handoff
+
+on:
+  pull_request:
+    paths:
+      - "core/cano_continuous_verifier.py"
+      - "scripts/cano_independent_verifier.py"
+      - "tests/test_cano_continuous_verifier.py"
+      - ".github/workflows/cano-independent-verifier.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app.py"
+      - "core/cano_continuous_verifier.py"
+      - "core/open_meteo_weather.py"
+      - "core/weather_reliability.py"
+      - "scripts/cano_independent_verifier.py"
+      - "tests/test_cano_continuous_verifier.py"
+      - ".github/workflows/cano-independent-verifier.yml"
+  workflow_dispatch:
+  schedule:
+    # Free, recurring independent checks, not an unbounded repair executor.
+    - cron: "17 */4 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cano-independent-verifier-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    permissions:
+      contents: read
+    steps:
+      - name: Fetch reviewed source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.12"
+      - name: Test fail-closed owner-independent acceptance logic
+        run: python -m unittest discover -s tests -p 'test_cano_continuous_verifier.py' -v
+      - name: Install free HTTP client for live public sources
+        if: github.event_name != 'pull_request'
+        run: python -m pip install "requests>=2.32,<3"
+      - name: Independently test live CANO and real Open-Meteo weather route
+        if: github.event_name != 'pull_request'
+        env:
+          CANO_RECEIPT_PATH: ${{ runner.temp }}/cano-independent-verification.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m scripts.cano_independent_verifier --output "$CANO_RECEIPT_PATH"
+      - name: Preserve bounded public receipt in Actions summary
+        if: always() && github.event_name != 'pull_request'
+        env:
+          CANO_RECEIPT_PATH: ${{ runner.temp }}/cano-independent-verification.json
+        shell: bash
+        run: |
+          {
+            echo "## CANO independent live verifier"
+            echo "Scope: public site + real backup weather API with simulated primary outage."
+            echo "No owner login, private data, or auto-deploy was tested."
+            if test -f "$CANO_RECEIPT_PATH"; then
+              echo '~~~json'
+              cat "$CANO_RECEIPT_PATH"
+              echo '~~~'
+            else
+              echo "Verifier did not produce a receipt; inspect job failure."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  alert:
+    needs: verify
+    if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.verify.result == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Create ONE actionable open issue on independent failure
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CANO_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CANO_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          title='CANO verifier: live acceptance regression'
+          existing="$(gh issue list --repo "$GH_REPO" --state open --search "$title in:title" --limit 100 \
+            --json number,title | jq -r --arg title "$title" \
+            '.[] | select(.title == $title) | .number' | head -n 1)"
+          if [ -n "$existing" ]; then
+            echo "Existing open CANO verifier issue #$existing; no duplicate created." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          body="$(printf \
+            'Independent read-only CANO acceptance failed on reviewed main.\n\nEvidence run: %s\nCommit: %s\n\nReview public startup and real Open-Meteo backup response against the actual app weather router. The test intentionally simulates wttr.in failure. Check redacted JSON in the workflow summary, reproduce locally, create RED regression and reviewed PR, pass CI, then verify production after deploy.\n\nNo login, production data changes, tokens, unreviewed auto-fixes, or verified-code claims are implied.\n\nCanonical CANO roadmap: https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/95' \
+            "$CANO_RUN_URL" "$CANO_SHA")"
+          gh issue create --repo "$GH_REPO" --title "$title" --body "$body"
+          echo "Created one review-required CANO incident." >> "$GITHUB_STEP_SUMMARY"
