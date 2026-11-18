@@ -126,7 +126,7 @@ from core.provider_router import (
 )
 from core.trained_lora_client import TRAINED_LORA_LABEL, trained_lora_metadata
 from core.groq_diagnostics import check_groq_connection
-from core.provider_failure import failure_category, failure_diagnostics, safe_failure_message
+from core.provider_failure import failure_category, failure_diagnostics, safe_failure_message, safe_failure_param
 from core.connection_diagnostics import check_provider
 from core.weather_reliability import parse_wttr_current, weather_fallback_on_model_failure
 from core.public_research import research_sources
@@ -949,9 +949,18 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
 
     except Exception as e:
         _provider_status, _provider_code = failure_diagnostics(e)
+        # A fixed provider label and allowlisted API param help diagnose 400s
+        # without logging prompts, identities, model output, or secret values.
+        _chosen_provider = (
+            "Groq" if secilen_model.startswith("Groq") else
+            "Google Gemini" if secilen_model.startswith("Google Gemini") else
+            "OpenRouter" if secilen_model.startswith("OpenRouter") else
+            "local_or_other"
+        )
         logging.getLogger(__name__).warning(
-            "Provider request failed: category=%s status=%s code=%s",
+            "Provider request failed: category=%s status=%s code=%s provider=%s param=%s",
             failure_category(e), _provider_status, _provider_code,
+            _chosen_provider, safe_failure_param(e) or "none",
         )
         # Current weather is a separate, already-fetched source. Do not erase
         # verified readings merely because the language model is unavailable.
