@@ -134,6 +134,7 @@ class AuthenticationTests(unittest.TestCase):
             session_state=state,
             title=lambda *_: None,
             button=lambda *_, **__: False,
+            login=lambda: None,
             stop=stop,
         )
         with self.assertRaises(Stopped):
