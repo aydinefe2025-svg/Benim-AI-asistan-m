@@ -12,6 +12,10 @@ MAX_MESSAGES = 150
 MAX_BYTES = 128_000
 
 
+class ChatHistoryConflict(RuntimeError):
+    """Another session changed this owner's chat; never overwrite it silently."""
+
+
 class ChatHistoryStore:
     def __init__(self, database_url, owner_key, *, connect=None):
         if not isinstance(database_url, str) or not database_url.startswith(
@@ -22,6 +26,9 @@ class ChatHistoryStore:
             raise PermissionError("Verified owner required")
         self.database_url, self.owner_key = database_url, owner_key
         self._connect = connect
+        # Snapshot confirmed by this session. Never assume a new instance has
+        # seen rows already written from another tab, device or worker.
+        self._seen = []
 
     def _db(self):
         if self._connect is not None:
@@ -68,22 +75,43 @@ class ChatHistoryStore:
             )
             row = cursor.fetchone()
         if row is None:
+            self._seen = []
             return []
         payload = json.loads(row[0]) if isinstance(row[0], str) else row[0]
         checked, _ = self._validate(payload)
+        self._seen = [dict(item) for item in checked]
         return checked
 
-    def save(self, messages):
+    def save(self, messages, *, expected=None):
         checked, raw = self._validate(messages)
+        # Streamlit recreates this store on reruns: the caller must pass the
+        # previous acknowledged snapshot; otherwise only an empty initial
+        # history may be written. Never infer that the last writer is current.
+        prior = self._seen if expected is None else self._validate(expected)[0]
+        prior_raw = json.dumps(prior, ensure_ascii=False, allow_nan=False)
         with self._db() as conn, conn.cursor() as cursor:
             self._scope(cursor)
+            # Atomic optimistic compare-and-swap. PostgreSQL rechecks the WHERE
+            # on a conflicting concurrent insert/update, including when both
+            # sessions initially saw no row. Prevent last-writer-wins data loss.
             cursor.execute(
                 "INSERT INTO public.cano_chat_histories"
                 " (owner_key, payload, updated_at) VALUES (%s,%s::jsonb,now()) "
                 "ON CONFLICT (owner_key) DO UPDATE SET "
-                "payload=EXCLUDED.payload,updated_at=now()",
-                (self.owner_key, raw)
+                "payload=EXCLUDED.payload,updated_at=now() "
+                "WHERE public.cano_chat_histories.payload=%s::jsonb "
+                "RETURNING payload",
+                (self.owner_key, raw, prior_raw)
             )
+            applied = cursor.fetchone()
+            if applied is None:
+                raise ChatHistoryConflict(
+                    "Chat history changed in another session; reload before saving"
+                )
+            receipt = (json.loads(applied[0]) if isinstance(applied[0], str)
+                       else applied[0])
+            if receipt != checked:
+                raise RuntimeError("Chat save atomic receipt mismatch")
             cursor.execute(
                 "SELECT payload FROM public.cano_chat_histories "
                 "WHERE owner_key = %s", (self.owner_key,)
@@ -94,4 +122,5 @@ class ChatHistoryStore:
             seen = json.loads(row[0]) if isinstance(row[0], str) else row[0]
             if seen != checked:
                 raise RuntimeError("Chat save verification mismatch")
+        self._seen = [dict(item) for item in checked]
         return len(checked)
