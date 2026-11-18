@@ -1,6 +1,6 @@
 {
   "created_utc": "2026-11-18T08:33:16Z",
-  "status": "SOURCE_APR4_ACAUSAL; F39_CONDITIONAL_CURVE_INTEGRAL_PASS_APPROXIMATE; FINAL_SEVEN_EOS_BAYES_NOT_RUN; STABILITY_AND_ABSOLUTE_BARYON_NORMALIZATION_NOT_ESTABLISHED",
+  "status": "SOURCE_APR4_ACAUSAL; BARYON_NB_ESTABLISHED_UNDER_EXPLICIT_LAL_MU_CONVENTION; F39_FULL_RADIO_PRIOR_CONDITIONAL_APPROXIMATE_PASS; F37_SAMPLED_FIXED_J_BRACKET_NOT_DYNAMICAL_CERTIFICATION; NATIVE_PHOTON_XPSI_AND_FINAL_SEVEN_EOS_BAYES_NOT_RUN",
   "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
   "artifacts": [
     {
@@ -144,12 +144,36 @@
       "bytes": 34038,
       "run_id": 44266823083,
       "artifact_id": 14410043372
+    },
+    {
+      "file": "APR4_F39_FULL_RADIO_PRIOR_EVIDENCE_20261118.json",
+      "git_blob_sha": "408e7f57f0e4f3a7e98d1b477800166d7f23585a",
+      "run_id": 44256261379,
+      "artifact_id": 14408011818
+    },
+    {
+      "file": "J0740_BARYON_NORMALIZATION_ACTIONS_14431972111.zip",
+      "sha256": "47c80c0218de22c667b37beedc19d25a1a3397b0873517c6ef0cdc54e30a59a4",
+      "run_id": 44314178799,
+      "artifact_id": 14431972111
+    },
+    {
+      "file": "J0740_FIXED_J_TURNING_ACTIONS_14430514568.zip",
+      "sha256": "96a6cca43dbddbb26037db33be28106dd0b8bcf6b89336507eb54267be128a95",
+      "run_id": 44314552006,
+      "artifact_id": 14430514568
+    },
+    {
+      "file": "J0740_F39_FULL_RADIO_PRIOR_ACTIONS_14408011818.zip",
+      "sha256": "2c12790459c62c3d758dcbe8e3a425cec6f8328dec3c6701af28e1ca13a96d5c",
+      "run_id": 44256261379,
+      "artifact_id": 14408011818
     }
   ],
   "provenance": {
-    "current_evidence_run": 44266823083,
-    "current_evidence_artifact_id": 14410043372,
-    "current_evidence_artifact_sha256": "fd91f0825b5079f0f264266b7f6ea197a3129b5e345ecbbca06d09721a471ea9",
+    "current_evidence_run": 44256261379,
+    "current_evidence_artifact_id": 14408011818,
+    "current_evidence_artifact_sha256": "2c12790459c62c3d758dcbe8e3a425cec6f8328dec3c6701af28e1ca13a96d5c",
     "RNS_curve_table_sha256": "affeeaadb03c578acba17e1992f299850abfbbdee50314268acb93692a7f1d89",
     "reanchored_root": {
       "mass_msun": 2.0730000001003552,
@@ -159,6 +183,23 @@
     "superseded_run": 44265095377,
     "superseded_reason": "Anchor was not from the curve artifact's exact EOS table; replacement run directly re-solved anchor on the curve table.",
     "source_code_commit": "446ccd0ae81d64eb739b2d166215c190a7a58fd8",
-    "source_code_sha256": "7d5215fb5d6d58d7a5e3c4c866e99de6e428fb2d3be86626f320f4c310764ff4"
+    "source_code_sha256": "7d5215fb5d6d58d7a5e3c4c866e99de6e428fb2d3be86626f320f4c310764ff4",
+    "latest_additions": [
+      {
+        "workflow_run": 44314178799,
+        "artifact_zip_sha256": "47c80c0218de22c667b37beedc19d25a1a3397b0873517c6ef0cdc54e30a59a4",
+        "tests": "4/4 passing"
+      },
+      {
+        "workflow_run": 44256261379,
+        "artifact_zip_sha256": "2c12790459c62c3d758dcbe8e3a425cec6f8328dec3c6701af28e1ca13a96d5c",
+        "calculation": "F39 full normalized ±5σ radio prior; conditional approximate F38 evidence"
+      },
+      {
+        "workflow_run": 44314552006,
+        "artifact_zip_sha256": "96a6cca43dbddbb26037db33be28106dd0b8bcf6b89336507eb54267be128a95",
+        "calculation": "17 fixed-J RNS models; sampled bracket, not dynamical certification"
+      }
+    ]
   }
 }
