@@ -71,6 +71,32 @@ class CodeJobsTests(unittest.TestCase):
         self.assertEqual(result["id"],"existing-id")
         self.assertFalse(any("INSERT INTO" in sql for sql,p in cur.queries))
 
+    def test_concurrent_unique_conflict_returns_existing_receipt_as_duplicate(self):
+        # A separate writer may commit the same owner/hash after our initial
+        # lookup but before INSERT ... ON CONFLICT DO NOTHING. The fallback
+        # read must not tell CANO that it enqueued a NEW job.
+        class ConflictAfterPrecheck(FakeCursor):
+            inserted = False
+
+            def execute(self, sql, params=None):
+                super().execute(sql, params)
+                if "INSERT INTO public.cano_code_jobs" in sql:
+                    self.inserted = True
+
+            def fetchone(self):
+                if "ON CONFLICT" in self.last:
+                    return None
+                if "SELECT id::text,status" in self.last:
+                    return ("previous-committed-id", "pr_open") if self.inserted else None
+                return super().fetchone()
+
+        cur = ConflictAfterPrecheck()
+        receipt = self.store(cur).enqueue("Düzeltmeyi test et")
+        self.assertTrue(cur.inserted)
+        self.assertEqual(receipt["id"], "previous-committed-id")
+        self.assertEqual(receipt["status"], "pr_open")
+        self.assertTrue(receipt["duplicate"])
+
     def test_active_quota_blocks_extra_execution(self):
         cur=FakeCursor(active=3)
         with self.assertRaises(RuntimeError): self.store(cur).enqueue("Düzeltmeyi test et")
