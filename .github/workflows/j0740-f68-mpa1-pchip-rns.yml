@@ -21,22 +21,26 @@ jobs:
           ref: 97e85d325a33e37f702306414533f6cd77812477
           path: rns-upstream
           persist-credentials: false
-      - uses: actions/checkout@v4
-        with:
-          repository: nuclear-multimessenger-astronomy/jester
-          ref: e6768650ce992abfd1153a6833857572fe5cd230
-          sparse-checkout: |
-            jesterTOV/tabulated_eos/lalsuite/MPA1.npz
-          path: jester-upstream
-          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Install exact numerical dependencies
-        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
-      - name: Lock original raw MPA1 input, do not modify it
-        run: echo 'bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec  jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.dat' | sha256sum -c -
-      - name: Fail-closed conversion unit tests
+          python-version: '3.12'
+      - name: Install pinned Python, scientific and LALSuite packages
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3' 'lalsuite==7.26.4'
+      - name: Resolve and pin the original LALSuite raw MPA1 source
+        run: |
+          python - <<'PY'
+          import sys,pathlib,hashlib
+          sys.path.insert(0,'research/j0740/f66')
+          from f66_original_lal_table_spline_forensics import find_installed_sources
+          root=find_installed_sources(pathlib.Path(sys.prefix))
+          src=root/'LALSimNeutronStarEOS_MPA1.dat'
+          got=hashlib.sha256(src.read_bytes()).hexdigest()
+          assert got=='bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec',got
+          pathlib.Path('results/F68').mkdir(parents=True,exist_ok=True)
+          pathlib.Path('results/F68/installed_MPA1_source_path.txt').write_text(str(src)+'\n')
+          print('F68 raw source SHA-256 PASS',got)
+          PY
+      - name: Fail-closed alternate RNS conversion tests
         run: |
           PYTHONPATH=research/j0740/f67:research/j0740/f62:research/j0740/rotating_gr python -m unittest research/j0740/f68/test_f68_mpa1_pchip_cold_rns.py -v
       - name: Build exact pinned full-GR RNS C binary, output-only precision patch
@@ -44,28 +48,29 @@ jobs:
           python research/j0740/f62/f62_rns_precision_patch.py rns-upstream/rns.c
           make -C rns-upstream CC='gcc -include stdlib.h' rns
       - name: Compute direct C roots and preserve failures
-        id: f68
-        continue-on-error: true
         run: |
           set +e
-          PYTHONPATH=research/j0740/f67:research/j0740/f62:research/j0740/rotating_gr python -u research/j0740/f68/f68_mpa1_pchip_cold_rns.py             --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.dat             --out results/F68/F68_MPA1_PCHIP_COLD_direct_RNS.json             --table-dir results/F68/tables
-          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          SOURCE=$(cat results/F68/installed_MPA1_source_path.txt)
+          PYTHONPATH=research/j0740/f67:research/j0740/f62:research/j0740/rotating_gr python -u research/j0740/f68/f68_mpa1_pchip_cold_rns.py \
+            --source "$SOURCE" \
+            --out results/F68/F68_MPA1_PCHIP_COLD_direct_RNS.json \
+            --table-dir results/F68/tables
+          echo "F68_EXIT=$?" >> "$GITHUB_ENV"
       - name: Fail if any independent target or gate did not pass
         if: always()
         run: |
           python - <<'PY'
-          import json, pathlib
+          import json,pathlib
           p=pathlib.Path('results/F68/F68_MPA1_PCHIP_COLD_direct_RNS.json')
-          if not p.is_file():
-              raise SystemExit('F68 result missing; computation did not produce evidence')
+          if not p.is_file():raise SystemExit('F68 result missing; calculation did not produce evidence')
           x=json.loads(p.read_text())
           print(json.dumps({'status':x['status'],'failures':x['failures']},indent=2))
           assert x['model_label']=='MPA1_PCHIP_COLD_V1_EXPLORATORY_NOT_ORIGINAL'
           assert x['not_original_MPA1'] is True and x['not_F42'] is True
           assert x['native_XPSI_likelihood']=='NOT_RUN' and x['EOS_Bayes']=='NOT_RUN'
-          assert x['status']=='PASS_DIRECT_RNS_NUMERICAL_ONLY_NOT_PHYSICAL_EOS', 'F68 scientific gate failed; see preserved JSON'
+          assert x['status']=='PASS_DIRECT_RNS_NUMERICAL_ONLY_NOT_PHYSICAL_EOS','F68 scientific gate failed; preserved JSON is evidence'
           PY
-      - name: Hash result, tables, source, and binary even on failure
+      - name: Hash source, results, tables and binary even on failure
         if: always()
         run: |
           python - <<'PY'
@@ -75,12 +80,11 @@ jobs:
           files=[Path('research/j0740/f68/f68_mpa1_pchip_cold_rns.py'),
                  Path('research/j0740/f68/test_f68_mpa1_pchip_cold_rns.py'),
                  Path('research/j0740/f67/f67_mpa1_pchip_firstlaw_tov.py'),
-                 Path('jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.dat'),
-                 Path('rns-upstream/rns'),Path('rns-upstream/rns.c'),
-                 *root.glob('*.json'),*root.glob('tables/*.rns')]
+                 Path('research/j0740/f62/f62_native_mpa1_rotating.py'),
+                 Path('jester-upstream/rns') if Path('jester-upstream/rns').exists() else Path('rns-upstream/rns'),
+                 Path('rns-upstream/rns.c'),*root.glob('*.json'),*root.glob('tables/*.rns')]
           d={str(p):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
              for p in files if p.is_file()}
-          root.mkdir(parents=True,exist_ok=True)
           (root/'F68_SHA256_manifest.json').write_text(json.dumps(d,sort_keys=True,indent=2)+'\n')
           PY
       - uses: actions/upload-artifact@v4
