@@ -7,6 +7,7 @@ on:
       - "tests/test_battery_independent_holdout.py"
       - "tests/test_battery_customer_pipeline.py"
       - "tests/test_battery_time_origin_guard.py"
+      - "tests/test_battery_voltage_offset_review.py"
       - "tests/test_battery_virtual_lab.py"
       - "tests/test_battery_integrated_gate.py"
       - "tests/test_battery_integrated_output_safety.py"
@@ -47,6 +48,9 @@ jobs:
 
       - name: Time-origin shifted-clone safety regressions
         run: python -m unittest discover -s tests -p "test_battery_time_origin_guard.py" -v
+
+      - name: Voltage-offset ambiguity review regressions
+        run: python -m unittest discover -s tests -p "test_battery_voltage_offset_review.py" -v
 
       - name: Virtual-lab deterministic simulation regressions
         run: python -m unittest discover -s tests -p "test_battery_virtual_lab.py" -v
@@ -268,28 +272,29 @@ jobs:
           print("PASS: combined 20 CSV source gate REVIEW_REQUIRED; no unsafe accepted split")
           PY
 
-      - name: Run reproducible 1300-batch synthetic virtual lab
+      - name: Run reproducible 1400-batch synthetic virtual lab
         run: |
           python research/battery_curve_audit/battery_virtual_lab.py \
             --trials 100 --seed 20261119 \
-            --output "${RUNNER_TEMP}/CANO_BATARYA_SANAL_LAB_1300.json"
+            --output "${RUNNER_TEMP}/CANO_BATARYA_SANAL_LAB_V3_1400.json"
           python - <<'PY'
           import json, os
           from pathlib import Path
-          p=Path(os.environ["RUNNER_TEMP"])/"CANO_BATARYA_SANAL_LAB_1300.json"
+          p=Path(os.environ["RUNNER_TEMP"])/"CANO_BATARYA_SANAL_LAB_V3_1400.json"
           r=json.loads(p.read_text())
-          assert r["total_simulated_batches"] == 1300
-          assert r["total_generated_curves"] == 5200
+          assert r["total_simulated_batches"] == 1400
+          assert r["total_generated_curves"] == 5600
           assert r["controlled_clone_batches"] == 600
-          assert r["controlled_clone_review_or_block"] == 500
-          assert r["controlled_clone_screen_only_misses"] == 100
-          assert r["independent_template_batches"] == 200
-          assert r["independent_templates_flagged_for_review"] == 100
+          assert r["controlled_clone_review_or_block"] == 600
+          assert r["controlled_clone_screen_only_misses"] == 0
+          assert r["independent_template_batches"] == 300
+          assert r["independent_templates_flagged_for_review"] == 200
           assert r["baseline_deviations"] == 0
           assert r["categories"]["time_origin_shift_clone"]["observed_decisions"] == {"REVIEW_REQUIRED": 100}
-          assert r["categories"]["noisy_clone_3mv"]["observed_decisions"] == {"SCREEN_ONLY_NO_CROSS_CELL_CANDIDATES": 100}
+          assert r["categories"]["noisy_clone_3mv"]["observed_decisions"] == {"REVIEW_REQUIRED": 100}
+          assert r["categories"]["independent_bias_3mv"]["observed_decisions"] == {"REVIEW_REQUIRED": 100}
           assert r["experimental_second_stage"]["NOT_DEPLOYED_OR_CERTIFIED"]
-          print("PASS: 1300 synthetic batches, 500/600 clone reviews, 100 unresolved bias cases; no field-success claim")
+          print("PASS: 1400 synthetic batches; 600/600 synthetic clones reviewed; 200/300 synthetic independent templates reviewed; still no field classification")
           PY
 
       - name: Bind publisher evidence to synthetic-only field metadata (not real field proof)
@@ -390,7 +395,7 @@ jobs:
             ${{ runner.temp }}/battery_integrated_report.json
             ${{ runner.temp }}/battery_bound_redacted.json
             ${{ runner.temp }}/customer_public_summary.json
-            ${{ runner.temp }}/CANO_BATARYA_SANAL_LAB_1300.json
+            ${{ runner.temp }}/CANO_BATARYA_SANAL_LAB_V3_1400.json
 
   windows-launchers:
     name: Windows native offline batch launchers
@@ -429,9 +434,9 @@ jobs:
           cmd /c Run-Simulation.cmd
           if ($LASTEXITCODE -ne 0) { throw "Native Run-Simulation.cmd failed" }
           $result = Get-Content "simulation-evidence.json" -Raw | ConvertFrom-Json
-          if ($result.total_simulated_batches -ne 1300 -or $result.controlled_clone_screen_only_misses -ne 100) {
+          if ($result.total_simulated_batches -ne 1400 -or $result.controlled_clone_screen_only_misses -ne 0) {
             throw "Windows simulation result mismatch"
           }
           $duplicate = Get-Content "demo-duplicate-summary.json" -Raw | ConvertFrom-Json
           if ($duplicate.decision -ne "REVIEW_REQUIRED") { throw "Windows copied curve erroneously approved" }
-          Write-Host "PASS: real Windows CMD launchers, checksum, 1300 simulations and controlled demo decisions"
+          Write-Host "PASS: real Windows CMD launchers, checksum, 1400 simulations and controlled demo decisions"

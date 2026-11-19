@@ -79,7 +79,9 @@ def screen_numeric_report(numeric, manifest, root):
     ]
     absolute_near = near_guard.candidates_for(traces)
     relative_near = near_guard.relative_time_origin_candidates(traces, absolute_near)
-    near = absolute_near + relative_near
+    offset_near = near_guard.voltage_offset_review_candidates(
+        traces, absolute_near + relative_near)
+    near = absolute_near + relative_near + offset_near
     split = near_guard.propose_split(derived, near)
     if split is not None:
         near_guard.verify_split(derived, near, split)
@@ -100,6 +102,7 @@ def screen_numeric_report(numeric, manifest, root):
         'cross_cell_numeric_duplicate_groups': duplicated_cells,
         'near_candidate_count': len(near), 'near_candidates': near,
         'relative_time_origin_candidate_count': len(relative_near),
+        'voltage_offset_ambiguous_candidate_count': len(offset_near),
         'unscreened_trace_count': len(insufficient), 'unscreened_traces': insufficient,
         'split': split,
         'decision': decision,
@@ -107,7 +110,7 @@ def screen_numeric_report(numeric, manifest, root):
             'Screen-only acceptance: not proof of physical/statistical independence.',
             'Near comparison: same-mode, 100+ points, 2mV and 0.5% endpoint threshold; flat curves unscreened.',
             'Cross-cell identical or near signals need independent technician review.',
-            'Constant time-origin shifts are review-only; no arbitrary voltage normalization or time-warp equivalence.',
+            'Constant time-origin and 2–5 mV voltage-offset shape matches are review candidates only; no physical-copy verdict or time-warp equivalence.',
             'Reports include sensitive aliases, filenames and hashes; no consent to publish.',
             'Not accredited battery health testing, SOH prediction or paid customer acceptance.',
         ],
