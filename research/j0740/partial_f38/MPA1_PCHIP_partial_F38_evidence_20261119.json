@@ -1,0 +1,227 @@
+{
+  "F38_inner_manifest_files_verified": {
+    "posterior_prior_ratio_resampled_0.015_0.20.npz": {
+      "bytes": 972185,
+      "sha256": "ab9326b7e6fbf4e8147a07bcce5117e3eb8b1873520c2f502798a426ab4b0926"
+    },
+    "posterior_prior_ratio_resampled_0.025_0.35.npz": {
+      "bytes": 1013083,
+      "sha256": "9f16ef601df4b8ede0c90579a6bfa67bd4421a23f7798455b6ff8f34f6040166"
+    },
+    "posterior_prior_ratio_resampled_0.040_0.50.npz": {
+      "bytes": 1005450,
+      "sha256": "7e1bcb027421ac8a2f5a6343a36a32137bfb315c1a27663c650a00c45d7eacdd"
+    },
+    "posterior_prior_ratio_weighted_0.015_0.20.npz": {
+      "bytes": 1020882,
+      "sha256": "7eb582859e42eb2700b75ec584af20e9cb10ed10449375b838794be200db1fe6"
+    },
+    "posterior_prior_ratio_weighted_0.025_0.35.npz": {
+      "bytes": 1014971,
+      "sha256": "c024fb8347992f78a22d13585372ee862be596f16cc668a661c41503d89e6fa4"
+    },
+    "posterior_prior_ratio_weighted_0.040_0.50.npz": {
+      "bytes": 1005486,
+      "sha256": "4de295e3c64d3ccebff185f3e14f3d4ab487cc4a2c36beb780d68f8501c78ad9"
+    },
+    "source_likelihood_report.json": {
+      "bytes": 11649,
+      "sha256": "0e7e7aeea605ea3739808022374fdfb35c2ff5eb270fe04554848352e4f0360a"
+    }
+  },
+  "F38_zip_crc": "PASS",
+  "F38_zip_sha256": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307",
+  "F68_actions_run_id": 44490729799,
+  "F68_direct_RNS_196_mesh_rotating_Req_km": [
+    12.535416706,
+    12.444887058,
+    12.41732374,
+    12.35271191
+  ],
+  "F68_direct_RNS_anchor_masses_msun": [
+    2.073,
+    2.175,
+    2.2,
+    2.25
+  ],
+  "F68_report_sha256": "ee7b238c22f28b08a22ae621b1e5a6996f6df07cb4f113acef6d45dc28e1266b",
+  "Salmi_published_posterior_sha256": "1549467c64a8801c39213bd28c89737d087cc5ab7a70da1d8d3a32b2d09185c8",
+  "integration": {
+    "curve_interpolation": "piecewise linear in mass between four direct F68 196-mesh RNS roots",
+    "evidence_identity": "Z_EOS/Z_source = integral (p_source(M,R|D)/pi_source(M,R)) pi_EOS(M,R) dM dR; the EOS prior uses q_radio(M) once, with no second independent photon likelihood",
+    "grid_sizes": [
+      5001,
+      10001,
+      20001,
+      40001
+    ],
+    "mass_interval_msun": [
+      2.073,
+      2.25
+    ],
+    "outside_interval": "NOT_INTEGRATED; positive likelihood contribution cannot be set to zero",
+    "source_surface": "published Salmi posterior divided by reconstructed source effective prior (F38 approximate, bandwidth-dependent)",
+    "values": {
+      "resampled_0.015_0.20": {
+        "curve_mass_range_msun": [
+          2.073,
+          2.25
+        ],
+        "curve_radius_range_km": [
+          12.35271191,
+          12.535416706
+        ],
+        "grid_delta_20001_to_40001": 2.677222887825792e-10,
+        "grid_deltas_to_fine": [
+          5.603134622944594e-09,
+          1.270050953294799e-09,
+          2.677222887825792e-10
+        ],
+        "interpolation": "linear between four direct 196-node-mesh RNS anchors; no mass/radius extrapolation",
+        "likelihood_surface_member_sha256": "ab9326b7e6fbf4e8147a07bcce5117e3eb8b1873520c2f502798a426ab4b0926",
+        "partial_integral": 1.330213918112924,
+        "sampled_mass_points": 40001
+      },
+      "resampled_0.025_0.35": {
+        "curve_mass_range_msun": [
+          2.073,
+          2.25
+        ],
+        "curve_radius_range_km": [
+          12.35271191,
+          12.535416706
+        ],
+        "grid_delta_20001_to_40001": 2.18381757122188e-10,
+        "grid_deltas_to_fine": [
+          4.583943225000553e-09,
+          1.0779115378056758e-09,
+          2.18381757122188e-10
+        ],
+        "interpolation": "linear between four direct 196-node-mesh RNS anchors; no mass/radius extrapolation",
+        "likelihood_surface_member_sha256": "9f16ef601df4b8ede0c90579a6bfa67bd4421a23f7798455b6ff8f34f6040166",
+        "partial_integral": 1.260722661247235,
+        "sampled_mass_points": 40001
+      },
+      "resampled_0.040_0.50": {
+        "curve_mass_range_msun": [
+          2.073,
+          2.25
+        ],
+        "curve_radius_range_km": [
+          12.35271191,
+          12.535416706
+        ],
+        "grid_delta_20001_to_40001": 1.916269365409562e-10,
+        "grid_deltas_to_fine": [
+          4.022859156904701e-09,
+          9.174399018263557e-10,
+          1.916269365409562e-10
+        ],
+        "interpolation": "linear between four direct 196-node-mesh RNS anchors; no mass/radius extrapolation",
+        "likelihood_surface_member_sha256": "7e1bcb027421ac8a2f5a6343a36a32137bfb315c1a27663c650a00c45d7eacdd",
+        "partial_integral": 1.1643502063384963,
+        "sampled_mass_points": 40001
+      },
+      "weighted_0.015_0.20": {
+        "curve_mass_range_msun": [
+          2.073,
+          2.25
+        ],
+        "curve_radius_range_km": [
+          12.35271191,
+          12.535416706
+        ],
+        "grid_delta_20001_to_40001": 2.64734456578708e-10,
+        "grid_deltas_to_fine": [
+          5.5596369730182005e-09,
+          1.2829688422755225e-09,
+          2.64734456578708e-10
+        ],
+        "interpolation": "linear between four direct 196-node-mesh RNS anchors; no mass/radius extrapolation",
+        "likelihood_surface_member_sha256": "7eb582859e42eb2700b75ec584af20e9cb10ed10449375b838794be200db1fe6",
+        "partial_integral": 1.3273989502876042,
+        "sampled_mass_points": 40001
+      },
+      "weighted_0.025_0.35": {
+        "curve_mass_range_msun": [
+          2.073,
+          2.25
+        ],
+        "curve_radius_range_km": [
+          12.35271191,
+          12.535416706
+        ],
+        "grid_delta_20001_to_40001": 2.1694779306358214e-10,
+        "grid_deltas_to_fine": [
+          4.554356225483502e-09,
+          1.0699165997607452e-09,
+          2.1694779306358214e-10
+        ],
+        "interpolation": "linear between four direct 196-node-mesh RNS anchors; no mass/radius extrapolation",
+        "likelihood_surface_member_sha256": "c024fb8347992f78a22d13585372ee862be596f16cc668a661c41503d89e6fa4",
+        "partial_integral": 1.2593660379083071,
+        "sampled_mass_points": 40001
+      },
+      "weighted_0.040_0.50": {
+        "curve_mass_range_msun": [
+          2.073,
+          2.25
+        ],
+        "curve_radius_range_km": [
+          12.35271191,
+          12.535416706
+        ],
+        "grid_delta_20001_to_40001": 1.91020310680301e-10,
+        "grid_deltas_to_fine": [
+          4.011142973325832e-09,
+          9.14035958032855e-10,
+          1.91020310680301e-10
+        ],
+        "interpolation": "linear between four direct 196-node-mesh RNS anchors; no mass/radius extrapolation",
+        "likelihood_surface_member_sha256": "4de295e3c64d3ccebff185f3e14f3d4ab487cc4a2c36beb780d68f8501c78ad9",
+        "partial_integral": 1.163565270118192,
+        "sampled_mass_points": 40001
+      }
+    },
+    "weighted_vs_resampled": {
+      "0.015_0.20": {
+        "relative_difference_percent": 0.21161767945663543,
+        "resampled": 1.330213918112924,
+        "weighted": 1.3273989502876042
+      },
+      "0.025_0.35": {
+        "relative_difference_percent": 0.10760680208491158,
+        "resampled": 1.260722661247235,
+        "weighted": 1.2593660379083071
+      },
+      "0.040_0.50": {
+        "relative_difference_percent": 0.0674141006744576,
+        "resampled": 1.1643502063384963,
+        "weighted": 1.163565270118192
+      }
+    }
+  },
+  "limits": {
+    "complete_EOS_evidence": "NOT_ESTABLISHED",
+    "fixed_J_stability": "NOT_RUN",
+    "full_source_nuisance_sampler": "NOT_RUN",
+    "physical_EOS_acceptance": "NOT_ESTABLISHED: F67 PCHIP alternate lacks a verified physical vacuum crust and microscopic source interpretation",
+    "same_photons_multiplied_twice": false,
+    "seven_original_EOS_model_Bayes": "NOT_RUN",
+    "source_native_XPSI_photon_reanalysis": "NOT_RUN"
+  },
+  "mass_prior": {
+    "distribution": "normalized truncated Gaussian, applied once",
+    "mu_msun": 2.082,
+    "prior_mass_fraction_in_integrated_interval": 0.5425050954449053,
+    "sigma_msun": 0.0703,
+    "support_sigma": [
+      -5,
+      5
+    ]
+  },
+  "model": "MPA1_PCHIP_COLD_V1_EXPLORATORY_NOT_ORIGINAL",
+  "schema": "J0740_F68_MPA1_PCHIP_PARTIAL_F38_EVIDENCE_V1",
+  "status": "PASS_PARTIAL_APPROXIMATE_EVIDENCE_CONTRIBUTION_ONLY"
+}
+
