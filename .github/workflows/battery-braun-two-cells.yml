@@ -1,0 +1,87 @@
+name: Battery Braun fresh-vs-aged source identity pilot
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/battery-braun-two-cells.yml'
+      - 'research/battery_curve_audit/braun_independent_cell_audit.py'
+      - 'tests/test_battery_braun_independent_cell.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publisher-identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out tested product code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Fetch files directly from original publishing repository (not GitHub mirror)
+        run: |
+          mkdir -p external_braun/data
+          for cell in fresh aged; do
+            curl --fail --silent --show-error --location --max-time 90 --retry 1 --retry-delay 2 \
+              "https://zenodo.org/records/6985321/files/Experimental_data_${cell}_cell.csv?download=1" \
+              --output "external_braun/data/Experimental_data_${cell}_cell.csv"
+          done
+      - name: Verify two independent original Zenodo publisher MD5 hashes
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          root = Path('external_braun/data')
+          checks = {
+              'Experimental_data_fresh_cell.csv': '32b57ad539a6794946eb37b3f636a58c',
+              'Experimental_data_aged_cell.csv': 'da0675c10e8bb3c3ce4c28db815309e8',
+          }
+          for name, original_md5 in checks.items():
+              raw = (root/name).read_bytes()
+              digest = hashlib.md5(raw).hexdigest()
+              print('PUBLISHER_INTEGRITY', name, 'bytes', len(raw), 'matches_source_md5', digest == original_md5,
+                    'first_line_columns', len(raw.splitlines()[0].split(b',')))
+              assert digest == original_md5, 'publisher byte identity was NOT established'
+          print('BOTH_DISTINCT_PHYSICAL_CELL_SOURCE_BYTES_VERIFIED: yes')
+          PY
+      - name: Set up Python for measured-curve analysis
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Synthetic parser, source identity and controlled perturbation regressions
+        run: python -m unittest tests.test_battery_braun_independent_cell -v
+      - name: Analyze first window of each verified independent physical cell
+        run: |
+          python research/battery_curve_audit/braun_independent_cell_audit.py \
+            external_braun/data "${RUNNER_TEMP}/braun_two_cell_research_receipt.json"
+      - name: Reject missing source identity or mislabeled physical acceptance
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ["RUNNER_TEMP"])/"braun_two_cell_research_receipt.json"
+          result=json.loads(p.read_text(encoding="utf-8"))
+          assert result["original_publisher_md5_verified"] is True
+          assert result["doi"] == "10.5281/zenodo.6985321"
+          assert result["measurement_axes"] == {"time":"s","voltage":"V","current":"A","temperature":"degC"}
+          assert set(result["sources"]) == {"aged","fresh"}
+          assert all(c["rows_in_window"]>=100 and c["controlled_1mv_detected"] and
+                     not c["controlled_10mv_detected"] for c in result["sources"].values())
+          assert result["two_distinct_source_files"] is True
+          assert result["decision"] in {"SCREEN_ONLY_NOT_CERTIFIED","REVIEW_REQUIRED"}
+          print("TWO_ORIGINAL_PHYSICAL_CELLS_RESEARCH_ONLY:", json.dumps({
+            "MD5s":{x: result["sources"][x]["md5"] for x in ("aged","fresh")},
+            "SHA256s":{x:result["sources"][x]["sha256"] for x in ("aged","fresh")},
+            "window_rows":{x:result["sources"][x]["rows_in_window"] for x in ("aged","fresh")},
+            "voltage_spans_v":{x:result["sources"][x]["voltage_span_v"] for x in ("aged","fresh")},
+            "cross_cell_candidate":result["cross_physical_cell_near_candidate"],
+            "decision":result["decision"],
+          },sort_keys=True))
+          PY
+      - name: Archive only source hashes, measured-window counts and limitations
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: braun-two-physical-cell-research-receipt
+          path: ${{ runner.temp }}/braun_two_cell_research_receipt.json
+          retention-days: 7
+          if-no-files-found: error
