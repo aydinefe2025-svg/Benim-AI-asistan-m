@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install numpy==2.3.5
+      - run: python -m pip install numpy==2.3.5 scipy==1.16.3
       - name: Verify pinned original EOS and export exact source
         shell: bash
         run: |
@@ -49,6 +49,24 @@ jobs:
             summary['records'][label]={'sha256':sha,'bytes':len(data),'arrays':detail}
           pathlib.Path('results/original_seven/source_manifest.json').write_text(json.dumps(summary,sort_keys=True,indent=2)+'\n')
           print('SEVEN_EXACT_ORIGINAL_EOS_SOURCES_VERIFIED',json.dumps({k:v['bytes'] for k,v in summary['records'].items()}))
+          PY
+      - name: Independently re-integrate seven native EOS times six F38 source likelihood traces
+        shell: bash
+        run: |
+          python research/j0740/original_seven_inference/verify_native_source_massline_witness.py \
+            --source-directory source_jester/jesterTOV/tabulated_eos/lalsuite \
+            --witness research/j0740/original_seven_inference/J0740_original_source_F38_line_witness_20261119.json \
+            --report research/j0740/original_seven_inference/J0740_original_seven_static_full_mass_KDE_integrals_20261119.json \
+            --out results/original_seven/source_witness_real_42_scores_CI.json
+      - name: Fail closed if 42 authentic source integrals do not pass
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('results/original_seven/source_witness_real_42_scores_CI.json').read_text())
+          assert x['status']=='SEVEN_ORIGINAL_NPZ_CI_REINTEGRATION_42_OF_42_PASS'
+          assert x['score_count']==42 and x['max_relative_deviation_against_full_F38_grid']<0.001
+          print('ALL_42_NATIVE_SEVEN_EOS_ORIGINAL_F38_SOURCE_INTEGRALS_PASS')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
