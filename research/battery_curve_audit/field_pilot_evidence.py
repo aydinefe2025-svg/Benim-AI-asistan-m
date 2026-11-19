@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import unicodedata
 
 SCHEMA = 'cano.battery.field-pilot.v1'
 OUTPUT_SCHEMA = 'cano.battery.field-pilot-aggregate.v1'
@@ -31,6 +32,18 @@ def _named(value, label):
         raise ValueError('REVIEW_REQUIRED: invalid ' + label + ' metadata')
     return value
 
+
+def _provenance_key(value, label):
+    """Conservative grouping key, NOT an assertion of identical instruments.
+
+    Preserve literal cell aliases and source identities elsewhere. Treat
+    metadata differing only by Unicode compatibility, case or outer padding
+    as a possible shared source that must not cross a train/test split.
+    """
+    name = _named(value, label)
+    if any(unicodedata.category(c).startswith('C') for c in name):
+        raise ValueError('REVIEW_REQUIRED: provenance control/format character in ' + label)
+    return unicodedata.normalize('NFKC', name).strip().casefold()
 
 def _strict_int(value, label, low=0, high=10_000_000):
     if not isinstance(value, int) or isinstance(value, bool) or value < low or value > high:
@@ -63,7 +76,7 @@ def assess(ledger):
         alias = _named(item['cell'], 'cell')
         if alias in by_cell:
             raise ValueError('REVIEW_REQUIRED: duplicate cell identifier')
-        by_cell[alias] = {name: _named(item[name], name) for name in ('device', 'batch', 'campaign')}
+        by_cell[alias] = {name: _provenance_key(item[name], name) for name in ('device', 'batch', 'campaign')}
     assignments = ledger.get('assignments')
     if not isinstance(assignments, list) or len(assignments) != len(cells):
         raise ValueError('REVIEW_REQUIRED: missing or extra split assignments')
@@ -201,6 +214,7 @@ def assess(ledger):
             'Reviewer consensus is a local annotation, not independently established ground truth.',
             'Metrics describe only adjudicated pairs in the declared sampling frame; incomplete/biased samples do not establish population error rates.',
             'A device/batch/campaign match is a conservative grouping rule, not proof of duplicate data.',
+            'Provenance keys are conservatively NFKC/case/outer-whitespace matched; may review distinct case-sensitive serials.',
             'Source evidence and operator authorization are self-reported, not cryptographically/site independently verified.',
             'No field customer, financial willingness to pay, battery SOH model or accreditation validated.',
         ],

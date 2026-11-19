@@ -18,6 +18,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 PREFIX = "CANO_BATARYA_CEVRIMDISI_PILOT"
 EPOCH = (2026, 11, 19, 0, 0, 0)
 PROGRAMS = [
+    "provenance_alias_lab.py",
     "battery_virtual_lab.py",
     "customer_pipeline.py",
     "customer_preflight.py",
@@ -33,6 +34,7 @@ PROGRAMS = [
     "blind_field_review.py",
 ]
 DOCUMENTS = [
+    "PROVENANCE_ALIAS_LAB.md",
     "SIMULATION_LAB.md",
     "CUSTOMER_PIPELINE.md",
     "CUSTOMER_PREFLIGHT.md",
@@ -49,6 +51,8 @@ DOCUMENTS = [
 TESTS = [
     "test_battery_virtual_lab.py",
     "test_battery_time_origin_guard.py",
+    "test_battery_provenance_aliases.py",
+    "test_battery_provenance_alias_lab.py",
     "test_battery_voltage_offset_review.py",
     "test_battery_customer_pipeline.py",
     "test_battery_customer_output_guard.py",
@@ -97,6 +101,8 @@ def tests():
     patterns = [
         "test_battery_virtual_lab.py",
         "test_battery_time_origin_guard.py",
+    "test_battery_provenance_aliases.py",
+    "test_battery_provenance_alias_lab.py",
     "test_battery_voltage_offset_review.py",
         "test_battery_customer_pipeline.py",
         "test_battery_customer_output_guard.py",
@@ -295,7 +301,7 @@ It does not need pip, cloud tokens, API keys, or customer uploads.
 1. Unzip to a regular folder; do not run directly inside the ZIP.
 2. Double-click Verify-Package.cmd (hashes only) or run:
    py -3 verify_package.py --tests --demo
-3. Double-click Run-Simulation.cmd to run the 1,400 synthetic-batch
+3. Double-click Run-Provenance-Simulation.cmd to run 1,200 synthetic\n   device/batch/campaign spelling variants, then Run-Simulation.cmd to run the\n   1,400 synthetic-batch
    laboratory study (no real customer data). Then use Run-Demo.cmd to generate an aggregate result from synthetic
    independent curves. Double-click Run-Detection-Demo.cmd for a controlled
    duplicate example; it intentionally returns REVIEW_REQUIRED (exit code 2).
@@ -377,6 +383,21 @@ SHA-256 receipt. Never treat a self-supplied checksum as a digital signature.
 '''
 
 LAUNCHERS = {
+"Run-Provenance-Simulation.cmd": r'''@echo off
+setlocal
+cd /d "%~dp0"
+where py >nul 2>nul
+if not errorlevel 1 (
+  py -3 research\battery_curve_audit\provenance_alias_lab.py --trials 50 --seed 20261119 --output "provenance-simulation-1200.json"
+) else (
+  python research\battery_curve_audit\provenance_alias_lab.py --trials 50 --seed 20261119 --output "provenance-simulation-1200.json"
+)
+set "RC=%errorlevel%"
+echo.
+echo Synthetic metadata ONLY; no instrument identity or laboratory result certified.
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
+exit /b %RC%
+''',
 "Run-Simulation.cmd": r'''@echo off
 setlocal
 cd /d "%~dp0"
@@ -578,7 +599,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-19-pilot-prospective-blind-review-v6",
+                "version":"2026-11-19-pilot-provenance-and-blind-review-v7",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,
