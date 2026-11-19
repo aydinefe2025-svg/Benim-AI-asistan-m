@@ -54,11 +54,23 @@ jobs:
           assert r['physical_cell_identity_confirmed'] is False
           assert r['license_for_commercial_reuse']=='NOT_VERIFIED'
           assert r['decision']=='SOURCE_INTEGRITY_ONLY_NOT_PHYSICAL_VALIDATION'
+          assert r['member_count']==600
+          assert r['header_column_count_histogram']=={'17':600}
+          assert r['distinct_header_patterns']==1
+          assert (r['voltage_channel_count'],r['temperature_channel_count'],
+                  r['current_channel_count'])==(8,8,1)
+          assert r['time_axis_status']=='MISSING'
+          assert r['time_voltage_screening_allowed'] is False
+          assert r['physical_cell_identity_confirmed'] is False
           print('SOURCE_ONLY_REPORT',json.dumps({
             'files':r['member_count'],
             'formats':r['format_counts'],
             'uncompressed_bytes':r['total_uncompressed_bytes'],
-            'sample_columns':r.get('safe_header_tokens_by_type'),
+            'header_patterns':r['distinct_header_patterns'],
+            'header_column_counts':r['header_column_count_histogram'],
+            'header_samples':r['header_samples'],
+            'time_axis':r['time_axis_status'],
+            'screening_allowed':r['time_voltage_screening_allowed'],
             'license_for_commercial_reuse':r['license_for_commercial_reuse']
           },sort_keys=True))
           PY
