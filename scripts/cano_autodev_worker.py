@@ -141,6 +141,24 @@ class NeonJobStore:
         import psycopg
         self._connect = lambda: psycopg.connect(database_url, connect_timeout=8)
 
+    def verify_worker_role(self) -> None:
+        """Refuse an admin, RLS-bypass or ordinary web credential *before* claiming."""
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT rolname, rolbypassrls, rolsuper FROM pg_roles
+                WHERE rolname = current_user
+            """)
+            role = cur.fetchone()
+            if role != ("cano_autodev_worker", False, False):
+                raise PermissionError("Dedicated least-privilege role required")
+            cur.execute("""
+                SELECT relrowsecurity, relforcerowsecurity FROM pg_class
+                WHERE oid='public.cano_code_jobs'::regclass
+            """)
+            rls = cur.fetchone()
+            if not rls or rls[0] is not True:
+                raise PermissionError("Code queue must enforce RLS")
+
     def claim_one(self) -> Job | None:
         with self._connect() as conn, conn.cursor() as cur:
             # One transactional claim across simultaneous runner instances.
@@ -303,6 +321,7 @@ def main() -> int:
         return 1
     try:
         db = NeonJobStore(db_url, owner_key)
+        db.verify_worker_role()
         job = db.claim_one()
         if job is None:
             print("CANO draft worker: no queued job")
