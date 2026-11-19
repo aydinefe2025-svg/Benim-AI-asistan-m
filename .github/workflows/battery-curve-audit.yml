@@ -6,6 +6,7 @@ on:
       - "research/battery_curve_audit/**"
       - "tests/test_battery_independent_holdout.py"
       - "tests/test_customer_preflight.py"
+      - "tests/test_battery_numeric_equivalence.py"
       - "tests/test_battery_near_duplicate_guard.py"
       - ".github/workflows/battery-curve-audit.yml"
   workflow_dispatch:
@@ -34,6 +35,9 @@ jobs:
 
       - name: Near-duplicate regression suite (synthetic only)
         run: python -m unittest discover -s tests -p "test_battery_near_duplicate_guard.py" -v
+
+      - name: Numeric-equivalence regression suite
+        run: python -m unittest discover -s tests -p "test_battery_numeric_equivalence.py" -v
 
       - name: Customer preflight synthetic regression suite
         run: python -m unittest discover -s tests -p "test_customer_preflight.py" -v
@@ -136,6 +140,40 @@ jobs:
           print("SCREEN:",near["decision"],"candidates",near["near_candidate_count"])
           PY
 
+      - name: Numeric-equivalence audit of same original 20 publisher CSVs
+        run: |
+          python research/battery_curve_audit/numeric_equivalence_guard.py \
+            --manifest "${RUNNER_TEMP}/customer_manifest.json" \
+            --root "${RUNNER_TEMP}/publisher_csvs" \
+            --report "${RUNNER_TEMP}/battery_numeric_audit.json" \
+            --holdout "${RUNNER_TEMP}/battery_numeric_holdout.json"
+          python - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, "research/battery_curve_audit")
+          from independent_holdout import verify_manifest
+          from numeric_equivalence_guard import digest
+          root = Path(os.environ["RUNNER_TEMP"])
+          original = json.loads((root/"customer_report.json").read_text())
+          numeric = json.loads((root/"battery_numeric_audit.json").read_text())
+          split = json.loads((root/"battery_numeric_holdout.json").read_text())
+          assert numeric["original_text_audit_sha256"] == digest(original)
+          assert numeric["source_files"] == 20
+          assert numeric["trace_count"] == 60
+          assert numeric["measured_time_voltage_pairs"] == 703657
+          assert numeric["unique_curve_count"] <= original["unique_curve_count"]
+          assert all(a["trace_sha256"] == b["raw_trace_sha256"] and
+                     a["source_sha256"] == b["source_sha256"] for a,b in
+                     zip(original["all_curve_identity"], numeric["all_curve_identity"]))
+          counts = verify_manifest(numeric, split)
+          assert all(counts.values())
+          print("PASS: numeric equality source-pinned full 20 publisher CSVs;",
+                "numeric_unique",numeric["unique_curve_count"],
+                "numeric_only_groups",len(numeric["numeric_only_duplicate_groups"]),
+                "independent_groups",split["independent_cell_group_count"],
+                "split",counts)
+          PY
+
       - name: Publish read-only evidence artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -150,3 +188,5 @@ jobs:
             ${{ runner.temp }}/customer_report.json
             ${{ runner.temp }}/customer_holdout.json
             ${{ runner.temp }}/battery_near_screen.json
+            ${{ runner.temp }}/battery_numeric_audit.json
+            ${{ runner.temp }}/battery_numeric_holdout.json
