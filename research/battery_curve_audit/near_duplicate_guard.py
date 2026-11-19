@@ -303,3 +303,49 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+def relative_time_origin_candidates(traces, existing_candidates=(), **options):
+    """Conservative review for curves equal after changing only acquisition time ZERO.
+
+    No time stretch, resampling outside overlap, voltage-bias correction or
+    physical-copy claim. The matched candidate connects cells for a safe holdout.
+    This deliberately does NOT change the original publisher's absolute-time
+    research screen; customer review calls it as a separate optional stage.
+    """
+    seen = set()
+    for record in existing_candidates:
+        a, b = record['a'], record['b']
+        seen.add(tuple(sorted(((a['cell'], a['mode'], a['run']),
+                               (b['cell'], b['mode'], b['run'])))))
+    by_mode = defaultdict(list)
+    for item in traces:
+        by_mode[item['mode']].append(item)
+    out = []
+    for mode in sorted(by_mode):
+        records = by_mode[mode]
+        for ix, a in enumerate(records):
+            for b in records[ix+1:]:
+                if a['cell'] == b['cell'] or a['trace_sha256'] == b['trace_sha256']:
+                    continue
+                pair = tuple(sorted(((a['cell'], a['mode'], a['run']),
+                                     (b['cell'], b['mode'], b['run']))))
+                if pair in seen:
+                    continue
+                delta = a['times'][0] - b['times'][0]
+                extent = max(a['times'][-1]-a['times'][0],
+                             b['times'][-1]-b['times'][0])
+                # Existing absolute-time gate already tests endpoints within 0.5%.
+                # Only handle acquisition-origin differences beyond that window.
+                if extent <= 0 or abs(delta) <= DEFAULT_ENDPOINT_FRACTION * extent:
+                    continue
+                shifted = dict(b)
+                shifted['times'] = [t+delta for t in b['times']]
+                candidate = compare_near(a, shifted, **options)
+                if candidate is not None:
+                    candidate['classification'] = 'RELATIVE_TIME_ORIGIN_REVIEW_ONLY'
+                    candidate['absolute_start_offset_native_time_unit'] = round(abs(delta), 12)
+                    candidate['scope'] = 'same-mode aligned elapsed time; no voltage-bias correction'
+                    out.append(candidate)
+                    seen.add(pair)
+    return out
