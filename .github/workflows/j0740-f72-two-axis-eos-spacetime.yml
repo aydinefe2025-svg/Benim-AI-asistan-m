@@ -1,0 +1,189 @@
+name: J0740 F72 fixed-M/f two-axis EOS sampling x RNS mesh
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f72/**'
+      - '.github/workflows/j0740-f72-two-axis-eos-spacetime.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  true-C-EOS-and-mesh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - grid: 301x601
+            mdiv: 301
+            sdiv: 601
+            points: 392
+            f71_artifact: F71-301x601-real-C-or-failure
+          - grid: 301x601
+            mdiv: 301
+            sdiv: 601
+            points: 784
+            f71_artifact: F71-301x601-real-C-or-failure
+          - grid: 401x801
+            mdiv: 401
+            sdiv: 801
+            points: 392
+            f71_artifact: F71-401x801-real-C-or-failure
+          - grid: 401x801
+            mdiv: 401
+            sdiv: 801
+            points: 784
+            f71_artifact: F71-401x801-real-C-or-failure
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Numerical environment pinned
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: F72 fail-closed regression and exact source SHA gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'd3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22  research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat' | sha256sum -c -
+          echo '5af6e77740c3af282d30918e69a1794dab84895092209ac850c1e2ed2945ac16  research/j0740/f68/F68_ALT196_identical_RNS_source_EOS_20261119.rns' | sha256sum -c -
+          F72_F67_SOURCE=research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat \
+          F72_F68_SOURCE=research/j0740/f68/F68_ALT196_identical_RNS_source_EOS_20261119.rns \
+          python -m unittest discover -s research/j0740/f72 -p 'test_f72_*.py' -v
+      - name: Download EXACT original completed F71 C baseline, never recompute it
+        uses: actions/download-artifact@v4
+        with:
+          repository: aydinefe2025-svg/Benim-AI-asistan-m
+          run-id: 44514145465
+          github-token: ${{ github.token }}
+          name: ${{ matrix.f71_artifact }}
+          path: results/F72/F71_old
+      - name: Compile pinned original RNS physics at selected spatial grid
+        env:
+          MDIV: ${{ matrix.mdiv }}
+          SDIV: ${{ matrix.sdiv }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f62/f62_rns_precision_patch.py rns-upstream/rns.c
+          python - <<'PY'
+          import os,pathlib
+          p=pathlib.Path('rns-upstream/makefile');s=p.read_text()
+          old='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+          new='HIGHSIZE=-DMDIV=%s -DSDIV=%s'%(os.environ['MDIV'],os.environ['SDIV'])
+          assert sum(x==old for x in s.splitlines())==1
+          p.write_text(s.replace(old,new,1))
+          assert [x for x in p.read_text().splitlines() if x.startswith('HIGHSIZE=')]==[new]
+          PY
+          make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Solve two true C rotating stars with fixed mass/f and denser EOS
+        env:
+          GRID: ${{ matrix.grid }}
+          POINTS: ${{ matrix.points }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/F72/star
+          python -u research/j0740/f72/f72_eos_grid_separation.py \
+             --binary rns-upstream/rns \
+             --f67 research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat \
+             --f68-eos research/j0740/f68/F68_ALT196_identical_RNS_source_EOS_20261119.rns \
+             --baseline-f71 "results/F72/F71_old/F71_${GRID}_direct.json" \
+             --grid "$GRID" --points "$POINTS" \
+             --out "results/F72/star/F72_${GRID}_EOS${POINTS}_C.json"
+          python - <<'PY'
+          import os,json,pathlib
+          p=pathlib.Path('results/F72/star/F72_%s_EOS%s_C.json'%(os.environ['GRID'],os.environ['POINTS']))
+          d=json.loads(p.read_text());assert d['status'].startswith('F72_DIRECT_C_') and len(d['stars'])==2
+          assert d['original_MPA1_physical_acceptance']=='NOT_ESTABLISHED' if 'original_MPA1_physical_acceptance' in d else d['physical_EOS']=='NOT_ESTABLISHED'
+          print('F72 two REAL RNS C roots accepted',os.environ['GRID'],os.environ['POINTS'],flush=True)
+          PY
+      - name: Full SHA receipt of C binary, source and machine generated tables
+        shell: bash
+        if: always()
+        run: |
+          python - <<'PY'
+          import pathlib,json,hashlib,os
+          root=pathlib.Path('results/F72/star');root.mkdir(exist_ok=True,parents=True)
+          fs=[*root.glob('*'),pathlib.Path('rns-upstream/rns'),pathlib.Path('research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat'),pathlib.Path('research/j0740/f68/F68_ALT196_identical_RNS_source_EOS_20261119.rns')]
+          rec={str(p):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in fs if p.is_file()}
+          (root/'F72_input_binary_output_manifest.json').write_text(json.dumps(rec,indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: F72-${{ matrix.grid }}-EOS${{ matrix.points }}-C-or-failure
+          path: results/F72/star/
+          if-no-files-found: warn
+          retention-days: 90
+  compare-independent-axes:
+    needs: true-C-EOS-and-mesh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: F72-*-C-or-failure
+          path: results/F72/new
+      - uses: actions/download-artifact@v4
+        with:
+          repository: aydinefe2025-svg/Benim-AI-asistan-m
+          run-id: 44514145465
+          github-token: ${{ github.token }}
+          name: F71-301x601-real-C-or-failure
+          path: results/F72/old_301
+      - uses: actions/download-artifact@v4
+        with:
+          repository: aydinefe2025-svg/Benim-AI-asistan-m
+          run-id: 44514145465
+          github-token: ${{ github.token }}
+          name: F71-401x801-real-C-or-failure
+          path: results/F72/old_401
+      - name: Fail-closed distinct table/spacetime separation and record numerical limits
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,pathlib,sys
+          sys.path.insert(0,'research/j0740/f72')
+          from f72_eos_grid_separation import generate_tables,old_f71_to_record,compare_eos_spacetime,GRIDS,COUNTS
+          root=pathlib.Path('results/F72');root.mkdir(exist_ok=True,parents=True)
+          f67=pathlib.Path('research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat')
+          f68=pathlib.Path('research/j0740/f68/F68_ALT196_identical_RNS_source_EOS_20261119.rns')
+          tables=generate_tables(f67,root/'control',reference_196=f68)
+          records={}
+          actual_source_tables={}
+          for g in GRIDS:
+            oldpath=root/('old_301' if g=='301x601' else 'old_401')/('F71_'+g+'_direct.json')
+            records[f'{g}_196']=old_f71_to_record(oldpath,g)
+            for n in (392,784):
+              tag=f'F72-{g}-EOS{n}-C-or-failure'
+              p=root/'new'/tag/f'F72_{g}_EOS{n}_C.json'
+              records[f'{g}_{n}']=json.loads(p.read_text())
+              actual_source_tables[f'{g}_{n}']=root/'new'/tag/f'ALT{n}.rns'
+          out=compare_eos_spacetime(records,tables,actual_source_tables)
+          out['EOS_table_reproduction']={str(n):{k:v for k,v in tables[n].items() if k!='path'} for n in COUNTS}
+          (root/'F72_REAL_C_2AXIS_CONVERGENCE_RESULTS.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(out['separately_computed_stars'],indent=2),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: F72-two-axis-final-GR-diagnostic-or-failure
+          path: results/F72/F72_REAL_C_2AXIS_CONVERGENCE_RESULTS.json
+          if-no-files-found: warn
+          retention-days: 90
