@@ -76,6 +76,19 @@ class RealPublisherDataArchiveGate(unittest.TestCase):
         self.assertIn("cell1_voltage",result["header_samples"][0])
         self.assertFalse(result["physical_cell_identity_confirmed"])
 
+    def test_eight_voltage_channels_without_time_must_block_time_voltage_screen(self):
+        fields=[f"vol_{i}" for i in range(1,9)]
+        fields += [f"temp_{i}" for i in range(1,9)]
+        fields += ["cur"]
+        raw=tiny_source({"station.csv":(",".join(fields)+chr(10)).encode()})
+        result=inspect_zip_bytes(raw)
+        self.assertEqual(result["voltage_channel_count"],8)
+        self.assertEqual(result["temperature_channel_count"],8)
+        self.assertEqual(result["current_channel_count"],1)
+        self.assertEqual(result["time_axis_status"],"MISSING")
+        self.assertFalse(result["time_voltage_screening_allowed"])
+        self.assertFalse(result["physical_cell_identity_confirmed"])
+
     def test_zip_does_not_make_up_cell_count_from_filename(self):
         result=inspect_zip_bytes(tiny_source({"cells_999.csv":b"a,b\n1,2\n"}))
         self.assertEqual(result["member_count"],1)
