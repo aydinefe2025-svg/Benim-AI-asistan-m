@@ -38,20 +38,21 @@ def parse_voltage_curve(raw: bytes) -> tuple[list[float], list[float]]:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
+        if not times and not header_seen and any(ch.isalpha() for ch in line):
+            # Two-column optional header may contain spaces within unit labels.
+            # Do not accept a swapped time/voltage or current/SOC header.
+            signature = re.sub(r"[^a-z]", "", line.lower())
+            if signature not in ("timesvoltagev", "timescellvoltagev",
+                                 "timesuv", "timesv"):
+                raise ValueError("REVIEW_REQUIRED: unknown measurement column order")
+            header_seen = True
+            continue
         columns = line.split(",") if "," in line else line.split()
         if len(columns) != 2:
             raise ValueError("REVIEW_REQUIRED: expected exactly time and voltage columns")
         try:
             t, v = map(float, columns)
         except ValueError as exc:
-            if not times and not header_seen:
-                # Header, if present, must explicitly declare the actual
-                # time and measured voltage columns in that order.
-                first, second = (c.lower() for c in columns)
-                if "time" not in first or not ("volt" in second or re.search(r"\\bu\\b",second)):
-                    raise ValueError("REVIEW_REQUIRED: unknown column order") from exc
-                header_seen = True
-                continue
             raise ValueError("REVIEW_REQUIRED: invalid observation") from exc
         if not math.isfinite(t) or not math.isfinite(v) or not 1.5 < v < 5.0:
             raise ValueError("REVIEW_REQUIRED: impossible/nonfinite voltage or time")
