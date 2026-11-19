@@ -244,6 +244,35 @@ jobs:
           print("PASS: combined 20 CSV source gate REVIEW_REQUIRED; no unsafe accepted split")
           PY
 
+      - name: Build and verify source-pinned offline Windows pilot ZIP
+        run: |
+          python research/battery_curve_audit/package_offline_pilot.py \
+            --output "${RUNNER_TEMP}/CANO_BATARYA_OFFLINE_PILOT_20261119.zip"
+          python - <<'PY'
+          import os
+          import sys
+          import tempfile
+          import subprocess
+          from pathlib import Path
+          from zipfile import ZipFile
+          artifact=Path(os.environ["RUNNER_TEMP"])/"CANO_BATARYA_OFFLINE_PILOT_20261119.zip"
+          with tempfile.TemporaryDirectory() as tmp:
+              with ZipFile(artifact) as z:
+                  assert z.testzip() is None
+                  z.extractall(tmp)
+              folder=Path(tmp)/"CANO_BATARYA_CEVRIMDISI_PILOT"
+              subprocess.run([sys.executable,"verify_package.py","--tests","--demo"],cwd=folder,check=True)
+          print("PASS: isolated ZIP extraction, checksum readback, targeted regressions and 2 synthetic demo runs")
+          PY
+
+      - name: Publish offline Windows/Linux pilot bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cano-battery-offline-pilot-20261119
+          if-no-files-found: error
+          retention-days: 7
+          path: ${{ runner.temp }}/CANO_BATARYA_OFFLINE_PILOT_20261119.zip
+
       - name: Publish read-only evidence artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
