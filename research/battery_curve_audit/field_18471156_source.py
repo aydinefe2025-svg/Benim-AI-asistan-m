@@ -43,6 +43,9 @@ def inspect_zip_bytes(raw: bytes) -> dict:
                 raise ValueError("SOURCE_REVIEW_REQUIRED: empty or excessive ZIP member count")
             total, seen, kinds = 0, set(), collections.Counter()
             safe_headers = collections.defaultdict(list)
+            header_cols = collections.Counter()
+            header_signatures = set()
+            header_samples = []
             for info in members:
                 name = info.filename.replace("\\", "/")
                 clean = PurePosixPath(name)
@@ -68,21 +71,45 @@ def inspect_zip_bytes(raw: bytes) -> dict:
                 ext=clean.suffix.casefold().lstrip(".") or "none"
                 kinds[ext]+=1
                 # Header tokens only, NOT voltage samples or private cell IDs.
-                if ext in ("csv", "tsv", "txt") and len(safe_headers[ext]) < 3:
+                if ext in ("csv", "tsv", "txt"):
+                    # Metadata-only scan of every published file header; no
+                    # observation rows leave this in-memory research process.
                     with z.open(info) as src:
                         preview=src.read(1200)
-                    header=preview.splitlines()[0] if preview.splitlines() else b""
-                    tokens=[c.strip()[:48] for c in header.decode(
-                        "utf-8", "replace").replace("\t", ",").split(",")[:24]]
-                    # Exclude value-like tokens; include only generic schema
-                    # signals (time, current, voltage, temperature, cell etc.).
-                    generic=[]
+                    first=preview.splitlines()[0] if preview.splitlines() else b""
+                    line=first.decode("utf-8-sig","replace").replace(chr(9),",")
+                    sep = ";" if line.count(";") > line.count(",") else ","
+                    tokens=[col.strip()[:48] for col in line.split(sep)[:80]]
+                    header_cols[str(len(tokens))] += 1
+                    sanitized=[]
                     for word in tokens:
-                        lower=word.lower()
-                        labels=("time","volt","curr","temp","cell","soc","status",
-                                "date","cycle","power","capacity")
-                        generic.append(next((x for x in labels if x in lower), "other"))
-                    safe_headers[ext].append(generic)
+                        # Limit archive-provided text to simple short labels,
+                        # never emit a numeric measurement as a header.
+                        try:
+                            float(word)
+                            label="numeric-value-not-a-header"
+                        except ValueError:
+                            label="".join(c for c in word if
+                                  c.isalnum() or c in "_- .()[]/%°")[:48]
+                        sanitized.append(label)
+                    header_signatures.add(sha256(json.dumps(
+                        sanitized,ensure_ascii=False).encode("utf-8")).hexdigest())
+                    if len(header_samples)<3:
+                        header_samples.append(sanitized[:24])
+                    if len(safe_headers[ext]) < 3:
+                        generic=[]
+                        for word in tokens[:24]:
+                            lower=word.lower()
+                            labels=("time","volt","curr","temp","cell","soc","status",
+                                    "date","cycle","power","capacity")
+                            synonyms=(("时间","time"),("电压","volt"),("温度","temp"),
+                                      ("电流","curr"))
+                            kind=next((x for x in labels if x in lower),None)
+                            if kind is None:
+                                kind=next((value for needle,value in synonyms
+                                           if needle in lower),"other")
+                            generic.append(kind)
+                        safe_headers[ext].append(generic)
             damaged = z.testzip()
             if damaged is not None:
                 raise ValueError("SOURCE_REVIEW_REQUIRED: ZIP member CRC mismatch")
@@ -93,6 +120,9 @@ def inspect_zip_bytes(raw: bytes) -> dict:
             "total_uncompressed_bytes": total,
             "zip_all_member_crc": "PASS",
             "safe_header_tokens_by_type": dict(safe_headers),
+            "header_column_count_histogram": dict(sorted(header_cols.items())),
+            "distinct_header_patterns": len(header_signatures),
+            "header_samples": header_samples,
             "physical_cell_identity_confirmed": False}
 
 
