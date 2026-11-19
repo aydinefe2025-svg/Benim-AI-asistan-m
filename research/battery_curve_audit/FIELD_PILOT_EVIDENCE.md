@@ -94,3 +94,31 @@ seri geçmişi, numune/batch kaynak zinciri, kör teknisyen etiketleri, negatif
 örnekleme protokolü, bağımsız hata tahmini ve maliyet/ödeme onayı gereklidir.
 
 **Açık veri kökeni (önceki deneyler):** [POLITEHNICA Bucharest / BulyK47](https://github.com/BulyK47/battery-datasets), DOI [10.21227/cm0f-jg66](https://doi.org/10.21227/cm0f-jg66), CC BY 4.0. Bu saha protokolü **yeni gerçek müşteri verisi içermez**.
+
+## İki değerlendirici kimliği güvenliği (V5, 19 Kasım 2026)
+
+Değerlendirici adları önce yalnız ham metin eşitliğiyle kıyaslanıyordu.
+Aynı kişi `TECH-1`, ` tech-1 ` veya Unicode tam-genişlikte `ＴＥＣＨ－１`
+olarak iki farklı etiketle kaydedildiğinde yanlışlıkla **iki bağımsız kişi**
+gibi sayılabiliyordu. Artık **yalnız kimlik kıyaslamasında** Unicode NFKC,
+baş/son boşluk kırpma ve büyük/küçük harf katlama uygulanıyor. Denetleyici
+kontrol/görünmeyen biçim Unicode karakterleriyle yazılan kimliği reddediyor;
+aynı kanonik kimlikli iki değerlendirici için `REVIEW_REQUIRED` veriyor.
+
+Bu karşılaştırma **insan kimliği doğrulaması** değildir; iki farklı görünen
+kimliğin iki ayrı kişi olduğunu ispat etmez. Yanlış pozitif incelemeler
+özellikle iki ayrı gerçek kişinin kasıtlı olarak sadece büyük/küçük harfle
+ayrılan kimlikleri varsa mümkündür. Kimlik sözcükleri, isimler ve işaretler
+kamuya açık sayısal özetlerde yayımlanmaz. Sahada bağımsız, dışarıdan doğrulanmış
+iki kişi ve yetkili kaynak kayıtları hâlâ zorunludur.
+
+```sh
+python -m unittest discover -s tests -p 'test_battery_reviewer_identity_guard.py' -v
+python -m unittest discover -s tests -p 'test_battery_reviewer_identity_lab.py' -v
+python research/battery_curve_audit/reviewer_identity_lab.py --trials 100 --seed 20261119 --output reviewer-simulation-1000.json
+```
+
+Son komut **10 senaryo ailesi × 100 = 1.000** sentetik olgu oluşturur:
+6 kimlik-eşitlik/format değişimi için 600 ret ve 4 farklı metin kontrolü
+ için 400 yerel kabul beklenir. Bu oranlar gerçek insan veya laboratuvar
+yanlış kabul/ret yüzdesi değildir. Çıktı var olan dosyaya yazmaz.

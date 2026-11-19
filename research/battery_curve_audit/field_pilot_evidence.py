@@ -148,7 +148,7 @@ def assess(ledger):
             reviewer = row[key]
             if not isinstance(reviewer, dict) or set(reviewer) != {'id', 'verdict'}:
                 raise ValueError('REVIEW_REQUIRED: invalid reviewer record')
-            reviewer_ids.append(_named(reviewer['id'], 'reviewer'))
+            reviewer_ids.append(_provenance_key(reviewer['id'], 'reviewer'))
             if reviewer['verdict'] not in VERDICTS:
                 raise ValueError('REVIEW_REQUIRED: invalid reviewer verdict')
             reviewer_labels.append(reviewer['verdict'])
@@ -212,6 +212,7 @@ def assess(ledger):
         },
         'limitations': [
             'Reviewer consensus is a local annotation, not independently established ground truth.',
+            'Reviewer IDs are conservatively NFKC/case/outer-space compared, not independently authenticated; different labels do not prove different humans.',
             'Metrics describe only adjudicated pairs in the declared sampling frame; incomplete/biased samples do not establish population error rates.',
             'A device/batch/campaign match is a conservative grouping rule, not proof of duplicate data.',
             'Provenance keys are conservatively NFKC/case/outer-whitespace matched; may review distinct case-sensitive serials.',
