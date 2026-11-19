@@ -99,7 +99,7 @@ def old_f71_to_record(path,grid):
         raise ValueError('F72_BAD_F71_BASELINE_STATUS')
     if a.get('grid')!=grid or a.get('source_F70_EOS_sha256')!=SHA_196 or not a.get('not_original_MPA1'):
         raise ValueError('F72_BAD_F71_BASELINE_IDENTITY')
-    out={'grid':grid,'eos_points':196,'eos_sha256':SHA_196,'source_model':MODEL,
+    out={'grid':grid,'eos_points':196,'eos_sha256':SHA_196,'source_parent_SHA256':SOURCE_SHA,'source_model':MODEL,
          'not_original_MPA1':True,'not_F69_Fe56':True,'seven_original_EOS_Bayes':'NOT_RUN',
          'stars':a['stars'], 'source_F71_RNS_binary_sha256':a.get('RNS_C_binary_sha256'),
          'source_F71_raw_json_sha256':sha(path)}
@@ -137,13 +137,45 @@ def run(binary, f67, f68_eos, old_f71, grid, count, output):
     save();return doc
 
 
-def compare_eos_spacetime(records,table_info):
+def compare_eos_spacetime(records,table_info,raw_eos_files):
+    '''Fail closed on per-job actual RNS table bytes and source-array numerical values.
+
+    Table SHA across independent CI machines can vary due 1-ULP math-library
+    differences. Do NOT declare byte identity; require each actual C source
+    file's exact hash and 1e-14 relative agreement against the pinned parent.
+    '''
+    expected_table_keys={f'{g}_{n}' for g in GRIDS for n in (392,784)}
+    if set(raw_eos_files)!=expected_table_keys:
+        raise ValueError('F72_ACTUAL_C_INPUT_TABLES_INCOMPLETE')
+    table_validation={}
     if set(records)!={f'{g}_{n}' for g in GRIDS for n in COUNTS}:
         raise ValueError('F72_EOS_AND_SPACETIME_AXES_INCOMPLETE')
     for key,d in records.items():
         grid,count=key.rsplit('_',1);count=int(count)
-        if d.get('grid')!=grid or d.get('eos_points')!=count or d.get('eos_sha256')!=table_info[count]['sha256']:
+        if d.get('grid')!=grid or d.get('eos_points')!=count:
             raise ValueError('F72_BAD_TABLE_GRID_SOURCE_IDENTITY')
+        if d.get('source_parent_SHA256')!=SOURCE_SHA:
+            raise ValueError('F72_BAD_PARENT_SOURCE_IDENTITY')
+        if count==196:
+            if d.get('eos_sha256')!=SHA_196:raise ValueError('F72_BAD_F71_ORIGINAL_EOS_SHA')
+        else:
+            path=Path(raw_eos_files[key]);actual_sha=sha(path)
+            if actual_sha!=d.get('eos_sha256'):
+                raise ValueError('F72_DIRECT_C_TABLE_ACTUAL_SHA_DRIFT')
+            with path.open(encoding='ascii') as f:
+                if f.readline().strip()!=str(count):raise ValueError('F72_C_EOS_ROW_HEADER_DRIFT')
+            actual=np.loadtxt(path,skiprows=1)
+            reference=np.loadtxt(table_info[count]['path'],skiprows=1)
+            if actual.shape!=reference.shape or actual.shape!=(count,4) or not np.isfinite(actual).all():
+                raise ValueError('F72_C_EOS_SOURCE_ARRAY_SHAPE_DRIFT')
+            relative=float(np.max(np.abs(actual-reference)/np.maximum(np.abs(reference),1e-250)))
+            if relative>=1e-14:
+                raise ValueError('F72_C_EOS_SOURCE_NON_EQUIVALENT')
+            table_validation[key]={'actual_RNS_C_input_table_SHA256':actual_sha,
+                                   'reference_reconstruction_SHA256':table_info[count]['sha256'],
+                                   'exact_table_byte_identity':actual_sha==table_info[count]['sha256'],
+                                   'maximum_source_relative_difference':relative,
+                                   'acceptance':'FULL_HASH_OF_ACTUAL_BYTES_AND_NUMERICAL_EQUIVALENCE_PASS'}
         if d.get('source_model')!=MODEL or d.get('not_original_MPA1') is not True or d.get('not_F69_Fe56') is not True or d.get('seven_original_EOS_Bayes')!='NOT_RUN':
             raise ValueError('F72_ORIGINAL_OR_BAYES_UNSUPPORTED_LABEL')
         if set(d.get('stars',{}))!=set(TARGETS):raise ValueError('F72_STARS_MISSING')
@@ -162,6 +194,7 @@ def compare_eos_spacetime(records,table_info):
            'source_label':MODEL,'spacetime_meshes':list(GRIDS),'EOS_node_counts':list(COUNTS),
            'total_separate_direct_stars':len(GRIDS)*len(COUNTS)*len(TARGETS),
            'reused_F71_original_196_row_stars':4,'new_F72_C_stars':8,
+           'per_grid_original_C_EOS_file_source_validation':table_validation,
            'separately_computed_stars':{},'scientific_status':'EOS_AND_GRID_AXIS_NUMERICAL_DIAGNOSTIC_ONLY',
            'original_MPA1_physical_certification':'NOT_ESTABLISHED',
            'F69_rotating_baryonic_M0':'NOT_RUN','source_native_XPSI':'NOT_RUN',
