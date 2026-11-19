@@ -244,3 +244,48 @@ class OwnerIsolationAndCITests(unittest.TestCase):
         api._session = FakeSession()
         api._base = "https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m"
         self.assertEqual(api.dispatch_core_ci("cano-autodev-" + "a"*32), None)
+
+
+
+class WorkerCredentialGuardTests(unittest.TestCase):
+    """Administrative Neon credentials must never run the unattended code worker."""
+
+    def store(self, role_row, rls_row=(True, False)):
+        from scripts.cano_autodev_worker import NeonJobStore
+        class GuardCursor(FakePGCursor):
+            def fetchone(self):
+                sql = self.queries[-1][0]
+                if 'FROM pg_roles' in sql:
+                    return role_row
+                if 'FROM pg_class' in sql:
+                    return rls_row
+                return super().fetchone()
+        cur = GuardCursor()
+        store = NeonJobStore.__new__(NeonJobStore)
+        store.owner_key = 'oidc_' + 'a'*64
+        store._connect = lambda: FakePGConnection(cur)
+        return store, cur
+
+    def test_reject_admin_and_any_unexpected_worker_role(self):
+        for roles in [
+            ('assistant_owner', True, False),
+            ('agent_task_app', False, False),
+            ('cano_autodev_worker', True, False),
+            ('cano_autodev_worker', False, True),
+            None,
+        ]:
+            with self.subTest(role=roles), self.assertRaises(PermissionError):
+                store, _ = self.store(roles)
+                store.verify_worker_role()
+
+    def test_reject_worker_if_table_rls_is_disabled(self):
+        store, _ = self.store(('cano_autodev_worker', False, False), (False, False))
+        with self.assertRaises(PermissionError):
+            store.verify_worker_role()
+
+    def test_accepts_only_rls_enforced_worker_and_queries_metadata(self):
+        store, cur = self.store(('cano_autodev_worker', False, False), (True, False))
+        store.verify_worker_role()
+        self.assertEqual(len(cur.queries), 2)
+        self.assertIn('FROM pg_roles', cur.queries[0][0])
+        self.assertIn('FROM pg_class', cur.queries[1][0])
