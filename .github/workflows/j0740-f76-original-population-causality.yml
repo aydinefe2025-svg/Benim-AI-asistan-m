@@ -1,0 +1,65 @@
+name: J0740 F76 authentic 323 rotating RNS C star source-EOS causality population
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f76/**'
+      - '.github/workflows/j0740-f76-original-population-causality.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-source-323-star-population-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-original
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install immutable numeric dependency, not photon/RNS solvers
+        run: python -m pip install 'numpy==2.3.5'
+      - name: Test twelve adversarial source-knot and no-extrapolation controls
+        run: python -m unittest discover -s research/j0740/f76 -p 'test_f76_*.py' -v
+      - name: Verify original 7 source hashes and 323 recovered C star artifact hashes; run population source-knot check
+        run: |
+          python research/j0740/f76/f76_rotating_population_gate.py \
+            --source-dir jester-original/jesterTOV/tabulated_eos/lalsuite \
+            --artifacts-dir research/j0740/original_spin_recovery/artifacts \
+            --source-manifest research/j0740/f75/F75_pinned_source_manifest.json \
+            --artifact-manifest research/j0740/original_spin_recovery/archived_artifact_manifest.json \
+            --out results/F76/F76_323_causality_20261120.json
+      - name: Independently assert complete original population and output bytes before treating scan as verified
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib
+          p=pathlib.Path('results/F76/F76_323_causality_20261120.json')
+          d=json.loads(p.read_text())
+          expected=json.loads(pathlib.Path('research/j0740/f76/F76_expected_certificate_20261120.json').read_text())
+          assert hashlib.sha256(p.read_bytes()).hexdigest()==expected['result_sha256'], 'original-source JSON SHA changed'
+          assert d['source_JESTER_commit']==expected['source_JESTER_commit'] and d['source_original_RNS_commit']==expected['source_original_RNS_commit']
+          assert (d['source_original_sampled_RNS_C_stars'],d['source_knot_violating_RNS_C_stars'],d['source_knot_no_violation_RNS_C_stars'],d['unresolved_outside_source'])==(323,294,29,0)
+          assert d['physical_EOS_certification']=='NOT_ESTABLISHED' and d['source_photon_XPSI_Bayes']=='NOT_RUN'
+          assert len(d['models'])==7
+          expected_counts={'APR4_EPP':(19,29),'ENG':(48,0),'MPA1':(48,0),'MS1':(48,0),'MS1B':(48,0),'WFF1':(41,0),'WFF2':(42,0)}
+          assert {n:(v['star_count_with_source_knot_violation'],v['star_count_with_no_sampled_knot_violation']) for n,v in d['models'].items()}==expected_counts
+          assert {n:{'bad':v['star_count_with_source_knot_violation'],'knot_only':v['star_count_with_no_sampled_knot_violation'],'original_RNS_C':v['source_original_C_star_count']} for n,v in d['models'].items()}==expected['models']
+          assert sum(len(v['stars']) for v in d['models'].values())==323
+          print('PASS: exactly 323 original solver outputs, 294 source violations, 29 knot-only unclipped stars, NO global physical EOS certification')
+          PY
+      - name: Retain original-source-integrity result artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F76-323-source-pinned-rotating-causality-population
+          path: results/F76/
+          if-no-files-found: warn
