@@ -76,6 +76,14 @@ def probe_source(url: str = SOURCE_URL) -> dict:
     # Read at most 256 bytes; the body cannot exhaust free runner disk or RAM.
     with urlopen(req, timeout=24) as res:
         sample = res.read(MAX_RANGED_BYTES)
+        meta = {"http_status": res.status,
+                "type": res.headers.get("Content-Type", "")[:100],
+                "length": res.headers.get("Content-Length"),
+                "range": res.headers.get("Content-Range"),
+                "host": urlparse(res.url).hostname,
+                "prefix_hex_first_8": sample[:8].hex(),
+                "sample_bytes": len(sample)}
+        print("PUBLISHER_HTTP_DIAGNOSTIC:", json.dumps(meta, sort_keys=True), flush=True)
         info = classify_probe(
             status=res.status,
             content_type=res.headers.get("Content-Type", ""),
