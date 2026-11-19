@@ -65,6 +65,17 @@ class RealPublisherDataArchiveGate(unittest.TestCase):
         with self.assertRaises(ValueError):
             inspect_zip_bytes(b"0"*(MAX_DOWNLOAD_BYTES+1))
 
+    def test_source_header_inventory_is_not_physical_cell_groundtruth(self):
+        raw=tiny_source({
+            "batch/fileA.csv":b"Time,cell1_voltage,temperature_c\\n0,3.1,25\\n",
+            "batch/fileB.csv":b"Time,cell2_voltage,temperature_c\\n1,3.2,26\\n",
+        })
+        result=inspect_zip_bytes(raw)
+        self.assertEqual(result["header_column_count_histogram"],{"3":2})
+        self.assertEqual(result["distinct_header_patterns"],2)
+        self.assertIn("cell1_voltage",result["header_samples"][0])
+        self.assertFalse(result["physical_cell_identity_confirmed"])
+
     def test_zip_does_not_make_up_cell_count_from_filename(self):
         result=inspect_zip_bytes(tiny_source({"cells_999.csv":b"a,b\n1,2\n"}))
         self.assertEqual(result["member_count"],1)
