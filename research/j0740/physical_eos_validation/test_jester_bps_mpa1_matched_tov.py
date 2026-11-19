@@ -40,6 +40,12 @@ class MatchedEOSValidation(unittest.TestCase):
         self.assertAlmostEqual(q["M1p4"]["M_msun"],1.4,places=6)
         self.assertAlmostEqual(q["M2p073"]["M_msun"],2.073,places=6)
 
+    def test_turning_point_is_inside_source_and_tail_does_not_raise_mass(self):
+        q=self.r["source_table_endpoint_and_tail_audit"]
+        self.assertTrue(q["turning_point_inside_native_source_pressure_range"])
+        self.assertFalse(q["causal_tail_controls_global_maximum"])
+        self.assertLess(q["post_tail_max_minus_turning_point_msun"],0)
+
     def test_unrun_inference_and_rotation_are_not_claimed(self):
         q=self.r["limits"]
         self.assertEqual(q["new_model_RNS"],"NOT_RUN")
