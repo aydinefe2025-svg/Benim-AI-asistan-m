@@ -1,0 +1,67 @@
+name: J0740 F77 original 323 real-star EOS source-secant necessary causality
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f77/**'
+      - '.github/workflows/j0740-f77-interval-causal-necessity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  strict-source-node-interval-necessity-not-physical-cert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-original
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned numpy only
+        run: python -m pip install 'numpy==2.3.5'
+      - name: Fifteen theorem / boundary / tampering unit tests
+        run: python -m unittest discover -s research/j0740/f77 -p 'test_f77_*.py' -v
+      - name: Seven source SHA and 323 true archived RNS stars, exact source-secant theorem
+        run: |
+          python research/j0740/f77/f77_interval_causal_necessity.py \
+            --source-dir jester-original/jesterTOV/tabulated_eos/lalsuite \
+            --artifacts-dir research/j0740/original_spin_recovery/artifacts \
+            --source-manifest research/j0740/f75/F75_pinned_source_manifest.json \
+            --artifact-manifest research/j0740/original_spin_recovery/archived_artifact_manifest.json \
+            --out results/F77/F77_original_323_source_interval_theorem_20261120.json
+      - name: Check full 323-star result SHA and all model subset counts
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib
+          p=pathlib.Path('results/F77/F77_original_323_source_interval_theorem_20261120.json')
+          d=json.loads(p.read_text(encoding='utf8'))
+          expect=json.loads(pathlib.Path('research/j0740/f77/F77_expected_CI_certificate_20261120.json').read_text())
+          assert hashlib.sha256(p.read_bytes()).hexdigest()==expect['result_json_sha256'], 'full JSON diverged'
+          assert d['source_original_346Hz_RNS_C_stars']==323
+          assert d['source_segment_refuted_stars']==294 and d['source_segment_necessary_only_stars']==29
+          assert d['source_coverage_unknown_stars']==0
+          assert d['physical_EOS_approval']=='NOT_ESTABLISHED' and d['source_photon_XPSI']=='NOT_RUN'
+          for name,x in expect['model_conclusions'].items():
+              for k,v in x.items():
+                  assert d['models'][name][k]==v,(name,k)
+          assert sum(x['stars_with_superluminal_source_NPZ_secants'] for x in d['models'].values())==82
+          assert sum(x['stars_with_nonmonotonic_source_NPZ_segments'] for x in d['models'].values())==275
+          assert sum(x['stars_with_both_types'] for x in d['models'].values())==63
+          print('F77_323_TRUE_STARS_MEAN_VALUE_CAUSAL_NECESSITY_PROOF_SOURCE_SHA_PASS')
+          PY
+      - name: Archive raw independently reconstructed result, never a physical EOS claim
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F77-seven-original-EOS-323-star-secant-necessity
+          path: results/F77/
+          if-no-files-found: warn
