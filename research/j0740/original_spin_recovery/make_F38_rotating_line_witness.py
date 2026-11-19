@@ -15,7 +15,7 @@ def run(root:Path,f38zip:Path,outroot:Path):
  result,_,manifest=rec.load_all(root)
  outroot.mkdir(parents=True,exist_ok=True)
  try:
-  sys.path.insert(0,'/mnt/data/eos_finish/library_readback')
+  sys.path.insert(0,str(Path(__file__).resolve().parent))
   sys.path.insert(0,str(Path(__file__).resolve().parents[3]/'research/j0740/original_seven_inference'))
   import original_seven_fullmass_integral as source
  except ImportError as e:raise RuntimeError('original full 2D F38 python module not accessible') from e
