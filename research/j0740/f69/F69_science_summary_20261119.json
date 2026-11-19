@@ -1,0 +1,57 @@
+{
+  "Fe56_original_parent_direct_match_possible": false,
+  "Fe56_surface_density_g_cm3": 7.86,
+  "H_absolute_at_P_zero": 0,
+  "firstlaw_core_error": 3.655953126902034e-07,
+  "mass_to_conditional_baryon_mass_msun": {
+    "2.073": {
+      "B_msun_u_ref": 2.421825108488931,
+      "Mg_msun": 2.0729999642801054,
+      "R_km_at_match": 12.406156007346235,
+      "sensitivity_surface_mu_plus1pct_B_msun": 2.3978466420682483,
+      "solver_delta_R_m": -6.48594120633561e-05
+    },
+    "2.175": {
+      "B_msun_u_ref": 2.5673090797212548,
+      "Mg_msun": 2.1750001268418258,
+      "R_km_at_match": 12.322892403288387,
+      "sensitivity_surface_mu_plus1pct_B_msun": 2.5418901779418364,
+      "solver_delta_R_m": -0.0005015990378609558
+    },
+    "2.200": {
+      "B_msun_u_ref": 2.6036178663195635,
+      "Mg_msun": 2.200000038795292,
+      "R_km_at_match": 12.296156982144005,
+      "sensitivity_surface_mu_plus1pct_B_msun": 2.577839471603528,
+      "solver_delta_R_m": -4.395910480070597e-05
+    },
+    "2.250": {
+      "B_msun_u_ref": 2.677086700111058,
+      "Mg_msun": 2.2500000040322785,
+      "R_km_at_match": 12.232611893413974,
+      "sensitivity_surface_mu_plus1pct_B_msun": 2.6505808911990676,
+      "solver_delta_R_m": -2.6712978495879725e-06
+    }
+  },
+  "match_alpha": 0.9378129303963479,
+  "match_index": 68,
+  "model": "MPA1_PCHIP_COLD_FE56_SURFACE_V1_CONDITIONAL_NOT_ORIGINAL",
+  "new_table_SHA256": "ad53005683a5ba53b8d7512b7c8bc272c10f504fa26418cf194f1711e4e969dd",
+  "parent_F67_lowest_density_g_cm3": 7.7572339814334175,
+  "physical_microphysics_validation": "NOT_ESTABLISHED",
+  "provenance_sources": {
+    "CODATA2022_AMU": "https://physics.nist.gov/cuu/pdf/JPCRD2022CODATA.pdf",
+    "Fe56_atommass_NIST": "https://physics.nist.gov/cgi-bin/Compositions/stand_alone.pl?ascii=ascii&ele=Fe",
+    "surface_density_iron_AA2013": "https://doi.org/10.1051/0004-6361/201321697"
+  },
+  "rotating_F69_B_C_RNS": "NOT_RUN",
+  "schema": "A01.01.51_F69_CONDITIONAL_FE56_SURFACE_BARYON_STATIC_SUMMARY_20261119",
+  "separately_changed_pressure_range_P_geom": [
+    0,
+    5.684450283147875e-35
+  ],
+  "seven_original_EOS_Bayes": "NOT_RUN",
+  "source_F67_SHA256": "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22",
+  "source_native_XPSI": "NOT_RUN",
+  "surface_baryon_density_mminus3": 4.7389085391924486e+30
+}

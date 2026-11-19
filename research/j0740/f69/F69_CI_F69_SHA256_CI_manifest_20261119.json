@@ -1,0 +1,28 @@
+{
+  "assumption": "conditional Fe56 surface 7.86g/cm3",
+  "files": {
+    "research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat": {
+      "bytes": 223209,
+      "sha256": "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22"
+    },
+    "research/j0740/f69/f69_fe56_surface_match_static.py": {
+      "bytes": 13813,
+      "sha256": "558012b6b1a58a12d3890db2ffaf5a309cc9bb813bf2ea7dd46d40e4284007c6"
+    },
+    "research/j0740/f69/test_f69_fe56_surface.py": {
+      "bytes": 4242,
+      "sha256": "e8adff63213c6da338f6b824b4b5ef20e260564e9167590ca44a0926439a90a7"
+    },
+    "results/F69/F69_Fe56_conditional_surface_static_TOV_and_baryon_20261119.json": {
+      "bytes": 8942,
+      "sha256": "33f193bb30f60b4bfd9c9b562557a0649405534790fd7955c2069ddb0d3a9da2"
+    },
+    "results/F69/F69_conditional_Fe56_surface_cold_thermo_20261119.dat": {
+      "bytes": 231769,
+      "sha256": "32c0751ea503be89c8484152bb24f7866ea37d37e1e7c4ed48c48d6b691e65ef"
+    }
+  },
+  "not_original_EOS": true,
+  "numpy_version": "2.3.5",
+  "scipy_version": "1.16.3"
+}
