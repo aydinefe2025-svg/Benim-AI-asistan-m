@@ -129,6 +129,82 @@ class IntegratedGateTests(unittest.TestCase):
         report=json.loads((self.root/'combined.json').read_text())
         self.assertEqual(report['decision'],'REVIEW_REQUIRED')
 
+    def test_legacy_split_rejection_preserves_csv_with_same_output_path(self):
+        self.setup_distinct()
+        manifest_file=self.root/'manifest.json'
+        manifest_file.write_text(json.dumps(self.manifest),encoding='utf-8')
+        original=(self.root/'A.csv').read_bytes()
+        for script, option in ((customer_preflight.__file__,'--split'),
+                               (numeric_equivalence_guard.__file__,'--holdout')):
+            proc=subprocess.run([sys.executable,str(script),
+                '--manifest',str(manifest_file), '--root',str(self.root),
+                '--report',str(self.root/'report.json'),option,str(self.root/'A.csv')],
+                capture_output=True,text=True)
+            self.assertEqual(proc.returncode,2)
+            self.assertEqual((self.root/'A.csv').read_bytes(),original)
+
+    def test_invalid_manifest_object_is_safe_review_not_traceback(self):
+        manifest_file=self.root/'manifest.json'
+        manifest_file.write_text('[]',encoding='utf-8')
+        report_file=self.root/'report.json'
+        proc=subprocess.run([sys.executable,str(Path(gate.__file__)),
+            '--manifest',str(manifest_file),'--root',str(self.root),
+            '--report',str(report_file)],capture_output=True,text=True)
+        self.assertEqual(proc.returncode,2)
+        self.assertNotIn('Traceback',proc.stderr)
+        self.assertFalse(report_file.exists())
+
+    def test_output_path_cannot_destroy_source_csv_on_review(self):
+        self.add('A',curve('A'))
+        self.add('B',curve('B',tiny=.0007))
+        self.add('C',curve('C',tiny=.25))
+        self.add('D',curve('D',tiny=.50))
+        original=(self.root/'A.csv').read_bytes()
+        manifest_file=self.root/'manifest.json'
+        manifest_file.write_text(json.dumps(self.manifest),encoding='utf-8')
+        proc=subprocess.run([sys.executable,str(Path(gate.__file__)),
+            '--manifest',str(manifest_file), '--root',str(self.root),
+            '--report',str(self.root/'report.json'), '--accepted-split',str(self.root/'A.csv')],
+            capture_output=True,text=True)
+        self.assertEqual(proc.returncode,2)
+        self.assertEqual((self.root/'A.csv').read_bytes(),original)
+
+    def test_output_report_cannot_overwrite_input_manifest(self):
+        self.setup_distinct()
+        manifest_file=self.root/'manifest.json'
+        manifest_file.write_text(json.dumps(self.manifest),encoding='utf-8')
+        raw=manifest_file.read_bytes()
+        proc=subprocess.run([sys.executable,str(Path(gate.__file__)),
+            '--manifest',str(manifest_file), '--root',str(self.root),
+            '--report',str(manifest_file)],capture_output=True,text=True)
+        self.assertEqual(proc.returncode,2)
+        self.assertEqual(manifest_file.read_bytes(),raw)
+
+    def test_output_temp_file_must_not_touch_named_customer_source(self):
+        self.setup_distinct()
+        source=self.root/'report.json.incomplete'
+        raw=curve('E',tiny=.8).encode('utf-8')
+        source.write_bytes(raw)
+        self.manifest['files'].append({'path':source.name,'cell':'E','mode':'chg'})
+        manifest_file=self.root/'manifest.json'
+        manifest_file.write_text(json.dumps(self.manifest),encoding='utf-8')
+        proc=subprocess.run([sys.executable,str(Path(gate.__file__)),
+            '--manifest',str(manifest_file), '--root',str(self.root),
+            '--report',str(self.root/'report.json')],capture_output=True,text=True)
+        self.assertEqual(proc.returncode,0,proc.stdout+proc.stderr)
+        self.assertEqual(source.read_bytes(),raw)
+
+    def test_report_and_accepted_split_cannot_share_one_target(self):
+        self.setup_distinct()
+        manifest_file=self.root/'manifest.json'
+        manifest_file.write_text(json.dumps(self.manifest),encoding='utf-8')
+        output=self.root/'both.json'
+        proc=subprocess.run([sys.executable,str(Path(gate.__file__)),
+            '--manifest',str(manifest_file), '--root',str(self.root),
+            '--report',str(output),'--accepted-split',str(output)],capture_output=True,text=True)
+        self.assertEqual(proc.returncode,2)
+        self.assertFalse(output.exists())
+
     def test_numeric_only_cli_cannot_write_accepted_split(self):
         self.setup_distinct()
         manifest_file = self.root/'manifest.json'
