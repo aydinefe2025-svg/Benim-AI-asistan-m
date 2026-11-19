@@ -129,6 +129,18 @@ class IntegratedGateTests(unittest.TestCase):
         report=json.loads((self.root/'combined.json').read_text())
         self.assertEqual(report['decision'],'REVIEW_REQUIRED')
 
+    def test_numeric_only_cli_cannot_write_accepted_split(self):
+        self.setup_distinct()
+        manifest_file = self.root/'manifest.json'
+        manifest_file.write_text(json.dumps(self.manifest),encoding='utf-8')
+        accepted = self.root/'numeric_only_accepted.json'
+        proc = subprocess.run([sys.executable, str(Path(numeric_equivalence_guard.__file__)),
+            '--manifest', str(manifest_file), '--root', str(self.root),
+            '--report', str(self.root/'numeric_report.json'), '--holdout', str(accepted)],
+            capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 2,proc.stdout+proc.stderr)
+        self.assertFalse(accepted.exists())
+
     def test_old_exact_only_cli_cannot_write_accepted_split(self):
         self.setup_distinct()
         manifest_file = self.root/'manifest.json'
