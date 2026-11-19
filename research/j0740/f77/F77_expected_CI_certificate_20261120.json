@@ -1,0 +1,76 @@
+{
+  "interpretation": "Original JESTER NPZ source segment necessity only, not raw microscopic EOS or continuum causal certificate",
+  "model_conclusions": {
+    "APR4_EPP": {
+      "NPZ_negative_energy_segments": 0,
+      "NPZ_superluminal_average_segments": 2,
+      "stars_no_source_NPZ_segment_violation_only": 29,
+      "stars_refuted_on_source_NPZ_necessary_condition": 19,
+      "stars_with_both_types": 0,
+      "stars_with_nonmonotonic_source_NPZ_segments": 0,
+      "stars_with_superluminal_source_NPZ_secants": 19
+    },
+    "ENG": {
+      "NPZ_negative_energy_segments": 1,
+      "NPZ_superluminal_average_segments": 59,
+      "stars_no_source_NPZ_segment_violation_only": 0,
+      "stars_refuted_on_source_NPZ_necessary_condition": 48,
+      "stars_with_both_types": 23,
+      "stars_with_nonmonotonic_source_NPZ_segments": 48,
+      "stars_with_superluminal_source_NPZ_secants": 23
+    },
+    "MPA1": {
+      "NPZ_negative_energy_segments": 1,
+      "NPZ_superluminal_average_segments": 0,
+      "stars_no_source_NPZ_segment_violation_only": 0,
+      "stars_refuted_on_source_NPZ_necessary_condition": 48,
+      "stars_with_both_types": 0,
+      "stars_with_nonmonotonic_source_NPZ_segments": 48,
+      "stars_with_superluminal_source_NPZ_secants": 0
+    },
+    "MS1": {
+      "NPZ_negative_energy_segments": 1,
+      "NPZ_superluminal_average_segments": 0,
+      "stars_no_source_NPZ_segment_violation_only": 0,
+      "stars_refuted_on_source_NPZ_necessary_condition": 48,
+      "stars_with_both_types": 0,
+      "stars_with_nonmonotonic_source_NPZ_segments": 48,
+      "stars_with_superluminal_source_NPZ_secants": 0
+    },
+    "MS1B": {
+      "NPZ_negative_energy_segments": 1,
+      "NPZ_superluminal_average_segments": 0,
+      "stars_no_source_NPZ_segment_violation_only": 0,
+      "stars_refuted_on_source_NPZ_necessary_condition": 48,
+      "stars_with_both_types": 0,
+      "stars_with_nonmonotonic_source_NPZ_segments": 48,
+      "stars_with_superluminal_source_NPZ_secants": 0
+    },
+    "WFF1": {
+      "NPZ_negative_energy_segments": 1,
+      "NPZ_superluminal_average_segments": 68,
+      "stars_no_source_NPZ_segment_violation_only": 0,
+      "stars_refuted_on_source_NPZ_necessary_condition": 41,
+      "stars_with_both_types": 20,
+      "stars_with_nonmonotonic_source_NPZ_segments": 41,
+      "stars_with_superluminal_source_NPZ_secants": 20
+    },
+    "WFF2": {
+      "NPZ_negative_energy_segments": 1,
+      "NPZ_superluminal_average_segments": 78,
+      "stars_no_source_NPZ_segment_violation_only": 0,
+      "stars_refuted_on_source_NPZ_necessary_condition": 42,
+      "stars_with_both_types": 20,
+      "stars_with_nonmonotonic_source_NPZ_segments": 42,
+      "stars_with_superluminal_source_NPZ_secants": 20
+    }
+  },
+  "physical_EOS_approval": "NOT_ESTABLISHED",
+  "result_json_sha256": "263a19dd9118b4eb05e26c5897b7008b7f410e1f1cf12be1296ac10d446f8973",
+  "schema": "J0740_F77_CI_PINNED_SOURCE_MEAN_VALUE_THEOREM_CERT_V1",
+  "source_coverage_unknown_stars": 0,
+  "source_photon_XPSI": "NOT_RUN",
+  "source_segment_necessary_only_stars": 29,
+  "source_segment_refuted_stars": 294,
+  "source_star_count": 323
+}
