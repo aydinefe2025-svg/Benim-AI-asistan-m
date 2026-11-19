@@ -1,0 +1,67 @@
+{
+  "schema": "j0740_apr4_original_table_interpolant_causality_v1",
+  "classification": "INDEPENDENT_SOURCE_TABLE_INTERPOLANT_DIAGNOSTIC; NO EOS REPAIR",
+  "source": {
+    "retrieval_url": "https://git.ligo.org/lscsoft/lalsuite/-/raw/lalsuite-v7.26.4/lalsimulation/lib/LALSimNeutronStarEOS_APR4_EPP.dat",
+    "release": "LALSuite lalsuite-v7.26.4",
+    "bytes": 72350,
+    "sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+    "matches_pinned_source_identity": true,
+    "rows": 1447,
+    "columns": [
+      "pressure_geom_m2",
+      "energy_density_geom_m2"
+    ],
+    "source_pressure_and_energy_strictly_increasing": true,
+    "raw_dlogepsilon_dlogp_min": 0.3025195668410554,
+    "raw_dlogepsilon_dlogp_max": 1.6106860543186108
+  },
+  "method": {
+    "cs2_definition": "(P/epsilon)/(d ln epsilon/d ln P), geometrized units",
+    "natural_cubic": "SciPy natural cubic spline of log(epsilon) versus log(P)",
+    "monotone_pchip": "SciPy shape-preserving PCHIP of log(epsilon) versus log(P); diagnostic only",
+    "evaluation": "101 equally spaced points per adjacent source interval, including final endpoint",
+    "no_clipping_or_causal_repair": true
+  },
+  "interpolants": {
+    "natural_cubic": {
+      "positive_dlogepsilon_dlogp_everywhere": true,
+      "max_cs2": 1.1000095390472282,
+      "pressure_at_max_geom_m2": 7.374335184301238e-10,
+      "cs2_gt_1_grid_points": 80,
+      "first_cs2_gt_1_pressure_geom_m2": 7.158262156466512e-10,
+      "last_cs2_gt_1_pressure_geom_m2": 7.560241373086507e-10,
+      "global_causality_pass": false
+    },
+    "monotone_pchip": {
+      "positive_dlogepsilon_dlogp_everywhere": true,
+      "max_cs2": 1.0570071623892532,
+      "pressure_at_max_geom_m2": 7.43579034514212e-10,
+      "cs2_gt_1_grid_points": 57,
+      "first_cs2_gt_1_pressure_geom_m2": 7.29318433065217e-10,
+      "last_cs2_gt_1_pressure_geom_m2": 7.581184781595222e-10,
+      "global_causality_pass": false
+    }
+  },
+  "target_star_context": {
+    "source_record": "J0740_APR4_TARGET_STAR_CAUSALITY_20261118.json",
+    "four_saved_rns_root_central_pressures_geom_m2": [
+      5.331407604242784e-10,
+      5.331403453467428e-10,
+      5.340319524099945e-10,
+      5.340319503159023e-10
+    ],
+    "maximum_saved_target_central_pressure_geom_m2": 5.340319524099945e-10,
+    "native_first_superluminal_pressure_geom_m2": 7.158262156466512e-10,
+    "target_centres_below_native_first_superluminal_band": true,
+    "interpretation": "Previously saved target-root interior screen is local to each star; it does not establish global APR4 causality."
+  },
+  "acceptance": {
+    "pinned_source_identity": true,
+    "raw_table_monotonicity": true,
+    "natural_spline_global_causality": false,
+    "pchip_global_causality": false,
+    "original_apr4_global_causality": false,
+    "EOS_Bayes": "NOT_RUN"
+  }
+}
