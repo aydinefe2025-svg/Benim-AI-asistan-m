@@ -101,8 +101,11 @@ def trial_root(binary,table,target,anchor_rho,spin):
 def execute(source,rns_binary,out_dir):
     out_dir=Path(out_dir);out_dir.mkdir(parents=True,exist_ok=True)
     if sha(source)!=SOURCE_SHA:raise ValueError('F68_RAW_LAL_MPA1_SHA_DRIFT')
-    thermo=out_dir/'F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat'
-    f67json=out_dir/'F67_MPA1_PCHIP_COLD_2p073_static_TOV_20261119.json'
+    # Preserve the historical F67 relative paths so its signed source receipts
+    # reproduce byte-for-byte; those files are inputs to this F68 run.
+    f67_dir=Path('results/F67');f67_dir.mkdir(parents=True,exist_ok=True)
+    thermo=f67_dir/'F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat'
+    f67json=f67_dir/'F67_MPA1_PCHIP_COLD_2p073_static_TOV_20261119.json'
     run_f67(Path(source),out=f67json,eos_out=thermo)
     if sha(thermo)!=THERMO_SHA or sha(f67json)!=F67_JSON_SHA:raise ValueError('F68_REGENERATED_F67_INPUT_SHA_DRIFT')
     raw=load_source(Path(source));eos=ColdEOS(raw,subdivisions=24,quadrature=48)
