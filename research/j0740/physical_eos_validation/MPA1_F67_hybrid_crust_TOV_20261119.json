@@ -1,0 +1,85 @@
+{
+  "causality": {
+    "core_cs2_max": 0.9902133979547115,
+    "core_cs2_min": 3.7232877891934216e-12,
+    "core_intervals_checked": 2424,
+    "core_stationary_roots_checked": 158,
+    "crust_cs2_join": 3.7232877891934216e-12,
+    "crust_cs2_monotone": true,
+    "crust_cs2_surface": 0.0,
+    "high_density_tail": "epsilon=epsilon_t+(P-P_t), cs2=1, first-law consistent",
+    "tail_cs2": 1.0,
+    "whole_defined_model_causal": true
+  },
+  "crust_join": {
+    "P0_geom_m-2": 8.343631758107927e-38,
+    "absolute_n0_at_join_m-3": 4.6770089573617303e+30,
+    "caveat": "The low-pressure power-law crust is thermodynamic and surface-normalized, but has no verified BPS composition table.",
+    "epsilon0_geom_m-2": 5.760646279117804e-24,
+    "h_surface_formula": "log1p(P0/epsilon0)/(1-a)",
+    "h_surface_to_join": 1.4540409895687953e-14,
+    "log_slope_a": 0.003890069077875619,
+    "mu0_source": "Baym, Pethick & Sutherland 1971, ApJ 170, 299, DOI 10.1086/151216; iron-ground-state approximation 930.4 MeV/baryon",
+    "mu_surface_MeV_per_baryon": 930.4,
+    "n_first_law_over_n0_max_relative_residual": 2.1094237467877974e-15,
+    "native_enthalpy_relative_max_abs_difference": 8.006639420909956e-09
+  },
+  "high_density_completion": {
+    "Pmax_source_geom_m-2": 1.3051557079624087e-09,
+    "completion_is_separately_named": true,
+    "epsilon_at_Pmax_geom_m-2": 1.9379405713520584e-09,
+    "type": "maximally stiff causal continuation c_s^2=1 above source Pmax"
+  },
+  "limits": {
+    "final_EOS_Bayes": "NOT_RUN",
+    "high_density_microphysical_identity": "NOT_ESTABLISHED: cs2=1 is an explicit causal bound completion, not a nuclear calculation",
+    "microphysical_crust_identity": "NOT_ESTABLISHED: low-pressure crust surrogate lacks BPS composition table",
+    "new_hybrid_model_RNS": "NOT_RUN",
+    "physical_EOS_acceptance": "NOT_ESTABLISHED",
+    "source_native_XPSI_nuisance_marginalization": "NOT_RUN"
+  },
+  "model": "MPA1_PCHIP_NATIVE_LAL_CORE_FIRSTLAW_POWERLAW_CRUST_MU930p4_V1",
+  "provenance": {
+    "F67_table_rows": 2425,
+    "F67_table_sha256": "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22",
+    "JESTER_original_MPA1_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+    "original_data_modified": false
+  },
+  "schema": "J0740_MPA1_F67_HMATCH_CRUST_TOV_V1",
+  "status": "PASS_NUMERICAL_HYBRID_CANDIDATE_NOT_MICROPHYSICAL_ACCEPTANCE",
+  "tov": {
+    "coarse_subdiv1_quad24_Mmax": {
+      "M_msun": 2.461971086442506,
+      "R_km": 11.323579101553912,
+      "central_enthalpy": 0.8263645294863476,
+      "central_pressure_geom": 9.484642956723244e-10,
+      "method": "rm",
+      "method_note": "first stable-branch mass maximum bracketed by full Pc scan",
+      "scan_count": 40,
+      "surface_pressure_geom": 0.0
+    },
+    "fine_minus_coarse_mass_msun": 5.6632282681157164e-06,
+    "fine_minus_coarse_radius_km": 0.0013926356304931886,
+    "fine_subdiv2_quad48_Mmax": {
+      "M_msun": 2.4619767496707743,
+      "R_km": 11.324971737184406,
+      "central_enthalpy": 0.8258428201961443,
+      "central_pressure_geom": 9.471508677401828e-10,
+      "method": "rm",
+      "method_note": "first stable-branch mass maximum bracketed by full Pc scan",
+      "scan_count": 52,
+      "surface_pressure_geom": 0.0
+    },
+    "independent_u_v_same_turning_point": {
+      "M_msun": 2.461970797070894,
+      "R_km": 11.324973126784545,
+      "central_enthalpy": 0.8258428201961443,
+      "central_pressure_geom": 9.471508677401828e-10,
+      "method": "uv",
+      "surface_pressure_geom": 0.0
+    },
+    "relative_difference_independent_mass": 2.4178131986491417e-06,
+    "relative_difference_independent_radius": 1.2270230532076323e-07
+  }
+}
+

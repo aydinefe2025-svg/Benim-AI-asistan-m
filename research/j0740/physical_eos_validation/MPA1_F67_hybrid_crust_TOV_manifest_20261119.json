@@ -1,0 +1,53 @@
+{
+  "schema": "J0740_MPA1_HYBRID_REPRO_MANIFEST_V1",
+  "generated_utc": "2026-11-19",
+  "model": "MPA1_PCHIP_NATIVE_LAL_CORE_FIRSTLAW_POWERLAW_CRUST_MU930p4_V1",
+  "artifacts": [
+    {
+      "path": "F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat",
+      "bytes": 223209,
+      "sha256": "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22"
+    },
+    {
+      "path": "MPA1_F67_hybrid_crust_TOV_20261119.json",
+      "bytes": 3791,
+      "sha256": "ef02c63baffeb73060d7bf1469715f88bf5bcde45881b477faadc30f0b84df44"
+    },
+    {
+      "path": "mpa1_jester_hybrid_crust_tov.py",
+      "bytes": 11034,
+      "sha256": "5959a7b6da2f54c11a77fd391c6d24e2ad5bfc00bae6b4713932de2f23cb64f6"
+    },
+    {
+      "path": "test_mpa1_f67_hybrid_crust_tov.py",
+      "bytes": 2602,
+      "sha256": "fa1870fd39c5e979bc44c4d5fb641c9ae126c85acbec0b600f8cee5c55e03f36"
+    }
+  ],
+  "external_inputs": [
+    {
+      "name": "JESTER MPA1.npz",
+      "sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+      "source_path": "C:/Users/User/Documents/Codex/2026-11-06/n/work/sources/eos_npz/MPA1.npz",
+      "modified": false
+    },
+    {
+      "name": "LALSuite native MPA1 table",
+      "sha256": "bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec",
+      "pin_source": "F67 branch manifest",
+      "modified": false
+    }
+  ],
+  "execution": {
+    "command": "C:/Users/User/Documents/Codex/2026-11-06/n/work/python312/python.exe test_mpa1_f67_hybrid_crust_tov.py",
+    "test_result": "4 tests passed",
+    "test_runtime_seconds": 8.5,
+    "compute_result": "MPA1_F67_hybrid_crust_TOV_20261119.json",
+    "python_packages": "numpy, scipy",
+    "native_xpsi": "NOT_INSTALLED",
+    "new_hybrid_RNS": "NOT_RUN",
+    "final_EOS_Bayes": "NOT_RUN"
+  },
+  "interpretation": "Conditional causal, first-law-consistent hybrid candidate; crust and high-density completion are explicit surrogates, not microphysical acceptance."
+}
+

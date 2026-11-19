@@ -1,0 +1,12 @@
+Execution date (local): 2026-11-19 Europe/Istanbul
+Command: C:/Users/User/Documents/Codex/2026-11-06/n/work/python312/python.exe test_mpa1_f67_hybrid_crust_tov.py
+Environment: Python 3.12 with NumPy/SciPy
+Result: 4 tests passed; approx. 8.5 s.
+Numerical output: MPA1_F67_hybrid_crust_TOV_20261119.json
+Model: MPA1_PCHIP_NATIVE_LAL_CORE_FIRSTLAW_POWERLAW_CRUST_MU930p4_V1
+Status: PASS_NUMERICAL_HYBRID_CANDIDATE_NOT_MICROPHYSICAL_ACCEPTANCE
+New hybrid-model RNS: NOT_RUN
+Source-native X-PSI nuisance marginalization: NOT_RUN
+Final EOS Bayes: NOT_RUN
+Original JESTER and LALSuite sources preserved unchanged.
+
