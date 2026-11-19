@@ -32,9 +32,9 @@
   ],
   "scientific_state": {
     "APR4_EPP_analytic_cold_barotrope": "PASS_RECONSTRUCTED_ANALYTIC_MODEL",
-    "max_relative_epsilon_residual_vs_LAL_table": 4.807279920870933e-05,
+    "max_relative_epsilon_residual_vs_LAL_table": 0.00004807279920870933,
     "max_finite_segment_cs2": 0.9961942497570102,
-    "last_Gamma2_asymptotic_cs2_supremum": 1.0,
+    "last_Gamma2_asymptotic_cs2_supremum": 1,
     "absolute_RNS_baryon_mass_normalization": "NOT_ESTABLISHED",
     "rotating_sequence_and_continuous_stability": "NOT_ESTABLISHED",
     "EOS_Bayes": "NOT_RUN"
@@ -43,6 +43,25 @@
     "file": "J0740_APR4_SOURCE_INTERPOLANT_CAUSALITY_20261119.json",
     "sha256": "1281c2acc3c10e001c29c6c4c51a0c2749a2aaa94731258d76668f6aa22644ba",
     "correction": "Spline/PCHIP and stored LAL derivative-field overshoots are interpolation diagnostics, not the analytic APR4_EPP source sound speed."
-  }
+  },
+  "github_readback": [
+    {
+      "path": "research/j0740/rotating_gr/reconstruct_apr4_epp_source_model_20261119.py",
+      "local_bytes": 12774,
+      "local_sha256": "dd0e8f3ba0931597ba1adb83cf5d5de4bef1541242dd3f1dca5ea6139b82ab16",
+      "github_bytes": 12776,
+      "github_sha256": "9fb392fff06d8d2884560a283a280ad019046738ac5935392339693f37de5735",
+      "normalized_content_equal": true,
+      "extra_trailing_bytes": "CRLF CRLF"
+    },
+    {
+      "path": "research/j0740/rotating_gr/results/APR4_EPP_FULL_ANALYTIC_RECONSTRUCTION_20261119.json",
+      "local_bytes": 11050,
+      "local_sha256": "e07478ba0feab5c95631cbd856f16859d2c1a794ce02c4bac64affcae94ff58e",
+      "github_bytes": 11052,
+      "github_sha256": "fd51f8ce4a3d272e4d1e8ae5f6ea46d36fe4d389350a95ca2d7795e6aa234f19",
+      "normalized_content_equal": true,
+      "extra_trailing_bytes": "CRLF CRLF"
+    }
+  ]
 }
-
