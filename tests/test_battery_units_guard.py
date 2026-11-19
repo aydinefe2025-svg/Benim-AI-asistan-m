@@ -65,6 +65,16 @@ class UnitContractTests(unittest.TestCase):
         self.assertEqual(report['unit_contract']['time_unit'], 's')
         self.assertEqual(report['unit_contract']['voltage_unit'], 'mv')
 
+    def test_original_publisher_discharge_header(self):
+        self.add('a.csv', 'Timestamp_1 [h],BATT_001_DC1 [V]\n0,3.4\n1,3.3\n', 'A')
+        report = product.audit_customer(self.manifest, self.root)
+        self.assertEqual(report['unit_contract']['time_unit'], 'h')
+
+    def test_original_publisher_charge_header(self):
+        self.add('a.csv', 'Timestamp_1 [h],BATT_001_CC1 [V]\n0,3.4\n1,3.3\n', 'A')
+        report = product.audit_customer(self.manifest, self.root)
+        self.assertEqual(report['trace_count'], 1)
+
     def test_short_trailing_pair_stays_valid(self):
         self.add('a.csv', 'Timestamp_1 [h],DC1 [V],Timestamp_2 [h],DC2 [V]\n0,3.4,0,3.6\n1,3.3,1,3.5\n2,3.2\n', 'A')
         report = product.audit_customer(self.manifest, self.root)
