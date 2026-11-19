@@ -26,6 +26,8 @@ jobs:
       - name: Verify RNS source pin and build two resolutions
         run: |
           test "$(git -C vendor/rns rev-parse HEAD)" = "97e85d325a33e37f702306414533f6cd77812477"
+          sed -i '36i #include <stdlib.h>' vendor/rns/equil.c
+          sha256sum vendor/rns/equil.c
           make -C vendor/rns -B HIGHSIZE="-DMDIV=151 -DSDIV=301" rns
           cp vendor/rns/rns vendor/rns151
           mkdir -p /tmp/rns201
