@@ -59,7 +59,7 @@ def store_with(policies):
     return store
 
 
-class Worker'sRLSStartupContract(unittest.TestCase):
+class WorkerRLSStartupContract(unittest.TestCase):
     def test_exact_existing_owner_scoped_policy_contract_permitted(self):
         store_with(correct_policies()).verify_worker_role()
 
