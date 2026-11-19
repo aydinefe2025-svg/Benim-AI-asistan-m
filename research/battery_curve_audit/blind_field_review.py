@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Two-stage OFFLINE prospective blinded pair review for battery audits.
 
-The operator retains the predictions in a PRIVATE seal; reviewers receive only
+The operator keeps a 32-byte secret key SEPARATE from the HMAC-signed private
+seal; reviewers receive only
 cell-pair aliases and empty verdict fields. The final stage checks form roster,
 source receipt and *all original raw time/voltage CSVs* via existing CANO gates.
 This does NOT verify true human blinding, site authority, population error rates
@@ -28,7 +29,7 @@ import field_pilot_csv_intake as intake
 import field_pilot_evidence as field
 import field_source_csv_bridge as bridge
 
-SCHEMA = 'cano.battery.blind-review-operator-seal.v1'
+SCHEMA = 'cano.battery.blind-review-operator-seal.v2'
 PAIRS = ('a','b','flagged')
 FORM = ('pair_id','a','b','verdict')
 MAX_SEAL_BYTES = 4_000_000
@@ -74,6 +75,28 @@ def _new_files(outputs, *, inputs=()):
             p.unlink(missing_ok=True)
         raise
 
+
+
+def _signed_seal_bytes(seal):
+    """Stable HMAC body, with domain separation from pair ID / ranking keys."""
+    document = {k:v for k,v in seal.items() if k != 'operator_seal_hmac_sha256'}
+    return json.dumps(document,ensure_ascii=False,sort_keys=True,
+                      separators=(',',':'),allow_nan=False).encode('utf-8')
+
+
+def _expected_sample(pairs, secret, per_stratum):
+    groups = {True: [], False: []}
+    for row in pairs:
+        a,b = sorted((row['a'],row['b']))
+        flagged = row['flagged']=='true'
+        token = (a+'\0'+b).encode('utf-8')
+        pair_id=hmac.new(secret,b'pair-id\0'+token,hashlib.sha256).hexdigest()[:32]
+        priority=hmac.new(secret,b'rank\0'+token,hashlib.sha256).digest()
+        groups[flagged].append((priority, {'pair_id':pair_id,'a':a,'b':b,'flagged':flagged}))
+    samples=[]
+    for flagged in (True,False):
+        samples.extend(row for _,row in sorted(groups[flagged],key=lambda z:z[0])[:per_stratum])
+    return sorted(samples,key=lambda r:r['pair_id'])
 
 def _validate_frame_and_roster(cells, pairs, frame, audit):
     if (not isinstance(frame['site_authorization'], dict) or
@@ -182,7 +205,8 @@ def generate_screen(manifest_path, root, audit_path, cells_path, pairs_out, fram
 
 
 def prepare(cells_path, pairs_path, frame_path, audit_path,
-            reviewer_a_form, reviewer_b_form, seal_path, *, per_stratum=50, secret=None):
+            reviewer_a_form, reviewer_b_form, seal_path, *, per_stratum=50, secret=None,
+            operator_key_path=None):
     """Create private sealed predictions and two independent, prediction-free forms."""
     inputs = (cells_path, pairs_path, frame_path, audit_path)
     if type(per_stratum) is not int or not 1 <= per_stratum <= MAX_STRATUM:
@@ -195,24 +219,14 @@ def prepare(cells_path, pairs_path, frame_path, audit_path,
     pairs = intake.read_csv(pairs_path,PAIRS,field.MAX_REVIEWS)
     frame = intake.read_frame(frame_path)
     _validate_frame_and_roster(cells,pairs,frame,audit_path)
-    groups = {True: [], False: []}
-    for row in pairs:
-        a,b = sorted((row['a'],row['b']))
-        flagged = row['flagged']=='true'
-        token = (a+'\0'+b).encode('utf-8')
-        pair_id=hmac.new(secret,b'pair-id\0'+token,hashlib.sha256).hexdigest()[:32]
-        priority=hmac.new(secret,b'rank\0'+token,hashlib.sha256).digest()
-        groups[flagged].append((priority, {'pair_id':pair_id,'a':a,'b':b,'flagged':flagged}))
-    samples = []
-    for flagged in (True,False):
-        samples.extend(row for _,row in sorted(groups[flagged],key=lambda z:z[0])[:per_stratum])
-    samples.sort(key=lambda r:r['pair_id'])
+    samples = _expected_sample(pairs, secret, per_stratum)
     def form(tag):
         rank = lambda r:hmac.new(secret,tag+r['pair_id'].encode(),hashlib.sha256).digest()
         rows = sorted(samples,key=rank)
         return _csv_bytes(FORM,[{'pair_id':r['pair_id'],'a':r['a'],'b':r['b'],'verdict':''}
                                 for r in rows])
     seal = {'schema':SCHEMA,
+            'per_stratum':per_stratum,
             'input_sha256': {key:_sha(path) for key,path in zip(
                 ('cells','pairs','frame','audit'),inputs)},
             'sampled':samples,
@@ -222,13 +236,19 @@ def prepare(cells_path, pairs_path, frame_path, audit_path,
             'selected_clear':sum(not row['flagged'] for row in samples),
             'selection_design':'stratified_without_replacement; signed labels are not shown to reviewers',
             'limitations':['Sampling frame and site authorization are operator asserted, not independently verified.',
-                           'The two reviewer forms hide the model decision, but true human blinding is not technically proven.',
+                           'The two reviewer forms hide model predictions; tamper resistance depends on protecting the separate operator key and true human blinding is not proven.',
                            'Pair-level observations may share cells; they are not independent physical trials.',
                            'Selection does not establish field FPR/FNR or a certifiable acceptance.']}
+    seal['operator_seal_hmac_sha256'] = hmac.new(
+        secret,b'CANO:blind-review-seal:v2\0'+_signed_seal_bytes(seal),
+        hashlib.sha256).hexdigest()
     payload = (json.dumps(seal,ensure_ascii=False,sort_keys=True,indent=2)+'\n').encode('utf-8')
+    # Never put this key in reports, source archives or reviewer-visible forms.
+    key_path = (Path(operator_key_path) if operator_key_path is not None else
+                Path(str(seal_path)+'.key'))
     _new_files([(reviewer_a_form,form(b'reviewer-A:')),
                 (reviewer_b_form,form(b'reviewer-B:')),
-                (seal_path,payload)],inputs=inputs)
+                (seal_path,payload),(key_path,secret)],inputs=inputs)
     return {'selected_flagged':seal['selected_flagged'],
             'selected_clear':seal['selected_clear'],
             'field_acceptance':'NOT_ESTABLISHED',
@@ -237,10 +257,12 @@ def prepare(cells_path, pairs_path, frame_path, audit_path,
 
 def finalize(manifest_path, root, audit_path, cells_path, pairs_path, frame_path,
              reviewer_a_form, reviewer_b_form, seal_path, summary_path, *,
-             reviewer_a_id, reviewer_b_id, private_ledger_path=None):
+             reviewer_a_id, reviewer_b_id, private_ledger_path=None, operator_key_path=None):
     """Reconcile both forms with private pair predictions then use original binder."""
+    key_path = (Path(operator_key_path) if operator_key_path is not None else
+                Path(str(seal_path)+'.key'))
     inputs=(manifest_path,audit_path,cells_path,pairs_path,frame_path,
-            reviewer_a_form,reviewer_b_form,seal_path)
+            reviewer_a_form,reviewer_b_form,seal_path,key_path)
     for field_id in (reviewer_a_id,reviewer_b_id):
         if not isinstance(field_id,str) or not field_id.strip() or len(field_id)>100:
             raise ValueError('REVIEW_REQUIRED: invalid reviewer identifier')
@@ -250,7 +272,17 @@ def finalize(manifest_path, root, audit_path, cells_path, pairs_path, frame_path
         raise ValueError('REVIEW_REQUIRED: oversized operator seal')
     seal=json.loads(Path(seal_path).read_text(encoding='utf-8'))
     if not isinstance(seal,dict) or seal.get('schema')!=SCHEMA:
-        raise ValueError('REVIEW_REQUIRED: invalid operator seal')
+        raise ValueError('REVIEW_REQUIRED: unsigned/legacy operator seal requires new prospective preparation')
+    operator_secret = key_path.read_bytes()
+    if len(operator_secret) != 32:
+        raise ValueError('REVIEW_REQUIRED: invalid separate operator seal key')
+    claimed = seal.get('operator_seal_hmac_sha256')
+    if not isinstance(claimed,str) or len(claimed)!=64:
+        raise ValueError('REVIEW_REQUIRED: missing authenticated operator seal')
+    actual = hmac.new(operator_secret,b'CANO:blind-review-seal:v2\0'+_signed_seal_bytes(seal),
+                      hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(actual,claimed):
+        raise ValueError('REVIEW_REQUIRED: operator seal authentication failed or tampered')
     for key,path in zip(('cells','pairs','frame','audit'),(cells_path,pairs_path,frame_path,audit_path)):
         if seal.get('input_sha256',{}).get(key)!=_sha(path):
             raise ValueError('REVIEW_REQUIRED: operator pair/source inputs changed or hash mismatch')
@@ -272,6 +304,10 @@ def finalize(manifest_path, root, audit_path, cells_path, pairs_path, frame_path
     sampled = seal.get('sampled')
     if not isinstance(sampled,list) or not sampled or len(sampled)>2*MAX_STRATUM:
         raise ValueError('REVIEW_REQUIRED: missing operator sampled pairs')
+    if (type(seal.get('per_stratum')) is not int or not
+            1 <= seal['per_stratum'] <= MAX_STRATUM or
+            sampled != _expected_sample(screened,operator_secret,seal['per_stratum'])):
+        raise ValueError('REVIEW_REQUIRED: operator seal selection does not match secret-keyed sampling')
     keys = {}
     for row in sampled:
         if (not isinstance(row,dict) or set(row)!={'pair_id','a','b','flagged'} or
@@ -339,6 +375,7 @@ def main(argv=None):
     for name in ('cells','pairs','frame','audit_report','reviewer_a_form','reviewer_b_form','operator_seal'):
         p.add_argument('--'+name.replace('_','-'),type=Path,required=True)
     p.add_argument('--per-stratum',type=int,default=50)
+    p.add_argument('--operator-key',type=Path,help='Private key output; defaults to seal.json.key, keep separately')
     f=sub.add_parser('finalize',help='Combine independent reviewer forms and reverify original source data')
     for name in ('manifest','audit_report','cells','pairs','frame','reviewer_a_form',
                  'reviewer_b_form','operator_seal','summary'):
@@ -347,6 +384,7 @@ def main(argv=None):
     f.add_argument('--reviewer-a-id',type=str,required=True)
     f.add_argument('--reviewer-b-id',type=str,required=True)
     f.add_argument('--private-ledger',type=Path)
+    f.add_argument('--operator-key',type=Path,help='Separate 32-byte operator key; defaults to seal.json.key')
     opts=ap.parse_args(argv)
     try:
         if opts.command=='screen':
@@ -359,7 +397,7 @@ def main(argv=None):
         if opts.command=='prepare':
             r=prepare(opts.cells,opts.pairs,opts.frame,opts.audit_report,
                       opts.reviewer_a_form,opts.reviewer_b_form,opts.operator_seal,
-                      per_stratum=opts.per_stratum)
+                      per_stratum=opts.per_stratum,operator_key_path=opts.operator_key)
             print('PREPARED: review forms omit algorithm flags; selected flagged=',
                   r['selected_flagged'],'clear=',r['selected_clear'],'; NOT_ESTABLISHED')
             return 0
@@ -368,7 +406,7 @@ def main(argv=None):
                         opts.pairs,opts.frame,opts.reviewer_a_form,opts.reviewer_b_form,
                         opts.operator_seal,opts.summary,
                         reviewer_a_id=opts.reviewer_a_id,reviewer_b_id=opts.reviewer_b_id,
-                        private_ledger_path=opts.private_ledger)
+                        private_ledger_path=opts.private_ledger,operator_key_path=opts.operator_key)
         print(result['decision']+': source rechecked; site acceptance NOT_ESTABLISHED')
         return 0 if result['decision']=='PILOT_ONLY_NOT_CERTIFIED' else 2
     except (OSError, ValueError, RuntimeError, TypeError, KeyError, UnicodeError,
