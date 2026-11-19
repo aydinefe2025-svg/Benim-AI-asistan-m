@@ -10,6 +10,7 @@ import argparse
 import json
 import math
 import os
+import tempfile
 from pathlib import Path
 import sys
 
@@ -125,12 +126,38 @@ def verify_report(manifest, root, report):
     return True
 
 
+def validate_output_paths(manifest, root, manifest_path, report_path, split_path):
+    """Never overwrite/delete input CSVs or the manifest, including symlink aliases."""
+    if not isinstance(manifest, dict):
+        raise ValueError('REVIEW_REQUIRED: manifest must be an object')
+    entries = manifest.get('files')
+    if not isinstance(entries, list) or any(not isinstance(item, dict) or
+                                           not isinstance(item.get('path'), str) for item in entries):
+        raise ValueError('REVIEW_REQUIRED: invalid file mapping')
+    protected = {customer.safe_path(Path(root), item['path']) for item in entries}
+    protected.add(Path(manifest_path).resolve())
+    outputs = [Path(report_path).resolve()]
+    if split_path is not None:
+        outputs.append(Path(split_path).resolve())
+    if len(set(outputs)) != len(outputs) or any(path in protected for path in outputs):
+        raise ValueError('OUTPUT_REVIEW_REQUIRED: output path collides with customer source or another output')
+
+
 def write_json(path, data):
+    """Atomic write via exclusive unpredictable temporary name; do not clobber data."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_name(path.name+'.incomplete')
-    temp.write_text(json.dumps(data, indent=2, ensure_ascii=False)+'\n', encoding='utf-8')
-    os.replace(temp, path)
+    tmp_name = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=path.parent,
+                                         prefix='.cano-battery-', suffix='.tmp',
+                                         delete=False) as temp:
+            tmp_name = Path(temp.name)
+            temp.write(json.dumps(data, indent=2, ensure_ascii=False)+'\n')
+        os.replace(tmp_name, path)
+    finally:
+        if tmp_name is not None:
+            tmp_name.unlink(missing_ok=True)
 
 
 def main(argv=None):
@@ -142,9 +169,12 @@ def main(argv=None):
                         help='Only emit accepted train/validation/test split when NO review/block flags')
     parser.add_argument('--verify-report', type=Path, help='re-read local sources and compare prior report')
     args = parser.parse_args(argv)
+    output_paths_validated = False
     try:
         manifest = json.loads(args.manifest.read_text(encoding='utf-8'))
         root = args.root if args.root else args.manifest.resolve().parent
+        validate_output_paths(manifest, root, args.manifest, args.report, args.accepted_split)
+        output_paths_validated = True
         result = integrated_check(manifest, root)
         if args.verify_report:
             old = json.loads(args.verify_report.read_text(encoding='utf-8'))
@@ -162,7 +192,7 @@ def main(argv=None):
               '; unscreened '+str(result['unscreened_trace_count']))
         return 0 if result['decision'] == 'PASS_SCREEN_ONLY' else 2
     except (OSError, UnicodeError, ValueError, RuntimeError, KeyError, TypeError, json.JSONDecodeError) as exc:
-        if args.accepted_split:
+        if output_paths_validated and args.accepted_split:
             args.accepted_split.unlink(missing_ok=True)
         print('REVIEW_REQUIRED: '+str(exc),file=sys.stderr)
         return 2
