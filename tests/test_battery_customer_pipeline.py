@@ -118,6 +118,38 @@ class CustomerOneCommandTests(unittest.TestCase):
         if os.name == 'posix':
             self.assertEqual(stat.S_IMODE(privileged.stat().st_mode), 0o600)
 
+    def test_short_curve_cannot_be_reported_as_near_screen_clear(self):
+        manifest = self.setup_files([('A', {'level':'4.0'}), ('B', {'level':'3.6'}), ('C', {'level':'3.2'})])
+        (self.root/'A.csv').write_text('Timestamp_1 [h],DC1 [V]\n0,4.0\n1,3.9\n')
+        summary, private = pipeline.audit_offline(manifest, self.root)
+        self.assertEqual(summary['decision'], 'REVIEW_REQUIRED')
+        self.assertEqual(summary['unscreened_traces'], 1)
+        self.assertTrue(private['review_required'])
+
+    def test_flat_curve_cannot_be_reported_as_near_screen_clear(self):
+        manifest = self.setup_files([('A', {'level':'4.0'}), ('B', {'level':'3.6'}), ('C', {'level':'3.2'})])
+        (self.root/'A.csv').write_text('Timestamp_1 [h],DC1 [V]\n'+ '\n'.join(f'{i},3.91' for i in range(120))+'\n')
+        summary, private = pipeline.audit_offline(manifest, self.root)
+        self.assertEqual(summary['decision'], 'REVIEW_REQUIRED')
+        self.assertEqual(summary['unscreened_traces'], 1)
+
+    def test_report_only_cannot_create_private_holdout_with_exit_zero(self):
+        manifest = self.setup_files([('A', {'level':'4.0'}), ('B', {'level':'3.6'}), ('C', {'level':'3.2'})])
+        mp = self.root/'manifest.json'
+        mp.write_text(json.dumps(manifest))
+        public = self.root/'public.json'
+        private = self.root/'private.json'
+        rc = pipeline.main(['--manifest',str(mp),'--root',str(self.root),
+            '--summary',str(public),'--private-split',str(private),'--report-only'])
+        self.assertEqual(rc, 2)
+        self.assertFalse(private.exists())
+        self.assertFalse(public.exists())
+
+    def test_total_sample_pair_budget_prevents_excessive_near_screen(self):
+        manifest = self.setup_files([('A', {'level':'4.0'}), ('B', {'level':'3.6'}), ('C', {'level':'3.2'})])
+        with self.assertRaisesRegex(ValueError, 'pair budget'):
+            pipeline.audit_offline(manifest, self.root, max_pairs=350)
+
     def test_never_overwrite_existing_report_or_source_csv(self):
         manifest = self.setup_files([('A', {'level':'4.0'}), ('B', {'level':'3.6'}), ('C', {'level':'3.2'})])
         summary, private = pipeline.audit_offline(manifest, self.root)
