@@ -33,6 +33,8 @@ class Cursor:
     def __exit__(self, *args): return False
     def execute(self, sql, params=None): self.sql = sql
     def fetchone(self):
+        if "FROM pg_auth_members" in self.sql:
+            return (False,)  # Existing policy fixtures represent an isolated role.
         if "FROM pg_roles" in self.sql:
             return ("cano_autodev_worker", False, False)
         if "FROM pg_class" in self.sql:

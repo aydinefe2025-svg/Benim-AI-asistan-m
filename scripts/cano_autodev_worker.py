@@ -278,6 +278,19 @@ class NeonJobStore:
             role = cur.fetchone()
             if role != ("cano_autodev_worker", False, False):
                 raise PermissionError("Dedicated least-privilege role required")
+            # A NOINHERIT role can still SET ROLE to a granted role. Direct
+            # membership is enough to open a privileged path even when this
+            # login itself is neither SUPERUSER nor BYPASSRLS. Fail closed.
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_auth_members AS membership
+                    WHERE membership.member = (
+                        SELECT oid FROM pg_roles WHERE rolname = current_user
+                    )
+                )
+            """)
+            if cur.fetchone() != (False,):
+                raise PermissionError("Worker role membership is not permitted")
             cur.execute("""
                 SELECT relrowsecurity, relforcerowsecurity FROM pg_class
                 WHERE oid='public.cano_code_jobs'::regclass
