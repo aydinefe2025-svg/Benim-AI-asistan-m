@@ -42,7 +42,7 @@ jobs:
           PY
       - name: Fail-closed alternate RNS conversion tests
         run: |
-          PYTHONPATH=research/j0740/f67:research/j0740/f62:research/j0740/rotating_gr python -m unittest research/j0740/f68/test_f68_mpa1_pchip_cold_rns.py -v
+          PYTHONPATH=research/j0740/f68:research/j0740/f67:research/j0740/f62:research/j0740/rotating_gr python -m unittest research/j0740/f68/test_f68_mpa1_pchip_cold_rns.py -v
       - name: Build exact pinned full-GR RNS C binary, output-only precision patch
         run: |
           python research/j0740/f62/f62_rns_precision_patch.py rns-upstream/rns.c
@@ -51,7 +51,7 @@ jobs:
         run: |
           set +e
           SOURCE=$(cat results/F68/installed_MPA1_source_path.txt)
-          PYTHONPATH=research/j0740/f67:research/j0740/f62:research/j0740/rotating_gr python -u research/j0740/f68/f68_mpa1_pchip_cold_rns.py \
+          PYTHONPATH=research/j0740/f68:research/j0740/f67:research/j0740/f62:research/j0740/rotating_gr python -u research/j0740/f68/f68_mpa1_pchip_cold_rns.py \
             --source "$SOURCE" \
             --out results/F68/F68_MPA1_PCHIP_COLD_direct_RNS.json \
             --table-dir results/F68/tables
