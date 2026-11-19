@@ -25,17 +25,22 @@ import near_duplicate_guard as near
 
 SCHEMA = 'cano.battery.customer-local-pipeline.v1'
 MAX_TRACES = 120
+MAX_PAIRS = 1_000_000
 
 
-def audit_offline(manifest, root, *, max_traces=MAX_TRACES):
+def audit_offline(manifest, root, *, max_traces=MAX_TRACES, max_pairs=MAX_PAIRS):
     """In-memory only. The returned private manifest contains customer IDs."""
     if not isinstance(max_traces, int) or isinstance(max_traces, bool) or not 3 <= max_traces <= MAX_TRACES:
         raise ValueError('REVIEW_REQUIRED: invalid trace budget')
+    if not isinstance(max_pairs, int) or isinstance(max_pairs, bool) or not 3 <= max_pairs <= MAX_PAIRS:
+        raise ValueError('REVIEW_REQUIRED: invalid pair budget')
     root = Path(root)
     audited = numeric.build_numeric_audit(manifest, root)
     traces = audited['all_curve_identity']
     if len(traces) > max_traces:
         raise ValueError('REVIEW_REQUIRED: trace budget exceeded; batch must be reviewed')
+    if audited['measured_time_voltage_pairs'] > max_pairs:
+        raise ValueError('REVIEW_REQUIRED: pair budget exceeded; batch must be reviewed')
     units = audited['unit_contract']
     if units['voltage_unit'] not in ('v', 'mv') or units['time_unit'] not in ('h', 's', 'ms'):
         raise ValueError('UNIT_REVIEW_REQUIRED: unsupported physical units')
@@ -77,6 +82,11 @@ def audit_offline(manifest, root, *, max_traces=MAX_TRACES):
             })
     if len(physical_traces) != len(traces):
         raise ValueError('REVIEW_REQUIRED: trace count changed during analysis')
+    # compare_near skips flat or short traces by design. Do not silently
+    # reinterpret a skipped screen as evidence of no near-duplicate leakage.
+    unscreened = [t for t in physical_traces
+                  if (t['n'] < near.DEFAULT_MIN_POINTS or
+                      max(t['volts'])-min(t['volts']) < near.DEFAULT_MIN_VOLTAGE_RANGE_V)]
     candidates = near.candidates_for(physical_traces)
     split = near.propose_split(traces, candidates)
     if split is not None:
@@ -88,7 +98,7 @@ def audit_offline(manifest, root, *, max_traces=MAX_TRACES):
     groups = near.components(traces, candidates)
     if split is None:
         decision = 'BLOCK_INSUFFICIENT_GROUPS'
-    elif cross_numeric_groups or candidates:
+    elif cross_numeric_groups or candidates or unscreened:
         decision = 'REVIEW_REQUIRED'
     else:
         decision = 'SCREEN_ONLY_NO_CROSS_CELL_CANDIDATES'
@@ -103,6 +113,7 @@ def audit_offline(manifest, root, *, max_traces=MAX_TRACES):
         'numeric_only_duplicate_groups': len(audited['numeric_only_duplicate_groups']),
         'cross_cell_numeric_duplicate_groups': cross_numeric_groups,
         'near_candidates': len(candidates),
+        'unscreened_traces': len(unscreened),
         'independent_groups': len(groups),
         'holdout_possible': split is not None,
         'near_screen_threshold_mv': near.DEFAULT_TOLERANCE_MV,
@@ -112,6 +123,7 @@ def audit_offline(manifest, root, *, max_traces=MAX_TRACES):
         'limitations': [
             'SCREEN_ONLY is not certification of statistical or physical independence.',
             'Near matches are review candidates, not proof of copying or fraud.',
+            'Traces with fewer than 100 samples or voltage span below 0.05 V were not near-screened; human review required.',
             'Thresholds are not calibrated on real independent customer labels.',
             'Shared batches, changed time grids, derived feature leakage, SOH and field performance not validated.',
             'Private split contains cell aliases and hashes; disclose only with customer permission.',
@@ -176,6 +188,8 @@ def main(argv=None):
                     help='Exit 0 on REVIEW_REQUIRED, only to view the report; no model acceptance')
     args = ap.parse_args(argv)
     try:
+        if args.report_only and args.private_split is not None:
+            raise ValueError('REVIEW_REQUIRED: --report-only cannot create private split')
         manifest = json.loads(args.manifest.read_text(encoding='utf-8'))
         root = args.root if args.root else args.manifest.parent
         summary, private = audit_offline(manifest, root)
