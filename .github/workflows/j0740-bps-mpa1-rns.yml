@@ -23,6 +23,11 @@ jobs:
           python-version: "3.12"
       - name: Install numerical dependencies
         run: python -m pip install "numpy>=1.26,<3" "scipy>=1.13,<2"
+      - name: Normalize source CSV line endings and verify canonical SHA-256
+        run: |
+          sed -i 's/\r$//' research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv research/j0740/physical_eos_validation/JESTER_LALSuite_MPA1_source_e6768650.csv
+          test "$(sha256sum research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv | cut -d' ' -f1)" = "a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787"
+          test "$(sha256sum research/j0740/physical_eos_validation/JESTER_LALSuite_MPA1_source_e6768650.csv | cut -d' ' -f1)" = "f51d6476f999bf02a839fcb5f318d94c9f11338d270644c3c8b617cdb95a32c9"
       - name: Verify RNS source pin and build two resolutions
         run: |
           test "$(git -C vendor/rns rev-parse HEAD)" = "97e85d325a33e37f702306414533f6cd77812477"
