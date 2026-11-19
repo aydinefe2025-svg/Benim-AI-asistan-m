@@ -1,0 +1,45 @@
+{
+  "CI_is_new_model_not_original_nuclear": "TRUE",
+  "CI_output_SHA256": {
+    "F69_Fe56_conditional_surface_static_TOV_and_baryon_20261119.json": "33f193bb30f60b4bfd9c9b562557a0649405534790fd7955c2069ddb0d3a9da2",
+    "F69_SHA256_CI_manifest_20261119.json": "647be1a55294e8bb67bd98c930f30f74c4d2f41541f49cf3778bd9487872ab48",
+    "F69_conditional_Fe56_surface_cold_thermo_20261119.dat": "32c0751ea503be89c8484152bb24f7866ea37d37e1e7c4ed48c48d6b691e65ef"
+  },
+  "CI_python_scipy": "GitHub Python 3.12 scipy 1.16.3 numpy 2.3.5",
+  "CI_result_Mb_Msun": {
+    "2.073": 2.421825061759552,
+    "2.175": 2.567308692967433,
+    "2.200": 2.6036178172305373,
+    "2.250": 2.6770867882114158
+  },
+  "CI_result_Mg_Msun": {
+    "2.073": 2.07299993110053,
+    "2.175": 2.1749998577177996,
+    "2.200": 2.20000000569221,
+    "2.250": 2.2500000635072834
+  },
+  "CI_vs_local_result_JSON_byte_identical": false,
+  "CI_vs_local_thermo_DAT_byte_identical": false,
+  "F69_model_is_separate_conditional_not_original": true,
+  "GitHub_Action_id": 44507002417,
+  "GitHub_artifact_id": 14520595216,
+  "Github_SHA256_artifact": "59160d67e257b76c8d654e7b04983780e1ce2fdab5627e369964b69d303b4bd4",
+  "XPSI_and_7_original_Bayes": "NOT_RUN",
+  "ZIP_CRC_pass": true,
+  "local_output_SHA256": {
+    "F69_Fe56_conditional_surface_static_TOV_and_baryon_20261119.json": "4ffe44817f978b05f9888738ac4373cf345b959cac2c27cedebd93aa8dc7fb37",
+    "F69_conditional_Fe56_surface_cold_thermo_20261119.dat": "ad53005683a5ba53b8d7512b7c8bc272c10f504fa26418cf194f1711e4e969dd"
+  },
+  "local_python_scipy": "Python 3.11+ scipy 1.17.0 numpy 2.3.5",
+  "max_abs_Mb_delta_Msun_across_four": 3.8675382185715534e-07,
+  "max_abs_Mg_delta_Msun_across_four": 2.6912402617540465e-07,
+  "max_abs_R_delta_m_across_four": 0.0002565105958751701,
+  "reproduced_with_numerical_tolerances_not_byte_identical": true,
+  "schema": "A01.01.51_F69_CI_CROSS_PLATFORM_REPRODUCIBILITY_V1",
+  "table_2518x4_max_relative_delta_by_column": {
+    "E_geom": 1.2386452061902897e-16,
+    "H_abs": 3.742819393444601e-16,
+    "P_geom": 2.1216431657521786e-16,
+    "n_baryon_m-3": 0.0
+  }
+}
