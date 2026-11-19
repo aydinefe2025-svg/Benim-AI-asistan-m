@@ -138,8 +138,21 @@ def reconcile_job(job: Job, store, github) -> str:
     except Exception:
         return "recovery_unavailable"
     if prior is None:
-        # Branch may exist without a PR; require review rather than replay.
-        return "recovery_requires_reconcile"
+        # Reconciliation must never replay model/GitHub writes. An old
+        # running job with no GitHub branch has timed out and may be
+        # terminally blocked so later queued work can progress. Any
+        # existing branch, closed PR, or ambiguous API error stays open
+        # for human reconciliation, never discarded.
+        try:
+            if github.branch_exists(job.id):
+                return "recovery_requires_reconcile"
+        except Exception:
+            return "recovery_unavailable"
+        try:
+            store.block(job.id, "interrupted_no_github_branch")
+        except Exception:
+            return "recovery_write_failed"
+        return "stale_without_branch_blocked"
     branch, pr_url, commit_sha = prior
     try:
         store.record_pr(job.id, branch, pr_url, commit_sha)
@@ -230,7 +243,8 @@ class NeonJobStore:
     def block(self, job_id: str, reason: str) -> None:
         if reason not in {
             "missing_safe_target", "unsafe_candidate",
-            "source_or_model_unavailable", "github_write_needs_reconcile"
+            "source_or_model_unavailable", "github_write_needs_reconcile",
+            "interrupted_no_github_branch"
         }:
             raise ValueError("Unapproved reason code")
         with self._connect() as conn, conn.cursor() as cur:
@@ -294,6 +308,39 @@ class GitHubDrafts:
                     url)):
             return None
         return branch, url, sha
+
+    def branch_exists(self, job_id: str) -> bool:
+        """Fail closed unless GitHub explicitly confirms the branch absent.
+
+        The helper also checks old/closed PRs: a removed branch can belong
+        to a merged or closed proposal and must not be called 'never made'.
+        HTTP 401/403/500, malformed results and network failures propagate.
+        """
+        if not isinstance(job_id, str) or not re.fullmatch(
+            r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            job_id
+        ):
+            raise ValueError("Invalid development job id")
+        branch = "cano-autodev-" + job_id.replace("-", "")
+        try:
+            result = self._request("GET", "/git/ref/heads/" + branch)
+        except Exception as exc:
+            response = getattr(exc, "response", None)
+            if getattr(response, "status_code", None) != 404:
+                raise
+            # A deleted branch may have belonged to a human-merged PR.
+            # GitHub's head filter matches the historical head ref, even
+            # when the corresponding branch was deleted.
+            pulls = self._request("GET", "/pulls", params={
+                "head": "aydinefe2025-svg:" + branch,
+                "state": "all", "per_page": 2,
+            })
+            if not isinstance(pulls, list):
+                raise ValueError("Unverifiable historical PR listing")
+            return len(pulls) > 0
+        if not isinstance(result, dict) or result.get("ref") != "refs/heads/" + branch:
+            raise ValueError("Unverifiable GitHub branch result")
+        return True
 
     def dispatch_core_ci(self, branch: str) -> None:
         if not re.fullmatch(r"cano-autodev-[0-9a-f]{32}", branch):
@@ -398,7 +445,10 @@ def main() -> int:
         if stale is not None:
             status = reconcile_job(stale, db, github)
             print("CANO draft worker recovery: " + status)
-            return 0 if status == "pr_open" else 1
+            if status != "stale_without_branch_blocked":
+                return 0 if status == "pr_open" else 1
+            # A confirmed abandoned attempt has been accounted for.
+            # Continue with at most one new queued task in this run.
         job = db.claim_one()
         if job is None:
             print("CANO draft worker: no queued job")
