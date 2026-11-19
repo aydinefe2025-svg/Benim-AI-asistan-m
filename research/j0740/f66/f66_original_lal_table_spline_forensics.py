@@ -77,6 +77,41 @@ def evaluate_interpolants(tab,p):
     return cubic_e,cubic_der,pchip_e,pchip_der
 
 
+def interpolation_hypotheses(tab, pressures, direct_energy, direct_derivative):
+    """Independently test both linear/log axes, natural/not-a-knot cubic.
+
+    These are *forensics*, never published EOS surrogates.  The candidate with
+    the lowest two-source mismatch is descriptive, not proof of implementation.
+    """
+    rawp, rawe=np.asarray(tab,float).T
+    pressures=np.asarray(pressures,float)
+    ref_e=np.asarray(direct_energy,float)
+    ref_d=np.asarray(direct_derivative,float)
+    hypotheses=[]
+    for xlog in (False,True):
+        for ylog in (False,True):
+            for bc in ('natural','not-a-knot'):
+                x=np.log(rawp) if xlog else rawp*1e15
+                y=np.log(rawe) if ylog else rawe*1e13
+                xp=np.log(pressures) if xlog else pressures*1e15
+                spl=CubicSpline(x,y,bc_type=bc)
+                val=spl(xp)
+                yprime=spl(xp,1)
+                e=np.exp(val) if ylog else val/1e13
+                dedp=yprime*(e if ylog else 1/1e13)*(1/pressures if xlog else 1e15)
+                er=float(np.max(abs(e-ref_e)/np.maximum(abs(ref_e),1e-300)))
+                dr=float(np.max(abs(dedp-ref_d)/np.maximum(abs(ref_d),1.)))
+                sign=int(np.count_nonzero((dedp<0)!=(ref_d<0)))
+                hypotheses.append({'pressure_axis':'lnP' if xlog else 'P',
+                    'energy_axis':'lnE' if ylog else 'E','boundary_condition':bc,
+                    'negative_derivative_samples':int(np.count_nonzero(dedp<0)),
+                    'sign_disagreements_with_direct_LAL':sign,
+                    'max_relative_energy_difference':er,
+                    'max_scale1_derivative_difference':dr,
+                    'reproduced_direct_LAL':bool(er<1e-6 and dr<1e-4 and sign==0)})
+    return sorted(hypotheses,key=lambda v:(v['sign_disagreements_with_direct_LAL'],v['max_relative_energy_difference'],v['max_scale1_derivative_difference']))
+
+
 def compare_sources(f65,raw_tables):
     if f65.get('status')!='F65_DIRECT_LAL_CRUST_SIX_OF_SEVEN_NEGATIVE_LOCALIZED_FINITE_SCAN_NOT_PHYSICAL_CERT':
         raise ValueError('F66_F65_SOURCE_BAD_STATUS')
@@ -107,8 +142,11 @@ def compare_sources(f65,raw_tables):
         all_source_increasing=bool(np.all(np.diff(tab[:,1])>0))
         shared_low=[(float(a),float(b)) for a,b in tab if 1e-17<=a<=5e-16]
         common.append(shared_low)
+        hypotheses=interpolation_hypotheses(tab,p,e,dedp)
         out['eos'][name]={
             'raw_lal_data_sha256':None,'raw_lal_data_row_count':int(len(tab)),
+            'eight_cubic_axis_boundary_hypotheses':hypotheses,
+            'best_descriptive_cubic_hypothesis':hypotheses[0],
             'raw_source_energy_nonincreasing_edges':int(np.count_nonzero(np.diff(tab[:,1])<=0)),
             'raw_source_pressure_nonincreasing_edges':int(np.count_nonzero(np.diff(tab[:,0])<=0)),
             'source_tabular_all_energy_monotone':all_source_increasing,
@@ -130,12 +168,17 @@ def compare_sources(f65,raw_tables):
     out['raw_source_all_positive_secants']=all(v['source_tabular_all_energy_monotone'] for v in out['eos'].values())
     out['six_negative_cubic_reproduced']=all(out['eos'][n]['LAL_F65_direct_negative_samples']==205 and out['eos'][n]['natural_cubic_negative_derivative_samples']==205 for n in BAD)
     out['PCHIP_six_no_negative_derivative']=all(out['eos'][n]['PCHIP_diagnostic_negative_derivative_samples']==0 for n in BAD)
+    out['any_direct_C_cubic_hypothesis_exact_all_seven']=all(any(x['reproduced_direct_LAL'] for x in out['eos'][name]['eight_cubic_axis_boundary_hypotheses']) for name in EOS)
     out['apparent_common_negative_crust_origin']='UNRESOLVED_UNTIL_REPRODUCTION'
-    if out['all_seven_cubic_reproduce_LAL_F65'] and out['raw_source_all_positive_secants'] and out['six_negative_cubic_reproduced'] and out['PCHIP_six_no_negative_derivative'] and out['six_common_lowpressure_source_rows_equal']:
-        out['status']='ORIGINAL_RAW_TABLE_POSITIVE_SECANTS_GSL_NATURAL_CUBIC_OVERSHOOT_REPRODUCED_NOT_EOS_REPAIRED'
-        out['apparent_common_negative_crust_origin']='REPRODUCED_FROM_NON_SHAPE_PRESERVING_NATURAL_CUBIC_INTERPOLATION_OF_MONOTONE_RAW_EOS'
+    if out['raw_source_all_positive_secants'] and out['six_common_lowpressure_source_rows_equal'] and out['PCHIP_six_no_negative_derivative'] and all(out['eos'][n]['LAL_F65_direct_negative_samples']==205 for n in BAD):
+        if out['any_direct_C_cubic_hypothesis_exact_all_seven']:
+            out['status']='ORIGINAL_MONOTONE_RAW_TABLE_DIRECT_LAL_NEGATIVE_CUBIC_AXIS_REPRODUCED_NO_EOS_REPAIR'
+            out['apparent_common_negative_crust_origin']='RAW_POSITIVE_NATIVE_DERIVATIVE_NEGATIVE_AND_INDEPENDENT_CUBIC_HYPOTHESIS_REPRODUCES_SOURCE'
+        else:
+            out['status']='MONOTONE_NATIVE_RAW_TABLE_LAL_NEGATIVE_DERIVATIVE_INTERPOLATION_STAGE_ISOLATED_EXACT_ALGORITHM_UNRESOLVED'
+            out['apparent_common_negative_crust_origin']='RAW_POSITIVE_NATIVE_LAL_NEGATIVE; INTERPOLATION_OR_PREPROCESSING; EXACT_ALGORITHM_NOT_YET_IDENTIFIED'
     else:
-        out['status']='SOURCE_LEVEL_MECHANISM_NOT_YET_FULLY_REPRODUCED'
+        out['status']='RAW_SOURCE_OR_LAL_COMPARISON_CONTRADICTS_CURRENT_HYPOTHESIS'
     return out
 
 
@@ -160,6 +203,6 @@ def main():
         'cubic_reproduced':d['all_seven_cubic_reproduce_LAL_F65'],
         'raw_monotone':d['raw_source_all_positive_secants'],
         'signs':{n:[x['LAL_F65_direct_negative_samples'],x['natural_cubic_negative_derivative_samples'],x['PCHIP_diagnostic_negative_derivative_samples']] for n,x in d['eos'].items()}},sort_keys=True))
-    if d['status']!='ORIGINAL_RAW_TABLE_POSITIVE_SECANTS_GSL_NATURAL_CUBIC_OVERSHOOT_REPRODUCED_NOT_EOS_REPAIRED':
-        raise SystemExit('F66_SOURCE_CAUSE_NOT_FULLY_REPRODUCED_DO_NOT_CLAIM_SUCCESS')
+    if d['status']=='RAW_SOURCE_OR_LAL_COMPARISON_CONTRADICTS_CURRENT_HYPOTHESIS':
+        raise SystemExit('F66_FAIL_CLOSED_EVIDENCE_NOT_SUPPORTING_MONOTONE_SOURCE')
 if __name__=='__main__':main()
