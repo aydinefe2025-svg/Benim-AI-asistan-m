@@ -2,10 +2,11 @@ test_continuous_piecewise_causality_and_stability (__main__.MatchedEOSValidation
 test_independent_tov_formulations_and_convergence (__main__.MatchedEOSValidation.test_independent_tov_formulations_and_convergence) ... ok
 test_pinned_sources_and_separate_model_identity (__main__.MatchedEOSValidation.test_pinned_sources_and_separate_model_identity) ... ok
 test_pressure_energy_and_firstlaw_density_join (__main__.MatchedEOSValidation.test_pressure_energy_and_firstlaw_density_join) ... ok
+test_turning_point_is_inside_source_and_tail_does_not_raise_mass (__main__.MatchedEOSValidation.test_turning_point_is_inside_source_and_tail_does_not_raise_mass) ... ok
 test_unrun_inference_and_rotation_are_not_claimed (__main__.MatchedEOSValidation.test_unrun_inference_and_rotation_are_not_claimed) ... ok
 
 ----------------------------------------------------------------------
-Ran 5 tests in 38.345s
+Ran 6 tests in 43.156s
 
 OK
 
