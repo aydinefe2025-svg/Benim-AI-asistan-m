@@ -1,0 +1,1085 @@
+{
+  "direct_C_stars": {
+    "2.073": {
+      "C_evaluations_rotating": 14,
+      "C_evaluations_static": 14,
+      "rotating": {
+        "actual_direct_C_calls": 14,
+        "root_reported_frequency_minus_target_hz": 0.07943638099999362,
+        "root_reported_mass_minus_target_msun": 0.0,
+        "root_trace": [
+          {
+            "central_rho_g_cm3": 781927813473451.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.525705106,
+            "mass_msun": 1.5937311,
+            "radius_eq_km": 12.678436826,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 843658956642408.1,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.605455504,
+            "mass_msun": 1.747143918,
+            "radius_eq_km": 12.666380592,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 895101575949872.1,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.596550526,
+            "mass_msun": 1.857953054,
+            "radius_eq_km": 12.642342649,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 946544195257336.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.517585712,
+            "mass_msun": 1.953976841,
+            "radius_eq_km": 12.605921694,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 987698290703307.1,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.520034756,
+            "mass_msun": 2.021273073,
+            "radius_eq_km": 12.57022882,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1028852386149278.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.507509551,
+            "mass_msun": 2.081029489,
+            "radius_eq_km": 12.530361072,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1070006481595249.4,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.508997254,
+            "mass_msun": 2.133596655,
+            "radius_eq_km": 12.486913652,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1121449100902713.4,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.585800733,
+            "mass_msun": 2.190009367,
+            "radius_eq_km": 12.428668292,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1183180244071670.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.776424608,
+            "mass_msun": 2.247007536,
+            "radius_eq_km": 12.35680696,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1023322496995812.6,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.616124615,
+            "mass_msun": 2.07314358,
+            "radius_eq_km": 12.535312698,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1023222092120913.9,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.615568957,
+            "mass_msun": 2.073004428,
+            "radius_eq_km": 12.53541328,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1023218897532651.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.615811355,
+            "mass_msun": 2.073000042,
+            "radius_eq_km": 12.535416679,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1023218866941668.6,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.615805239,
+            "mass_msun": 2.072999999,
+            "radius_eq_km": 12.535416706,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1023218867653086.9,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.615805381,
+            "mass_msun": 2.073,
+            "radius_eq_km": 12.535416706,
+            "status": "DIRECT_C"
+          }
+        ],
+        "star": {
+          "allowed_spin_residual_hz": 0.25,
+          "central_energy_density_g_cm3": 1023218867653086.9,
+          "mass_msun": 2.073,
+          "radius_eq_km": 12.535416706,
+          "requested_spin_hz": 346.536369,
+          "solver_mode": "RNS_C_SETSPIN",
+          "spin_hz_reported": 346.615805381,
+          "spin_residual_hz": 0.07943638099999362
+        },
+        "static_anchor_rho_g_cm3": 1028852386149278.2,
+        "status": "PASS_DIRECT_RNS_C_MASS_FREQUENCY_ROOT_NUMERICAL_ONLY",
+        "trial_failures": []
+      },
+      "spin_minus_static_eq_radius_km": 0.12880106299999916,
+      "static": {
+        "actual_direct_C_calls": 14,
+        "root_reported_frequency_minus_target_hz": 0.0,
+        "root_reported_mass_minus_target_msun": 0.0,
+        "root_trace": [
+          {
+            "central_rho_g_cm3": 781927813473451.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.568365179,
+            "radius_eq_km": 12.492727987,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 843658956642408.1,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.723259997,
+            "radius_eq_km": 12.505766064,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 895101575949872.1,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.835069499,
+            "radius_eq_km": 12.497472864,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 946544195257336.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.931133284,
+            "radius_eq_km": 12.473495278,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 987698290703307.1,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.999023788,
+            "radius_eq_km": 12.447212492,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1028852386149278.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.059334762,
+            "radius_eq_km": 12.415332633,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1070006481595249.4,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.112717267,
+            "radius_eq_km": 12.378796414,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1121449100902713.4,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.170864661,
+            "radius_eq_km": 12.329376523,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1183180244071670.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.22921643,
+            "radius_eq_km": 12.26528266,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1039387307823409.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.073617466,
+            "radius_eq_km": 12.406281188,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1038931864936233.4,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.072996968,
+            "radius_eq_km": 12.406619836,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1038934090411309.6,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.072999592,
+            "radius_eq_km": 12.406616208,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1038934436217047.6,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.072999999,
+            "radius_eq_km": 12.406615644,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1038934437066616.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.073,
+            "radius_eq_km": 12.406615643,
+            "status": "DIRECT_C"
+          }
+        ],
+        "star": {
+          "allowed_spin_residual_hz": 0.1,
+          "central_energy_density_g_cm3": 1038934437066616.5,
+          "mass_msun": 2.073,
+          "radius_eq_km": 12.406615643,
+          "requested_spin_hz": 0.0,
+          "spin_hz_reported": 0.0,
+          "spin_residual_hz": 0.0
+        },
+        "static_anchor_rho_g_cm3": 1028852386149278.2,
+        "status": "PASS_DIRECT_RNS_C_MASS_FREQUENCY_ROOT_NUMERICAL_ONLY",
+        "trial_failures": []
+      },
+      "static_anchor_from_F61_original_not_same_model_gcm3": 1028852386149278.2,
+      "status": "DIRECT_RNS_C_SPIN_AND_STATIC_ROOTS_PASS_NUMERICAL_ONLY"
+    },
+    "2.175": {
+      "C_evaluations_rotating": 14,
+      "C_evaluations_static": 13,
+      "rotating": {
+        "actual_direct_C_calls": 14,
+        "root_reported_frequency_minus_target_hz": 0.060549124000033316,
+        "root_reported_mass_minus_target_msun": 0.0,
+        "root_trace": [
+          {
+            "central_rho_g_cm3": 846881130750763.9,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.604733724,
+            "mass_msun": 1.754541106,
+            "radius_eq_km": 12.665247027,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 913740167388982.0,
+            "direct_C_solver_mode": "RNS_C_AXIS_RATIO_FREQUENCY_REFINED",
+            "frequency_hz_reported": 346.585662052,
+            "mass_msun": 1.894437345,
+            "radius_eq_km": 12.630594429,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 969456031254163.9,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.518053126,
+            "mass_msun": 1.992416459,
+            "radius_eq_km": 12.586684599,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1025171895119345.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.615033447,
+            "mass_msun": 2.075697401,
+            "radius_eq_km": 12.533448254,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1069744586211491.1,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.508783351,
+            "mass_msun": 2.133283041,
+            "radius_eq_km": 12.487198665,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1114317277303636.6,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.590646294,
+            "mass_msun": 2.182662174,
+            "radius_eq_km": 12.43672694,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1158889968395782.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.528055718,
+            "mass_msun": 2.225973047,
+            "radius_eq_km": 12.385547378,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1214605832260964.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.608282092,
+            "mass_msun": 2.27202785,
+            "radius_eq_km": 12.319277744,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1281464868899182.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.563024066,
+            "mass_msun": 2.317240768,
+            "radius_eq_km": 12.23772983,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1107400920250622.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.596011178,
+            "mass_msun": 2.175377321,
+            "radius_eq_km": 12.444490907,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1107045896713531.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.596231973,
+            "mass_msun": 2.174999078,
+            "radius_eq_km": 12.444888023,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1107046762114083.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.596908869,
+            "mass_msun": 2.174999935,
+            "radius_eq_km": 12.44488712,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1107046827739926.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.596918979,
+            "mass_msun": 2.175000006,
+            "radius_eq_km": 12.444887052,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1107046822194080.4,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.596918124,
+            "mass_msun": 2.175,
+            "radius_eq_km": 12.444887058,
+            "status": "DIRECT_C"
+          }
+        ],
+        "star": {
+          "allowed_spin_residual_hz": 0.25,
+          "central_energy_density_g_cm3": 1107046822194080.4,
+          "mass_msun": 2.175,
+          "radius_eq_km": 12.444887058,
+          "requested_spin_hz": 346.536369,
+          "solver_mode": "RNS_C_SETSPIN",
+          "spin_hz_reported": 346.596918124,
+          "spin_residual_hz": 0.060549124000033316
+        },
+        "static_anchor_rho_g_cm3": 1114317277303636.6,
+        "status": "PASS_DIRECT_RNS_C_MASS_FREQUENCY_ROOT_NUMERICAL_ONLY",
+        "trial_failures": []
+      },
+      "spin_minus_static_eq_radius_km": 0.11956403699999996,
+      "static": {
+        "actual_direct_C_calls": 13,
+        "root_reported_frequency_minus_target_hz": 0.0,
+        "root_reported_mass_minus_target_msun": 0.0,
+        "root_trace": [
+          {
+            "central_rho_g_cm3": 846881130750763.9,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.7307359,
+            "radius_eq_km": 12.505644281,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 913740167388982.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.871418783,
+            "radius_eq_km": 12.490032809,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 969456031254163.9,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.969899939,
+            "radius_eq_km": 12.459786929,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1025171895119345.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.054165678,
+            "radius_eq_km": 12.418099781,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1069744586211491.1,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.112433835,
+            "radius_eq_km": 12.379217929,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1114317277303636.6,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.163357036,
+            "radius_eq_km": 12.336487859,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1158889968395782.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.207615579,
+            "radius_eq_km": 12.290896281,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1214605832260964.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.254414365,
+            "radius_eq_km": 12.230978725,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1281464868899182.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.299800243,
+            "radius_eq_km": 12.155404092,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1126042883313056.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.17561482,
+            "radius_eq_km": 12.324767299,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1125454756039259.6,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.175002427,
+            "radius_eq_km": 12.32531887,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1125452425693527.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.175000292,
+            "radius_eq_km": 12.325322521,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1125452106984676.1,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.175,
+            "radius_eq_km": 12.325323021,
+            "status": "DIRECT_C"
+          }
+        ],
+        "star": {
+          "allowed_spin_residual_hz": 0.1,
+          "central_energy_density_g_cm3": 1125452106984676.1,
+          "mass_msun": 2.175,
+          "radius_eq_km": 12.325323021,
+          "requested_spin_hz": 0.0,
+          "spin_hz_reported": 0.0,
+          "spin_residual_hz": 0.0
+        },
+        "static_anchor_rho_g_cm3": 1114317277303636.6,
+        "status": "PASS_DIRECT_RNS_C_MASS_FREQUENCY_ROOT_NUMERICAL_ONLY",
+        "trial_failures": []
+      },
+      "static_anchor_from_F61_original_not_same_model_gcm3": 1114317277303636.6,
+      "status": "DIRECT_RNS_C_SPIN_AND_STATIC_ROOTS_PASS_NUMERICAL_ONLY"
+    },
+    "2.200": {
+      "C_evaluations_rotating": 14,
+      "C_evaluations_static": 13,
+      "rotating": {
+        "actual_direct_C_calls": 14,
+        "root_reported_frequency_minus_target_hz": 0.04167146100002128,
+        "root_reported_mass_minus_target_msun": 0.0,
+        "root_trace": [
+          {
+            "central_rho_g_cm3": 865896554798117.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.600766038,
+            "mass_msun": 1.796938281,
+            "radius_eq_km": 12.65756423,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 934256809124284.9,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.517041252,
+            "mass_msun": 1.932300962,
+            "radius_eq_km": 12.615538315,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 991223687729424.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.520312722,
+            "mass_msun": 2.026673089,
+            "radius_eq_km": 12.566944524,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1048190566334563.6,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.502279128,
+            "mass_msun": 2.106577179,
+            "radius_eq_km": 12.510314965,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1093764069218675.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.514768726,
+            "mass_msun": 2.160811643,
+            "radius_eq_km": 12.460257686,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1139337572102786.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.516583103,
+            "mass_msun": 2.207938739,
+            "radius_eq_km": 12.408700895,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1184911074986898.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.760350804,
+            "mass_msun": 2.248475767,
+            "radius_eq_km": 12.354804787,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1241877953592037.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.554263173,
+            "mass_msun": 2.291806342,
+            "radius_eq_km": 12.286439908,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1310238207918204.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.501071927,
+            "mass_msun": 2.334159218,
+            "radius_eq_km": 12.203140425,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1131660541786454.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.578825413,
+            "mass_msun": 2.200245374,
+            "radius_eq_km": 12.417039742,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1131417212351768.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.578367536,
+            "mass_msun": 2.200005122,
+            "radius_eq_km": 12.417317473,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1131412026403888.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.578059703,
+            "mass_msun": 2.200000131,
+            "radius_eq_km": 12.4173236,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1131411890288385.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.578039727,
+            "mass_msun": 2.199999995,
+            "radius_eq_km": 12.417323746,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1131411895292632.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.578040461,
+            "mass_msun": 2.2,
+            "radius_eq_km": 12.41732374,
+            "status": "DIRECT_C"
+          }
+        ],
+        "star": {
+          "allowed_spin_residual_hz": 0.25,
+          "central_energy_density_g_cm3": 1131411895292632.0,
+          "mass_msun": 2.2,
+          "radius_eq_km": 12.41732374,
+          "requested_spin_hz": 346.536369,
+          "solver_mode": "RNS_C_SETSPIN",
+          "spin_hz_reported": 346.578040461,
+          "spin_residual_hz": 0.04167146100002128
+        },
+        "static_anchor_rho_g_cm3": 1139337572102786.5,
+        "status": "PASS_DIRECT_RNS_C_MASS_FREQUENCY_ROOT_NUMERICAL_ONLY",
+        "trial_failures": []
+      },
+      "spin_minus_static_eq_radius_km": 0.11779192200000033,
+      "static": {
+        "actual_direct_C_calls": 13,
+        "root_reported_frequency_minus_target_hz": 0.0,
+        "root_reported_mass_minus_target_msun": 0.0,
+        "root_trace": [
+          {
+            "central_rho_g_cm3": 865896554798117.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.773738029,
+            "radius_eq_km": 12.504252874,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 934256809124284.9,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.909447538,
+            "radius_eq_km": 12.480577158,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 991223687729424.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.004507383,
+            "radius_eq_km": 12.444864039,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1048190566334563.6,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.085261938,
+            "radius_eq_km": 12.398762156,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1093764069218675.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.140751649,
+            "radius_eq_km": 12.356506957,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1139337572102786.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.189003535,
+            "radius_eq_km": 12.31137787,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1184911074986898.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.230733141,
+            "radius_eq_km": 12.263678525,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1241877953592037.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.274155496,
+            "radius_eq_km": 12.20043658,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1310238207918204.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.316406092,
+            "radius_eq_km": 12.12214318,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1151346969684746.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.200592607,
+            "radius_eq_km": 12.298942766,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1150732869343248.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.200000457,
+            "radius_eq_km": 12.299530985,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1150732395422462.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.200000055,
+            "radius_eq_km": 12.299531717,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1150732330582880.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.2,
+            "radius_eq_km": 12.299531818,
+            "status": "DIRECT_C"
+          }
+        ],
+        "star": {
+          "allowed_spin_residual_hz": 0.1,
+          "central_energy_density_g_cm3": 1150732330582880.5,
+          "mass_msun": 2.2,
+          "radius_eq_km": 12.299531818,
+          "requested_spin_hz": 0.0,
+          "spin_hz_reported": 0.0,
+          "spin_residual_hz": 0.0
+        },
+        "static_anchor_rho_g_cm3": 1139337572102786.5,
+        "status": "PASS_DIRECT_RNS_C_MASS_FREQUENCY_ROOT_NUMERICAL_ONLY",
+        "trial_failures": []
+      },
+      "static_anchor_from_F61_original_not_same_model_gcm3": 1139337572102786.5,
+      "status": "DIRECT_RNS_C_SPIN_AND_STATIC_ROOTS_PASS_NUMERICAL_ONLY"
+    },
+    "2.250": {
+      "C_evaluations_rotating": 13,
+      "C_evaluations_static": 14,
+      "rotating": {
+        "actual_direct_C_calls": 13,
+        "root_reported_frequency_minus_target_hz": 0.2091683430000444,
+        "root_reported_mass_minus_target_msun": 0.0,
+        "root_trace": [
+          {
+            "central_rho_g_cm3": 909275538435935.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.774897173,
+            "mass_msun": 1.885711376,
+            "radius_eq_km": 12.633224872,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 981060449365088.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.519216013,
+            "mass_msun": 2.010951434,
+            "radius_eq_km": 12.576323424,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1040881208472715.6,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.506679389,
+            "mass_msun": 2.097087227,
+            "radius_eq_km": 12.517940179,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1100701967580343.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.617331588,
+            "mass_msun": 2.168129228,
+            "radius_eq_km": 12.451878257,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1148558574866444.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.50055697,
+            "mass_msun": 2.216468911,
+            "radius_eq_km": 12.39755017,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1196415182152546.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.471569418,
+            "mass_msun": 2.258001818,
+            "radius_eq_km": 12.341337789,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1244271789438648.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.556057666,
+            "mass_msun": 2.293453956,
+            "radius_eq_km": 12.283534076,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1304092548546276.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.500792646,
+            "mass_msun": 2.330725516,
+            "radius_eq_km": 12.210631199,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1375877459475428.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.596059012,
+            "mass_msun": 2.366580839,
+            "radius_eq_km": 12.122944992,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1187195026635841.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.741014668,
+            "mass_msun": 2.250400568,
+            "radius_eq_km": 12.352159549,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1186714882010150.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.745049957,
+            "mass_msun": 2.249997057,
+            "radius_eq_km": 12.35271585,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1186718383936078.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.745536184,
+            "mass_msun": 2.249999993,
+            "radius_eq_km": 12.35271192,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1186718392285211.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 346.745537343,
+            "mass_msun": 2.25,
+            "radius_eq_km": 12.35271191,
+            "status": "DIRECT_C"
+          }
+        ],
+        "star": {
+          "allowed_spin_residual_hz": 0.25,
+          "central_energy_density_g_cm3": 1186718392285211.5,
+          "mass_msun": 2.25,
+          "radius_eq_km": 12.35271191,
+          "requested_spin_hz": 346.536369,
+          "solver_mode": "RNS_C_SETSPIN",
+          "spin_hz_reported": 346.745537343,
+          "spin_residual_hz": 0.2091683430000444
+        },
+        "static_anchor_rho_g_cm3": 1196415182152546.8,
+        "status": "PASS_DIRECT_RNS_C_MASS_FREQUENCY_ROOT_NUMERICAL_ONLY",
+        "trial_failures": []
+      },
+      "spin_minus_static_eq_radius_km": 0.11533164000000085,
+      "static": {
+        "actual_direct_C_calls": 14,
+        "root_reported_frequency_minus_target_hz": 0.0,
+        "root_reported_mass_minus_target_msun": 0.0,
+        "root_trace": [
+          {
+            "central_rho_g_cm3": 909275538435935.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.862947259,
+            "radius_eq_km": 12.492272363,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 981060449365088.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 1.988582888,
+            "radius_eq_km": 12.451805067,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1040881208472715.6,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.07562261,
+            "radius_eq_km": 12.405053937,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1100701967580343.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.148523641,
+            "radius_eq_km": 12.349701693,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1148558574866444.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.197934184,
+            "radius_eq_km": 12.301809266,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1196415182152546.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.240138156,
+            "radius_eq_km": 12.250839836,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1244271789438648.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.275738502,
+            "radius_eq_km": 12.197469587,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1304092548546276.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.312972316,
+            "radius_eq_km": 12.129192297,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1375877459475428.8,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.349346292,
+            "radius_eq_km": 12.047320715,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1209672199245156.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.250643012,
+            "radius_eq_km": 12.236448624,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1208860724906550.0,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.250015739,
+            "radius_eq_km": 12.237343616,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1208840396526464.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.250002135,
+            "radius_eq_km": 12.237375302,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1208837207006290.2,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.249999999,
+            "radius_eq_km": 12.237380272,
+            "status": "DIRECT_C"
+          },
+          {
+            "central_rho_g_cm3": 1208837208499511.5,
+            "direct_C_solver_mode": "RNS_C_SETSPIN",
+            "frequency_hz_reported": 0.0,
+            "mass_msun": 2.25,
+            "radius_eq_km": 12.23738027,
+            "status": "DIRECT_C"
+          }
+        ],
+        "star": {
+          "allowed_spin_residual_hz": 0.1,
+          "central_energy_density_g_cm3": 1208837208499511.5,
+          "mass_msun": 2.25,
+          "radius_eq_km": 12.23738027,
+          "requested_spin_hz": 0.0,
+          "spin_hz_reported": 0.0,
+          "spin_residual_hz": 0.0
+        },
+        "static_anchor_rho_g_cm3": 1196415182152546.8,
+        "status": "PASS_DIRECT_RNS_C_MASS_FREQUENCY_ROOT_NUMERICAL_ONLY",
+        "trial_failures": []
+      },
+      "static_anchor_from_F61_original_not_same_model_gcm3": 1196415182152546.8,
+      "status": "DIRECT_RNS_C_SPIN_AND_STATIC_ROOTS_PASS_NUMERICAL_ONLY"
+    }
+  },
+  "direct_RNS_static_minus_independent_F67_TOV_km": 0.0004600617955397013,
+  "global_Causality": "NOT_ESTABLISHED",
+  "grid": "151x301",
+  "limitations": [
+    "Mathematically separate F67 PCHIP cold EOS, not original MPA1 nuclear EOS",
+    "F67 H(P) is sourced from positive minimum pressure, not a physical P=0 crust surface",
+    "EOS table has 196 new resampled points; this is a discretized representation sensitivity test",
+    "n0 is arbitrarily set by mass-density proxy, so do not interpret RNS M0 as physical",
+    "Single-spin GR roots, not global stability or microphysical EOS proof",
+    "No source-native photon nuisance likelihood or Bayes posterior"
+  ],
+  "model": "MPA1_PCHIP_COLD_V1_EXPLORATORY_NOT_ORIGINAL",
+  "not_F42": true,
+  "not_original_MPA1": true,
+  "original_seven_EOS_Bayes": "NOT_RUN",
+  "rns_c_binary_sha256": "c4737a60547f3768f17d36e9da2822a71095fd65d1f41f1ca924e423252a084d",
+  "rns_derived_table_sha256": "5af6e77740c3af282d30918e69a1794dab84895092209ac850c1e2ed2945ac16",
+  "rotating_Stability": "NOT_ESTABLISHED",
+  "same_EOS_table_byte_sha256": null,
+  "schema": "F68_ALTERNATE_MPA1_PCHIP_COLD_DIRECT_FULL_RNS_C_ROTATING_GR_V1",
+  "source_n0_physical_calibration": "NOT_ESTABLISHED",
+  "source_native_NICER_XMM_XPSI_likelihood": "NOT_RUN",
+  "status": "DIRECT_RNS_C_ALTERNATE_PCHIP_COLD_GRID_DIAGNOSTIC_PASS_NO_EOS_BAYES",
+  "target_spin_hz": 346.536369,
+  "true_zero_P_crust_surface": "NOT_ESTABLISHED"
+}
