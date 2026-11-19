@@ -71,7 +71,8 @@ def run_one(source,f61,binary,model,out):
     report={'status':'PARTIAL_IN_PROGRESS','model':model,'mass_target_msun':TARGET,'target_spin_hz':OBSERVED_SPIN_HZ,
             'source_commit':'e6768650ce992abfd1153a6833857572fe5cd230',
             'RNS_commit':RNS_COMMIT,'RNS_binary_SHA256':sha256_file(binary),
-            'original_eos_npz_SHA256':sha256_file(source),'F61_original_LAL_TOV_SHA256':sha256_file(f61),
+            'original_eos_npz_SHA256':sha256_file(source) if source.is_file() else None,
+            'F61_original_LAL_TOV_SHA256':sha256_file(f61) if f61.is_file() else None,
             'original_EOS_edited':False,'physical_certification':'NOT_ESTABLISHED','native_XPSI_photon_likelihood':'NOT_RUN',
             'full_seven_EOS_Bayes':'NOT_RUN','meshes':{},'failures':[]}
     result_file=out/f'ORIGINAL_{model}_2p073_RNS_C_direct_two_mesh_20261119.json'
