@@ -12,8 +12,8 @@ from pathlib import Path
 import numpy as np
 
 HERE=Path(__file__).resolve().parent
-ROOT=HERE.parents[2]
-for p in (ROOT/'f67',ROOT/'f62',ROOT/'rotating_gr'):
+J0740=HERE.parent
+for p in (J0740/'f67',J0740/'f62',J0740/'rotating_gr'):
     sys.path.insert(0,str(p))
 from f67_mpa1_pchip_firstlaw_tov import (
     ColdEOS, load_source, root_at_mass, continuous_piecewise_cubic_sound_speed_extrema,
