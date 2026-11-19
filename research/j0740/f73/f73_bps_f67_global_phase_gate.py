@@ -24,8 +24,9 @@ from scipy.interpolate import PchipInterpolator
 
 HERE = Path(__file__).resolve().parent
 PHYS = HERE.parent / "physical_eos_validation"
+CANON_F67 = HERE.parent / "f67" / "F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat"
 F67_SHA = "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22"
-BPS_SHA = "a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787"
+BPS_SHA = "3f3c2ee18a0c2fc6904562008bbc5c7a3551c73ff8d5cb97e26371c3b5e37df2"
 NATIVE_BPS_NPZ_SHA = "372ce088e061997f7c05594e61e7c624a112d7ce66443c28c4633d03b7da6137"
 NATIVE_MPA1_NPZ_SHA = "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22"
 MODEL = "BPS_OUTER_PLUS_F67_SEPARATE_CORE_PHASE_SELECTION_DIAGNOSTIC_NOT_PHYSICAL_EOS"
@@ -170,7 +171,9 @@ def calculate(bps_path: Path, core_path: Path, hybrid_path: Path):
                       "BPS_JESTER_original_npz_sha256":NATIVE_BPS_NPZ_SHA,
                       "MPA1_JESTER_original_npz_sha256":NATIVE_MPA1_NPZ_SHA,
                       "F67_source_rows":len(eos.p),"BPS_source_rows":len(p_bps),
-                      "source_files_mutated":False},
+                      "source_files_mutated":False,
+                      "BPS_repo_csv_packaging":"historical GitHub source CSV has CRLF and one extra terminal blank CRLF; use actual GitHub bytes SHA, no false original NPZ byte identity",
+                      "F67_input_is_canonical_f67_not_physical_eos_validation_extra_newline_copy":True},
             "thermo_assumptions":{"mu_surface_MeV":MU_SURFACE_MEV,
                     "F67_enthalpy_and_E": "source-pinned PCHIP log(E) and independent first-law H(P)",
                     "BPS_mu": "(epsilon+P)/n from original 130 pressure knots",
@@ -196,7 +199,7 @@ def calculate(bps_path: Path, core_path: Path, hybrid_path: Path):
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--bps",type=Path,default=PHYS/"JESTER_BPS_crust_e6768650.csv")
-    parser.add_argument("--f67",type=Path,default=PHYS/"F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat")
+    parser.add_argument("--f67",type=Path,default=CANON_F67)
     parser.add_argument("--hybrid",type=Path,default=PHYS/"mpa1_jester_hybrid_crust_tov.py")
     parser.add_argument("--out",type=Path,required=True)
     a=parser.parse_args()
