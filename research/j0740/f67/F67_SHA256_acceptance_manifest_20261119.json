@@ -1,0 +1,41 @@
+{
+  "files": {
+    "F67_MPA1_PCHIP_COLD_2p073_static_TOV_20261119.json": {
+      "bytes": 4340,
+      "sha256": "811b6b9e3763e77df0e300f54cae0301cdac1cb1c285b09da8f32e23c0aa0dc8"
+    },
+    "F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat": {
+      "bytes": 223209,
+      "sha256": "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22"
+    },
+    "F67_science_report_20261119.md": {
+      "bytes": 5223,
+      "sha256": "0a11f0e3b6d49bb813ae7fce2b42e720c1f7f9f95ff2a13293fb0ae61cb395f3"
+    },
+    "F67_science_summary_20261119.json": {
+      "bytes": 1987,
+      "sha256": "e78fc2cc2999723851767e4a377c939996a48058dc9bf9b6a6fea26609b7c4a1"
+    },
+    "F67_verified_alternate_MPA1_PCHIP_TOV_and_cs2_extrema_20261119.zip": {
+      "bytes": 98291,
+      "sha256": "283474708405323359eaf2e81083b3c6692f55b8b3517fde200cfd33692690ad"
+    },
+    "f67_mpa1_pchip_firstlaw_tov.py": {
+      "bytes": 14691,
+      "sha256": "c49158bcfaf9395eca56f3193650b64448ca2aaa12d5eb873a38d5ae909dbd0c"
+    },
+    "j0740-f67-mpa1-alternate-cold-tov.yml": {
+      "bytes": 5335,
+      "sha256": "c973a73ffe07bc8082d57926e215f0590e085d4fa664ed4a93bf2d0235fe5f59"
+    },
+    "test_f67_mpa1_pchip_firstlaw_tov.py": {
+      "bytes": 4540,
+      "sha256": "a3198fd63a0762376468017c87f527d4a929bcf5ade47b7300147d3af082a165"
+    }
+  },
+  "not_native_photon_eos_bayes": true,
+  "original_MPA1_source_raw_sha256": "bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec",
+  "schema": "F67_J0740_SHA256_SOURCE_AND_EVIDENCE_ACCEPTANCE_20261119",
+  "target_GitHub_CI_commit": "68da20cfee6ae7141df880eeb420cf7fc20fdfc3",
+  "zip_crc_pass": true
+}
