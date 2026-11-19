@@ -367,3 +367,80 @@ class InterruptedDraftRecoveryTests(unittest.TestCase):
             bad = dict(valid, **edit)
             api._request = lambda method, path, **options: [bad]
             self.assertIsNone(api.find_existing_draft(job_id))
+
+
+
+class StaleUnwrittenJobRecoveryTests(unittest.TestCase):
+    """An interrupted no-branch job must not starve later owner tasks."""
+
+    def test_old_job_without_github_branch_is_blocked_without_replay(self):
+        from scripts.cano_autodev_worker import reconcile_job
+        job = Job("12345678-1234-4123-8123-123456789abc", "Fix core/safe.py")
+        db, github = FakeDatabase(), FakeGitHub()
+        github.find_existing_draft = lambda job_id: None
+        github.branch_exists = lambda job_id: False
+        result = reconcile_job(job, db, github)
+        self.assertEqual(result, "stale_without_branch_blocked")
+        self.assertEqual(db.blocked, [(job.id, "interrupted_no_github_branch")])
+        self.assertFalse(db.completed)
+        self.assertFalse(github.calls)
+
+    def test_existing_branch_without_pr_is_never_discarded(self):
+        from scripts.cano_autodev_worker import reconcile_job
+        job = Job("12345678-1234-4123-8123-123456789abc", "Fix core/safe.py")
+        db, github = FakeDatabase(), FakeGitHub()
+        github.find_existing_draft = lambda job_id: None
+        github.branch_exists = lambda job_id: True
+        self.assertEqual(reconcile_job(job, db, github), "recovery_requires_reconcile")
+        self.assertEqual(db.blocked, [])
+
+    def test_failed_github_branch_lookup_fails_closed(self):
+        from scripts.cano_autodev_worker import reconcile_job
+        db, github = FakeDatabase(), FakeGitHub()
+        github.find_existing_draft = lambda job_id: None
+        github.branch_exists = lambda job_id: (_ for _ in ()).throw(
+            RuntimeError("GitHub not reachable"))
+        self.assertEqual(reconcile_job(
+            Job("12345678-1234-4123-8123-123456789abc", "Fix core/safe.py"),
+            db, github), "recovery_unavailable")
+        self.assertEqual(db.blocked, [])
+
+    def test_github_only_404_confirms_absent_branch(self):
+        from scripts.cano_autodev_worker import GitHubDrafts
+        api = GitHubDrafts.__new__(GitHubDrafts)
+        uid = "12345678-1234-4123-8123-123456789abc"
+        class FakeHTTPError(Exception):
+            def __init__(self, code):
+                self.response = type("Response", (), {"status_code": code})()
+        api._request = lambda *args, **kwargs: (_ for _ in ()).throw(FakeHTTPError(404))
+        self.assertIs(api.branch_exists(uid), False)
+        api._request = lambda *args, **kwargs: (_ for _ in ()).throw(FakeHTTPError(403))
+        with self.assertRaises(FakeHTTPError):
+            api.branch_exists(uid)
+        api._request = lambda *args, **kwargs: {"ref": "refs/heads/cano-autodev"}
+        self.assertIs(api.branch_exists(uid), True)
+
+    def test_after_verified_no_branch_stale_is_blocked_next_queued_job_may_run(self):
+        from scripts.cano_autodev_worker import main
+        from unittest.mock import patch, MagicMock
+        old = Job("12345678-1234-4123-8123-123456789abc", "Fix core/safe.py")
+        new = Job("87654321-1234-4123-8123-123456789abc", "Fix core/next.py")
+        db = MagicMock()
+        db.stale_running_one.return_value = old
+        db.claim_one.return_value = new
+        with patch.dict("os.environ", {
+            "CANO_AUTODEV_ENABLED": "true",
+            "CANO_AUTODEV_DATABASE_URL": "postgresql://example.invalid/db",
+            "GROQ_API_KEY": "placeholder", "GH_TOKEN": "placeholder",
+            "CANO_AUTODEV_MODEL": "placeholder",
+            "CANO_AUTODEV_OWNER_KEY": "oidc_" + "a" * 64
+        }, clear=True), patch("scripts.cano_autodev_worker.NeonJobStore", return_value=db), \
+             patch("scripts.cano_autodev_worker.GitHubDrafts"), \
+             patch("scripts.cano_autodev_worker.GroqRewriteModel"), \
+             patch("scripts.cano_autodev_worker.reconcile_job",
+                   return_value="stale_without_branch_blocked"), \
+             patch("scripts.cano_autodev_worker.process_job", return_value="pr_open") as process:
+            self.assertEqual(main(), 0)
+            db.claim_one.assert_called_once_with()
+            process.assert_called_once()
+            self.assertEqual(process.call_args.args[0], new)
