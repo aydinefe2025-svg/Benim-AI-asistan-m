@@ -1,0 +1,49 @@
+{
+  "limits": {
+    "XPSI_source_native_marginalization": "NOT_RUN",
+    "final_EOS_Bayes": "NOT_RUN",
+    "new_model_RNS": "NOT_RUN"
+  },
+  "model": "JESTER_BPS_CRUST_LAL_MPA1_HIGH_PRESSURE_CROSSING_CAUSAL_TAIL_V1",
+  "rns_eos_export": {
+    "baryon_n_min_max_cm3": [
+      180423392263763.6,
+      1.762791092668665e+39
+    ],
+    "columns": [
+      "rho_g_cm3",
+      "P_dyn_cm2",
+      "H_times_c2_cm2_s2",
+      "baryon_number_density_cm3"
+    ],
+    "density_min_max": [
+      2.992481911676156e-10,
+      6977544393953902.0
+    ],
+    "enthalpy_min_max": [
+      1e-09,
+      1.5
+    ],
+    "firstlaw_absolute_mu_surface_MeV": 930.4,
+    "max_rows": 1950,
+    "path": "JESTER_BPS_MPA1_RNS_20261119.rns",
+    "pressure_min_max": [
+      66.93297909733003,
+      5.505570180735714e+36
+    ],
+    "rows": 1213,
+    "sha256": "f4a183661962acdddc7aebde3830116578feb6fba88a1a68c9fd57a993058675",
+    "source_native_n_used": false
+  },
+  "rns_source": {
+    "commit": "97e85d325a33e37f702306414533f6cd77812477",
+    "repository": "rns-alberta/rns"
+  },
+  "schema": "J0740_BPS_MPA1_RNS_V1",
+  "status": "EOS_EXPORT_PASS_RNS_NOT_RUN",
+  "targets": {
+    "mass_msun": 2.073,
+    "spin_hz": 346.536369
+  }
+}
+
