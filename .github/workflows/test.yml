@@ -1,6 +1,9 @@
 name: Core tests
 
 on:
+  # The bounded worker dispatches this secret-free CI on its proposal ref.
+  # GITHUB_TOKEN-created PR activity is not a reliable CI trigger.
+  workflow_dispatch:
   push:
     branches: ["main", "feature/buyuk-sistem-core", "fix/sqlite-backup-restore-20261031", "fix/executor-cancellation-20261104"]
   pull_request:
