@@ -338,6 +338,8 @@ class InterruptedDraftRecoveryTests(unittest.TestCase):
         from scripts.cano_autodev_worker import reconcile_job
         db, github = FakeDatabase(), FakeGitHub()
         github.find_existing_draft = lambda job_id: None
+        # Existing GitHub branch without a PR must never be discarded.
+        github.branch_exists = lambda job_id: True
         result = reconcile_job(Job("12345678-1234-4123-8123-123456789abc", "Fix core/safe.py"), db, github)
         self.assertEqual(result, "recovery_requires_reconcile")
         self.assertFalse(db.completed)
