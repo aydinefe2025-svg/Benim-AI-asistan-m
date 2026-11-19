@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-17",
+  "github_issue": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/280",
+  "historic_F30_code_comparison": {
+    "F30_ZIP_library_original_sha256": "78abe177f932b6dcf4cf09279b6966990f15620cd19cc36ef804119de98cb529",
+    "F30_prior_copy_sha256": "5ebcf0a2f11a0f159860ec740e719957066521a501a02c889c5e3da9063207da",
+    "F30_runner_copy_sha256": "0a1f9a8e2c6b7c73cf929600fd6867e7637ca6759f16459df87e071165669000",
+    "ast_unparse_same_for_prior_and_runner": true,
+    "byte_exact_matches_original_archive": false,
+    "caveat": "Canonical AST equality proves identical parsed code structure for these exact sources; does not reproduce run runtime or resolve X-PSI version.",
+    "prior_unparse_sha256": "7cf1d95df5565f11a7556493a328b625446f682b1f6fbc9c93ae2dda6f3aaa91",
+    "runner_unparse_sha256": "3ec2b87733f84b457931b28afa1b6257537e7966b1a1219ce44925f1c3b74a37",
+    "xpsi_prior_methods_semantic_ast_4_of_4_pass": true
+  },
+  "notion_page": "https://app.notion.com/p/4042bd61682a812eaa0cc6732f8e0252",
+  "original_archive_compressed_bytes": 12879907825,
+  "original_archive_md5_recomputed_this_F31_scan": false,
+  "original_archive_member_scan": {
+    "elapsed_sec": 88.313,
+    "members": {
+      "config": {
+        "bytes": 1714,
+        "member": "J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules/config.ini",
+        "sha256": "02592091e8c10d126b10070e0e33515a292d57d750c2a45d624065d056752ede"
+      },
+      "out": {
+        "bytes": 353104,
+        "member": "J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_outputs/run1_lp40k_Xse001_Dfix/out_",
+        "sha256": "f20ae7db9550a9fd608542c1b43fc9534a3e396df7ef5c2dad66493793caa2de"
+      },
+      "prior": {
+        "bytes": 9787,
+        "member": "J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules/CustomPrior_GLS_compressed_scaling_Dfix.py",
+        "sha256": "ecabb879c38d4e4e343e5e304e1be39d87a7b0a35d7077454e4677ea1458aa93"
+      },
+      "runner": {
+        "bytes": 23720,
+        "member": "J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules/main_lp40k_Xse001_Dfix.py",
+        "sha256": "440451fd57c8d8c775f3c847861d6fce77a82ab975ca090fb660289191d8c1af"
+      }
+    },
+    "status": "PASS_4_OF_4_EXACT_MEMBER_SHA256_MATCH",
+    "tar_members_visited_before_all_found": 263
+  },
+  "original_archive_path": "C:\\Users\\User\\Downloads\\psr_J0740+6620_with_3p6_Years_of_NICER_Data.tar.gz",
+  "published_archive_md5": "7792c92b9ae1fa404ae5bdd3920ce075",
+  "reconciled_status": {
+    "F30_archived_source_python_logic_identity": "PASS",
+    "F30_archived_source_raw_byte_identity": "FAIL_EXPECTED_FORMAT_DIFFERENCE",
+    "direct_original_tar_member_byte_source_identity": "PASS",
+    "gamma_nxx_posterior_final_executable_resumption": "NOT_ESTABLISHED",
+    "paper_vs_run_log_version": "OPEN",
+    "seven_EOS_Bayes": "NOT_RUN",
+    "source_native_pi_eff_15D": "NOT_RUN"
+  },
+  "sampler_log_vs_stats": {
+    "local_stats_file_sha256": "779167d6d11e40d21eb733523e4759773ef1e1f9eb913227e8550d7dd30f5b14",
+    "log_and_stats_agree_to_printed_precision": true,
+    "note": "This is the nested-sampling model evidence for the run, NOT a Bayes factor among seven EOS models.",
+    "published_headline_xpsi_version_paper": "1.2.1",
+    "run_log_reported_xpsi_version": "1.2.0",
+    "source_log_lnev": -21889.9868120139,
+    "stats_lnZ_standard_error": 0.02440913459400789,
+    "stats_log_evidence": -21889.98681201393,
+    "status": "UNRESOLVED_VERSION_DISCREPANCY"
+  },
+  "schema": "J0740_F31_XPSI_RUN_ARCHIVE_PROVENANCE_v1",
+  "source": "Salmi et al. 2024 Zenodo record 10519473; publisher original archive already downloaded on Windows",
+  "source_refs": [
+    "https://zenodo.org/records/10519473",
+    "https://doi.org/10.3847/1538-4357/ad5f1f"
+  ]
+}
