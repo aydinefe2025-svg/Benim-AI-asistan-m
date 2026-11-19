@@ -6,7 +6,7 @@ from pathlib import Path
 import unittest
 import saved_lineage_proof as p
 
-SOURCE = Path(__file__).parent / 'receipt_source'
+SOURCE = Path(__file__).parent / 'saved_lineage_receipts'
 
 class ProofTests(unittest.TestCase):
     def test_archival_exact_real_sources(self):
