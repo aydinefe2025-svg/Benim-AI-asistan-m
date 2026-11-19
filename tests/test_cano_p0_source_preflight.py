@@ -201,6 +201,34 @@ class ArchiveWithoutReceiptVerificationTests(unittest.TestCase):
                 verify_encrypted_archive_direct(self.file, expected_sha256=actual)
             check.assert_not_called()
 
+
+    def test_real_aes_gcm_tag_verified_on_synthetic_postgres_archive(self):
+        import os, hashlib
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        from cano_encrypted_backup import verify_encrypted_archive_direct, BackupError
+        key = bytes.fromhex("48" * 32)  # synthetic fixture, never a user secret
+        nonce = bytes.fromhex("19" * 12)
+        header = b"CANOENC1" + nonce
+        original = b"PGDMP" + b"SYNTHETIC-TEST-ONLY" * 40
+        sealed = AESGCM(key).encrypt(nonce, original, header)
+        self.file.write_bytes(header + sealed)
+        expected = hashlib.sha256(self.file.read_bytes()).hexdigest()
+        with patch.dict(os.environ, {"CANO_BACKUP_KEY_HEX": key.hex()}):
+            proof = verify_encrypted_archive_direct(
+                self.file, expected_sha256=expected)
+            self.assertTrue(proof["authenticated"])
+            self.assertEqual(proof["plaintext_sha256"], hashlib.sha256(original).hexdigest())
+            self.assertEqual(proof["plaintext_size_bytes"], len(original))
+            self.assertFalse(proof["isolated_restore_verified"])
+            # Pin the new hash after corruption to reach AES-GCM, not just the
+            # independent ciphertext hash check.
+            damaged = self.file.read_bytes()
+            self.file.write_bytes(damaged[:-1] + bytes([damaged[-1] ^ 1]))
+            tampered_hash = hashlib.sha256(self.file.read_bytes()).hexdigest()
+            with self.assertRaises(BackupError):
+                verify_encrypted_archive_direct(
+                    self.file, expected_sha256=tampered_hash)
+
     def test_cli_direct_verify_only_does_not_require_receipt(self):
         from cano_encrypted_backup import main
         from unittest.mock import patch
