@@ -349,3 +349,53 @@ def relative_time_origin_candidates(traces, existing_candidates=(), **options):
                     out.append(candidate)
                     seen.add(pair)
     return out
+
+
+def voltage_offset_review_candidates(traces, existing_candidates=(), *,
+                                     min_offset_mv=2.0, max_offset_mv=5.0,
+                                     max_residual_mv=0.5):
+    """Suggest review when same-mode shapes agree after a *small constant* V offset.
+
+    This is NOT a duplicate detector or calibrated physical criterion. Both
+    independent cells and transformed copies can yield identical observed
+    waveforms, so a match stays ambiguous and blocks accepted holdouts.
+    All input measurements remain unchanged. We only compare a temporary
+    offset-adjusted *copy*, never export or publish corrected raw values.
+    Absolute timestamps must still pass compare_near's endpoint gate.
+    """
+    if not (0 < min_offset_mv <= max_offset_mv <= 20 and
+            0 < max_residual_mv <= DEFAULT_TOLERANCE_MV):
+        raise ValueError('REVIEW_REQUIRED: invalid voltage offset screening thresholds')
+    seen=set()
+    for row in existing_candidates:
+        seen.add(tuple(sorted(((row['a']['cell'],row['a']['mode'],row['a']['run']),
+                               (row['b']['cell'],row['b']['mode'],row['b']['run'])))))
+    by_mode=defaultdict(list)
+    for t in traces:
+        by_mode[t['mode']].append(t)
+    out=[]
+    for mode in sorted(by_mode):
+        records=by_mode[mode]
+        for i,a in enumerate(records):
+            for b in records[i+1:]:
+                if a['cell']==b['cell'] or a['trace_sha256']==b['trace_sha256']:
+                    continue
+                pair=tuple(sorted(((a['cell'],a['mode'],a['run']),
+                                   (b['cell'],b['mode'],b['run']))))
+                if pair in seen or min(a['n'],b['n']) < DEFAULT_MIN_POINTS:
+                    continue
+                bias_mv=(b['volts'][0]-a['volts'][0])*1000.0
+                if not min_offset_mv < abs(bias_mv) <= max_offset_mv:
+                    continue
+                shifted=dict(b)
+                shifted['volts']=[v-bias_mv/1000.0 for v in b['volts']]
+                match=compare_near(a,shifted,tolerance_mv=max_residual_mv)
+                if match is None:
+                    continue
+                match['classification']='VOLTAGE_OFFSET_AMBIGUOUS_REVIEW_ONLY'
+                match['voltage_offset_mv']=round(abs(bias_mv),9)
+                match['corrected_shape_residual_upper_mv']=max_residual_mv
+                match['scope']='small constant voltage-offset ambiguity; no physical duplicate claim'
+                out.append(match)
+                seen.add(pair)
+    return out
