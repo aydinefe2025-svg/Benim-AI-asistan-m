@@ -412,13 +412,31 @@ class StaleUnwrittenJobRecoveryTests(unittest.TestCase):
         class FakeHTTPError(Exception):
             def __init__(self, code):
                 self.response = type("Response", (), {"status_code": code})()
-        api._request = lambda *args, **kwargs: (_ for _ in ()).throw(FakeHTTPError(404))
+        branch = "cano-autodev-" + uid.replace("-", "")
+        def missing_branch(method, route, **kwargs):
+            if route.startswith("/git/ref/heads/"):
+                raise FakeHTTPError(404)
+            if route == "/pulls":
+                return []
+            raise AssertionError("Unexpected GitHub API path")
+        api._request = missing_branch
         self.assertIs(api.branch_exists(uid), False)
+        def old_pr_still_exists(method, route, **kwargs):
+            if route.startswith("/git/ref/heads/"):
+                raise FakeHTTPError(404)
+            if route == "/pulls":
+                return [{"state": "closed", "head": {"ref": branch}}]
+            raise AssertionError("Unexpected GitHub API path")
+        api._request = old_pr_still_exists
+        self.assertIs(api.branch_exists(uid), True)
         api._request = lambda *args, **kwargs: (_ for _ in ()).throw(FakeHTTPError(403))
         with self.assertRaises(FakeHTTPError):
             api.branch_exists(uid)
-        api._request = lambda *args, **kwargs: {"ref": "refs/heads/cano-autodev"}
+        api._request = lambda *args, **kwargs: {"ref": "refs/heads/" + branch}
         self.assertIs(api.branch_exists(uid), True)
+        api._request = lambda *args, **kwargs: {"ref": "refs/heads/someone-else"}
+        with self.assertRaises(ValueError):
+            api.branch_exists(uid)
 
     def test_after_verified_no_branch_stale_is_blocked_next_queued_job_may_run(self):
         from scripts.cano_autodev_worker import main
