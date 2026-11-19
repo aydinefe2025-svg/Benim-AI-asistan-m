@@ -1,0 +1,81 @@
+name: J0740 F74 pinned JESTER 100k posterior mass-measure proof
+on:
+  pull_request:
+    paths:
+      - 'research/j0740/f74/**'
+      - '.github/workflows/j0740-f74-real-jester-posterior-measure.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-real-jester-posterior:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Checkout original source branch
+        uses: actions/checkout@v4
+      - name: Checkout exact JESTER release commit with original 100k NPZ (no Zenodo download)
+        uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester_pinned
+          sparse-checkout: |
+            jesterTOV/inference/likelihoods/nicer.py
+            jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Install a fixed numerical environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Pin real JESTER commit, source code and binary posterior blobs
+        run: |
+          set -euo pipefail
+          test "$(git -C jester_pinned rev-parse HEAD)" = 'e6768650ce992abfd1153a6833857572fe5cd230'
+          test "$(git -C jester_pinned hash-object jesterTOV/inference/likelihoods/nicer.py)" = '69bd82517ff3f5a8857cd514c711bc5bc039a771'
+          test "$(git -C jester_pinned hash-object jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz)" = '8a5adb339699ea1065aa858bdab406de11b22f72'
+          test "$(wc -c < jester_pinned/jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz)" -gt 100000
+      - name: Run F74 adversarial measure tests
+        run: |
+          set -euo pipefail
+          cd research/j0740/f74
+          python -m unittest -q test_f74_mass_measure_gate.py
+      - name: Run actual 100000-row J0740 posterior measure audit
+        run: |
+          set -euo pipefail
+          mkdir -p results/F74
+          python research/j0740/f74/f74_mass_measure_gate.py \
+            --jester jester_pinned/jesterTOV/inference/likelihoods/nicer.py \
+            --npz jester_pinned/jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz \
+            --out results/F74/F74_real_100k_JESTER_gamma_mass_measure_20261119.json
+          python - <<'PY'
+          import json,pathlib
+          p=pathlib.Path('results/F74/F74_real_100k_JESTER_gamma_mass_measure_20261119.json')
+          x=json.loads(p.read_text())
+          assert x['sample_count']==100000
+          assert x['source']['source_blob_sha1']=='69bd82517ff3f5a8857cd514c711bc5bc039a771'
+          assert x['jester_gamma_npz_blob_sha1']=='8a5adb339699ea1065aa858bdab406de11b22f72'
+          assert 0.5<x['empirical_mass_pdf_measure']['sigma_ratio_squared_over_original']<0.95
+          assert len(x['KDE_empirical_Q_joint_measure']['constant_radius_diagnostic_not_EOS'])>=2
+          assert x['honest_flags']['EOS_Bayes_posterior']=='NOT_RUN'
+          print('F74_REAL_100K_SOURCE_LOCK_AND_MEASURE_PASS')
+          PY
+      - name: Emit full SHA-256 evidence ledger
+        if: always()
+        run: |
+          set -eu
+          mkdir -p results/F74
+          sha256sum research/j0740/f74/*.py \
+            jester_pinned/jesterTOV/inference/likelihoods/nicer.py \
+            jester_pinned/jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz \
+            results/F74/*.json > results/F74/F74_SHA256_inputs_outputs.txt || true
+      - name: Upload durable actual-data results (or failure logs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: F74-JESTER-source-pinned-100k-mass-measure-or-failure
+          path: results/F74/
+          if-no-files-found: warn
+          retention-days: 90
