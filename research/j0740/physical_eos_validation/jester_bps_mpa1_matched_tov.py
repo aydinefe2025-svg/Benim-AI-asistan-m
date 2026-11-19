@@ -188,7 +188,11 @@ def sequence_max(eos,nscan,rtol):
 def run():
     e=Hybrid()
     if not e.causality["all_piecewise_segments_causal"]:raise ValueError("continuous causality/stability failed")
-    coarse,_=sequence_max(e,52,2e-8);fine,_=sequence_max(e,84,2e-10);uv=tov(e,fine["Pc_geom_m-2"],"uv",2e-10)
+    coarse,_=sequence_max(e,52,2e-8);fine,fine_seq=sequence_max(e,84,2e-10);uv=tov(e,fine["Pc_geom_m-2"],"uv",2e-10)
+    source_end=tov(e,e.pmax,rtol=2e-10)
+    post_pc=np.geomspace(e.pmax*1.000001,e.tailpcmax*.999,56)
+    post_seq=[tov(e,float(pc),rtol=2e-10) for pc in post_pc]
+    post_max=max(post_seq,key=lambda q:q["M_msun"])
     relm=abs(uv["M_msun"]/fine["M_msun"]-1);relr=abs(uv["R_km"]/fine["R_km"]-1)
     if max(relm,relr)>5e-5:raise ValueError("independent TOV formulations disagree")
     sample={"M_1p4":tov(e,find_pc_for_mass(e,1.4)),"M_2p073":tov(e,find_pc_for_mass(e,2.073))}
@@ -199,6 +203,7 @@ def run():
       "surface_extension":{"type":"BPS-local-slope polytrope below the BPS knot whose tabulated mu=(e+p)/n is closest to the physical zero-pressure Fe anchor","BPS_start_row_zero_based":e.crust_start,"BPS_start_n_fm-3":float(e.bn[e.crust_start]),"BPS_start_p_geom_m-2":e.p0,"BPS_start_tabulated_mu_MeV":e.bps_anchor_mu_mev,"tabulated_mu_anchor_relative_residual":e.bps_anchor_mu_mev/MU0_MEV-1,"log_e_log_p_slope":e.a,"surface_mu0_MeV":MU0_MEV,"first_law_n":"n=(epsilon+P)/(mu0 exp(h)); h(0)=0"},
       "continuous_causality_and_stability":e.causality,
       "TOV":{"coarse_scan_52_rtol_2e-8_turning_point":coarse,"fine_scan_84_rtol_2e-10_turning_point":fine,"independent_uv_at_fine_turning_point":uv,"uv_relative_mass_difference":relm,"uv_relative_radius_difference":relr,"M1p4":sample["M_1p4"],"M2p073":sample["M_2p073"]},
+      "source_table_endpoint_and_tail_audit":{"native_source_Pmax_geom_m-2":e.pmax,"native_source_enthalpy_max":float(e.hh[-1]),"M_R_at_source_table_endpoint":source_end,"source_table_endpoint_mass_minus_turning_point_msun":source_end["M_msun"]-fine["M_msun"],"post_source_tail_scan_count":len(post_seq),"post_source_tail_mass_max":post_max,"post_tail_max_minus_turning_point_msun":post_max["M_msun"]-fine["M_msun"],"turning_point_inside_native_source_pressure_range":bool(fine["Pc_geom_m-2"]<e.pmax),"causal_tail_controls_global_maximum":bool(post_max["M_msun"]>fine["M_msun"])},
       "high_density_completion":{"type":"cs2=1 causal-limit continuation above source MPA1 Pmax","explicit_new_model":True},
       "limits":{"original_MPA1_physical_Mmax":"NOT_ESTABLISHED; source table terminates without a demonstrated descending stable branch","hybrid_candidate_microphysical_acceptance":"NOT_ESTABLISHED","new_model_RNS":"NOT_RUN","source_native_XPSI_marginalization":"NOT_RUN","final_EOS_Bayes":"NOT_RUN"}}
 
