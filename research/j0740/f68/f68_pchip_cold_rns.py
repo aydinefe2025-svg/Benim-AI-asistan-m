@@ -24,7 +24,7 @@ TARGETS=(2.073,2.175,2.200,2.250)
 MESHES=(151,196)
 SOURCE_SHA='bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec'
 THERMO_SHA='d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22'
-F67_JSON_SHA='811b6b9e3763e77df0e300f54cae0301cdac1cb1c285b09da8f32e23c0aa0dc8'
+F67_REFERENCE_JSON_SHA='811b6b9e3763e77df0e300f54cae0301cdac1cb1c285b09da8f32e23c0aa0dc8'
 RNS_COMMIT='97e85d325a33e37f702306414533f6cd77812477'
 G=6.67430e-11; C=299792458.0
 C2G=C*C/G*1e-3
@@ -107,9 +107,17 @@ def execute(source,rns_binary,out_dir):
     thermo=f67_dir/'F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat'
     f67json=f67_dir/'F67_MPA1_PCHIP_COLD_2p073_static_TOV_20261119.json'
     run_f67(Path(source),out=f67json,eos_out=thermo)
-    if sha(thermo)!=THERMO_SHA or sha(f67json)!=F67_JSON_SHA:raise ValueError('F68_REGENERATED_F67_INPUT_SHA_DRIFT')
+    reference=Path('research/j0740/f67/F67_MPA1_PCHIP_COLD_2p073_static_TOV_20261119.json')
+    if sha(thermo)!=THERMO_SHA:raise ValueError(f'F68_REGENERATED_F67_TABLE_SHA_DRIFT:{sha(thermo)}')
+    if sha(reference)!=F67_REFERENCE_JSON_SHA:raise ValueError('F68_ARCHIVED_F67_REFERENCE_SHA_DRIFT')
+    generated=json.loads(f67json.read_text());archived=json.loads(reference.read_text())
+    gm=generated['new_M2p073_PCHIP_root'];am=archived['new_M2p073_PCHIP_root']
+    if (abs(gm['M_msun']-am['M_msun'])>2e-6 or abs(gm['R_km']-am['R_km'])>1e-4
+            or abs(gm['central_pressure_geom']-am['central_pressure_geom'])>2e-18
+            or generated['installed_original_MPA1_raw_source_sha256']!=SOURCE_SHA):
+        raise ValueError('F68_REGENERATED_F67_STATIC_REFERENCE_VALUE_DRIFT')
     raw=load_source(Path(source));eos=ColdEOS(raw,subdivisions=24,quadrature=48)
-    report={'schema':'J0740_F68_F67_PCHIP_COLD_DIRECT_RNS_ROTATING_GR_DIAGNOSTIC_V1','model_label':'MPA1_PCHIP_COLD_V1_EXPLORATORY_NOT_ORIGINAL','status':'IN_PROGRESS','spin_hz':SPIN_HZ,'target_masses_msun':TARGETS,'mesh_points':MESHES,'input_hashes':{'original_LAL_MPA1_raw_sha256':sha(source),'F67_thermo_sha256':sha(thermo),'F67_static_result_sha256':sha(f67json),'RNS_binary_sha256':sha(rns_binary),'RNS_commit':RNS_COMMIT},'arbitrary_baryon_normalization':'n0=1 cm^-3 by convention only; M0 and fixed-J stability NOT interpretable','surface_status':'F67 lower-pressure table edge is not physical vacuum; radius remains source-cutoff conditional','posterior':'NOT_RUN','native_XPSI':'NOT_RUN','fixed_J_stability':'NOT_RUN','targets':{}}
+    report={'schema':'J0740_F68_F67_PCHIP_COLD_DIRECT_RNS_ROTATING_GR_DIAGNOSTIC_V1','model_label':'MPA1_PCHIP_COLD_V1_EXPLORATORY_NOT_ORIGINAL','status':'IN_PROGRESS','spin_hz':SPIN_HZ,'target_masses_msun':TARGETS,'mesh_points':MESHES,'input_hashes':{'original_LAL_MPA1_raw_sha256':sha(source),'F67_thermo_sha256':sha(thermo),'F67_regenerated_static_result_sha256':sha(f67json),'F67_archived_static_reference_sha256':sha(reference),'RNS_binary_sha256':sha(rns_binary),'RNS_commit':RNS_COMMIT},'arbitrary_baryon_normalization':'n0=1 cm^-3 by convention only; M0 and fixed-J stability NOT interpretable','surface_status':'F67 lower-pressure table edge is not physical vacuum; radius remains source-cutoff conditional','posterior':'NOT_RUN','native_XPSI':'NOT_RUN','fixed_J_stability':'NOT_RUN','targets':{}}
     for n in MESHES:
         tab=out_dir/f'F68_PCHIP_COLD_{n}pt.rns';write_rns(tab,resample_rns_table(thermo,n))
         report['targets'][str(n)]={'rns_table_sha256':sha(tab),'masses':{}}
