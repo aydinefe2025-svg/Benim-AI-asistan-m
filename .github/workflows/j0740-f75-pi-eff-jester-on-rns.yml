@@ -1,0 +1,99 @@
+name: J0740 F75 source-prior-corrected posterior flow on preserved direct GR roots
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f75/**'
+      - '.github/workflows/j0740-f75-pi-eff-jester-on-rns.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  source-prior-corrected-gr-integrals:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Fetch JESTER source and exact 100k posterior from immutable commit
+        uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester_pinned
+          sparse-checkout: |
+            jesterTOV/inference/likelihoods/nicer.py
+            jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Test prior correction, support and KDE normalization
+        run: python -m unittest discover -s research/j0740/f75 -p 'test_f75_*.py' -v
+      - name: Download preserved source-locked F51 RNS inputs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F75/input results/F75/raw
+          while read -r id file expected; do
+            curl -fLsS --retry 3 --max-time 180 -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/${id}/zip" -o "results/F75/input/${file}"
+            echo "${expected}  results/F75/input/${file}" | sha256sum -c -
+          done <<'PINNED'
+          14413168551 F44.zip b45d99bf5d58179f49df12a5101b8c40204e146aef31e0987b5260d6ffd0bd98
+          14421121729 F48.zip 8217dddfa431d33105421b183b876be3b52cad16525c592459e7f90e8b19b786
+          14418969143 F46_APR4_EPP.zip c7a8f4e64ad5b3de92e0b0d924edea8e1a0f10f2d390905324369945dc534c66
+          14419366608 F46_ENG.zip 7b1aea08c5f3cd466fe9b245ededfb5c7c9c87f590111107d09f4e7a028de2ae
+          14418944014 F46_MPA1.zip 0cff4621ddef0da0c02d2bae9a2e45f85d364f05244fd193d3528d336406d70c
+          14419716928 F46_MS1.zip 2fc7266e295a954ef5ca4c7b7a75fc4728c2591ed891bbd1362b46c1d1d23ec8
+          14420300768 F46_MS1B.zip 3975c9561b2a0bdc81ff03b666fcaed8f7666233fd39f9ccf9342575253e867e
+          14418493809 F46_WFF1.zip bc4795ab244cc169f5ee5011c3ba1ac4646926a14c982b94d07808d647a955f3
+          14420450015 F46_WFF2.zip 23a59ccc8a606943d54841569a847c3dcf99ff0a251b2d53c248d6d5d809bfcb
+          PINNED
+          sha256sum research/j0740/f49/F49_7EOS_all_22_real_direct_RNS_integrals.json > results/F75/input/F49_golden.sha256
+          sha256sum -c results/F75/input/F49_golden.sha256
+          test "$(git -C jester_pinned rev-parse HEAD)" = e6768650ce992abfd1153a6833857572fe5cd230
+          test "$(git -C jester_pinned hash-object jesterTOV/inference/likelihoods/nicer.py)" = 69bd82517ff3f5a8857cd514c711bc5bc039a771
+          test "$(git -C jester_pinned hash-object jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz)" = 8a5adb339699ea1065aa858bdab406de11b22f72
+      - name: Run source-corrected posterior-density integral on 168 preserved RNS roots
+        run: |
+          set -euo pipefail
+          mkdir -p results/F75
+          python research/j0740/f75/f75_prior_corrected_flow_gr_integrals.py \
+            --npz jester_pinned/jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz \
+            --nicer-source jester_pinned/jesterTOV/inference/likelihoods/nicer.py \
+            --f44 results/F75/input/F44.zip --f48 results/F75/input/F48.zip \
+            --f49 research/j0740/f49/F49_7EOS_all_22_real_direct_RNS_integrals.json \
+            --curves-dir results/F75/raw --out results/F75/F75_results.json
+          python - <<'PY'
+          import json,pathlib
+          p=pathlib.Path('results/F75/F75_results.json');x=json.loads(p.read_text())
+          assert x['data_lineage']['posterior_samples']==100000
+          assert x['data_lineage']['maryland_likelihood_multiplied'] is False
+          assert len(x['scores'])==3
+          for v in x['scores'].values():
+            assert len(v['models'])==7
+            assert all(t['source_prior_corrected_integral']>0 for t in v['models'].values())
+          assert x['prior']['global_source_prior_probability_integral']==1.0
+          print('F75 PASS: 3 bandwidths × 7 models; source prior corrected; no duplicated Maryland likelihood')
+          PY
+      - name: Emit SHA-256 execution ledger
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib
+          root=pathlib.Path('results/F75');root.mkdir(parents=True,exist_ok=True)
+          files={str(p.relative_to(root)):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in root.rglob('*') if p.is_file() and p.name!='F75_SHA256_manifest.json'}
+          (root/'F75_SHA256_manifest.json').write_text(json.dumps(files,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F75-prior-corrected-flow-GR-integrals
+          path: results/F75/
+          if-no-files-found: warn
+          retention-days: 90
