@@ -1,0 +1,61 @@
+name: Battery Oxford independent measured time-voltage benchmark
+
+on:
+  pull_request:
+    paths:
+      - "research/battery_curve_audit/oxford_external_benchmark.py"
+      - "tests/test_battery_oxford_external.py"
+      - ".github/workflows/battery-oxford-external.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  oxford-external:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Checkout exact tested source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Reject malformed or mislabeled synthetic time-voltage inputs
+        run: python -m unittest tests.test_battery_oxford_external -v
+      - name: Fetch and independently measure two real Oxford 2020 cell profiles
+        run: |
+          python research/battery_curve_audit/oxford_external_benchmark.py "${RUNNER_TEMP}/oxford_external_report.json"
+      - name: Inspect pinned publisher origin, units and screening evidence
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          a=json.loads((Path(os.environ["RUNNER_TEMP"])/"oxford_external_report.json").read_text())
+          assert a["schema"] == "cano.battery.oxford-external-timevoltage.v1"
+          assert a["doi"] == "10.5287/bodleian:gJPdDzvP4"
+          assert a["cell_count"] == 2
+          assert a["time_unit"] == "s" and a["voltage_unit"] == "V"
+          assert a["controlled_1mv_clone_detected"] is True
+          assert a["controlled_10mv_clone_detected"] is False
+          assert all(len(digest)==64 for digest in a["source_sha256"].values())
+          assert all(n>=100 for n in a["samples_by_cell"].values())
+          assert a["decision"] in {"REVIEW_REQUIRED","SCREEN_ONLY_NOT_CERTIFIED"}
+          print("REAL_OXFORD_SOURCE_READBACK:",json.dumps({
+            "source_hashes":a["source_sha256"],
+            "source_samples":a["samples_by_cell"],
+            "near_candidate":a["source_pair_near_candidate"],
+            "source_bytes_identical":a["source_bytes_identical"],
+            "decision":a["decision"],
+            "controlled_clone_1mv":a["controlled_1mv_clone_detected"],
+            "controlled_clone_10mv":a["controlled_10mv_clone_detected"],
+          },sort_keys=True))
+          PY
+      - name: Preserve only original hashes, counts and source decision
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: oxford-external-timevoltage-evidence
+          path: ${{ runner.temp }}/oxford_external_report.json
+          retention-days: 7
+          if-no-files-found: error
