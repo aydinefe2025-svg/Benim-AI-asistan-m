@@ -1,0 +1,159 @@
+{
+  "C1_e_and_dedp_at_match": true,
+  "Fe56_boundary_monotone_without_modifying_F67_source": "IMPOSSIBLE_E0_BELOW_FE56_SURFACE_DENSITY",
+  "Habs_at_match": 9.62802238292057e-12,
+  "at_original_F67_pmin_baryon_number_density_mminus3": 4.739141857626836e+30,
+  "baryon_mass_mu0_minus1pct_scaling": "Baryon rest mass / 0.99 at fixed epsilon(P); illustrates unverified surface chemistry sensitivity",
+  "baryon_mass_mu0_plus1pct_scaling": "Baryon rest mass / 1.01 at fixed epsilon(P), i.e. exactly degenerate with chosen surface mu0",
+  "extension_positive_cs2_below_match": true,
+  "first_law_core_derivative_max_relative_discretized": 3.655953126902034e-07,
+  "match_alpha_C1": 0.9378129303963479,
+  "match_energy_density_g_cm3": 8.035723529935948,
+  "match_index_in_F67_2425_row_grid": 68,
+  "match_p_geom_mminus2": 5.684450283147875e-35,
+  "maximum_first_order_missing_shell_radius_m": 2.452142650833413e-07,
+  "model_label": "MPA1_PCHIP_COLD_FE56_SURFACE_V1_CONDITIONAL_NOT_ORIGINAL",
+  "mu_Fe56_reference_NIST_CODATA_conditional": true,
+  "n_absolute_conditional_not_original_MPA1": true,
+  "new_conditionally_Fe56_matched_full_cold_table_name": "F69_conditional_Fe56_surface_cold_thermo_20261119.dat",
+  "new_conditionally_Fe56_matched_full_cold_table_sha256": "ad53005683a5ba53b8d7512b7c8bc272c10f504fa26418cf194f1711e4e969dd",
+  "original_MPA1_unmodified": true,
+  "parent_F67_pmin_density_g_cm3": 7.7572339814334175,
+  "parent_F67_source_SHA256": "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22",
+  "parent_minus_Fe56_density_fraction": -0.013074557069539786,
+  "parent_model": "MPA1_PCHIP_COLD_V1_EXPLORATORY_NOT_ORIGINAL",
+  "rest_mass_per_baryon_convention": "atomic mass unit (u), not physical Fe56/56 mass",
+  "rotating_F68_uncertainty_not_recomputed": "NOT_RUN",
+  "schema": "F69_CONDITIONAL_FE56_SURFACE_C1_FIRSTLAW_TOV_BARYON_v1",
+  "separately_modified_lowP_only_p_below_match": true,
+  "seven_original_EOS_Bayes": "NOT_RUN",
+  "source_native_XPSI_photons": "NOT_RUN",
+  "surface_Fe56_density_g_cm3": 7.86,
+  "surface_Fe56_energy_per_baryon_MeV": 930.4118461297957,
+  "surface_Habs": 0.0,
+  "surface_assumption": "FE56_CRYSTAL_7.86_G_CM3_55.93493633_U_PER_ATOM_NOT_UNIQUE_MICROPHYSICS",
+  "surface_baryon_number_density_mminus3": 4.7389085391924486e+30,
+  "target_static_GR": {
+    "2.073": {
+      "conditional_mu_surface_minus1pct_baryon_mass_msun": 2.4462879883726574,
+      "conditional_mu_surface_plus1pct_baryon_mass_msun": 2.3978466420682483,
+      "independent_delta_B_msun": 4.557533439530914e-07,
+      "independent_delta_R_m": -6.48594120633561e-05,
+      "rm": {
+        "Baryon_rest_mass_u_msun_to_match": 2.421825108488931,
+        "M_msun_to_match": 2.0729999642801054,
+        "R_km_to_match": 12.406156007346235,
+        "binding_mass_u_minus_M_msun_to_match": 0.3488251442088253,
+        "center_enthalpy_relative_to_F67_pmin": 0.38418646487594166,
+        "form": "rm",
+        "shell_baryonic_mass_conservative_first_order_estimate_msun": 2.6962004893345785e-24,
+        "shell_gravitational_mass_conservative_first_order_estimate_msun": 1.9166779537857853e-24,
+        "shell_radius_linear_first_order_m": 2.452142650833413e-07
+      },
+      "uv": {
+        "Baryon_rest_mass_u_msun_to_match": 2.421825564242275,
+        "M_msun_to_match": 2.073000287615528,
+        "R_km_to_match": 12.406155942486823,
+        "binding_mass_u_minus_M_msun_to_match": 0.34882527662674684,
+        "center_enthalpy_relative_to_F67_pmin": 0.38418646487594166,
+        "form": "uv",
+        "shell_baryonic_mass_conservative_first_order_estimate_msun": 2.6961998006971746e-24,
+        "shell_gravitational_mass_conservative_first_order_estimate_msun": 1.916677313741862e-24,
+        "shell_radius_linear_first_order_m": 2.4521418576192313e-07
+      }
+    },
+    "2.175": {
+      "conditional_mu_surface_minus1pct_baryon_mass_msun": 2.593241494667934,
+      "conditional_mu_surface_plus1pct_baryon_mass_msun": 2.5418901779418364,
+      "independent_delta_B_msun": 3.4599823317549294e-07,
+      "independent_delta_R_m": -0.0005015990378609558,
+      "rm": {
+        "Baryon_rest_mass_u_msun_to_match": 2.5673090797212548,
+        "M_msun_to_match": 2.1750001268418258,
+        "R_km_to_match": 12.322892403288387,
+        "binding_mass_u_minus_M_msun_to_match": 0.39230895287942874,
+        "center_enthalpy_relative_to_F67_pmin": 0.4311983534068814,
+        "form": "rm",
+        "shell_baryonic_mass_conservative_first_order_estimate_msun": 2.431901535673217e-24,
+        "shell_gravitational_mass_conservative_first_order_estimate_msun": 1.6807188605860364e-24,
+        "shell_radius_linear_first_order_m": 2.1794194411388047e-07
+      },
+      "uv": {
+        "Baryon_rest_mass_u_msun_to_match": 2.567309425719488,
+        "M_msun_to_match": 2.175000330886323,
+        "R_km_to_match": 12.32289190168935,
+        "binding_mass_u_minus_M_msun_to_match": 0.39230909483316506,
+        "center_enthalpy_relative_to_F67_pmin": 0.4311983534068814,
+        "form": "uv",
+        "shell_baryonic_mass_conservative_first_order_estimate_msun": 2.4319007334806377e-24,
+        "shell_gravitational_mass_conservative_first_order_estimate_msun": 1.6807181831010007e-24,
+        "shell_radius_linear_first_order_m": 2.1794187400563002e-07
+      }
+    },
+    "2.200": {
+      "conditional_mu_surface_minus1pct_baryon_mass_msun": 2.629917036686428,
+      "conditional_mu_surface_plus1pct_baryon_mass_msun": 2.577839471603528,
+      "independent_delta_B_msun": 2.3626578471436233e-07,
+      "independent_delta_R_m": -4.395910480070597e-05,
+      "rm": {
+        "Baryon_rest_mass_u_msun_to_match": 2.6036178663195635,
+        "M_msun_to_match": 2.200000038795292,
+        "R_km_to_match": 12.296156982144005,
+        "binding_mass_u_minus_M_msun_to_match": 0.40361782752427144,
+        "center_enthalpy_relative_to_F67_pmin": 0.44461951609553896,
+        "form": "rm",
+        "shell_baryonic_mass_conservative_first_order_estimate_msun": 2.3656347742013274e-24,
+        "shell_gravitational_mass_conservative_first_order_estimate_msun": 1.6226876183707955e-24,
+        "shell_radius_linear_first_order_m": 2.1133293481044118e-07
+      },
+      "uv": {
+        "Baryon_rest_mass_u_msun_to_match": 2.603618102585348,
+        "M_msun_to_match": 2.200000203198605,
+        "R_km_to_match": 12.2961569381849,
+        "binding_mass_u_minus_M_msun_to_match": 0.4036178993867432,
+        "center_enthalpy_relative_to_F67_pmin": 0.44461951609553896,
+        "form": "uv",
+        "shell_baryonic_mass_conservative_first_order_estimate_msun": 2.3656344598219795e-24,
+        "shell_gravitational_mass_conservative_first_order_estimate_msun": 1.6226873315450339e-24,
+        "shell_radius_linear_first_order_m": 2.1133289896633902e-07
+      }
+    },
+    "2.250": {
+      "conditional_mu_surface_minus1pct_baryon_mass_msun": 2.70412797991016,
+      "conditional_mu_surface_plus1pct_baryon_mass_msun": 2.6505808911990676,
+      "independent_delta_B_msun": 1.1627683260684307e-08,
+      "independent_delta_R_m": -2.6712978495879725e-06,
+      "rm": {
+        "Baryon_rest_mass_u_msun_to_match": 2.677086700111058,
+        "M_msun_to_match": 2.2500000040322785,
+        "R_km_to_match": 12.232611893413974,
+        "binding_mass_u_minus_M_msun_to_match": 0.42708669607877947,
+        "center_enthalpy_relative_to_F67_pmin": 0.474596265051747,
+        "form": "rm",
+        "shell_baryonic_mass_conservative_first_order_estimate_msun": 2.2297478234969164e-24,
+        "shell_gravitational_mass_conservative_first_order_estimate_msun": 1.5052605065163335e-24,
+        "shell_radius_linear_first_order_m": 1.980816902118565e-07
+      },
+      "uv": {
+        "Baryon_rest_mass_u_msun_to_match": 2.6770867117387414,
+        "M_msun_to_match": 2.2500000131761704,
+        "R_km_to_match": 12.232611890742676,
+        "binding_mass_u_minus_M_msun_to_match": 0.4270866985625707,
+        "center_enthalpy_relative_to_F67_pmin": 0.474596265051747,
+        "form": "uv",
+        "shell_baryonic_mass_conservative_first_order_estimate_msun": 2.2297478068102697e-24,
+        "shell_gravitational_mass_conservative_first_order_estimate_msun": 1.5052604914188063e-24,
+        "shell_radius_linear_first_order_m": 1.9808168831164033e-07
+      }
+    }
+  },
+  "unverified": [
+    "No independent crust microphysics table; Fe56 7.86g/cm3 surface is stipulated idealized boundary",
+    "C1 e(P) matching and cold first-law do not prove chemical or phase equilibrium at outer crust",
+    "F67 above match is numerical PCHIP interpolation, NOT original microphysical MPA1",
+    "Full GR RNS rotating F69 extension and baryon mass not recomputed; only STATIC Einstein TOV",
+    "First-order surface shell mass/radius is an estimate, not a mathematically rigorous upper bound",
+    "Finite precision integration and PCHIP inverse interpolation not independent observational evidence"
+  ],
+  "whole_original_seven_EOS_physically_accepted": "NOT_ESTABLISHED"
+}

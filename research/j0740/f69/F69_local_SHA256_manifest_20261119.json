@@ -1,0 +1,38 @@
+{
+  "file_hashes": {
+    "F69_Fe56_conditional_surface_static_TOV_and_baryon_20261119.json": {
+      "bytes": 8943,
+      "sha256": "4ffe44817f978b05f9888738ac4373cf345b959cac2c27cedebd93aa8dc7fb37"
+    },
+    "F69_conditional_Fe56_surface_cold_thermo_20261119.dat": {
+      "bytes": 231769,
+      "sha256": "ad53005683a5ba53b8d7512b7c8bc272c10f504fa26418cf194f1711e4e969dd"
+    },
+    "F69_local_18_tests.log": {
+      "bytes": 3227,
+      "sha256": "c4fe59370101b0691df944e6e7008a0e0db81fcb760e80ccdf041eee2ea0151d"
+    },
+    "F69_science_report_20261119.md": {
+      "bytes": 4844,
+      "sha256": "d6ee530d396287a108ee9399aede58e9b7a49c064db4c953aa0aa18a019e93c7"
+    },
+    "F69_science_summary_20261119.json": {
+      "bytes": 2328,
+      "sha256": "c93b348b791359a1eb282f3c55bc50862603a6c9a125c37b485c4f7477c8c1b6"
+    },
+    "f69_fe56_surface_match_static.py": {
+      "bytes": 13813,
+      "sha256": "558012b6b1a58a12d3890db2ffaf5a309cc9bb813bf2ea7dd46d40e4284007c6"
+    },
+    "j0740-f69-fe56-surface-firstlaw-baryon-tov.yml": {
+      "bytes": 5136,
+      "sha256": "6f5cd3ed940031a7ce8a27f1a8938e17e832b6826a21b39f93f2ae755475ad12"
+    },
+    "test_f69_fe56_surface.py": {
+      "bytes": 4242,
+      "sha256": "e8adff63213c6da338f6b824b4b5ef20e260564e9167590ca44a0926439a90a7"
+    }
+  },
+  "source_F67_sha256": "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22",
+  "status": "NEW_CONDITIONAL_MODEL_STATIC_GR_NOT_XPSI"
+}

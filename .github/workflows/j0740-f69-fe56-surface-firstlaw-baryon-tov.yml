@@ -1,0 +1,93 @@
+name: J0740 F69 NEW conditional Fe56 surface cold EOS + static GR baryon count
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f69/**'
+      - '.github/workflows/j0740-f69-fe56-surface-firstlaw-baryon-tov.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-conditional-Fe56-surface-GR:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pinned numerical libraries
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Lock original F67 separate model EOS source table (no copying into Git)
+        run: |
+          cp research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat research/j0740/f69/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat
+          python - <<'PY'
+          import hashlib,pathlib
+          p=pathlib.Path('research/j0740/f69/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat')
+          assert hashlib.sha256(p.read_bytes()).hexdigest()=='d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22'
+          print('F69 EXACT F67 TABLE SOURCE LOCK: PASS')
+          PY
+      - name: Eighteen fail-closed model algebra, source and independent Einstein GR tests
+        run: python -m unittest discover -s research/j0740/f69 -p 'test_f69_*.py' -v
+      - name: Execute new source-pinned four-star GR static baryon count + Fe56 P0 closure
+        run: |
+          python -u research/j0740/f69/f69_fe56_surface_match_static.py \
+            --table research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat \
+            --out results/F69/F69_Fe56_conditional_surface_static_TOV_and_baryon_20261119.json \
+            --eos-out results/F69/F69_conditional_Fe56_surface_cold_thermo_20261119.dat
+      - name: Physics acceptance - pass only conditional Fe56 C1 first law/static baryon counts
+        run: |
+          python - <<'PY'
+          import json,math,numpy as np
+          from pathlib import Path
+          p=Path('results/F69/F69_Fe56_conditional_surface_static_TOV_and_baryon_20261119.json')
+          d=json.loads(p.read_text())
+          assert d['original_MPA1_unmodified'] is True
+          assert d['parent_F67_source_SHA256']=='d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22'
+          assert d['Fe56_boundary_monotone_without_modifying_F67_source'].startswith('IMPOSSIBLE')
+          assert d['separately_modified_lowP_only_p_below_match'] and d['C1_e_and_dedp_at_match']
+          assert 0<d['match_alpha_C1']<.95
+          assert 0<d['first_law_core_derivative_max_relative_discretized']<1e-5
+          assert d['maximum_first_order_missing_shell_radius_m']<1e-6
+          assert set(d['target_static_GR'])=={'2.073','2.175','2.200','2.250'}
+          for k,v in d['target_static_GR'].items():
+              r=v['rm'];m=float(k)
+              assert abs(r['M_msun_to_match']-m)<3e-7
+              assert 11<r['R_km_to_match']<14
+              assert m<r['Baryon_rest_mass_u_msun_to_match']<3.3
+              assert abs(v['independent_delta_R_m'])<.006*1000
+              assert abs(v['independent_delta_B_msun'])<.0005
+          assert d['source_native_XPSI_photons']=='NOT_RUN'
+          assert d['whole_original_seven_EOS_physically_accepted']=='NOT_ESTABLISHED'
+          assert d['seven_original_EOS_Bayes']=='NOT_RUN'
+          tab=np.loadtxt('results/F69/F69_conditional_Fe56_surface_cold_thermo_20261119.dat')
+          assert tab.shape==(2518,4) and tab[0,0]==0
+          assert all((np.diff(tab[:,i])>0).all() for i in range(4))
+          print('F69 REAL SOURCE CONDITIONAL FE56 4 STARS 2 GR FORMS + FULL FIRST-LAW TABLE: PASS')
+          PY
+      - name: Source, results, tests and wheel SHA-256 provenance
+        if: always()
+        run: |
+          mkdir -p results/F69
+          python - <<'PY'
+          import hashlib,importlib.metadata,json,pathlib
+          paths=[pathlib.Path('research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat'),
+                 pathlib.Path('research/j0740/f69/f69_fe56_surface_match_static.py'),
+                 pathlib.Path('research/j0740/f69/test_f69_fe56_surface.py'),
+                 *pathlib.Path('results/F69').glob('*')]
+          record={'not_original_EOS':True,'assumption':'conditional Fe56 surface 7.86g/cm3',
+                  'numpy_version':importlib.metadata.version('numpy'),
+                  'scipy_version':importlib.metadata.version('scipy'),
+                  'files':{str(p):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+                           for p in paths if p.is_file()}}
+          pathlib.Path('results/F69/F69_SHA256_CI_manifest_20261119.json').write_text(json.dumps(record,indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F69-real-conditional-Fe56-four-GR-baryon-model-or-failure
+          path: results/F69/
+          if-no-files-found: warn
+          retention-days: 45
