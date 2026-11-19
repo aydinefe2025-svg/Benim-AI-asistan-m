@@ -67,8 +67,8 @@ class RealPublisherDataArchiveGate(unittest.TestCase):
 
     def test_source_header_inventory_is_not_physical_cell_groundtruth(self):
         raw=tiny_source({
-            "batch/fileA.csv":b"Time,cell1_voltage,temperature_c\\n0,3.1,25\\n",
-            "batch/fileB.csv":b"Time,cell2_voltage,temperature_c\\n1,3.2,26\\n",
+            "batch/fileA.csv":b"Time,cell1_voltage,temperature_c\n0,3.1,25\n",
+            "batch/fileB.csv":b"Time,cell2_voltage,temperature_c\n1,3.2,26\n",
         })
         result=inspect_zip_bytes(raw)
         self.assertEqual(result["header_column_count_histogram"],{"3":2})
