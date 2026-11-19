@@ -96,5 +96,65 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(1, sum(op[0] == "dispatch" for op in gh.calls))
 
 
+class RealBoundaryChecks(unittest.TestCase):
+    def test_neon_ci_recovery_query_is_owner_scoped_read_only_and_aged(self):
+        calls = []
+        row = (ID, BRANCH, URL, SHA)
+        class Cursor:
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def execute(self, sql, args=None): calls.append((sql, args))
+            def fetchone(self): return row
+        class Connection:
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def cursor(self): return Cursor()
+        db = worker.NeonJobStore.__new__(worker.NeonJobStore)
+        db.owner_key = OWNER
+        db._connect = lambda: Connection()
+        receipt = db.unverified_pr_one()
+        self.assertEqual((ID, BRANCH, URL, SHA),
+                         (receipt.id, receipt.branch, receipt.pr_url,
+                          receipt.commit_sha))
+        self.assertEqual(1, len(calls))
+        sql, params = calls[0]
+        self.assertEqual((OWNER,), params)
+        self.assertIn("owner_key=%s", sql)
+        self.assertIn("status='pr_open'", sql)
+        self.assertIn("ci_run_url IS NULL", sql)
+        self.assertIn("attempts=1", sql)
+        self.assertIn("interval '10 minutes'", sql)
+        self.assertNotIn(" UPDATE ", sql.upper())
+        self.assertNotIn(" INSERT ", sql.upper())
+
+    def test_core_ci_lookup_accepts_only_exact_branch_and_sha(self):
+        gh = worker.GitHubDrafts.__new__(worker.GitHubDrafts)
+        calls = []
+        def request(method, route, **options):
+            calls.append((method, route, options))
+            return {"total_count": 1, "workflow_runs": [
+                {"head_branch": BRANCH, "head_sha": SHA,
+                 "event": "workflow_dispatch"}]}
+        gh._request = request
+        self.assertTrue(gh.core_ci_run_exists(BRANCH, SHA))
+        self.assertFalse(gh.core_ci_run_exists(BRANCH, "b" * 40))
+        self.assertEqual("GET", calls[0][0])
+        self.assertEqual("/actions/workflows/test.yml/runs", calls[0][1])
+        self.assertEqual(BRANCH, calls[0][2]["params"]["branch"])
+
+    def test_incomplete_ci_list_does_not_permit_dispatch(self):
+        gh = worker.GitHubDrafts.__new__(worker.GitHubDrafts)
+        for response in (
+            {}, {"total_count": 2, "workflow_runs": []},
+            {"total_count": 1, "workflow_runs": [
+                {"head_branch": "untrusted-branch",
+                 "head_sha": SHA, "event": "workflow_dispatch"}]},
+        ):
+            with self.subTest(response=response):
+                gh._request = lambda *_args, **_kwargs: response
+                with self.assertRaises(ValueError):
+                    gh.core_ci_run_exists(BRANCH, SHA)
+
+
 if __name__ == "__main__":
     unittest.main()
