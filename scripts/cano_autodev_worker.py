@@ -207,6 +207,45 @@ def reconcile_job(job: Job, store, github) -> str:
     return "pr_open"
 
 
+def _verify_worker_policies(rows, owner_key: str) -> None:
+    """Require exactly the reviewed Neon owner/status policies.
+
+    Only worker/PUBLIC roles matter; web-app policies are separate. Exact
+    fail-closed syntax assumes the pinned Postgres catalog representation and
+    must be re-reviewed if the DBA changes SQL formatting or status flows.
+    """
+    if not isinstance(owner_key, str) or not re.fullmatch(r"oidc_[0-9a-f]{64}", owner_key):
+        raise PermissionError("Worker RLS owner scope missing")
+    owner = "(owner_key = '" + owner_key + "'::text)"
+    expected = {
+        "cano_autodev_worker_select": (
+            "SELECT", ("cano_autodev_worker",), "PERMISSIVE", owner, None
+        ),
+        "cano_autodev_worker_update": (
+            "UPDATE", ("cano_autodev_worker",), "PERMISSIVE",
+            "(" + owner + " AND (status = ANY (ARRAY['queued'::text, 'running'::text])))",
+            "(" + owner + " AND (status = ANY (ARRAY['running'::text, 'pr_open'::text, 'blocked'::text])))",
+        ),
+    }
+    found = {}
+    try:
+        for name, cmd, roles, permissive, using, check in rows:
+            if not isinstance(roles, (list, tuple)) or not all(
+                isinstance(role, str) for role in roles
+            ):
+                raise ValueError("invalid catalog roles")
+            applicable = ("cano_autodev_worker" in roles or
+                          any(role.lower() == "public" for role in roles))
+            if applicable:
+                if name in found:
+                    raise ValueError("duplicate policy")
+                found[name] = (cmd, tuple(roles), permissive, using, check)
+    except (TypeError, ValueError) as exc:
+        raise PermissionError("Worker RLS catalog unreadable") from None
+    if found != expected:
+        raise PermissionError("Worker RLS owner/status policy contract mismatch")
+
+
 class NeonJobStore:
     """Uses a *separate* trusted worker credential; not the web-user RLS role."""
     def __init__(self, database_url: str, owner_key: str):
@@ -235,6 +274,15 @@ class NeonJobStore:
             rls = cur.fetchone()
             if not rls or rls[0] is not True:
                 raise PermissionError("Code queue must enforce RLS")
+            # Read-only server-side policy contract. Merely enabling RLS does
+            # not stop future overly permissive PUBLIC or worker policies.
+            # Never echo the private owner key or actual policy predicates.
+            cur.execute("""
+                SELECT policyname, cmd, roles, permissive, qual, with_check
+                FROM pg_policies
+                WHERE schemaname='public' AND tablename='cano_code_jobs'
+            """)
+            _verify_worker_policies(cur.fetchall(), self.owner_key)
 
     def claim_one(self) -> Job | None:
         with self._connect() as conn, conn.cursor() as cur:
