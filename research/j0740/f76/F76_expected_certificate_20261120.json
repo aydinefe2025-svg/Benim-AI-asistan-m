@@ -1,0 +1,51 @@
+{
+  "models": {
+    "APR4_EPP": {
+      "bad": 19,
+      "knot_only": 29,
+      "original_RNS_C": 48
+    },
+    "ENG": {
+      "bad": 48,
+      "knot_only": 0,
+      "original_RNS_C": 48
+    },
+    "MPA1": {
+      "bad": 48,
+      "knot_only": 0,
+      "original_RNS_C": 48
+    },
+    "MS1": {
+      "bad": 48,
+      "knot_only": 0,
+      "original_RNS_C": 48
+    },
+    "MS1B": {
+      "bad": 48,
+      "knot_only": 0,
+      "original_RNS_C": 48
+    },
+    "WFF1": {
+      "bad": 41,
+      "knot_only": 0,
+      "original_RNS_C": 41
+    },
+    "WFF2": {
+      "bad": 42,
+      "knot_only": 0,
+      "original_RNS_C": 42
+    }
+  },
+  "physics_certification": "NOT_ESTABLISHED",
+  "result_sha256": "92b67f0d3398c74da11d1e963f72af1b8974127ba3c007abfac84bba8775f8f2",
+  "schema": "J0740_F76_EXPECTED_323_SOURCE_KNOT_CERTIFICATE_V1",
+  "source_JESTER_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+  "source_XPSI_photon_Bayes": "NOT_RUN",
+  "source_original_RNS_commit": "97e85d325a33e37f702306414533f6cd77812477",
+  "status": {
+    "knot_only_no_violation": 29,
+    "sample_count": 323,
+    "unknown": 0,
+    "violating": 294
+  }
+}
