@@ -1,0 +1,62 @@
+name: Battery PyBaMM publisher-pinned real discharge curve screen
+
+on:
+  pull_request:
+    paths:
+      - "research/battery_curve_audit/pybamm_published_benchmark.py"
+      - "tests/test_battery_pybamm_published.py"
+      - ".github/workflows/battery-pybamm-published.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  published-timevoltage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Verify parser, provenance and controlled-probe synthetic contracts
+        run: python -m unittest tests.test_battery_pybamm_published -v
+      - name: Get independently published Enertech curves (never commit source bytes)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/pybamm-published"
+          gh release download v1.0.1 --repo pybamm-team/pybamm-data \
+            --pattern '0.5C_discharge_U.txt' \
+            --pattern '1C_discharge_U.txt' \
+            --dir "${RUNNER_TEMP}/pybamm-published"
+      - name: Verify SHA-256 and screen real published time-voltage
+        run: |
+          python research/battery_curve_audit/pybamm_published_benchmark.py \
+            "${RUNNER_TEMP}/pybamm-published" "${RUNNER_TEMP}/pybamm-screen-evidence.json"
+          python - <<'PY'
+          from pathlib import Path
+          import json, os
+          report=json.loads((Path(os.environ["RUNNER_TEMP"])/"pybamm-screen-evidence.json").read_text())
+          assert report["schema"]=="cano.battery.pybamm-published-real-timevoltage.v1"
+          assert report["decision"]=="PASS_CONTROLLED_RESEARCH_SCREEN_ONLY"
+          assert report["no_field_certification"] is True
+          assert len(report["source_curves"])==2
+          assert all(r["samples"]>=100 and r["controlled_1mv_detected"]
+                     and r["controlled_10mv_detected"] is False
+                     for r in report["source_curves"])
+          print("SOURCE_PINNED_REAL_CURVE_COUNTS:",json.dumps([
+              {"rate":r["rate"],"samples":r["samples"],"sha256":r["sha256"],
+               "time_start_s":r["time_start_s"],"time_end_s":r["time_end_s"]}
+              for r in report["source_curves"]],sort_keys=True))
+          PY
+      - name: Upload only public-source hashes and screen decision, not measured raw bytes
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pybamm-published-timevoltage-research-evidence
+          path: ${{ runner.temp }}/pybamm-screen-evidence.json
+          retention-days: 7
+          if-no-files-found: error
