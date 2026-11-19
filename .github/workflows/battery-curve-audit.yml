@@ -179,12 +179,18 @@ jobs:
 
       - name: Exercise one-command offline customer pipeline on 20 original CSVs
         run: |
+          # Real APR cross-cell duplicates MUST fail closed with exit 2.
+          # An explicitly private, NOT_CERTIFIED review split may be created,
+          # but --report-only must not override the rejected acceptance code.
+          set +e
           python research/battery_curve_audit/customer_pipeline.py \
             --manifest "${RUNNER_TEMP}/customer_manifest.json" \
             --root "${RUNNER_TEMP}/publisher_csvs" \
             --summary "${RUNNER_TEMP}/customer_public_summary.json" \
-            --private-split "${RUNNER_TEMP}/customer_private_split.json" \
-            --report-only
+            --private-split "${RUNNER_TEMP}/customer_private_split.json"
+          status=$?
+          set -e
+          test "$status" -eq 2
           python - <<'PY'
           import json, os, sys
           from pathlib import Path
