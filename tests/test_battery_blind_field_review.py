@@ -279,6 +279,93 @@ class BlindedFieldReviewTests(unittest.TestCase):
             self.finalize()
         self.assertFalse(self.summary.exists())
 
+    def test_operator_cannot_swap_sample_and_completed_forms_to_bias_review(self):
+        """Real source and predictions unchanged; selection itself must be authenticated."""
+        self.prepare(per_stratum=2)
+        self.complete()
+        seal = json.loads(self.seal.read_text(encoding='utf-8'))
+        excluded = next(row for row in table(self.pairs)
+                        if tuple(sorted((row['a'], row['b']))) not in
+                        {tuple(sorted((r['a'], r['b']))) for r in seal['sampled']})
+        original = seal['sampled'][0]
+        forged_id = 'f' * 32
+        seal['sampled'][0] = {'pair_id': forged_id,
+                              'a': excluded['a'], 'b': excluded['b'], 'flagged': False}
+        # Selection sizes, genuine original frame and source hashes all still match.
+        seal['selected_clear'] = sum(not r['flagged'] for r in seal['sampled'])
+        self.seal.write_text(json.dumps(seal), encoding='utf-8')
+        for path in (self.form_a, self.form_b):
+            rows = table(path)
+            row = next(x for x in rows if x['pair_id'] == original['pair_id'])
+            row.update({'pair_id': forged_id, 'a': excluded['a'], 'b': excluded['b']})
+            write_table(path, ['pair_id', 'a', 'b', 'verdict'], rows)
+        with self.assertRaisesRegex(ValueError, 'seal|selection|authentic|HMAC|tamper'):
+            self.finalize()
+        self.assertFalse(self.summary.exists())
+
+    def test_operator_key_missing_fails_closed_without_summary(self):
+        self.prepare();self.complete()
+        Path(str(self.seal)+'.key').unlink()
+        with self.assertRaises(OSError):
+            self.finalize()
+        self.assertFalse(self.summary.exists())
+
+    def test_operator_key_substitution_fails_authentication(self):
+        self.prepare();self.complete()
+        Path(str(self.seal)+'.key').write_bytes(b'K'*32)
+        with self.assertRaisesRegex(ValueError,'authentication|tamper'):
+            self.finalize()
+        self.assertFalse(self.summary.exists())
+
+    def test_operator_seal_metadata_rewrite_fails_authentication(self):
+        self.prepare();self.complete()
+        obj=json.loads(self.seal.read_text())
+        obj['selection_design']='operator-selected_not_random'
+        self.seal.write_text(json.dumps(obj))
+        with self.assertRaisesRegex(ValueError,'authentication|tamper'):
+            self.finalize()
+        self.assertFalse(self.summary.exists())
+
+    def test_unsigned_legacy_seal_rejected_even_with_present_key(self):
+        self.prepare();self.complete()
+        obj=json.loads(self.seal.read_text())
+        obj['schema']='cano.battery.blind-review-operator-seal.v1'
+        obj.pop('operator_seal_hmac_sha256')
+        self.seal.write_text(json.dumps(obj))
+        with self.assertRaisesRegex(ValueError,'legacy|seal'):
+            self.finalize()
+        self.assertFalse(self.summary.exists())
+
+    def test_separate_key_away_from_seal_and_source_roundtrip(self):
+        vault=self.root/'vault'
+        vault.mkdir()
+        key=vault/'site-private-seal-key.bin'
+        blind.prepare(self.cells,self.pairs,self.frame,self.audit,
+                      self.form_a,self.form_b,self.seal,
+                      per_stratum=2,secret=b'\x19'*32,operator_key_path=key)
+        self.assertTrue(key.is_file())
+        self.assertEqual(key.stat().st_size,32)
+        self.assertFalse(Path(str(self.seal)+'.key').exists())
+        if os.name=='posix':
+            self.assertEqual(key.stat().st_mode & 0o777,0o600)
+        self.complete()
+        r=blind.finalize(self.manifest,self.root,self.audit,self.cells,self.pairs,
+                         self.frame,self.form_a,self.form_b,self.seal,self.summary,
+                         reviewer_a_id='TECH_A',reviewer_b_id='TECH_B',operator_key_path=key)
+        self.assertEqual(r['decision'],'PILOT_ONLY_NOT_CERTIFIED')
+        self.assertNotIn('site-private-seal-key',self.summary.read_text())
+        self.assertNotIn('TECH_A',self.summary.read_text())
+
+    def test_report_cannot_overwrite_separate_operator_key(self):
+        self.prepare();self.complete()
+        key=Path(str(self.seal)+'.key')
+        original=key.read_bytes()
+        with self.assertRaisesRegex(ValueError,'collides|protected|source|input|output'):
+            blind.finalize(self.manifest,self.root,self.audit,self.cells,self.pairs,
+                           self.frame,self.form_a,self.form_b,self.seal,key,
+                           reviewer_a_id='TECH_A',reviewer_b_id='TECH_B')
+        self.assertEqual(key.read_bytes(),original)
+
     def test_unreviewed_frame_does_not_create_an_estimated_error_rate(self):
         rows=table(self.pairs)
         for row in rows:row['flagged']='false'
