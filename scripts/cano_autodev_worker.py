@@ -60,6 +60,44 @@ def _imports(text: str) -> tuple[str, ...]:
                         if isinstance(node, (ast.Import, ast.ImportFrom))))
 
 
+# This is an additional conservative rejection check, NOT a sandbox.
+# Added reflective calls / dunder traversal can evade an added-line regex.
+# Compare structural fingerprints against the existing file so unchanged
+# legacy operations don't become false positives for harmless edits.
+REFLECTIVE_CALL_NAMES = frozenset({
+    "eval", "exec", "compile", "__import__", "open", "getattr",
+    "setattr", "delattr", "globals", "locals", "vars", "dir",
+    "breakpoint", "input",
+})
+REFLECTIVE_NAMES = REFLECTIVE_CALL_NAMES | frozenset({
+    "__builtins__", "__loader__", "__spec__", "__import__",
+})
+REFLECTIVE_ATTRS = frozenset({
+    "system", "popen", "spawn", "execv", "execve",
+    "open", "write_text", "write_bytes", "unlink", "remove", "rmtree",
+    "getenv", "environ", "connect", "request", "send", "recv",
+    "read_text", "read_bytes",
+})
+
+
+def _unsafe_syntax_fingerprints(text: str) -> dict[str, int]:
+    """Count structural risky expressions, not merely their text spelling."""
+    counts: dict[str, int] = {}
+    for node in ast.walk(ast.parse(text)):
+        risky = False
+        if isinstance(node, ast.Name) and node.id in REFLECTIVE_NAMES:
+            risky = True
+        elif isinstance(node, ast.Attribute):
+            risky = (node.attr in REFLECTIVE_ATTRS or
+                     (node.attr.startswith("__") and node.attr.endswith("__")))
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            risky = node.func.id in REFLECTIVE_CALL_NAMES
+        if risky:
+            key = ast.dump(node, include_attributes=False)
+            counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
 def validate_candidate(original: str, proposed: str) -> str:
     """Fail closed on syntax, changed imports, hazards and oversized changes.
 
@@ -88,6 +126,10 @@ def validate_candidate(original: str, proposed: str) -> str:
         original.splitlines(), proposed.splitlines()) if line.startswith("+ ")]
     if any(ADDED_HAZARDS.search(line) for line in additions):
         raise ValueError("unsafe_operation_added")
+    old_risks = _unsafe_syntax_fingerprints(original)
+    for structure, occurrences in _unsafe_syntax_fingerprints(proposed).items():
+        if occurrences > old_risks.get(structure, 0):
+            raise ValueError("unsafe_operation_added")
     return proposed
 
 
