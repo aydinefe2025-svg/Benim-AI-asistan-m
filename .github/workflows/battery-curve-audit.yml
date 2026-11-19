@@ -6,6 +6,7 @@ on:
       - "research/battery_curve_audit/**"
       - "tests/test_battery_independent_holdout.py"
       - "tests/test_customer_preflight.py"
+      - "tests/test_battery_near_duplicate_guard.py"
       - ".github/workflows/battery-curve-audit.yml"
   workflow_dispatch:
 
@@ -30,6 +31,9 @@ jobs:
 
       - name: Independent split regression suite
         run: python -m unittest discover -s tests -p "test_battery_independent_holdout.py" -v
+
+      - name: Near-duplicate regression suite (synthetic only)
+        run: python -m unittest discover -s tests -p "test_battery_near_duplicate_guard.py" -v
 
       - name: Customer preflight synthetic regression suite
         run: python -m unittest discover -s tests -p "test_customer_preflight.py" -v
@@ -107,6 +111,31 @@ jobs:
           print("PASS: real 20 publisher CSV customer adapter exact-identity matches 60-curve provenance audit; 8 groups; holdout 6/2/2")
           PY
 
+      - name: Near-screen original publisher CSVs (no automatic physical-duplicate claim)
+        run: |
+          python research/battery_curve_audit/near_duplicate_guard.py \
+            --data-dir "${RUNNER_TEMP}/publisher_csvs" \
+            --audit-json "${RUNNER_TEMP}/battery_audit.json" \
+            --holdout-json "${RUNNER_TEMP}/battery_holdout.json" \
+            --output-json "${RUNNER_TEMP}/battery_near_screen.json"
+          python - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, "research/battery_curve_audit")
+          from near_duplicate_guard import digest, verify_split
+          tmp=Path(os.environ["RUNNER_TEMP"])
+          audit=json.loads((tmp/"battery_audit.json").read_text())
+          near=json.loads((tmp/"battery_near_screen.json").read_text())
+          assert near["source_audit_sha256"] == digest(audit)
+          assert near["near_candidate_count"] == len(near["near_candidates"])
+          candidate_safe=near["proposed_near_safe_holdout"]
+          if candidate_safe is None:
+              assert near["decision"] == "BLOCK_INSUFFICIENT_INDEPENDENT_GROUPS"
+          else:
+              verify_split(audit["all_curve_identity"], near["near_candidates"], candidate_safe)
+          print("SCREEN:",near["decision"],"candidates",near["near_candidate_count"])
+          PY
+
       - name: Publish read-only evidence artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -120,3 +149,4 @@ jobs:
             ${{ runner.temp }}/run_stdout.log
             ${{ runner.temp }}/customer_report.json
             ${{ runner.temp }}/customer_holdout.json
+            ${{ runner.temp }}/battery_near_screen.json
