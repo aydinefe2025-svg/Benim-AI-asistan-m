@@ -134,10 +134,15 @@ def make_encrypted_backup(destination: Path, *, database_env: str='DATABASE_URL'
     source_preflight=None
     if source_profile is not None:
         try:
+            extra_gate = (
+                {'expected_total_rows': os.getenv('CANO_BACKUP_EXPECTED_TOTAL_ROWS')}
+                if source_profile == 'p0_19' else {}
+            )
             source_preflight=require_application_source(
                 env,source_profile,
                 expected_host=os.getenv('CANO_BACKUP_EXPECTED_HOST',''),
                 expected_database=os.getenv('CANO_BACKUP_EXPECTED_DB',''),
+                **extra_gate,
             )
         except ValueError:
             raise BackupError('CANO application backup source identity/inventory preflight failed') from None
@@ -495,7 +500,7 @@ def main():
     b=sub.add_parser('backup');b.add_argument('destination',type=Path)
     b.add_argument('--database-env',default='DATABASE_URL')
     b.add_argument('--require-application-profile',
-                   choices=('full','colony','tasks','memory'),default='full')
+                   choices=('full','colony','tasks','memory','p0_19'),default='full')
     v=sub.add_parser('verify');v.add_argument('receipt',type=Path)
     t=sub.add_parser('restore-isolated');t.add_argument('archive',type=Path)
     t.add_argument('--target-database-env',default='CANO_RESTORE_DATABASE_URL')
