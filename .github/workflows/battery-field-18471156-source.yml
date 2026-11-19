@@ -1,0 +1,71 @@
+name: Battery Zenodo 18471156 field-source integrity (no cell claims)
+
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/field_18471156_source.py'
+      - 'tests/test_battery_field_18471156_source.py'
+      - '.github/workflows/battery-field-18471156-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publisher-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact tested ref
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Eight synthetic archive safety and no-fake-groundtruth tests
+        run: python -m unittest tests.test_battery_field_18471156_source -v
+      - name: Fetch original 19MB Zenodo archive with strict budget
+        run: |
+          curl --fail --silent --show-error --location --max-time 100 --retry 1 \
+            --max-filesize 28000000 \
+            "https://zenodo.org/records/18471156/files/BatteryData.zip?download=1" \
+            --output "${RUNNER_TEMP}/BatteryData_original.zip"
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,os
+          p=Path(os.environ['RUNNER_TEMP'])/'BatteryData_original.zip'
+          md5=hashlib.md5(p.read_bytes()).hexdigest()
+          print('ORIGINAL_PUBLISHER_MD5_MATCH',md5=='c28d865877bdacf1cdc16130f4b73cfe','bytes',p.stat().st_size)
+          assert md5=='c28d865877bdacf1cdc16130f4b73cfe'
+          PY
+      - name: Verify real publisher archive without extracting any files
+        run: |
+          python research/battery_curve_audit/field_18471156_source.py \
+            "${RUNNER_TEMP}/BatteryData_original.zip" \
+            "${RUNNER_TEMP}/battery_field18471156_source_receipt.json"
+      - name: Validate research-only acceptance scope
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads((Path(os.environ['RUNNER_TEMP'])/'battery_field18471156_source_receipt.json').read_text())
+          assert r['publisher_md5_verified'] is True
+          assert r['doi']=='10.5281/zenodo.18471156'
+          assert r['physical_cell_identity_confirmed'] is False
+          assert r['license_for_commercial_reuse']=='NOT_VERIFIED'
+          assert r['decision']=='SOURCE_INTEGRITY_ONLY_NOT_PHYSICAL_VALIDATION'
+          print('SOURCE_ONLY_REPORT',json.dumps({
+            'files':r['member_count'],
+            'formats':r['format_counts'],
+            'uncompressed_bytes':r['total_uncompressed_bytes'],
+            'sample_columns':r.get('safe_header_tokens_by_type'),
+            'license_for_commercial_reuse':r['license_for_commercial_reuse']
+          },sort_keys=True))
+          PY
+      - name: Save only bounded source structure receipt, never original cell data
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-real-field-archive-integrity-no-cell-claims
+          path: ${{ runner.temp }}/battery_field18471156_source_receipt.json
+          retention-days: 7
+          if-no-files-found: error
