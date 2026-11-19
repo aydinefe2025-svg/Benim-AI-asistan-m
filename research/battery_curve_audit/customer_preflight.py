@@ -4,8 +4,9 @@
 Reads only explicitly mapped local files; never uploads raw customer measurements.
 Supports 2, 4 or 6 columns (1-3 independent timestamp/voltage pairs) with
 trailing omitted pairs on later rows. Numerical and time checks are strict.
-Exact equality compares original time/voltage TEXT; it cannot detect rounded,
-resampled or near-duplicate curves. Not a certified safety or SOH tool.
+Exact equality compares text AND lossless decimal values; it cannot detect
+rounded, resampled or near-duplicate curves. Reports must be new files: the
+legacy CLI refuses to overwrite input CSV, manifest, or existing output. Not a certified safety or SOH tool.
 
 Example manifest:
 {"schema":"cano.battery.customer-files.v1","files":[
@@ -21,6 +22,7 @@ import hashlib
 import io
 import json
 import math
+import os
 import re
 import sys
 from collections import defaultdict
@@ -241,6 +243,40 @@ def generate_holdout(report):
     return manifest
 
 
+def write_new_reports(outputs, input_paths):
+    """Create only NEW, private output files; never replace a customer input.
+
+    Preflight every output before writing any; O_EXCL closes the check/open race.
+    Roll back every file this call created if any write or fsync fails.
+    """
+    output_paths = [Path(path) for path, _ in outputs]
+    input_resolved = {Path(path).resolve(strict=False) for path in input_paths}
+    output_resolved = [path.resolve(strict=False) for path in output_paths]
+    if (len(set(output_resolved)) != len(output_resolved)
+            or any(p in input_resolved for p in output_resolved)):
+        raise ValueError("REVIEW_REQUIRED: output path collides with source/manifest or another output")
+    for path in output_paths:
+        if path.exists() or path.is_symlink():
+            raise ValueError("REVIEW_REQUIRED: existing output cannot be overwritten")
+        if not path.parent.is_dir():
+            raise ValueError("REVIEW_REQUIRED: output parent directory does not exist")
+    created = []
+    try:
+        for path, data in outputs:
+            p = Path(path)
+            payload = (json.dumps(data, indent=2, ensure_ascii=False) + '\n').encode('utf-8')
+            fd = os.open(p, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            created.append(p)
+            with os.fdopen(fd, 'wb') as out:
+                out.write(payload)
+                out.flush()
+                os.fsync(out.fileno())
+    except Exception:
+        for path in created:
+            path.unlink(missing_ok=True)
+        raise
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--manifest', type=Path, required=True)
@@ -251,10 +287,14 @@ def main():
     manifest = json.loads(args.manifest.read_text(encoding='utf-8'))
     root = args.root if args.root else args.manifest.resolve().parent
     result = audit_customer(manifest, root)
-    args.report.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    split = generate_holdout(result) if args.split else None
+    sources = [args.manifest.resolve()]
+    sources.extend(safe_path(Path(root), entry['path']) for entry in manifest['files'])
+    outputs = [(args.report, result)]
     if args.split:
-        split = generate_holdout(result)
-        args.split.write_text(json.dumps(split, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+        outputs.append((args.split, split))
+    write_new_reports(outputs, sources)
+    if args.split:
         print('PASS: no text/numeric-exact-curve or same-cell cross-split leakage')
     else:
         print(result['review_status'] + ': report only; no train/test split accepted')
