@@ -1,0 +1,41 @@
+{
+  "analysis_command": "python jester_bps_mpa1_matched_tov.py",
+  "files": {
+    "JESTER_BPS_MPA1_matched_TOV_20261119.json": {
+      "bytes": 4731,
+      "sha256": "85c35e4ebae2f1c5a35ad073a515872bfe7aee76dbeb0b049f22aec65a3c84e3"
+    },
+    "JESTER_BPS_MPA1_matched_TOV_execution_20261119.txt": {
+      "bytes": 4731,
+      "sha256": "85c35e4ebae2f1c5a35ad073a515872bfe7aee76dbeb0b049f22aec65a3c84e3"
+    },
+    "JESTER_BPS_MPA1_matched_TOV_tests_20261119.txt": {
+      "bytes": 794,
+      "sha256": "581bb07e3af8d90685254b9e6b80e19d60a7191c6bc0c34b9e17487b282e2c69"
+    },
+    "JESTER_BPS_crust_e6768650.csv": {
+      "bytes": 8160,
+      "sha256": "a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787"
+    },
+    "JESTER_LALSuite_MPA1_source_e6768650.csv": {
+      "bytes": 93780,
+      "sha256": "f51d6476f999bf02a839fcb5f318d94c9f11338d270644c3c8b617cdb95a32c9"
+    },
+    "jester_bps_mpa1_matched_tov.py": {
+      "bytes": 14657,
+      "sha256": "f8ed01ae89c7e6d4a95547a1fa20bbb12b684a227aeb98d22514b6ea9743dd5b"
+    },
+    "test_jester_bps_mpa1_matched_tov.py": {
+      "bytes": 2351,
+      "sha256": "1aebc77d28c3481c8df58c1031ea2994674b8e2b1e41f6c9b663feede8781ccf"
+    }
+  },
+  "numpy": "2.5.4",
+  "original_pinned_bps_npz_sha256": "372ce088e061997f7c05594e61e7c624a112d7ce66443c28c4633d03b7da6137",
+  "original_pinned_jester_mpa1_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+  "python": "3.12.10",
+  "schema": "J0740_BPS_MPA1_MATCHED_TOV_MANIFEST_V1",
+  "scipy": "1.18.1",
+  "test_command": "python test_jester_bps_mpa1_matched_tov.py",
+  "tests_passed": 5
+}\n
