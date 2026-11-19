@@ -117,5 +117,41 @@ class FullP0SourcePreflightTests(unittest.TestCase):
         self.assertEqual(value["required_tables_matched"], 9)
 
 
+
+
+class BackupEntryPointP0Tests(unittest.TestCase):
+    def test_backup_cli_accepts_p0_profile(self):
+        from unittest.mock import patch
+        from cano_encrypted_backup import main
+        with patch("sys.argv", [
+            "cano_encrypted_backup.py", "backup", "unused",
+            "--require-application-profile", "p0_19"
+        ]), patch("cano_encrypted_backup.make_encrypted_backup", return_value={
+            "encrypted": True
+        }) as backup:
+            self.assertEqual(main(), 0)
+        self.assertEqual(backup.call_args.kwargs["source_profile"], "p0_19")
+
+    def test_p0_backup_passes_explicit_expected_count_into_source_gate(self):
+        import os
+        import tempfile
+        from unittest.mock import patch
+        from cano_encrypted_backup import make_encrypted_backup, BackupError
+        uri = "postgresql://operator:example@ep-cano.example.neon.tech/assistant_pg?sslmode=require"
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
+            "CANO_BACKUP_KEY_HEX": "11"*32, "DATABASE_URL": uri,
+            "CANO_BACKUP_EXPECTED_HOST": "ep-cano.example.neon.tech",
+            "CANO_BACKUP_EXPECTED_DB": "assistant_pg",
+            "CANO_BACKUP_EXPECTED_TOTAL_ROWS": "113",
+        }), patch("cano_encrypted_backup.require_application_source",
+                  side_effect=ValueError("expected simulated gate failure")) as guard, \
+             patch("cano_encrypted_backup.subprocess.Popen") as spawn:
+            with self.assertRaisesRegex(BackupError, "source identity/inventory"):
+                make_encrypted_backup(Path(td)/"backups",
+                                     source_profile="p0_19",dump_bin=sys.executable)
+            self.assertEqual(guard.call_args.kwargs["expected_total_rows"], "113")
+            spawn.assert_not_called()
+            self.assertFalse((Path(td)/"backups").exists())
+
 if __name__ == "__main__":
     unittest.main()
