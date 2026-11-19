@@ -1,0 +1,29 @@
+{
+  "corrected_evidence": [
+    {
+      "path": "audit_apr4_epp_analytic_causal_pieces_20261119.py",
+      "sha256": "0d3885e77f48b5684c4377048391f2fa72e14728fd62a41e88366f9d843831f2",
+      "bytes": 5502
+    },
+    {
+      "path": "J0740_APR4_EPP_CAUSAL_SEGMENT_CORRECTION_20261119.json",
+      "sha256": "fb214e3c6cab647ba7e6a365275402cf2dfcf3327ea8536d81412041d81b6fef",
+      "bytes": 3163
+    }
+  ],
+  "schema": "j0740_apr4_epp_causal_correction_manifest_v1",
+  "supersedes": {
+    "file": "J0740_APR4_SOURCE_INTERPOLANT_CAUSALITY_20261119.json",
+    "scope": "Its spline and PCHIP maxima remain interpolant diagnostics; the prior source-wide acausality inference is withdrawn.",
+    "sha256": "1281c2acc3c10e001c29c6c4c51a0c2749a2aaa94731258d76668f6aa22644ba"
+  },
+  "source_sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+  "created_utc": "2026-11-19",
+  "state": {
+    "high_density_Gamma2": "PASS at knots, max cs2=0.7865291612019558",
+    "high_density_Gamma3": "PASS at knots, max cs2=0.9961382554477545",
+    "global_APR4_EPP": "NOT_ESTABLISHED",
+    "EOS_Bayes": "NOT_RUN"
+  }
+}
+
