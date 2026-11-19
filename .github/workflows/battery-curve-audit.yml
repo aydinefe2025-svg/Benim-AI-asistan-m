@@ -5,6 +5,7 @@ on:
     paths:
       - "research/battery_curve_audit/**"
       - "tests/test_battery_independent_holdout.py"
+      - "tests/test_customer_preflight.py"
       - ".github/workflows/battery-curve-audit.yml"
   workflow_dispatch:
 
@@ -29,6 +30,9 @@ jobs:
 
       - name: Independent split regression suite
         run: python -m unittest discover -s tests -p "test_battery_independent_holdout.py" -v
+
+      - name: Customer preflight synthetic regression suite
+        run: python -m unittest discover -s tests -p "test_customer_preflight.py" -v
 
       - name: Fetch and independently parse all 20 publisher CSVs
         run: |
@@ -69,6 +73,40 @@ jobs:
             --audit-json "${RUNNER_TEMP}/battery_audit.json" \
             --verify-json "${RUNNER_TEMP}/battery_holdout.json"
 
+      - name: Verify the customer adapter against the same 20 original publisher CSVs
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from research.battery_curve_audit.original_20261118 import ROOT, SUFFIXES
+          work = Path(os.environ["RUNNER_TEMP"])
+          files = [{"path": f"{ROOT}{kind}_{suffix}.csv", "cell": suffix, "mode": kind}
+                   for kind in ("dchg", "chg") for suffix in SUFFIXES]
+          (work / "customer_manifest.json").write_text(json.dumps(
+              {"schema": "cano.battery.customer-files.v1", "files": files}), encoding="utf-8")
+          PY
+          python research/battery_curve_audit/customer_preflight.py \
+            --manifest "${RUNNER_TEMP}/customer_manifest.json" \
+            --root "${RUNNER_TEMP}/publisher_csvs" \
+            --report "${RUNNER_TEMP}/customer_report.json" \
+            --split "${RUNNER_TEMP}/customer_holdout.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          work=Path(os.environ["RUNNER_TEMP"])
+          original=json.loads((work/"battery_audit.json").read_text())
+          customer=json.loads((work/"customer_report.json").read_text())
+          holdout=json.loads((work/"customer_holdout.json").read_text())
+          key=lambda c: (c["cell"],c["mode"],c["run"],c["trace_sha256"])
+          assert sorted(map(key, original["all_curve_identity"])) == sorted(map(key, customer["all_curve_identity"]))
+          assert original["source_files"] == customer["source_files"] == 20
+          assert original["measured_time_voltage_pairs"] == customer["measured_time_voltage_pairs"] == 703657
+          assert holdout["independent_cell_group_count"] == 8
+          assert holdout["partition_cell_counts"] == {"train":6,"validation":2,"test":2}
+          assert customer["review_status"] == "REVIEW_REQUIRED"
+          print("PASS: real 20 publisher CSV customer adapter exact-identity matches 60-curve provenance audit; 8 groups; holdout 6/2/2")
+          PY
+
       - name: Publish read-only evidence artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -80,3 +118,5 @@ jobs:
             ${{ runner.temp }}/battery_audit.json
             ${{ runner.temp }}/battery_holdout.json
             ${{ runner.temp }}/run_stdout.log
+            ${{ runner.temp }}/customer_report.json
+            ${{ runner.temp }}/customer_holdout.json
