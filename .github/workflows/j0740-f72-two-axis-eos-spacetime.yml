@@ -166,6 +166,7 @@ jobs:
           f68=pathlib.Path('research/j0740/f68/F68_ALT196_identical_RNS_source_EOS_20261119.rns')
           tables=generate_tables(f67,root/'control',reference_196=f68)
           records={}
+          actual_source_tables={}
           for g in GRIDS:
             oldpath=root/('old_301' if g=='301x601' else 'old_401')/('F71_'+g+'_direct.json')
             records[f'{g}_196']=old_f71_to_record(oldpath,g)
@@ -173,8 +174,8 @@ jobs:
               tag=f'F72-{g}-EOS{n}-C-or-failure'
               p=root/'new'/tag/f'F72_{g}_EOS{n}_C.json'
               records[f'{g}_{n}']=json.loads(p.read_text())
-              assert records[f'{g}_{n}']['eos_sha256']==tables[n]['sha256']
-          out=compare_eos_spacetime(records,tables)
+              actual_source_tables[f'{g}_{n}']=root/'new'/tag/f'ALT{n}.rns'
+          out=compare_eos_spacetime(records,tables,actual_source_tables)
           out['EOS_table_reproduction']={str(n):{k:v for k,v in tables[n].items() if k!='path'} for n in COUNTS}
           (root/'F72_REAL_C_2AXIS_CONVERGENCE_RESULTS.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
           print(json.dumps(out['separately_computed_stars'],indent=2),flush=True)
