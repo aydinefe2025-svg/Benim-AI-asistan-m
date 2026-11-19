@@ -58,3 +58,7 @@ python -m py_compile research/battery_curve_audit/customer_pipeline.py
 GitHub CI also runs the same command against a manifest generated from the 20 Git-blob-pinned public CSVs published by POLITEHNICA Bucharest, validates its aggregate counts, and stores the redacted summary in a short-lived Actions artifact. That CI exercise is a **published-source regression**, not a paid customer deployment or a field trial.
 
 **Data attribution:** public test dataset [BulyK47/battery-datasets](https://github.com/BulyK47/battery-datasets), DOI [10.21227/cm0f-jg66](https://doi.org/10.21227/cm0f-jg66), CC BY 4.0, credit required. Original audit scripts and metadata remain available in repository history. Customer-provided data are governed by their own permissions.
+
+### V3 gerilim-ötelemesi inceleme kapısı
+
+Aynı modda, başlangıç/son zamanları benzer ve türev profili eşleşen 2–5 mV sabit voltaj farkları ayrıca `VOLTAGE_OFFSET_AMBIGUOUS_REVIEW_ONLY` adayı olabilir. Rapor sadece kimliksiz `voltage_offset_ambiguous_candidates` sayısını yayımlar. Bu sonuç fiziksel kopya kararı değildir; aynı şekli taşıyan bağımsız hücreleri de incelemeye gönderebilir. Tüm bağlı hücreler bölünmeden tutulur. Bağımsızlık için gerçek kaynak kayıtları ve iki bağımsız teknisyen incelemesi gerekir; saha başarısı ölçülmemiştir.
