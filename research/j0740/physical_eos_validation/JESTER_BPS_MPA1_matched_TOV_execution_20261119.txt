@@ -82,6 +82,29 @@
     "original_jester_mpa1_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
     "original_sources_modified": false
   },
+  "source_table_endpoint_and_tail_audit": {
+    "M_R_at_source_table_endpoint": {
+      "Hc": 0.9465588397812381,
+      "M_msun": 2.447684559022021,
+      "Pc_geom_m-2": 1.2921624195608629e-09,
+      "R_km": 11.003273752429566,
+      "method": "rm"
+    },
+    "causal_tail_controls_global_maximum": false,
+    "native_source_Pmax_geom_m-2": 1.2921624195608629e-09,
+    "native_source_enthalpy_max": 0.9465588397812381,
+    "post_source_tail_mass_max": {
+      "Hc": 0.9465592414649651,
+      "M_msun": 2.447684496798877,
+      "Pc_geom_m-2": 1.2921637117232823e-09,
+      "R_km": 11.003272703295083,
+      "method": "rm"
+    },
+    "post_source_tail_scan_count": 56,
+    "post_tail_max_minus_turning_point_msun": -0.014287723162448973,
+    "source_table_endpoint_mass_minus_turning_point_msun": -0.014287660939305002,
+    "turning_point_inside_native_source_pressure_range": true
+  },
   "status": "PASS_NUMERICAL_HYBRID_EOS_CANDIDATE_PHYSICAL_ACCEPTANCE_NOT_ESTABLISHED",
   "surface_extension": {
     "BPS_start_n_fm-3": 3.15500001e-05,
