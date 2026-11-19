@@ -29,7 +29,8 @@ For a dedicated worker DB role, review the following *template* with a DBA. This
 -- CREATE ROLE cano_autodev_worker LOGIN PASSWORD '<private-random-secret>';
 GRANT CONNECT ON DATABASE assistant_pg TO cano_autodev_worker;
 GRANT USAGE ON SCHEMA public TO cano_autodev_worker;
-GRANT SELECT (id,owner_key,goal,status,attempts,created_at,started_at,pr_url)
+GRANT SELECT (id,owner_key,goal,status,attempts,created_at,started_at,
+              pr_url,branch_name,commit_sha,ci_run_url,updated_at)
   ON public.cano_code_jobs TO cano_autodev_worker;
 GRANT UPDATE (status,attempts,started_at,updated_at,
               branch_name,pr_url,commit_sha,reason_code,finished_at)
@@ -63,3 +64,27 @@ The owner web chat intentionally permits `kendini geliştir` to enqueue a **cano
 This narrow exception does **not** grant a generic natural-language agent access to the whole repository. All other requests still require precisely one explicit, nonsensitive `core/*.py` path. The model proposal is treated as untrusted; AST/import and size/hazard checks remain mandatory and generated code is not executed by this worker. Successful handling means only a **draft PR** plus an attempted separate secret-free CI dispatch. It does not create its own RED test, merge, deploy, or demonstrate general autonomous development. The worker remains manual and **disabled until dedicated owner-scoped role, limits, secrets and GitHub Actions settings are separately verified**.
 
 Do not retry existing terminal `blocked` code jobs or fabricate activity. The owner queue's self-development dedupe/cooldown rules remain unchanged.
+
+## CI dispatch recovery after an existing draft is recorded
+
+If the worker successfully created and recorded an owner-scoped `pr_open`
+draft but GitHub's Core CI dispatch failed or its response was lost, the next
+enabled manual run may recover **only the CI dispatch**, not the model output,
+branch or PR. It selects at most one `pr_open`, `attempts=1`, missing CI
+receipt older than ten minutes; verifies the exact same *open draft*,
+repository, deterministic branch, PR URL and commit SHA; then reads the
+existing `test.yml` workflow runs for that branch and SHA. A matching
+run is left alone; only an unambiguous absence permits one dispatch.
+Malformed, incomplete or unavailable GitHub responses require manual
+reconciliation and never authorize a write. Closed/merged/mismatched drafts
+are never replayed.
+
+The read-only recovery query requires the extra SELECT columns
+`branch_name`, `commit_sha`, `ci_run_url`, `updated_at` in the
+illustrative **dedicated** role grant above. Existing production roles must
+**not** be modified or enabled blindly: review the effective column grants,
+server-side owner-only RLS, provider quota and repository Actions permissions
+first. The dedicated Neon worker role remains NOLOGIN and the workflow
+manual/disabled until an authorized live acceptance demonstrates one
+`queued → running → pr_open → CI` receipt. This mechanism does not turn on
+auto-merge, auto-deploy, model training or background execution.
