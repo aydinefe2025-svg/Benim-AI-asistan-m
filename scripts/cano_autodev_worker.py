@@ -113,21 +113,43 @@ def process_job(job: Job, store, github, model) -> str:
     try:
         branch, pr_url, commit_sha = github.create_draft(
             job.id, path, blob_sha, candidate, job.goal)
-        store.record_pr(job.id, branch, pr_url, commit_sha)
-        # GITHUB_TOKEN-created PR events are not a reliable CI trigger.
-        # Explicit workflow_dispatch is an allowed GitHub Actions exception.
-        # Store the real PR receipt *before* dispatch; if dispatch fails,
-        # retain pr_open and exit unsuccessfully for operator reconciliation.
-        try:
-            github.dispatch_core_ci(branch)
-        except Exception:
-            return "pr_open_ci_dispatch_failed"
-        return "pr_open"
     except Exception:
-        # GitHub can have written a branch before a later failure. Do not
-        # blindly retry: a human must reconcile the deterministic branch.
-        store.block(job.id, "github_write_needs_reconcile")
-        return "blocked"
+        # GitHub may already have created the draft before the response was
+        # lost. Leave the job running for read-only recovery, never re-run
+        # the model or silently mark potentially completed work as blocked.
+        return "recovery_requires_reconcile"
+    try:
+        store.record_pr(job.id, branch, pr_url, commit_sha)
+    except Exception:
+        # The PR already exists; preserve the deterministic recovery anchor.
+        return "pr_receipt_needs_reconcile"
+    # The bot-created pull_request event cannot be relied upon to start CI.
+    try:
+        github.dispatch_core_ci(branch)
+    except Exception:
+        return "pr_open_ci_dispatch_failed"
+    return "pr_open"
+
+
+def reconcile_job(job: Job, store, github) -> str:
+    """Recover only an independently verified GitHub draft, with no model call."""
+    try:
+        prior = github.find_existing_draft(job.id)
+    except Exception:
+        return "recovery_unavailable"
+    if prior is None:
+        # Branch may exist without a PR; require review rather than replay.
+        return "recovery_requires_reconcile"
+    branch, pr_url, commit_sha = prior
+    try:
+        store.record_pr(job.id, branch, pr_url, commit_sha)
+    except Exception:
+        return "pr_receipt_needs_reconcile"
+    try:
+        github.dispatch_core_ci(branch)
+    except Exception:
+        return "pr_open_ci_dispatch_failed"
+    return "pr_open"
 
 
 class NeonJobStore:
@@ -180,6 +202,20 @@ class NeonJobStore:
             row = cur.fetchone()
         return Job(row[0], row[1]) if row else None
 
+    def stale_running_one(self) -> Job | None:
+        """Read one old unfinished job; never changes attempts or reclaims it."""
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT id::text, goal FROM public.cano_code_jobs
+                WHERE owner_key=%s AND status='running' AND attempts=1
+                  AND pr_url IS NULL
+                  AND started_at < now() - interval '30 minutes'
+                ORDER BY started_at ASC, id ASC
+                LIMIT 1 FOR UPDATE SKIP LOCKED
+            """, (self.owner_key,))
+            row = cur.fetchone()
+        return Job(row[0], row[1]) if row else None
+
     def record_pr(self, job_id: str, branch: str, url: str, sha: str) -> None:
         with self._connect() as conn, conn.cursor() as cur:
             cur.execute("""
@@ -223,6 +259,41 @@ class GitHubDrafts:
             method, self._base + route, timeout=20, **kwargs)
         response.raise_for_status()
         return response.json() if response.content else {}
+
+    def find_existing_draft(self, job_id: str) -> tuple[str, str, str] | None:
+        """Accept only a verified, open draft tied to this deterministic job."""
+        if not isinstance(job_id, str) or not re.fullmatch(r"[0-9a-f-]{36}", job_id):
+            return None
+        branch = "cano-autodev-" + job_id.replace("-", "")
+        if not re.fullmatch(r"cano-autodev-[0-9a-f]{32}", branch):
+            return None
+        try:
+            pulls = self._request("GET", "/pulls", params={
+                "head": "aydinefe2025-svg:" + branch,
+                "base": "main", "state": "open", "per_page": 5})
+        except Exception:
+            raise
+        if not isinstance(pulls, list) or len(pulls) != 1:
+            return None
+        pr = pulls[0]
+        if not isinstance(pr, dict) or pr.get("state") != "open" or pr.get("draft") is not True:
+            return None
+        head, base = pr.get("head"), pr.get("base")
+        if not isinstance(head, dict) or not isinstance(base, dict):
+            return None
+        head_repo = head.get("repo")
+        if (not isinstance(head_repo, dict)
+                or head_repo.get("full_name") != REPOSITORY
+                or head.get("ref") != branch or base.get("ref") != "main"):
+            return None
+        sha, url = head.get("sha"), pr.get("html_url")
+        if (not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha)
+                or not isinstance(url, str)
+                or not re.fullmatch(
+                    r"https://github\.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/[1-9][0-9]*",
+                    url)):
+            return None
+        return branch, url, sha
 
     def dispatch_core_ci(self, branch: str) -> None:
         if not re.fullmatch(r"cano-autodev-[0-9a-f]{32}", branch):
@@ -322,11 +393,16 @@ def main() -> int:
     try:
         db = NeonJobStore(db_url, owner_key)
         db.verify_worker_role()
+        github = GitHubDrafts(gh_token)
+        stale = db.stale_running_one()
+        if stale is not None:
+            status = reconcile_job(stale, db, github)
+            print("CANO draft worker recovery: " + status)
+            return 0 if status == "pr_open" else 1
         job = db.claim_one()
         if job is None:
             print("CANO draft worker: no queued job")
             return 0
-        github = GitHubDrafts(gh_token)
         model = GroqRewriteModel(groq_key, model_name)
         status = process_job(job, db, github, model)
         # A receipt exists in Neon. Neither goal nor identifiers are logged.
