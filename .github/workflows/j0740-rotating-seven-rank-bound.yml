@@ -1,0 +1,55 @@
+name: J0740 seven original spinning EOS missing-mass F38 ranking upper certificate
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/original_spin_rank_bounds/**'
+      - '.github/workflows/j0740-rotating-seven-rank-bound.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-seven-source-conditional-rank-upper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install source locked statistical libraries only, not RNS or full NICER photons
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: 12 adversarial mathematical / original source fingerprint tests
+        working-directory: research/j0740/original_spin_rank_bounds
+        run: python -m unittest -v test_j0740_missing_mass_upper
+      - name: Recalculate source-matched exact normal mass integrals over F38 row envelopes
+        shell: bash
+        run: |
+          python research/j0740/original_spin_rank_bounds/j0740_missing_mass_upper.py \
+            --envelopes research/j0740/original_spin_rank_bounds/missing_rank/J0740_source_F38_rows_max_envelopes.json \
+            --outdir results/J0740_original_seven_ranking_bounds
+      - name: Verify all six original F38 KDE variants, three certified model ranks, and numerical score gap
+        run: |
+          python - <<'PY'
+          import json, pathlib, math, hashlib
+          p=pathlib.Path('results/J0740_original_seven_ranking_bounds/J0740_seven_missing_mass_rank_certificate.json')
+          d=json.loads(p.read_text())
+          expected=json.loads(pathlib.Path('research/j0740/original_spin_rank_bounds/missing_rank/J0740_seven_missing_mass_rank_certificate.json').read_text())
+          assert len(d['six_kde_upper_bounds'])==6
+          assert d['all_six_MPA1_rank1'] and d['all_six_ENG_rank2'] and d['all_six_APR4_rank3']
+          assert d['physical_certification']=='NOT_ESTABLISHED' and d['source_native_photon_XPSI_Bayes']=='NOT_RUN'
+          for k,score in d['six_kde_upper_bounds'].items():
+            for model,v in score['mathematically_max_additional_missing_mass_scores'].items():
+              assert math.isclose(v,expected['six_kde_upper_bounds'][k]['mathematically_max_additional_missing_mass_scores'][model],rel_tol=1e-9,abs_tol=1e-9)
+          assert d['minimum_MPA1_score_advantage_over_any_maximal_competitor']>0.49
+          print('PASSED_ALL_SIX_CONDITIONAL_TOP3_RANK_SOURCE_KDE_BOUNDS')
+          print('CERTIFICATE_SHA256',hashlib.sha256(p.read_bytes()).hexdigest())
+          PY
+      - name: Persist actual original-source conditional proof, never claim photon-level physics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-7-original-rotating-EOS-6-F38-mass-tail-analytic-upper-certificate
+          path: results/J0740_original_seven_ranking_bounds/
+          if-no-files-found: warn
