@@ -24,6 +24,21 @@
     "high_density_Gamma3": "PASS at knots, max cs2=0.9961382554477545",
     "global_APR4_EPP": "NOT_ESTABLISHED",
     "EOS_Bayes": "NOT_RUN"
-  }
+  },
+  "github_readback": [
+    {
+      "sha256": "a405fe94415bdcf28efe53dbac954829a7f0fada8c8a013667d74a2d8d9aaac1",
+      "normalized_content_matches_local": true,
+      "path": "research/j0740/rotating_gr/apr4_epp_analytic_causal_pieces_20261119.py",
+      "bytes": 5504
+    },
+    {
+      "sha256": "f44802a433ff02400f52289293ebcb4ef24cb69b2b1d14e92c9274ffb2d9387c",
+      "normalized_content_matches_local": true,
+      "path": "research/j0740/rotating_gr/APR4_EPP_CAUSAL_SEGMENT_CORRECTION_20261119.json",
+      "bytes": 3165
+    }
+  ],
+  "github_line_ending_note": "GitHub readback contains two trailing CRLF bytes beyond local files; after normalizing line endings and terminal newlines, both contents match exactly. Byte-level SHA-256 differs for that reason and is recorded separately."
 }
 
