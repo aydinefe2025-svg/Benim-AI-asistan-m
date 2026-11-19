@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 import numpy as np
-from f67_mpa1_pchip_firstlaw_tov import ColdEOS, load_source, tov, sha, EOS_LABEL
+from f67_mpa1_pchip_firstlaw_tov import ColdEOS, load_source, tov, sha, EOS_LABEL, continuous_piecewise_cubic_sound_speed_extrema
 
 class TestF67(unittest.TestCase):
     def setUp(self):
@@ -72,6 +72,18 @@ class TestF67(unittest.TestCase):
     def test_15_n_over_n0_at_source_min(self):
         s=ColdEOS(self.table)
         self.assertAlmostEqual(float(s.n_ratio(np.array([math.log(s.p0)]))[0]),1,places=13)
+    def test_16_full_piecewise_cs2_extrema_bound_dense_samples(self):
+        eos=ColdEOS(self.table)
+        e=continuous_piecewise_cubic_sound_speed_extrema(eos,2e-10)
+        samp=eos.sound_speed_screen(2e-10,per_knot=300)
+        self.assertTrue(e['all_piecewise_interval_extrema_checked'])
+        self.assertGreater(e['piecewise_cubic_raw_intervals'],10)
+        self.assertTrue(e['new_alternate_mathematical_interpolant_causal_to_star_center'])
+        self.assertLessEqual(e['floating_polynomial_extrema_cs2_min'],samp['sampled_cs2_min']*(1+1e-8))
+        self.assertGreaterEqual(e['floating_polynomial_extrema_cs2_max'],samp['sampled_cs2_max']*(1-1e-8))
+    def test_17_derivative_extrema_no_nuclear_certification(self):
+        d=continuous_piecewise_cubic_sound_speed_extrema(ColdEOS(self.table),2e-10)
+        self.assertEqual(d['physical_nuclear_EOS_continuous_certification'],'NOT_ESTABLISHED')
     def test_16_status_is_not_original(self):
         self.assertIn('EXPLORATORY',EOS_LABEL)
 
