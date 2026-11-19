@@ -12,6 +12,8 @@ on:
       - "tests/test_battery_integrated_gate.py"
       - "tests/test_battery_integrated_output_safety.py"
       - "tests/test_battery_field_pilot_evidence.py"
+      - "tests/test_battery_provenance_aliases.py"
+      - "tests/test_battery_provenance_alias_lab.py"
       - "tests/test_battery_field_csv_intake.py"
       - "tests/test_battery_field_receipt_binding.py"
       - "tests/test_battery_bound_field_csv.py"
@@ -71,6 +73,11 @@ jobs:
 
       - name: Verify source-to-field receipt linkage on synthetic fixtures
         run: python -m unittest discover -s tests -p "test_battery_field_receipt_binding.py" -v
+
+      - name: Field metadata canonical-alias safety regressions
+        run: |
+          python -m unittest discover -s tests -p "test_battery_provenance_aliases.py" -v
+          python -m unittest discover -s tests -p "test_battery_provenance_alias_lab.py" -v
 
       - name: Offline field technician CSV intake regressions and redacted demonstration
         run: |
@@ -297,6 +304,27 @@ jobs:
           print("PASS: 1400 synthetic batches; 600/600 synthetic clones reviewed; 200/300 synthetic independent templates reviewed; still no field classification")
           PY
 
+      - name: Run 1200 adversarial field provenance aliases and controls
+        run: |
+          python research/battery_curve_audit/provenance_alias_lab.py \
+            --trials 50 --seed 20261119 \
+            --output "${RUNNER_TEMP}/battery_provenance_alias_1200.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          f=Path(os.environ["RUNNER_TEMP"])/"battery_provenance_alias_1200.json"
+          r=json.loads(f.read_text())
+          assert r["scenario_count"] == 1200
+          assert r["synthetic_alias_cases"] == 900
+          assert r["conservative_alias_reviews"] == 900
+          assert r["alias_escaping_split_review"] == 0
+          assert r["synthetic_distinct_controls"] == 300
+          assert r["controls_not_blocked"] == 300
+          assert r["distinct_controls_reviewed"] == 0
+          assert not r["real_instrument_identity_verified"]
+          print("PASS: 900/900 provenance aliases reviewed; 300/300 distinct synthetic identifiers not blocked")
+          PY
+
       - name: Bind publisher evidence to synthetic-only field metadata (not real field proof)
         run: |
           python - <<'PY'
@@ -394,6 +422,7 @@ jobs:
             ${{ runner.temp }}/battery_numeric_audit.json
             ${{ runner.temp }}/battery_integrated_report.json
             ${{ runner.temp }}/battery_bound_redacted.json
+            ${{ runner.temp }}/battery_provenance_alias_1200.json
             ${{ runner.temp }}/customer_public_summary.json
             ${{ runner.temp }}/CANO_BATARYA_SANAL_LAB_V3_1400.json
 
@@ -431,6 +460,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Native Run-Customer.cmd failed" }
           cmd /c Run-Field-Verified.cmd
           if ($LASTEXITCODE -ne 2) { throw "Native field verified launcher must refuse missing required arguments" }
+          cmd /c Run-Provenance-Simulation.cmd
+          if ($LASTEXITCODE -ne 0) { throw "Native Run-Provenance-Simulation.cmd failed" }
+          $alias = Get-Content "provenance-simulation-1200.json" -Raw | ConvertFrom-Json
+          if ($alias.scenario_count -ne 1200 -or $alias.conservative_alias_reviews -ne 900 -or $alias.controls_not_blocked -ne 300) {
+            throw "Native Windows provenance alias simulation counts mismatched"
+          }
           cmd /c Run-Simulation.cmd
           if ($LASTEXITCODE -ne 0) { throw "Native Run-Simulation.cmd failed" }
           $result = Get-Content "simulation-evidence.json" -Raw | ConvertFrom-Json
