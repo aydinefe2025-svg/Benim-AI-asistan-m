@@ -1,0 +1,122 @@
+{
+  "TOV": {
+    "M1p4": {
+      "Hc": 0.20621418165476316,
+      "M_msun": 1.3999999897007678,
+      "Pc_geom_m-2": 7.531695261395245e-11,
+      "R_km": 12.440981001760415,
+      "method": "rm"
+    },
+    "M2p073": {
+      "Hc": 0.38393807723808926,
+      "M_msun": 2.0729999940002966,
+      "Pc_geom_m-2": 2.164978525783889e-10,
+      "R_km": 12.399789130135465,
+      "method": "rm"
+    },
+    "coarse_scan_52_rtol_2e-8_turning_point": {
+      "Hc": 0.8257430922063251,
+      "M_msun": 2.461972817235004,
+      "Pc_geom_m-2": 9.475266588544814e-10,
+      "R_km": 11.321424445436968,
+      "method": "rm"
+    },
+    "fine_scan_84_rtol_2e-10_turning_point": {
+      "Hc": 0.8256164112560757,
+      "M_msun": 2.461972219961326,
+      "Pc_geom_m-2": 9.472078495501596e-10,
+      "R_km": 11.32176268110136,
+      "method": "rm"
+    },
+    "independent_uv_at_fine_turning_point": {
+      "Hc": 0.8256164112560757,
+      "M_msun": 2.461972180758648,
+      "Pc_geom_m-2": 9.472078495501596e-10,
+      "R_km": 11.321762709681918,
+      "method": "uv"
+    },
+    "uv_relative_mass_difference": 1.5923282026264474e-08,
+    "uv_relative_radius_difference": 2.5243911405681274e-09
+  },
+  "continuous_causality_and_stability": {
+    "all_piecewise_segments_causal": true,
+    "causal_tail_cs2": 1.0,
+    "segments": [
+      {
+        "cs2_max": 0.0040945504386347515,
+        "cs2_min": 0.0009104397531553544,
+        "extrema_points_checked": 85,
+        "segment": "BPS"
+      },
+      {
+        "cs2_max": 0.9902504658616318,
+        "cs2_min": 0.0043767964099761,
+        "extrema_points_checked": 765,
+        "segment": "MPA1"
+      },
+      {
+        "cs2_max": 0.0016861723530321917,
+        "cs2_min": 0.0,
+        "segment": "surface_extension",
+        "slope_a": 0.751133055659812
+      }
+    ]
+  },
+  "high_density_completion": {
+    "explicit_new_model": true,
+    "type": "cs2=1 causal-limit continuation above source MPA1 Pmax"
+  },
+  "limits": {
+    "final_EOS_Bayes": "NOT_RUN",
+    "hybrid_candidate_microphysical_acceptance": "NOT_ESTABLISHED",
+    "new_model_RNS": "NOT_RUN",
+    "original_MPA1_physical_Mmax": "NOT_ESTABLISHED; source table terminates without a demonstrated descending stable branch",
+    "source_native_XPSI_marginalization": "NOT_RUN"
+  },
+  "model": "JESTER_BPS_CRUST_LAL_MPA1_HIGH_PRESSURE_CROSSING_CAUSAL_TAIL_V1",
+  "schema": "J0740_BPS_MPA1_MATCHED_TOV_V1",
+  "source": {
+    "bps_csv_sha256": "a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787",
+    "jester_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+    "mpa1_source_csv_sha256": "f51d6476f999bf02a839fcb5f318d94c9f11338d270644c3c8b617cdb95a32c9",
+    "original_jester_mpa1_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+    "original_sources_modified": false
+  },
+  "status": "PASS_NUMERICAL_HYBRID_EOS_CANDIDATE_PHYSICAL_ACCEPTANCE_NOT_ESTABLISHED",
+  "surface_extension": {
+    "BPS_start_n_fm-3": 3.15500001e-05,
+    "BPS_start_p_geom_m-2": 4.9148160691620936e-17,
+    "BPS_start_row_zero_based": 40,
+    "BPS_start_tabulated_mu_MeV": 930.2623903613421,
+    "first_law_n": "n=(epsilon+P)/(mu0 exp(h)); h(0)=0",
+    "log_e_log_p_slope": 0.751133055659812,
+    "surface_mu0_MeV": 930.4,
+    "tabulated_mu_anchor_relative_residual": -0.00014790373888418085,
+    "type": "BPS-local-slope polytrope below the BPS knot whose tabulated mu=(e+p)/n is closest to the physical zero-pressure Fe anchor"
+  },
+  "transition": {
+    "absolute_baryon_density_surface_mu_MeV": 930.4,
+    "crossing_count_in_stable_overlap": 4,
+    "crossing_pressures_geom_m-2": [
+      6.829451816552411e-16,
+      3.2833390921882603e-15,
+      1.1555730471979035e-14,
+      9.945000594753034e-14
+    ],
+    "cs2_jump_absolute": 0.00020584674975023583,
+    "cs2_left_BPS": 0.004147053117085136,
+    "cs2_right_MPA1": 0.004352899866835372,
+    "energy_continuity_relative_residual": 0.0,
+    "epsilon_join_geom_m-2": 3.48833668434658e-11,
+    "firstlaw_vs_BPS_n_relative_residual": -2.3491189455659978e-05,
+    "mu_BPS_tabulated_join_MeV": 947.2036175133135,
+    "mu_firstlaw_join_MeV": 947.1035224900572,
+    "n_BPS_tabulated_at_join_fm-3": 0.027901928471170866,
+    "n_firstlaw_join_fm-3": 0.027901273021682972,
+    "selected_pressure_MeV_fm-3": 0.07512275520519562,
+    "selected_pressure_geom_m-2": 9.945000594753034e-14,
+    "selection": "highest-pressure zero of epsilon_BPS(P)-epsilon_LAL_MPA1(P) in common interval after the first native cs2<0 row; lower crossings retained as matching alternatives, not discarded evidence",
+    "source_MPA1_native_n_fm-3": 0.028064464372938757
+  }
+}
+
