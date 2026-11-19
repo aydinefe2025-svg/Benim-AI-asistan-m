@@ -145,7 +145,8 @@ class CodeJobStore:
                 (self.owner_key, digest, goal),
             )
             result = cur.fetchone()
-            if result is None:
+            created = result is not None
+            if not created:
                 cur.execute(
                     "SELECT id::text,status FROM public.cano_code_jobs "
                     "WHERE owner_key=%s AND goal_hash=%s",
@@ -154,7 +155,7 @@ class CodeJobStore:
                 result = cur.fetchone()
             if not result:
                 raise RuntimeError("No committed CANO development queue receipt")
-        return {"id": result[0], "status": result[1], "duplicate": False}
+        return {"id": result[0], "status": result[1], "duplicate": not created}
 
     def recent(self, limit=8):
         if type(limit) is not int or not 1 <= limit <= 10:
