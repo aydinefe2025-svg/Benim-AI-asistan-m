@@ -38,7 +38,7 @@ def parse_voltage_curve(raw: bytes) -> tuple[list[float], list[float]]:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        if not times and not header_seen and any(ch.isalpha() for ch in line):
+        if not times and not header_seen and line[0].isalpha():
             # Two-column optional header may contain spaces within unit labels.
             # Do not accept a swapped time/voltage or current/SOC header.
             signature = re.sub(r"[^a-z]", "", line.lower())
