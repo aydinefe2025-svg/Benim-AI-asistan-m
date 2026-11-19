@@ -87,7 +87,9 @@ def audit_offline(manifest, root, *, max_traces=MAX_TRACES, max_pairs=MAX_PAIRS)
     unscreened = [t for t in physical_traces
                   if (t['n'] < near.DEFAULT_MIN_POINTS or
                       max(t['volts'])-min(t['volts']) < near.DEFAULT_MIN_VOLTAGE_RANGE_V)]
-    candidates = near.candidates_for(physical_traces)
+    absolute_candidates = near.candidates_for(physical_traces)
+    origin_candidates = near.relative_time_origin_candidates(physical_traces, absolute_candidates)
+    candidates = absolute_candidates + origin_candidates
     split = near.propose_split(traces, candidates)
     if split is not None:
         near.verify_split(traces, candidates, split)
@@ -113,6 +115,7 @@ def audit_offline(manifest, root, *, max_traces=MAX_TRACES, max_pairs=MAX_PAIRS)
         'numeric_only_duplicate_groups': len(audited['numeric_only_duplicate_groups']),
         'cross_cell_numeric_duplicate_groups': cross_numeric_groups,
         'near_candidates': len(candidates),
+        'time_origin_near_candidates': len(origin_candidates),
         'unscreened_traces': len(unscreened),
         'independent_groups': len(groups),
         'holdout_possible': split is not None,
@@ -125,6 +128,7 @@ def audit_offline(manifest, root, *, max_traces=MAX_TRACES, max_pairs=MAX_PAIRS)
             'Near matches are review candidates, not proof of copying or fraud.',
             'Traces with fewer than 100 samples or voltage span below 0.05 V were not near-screened; human review required.',
             'Thresholds are not calibrated on real independent customer labels.',
+            'Only constant time-origin shifts are screened additionally; time warping, >2 mV bias and noisy clones may be missed.',
             'Shared batches, changed time grids, derived feature leakage, SOH and field performance not validated.',
             'Private split contains cell aliases and hashes; disclose only with customer permission.',
         ],
