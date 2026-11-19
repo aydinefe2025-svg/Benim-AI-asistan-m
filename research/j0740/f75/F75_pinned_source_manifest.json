@@ -1,0 +1,483 @@
+{
+  "pinned_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+  "records": {
+    "APR4_EPP": {
+      "arrays": {
+        "Lambda_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "cs2": {
+          "dtype": "float64",
+          "shape": [
+            865
+          ]
+        },
+        "dloge_dlogp": {
+          "dtype": "float64",
+          "shape": [
+            865
+          ]
+        },
+        "e": {
+          "dtype": "float64",
+          "shape": [
+            865
+          ]
+        },
+        "eos_name": {
+          "dtype": "<U8",
+          "shape": []
+        },
+        "h": {
+          "dtype": "float64",
+          "shape": [
+            865
+          ]
+        },
+        "masses_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "n": {
+          "dtype": "float64",
+          "shape": [
+            865
+          ]
+        },
+        "p": {
+          "dtype": "float64",
+          "shape": [
+            865
+          ]
+        },
+        "radii_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "source": {
+          "dtype": "<U13",
+          "shape": []
+        }
+      },
+      "bytes": 56300,
+      "sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88"
+    },
+    "ENG": {
+      "arrays": {
+        "Lambda_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "cs2": {
+          "dtype": "float64",
+          "shape": [
+            889
+          ]
+        },
+        "dloge_dlogp": {
+          "dtype": "float64",
+          "shape": [
+            889
+          ]
+        },
+        "e": {
+          "dtype": "float64",
+          "shape": [
+            889
+          ]
+        },
+        "eos_name": {
+          "dtype": "<U3",
+          "shape": []
+        },
+        "h": {
+          "dtype": "float64",
+          "shape": [
+            889
+          ]
+        },
+        "masses_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "n": {
+          "dtype": "float64",
+          "shape": [
+            889
+          ]
+        },
+        "p": {
+          "dtype": "float64",
+          "shape": [
+            889
+          ]
+        },
+        "radii_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "source": {
+          "dtype": "<U13",
+          "shape": []
+        }
+      },
+      "bytes": 57432,
+      "sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953"
+    },
+    "MPA1": {
+      "arrays": {
+        "Lambda_EOS": {
+          "dtype": "float64",
+          "shape": [
+            491
+          ]
+        },
+        "cs2": {
+          "dtype": "float64",
+          "shape": [
+            836
+          ]
+        },
+        "dloge_dlogp": {
+          "dtype": "float64",
+          "shape": [
+            836
+          ]
+        },
+        "e": {
+          "dtype": "float64",
+          "shape": [
+            836
+          ]
+        },
+        "eos_name": {
+          "dtype": "<U4",
+          "shape": []
+        },
+        "h": {
+          "dtype": "float64",
+          "shape": [
+            836
+          ]
+        },
+        "masses_EOS": {
+          "dtype": "float64",
+          "shape": [
+            491
+          ]
+        },
+        "n": {
+          "dtype": "float64",
+          "shape": [
+            836
+          ]
+        },
+        "p": {
+          "dtype": "float64",
+          "shape": [
+            836
+          ]
+        },
+        "radii_EOS": {
+          "dtype": "float64",
+          "shape": [
+            491
+          ]
+        },
+        "source": {
+          "dtype": "<U13",
+          "shape": []
+        }
+      },
+      "bytes": 54676,
+      "sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22"
+    },
+    "MS1": {
+      "arrays": {
+        "Lambda_EOS": {
+          "dtype": "float64",
+          "shape": [
+            455
+          ]
+        },
+        "cs2": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "dloge_dlogp": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "e": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "eos_name": {
+          "dtype": "<U3",
+          "shape": []
+        },
+        "h": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "masses_EOS": {
+          "dtype": "float64",
+          "shape": [
+            455
+          ]
+        },
+        "n": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "p": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "radii_EOS": {
+          "dtype": "float64",
+          "shape": [
+            455
+          ]
+        },
+        "source": {
+          "dtype": "<U13",
+          "shape": []
+        }
+      },
+      "bytes": 56640,
+      "sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad"
+    },
+    "MS1B": {
+      "arrays": {
+        "Lambda_EOS": {
+          "dtype": "float64",
+          "shape": [
+            456
+          ]
+        },
+        "cs2": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "dloge_dlogp": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "e": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "eos_name": {
+          "dtype": "<U4",
+          "shape": []
+        },
+        "h": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "masses_EOS": {
+          "dtype": "float64",
+          "shape": [
+            456
+          ]
+        },
+        "n": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "p": {
+          "dtype": "float64",
+          "shape": [
+            895
+          ]
+        },
+        "radii_EOS": {
+          "dtype": "float64",
+          "shape": [
+            456
+          ]
+        },
+        "source": {
+          "dtype": "<U13",
+          "shape": []
+        }
+      },
+      "bytes": 56668,
+      "sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c"
+    },
+    "WFF1": {
+      "arrays": {
+        "Lambda_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "cs2": {
+          "dtype": "float64",
+          "shape": [
+            868
+          ]
+        },
+        "dloge_dlogp": {
+          "dtype": "float64",
+          "shape": [
+            868
+          ]
+        },
+        "e": {
+          "dtype": "float64",
+          "shape": [
+            868
+          ]
+        },
+        "eos_name": {
+          "dtype": "<U4",
+          "shape": []
+        },
+        "h": {
+          "dtype": "float64",
+          "shape": [
+            868
+          ]
+        },
+        "masses_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "n": {
+          "dtype": "float64",
+          "shape": [
+            868
+          ]
+        },
+        "p": {
+          "dtype": "float64",
+          "shape": [
+            868
+          ]
+        },
+        "radii_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "source": {
+          "dtype": "<U13",
+          "shape": []
+        }
+      },
+      "bytes": 56428,
+      "sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3"
+    },
+    "WFF2": {
+      "arrays": {
+        "Lambda_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "cs2": {
+          "dtype": "float64",
+          "shape": [
+            872
+          ]
+        },
+        "dloge_dlogp": {
+          "dtype": "float64",
+          "shape": [
+            872
+          ]
+        },
+        "e": {
+          "dtype": "float64",
+          "shape": [
+            872
+          ]
+        },
+        "eos_name": {
+          "dtype": "<U4",
+          "shape": []
+        },
+        "h": {
+          "dtype": "float64",
+          "shape": [
+            872
+          ]
+        },
+        "masses_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "n": {
+          "dtype": "float64",
+          "shape": [
+            872
+          ]
+        },
+        "p": {
+          "dtype": "float64",
+          "shape": [
+            872
+          ]
+        },
+        "radii_EOS": {
+          "dtype": "float64",
+          "shape": [
+            500
+          ]
+        },
+        "source": {
+          "dtype": "<U13",
+          "shape": []
+        }
+      },
+      "bytes": 56620,
+      "sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae"
+    }
+  },
+  "source": "jester",
+  "status": "SOURCE_BYTE_PIN_PASS_NOT_EOS_PHYSICAL_ACCEPTANCE"
+}
