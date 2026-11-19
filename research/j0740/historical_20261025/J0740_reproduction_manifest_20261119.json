@@ -1,0 +1,56 @@
+{
+  "schema": "A01.01.51 J0740 reproduction provenance manifest v1",
+  "created_utc": "2026-11-19",
+  "verification": "PASS",
+  "reproduction_record": "J0740_reproduction_20261119.json",
+  "input_sources": [
+    {
+      "name": "Salmi 2024 mr_samples_and_contours.tar.gz",
+      "bytes": 40605003,
+      "published_md5": "ca8e70eeca81feb71321f1a88a24f2f9",
+      "sha256": "1549467c64a8801c39213bd28c89737d087cc5ab7a70da1d8d3a32b2d09185c8",
+      "doi": "10.5281/zenodo.10519473"
+    },
+    {
+      "name": "Miller 2021 NICER+XMM_J0740_full.txt",
+      "bytes": 168073694,
+      "published_md5": "c28a3995e60f364b34a66c29a37bf79d",
+      "sha256": "125cee5208d31c25791023e84e020362df56ad3ef808e8b325f57c2be65a79e2",
+      "doi": "10.5281/zenodo.4670689"
+    },
+    {
+      "name": "Legred LCEHL_EOS_posterior_samples_PSR+GW+NICER.h5",
+      "bytes": 192213112,
+      "published_md5": "64bdad9b43726162a25546d07305747d",
+      "sha256": "39ff1308fb2461eddaf82525ec8581db554c0d3907431ba7d23a04f4621b5abe",
+      "doi": "10.5281/zenodo.6502467"
+    }
+  ],
+  "raw_private_bundle": {
+    "parts": 54,
+    "bytes": 222910037,
+    "md5": "9fec0d9cd29df816bfea78565d0a6bb2",
+    "sha256": "5057752bec77b2417368fe144a6c1fc94203ce1eb15b975613a9ca334ddbfc2f",
+    "storage_prefix": "j0740/raw_bundle_parts/"
+  },
+  "execution": {
+    "workflow": "j0740-historical-legred-reproduction.yml",
+    "workflow_run_id": 44321341032,
+    "head_commit": "45262d5d60a884c33b19b61be75e5af87a0030e8",
+    "runner_code_commit": "46fdf755"
+  },
+  "output_artifact": {
+    "id": 14436225742,
+    "name": "j0740-historical-legred-reproduction-20261118",
+    "bytes": 5403,
+    "archive_sha256": "c774c5788897b8c1cfdc12e2c4972fc500db5872311e766648fc223065f5ec59",
+    "expires": "2026-12-18T14:19:06Z"
+  },
+  "scope": {
+    "historical_kde_to_kde_reproduction": "PASS",
+    "new_posterior": "NOT_RUN",
+    "native_xpsi": "NOT_RUN",
+    "final_physical_eos_bayes": "NOT_ESTABLISHED"
+  },
+  "note": "Source SHA-256s were emitted by the successful workflow after source size and published MD5 checks. The artifact digest is GitHub's reported archive digest. Historical result is not presented as a new posterior."
+}
