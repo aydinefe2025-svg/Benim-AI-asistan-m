@@ -14,6 +14,8 @@ class BPSJoinAuditTests(unittest.TestCase):
                          "372ce088e061997f7c05594e61e7c624a112d7ce66443c28c4633d03b7da6137")
         self.assertEqual(self.r["source"]["core_table_sha256"],
                          "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22")
+        self.assertEqual(self.r["source"]["original_jester_lalsuite_mpa1_npz_sha256"],
+                         "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22")
         self.assertEqual(self.r["source"]["bps_rows"], 130)
 
     def test_surface_chemical_potentials_close_but_eos_state_does_not(self):
@@ -26,6 +28,11 @@ class BPSJoinAuditTests(unittest.TestCase):
         q = self.r["at_equal_baryon_density"]
         self.assertAlmostEqual(q["relative_pressure_mismatch_core_over_bps"],
                                0.07593139553746786, places=8)
+
+    def test_original_jester_source_confirms_mismatch(self):
+        q = self.r["original_jester_mpa1_at_bps_upper_pressure"]
+        self.assertAlmostEqual(q["relative_energy_mismatch_vs_bps"],
+                               -0.04444583008272496, places=8)
 
     def test_downstream_work_remains_open(self):
         self.assertEqual(self.r["new_bps_joined_tov"], "NOT_RUN")
