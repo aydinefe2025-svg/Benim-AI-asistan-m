@@ -1,0 +1,50 @@
+name: Battery Braun fresh-vs-aged source identity pilot
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/battery-braun-two-cells.yml'
+      - 'research/battery_curve_audit/braun_independent_cell_audit.py'
+      - 'tests/test_battery_braun_independent_cell.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publisher-identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out tested product code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Checkout immutable public-data mirror only (no execution of mirror code)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: MiyaTomono-new/Data_Availability
+          ref: 77d6b4a17b587b03d5fd3ad723f60446a874b54e
+          path: external_braun
+          sparse-checkout: |
+            data/Experimental_data_fresh_cell.csv
+            data/Experimental_data_aged_cell.csv
+          sparse-checkout-cone-mode: false
+          filter: blob:none
+          persist-credentials: false
+      - name: Verify two independent original Zenodo publisher MD5 hashes
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          root = Path('external_braun/data')
+          checks = {
+              'Experimental_data_fresh_cell.csv': '32b57ad539a6794946eb37b3f636a58c',
+              'Experimental_data_aged_cell.csv': 'da0675c10e8bb3c3ce4c28db815309e8',
+          }
+          for name, original_md5 in checks.items():
+              raw = (root/name).read_bytes()
+              digest = hashlib.md5(raw).hexdigest()
+              print('PUBLISHER_INTEGRITY', name, 'bytes', len(raw), 'matches_source_md5', digest == original_md5,
+                    'first_line_columns', len(raw.splitlines()[0].split(b',')))
+              assert digest == original_md5, 'publisher byte identity was NOT established'
+          print('BOTH_DISTINCT_PHYSICAL_CELL_SOURCE_BYTES_VERIFIED: yes')
+          PY
