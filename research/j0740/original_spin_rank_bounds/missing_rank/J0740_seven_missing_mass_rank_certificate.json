@@ -1,0 +1,490 @@
+{
+  "all_six_APR4_rank3": true,
+  "all_six_ENG_rank2": true,
+  "all_six_MPA1_rank1": true,
+  "method": "original F38 bilinear source KDE row max in radius at each mass; exact analytic Gaussian\u00d7linear mass-integral over uncomputed real-RNS support; excludes F38 interpolation exterior",
+  "minimum_MPA1_score_advantage_over_any_maximal_competitor": 0.490588772387334,
+  "physical_certification": "NOT_ESTABLISHED",
+  "physics_scope": "7 source-original rotating GR RNS massline KDE comparison only, NOT physically certified EOS posterior",
+  "schema": "J0740_SEVEN_ORIGINAL_SPIN_GR_F38_UNCOMPUTED_MASS_SHARP_SOURCE_ENVELOPE_V1",
+  "six_kde_upper_bounds": {
+    "resampled_0.015_0.20": {
+      "APR4_minus_lower_rank_maximal_score": {
+        "MS1": 0.22942842778351974,
+        "MS1B": 0.13650249539178794,
+        "WFF1": 0.04327840229743163,
+        "WFF2": 0.08320277548173802
+      },
+      "ENG_minus_every_other_lower_rank_maximal_score": {
+        "APR4_EPP": 1.1182132721873026,
+        "MS1": 1.5965722129092077,
+        "MS1B": 1.503646280517476,
+        "WFF1": 1.4104221874231198,
+        "WFF2": 1.4503465606074262
+      },
+      "MPA1_minus_every_other_maximal_score": {
+        "APR4_EPP": 1.6601908418353475,
+        "ENG": 0.5307176257263511,
+        "MS1": 2.1385497825572526,
+        "MS1B": 2.045623850165521,
+        "WFF1": 1.9523997570711642,
+        "WFF2": 1.992324130255471
+      },
+      "conditional_probability_bounds": {
+        "APR4_EPP": {
+          "baseline_conditional": 0.08854181463926257,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.12524288198119327,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.0811646027693302
+        },
+        "ENG": {
+          "baseline_conditional": 0.31896557941721143,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.32025559496524686,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.2820333382686491
+        },
+        "MPA1": {
+          "baseline_conditional": 0.41031260039790823,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.41031260039790823,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.36219572802424566
+        },
+        "MS1": {
+          "baseline_conditional": 0.04987304939881335,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.04987304939881335,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.04402449600201081
+        },
+        "MS1B": {
+          "baseline_conditional": 0.0655351497719906,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.0655351497719906,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.05784992042609745
+        },
+        "WFF1": {
+          "baseline_conditional": 0.005100613641849215,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.0754985254304479,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.004826923148558681
+        },
+        "WFF2": {
+          "baseline_conditional": 0.06167119273296459,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.07357327521747144,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.055063544895836335
+        }
+      },
+      "mathematically_max_additional_missing_mass_scores": {
+        "APR4_EPP": 0.24893051293838547,
+        "ENG": 0.01125994392169388,
+        "MPA1": 0.0,
+        "MS1": 0.0,
+        "MS1B": 0.0,
+        "WFF1": 0.4517925791048908,
+        "WFF2": 0.0762252408821931
+      },
+      "observed_scores": {
+        "APR4_EPP": 0.5253337984667921,
+        "ENG": 1.89247758359248,
+        "MPA1": 2.434455153240525,
+        "MS1": 0.29590537068327233,
+        "MS1B": 0.38883130307500413,
+        "WFF1": 0.03026281706446967,
+        "WFF2": 0.36590578210286095
+      },
+      "source_F38_mass_grid_max_likelihood": 7.248965263366699
+    },
+    "resampled_0.025_0.35": {
+      "APR4_minus_lower_rank_maximal_score": {
+        "MS1": 0.2786953468951053,
+        "MS1B": 0.18822045711824154,
+        "WFF1": 0.08192964598853325,
+        "WFF2": 0.06811205257915481
+      },
+      "ENG_minus_every_other_lower_rank_maximal_score": {
+        "APR4_EPP": 0.9870904112481391,
+        "MS1": 1.5211766403514186,
+        "MS1B": 1.430701750574555,
+        "WFF1": 1.3244109394448467,
+        "WFF2": 1.3105933460354682
+      },
+      "MPA1_minus_every_other_maximal_score": {
+        "APR4_EPP": 1.5213110278240716,
+        "ENG": 0.5200499943132486,
+        "MS1": 2.055397256927351,
+        "MS1B": 1.9649223671504874,
+        "WFF1": 1.8586315560207791,
+        "WFF2": 1.8448139626114006
+      },
+      "conditional_probability_bounds": {
+        "APR4_EPP": {
+          "baseline_conditional": 0.09815968100496172,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.13507506573981629,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.08997704060915537
+        },
+        "ENG": {
+          "baseline_conditional": 0.3058008438072157,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.3074409400359333,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.27032030199659296
+        },
+        "MPA1": {
+          "baseline_conditional": 0.3950787996227042,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.3950787996227042,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.3485102115607859
+        },
+        "MS1": {
+          "baseline_conditional": 0.051584632992851015,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.051584632992851015,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.045504267439286976
+        },
+        "MS1B": {
+          "baseline_conditional": 0.06670462829307346,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.06670462829307346,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.058842044019328466
+        },
+        "WFF1": {
+          "baseline_conditional": 0.009907582377250472,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.07860681367413438,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.009355056757774772
+        },
+        "WFF2": {
+          "baseline_conditional": 0.07276383190194342,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.08557771330236878,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.06499040809864651
+        }
+      },
+      "mathematically_max_additional_missing_mass_scores": {
+        "APR4_EPP": 0.25539088220817435,
+        "ENG": 0.014170622262683813,
+        "MPA1": 0.0,
+        "MS1": 0.0,
+        "MS1B": 0.0,
+        "WFF1": 0.446152455716989,
+        "WFF2": 0.08385139732692043
+      },
+      "observed_scores": {
+        "APR4_EPP": 0.5873670026422142,
+        "ENG": 1.8298482960985276,
+        "MPA1": 2.36406891267446,
+        "MS1": 0.3086716557471089,
+        "MS1B": 0.39914654552397266,
+        "WFF1": 0.05928490093669189,
+        "WFF2": 0.43540355273613895
+      },
+      "source_F38_mass_grid_max_likelihood": 11.684114456176758
+    },
+    "resampled_0.040_0.50": {
+      "APR4_minus_lower_rank_maximal_score": {
+        "MS1": 0.32031491656419064,
+        "MS1B": 0.23474298755910605,
+        "WFF1": 0.08693753998354808,
+        "WFF2": 0.028504116673998978
+      },
+      "ENG_minus_every_other_lower_rank_maximal_score": {
+        "APR4_EPP": 0.8034524547867679,
+        "MS1": 1.4055355260122284,
+        "MS1B": 1.319963597007144,
+        "WFF1": 1.172158149431586,
+        "WFF2": 1.1137247261220367
+      },
+      "MPA1_minus_every_other_maximal_score": {
+        "APR4_EPP": 1.318650601096143,
+        "ENG": 0.4916176158212327,
+        "MS1": 1.9207336723216035,
+        "MS1B": 1.835161743316519,
+        "WFF1": 1.6873562957409611,
+        "WFF2": 1.6289228724314118
+      },
+      "conditional_probability_bounds": {
+        "APR4_EPP": {
+          "baseline_conditional": 0.10859434868153585,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.14832922292642176,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.09892610319555384
+        },
+        "ENG": {
+          "baseline_conditional": 0.28828530591178486,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.2910533646790474,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.2527748097818556
+        },
+        "MPA1": {
+          "baseline_conditional": 0.37359187608526095,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.37359187608526095,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.32645583247546767
+        },
+        "MS1": {
+          "baseline_conditional": 0.05555656680433614,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.05555656680433614,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.04854700122400232
+        },
+        "MS1B": {
+          "baseline_conditional": 0.06972557695867086,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.06972557695867086,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.06092830901301606
+        },
+        "WFF1": {
+          "baseline_conditional": 0.01815196213128539,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.08754189908189491,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.016990811091212563
+        },
+        "WFF2": {
+          "baseline_conditional": 0.08609436342712586,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.10205997964357959,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.07641916727502054
+        }
+      },
+      "mathematically_max_additional_missing_mass_scores": {
+        "APR4_EPP": 0.28176815466127,
+        "ENG": 0.023580530488142383,
+        "MPA1": 0.0,
+        "MS1": 0.0,
+        "MS1B": 0.0,
+        "WFF1": 0.45927771405526424,
+        "WFF2": 0.1073816735000447
+      },
+      "observed_scores": {
+        "APR4_EPP": 0.6558417133244059,
+        "ENG": 1.7410623227724438,
+        "MPA1": 2.256260469081819,
+        "MS1": 0.33552679676021524,
+        "MS1B": 0.42109872576529983,
+        "WFF1": 0.10962645928559359,
+        "WFF2": 0.5199559231503622
+      },
+      "source_F38_mass_grid_max_likelihood": 75.38703155517578
+    },
+    "weighted_0.015_0.20": {
+      "APR4_minus_lower_rank_maximal_score": {
+        "MS1": 0.23165857492017405,
+        "MS1B": 0.13917814833263054,
+        "WFF1": 0.04559958469398656,
+        "WFF2": 0.08410164628448384
+      },
+      "ENG_minus_every_other_lower_rank_maximal_score": {
+        "APR4_EPP": 1.1201249071721795,
+        "MS1": 1.5999901262312282,
+        "MS1B": 1.5075096996436845,
+        "WFF1": 1.4139311360050406,
+        "WFF2": 1.4524331975955378
+      },
+      "MPA1_minus_every_other_maximal_score": {
+        "APR4_EPP": 1.6578314284411093,
+        "ENG": 0.5262432073671804,
+        "MS1": 2.137696647500158,
+        "MS1B": 2.0452162209126143,
+        "WFF1": 1.9516376572739706,
+        "WFF2": 1.9901397188644678
+      },
+      "conditional_probability_bounds": {
+        "APR4_EPP": {
+          "baseline_conditional": 0.08873230059114989,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.12533356041951496,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.08135293662806876
+        },
+        "ENG": {
+          "baseline_conditional": 0.3194237562137982,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.32073652612773107,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.282520542133991
+        },
+        "MPA1": {
+          "baseline_conditional": 0.4100774431586531,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.4100774431586531,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.36208202739219575
+        },
+        "MS1": {
+          "baseline_conditional": 0.049676229856978296,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.049676229856978296,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.043862129751078664
+        },
+        "MS1B": {
+          "baseline_conditional": 0.06526780501699159,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.06526780501699159,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.05762886878624982
+        },
+        "WFF1": {
+          "baseline_conditional": 0.005103488638530205,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.07532431276759918,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.004830045488897454
+        },
+        "WFF2": {
+          "baseline_conditional": 0.061718976523898725,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.07360861215180534,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.055120027219825986
+        }
+      },
+      "mathematically_max_additional_missing_mass_scores": {
+        "APR4_EPP": 0.2482066441388747,
+        "ENG": 0.011463313901749395,
+        "MPA1": 0.0,
+        "MS1": 0.0,
+        "MS1B": 0.0,
+        "WFF1": 0.4504393417784774,
+        "WFF2": 0.07612615030748117
+      },
+      "observed_scores": {
+        "APR4_EPP": 0.5263099415259265,
+        "ENG": 1.8946414928369806,
+        "MPA1": 2.4323480141059104,
+        "MS1": 0.2946513666057524,
+        "MS1B": 0.38713179319329594,
+        "WFF1": 0.030271015053462552,
+        "WFF2": 0.36608214493396146
+      },
+      "source_F38_mass_grid_max_likelihood": 5.4102702140808105
+    },
+    "weighted_0.025_0.35": {
+      "APR4_minus_lower_rank_maximal_score": {
+        "MS1": 0.280218772049482,
+        "MS1B": 0.18990253430056314,
+        "WFF1": 0.08282316790290478,
+        "WFF2": 0.06805939058789523
+      },
+      "ENG_minus_every_other_lower_rank_maximal_score": {
+        "APR4_EPP": 0.9869494056331194,
+        "MS1": 1.522524397350923,
+        "MS1B": 1.4322081596020042,
+        "WFF1": 1.3251287932043456,
+        "WFF2": 1.3103650158893363
+      },
+      "MPA1_minus_every_other_maximal_score": {
+        "APR4_EPP": 1.5192064561633944,
+        "ENG": 0.5179119930099232,
+        "MS1": 2.0547814478811977,
+        "MS1B": 1.9644652101322788,
+        "WFF1": 1.8573858437346207,
+        "WFF2": 1.8426220664196111
+      },
+      "conditional_probability_bounds": {
+        "APR4_EPP": {
+          "baseline_conditional": 0.09829689563779011,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.13521225604215892,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.09009910970662663
+        },
+        "ENG": {
+          "baseline_conditional": 0.30596968594960494,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.3076300054887508,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.2704643480543921
+        },
+        "MPA1": {
+          "baseline_conditional": 0.3949456227847439,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.3949456227847439,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.3483768656036702
+        },
+        "MS1": {
+          "baseline_conditional": 0.05145349969394111,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.05145349969394111,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.045386523899985945
+        },
+        "MS1B": {
+          "baseline_conditional": 0.06655141499093746,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.06655141499093746,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.05870421652620352
+        },
+        "WFF1": {
+          "baseline_conditional": 0.009922023455142336,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.07859400038481486,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.009367964967847177
+        },
+        "WFF2": {
+          "baseline_conditional": 0.07286085748784027,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.08571455729804615,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.06507672064113001
+        }
+      },
+      "mathematically_max_additional_missing_mass_scores": {
+        "APR4_EPP": 0.2553562196683214,
+        "ENG": 0.014345057520351695,
+        "MPA1": 0.0,
+        "MS1": 0.0,
+        "MS1B": 0.0,
+        "WFF1": 0.44583829363452,
+        "WFF2": 0.08409984621736571
+      },
+      "observed_scores": {
+        "APR4_EPP": 0.5880153399833624,
+        "ENG": 1.8303209652848034,
+        "MPA1": 2.362578015815078,
+        "MS1": 0.30779656793388044,
+        "MS1B": 0.3981128056827993,
+        "WFF1": 0.05935387844593769,
+        "WFF2": 0.4358561031781015
+      },
+      "source_F38_mass_grid_max_likelihood": 8.666586875915527
+    },
+    "weighted_0.040_0.50": {
+      "APR4_minus_lower_rank_maximal_score": {
+        "MS1": 0.32155175028236455,
+        "MS1B": 0.2361348276075933,
+        "WFF1": 0.08727569651143907,
+        "WFF2": 0.028362646804274777
+      },
+      "ENG_minus_every_other_lower_rank_maximal_score": {
+        "APR4_EPP": 0.8026907625057411,
+        "MS1": 1.4062507131847979,
+        "MS1B": 1.3208337905100267,
+        "WFF1": 1.1719746594138725,
+        "WFF2": 1.113061609706708
+      },
+      "MPA1_minus_every_other_maximal_score": {
+        "APR4_EPP": 1.3170411332880136,
+        "ENG": 0.490588772387334,
+        "MS1": 1.9206010839670704,
+        "MS1B": 1.835184161292299,
+        "WFF1": 1.6863250301961448,
+        "WFF2": 1.6274119804889806
+      },
+      "conditional_probability_bounds": {
+        "APR4_EPP": {
+          "baseline_conditional": 0.10871071244825853,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.14847893927661532,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.09902141065205328
+        },
+        "ENG": {
+          "baseline_conditional": 0.28834462165138147,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.2911340733716269,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.25279682323017605
+        },
+        "MPA1": {
+          "baseline_conditional": 0.3735247231944546,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.3735247231944546,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.32634982790105516
+        },
+        "MS1": {
+          "baseline_conditional": 0.055459441920840236,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.055459441920840236,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.04845510404657326
+        },
+        "MS1B": {
+          "baseline_conditional": 0.06960509546798958,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.06960509546798958,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.06081420992095699
+        },
+        "WFF1": {
+          "baseline_conditional": 0.018175206159871525,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.08759298114235435,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.017010479532219937
+        },
+        "WFF2": {
+          "baseline_conditional": 0.08618019915720411,
+          "maximum_under_arbitrary_unseen_F38_likelihood": 0.10219123235405951,
+          "minimum_under_arbitrary_unseen_F38_likelihood": 0.07648770115361718
+        }
+      },
+      "mathematically_max_additional_missing_mass_scores": {
+        "APR4_EPP": 0.2820082003966921,
+        "ENG": 0.023761598394938514,
+        "MPA1": 0.0,
+        "MS1": 0.0,
+        "MS1B": 0.0,
+        "WFF1": 0.45941267770756855,
+        "WFF2": 0.10768529931502815
+      },
+      "observed_scores": {
+        "APR4_EPP": 0.6564372927812487,
+        "ENG": 1.741136255683682,
+        "MPA1": 2.2554866264659545,
+        "MS1": 0.3348855424988842,
+        "MS1B": 0.42030246517365544,
+        "WFF1": 0.10974891856224114,
+        "WFF2": 0.5203893466619458
+      },
+      "source_F38_mass_grid_max_likelihood": 71.95550537109375
+    }
+  },
+  "source_evidence_sha256": "0306d0ed4b15f25c4831433aecb5f536cefd803082402a31c6461ea6750559bb",
+  "source_f38_sha256": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307",
+  "source_native_photon_XPSI_Bayes": "NOT_RUN",
+  "status": "ALL_SIX_F38_CONDITIONAL_RANK_1_2_3_ROBUST_TO_ARBITRARY_MISSING_BRANCHES"
+}
