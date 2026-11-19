@@ -1,0 +1,89 @@
+name: J0740 F67 new separate MPA1_PCHIP_COLD first-law static TOV
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f67/**'
+      - '.github/workflows/j0740-f67-mpa1-alternate-cold-tov.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  f67-original-raw-to-new-alternate-tov:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pinned original source package, independent high-precision TOV solver
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3' 'lalsuite==7.26.4'
+      - name: Eighteen fail-closed source, thermodynamic and independent TOV tests
+        run: python -m unittest discover -s research/j0740/f67 -p 'test_f67_*.py' -v
+      - name: Resolve installed LALSuite MPA1 ORIGINAL raw table with exact F66 source SHA
+        run: |
+          python - <<'PY'
+          import sys, pathlib, hashlib
+          sys.path.insert(0,'research/j0740/f66')
+          from f66_original_lal_table_spline_forensics import find_installed_sources
+          root=find_installed_sources(pathlib.Path(sys.prefix))
+          src=root/'LALSimNeutronStarEOS_MPA1.dat'
+          sig=hashlib.sha256(src.read_bytes()).hexdigest()
+          assert sig=='bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec',sig
+          pathlib.Path('results/F67').mkdir(parents=True,exist_ok=True)
+          pathlib.Path('results/F67/installed_MPA1_source_path.txt').write_text(str(src)+'\n')
+          print('F67 original input source SHA-256 PASS',sig)
+          PY
+      - name: Real static GR TOV of separately named PCHIP cold EOS and independent u-v formulation
+        run: |
+          SOURCE=$(cat results/F67/installed_MPA1_source_path.txt)
+          python -u research/j0740/f67/f67_mpa1_pchip_firstlaw_tov.py \
+            --source "$SOURCE" \
+            --out results/F67/F67_MPA1_PCHIP_COLD_2p073_static_TOV_20261119.json \
+            --eos-out results/F67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat
+      - name: Physical labels, static GR crosscheck, first law and no false final EOS claim
+        run: |
+          python - <<'PY'
+          import json,math,pathlib
+          f=pathlib.Path('results/F67/F67_MPA1_PCHIP_COLD_2p073_static_TOV_20261119.json')
+          d=json.loads(f.read_text())
+          assert d['not_original_MPA1'] is True and 'NOT_ORIGINAL' in d['model_label']
+          assert d['original_JESTER_MPA1_npz_sha256']=='0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22'
+          assert d['installed_original_MPA1_raw_source_sha256']=='bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec'
+          assert d['sampled_sound_speed_in_star']['continuous_causality_proof']=='NOT_ESTABLISHED'
+          assert d['analytic_piecewise_cubic_sound_speed_extrema']['all_piecewise_interval_extrema_checked'] is True
+          assert d['analytic_piecewise_cubic_sound_speed_extrema']['physical_nuclear_EOS_continuous_certification']=='NOT_ESTABLISHED'
+          assert d['analytic_piecewise_cubic_sound_speed_extrema']['new_alternate_mathematical_interpolant_causal_to_star_center'] is True
+          assert d['physically_admissible_full_EOS']=='NOT_ESTABLISHED'
+          assert d['rotating_RNS_equilibria_on_alternative']=='NOT_RUN'
+          assert d['native_photon_XPSI_likelihood']=='NOT_RUN' and d['seven_original_EOS_Bayes']=='NOT_RUN'
+          assert abs(d['new_M2p073_PCHIP_root']['M_msun']-2.073)<2e-6
+          assert d['numerical_comparison']['mass_relative']<3e-4
+          assert d['numerical_comparison']['radius_relative']<3e-4
+          assert d['n_from_exact_cold_chemical_identity_max_relative']<1e-11
+          assert pathlib.Path('results/F67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat').is_file()
+          print('F67 NEW COLD PCHIP physical-diagnostic static TOV crosscheck PASS')
+          print('F67 sampled-causality-first-law-status:',d['sampled_sound_speed_in_star'])
+          PY
+      - name: Source/data/code SHA receipt including missing outputs on failure
+        if: always()
+        run: |
+          python - <<'PY'
+          import pathlib,json,hashlib,importlib.metadata
+          out=pathlib.Path('results/F67');out.mkdir(parents=True,exist_ok=True)
+          paths=[*out.glob('*.json'),*out.glob('*.dat'),pathlib.Path('research/j0740/f67/f67_mpa1_pchip_firstlaw_tov.py'),pathlib.Path('research/j0740/f67/test_f67_mpa1_pchip_firstlaw_tov.py')]
+          r={'scientific_acceptance_requires_previous_steps':True,'model_label':'MPA1_PCHIP_COLD_V1_EXPLORATORY_NOT_ORIGINAL',
+          'status':'SOURCE_IDENTITY_AND_RESULTS_HASHES_ONLY_NOT_PHYSICAL_ADMISSION',
+          'lalsuite':importlib.metadata.version('lalsuite'),
+          'files':{str(p):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size} for p in paths if p.is_file()}}
+          (out/'F67_SHA256_receipt_20261119.json').write_text(json.dumps(r,indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-F67-NEW-alternate-MPA1-cold-TOV-or-failure
+          path: results/F67/
+          if-no-files-found: warn
+          retention-days: 30
