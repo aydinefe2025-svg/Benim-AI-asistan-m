@@ -30,6 +30,9 @@ class FakeGitHub:
         self.calls.append(("fetch", path))
         return SOURCE, "source-sha"
 
+    def dispatch_core_ci(self, branch):
+        self.calls.append(("ci", branch))
+
     def create_draft(self, job_id, path, source_sha, candidate, goal):
         self.calls.append(("draft", path, candidate))
         return "cano-autodev-" + job_id, "https://github.com/test/pr/3", "commitsha"
@@ -126,6 +129,7 @@ class IntegrationBoundaryTests(unittest.TestCase):
         cursor = FakePGCursor(("example-id", "Fix core/cano_development_status.py"))
         store = NeonJobStore.__new__(NeonJobStore)
         store._connect = lambda: FakePGConnection(cursor)
+        store.owner_key = "oidc_" + "a"*64
         job = store.claim_one()
         self.assertEqual(job.id, "example-id")
         statement = cursor.queries[0][0]
@@ -133,6 +137,7 @@ class IntegrationBoundaryTests(unittest.TestCase):
         self.assertIn("attempts=0", statement)
         self.assertIn("LIMIT 1", statement)
         self.assertIn("RETURNING j.id::text,j.goal", statement)
+        self.assertIn("owner_key=%s", statement)
 
     def test_draft_pr_never_includes_private_goal_text(self):
         from scripts.cano_autodev_worker import GitHubDrafts
@@ -170,3 +175,72 @@ class IntegrationBoundaryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OwnerIsolationAndCITests(unittest.TestCase):
+    """Regression cases for the second, independently-reviewed worker gate."""
+
+    def test_owner_scope_is_mandatory_for_claim_and_transitions(self):
+        from scripts.cano_autodev_worker import NeonJobStore
+        owner = "oidc_" + "a" * 64
+        cursor = FakePGCursor(("example-id", "Fix core/cano_development_status.py"))
+        store = NeonJobStore.__new__(NeonJobStore)
+        store.owner_key = owner
+        store._connect = lambda: FakePGConnection(cursor)
+        store.claim_one()
+        self.assertIn("owner_key=%s", cursor.queries[0][0])
+        self.assertIn(owner, cursor.queries[0][1])
+        cursor.queries.clear()
+        store.record_pr("example-id", "branch", "https://github.com/example/pr/3", "sha")
+        self.assertIn("owner_key=%s", cursor.queries[0][0])
+        self.assertIn(owner, cursor.queries[0][1])
+        cursor.queries.clear()
+        store.block("example-id", "unsafe_candidate")
+        self.assertIn("owner_key=%s", cursor.queries[0][0])
+        self.assertIn(owner, cursor.queries[0][1])
+
+    def test_invalid_owner_key_is_rejected_before_connecting(self):
+        from scripts.cano_autodev_worker import NeonJobStore
+        with self.assertRaises(PermissionError):
+            NeonJobStore("postgresql://example.invalid/db", "oidc_wrong")
+
+    def test_missing_owner_key_fails_closed_in_main(self):
+        from scripts.cano_autodev_worker import main
+        from unittest.mock import patch
+        with patch.dict("os.environ", {
+            "CANO_AUTODEV_ENABLED": "true", "CANO_AUTODEV_DATABASE_URL": "postgresql://example.invalid/db",
+            "GROQ_API_KEY": "dummy", "GH_TOKEN": "dummy", "CANO_AUTODEV_MODEL": "dummy",
+        }, clear=True):
+            self.assertEqual(main(), 1)
+
+    def test_pr_open_dispatches_core_ci_explicitly(self):
+        db, github, model = FakeDatabase(), FakeGitHub(), FakeModel()
+        github.dispatched = []
+        github.dispatch_core_ci = github.dispatched.append
+        result = process_job(Job("12345678", "Fix core/cano_development_status.py"), db, github, model)
+        self.assertEqual(result, "pr_open")
+        self.assertEqual(github.dispatched, [db.completed[0][1]])
+
+    def test_ci_dispatch_failure_never_erases_existing_pr_receipt(self):
+        db, github, model = FakeDatabase(), FakeGitHub(), FakeModel()
+        def fail_dispatch(branch):
+            raise RuntimeError("provider response must not be logged")
+        github.dispatch_core_ci = fail_dispatch
+        result = process_job(Job("12345678", "Fix core/cano_development_status.py"), db, github, model)
+        self.assertEqual(result, "pr_open_ci_dispatch_failed")
+        self.assertEqual(len(db.completed), 1)
+        self.assertEqual(db.blocked, [])
+
+    def test_github_accepts_empty_204_dispatch_response(self):
+        from scripts.cano_autodev_worker import GitHubDrafts
+        api = GitHubDrafts.__new__(GitHubDrafts)
+        class FakeResponse:
+            content = b""
+            def raise_for_status(self): pass
+            def json(self): raise AssertionError("No JSON to parse for HTTP 204")
+        class FakeSession:
+            def request(self, method, url, **kwargs):
+                return FakeResponse()
+        api._session = FakeSession()
+        api._base = "https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m"
+        self.assertEqual(api.dispatch_core_ci("cano-autodev-" + "a"*32), None)
