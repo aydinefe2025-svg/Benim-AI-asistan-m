@@ -511,6 +511,7 @@ class StaleUnwrittenJobRecoveryTests(unittest.TestCase):
         new = Job("87654321-1234-4123-8123-123456789abc", "Fix core/next.py")
         db = MagicMock()
         db.stale_running_one.return_value = old
+        db.unverified_pr_one.return_value = None  # no existing PR needs CI recovery
         db.claim_one.return_value = new
         with patch.dict("os.environ", {
             "CANO_AUTODEV_ENABLED": "true",
