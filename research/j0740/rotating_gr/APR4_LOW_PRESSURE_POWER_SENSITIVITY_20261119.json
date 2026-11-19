@@ -1,0 +1,65 @@
+{
+  "schema": "j0740_apr4_low_pressure_power_sensitivity_v1",
+  "classification": "EXPLORATORY_CRUST_EXTENSION_SENSITIVITY; TABLE_SLOPE_IS_NOT_A_PHYSICAL_CRUST_CERTIFICATE",
+  "source": {
+    "lalsuite_tag": "lalsuite-v7.26.4",
+    "table_bytes": 72350,
+    "table_sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+    "rows": 1447,
+    "first_pressure_geom_m2": 1.9389363172276004e-31,
+    "first_energy_geom_m2": 7.425648781960458e-24,
+    "alpha_median_first_100_source_secants": 0.6312135402903558
+  },
+  "method": {
+    "target_gravitational_mass_msun": 2.073,
+    "target_spin_hz": 0.0,
+    "surface_pressure_geom_m2": 1e-33,
+    "grid_step_m": 200.0,
+    "first_law_enthalpy": "h(P)=ln[1+(P0/e0)(P/P0)^(1-alpha)]/(1-alpha), continuous at P0",
+    "event_stage_pressure_bounded_at_surface": true,
+    "warnings_as_errors": true,
+    "alternative_is_extrapolation_diagnostic_not_a_data-derived_physical_crust": true
+  },
+  "cases": [
+    {
+      "Mg_msun": 2.073000000606877,
+      "R_km": 10.697719940566644,
+      "k2": 0.026857287654695753,
+      "Lambda": 9.334248525563824,
+      "Mb_conditional_msun": 2.4755921967067587,
+      "central_cs2": 0.8824800918307338,
+      "Pc_geom_m2": 5.582473650782422e-10,
+      "ode_steps": 219,
+      "surface_power_alpha": 0.6,
+      "mass_residual_msun": 6.068772151479607e-10
+    },
+    {
+      "Mg_msun": 2.072999999856817,
+      "R_km": 10.697720006111583,
+      "k2": 0.026857310257811365,
+      "Lambda": 9.33425668411688,
+      "Mb_conditional_msun": 2.4755921818912165,
+      "central_cs2": 0.8824800886959252,
+      "Pc_geom_m2": 5.582473626547652e-10,
+      "ode_steps": 218,
+      "surface_power_alpha": 0.6312135402903558,
+      "mass_residual_msun": -1.4318279895064734e-10
+    }
+  ],
+  "data_slope_minus_alpha_0p6": {
+    "R_km": 6.554493836574693e-08,
+    "Lambda": 8.158553056247797e-06,
+    "Mb_conditional_msun": -1.4815542126456194e-08,
+    "Pc_geom_m2": -2.4234770673803107e-18,
+    "central_cs2": -3.1348086348970128e-09
+  },
+  "checks": {
+    "official_source_hash": true,
+    "both_mass_roots_within_1e-8_msun": true,
+    "both_centres_causal": true,
+    "no_runtime_warnings": true,
+    "EOS_Bayes": "NOT_RUN"
+  },
+  "interpretation": "The low-pressure exponent changes R, Lambda and conditional Mb only at tiny levels for this 2.073 Msun static star. This sensitivity does not establish the physical crust or absolute baryon normalization.",
+  "status": "NUMERICAL_CRUST_SENSITIVITY_PASS; PHYSICAL_CRUST_NOT_ESTABLISHED; EOS_Bayes=NOT_RUN"
+}
