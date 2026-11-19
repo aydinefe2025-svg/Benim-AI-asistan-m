@@ -1,0 +1,58 @@
+name: J0740 source-run already verified F31-F32 receipt reconciliation
+on:
+  pull_request:
+    paths:
+      - 'research/j0740/saved_lineage_proof.py'
+      - 'research/j0740/test_saved_lineage_proof.py'
+      - 'research/j0740/saved_lineage_receipts/**'
+      - 'research/j0740/source_lineage_gate.py'
+      - 'research/j0740/test_source_lineage_gate.py'
+      - '.github/workflows/j0740-archived-lineage-reconciliation.yml'
+  workflow_dispatch:
+jobs:
+  failclosed-archived-source-receipt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Rerun source-chain regression gates (archive is NOT fetched again)
+        shell: bash
+        run: |
+          cd research/j0740
+          python -m unittest -v test_saved_lineage_proof test_source_lineage_gate test_published_source_lineage
+      - name: Verify already archived REAL 4-member plus weighted 4-moment evidence
+        shell: bash
+        run: |
+          python research/j0740/saved_lineage_proof.py \
+            --receipts-dir research/j0740/saved_lineage_receipts \
+            --output results/J0740_SALMI_ARCHIVED_RUN_LINEAGE_ACCEPTANCE_20261119.json
+          python - <<'PY'
+          import sys, json
+          from pathlib import Path
+          sys.path.insert(0, 'research/j0740')
+          from source_lineage_gate import require_proven_lineage
+          out = require_proven_lineage()
+          assert out['status'] == 'ARCHIVED_4_SOURCE_BYTES_AND_4_WEIGHTED_MOMENTS_RUN1_ASSOCIATION_VERIFIED'
+          assert out['resume_final_engine_version'] == 'UNRESOLVED'
+          assert out['xpsi_photon_likelihood'] == 'NOT_RUN'
+          assert out['original_tar_read_now'] is False
+          print('EXISTING_F31_F32_SOURCE_RUN_ACCEPTED_NO_12GB_REEXTRACTION')
+          PY
+      - name: Hash exact receipts and scientific output
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p results
+          sha256sum research/j0740/saved_lineage_receipts/*.json > results/ORIGINAL_F31_F32_RECEIPTS_SHA256.txt
+          if [ -e results/J0740_SALMI_ARCHIVED_RUN_LINEAGE_ACCEPTANCE_20261119.json ]; then
+            sha256sum results/J0740_SALMI_ARCHIVED_RUN_LINEAGE_ACCEPTANCE_20261119.json > results/J0740_ACCEPTANCE_SHA256.txt
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-source-lineage-recovered-pinned-F31-F32
+          path: results/
+          if-no-files-found: error
