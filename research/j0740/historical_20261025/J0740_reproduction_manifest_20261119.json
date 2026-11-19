@@ -52,5 +52,6 @@
     "native_xpsi": "NOT_RUN",
     "final_physical_eos_bayes": "NOT_ESTABLISHED"
   },
-  "note": "Source SHA-256s were emitted by the successful workflow after source size and published MD5 checks. The artifact digest is GitHub's reported archive digest. Historical result is not presented as a new posterior."
+  "note": "Source SHA-256s were emitted by the successful workflow after source size and published MD5 checks. The artifact digest is GitHub's reported archive digest. Historical result is not presented as a new posterior.",
+  "output_record_sha256": "51825894521e60c6313c89e06e24b1d0d8615254bd2c968fba9954b0eee3bde4"
 }
