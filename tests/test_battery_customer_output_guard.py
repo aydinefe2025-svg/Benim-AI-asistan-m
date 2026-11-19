@@ -21,7 +21,7 @@ class CustomerOutputSafetyTests(unittest.TestCase):
         entries = []
         for cell, initial in (("A", "3.6"), ("B", "3.3"), ("C", "3.0")):
             path = self.root / (cell + ".csv")
-            path.write_text(f"Timestamp [h],Voltage [V]\\n0,{initial}\\n1,{initial}\\n",
+            path.write_text(f"Timestamp [h],Voltage [V]\n0,{initial}\n1,{initial}\n",
                             encoding="utf-8")
             entries.append({"path": path.name, "cell": cell, "mode": "dchg"})
         self.manifest.write_text(json.dumps({"schema": product.SCHEMA,
