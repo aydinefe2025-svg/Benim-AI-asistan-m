@@ -260,6 +260,19 @@ class WorkerCredentialGuardTests(unittest.TestCase):
                 if 'FROM pg_class' in sql:
                     return rls_row
                 return super().fetchone()
+            def fetchall(self):
+                if 'FROM pg_policies' not in self.queries[-1][0]:
+                    raise AssertionError('Unexpected catalog query')
+                owner = 'oidc_' + 'a'*64
+                scope = "(owner_key = '" + owner + "'::text)"
+                return [
+                    ("cano_autodev_worker_select", "SELECT", ["cano_autodev_worker"],
+                     "PERMISSIVE", scope, None),
+                    ("cano_autodev_worker_update", "UPDATE", ["cano_autodev_worker"],
+                     "PERMISSIVE",
+                     "(" + scope + " AND (status = ANY (ARRAY['queued'::text, 'running'::text])))",
+                     "(" + scope + " AND (status = ANY (ARRAY['running'::text, 'pr_open'::text, 'blocked'::text])))"),
+                ]
         cur = GuardCursor()
         store = NeonJobStore.__new__(NeonJobStore)
         store.owner_key = 'oidc_' + 'a'*64
@@ -286,9 +299,10 @@ class WorkerCredentialGuardTests(unittest.TestCase):
     def test_accepts_only_rls_enforced_worker_and_queries_metadata(self):
         store, cur = self.store(('cano_autodev_worker', False, False), (True, False))
         store.verify_worker_role()
-        self.assertEqual(len(cur.queries), 2)
+        self.assertEqual(len(cur.queries), 3)
         self.assertIn('FROM pg_roles', cur.queries[0][0])
         self.assertIn('FROM pg_class', cur.queries[1][0])
+        self.assertIn('FROM pg_policies', cur.queries[2][0])
 
 
 
