@@ -112,7 +112,7 @@ def run(source:Path,out:Path,table_dir:Path):
                 entry={'anchor_central_density_g_cm3':anchor_rho}
                 for mode,spin in (('static',0.),('rotating',SPIN_HZ)):
                     try:
-                        res=trial_root(str(binary_path()),str(table),target,anchor_rho,spin)
+                        res=trial_root(binary_path(),table,target,anchor_rho,spin)
                         entry[mode]=res
                     except Exception as ex:
                         entry[mode]={'status':'FAIL_DIRECT_RNS_ROOT',
