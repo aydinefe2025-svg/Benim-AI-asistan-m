@@ -14,6 +14,7 @@ import numpy as np
 from scipy.integrate import cumulative_trapezoid, solve_ivp
 from scipy.interpolate import PchipInterpolator
 from scipy.optimize import brentq
+from numpy.polynomial import Polynomial
 
 SOURCE_SHA='bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec'
 JESTER_SHA='0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22'
@@ -97,6 +98,48 @@ class ColdEOS:
             'continuous_causality_proof':'NOT_ESTABLISHED'}
 
 
+def continuous_piecewise_cubic_sound_speed_extrema(eos,pc):
+    """Find ALL stationary points of cs2(P) on the explicit PCHIP polynomials.
+
+    For s(x)=ln(epsilon), x=ln(P), cs2=exp(x-s(x))/s'(x).
+    Extrema obey (1-s')s' - s''=0 (quartic in each PCHIP interval).
+    Boundary/nodal points included. This is an exhaustive floating-polynomial
+    diagnostic on the EXPERIMENTAL interpolation, NOT a proof of nuclear EOS.
+    """
+    if not eos.p0<pc<=eos.pmax:raise ValueError('F67_BAD_CONTINUOUS_SCREEN_DOMAIN')
+    xhi=math.log(pc)
+    mincs=math.inf;maxcs=0.;nroots=0;nintervals=0;critical=[]
+    for i in range(len(eos.logp)-1):
+        xi=float(eos.logp[i]);edge=min(xhi,float(eos.logp[i+1]));dx=edge-xi
+        if dx<=0:continue
+        a,b,c,d=(float(v) for v in eos.spline.c[:,i])
+        s=Polynomial([d,c,b,a]);q=s.deriv()
+        # note polynomial PCHIP log-energy derivative, NOT pressure directly
+        poly=(Polynomial([1.])-q)*q-q.deriv()
+        candidates=[0.,dx]
+        for root in poly.roots():
+            if abs(root.imag)<1e-8*max(1.,abs(root.real)) and -1e-11<=root.real<=dx+1e-11:
+                candidates.append(float(min(max(root.real,0.),dx)))
+        cvals=[]
+        for t in candidates:
+            slope=float(q(t));
+            if not (math.isfinite(slope) and slope>0):raise ValueError('F67_PCHIP_NONPOSITIVE_DLOGE_DLOGP')
+            c2=math.exp(xi+t-float(s(t)))/slope
+            if not math.isfinite(c2) or c2<=0:raise ValueError('F67_BAD_CUBIC_SOUND_SPEED')
+            mincs=min(mincs,c2);maxcs=max(maxcs,c2);cvals.append(c2)
+        nroots+=len(candidates)-2;nintervals+=1
+        critical.append({'interval_index':i,'cs2_min':min(cvals),'cs2_max':max(cvals)})
+    if nintervals<8:raise ValueError('F67_TOO_FEW_CUBIC_SEGMENTS_SCREENED')
+    return {'piecewise_cubic_raw_intervals':nintervals,
+            'quadratic_times_quadratic_quartic_real_stationary_roots':nroots,
+            'all_piecewise_interval_extrema_checked':True,
+            'floating_polynomial_extrema_cs2_min':float(mincs),
+            'floating_polynomial_extrema_cs2_max':float(maxcs),
+            'new_alternate_mathematical_interpolant_causal_to_star_center':bool(0<mincs and maxcs<=1.),
+            'physical_nuclear_EOS_continuous_certification':'NOT_ESTABLISHED',
+            'numerical_exact_extrema_not_formal_interval_arithmetic_proof':True}
+
+
 def tov(eos,pc,*,rel_tol=3e-9,method='rm'):
     if not eos.p0*1.0001<pc<eos.pmax: raise ValueError('F67_INVALID_TOV_CENTER')
     x=math.log(pc)
@@ -162,6 +205,10 @@ def run(path,*,out,eos_out=None,rel_tol=3e-9):
     root=root_at_mass(fine)
     independent=tov(fine,root['central_pressure_geom'],method='uv',rel_tol=rel_tol)
     screen=fine.sound_speed_screen(root['central_pressure_geom'])
+    cubic_extrema=continuous_piecewise_cubic_sound_speed_extrema(fine,root['central_pressure_geom'])
+    if not (cubic_extrema['floating_polynomial_extrema_cs2_min']<=screen['sampled_cs2_min']*(1+1e-7)
+            and cubic_extrema['floating_polynomial_extrema_cs2_max']>=screen['sampled_cs2_max']*(1-1e-7)):
+        raise ValueError('F67_CUBIC_EXTREMA_VS_DENSE_SCAN_INCONSISTENT')
     # Exact algebraic chemical-potential relation and numerical dH/dlnP integration test
     mids=(fine.x[2:-2:9]);H=fine.inverse_enthalpy_from_logp(mids)
     e=np.exp(fine.spline(mids));p=np.exp(mids)
@@ -186,6 +233,7 @@ def run(path,*,out,eos_out=None,rel_tol=3e-9):
        'fixed_native_center_pc_control':{'original_LAL_central_pc':p_native,'coarse':coarse_approx,'fine':fine_approx},
        'new_M2p073_PCHIP_root':root,'independent_u_v_at_same_root':independent,'numerical_comparison':comparison,
        'sampled_sound_speed_in_star':screen,
+       'analytic_piecewise_cubic_sound_speed_extrema':cubic_extrema,
        'physically_admissible_full_EOS':'NOT_ESTABLISHED',
        'rotating_RNS_equilibria_on_alternative':'NOT_RUN',
        'native_photon_XPSI_likelihood':'NOT_RUN','seven_original_EOS_Bayes':'NOT_RUN',
@@ -209,7 +257,7 @@ def run(path,*,out,eos_out=None,rel_tol=3e-9):
     Path(out).parent.mkdir(parents=True,exist_ok=True)
     Path(out).write_text(json.dumps(d,ensure_ascii=False,indent=2,sort_keys=True)+'\n')
     print(json.dumps({'status':d['science_status'],'root':root,'independent_comparison':comparison,
-       'sampled_cs2':screen},sort_keys=True),flush=True)
+       'sampled_cs2':screen, 'analytic_piecewise_cubic_extrema':cubic_extrema},sort_keys=True),flush=True)
     return d
 
 
