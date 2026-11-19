@@ -11,6 +11,16 @@
       "path": "J0740_APR4_EPP_FULL_ANALYTIC_RECONSTRUCTION_20261119.json",
       "bytes": 11050,
       "sha256": "e07478ba0feab5c95631cbd856f16859d2c1a794ce02c4bac64affcae94ff58e"
+    },
+    {
+      "path": "test_apr4_analytic_segments_independent_20261119.py",
+      "bytes": 3600,
+      "sha256": "67165a4d3953abe217646b1976bf7aff797a0a1621b0c3a68e95b34d5ce76f53"
+    },
+    {
+      "path": "APR4_EPP_ANALYTIC_SEGMENTS_INDEPENDENT_TEST_20261119.json",
+      "bytes": 975,
+      "sha256": "e140ebeceee688642fe716f7b7dbb6b50ab3b342fde316f9b40832058dee4eac"
     }
   ],
   "inputs": [
@@ -62,6 +72,22 @@
       "github_sha256": "fd51f8ce4a3d272e4d1e8ae5f6ea46d36fe4d389350a95ca2d7795e6aa234f19",
       "normalized_content_equal": true,
       "extra_trailing_bytes": "CRLF CRLF"
+    },
+    {
+      "path": "research/j0740/rotating_gr/test_apr4_analytic_segments_independent_20261119.py",
+      "local_bytes": 3600,
+      "local_sha256": "67165a4d3953abe217646b1976bf7aff797a0a1621b0c3a68e95b34d5ce76f53",
+      "github_bytes": 3600,
+      "github_sha256": "67165a4d3953abe217646b1976bf7aff797a0a1621b0c3a68e95b34d5ce76f53",
+      "byte_identical": true
+    },
+    {
+      "path": "research/j0740/rotating_gr/results/APR4_EPP_ANALYTIC_SEGMENTS_INDEPENDENT_TEST_20261119.json",
+      "local_bytes": 975,
+      "local_sha256": "e140ebeceee688642fe716f7b7dbb6b50ab3b342fde316f9b40832058dee4eac",
+      "github_bytes": 975,
+      "github_sha256": "e140ebeceee688642fe716f7b7dbb6b50ab3b342fde316f9b40832058dee4eac",
+      "byte_identical": true
     }
   ]
 }
