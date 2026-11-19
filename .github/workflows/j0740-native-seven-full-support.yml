@@ -1,0 +1,76 @@
+name: J0740 original seven EOS full mass-support source arrays
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/j0740-native-seven-full-support.yml'
+      - 'research/j0740/original_seven_inference/**'
+  workflow_dispatch:
+jobs:
+  validate-native-seven:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: source_jester
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install numpy==2.3.5 scipy==1.16.3
+      - name: Verify pinned original EOS and export exact source
+        shell: bash
+        run: |
+          mkdir -p results/original_seven
+          python - <<'PY'
+          import pathlib,hashlib,json,shutil
+          import numpy as np
+          pins={
+          'APR4_EPP':'639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88',
+          'ENG':'702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953',
+          'MPA1':'0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22',
+          'MS1':'531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad',
+          'MS1B':'7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c',
+          'WFF1':'119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3',
+          'WFF2':'eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae'}
+          summary={'source':'jester','pinned_commit':'e6768650ce992abfd1153a6833857572fe5cd230','status':'SOURCE_BYTE_PIN_PASS_NOT_EOS_PHYSICAL_ACCEPTANCE','records':{}}
+          for label,expected in pins.items():
+            src=pathlib.Path(f'source_jester/jesterTOV/tabulated_eos/lalsuite/{label}.npz')
+            data=src.read_bytes();sha=hashlib.sha256(data).hexdigest()
+            assert sha==expected, (label,sha,expected)
+            npz=np.load(src,allow_pickle=False)
+            detail={k:{'shape':list(npz[k].shape),'dtype':str(npz[k].dtype)} for k in npz.files}
+            for k in ('p','e'):
+              assert k in npz and np.isfinite(npz[k]).all()
+            out=pathlib.Path('results/original_seven')/src.name
+            shutil.copy2(src,out)
+            summary['records'][label]={'sha256':sha,'bytes':len(data),'arrays':detail}
+          pathlib.Path('results/original_seven/source_manifest.json').write_text(json.dumps(summary,sort_keys=True,indent=2)+'\n')
+          print('SEVEN_EXACT_ORIGINAL_EOS_SOURCES_VERIFIED',json.dumps({k:v['bytes'] for k,v in summary['records'].items()}))
+          PY
+      - name: Independently re-integrate seven native EOS times six F38 source likelihood traces
+        shell: bash
+        run: |
+          python research/j0740/original_seven_inference/verify_native_source_massline_witness.py \
+            --source-directory source_jester/jesterTOV/tabulated_eos/lalsuite \
+            --witness research/j0740/original_seven_inference/J0740_original_source_F38_line_witness_20261119.json \
+            --report research/j0740/original_seven_inference/J0740_original_seven_static_full_mass_KDE_integrals_20261119.json \
+            --out results/original_seven/source_witness_real_42_scores_CI.json
+      - name: Fail closed if 42 authentic source integrals do not pass
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('results/original_seven/source_witness_real_42_scores_CI.json').read_text())
+          assert x['status']=='SEVEN_ORIGINAL_NPZ_CI_REINTEGRATION_42_OF_42_PASS'
+          assert x['score_count']==42 and x['max_relative_deviation_against_full_F38_grid']<0.001
+          print('ALL_42_NATIVE_SEVEN_EOS_ORIGINAL_F38_SOURCE_INTEGRALS_PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-seven-original-EOS-source-bytes
+          path: results/original_seven/
+          if-no-files-found: error

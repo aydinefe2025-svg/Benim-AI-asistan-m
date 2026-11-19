@@ -1,0 +1,23 @@
+{
+  "important_limitation": "Independent CI is on the archived mass-line witness; full 2D F38 ZIP is included in offline reproduction archive, not reconstructed in CI.",
+  "max_relative_deviation_against_full_F38_grid": 7.320499415097714e-06,
+  "original_eos_models": [
+    "APR4_EPP",
+    "ENG",
+    "MPA1",
+    "MS1",
+    "MS1B",
+    "WFF1",
+    "WFF2"
+  ],
+  "score_count": 42,
+  "six_actual_f38_sources": [
+    "weighted_0.015_0.20",
+    "weighted_0.025_0.35",
+    "weighted_0.040_0.50",
+    "resampled_0.015_0.20",
+    "resampled_0.025_0.35",
+    "resampled_0.040_0.50"
+  ],
+  "status": "SEVEN_ORIGINAL_NPZ_CI_REINTEGRATION_42_OF_42_PASS"
+}
