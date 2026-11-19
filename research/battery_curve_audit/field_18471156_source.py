@@ -27,13 +27,98 @@ MAX_MEMBER_UNCOMPRESSED = 250_000_000
 
 
 def inspect_zip_bytes(raw: bytes) -> dict:
-    """Only return source metadata and content types; never source rows."""
-    raise NotImplementedError("TDD RED: original source archive contract")
+    """Read-only archive CRC, member budget, and file-type inventory.
+
+    No ZIP entry is written or executed. No filenames or original values are
+    published in the receipt. Even a valid CRC does not verify sensor truth.
+    """
+    if not isinstance(raw, bytes) or not 4 <= len(raw) <= MAX_DOWNLOAD_BYTES:
+        raise ValueError("SOURCE_REVIEW_REQUIRED: invalid or excessive archive length")
+    if not raw.startswith((b"PK\\x03\\x04", b"PK\\x05\\x06")):
+        raise ValueError("SOURCE_REVIEW_REQUIRED: source is not a ZIP header")
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as z:
+            members = [info for info in z.infolist() if not info.is_dir()]
+            if not members or len(members)>MAX_MEMBERS:
+                raise ValueError("SOURCE_REVIEW_REQUIRED: empty or excessive ZIP member count")
+            total, seen, kinds = 0, set(), collections.Counter()
+            safe_headers = collections.defaultdict(list)
+            for info in members:
+                name = info.filename.replace("\\\\", "/")
+                clean = PurePosixPath(name)
+                if (not name or name.startswith("/") or
+                    ".." in clean.parts or ":" in name or
+                    "\\x00" in name):
+                    raise ValueError("SOURCE_REVIEW_REQUIRED: ZIP path is unsafe")
+                key=name.casefold()
+                if key in seen:
+                    raise ValueError("SOURCE_REVIEW_REQUIRED: duplicate ZIP member")
+                seen.add(key)
+                if stat.S_IFMT(info.external_attr >> 16) == stat.S_IFLNK:
+                    raise ValueError("SOURCE_REVIEW_REQUIRED: ZIP symbolic link")
+                if info.file_size > MAX_MEMBER_UNCOMPRESSED or info.file_size < 0:
+                    raise ValueError("SOURCE_REVIEW_REQUIRED: excessive ZIP member size")
+                total += info.file_size
+                if total>MAX_TOTAL_UNCOMPRESSED:
+                    raise ValueError("SOURCE_REVIEW_REQUIRED: ZIP expansion budget exceeded")
+                if info.file_size > 20_000_000 and (
+                    info.compress_size < 1 or
+                    info.file_size / info.compress_size > 500):
+                    raise ValueError("SOURCE_REVIEW_REQUIRED: suspicious ZIP expansion ratio")
+                ext=clean.suffix.casefold().lstrip(".") or "none"
+                kinds[ext]+=1
+                # Header tokens only, NOT voltage samples or private cell IDs.
+                if ext in ("csv", "tsv", "txt") and len(safe_headers[ext]) < 3:
+                    with z.open(info) as src:
+                        preview=src.read(1200)
+                    header=preview.splitlines()[0] if preview.splitlines() else b""
+                    tokens=[c.strip()[:48] for c in header.decode(
+                        "utf-8", "replace").replace("\\t", ",").split(",")[:24]]
+                    # Exclude value-like tokens; include only generic schema
+                    # signals (time, current, voltage, temperature, cell etc.).
+                    generic=[]
+                    for word in tokens:
+                        lower=word.lower()
+                        labels=("time","volt","curr","temp","cell","soc","status",
+                                "date","cycle","power","capacity")
+                        generic.append(next((x for x in labels if x in lower), "other"))
+                    safe_headers[ext].append(generic)
+            damaged = z.testzip()
+            if damaged is not None:
+                raise ValueError("SOURCE_REVIEW_REQUIRED: ZIP member CRC mismatch")
+    except (zipfile.BadZipFile, RuntimeError, EOFError, OSError) as exc:
+        raise ValueError("SOURCE_REVIEW_REQUIRED: ZIP format, CRC or decompression failure") from None
+    return {"member_count": len(members),
+            "format_counts": dict(sorted(kinds.items())),
+            "total_uncompressed_bytes": total,
+            "zip_all_member_crc": "PASS",
+            "safe_header_tokens_by_type": dict(safe_headers),
+            "physical_cell_identity_confirmed": False}
 
 
 def audit_original(raw: bytes, *, expected_md5: str = ORIGINAL_MD5) -> dict:
-    """Verify original publisher checksum before archive inspection."""
-    raise NotImplementedError("TDD RED: immutable publisher digest contract")
+    """Require a publisher-pinned digest, then inspect ZIP with safe limits."""
+    if not isinstance(raw,bytes) or not isinstance(expected_md5,str):
+        raise ValueError("SOURCE_REVIEW_REQUIRED: missing publisher MD5")
+    if md5(raw).hexdigest() != expected_md5:
+        raise ValueError("SOURCE_REVIEW_REQUIRED: original publisher MD5 mismatch")
+    meta=inspect_zip_bytes(raw)
+    return {"schema":"cano.battery.real-field-source-integrity.v1",
+            "doi": DOI, "source_url": RECORD,
+            "source_file":"BatteryData.zip",
+            "source_license": "UNKNOWN: metadata license not independently verified",
+            "license_for_commercial_reuse": "NOT_VERIFIED",
+            "publisher_md5_verified": True,
+            "publisher_original_md5": expected_md5,
+            "source_sha256": sha256(raw).hexdigest(),
+            "compressed_bytes":len(raw),
+            "decision":"SOURCE_INTEGRITY_ONLY_NOT_PHYSICAL_VALIDATION",
+            "limitations":[
+                "No source publication or independently confirmed physical cell identifiers.",
+                "No field reference labels, reliability estimates, model calibration or commercial rights.",
+                "ZIP checksum and CRC do not verify that measurements originate from calibrated sensors.",
+                "Only source format inventory; no time-voltage duplicate comparisons performed.",
+            ],**meta}
 
 
 def main() -> int:
