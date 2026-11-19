@@ -42,6 +42,15 @@ class Job:
     goal: str
 
 
+@dataclass(frozen=True)
+class OpenCIReceipt:
+    """One persisted draft, not authorization to rerun the model."""
+    id: str
+    branch: str
+    pr_url: str
+    commit_sha: str
+
+
 def extract_target(goal: str) -> str | None:
     """Unambiguous single existing core/*.py target; refuse broad goals."""
     if not isinstance(goal, str):
@@ -142,6 +151,40 @@ def validate_candidate(original: str, proposed: str) -> str:
         if occurrences > old_risks.get(structure, 0):
             raise ValueError("unsafe_operation_added")
     return proposed
+
+
+def recover_ci_dispatch(receipt: OpenCIReceipt, github) -> str:
+    """Restore *only* a missed CI dispatch for the exact existing draft.
+
+    Never regenerate code or create a second PR. Uncertain GitHub responses
+    preserve the queued receipt for human review; they never trigger a write.
+    """
+    if not isinstance(receipt.id, str) or not re.fullmatch(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        receipt.id,
+    ):
+        return "ci_recovery_requires_reconcile"
+    expected_branch = "cano-autodev-" + receipt.id.replace("-", "")
+    if (receipt.branch != expected_branch
+            or not isinstance(receipt.commit_sha, str)
+            or not re.fullmatch(r"[0-9a-f]{40}", receipt.commit_sha)
+            or not isinstance(receipt.pr_url, str)
+            or not re.fullmatch(
+                r"https://github\.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/[1-9][0-9]*",
+                receipt.pr_url,
+            )):
+        return "ci_recovery_requires_reconcile"
+    try:
+        existing = github.find_existing_draft(receipt.id)
+        if existing != (receipt.branch, receipt.pr_url, receipt.commit_sha):
+            return "ci_recovery_requires_reconcile"
+        if github.core_ci_run_exists(receipt.branch, receipt.commit_sha):
+            return "ci_already_started"
+        github.dispatch_core_ci(receipt.branch)
+        return "ci_dispatch_recovered"
+    except Exception:
+        # Avoid token, URL, goal, or raw API exception disclosure.
+        return "ci_recovery_requires_reconcile"
 
 
 def process_job(job: Job, store, github, model) -> str:
@@ -330,6 +373,25 @@ class NeonJobStore:
             row = cur.fetchone()
         return Job(row[0], row[1]) if row else None
 
+    def unverified_pr_one(self) -> OpenCIReceipt | None:
+        """Review one old owner-scoped pr_open receipt with no CI receipt.
+
+        The ten-minute guard allows GitHub's eventually consistent workflow
+        listing to catch up after a successful but unacknowledged dispatch.
+        This is read-only; any further action needs GitHub verification.
+        """
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT id::text, branch_name, pr_url, commit_sha
+                FROM public.cano_code_jobs
+                WHERE owner_key=%s AND status='pr_open' AND attempts=1
+                  AND ci_run_url IS NULL
+                  AND updated_at < now() - interval '10 minutes'
+                ORDER BY updated_at ASC, id ASC LIMIT 1
+            """, (self.owner_key,))
+            row = cur.fetchone()
+        return OpenCIReceipt(*row) if row else None
+
     def record_pr(self, job_id: str, branch: str, url: str, sha: str) -> None:
         with self._connect() as conn, conn.cursor() as cur:
             cur.execute("""
@@ -443,6 +505,33 @@ class GitHubDrafts:
             raise ValueError("Unverifiable GitHub branch result")
         return True
 
+    def core_ci_run_exists(self, branch: str, commit_sha: str) -> bool:
+        """Accept only an unambiguous real Core CI run on the exact draft SHA."""
+        if (not re.fullmatch(r"cano-autodev-[0-9a-f]{32}", branch)
+                or not re.fullmatch(r"[0-9a-f]{40}", commit_sha)):
+            raise ValueError("Invalid proposed Core CI identity")
+        result = self._request(
+            "GET", "/actions/workflows/test.yml/runs",
+            params={"branch": branch, "per_page": 100},
+        )
+        if not isinstance(result, dict):
+            raise ValueError("Unverifiable Core CI listing")
+        count = result.get("total_count")
+        runs = result.get("workflow_runs")
+        if (type(count) is not int or count < 0 or not isinstance(runs, list)
+                or count != len(runs)):
+            # An incomplete/paginated, untrusted result cannot authorize
+            # another workflow dispatch.
+            raise ValueError("Incomplete Core CI listing")
+        for run in runs:
+            if (not isinstance(run, dict)
+                    or run.get("head_branch") != branch
+                    or not isinstance(run.get("head_sha"), str)
+                    or not re.fullmatch(r"[0-9a-f]{40}", run["head_sha"])
+                    or run.get("event") not in ("workflow_dispatch", "pull_request")):
+                raise ValueError("Unverifiable Core CI run")
+        return any(run["head_sha"] == commit_sha for run in runs)
+
     def dispatch_core_ci(self, branch: str) -> None:
         if not re.fullmatch(r"cano-autodev-[0-9a-f]{32}", branch):
             raise ValueError("Untrusted development branch")
@@ -550,6 +639,16 @@ def main() -> int:
                 return 0 if status == "pr_open" else 1
             # A confirmed abandoned attempt has been accounted for.
             # Continue with at most one new queued task in this run.
+        # A committed draft with a lost CI dispatch is an unfinished task.
+        # Check its immutable PR/branch/SHA before claiming any fresh job.
+        unfinished_ci = db.unverified_pr_one()
+        if unfinished_ci is not None:
+            recovery = recover_ci_dispatch(unfinished_ci, github)
+            print("CANO draft worker CI recovery: " + recovery)
+            if recovery == "ci_dispatch_recovered":
+                return 0
+            if recovery != "ci_already_started":
+                return 1
         job = db.claim_one()
         if job is None:
             print("CANO draft worker: no queued job")
