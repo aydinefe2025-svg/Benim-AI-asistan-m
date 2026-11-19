@@ -77,11 +77,13 @@ jobs:
           import hashlib,json
           from pathlib import Path
           root=Path('results/F68')
-          files=[Path('research/j0740/f68/f68_mpa1_pchip_cold_rns.py'),
+          source_file=Path('results/F68/installed_MPA1_source_path.txt')
+          installed_source=Path(source_file.read_text().strip()) if source_file.is_file() else Path('missing-installed-MPA1.dat')
+          files=[installed_source,Path('research/j0740/f68/f68_mpa1_pchip_cold_rns.py'),
                  Path('research/j0740/f68/test_f68_mpa1_pchip_cold_rns.py'),
                  Path('research/j0740/f67/f67_mpa1_pchip_firstlaw_tov.py'),
                  Path('research/j0740/f62/f62_native_mpa1_rotating.py'),
-                 Path('jester-upstream/rns') if Path('jester-upstream/rns').exists() else Path('rns-upstream/rns'),
+                 Path('rns-upstream/rns'),
                  Path('rns-upstream/rns.c'),*root.glob('*.json'),*root.glob('tables/*.rns')]
           d={str(p):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
              for p in files if p.is_file()}
