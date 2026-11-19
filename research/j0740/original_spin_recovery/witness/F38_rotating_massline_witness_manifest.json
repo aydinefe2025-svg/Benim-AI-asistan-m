@@ -1,0 +1,198 @@
+{
+  "eos_source_C_artifacts_sha256": {
+    "APR4_EPP": "c905be3854dcb5277c4ab410402a1199eba26b38702884beda98aacffcf63dc5",
+    "ENG": "6bbdf6bbd6706fb0cba537bf517303f85853f35cd2c38d2d5803505e8a9cb503",
+    "MPA1": "1ac6bee2f8720ca43015ef190c60e530481f56cb66f6008501c751da5c110519",
+    "MS1": "7f517332a6d391e59c043279b1deb8b103262dc5294222d3ea2b187b157fde3e",
+    "MS1B": "4ea67a8519d86d2f37a84992b45f4a6fb130e76c27c39a3039bf8c0392032b96",
+    "WFF1": "f6b03bedd2c1c067901747ee2090b2a5bcfcfff3aa1b1476b975ddb053930ff3",
+    "WFF2": "97af6068b2d024549a784acfc0984ef1d448f892a52edb1a961104c8d3c3861a"
+  },
+  "integrator": "scipy.integrate.simpson(grid points 1001)",
+  "models": {
+    "APR4_EPP": {
+      "decoded_npz_sha256": "99c37d94c55ad1574547545202cef04076a1c8996cc57317797aa7fe490959ba",
+      "file": "APR4_EPP_F38_rotating_massline_witness.npz.base64.txt",
+      "finite_source_kde_integrals": [
+        0.5263102030148107,
+        0.5880156004648143,
+        0.6564377720462844,
+        0.5253340601439093,
+        0.5873672587418071,
+        0.6558421987810964
+      ],
+      "masses_n": 1001,
+      "observed_likelihood_keys": [
+        "weighted_0.015_0.20",
+        "weighted_0.025_0.35",
+        "weighted_0.040_0.50",
+        "resampled_0.015_0.20",
+        "resampled_0.025_0.35",
+        "resampled_0.040_0.50"
+      ],
+      "source_C_artifact_zip_sha256": "c905be3854dcb5277c4ab410402a1199eba26b38702884beda98aacffcf63dc5",
+      "source_rotating_mass_range_msun": [
+        1.7304999999999997,
+        2.168833484
+      ]
+    },
+    "ENG": {
+      "decoded_npz_sha256": "e16bb90310fd8a88bc4cc389226c5522dd793d1ec81ad0acf38f0448f4ea7a0f",
+      "file": "ENG_F38_rotating_massline_witness.npz.base64.txt",
+      "finite_source_kde_integrals": [
+        1.8946413618440539,
+        1.8303209393631152,
+        1.7411363964246025,
+        1.892477443522595,
+        1.8298482722451306,
+        1.7410624663144536
+      ],
+      "masses_n": 1001,
+      "observed_likelihood_keys": [
+        "weighted_0.015_0.20",
+        "weighted_0.025_0.35",
+        "weighted_0.040_0.50",
+        "resampled_0.015_0.20",
+        "resampled_0.025_0.35",
+        "resampled_0.040_0.50"
+      ],
+      "source_C_artifact_zip_sha256": "6bbdf6bbd6706fb0cba537bf517303f85853f35cd2c38d2d5803505e8a9cb503",
+      "source_rotating_mass_range_msun": [
+        1.7304999999999997,
+        2.259298607
+      ]
+    },
+    "MPA1": {
+      "decoded_npz_sha256": "1d5e8a6ae253579dccd2fe9d2d87790e2a90877e38048f583057bb07fd863f8f",
+      "file": "MPA1_F38_rotating_massline_witness.npz.base64.txt",
+      "finite_source_kde_integrals": [
+        2.4323478349013374,
+        2.3625779155088313,
+        2.255486239274793,
+        2.434454976217285,
+        2.364068818118251,
+        2.2562600923676657
+      ],
+      "masses_n": 1001,
+      "observed_likelihood_keys": [
+        "weighted_0.015_0.20",
+        "weighted_0.025_0.35",
+        "weighted_0.040_0.50",
+        "resampled_0.015_0.20",
+        "resampled_0.025_0.35",
+        "resampled_0.040_0.50"
+      ],
+      "source_C_artifact_zip_sha256": "1ac6bee2f8720ca43015ef190c60e530481f56cb66f6008501c751da5c110519",
+      "source_rotating_mass_range_msun": [
+        1.7304999999999997,
+        2.4335
+      ]
+    },
+    "MS1": {
+      "decoded_npz_sha256": "b7703ff8e386752156ab6a80a16afbd5af027fecad45ef07a55d31f4c77cb7ee",
+      "file": "MS1_F38_rotating_massline_witness.npz.base64.txt",
+      "finite_source_kde_integrals": [
+        0.2946513605537764,
+        0.3077965474946994,
+        0.3348853280445415,
+        0.2959053695865336,
+        0.308671631116305,
+        0.3355265747101064
+      ],
+      "masses_n": 1001,
+      "observed_likelihood_keys": [
+        "weighted_0.015_0.20",
+        "weighted_0.025_0.35",
+        "weighted_0.040_0.50",
+        "resampled_0.015_0.20",
+        "resampled_0.025_0.35",
+        "resampled_0.040_0.50"
+      ],
+      "source_C_artifact_zip_sha256": "7f517332a6d391e59c043279b1deb8b103262dc5294222d3ea2b187b157fde3e",
+      "source_rotating_mass_range_msun": [
+        1.7304999999999997,
+        2.4335
+      ]
+    },
+    "MS1B": {
+      "decoded_npz_sha256": "21b650c1c90ac1b2d3aee5e397e4a8c3af983aea0018200f89655729888ada01",
+      "file": "MS1B_F38_rotating_massline_witness.npz.base64.txt",
+      "finite_source_kde_integrals": [
+        0.38713177376568125,
+        0.39811276456241695,
+        0.42030218827334764,
+        0.38883127308505444,
+        0.3991464941031824,
+        0.42109842814096277
+      ],
+      "masses_n": 1001,
+      "observed_likelihood_keys": [
+        "weighted_0.015_0.20",
+        "weighted_0.025_0.35",
+        "weighted_0.040_0.50",
+        "resampled_0.015_0.20",
+        "resampled_0.025_0.35",
+        "resampled_0.040_0.50"
+      ],
+      "source_C_artifact_zip_sha256": "4ea67a8519d86d2f37a84992b45f4a6fb130e76c27c39a3039bf8c0392032b96",
+      "source_rotating_mass_range_msun": [
+        1.7304999999999997,
+        2.4335
+      ]
+    },
+    "WFF1": {
+      "decoded_npz_sha256": "eede0bd006a7784d6ab1d1f32b596f33f2457ac8d9576d469071501c81552ccc",
+      "file": "WFF1_F38_rotating_massline_witness.npz.base64.txt",
+      "finite_source_kde_integrals": [
+        0.030271008103253533,
+        0.059353841102293,
+        0.10974848493019194,
+        0.03026281009323925,
+        0.05928485873672415,
+        0.10962600829420746
+      ],
+      "masses_n": 1001,
+      "observed_likelihood_keys": [
+        "weighted_0.015_0.20",
+        "weighted_0.025_0.35",
+        "weighted_0.040_0.50",
+        "resampled_0.015_0.20",
+        "resampled_0.025_0.35",
+        "resampled_0.040_0.50"
+      ],
+      "source_C_artifact_zip_sha256": "f6b03bedd2c1c067901747ee2090b2a5bcfcfff3aa1b1476b975ddb053930ff3",
+      "source_rotating_mass_range_msun": [
+        1.7304999999999997,
+        2.143766239
+      ]
+    },
+    "WFF2": {
+      "decoded_npz_sha256": "dca1b2e1af4ef8dc776e05b98359e974e0292813ec6449ab11e975c05d0ffe14",
+      "file": "WFF2_F38_rotating_massline_witness.npz.base64.txt",
+      "finite_source_kde_integrals": [
+        0.3660821374582291,
+        0.4358561473957897,
+        0.5203915754437097,
+        0.36590577235536914,
+        0.4354036031065266,
+        0.5199582373058406
+      ],
+      "masses_n": 1001,
+      "observed_likelihood_keys": [
+        "weighted_0.015_0.20",
+        "weighted_0.025_0.35",
+        "weighted_0.040_0.50",
+        "resampled_0.015_0.20",
+        "resampled_0.025_0.35",
+        "resampled_0.040_0.50"
+      ],
+      "source_C_artifact_zip_sha256": "97af6068b2d024549a784acfc0984ef1d448f892a52edb1a961104c8d3c3861a",
+      "source_rotating_mass_range_msun": [
+        1.7304999999999997,
+        2.209247256
+      ]
+    }
+  },
+  "schema": "J0740_ORIGINAL_SEVEN_RNS_ROTATING_MASSLINE_PINNED_REAL_2D_F38_WITNESS_V1",
+  "source_2d_F38_archive_SHA256": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307"
+}
