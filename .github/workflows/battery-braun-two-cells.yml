@@ -18,18 +18,14 @@ jobs:
     steps:
       - name: Check out tested product code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Checkout immutable public-data mirror only (no execution of mirror code)
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          repository: MiyaTomono-new/Data_Availability
-          ref: 77d6b4a17b587b03d5fd3ad723f60446a874b54e
-          path: external_braun
-          sparse-checkout: |
-            data/Experimental_data_fresh_cell.csv
-            data/Experimental_data_aged_cell.csv
-          sparse-checkout-cone-mode: false
-          filter: blob:none
-          persist-credentials: false
+      - name: Fetch files directly from original publishing repository (not GitHub mirror)
+        run: |
+          mkdir -p external_braun/data
+          for cell in fresh aged; do
+            curl --fail --silent --show-error --location --max-time 90 --retry 1 --retry-delay 2 \
+              "https://zenodo.org/records/6985321/files/Experimental_data_${cell}_cell.csv?download=1" \
+              --output "external_braun/data/Experimental_data_${cell}_cell.csv"
+          done
       - name: Verify two independent original Zenodo publisher MD5 hashes
         run: |
           python - <<'PY'
