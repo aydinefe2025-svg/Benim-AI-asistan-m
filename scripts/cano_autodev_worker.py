@@ -114,6 +114,14 @@ def process_job(job: Job, store, github, model) -> str:
         branch, pr_url, commit_sha = github.create_draft(
             job.id, path, blob_sha, candidate, job.goal)
         store.record_pr(job.id, branch, pr_url, commit_sha)
+        # GITHUB_TOKEN-created PR events are not a reliable CI trigger.
+        # Explicit workflow_dispatch is an allowed GitHub Actions exception.
+        # Store the real PR receipt *before* dispatch; if dispatch fails,
+        # retain pr_open and exit unsuccessfully for operator reconciliation.
+        try:
+            github.dispatch_core_ci(branch)
+        except Exception:
+            return "pr_open_ci_dispatch_failed"
         return "pr_open"
     except Exception:
         # GitHub can have written a branch before a later failure. Do not
@@ -124,7 +132,12 @@ def process_job(job: Job, store, github, model) -> str:
 
 class NeonJobStore:
     """Uses a *separate* trusted worker credential; not the web-user RLS role."""
-    def __init__(self, database_url: str):
+    def __init__(self, database_url: str, owner_key: str):
+        if not isinstance(owner_key, str) or not re.fullmatch(r"oidc_[0-9a-f]{64}", owner_key):
+            raise PermissionError("Dedicated verified owner scope required")
+        if not isinstance(database_url, str) or not database_url.startswith(("postgresql://", "postgres://")):
+            raise ValueError("PostgreSQL worker URL required")
+        self.owner_key = owner_key
         import psycopg
         self._connect = lambda: psycopg.connect(database_url, connect_timeout=8)
 
@@ -136,16 +149,16 @@ class NeonJobStore:
             cur.execute("""
                 WITH next_job AS (
                     SELECT id FROM public.cano_code_jobs
-                    WHERE status='queued' AND attempts=0
+                    WHERE owner_key=%s AND status='queued' AND attempts=0
                     ORDER BY created_at ASC,id ASC
                     LIMIT 1 FOR UPDATE SKIP LOCKED
                 )
                 UPDATE public.cano_code_jobs AS j
                 SET status='running', attempts=j.attempts+1,
                     started_at=now(), updated_at=now()
-                FROM next_job AS q WHERE j.id=q.id
+                FROM next_job AS q WHERE j.id=q.id AND j.owner_key=%s
                 RETURNING j.id::text,j.goal
-            """)
+            """, (self.owner_key, self.owner_key))
             row = cur.fetchone()
         return Job(row[0], row[1]) if row else None
 
@@ -155,8 +168,8 @@ class NeonJobStore:
                 UPDATE public.cano_code_jobs SET status='pr_open',
                     branch_name=%s, pr_url=%s, commit_sha=%s,
                     updated_at=now()
-                WHERE id=%s::uuid AND status='running'
-            """, (branch, url, sha, job_id))
+                WHERE id=%s::uuid AND owner_key=%s AND status='running'
+            """, (branch, url, sha, job_id, self.owner_key))
             if cur.rowcount != 1:
                 raise RuntimeError("Job record transition lost")
 
@@ -170,8 +183,8 @@ class NeonJobStore:
             cur.execute("""
                 UPDATE public.cano_code_jobs SET status='blocked',
                     reason_code=%s, finished_at=now(), updated_at=now()
-                WHERE id=%s::uuid AND status='running'
-            """, (reason, job_id))
+                WHERE id=%s::uuid AND owner_key=%s AND status='running'
+            """, (reason, job_id, self.owner_key))
             if cur.rowcount != 1:
                 raise RuntimeError("Job block transition lost")
 
@@ -191,7 +204,15 @@ class GitHubDrafts:
         response = self._session.request(
             method, self._base + route, timeout=20, **kwargs)
         response.raise_for_status()
-        return response.json()
+        return response.json() if response.content else {}
+
+    def dispatch_core_ci(self, branch: str) -> None:
+        if not re.fullmatch(r"cano-autodev-[0-9a-f]{32}", branch):
+            raise ValueError("Untrusted development branch")
+        # Main's test.yml has workflow_dispatch after this PR is reviewed
+        # and merged; this runs against the proposal branch without secrets.
+        self._request("POST", "/actions/workflows/test.yml/dispatches",
+                      json={"ref": branch})
 
     def fetch(self, path: str) -> tuple[str, str]:
         result = self._request("GET", "/contents/" + path, params={"ref": "main"})
@@ -274,12 +295,14 @@ def main() -> int:
     groq_key = os.getenv("GROQ_API_KEY", "")
     gh_token = os.getenv("GH_TOKEN", "")
     model_name = os.getenv("CANO_AUTODEV_MODEL", "")
-    if not (db_url.startswith(("postgresql://", "postgres://"))
+    owner_key = os.getenv("CANO_AUTODEV_OWNER_KEY", "")
+    if not (re.fullmatch(r"oidc_[0-9a-f]{64}", owner_key)
+            and db_url.startswith(("postgresql://", "postgres://"))
             and groq_key and gh_token and model_name):
         print("CANO draft worker not configured; queue untouched")
         return 1
     try:
-        db = NeonJobStore(db_url)
+        db = NeonJobStore(db_url, owner_key)
         job = db.claim_one()
         if job is None:
             print("CANO draft worker: no queued job")
