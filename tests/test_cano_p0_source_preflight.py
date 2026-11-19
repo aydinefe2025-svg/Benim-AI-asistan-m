@@ -153,5 +153,80 @@ class BackupEntryPointP0Tests(unittest.TestCase):
             spawn.assert_not_called()
             self.assertFalse((Path(td)/"backups").exists())
 
+
+class ArchiveWithoutReceiptVerificationTests(unittest.TestCase):
+    """Authenticate a specific .canoenc without fabricating an old receipt."""
+
+    def setUp(self):
+        import hashlib, tempfile
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.file = Path(self.tmp.name) / "orphan.canoenc"
+        self.file.write_bytes(b"CANOENC1" + b"n" * 12 + b"encrypted-synthetic" + b"t" * 16)
+        self.hash = hashlib.sha256(self.file.read_bytes()).hexdigest()
+
+    def test_direct_archive_verification_authenticates_but_does_not_claim_restore(self):
+        from cano_encrypted_backup import verify_encrypted_archive_direct
+        proof = {
+            "authenticated": True,
+            "plaintext_sha256": "a" * 64,
+            "plaintext_size_bytes": 128,
+        }
+        with patch("cano_encrypted_backup.decrypt_to_sink", return_value=proof) as check:
+            result = verify_encrypted_archive_direct(self.file, expected_sha256=self.hash)
+        check.assert_called_once_with(self.file, None)
+        self.assertTrue(result["authenticated"])
+        self.assertEqual(result["ciphertext_sha256"], self.hash)
+        self.assertFalse(result["source_identity_verified"])
+        self.assertFalse(result["isolated_restore_verified"])
+        self.assertFalse(result["receipt_authenticated"])
+        self.assertNotIn("private", str(result).lower())
+
+    def test_wrong_or_missing_pinned_hash_refuses_before_decrypt(self):
+        from cano_encrypted_backup import verify_encrypted_archive_direct, BackupError
+        for expected in ("", None, "f" * 64, "a" * 63, "g" * 64):
+            with self.subTest(expected=str(expected)[:8]):
+                with patch("cano_encrypted_backup.decrypt_to_sink") as check:
+                    with self.assertRaises(BackupError):
+                        verify_encrypted_archive_direct(self.file, expected_sha256=expected)
+                    check.assert_not_called()
+
+    def test_incorrect_magic_header_refuses_before_key_read(self):
+        from cano_encrypted_backup import verify_encrypted_archive_direct, BackupError
+        import hashlib
+        self.file.write_bytes(b"NOTCANO!" + b"n" * 12 + b"x" * 25)
+        actual = hashlib.sha256(self.file.read_bytes()).hexdigest()
+        with patch("cano_encrypted_backup.decrypt_to_sink") as check:
+            with self.assertRaises(BackupError):
+                verify_encrypted_archive_direct(self.file, expected_sha256=actual)
+            check.assert_not_called()
+
+    def test_cli_direct_verify_only_does_not_require_receipt(self):
+        from cano_encrypted_backup import main
+        from unittest.mock import patch
+        proof = {
+            "authenticated": True,
+            "plaintext_sha256": "b" * 64,
+            "plaintext_size_bytes": 1024,
+        }
+        with patch("sys.argv", [
+            "cano_encrypted_backup.py", "verify-archive", str(self.file),
+            "--expected-sha256", self.hash,
+        ]), patch("cano_encrypted_backup.decrypt_to_sink", return_value=proof), \
+             patch("builtins.print") as out:
+            self.assertEqual(main(), 0)
+            result = "".join(str(c.args[0]) for c in out.call_args_list if c.args)
+        self.assertIn('"authenticated": true', result)
+        self.assertIn('"isolated_restore_verified": false', result)
+
+    def test_cli_mismatched_hash_never_attempts_archive_authentication(self):
+        from cano_encrypted_backup import main
+        with patch("sys.argv", [
+            "cano_encrypted_backup.py", "verify-archive", str(self.file),
+            "--expected-sha256", "0" * 64,
+        ]), patch("cano_encrypted_backup.decrypt_to_sink") as check:
+            self.assertEqual(main(), 1)
+            check.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
