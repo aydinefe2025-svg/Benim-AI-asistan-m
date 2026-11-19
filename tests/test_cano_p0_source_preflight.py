@@ -56,7 +56,7 @@ class FullP0SourcePreflightTests(unittest.TestCase):
         sql = command[-1]
         self.assertEqual(sql.count("UNION ALL"), 18)
         self.assertIn('"public"."cano_code_jobs"', sql)
-        self.assertIn('cano_p0_neon_recovery_20261115."private_memory_entries"', sql)
+        self.assertIn('"cano_p0_neon_recovery_20261115"."private_memory_entries"', sql)
         self.assertIn("pg_catalog.pg_class", sql)
         self.assertIn("COUNT(*)", sql)
         self.assertNotIn("PRIVATE", str(command))
