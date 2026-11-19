@@ -24,8 +24,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo 'a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787  research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv' | sha256sum -c -
-          echo 'd3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22  research/j0740/physical_eos_validation/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat' | sha256sum -c -
+          echo '3f3c2ee18a0c2fc6904562008bbc5c7a3551c73ff8d5cb97e26371c3b5e37df2  research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv' | sha256sum -c -
+          echo 'd3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22  research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat' | sha256sum -c -
       - name: Run nine adversarial plus real-source physical-gate tests
         run: python -m unittest discover -s research/j0740/f73 -p 'test_f73_*.py' -v
       - name: Execute real BPS knot and F67 PCHIP first-law phase selection
@@ -54,7 +54,7 @@ jobs:
           import hashlib,json,pathlib
           paths=list(pathlib.Path('results/F73').glob('*.json'))+[
              pathlib.Path('research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv'),
-             pathlib.Path('research/j0740/physical_eos_validation/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat'),
+             pathlib.Path('research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat'),
              pathlib.Path('research/j0740/f73/f73_bps_f67_global_phase_gate.py')]
           records={str(p):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
              for p in paths if p.exists()}
