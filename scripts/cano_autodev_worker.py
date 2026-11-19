@@ -17,6 +17,9 @@ import os
 import re
 from dataclasses import dataclass
 
+from core.cano_code_jobs import _CYCLE_MATCH
+from core.cano_solution_dispatch import SELF_DEVELOPMENT_GOAL
+
 REPOSITORY = "aydinefe2025-svg/Benim-AI-asistan-m"
 TARGET_PATTERN = re.compile(r"(?<![\w./])core/[A-Za-z0-9_-]+\.py(?![\w./])")
 SENSITIVE_NAMES = (
@@ -43,6 +46,14 @@ def extract_target(goal: str) -> str | None:
     """Unambiguous single existing core/*.py target; refuse broad goals."""
     if not isinstance(goal, str):
         return None
+    # The authenticated web queue intentionally stores this canonical
+    # self-development goal without a file path. Without this exact bridge,
+    # all "kendini geliştir" jobs are blocked before any draft can exist.
+    # Only the queue's *exact* canonical goal and numbered cycle form
+    # may opt into this one reviewed, low-risk status module. Arbitrary
+    # natural language continues to require a single explicit core/*.py.
+    if goal == SELF_DEVELOPMENT_GOAL or _CYCLE_MATCH.fullmatch(goal):
+        return "core/cano_development_status.py"
     paths = TARGET_PATTERN.findall(goal)
     if len(paths) != 1:
         return None
