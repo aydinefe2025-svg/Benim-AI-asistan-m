@@ -1,0 +1,43 @@
+{
+  "export_test_command": "python test_jester_bps_mpa1_rns_export.py",
+  "export_tests_passed": 2,
+  "files": {
+    "JESTER_BPS_MPA1_RNS_20261119.json": {
+      "bytes": 1252,
+      "sha256": "638ea89e9684ed9203b719f5714e809bc4c20f7d2752eb5eee130c269d0b60a7"
+    },
+    "JESTER_BPS_MPA1_RNS_20261119.rns": {
+      "bytes": 106749,
+      "sha256": "f4a183661962acdddc7aebde3830116578feb6fba88a1a68c9fd57a993058675"
+    },
+    "JESTER_BPS_MPA1_RNS_export_execution_20261119.txt": {
+      "bytes": 1252,
+      "sha256": "638ea89e9684ed9203b719f5714e809bc4c20f7d2752eb5eee130c269d0b60a7"
+    },
+    "JESTER_BPS_MPA1_RNS_export_tests_20261119.txt": {
+      "bytes": 369,
+      "sha256": "6706dfba0078cdf35dfc915cd60732e65e00ead70441640e17d42e2388c14332"
+    },
+    "j0740-bps-mpa1-rns.yml": {
+      "bytes": 4295,
+      "sha256": "99608fe1b44724cb3df41a6e582460c455e0ee29b53ffba923447e131f163419"
+    },
+    "run_jester_bps_mpa1_rns.py": {
+      "bytes": 7280,
+      "sha256": "c2a9e78c94368370f8db820765afc8879292bc5b5786b1c387efb4a7622e7c9b"
+    },
+    "test_jester_bps_mpa1_rns_export.py": {
+      "bytes": 1437,
+      "sha256": "8e5edd310935bd138cf0d77ef0dbf61732e6dfeb1b67779d9cf4e42e2d870b79"
+    }
+  },
+  "numpy": "2.5.4",
+  "original_pinned_bps_npz_sha256": "372ce088e061997f7c05594e61e7c624a112d7ce66443c28c4633d03b7da6137",
+  "original_pinned_jester_mpa1_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+  "python": "3.12.10",
+  "rns_solver_status": "NOT_RUN; workflow runs only after PR checks",
+  "rns_source_commit": "97e85d325a33e37f702306414533f6cd77812477",
+  "rns_source_repository": "rns-alberta/rns",
+  "schema": "J0740_BPS_MPA1_RNS_EXPORT_MANIFEST_V1",
+  "scipy": "1.18.1"
+}\n
