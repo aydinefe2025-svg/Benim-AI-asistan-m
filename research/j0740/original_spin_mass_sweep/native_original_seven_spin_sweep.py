@@ -12,6 +12,7 @@ import hashlib
 import json
 import math
 import sys
+import subprocess
 from pathlib import Path
 import numpy as np
 from scipy.interpolate import PchipInterpolator
@@ -78,6 +79,19 @@ def choose_first_mass_increasing_branch(stars):
   raise ValueError('sampled first increasing branch does not bracket measured 2.073 mass')
  return selected,peak,rejected
 
+def original_late_timeout_after_witnessed_mass_peak(stars):
+ """True only after enough REAL direct C stars bracket M=2.073 and
+ the sampled maximum has at least two later, measurably lower mass stars.
+ This is a NUMERICAL sampled branch gate, NEVER a constant-J physics proof.
+ """
+ if len(stars)<30:
+  return False
+ m=np.asarray([x['mass_msun'] for x in sorted(stars,key=lambda x:x['central_energy_density_g_cm3'])])
+ if not np.all(np.isfinite(m)) or not m.min()<MASS<m.max():
+  return False
+ pk=int(np.argmax(m))
+ return len(m)-pk-1>=2 and m[pk]-m[-1]>=.003
+
 def run_model(source,f61,rns,eos,out):
  out.mkdir(parents=True,exist_ok=True)
  fname=out/f'{eos}_original_346Hz_RNS_C_mass_sequence_20261119.json'
@@ -112,8 +126,19 @@ def run_model(source,f61,rns,eos,out):
     if abs(a['spin_hz_reported']-OBSERVED_SPIN_HZ)>.25 or not 8<a['radius_eq_km']<20:
       raise ValueError('physical C star mass/frequency/radius tolerance')
     result['raw_C_rotating_stars'].append(a)
-   except (RuntimeError,ValueError,TimeoutError,OverflowError) as err:
+   except (RuntimeError,ValueError,TimeoutError,OverflowError,subprocess.TimeoutExpired) as err:
     result['failed_source_C_evaluations'].append({'central_density':float(ec),'type':type(err).__name__,'message':str(err)[:260]})
+    if isinstance(err,subprocess.TimeoutExpired):
+     if not original_late_timeout_after_witnessed_mass_peak(result['raw_C_rotating_stars']):
+      raise ValueError('RNS_HIGH_DENSITY_TIMEOUT_BEFORE_WITNESSED_TURNOVER_OR_MASS_SUPPORT') from err
+     result['source_late_highdensity_timeout']={
+       'density_g_cm3':float(ec),'duration_seconds':err.timeout,
+       'raw_direct_C_stars_before_timeout':len(result['raw_C_rotating_stars']),
+       'uncomputed_higher_density_grid_points':len(energies)-i-1,
+       'reason':'Late solver timeout after measured postpeak; do not fabricate skipped stars or continuous stability'}
+     print(eos,'RECOVERED_REAL_C_BRANCH_AFTER_POSTPEAK_TIMEOUT',len(result['raw_C_rotating_stars']),flush=True)
+     save()
+     break
    if i%5==0:
     print(eos,i,'of',len(energies),'direct C models',len(result['raw_C_rotating_stars']),'fail',len(result['failed_source_C_evaluations']),flush=True)
     save()
@@ -136,7 +161,9 @@ def run_model(source,f61,rns,eos,out):
   result['direct_C_mass_sequence_interpolation_NOT_EOS_physical_stability_cert']=True
   if not result['sequence_target_radius_within_50m']:
     raise ValueError('RNS C mass sequence does not reproduce independent C target radius <50m')
-  result['status']='ORIGINAL_EOS_ROTATING_FULL_C_SEQUENCE_SAMPLED_AND_CROSSCHECKED_NOT_PHYSICALLY_CERTIFIED'
+  result['status']=('ORIGINAL_EOS_ROTATING_SAMPLED_C_BRANCH_AFTER_HIGH_DENSITY_TIMEOUT_NOT_PHYSICALLY_CERTIFIED'
+                    if result.get('source_late_highdensity_timeout') else
+                    'ORIGINAL_EOS_ROTATING_FULL_C_SEQUENCE_SAMPLED_AND_CROSSCHECKED_NOT_PHYSICALLY_CERTIFIED')
  except Exception as exc:
   result['status']='NUMERICAL_RECONSTRUCTION_NOT_ACCEPTED'
   result['failing_gate']={'type':type(exc).__name__,'message':str(exc)[:1200]}
@@ -150,4 +177,6 @@ def run_model(source,f61,rns,eos,out):
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--source',type=Path,required=True);p.add_argument('--f61',type=Path,required=True);p.add_argument('--rns',type=Path,required=True);p.add_argument('--model',choices=sorted(SEVEN),required=True);p.add_argument('--outdir',type=Path,required=True)
  a=p.parse_args();v=run_model(a.source,a.f61,a.rns,a.model,a.outdir)
- if v['status']!='ORIGINAL_EOS_ROTATING_FULL_C_SEQUENCE_SAMPLED_AND_CROSSCHECKED_NOT_PHYSICALLY_CERTIFIED':raise SystemExit(2)
+ if v['status'] not in {
+  'ORIGINAL_EOS_ROTATING_FULL_C_SEQUENCE_SAMPLED_AND_CROSSCHECKED_NOT_PHYSICALLY_CERTIFIED',
+  'ORIGINAL_EOS_ROTATING_SAMPLED_C_BRANCH_AFTER_HIGH_DENSITY_TIMEOUT_NOT_PHYSICALLY_CERTIFIED'}:raise SystemExit(2)
