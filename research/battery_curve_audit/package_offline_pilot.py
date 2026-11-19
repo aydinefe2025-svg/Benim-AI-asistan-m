@@ -18,6 +18,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 PREFIX = "CANO_BATARYA_CEVRIMDISI_PILOT"
 EPOCH = (2026, 11, 19, 0, 0, 0)
 PROGRAMS = [
+    "battery_virtual_lab.py",
     "customer_pipeline.py",
     "customer_preflight.py",
     "numeric_equivalence_guard.py",
@@ -28,6 +29,7 @@ PROGRAMS = [
     "field_pilot_evidence.py",
 ]
 DOCUMENTS = [
+    "SIMULATION_LAB.md",
     "CUSTOMER_PIPELINE.md",
     "CUSTOMER_PREFLIGHT.md",
     "INTEGRATED_CUSTOMER_GATE.md",
@@ -37,6 +39,8 @@ DOCUMENTS = [
     "README.md",
 ]
 TESTS = [
+    "test_battery_virtual_lab.py",
+    "test_battery_time_origin_guard.py",
     "test_battery_customer_pipeline.py",
     "test_battery_customer_output_guard.py",
     "test_battery_decimal_identity.py",
@@ -78,6 +82,8 @@ def verify():
 
 def tests():
     patterns = [
+        "test_battery_virtual_lab.py",
+        "test_battery_time_origin_guard.py",
         "test_battery_customer_pipeline.py",
         "test_battery_customer_output_guard.py",
         "test_battery_integrated_gate.py",
@@ -282,7 +288,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-19-pilot",
+                "version":"2026-11-19-simulation-v2",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,
