@@ -1,0 +1,88 @@
+name: J0740 BPS–MPA1 hybrid RNS validation
+on:
+  pull_request:
+    paths:
+      - "research/j0740/physical_eos_validation/**"
+      - ".github/workflows/j0740-bps-mpa1-rns.yml"
+permissions:
+  contents: read
+jobs:
+  rns-rotating-gr-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Checkout pinned public RNS solver
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: vendor/rns
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Install numerical dependencies
+        run: python -m pip install "numpy>=1.26,<3" "scipy>=1.13,<2"
+      - name: Verify RNS source pin and build two resolutions
+        run: |
+          test "$(git -C vendor/rns rev-parse HEAD)" = "97e85d325a33e37f702306414533f6cd77812477"
+          make -C vendor/rns -B HIGHSIZE="-DMDIV=151 -DSDIV=301" rns
+          cp vendor/rns/rns vendor/rns151
+          mkdir -p /tmp/rns201
+          cp vendor/rns/*.c vendor/rns/*.h vendor/rns/makefile /tmp/rns201/
+          make -C /tmp/rns201 -B HIGHSIZE="-DMDIV=201 -DSDIV=401" rns
+          cp /tmp/rns201/rns vendor/rns201
+          sha256sum vendor/rns151 vendor/rns201
+      - name: Run all local EOS and RNS export tests
+        run: |
+          python research/j0740/physical_eos_validation/test_jester_bps_mpa1_matched_tov.py
+          python research/j0740/physical_eos_validation/test_jester_bps_mpa1_rns_export.py
+      - name: Solve 2.073 solar mass at 346.536369 Hz with two independent RNS grids
+        run: |
+          python research/j0740/physical_eos_validation/run_jester_bps_mpa1_rns.py \
+            --eos-file research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns \
+            --rns-binary vendor/rns151 vendor/rns201 \
+            --grid-tags 151x301 201x401 \
+            --output research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.json \
+            | tee research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_execution_20261119.txt
+      - name: Verify required RNS convergence gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.json').read_text())
+          assert r['status']=='PASS_RNS_TWO_GRID_CONVERGENCE'
+          assert all(x['result']['status']=='PASS' for x in r['RNS_runs'])
+          assert r['grid_convergence']['passed']
+          print('RNS_PHYSICAL_HYBRID_PASS',r['grid_convergence'])
+          PY
+      - name: Write artifact SHA256 manifest
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('research/j0740/physical_eos_validation')
+          files=['JESTER_BPS_MPA1_RNS_20261119.rns','JESTER_BPS_MPA1_RNS_20261119.json','JESTER_BPS_MPA1_RNS_execution_20261119.txt']
+          out={}
+          for name in files:
+              p=root/name
+              if p.exists():out[name]={'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+          (root/'JESTER_BPS_MPA1_RNS_manifest_20261119.json').write_text(json.dumps({'rns_commit':'97e85d325a33e37f702306414533f6cd77812477','files':out},indent=2,sort_keys=True)+'\n')
+          print(json.dumps(out,indent=2))
+          PY
+      - name: Upload RNS inputs, outputs, test logs and manifest
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: j0740-bps-mpa1-rns-validation
+          path: |
+            research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns
+            research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.json
+            research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_execution_20261119.txt
+            research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_manifest_20261119.json
+            vendor/rns151
+            vendor/rns201
+          retention-days: 30
+          if-no-files-found: warn
+
