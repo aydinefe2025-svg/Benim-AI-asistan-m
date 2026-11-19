@@ -130,21 +130,18 @@ def main(argv=None):
     parser.add_argument('--report', type=Path, required=True)
     parser.add_argument('--holdout', type=Path)
     args = parser.parse_args(argv)
+    if args.holdout:
+        raise ValueError('REVIEW_REQUIRED: legacy numeric-only --holdout disabled; use integrated_customer_gate.py')
     manifest = json.loads(args.manifest.read_text(encoding='utf-8'))
     root = args.root if args.root else args.manifest.resolve().parent
     audit = build_numeric_audit(manifest, root)
-    split = generate_holdout(audit) if args.holdout else None
-    # Reject accidental replacement of customer source data.
-    source_files = {original.safe_path(Path(root), x['path']) for x in manifest['files']}
-    output_paths = [args.report] + ([args.holdout] if args.holdout else [])
-    resolved = [p.resolve() for p in output_paths]
-    if len(set(resolved)) != len(resolved) or any(p in source_files for p in resolved):
-        raise ValueError('REVIEW_REQUIRED: output path collides with customer source or another output')
-    for path, data in zip(output_paths, (audit, split)):
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    # Preserve the current customer's strict no-overwrite/no-input-clobber helper.
+    source_paths = [args.manifest.resolve()]
+    source_paths.extend(original.safe_path(Path(root), x['path']) for x in manifest['files'])
+    original.write_new_reports([(args.report, audit)], source_paths)
     print(f"{audit['review_status']}: numeric unique={audit['unique_curve_count']}/"
           f"{audit['trace_count']} numeric-only groups={len(audit['numeric_only_duplicate_groups'])}; "
-          f"holdout={'verified' if split else 'NOT_RUN'}")
+          f"holdout=NOT_RUN")
     return 0
 
 
