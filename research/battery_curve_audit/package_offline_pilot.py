@@ -26,6 +26,7 @@ PROGRAMS = [
     "independent_holdout.py",
     "integrated_customer_gate.py",
     "field_pilot_evidence.py",
+    "field_pilot_csv_intake.py",
 ]
 DOCUMENTS = [
     "CUSTOMER_PIPELINE.md",
@@ -34,6 +35,7 @@ DOCUMENTS = [
     "NUMERIC_EQUIVALENCE.md",
     "NEAR_DUPLICATES.md",
     "FIELD_PILOT_EVIDENCE.md",
+    "FIELD_PILOT_CSV_INTAKE.md",
     "README.md",
 ]
 TESTS = [
@@ -47,6 +49,7 @@ TESTS = [
     "test_battery_integrated_gate.py",
     "test_battery_integrated_output_safety.py",
     "test_battery_field_pilot_evidence.py",
+    "test_battery_field_csv_intake.py",
     "test_customer_preflight.py",
 ]
 
@@ -84,6 +87,7 @@ def tests():
         "test_battery_integrated_output_safety.py",
         "test_battery_units_guard.py",
         "test_battery_field_pilot_evidence.py",
+        "test_battery_field_csv_intake.py",
     ]
     for name in patterns:
         subprocess.run([sys.executable,"-m","unittest","discover","-s","tests","-p",name,"-v"],cwd=ROOT,check=True)
@@ -110,7 +114,24 @@ def demo():
             if doc["private_identifiers_in_public_summary"] or "DEMO_" in out.read_text("utf-8"):
                 raise AssertionError("public demo leaked cell identifier")
             print(name, "PASS:", expected_decision)
-    print("TWO SYNTHETIC DEMO CASES PASS")
+    with tempfile.TemporaryDirectory() as tmp:
+        out=Path(tmp)/"field-summary.json"
+        proc=subprocess.run([
+            sys.executable,"research/battery_curve_audit/field_pilot_csv_intake.py",
+            "--cells",str(ROOT/"demo-data"/"field_cells.csv"),
+            "--reviews",str(ROOT/"demo-data"/"field_reviews.csv"),
+            "--frame",str(ROOT/"demo-data"/"field_frame.json"),
+            "--summary",str(out),
+        ],cwd=ROOT,check=False,capture_output=True,text=True)
+        if proc.returncode!=2:
+            raise AssertionError("field demo expected provenance block: "+str(proc.returncode)+" "+proc.stderr)
+        obj=json.loads(out.read_text("utf-8"))
+        if obj["decision"]!="BLOCK_PROVENANCE_LEAKAGE" or obj["field_acceptance"]!="NOT_ESTABLISHED":
+            raise AssertionError("field demo unexpectedly accepted")
+        if "DEMO_" in out.read_text("utf-8") or "SYNTHETIC_DEMO_NOT_REAL_SITE_PERMISSION" in out.read_text("utf-8"):
+            raise AssertionError("field summary leaked identifiers")
+        print("FIELD CSV DEMO PASS: BLOCK_PROVENANCE_LEAKAGE")
+    print("THREE SYNTHETIC DEMO CASES PASS")
 
 if __name__ == "__main__":
     verify()
@@ -136,7 +157,11 @@ It does not need pip, cloud tokens, API keys, or customer uploads.
 4. For authorized customer CSVs, supply an explicit manifest and an output path:
    Run-Customer.cmd "C:\Lab\manifest.json" "C:\Lab\summary-new.json"
    The manifest paths are relative to the manifest's parent folder.
-5. Existing output files are never overwritten. Select a NEW filename for each
+5. For private lab metadata and two-reviewer CSVs, consult
+   research/battery_curve_audit/FIELD_PILOT_CSV_INTAKE.md and run:
+   Run-Field-CSV.cmd "C:\Lab\cells.csv" "C:\Lab\reviews.csv" "C:\Lab\frame.json" "C:\Lab\new-summary.json"
+   Run-Field-CSV-Demo.cmd is synthetic and intentionally blocks.
+6. Existing output files are never overwritten. Select a NEW filename for each
    run; do not delete old evidence before your own archive procedure.
 
 ## Windows PowerShell alternative
@@ -164,6 +189,10 @@ exit 2; --report-only is for inspection, not authorization to train/test.
 The optional integrated_customer_gate.py is a stricter acceptance-oriented gate.
 It emits NO accepted split for unresolved exact/near candidates; do not infer
 physical independence from a green technical result.
+
+CSV intake cannot verify site consent, source-receipt SHA or blind reviewer
+independence. Its default output redacts identifiers, while optional private
+ledger is sensitive.
 
 Scientific limitations: no live customer/site or instrument acceptance, no
 independently established sensitivity/specificity, no measured field false
@@ -247,6 +276,39 @@ echo Usage: Run-Customer.cmd "C:\Lab\manifest.json" "C:\Lab\new-summary.json"
 echo Never pass unauthorized customer data.
 exit /b 2
 ''',
+"Run-Field-CSV.cmd": r'''@echo off
+setlocal
+if "%~1"=="" goto usage
+if "%~2"=="" goto usage
+if "%~3"=="" goto usage
+if "%~4"=="" goto usage
+cd /d "%~dp0"
+where py >nul 2>nul
+if not errorlevel 1 (
+  py -3 research\battery_curve_audit\field_pilot_csv_intake.py --cells "%~f1" --reviews "%~f2" --frame "%~f3" --summary "%~f4"
+) else (
+  python research\battery_curve_audit\field_pilot_csv_intake.py --cells "%~f1" --reviews "%~f2" --frame "%~f3" --summary "%~f4"
+)
+exit /b %errorlevel%
+:usage
+echo Usage: Run-Field-CSV.cmd "C:\Lab\cells.csv" "C:\Lab\reviews.csv" "C:\Lab\frame.json" "C:\Lab\new-summary.json"
+exit /b 2
+''',
+"Run-Field-CSV-Demo.cmd": r'''@echo off
+setlocal
+cd /d "%~dp0"
+where py >nul 2>nul
+if not errorlevel 1 (
+  py -3 research\battery_curve_audit\field_pilot_csv_intake.py --cells "demo-data\field_cells.csv" --reviews "demo-data\field_reviews.csv" --frame "demo-data\field_frame.json" --summary "demo-field-summary.json"
+) else (
+  python research\battery_curve_audit\field_pilot_csv_intake.py --cells "demo-data\field_cells.csv" --reviews "demo-data\field_reviews.csv" --frame "demo-data\field_frame.json" --summary "demo-field-summary.json"
+)
+set "RC=%errorlevel%"
+echo BLOCK_PROVENANCE_LEAKAGE and exit 2 are expected for synthetic demo.
+echo Existing reports are not overwritten.
+pause
+exit /b %RC%
+''',
 }
 
 def _read_inputs(repo):
@@ -273,6 +335,26 @@ def _samples(entries):
                "files":[{"path":k+".csv","cell":"DEMO_"+k,"mode":"dchg"} for k in names]}
         entries[f"demo-data/manifest_{kind}.json"] = (json.dumps(obj,indent=2)+"\n").encode()
 
+    entries["demo-data/field_cells.csv"] = ("\n".join([
+        "cell,device,batch,campaign,partition",
+        "DEMO_A,DEV1,B1,C1,train",
+        "DEMO_B,DEV2,B2,C2,validation",
+        "DEMO_C,DEV3,B3,C3,test",
+        "DEMO_D,DEV4,B4,C4,train",
+    ])+"\n").encode("utf-8")
+    entries["demo-data/field_reviews.csv"] = ("\n".join([
+        "a,b,flagged,reviewer_a_id,reviewer_a_verdict,reviewer_b_id,reviewer_b_verdict",
+        "DEMO_A,DEMO_B,true,DEMO_REVIEWER_1,linked,DEMO_REVIEWER_2,linked",
+        "DEMO_A,DEMO_C,false,DEMO_REVIEWER_1,independent,DEMO_REVIEWER_2,independent",
+        "DEMO_B,DEMO_C,false,DEMO_REVIEWER_1,linked,DEMO_REVIEWER_2,linked",
+    ])+"\n").encode("utf-8")
+    entries["demo-data/field_frame.json"] = (json.dumps({
+        "schema":"cano.battery.field-intake-frame.v1",
+        "site_authorization":{"permitted":True,"reference":"SYNTHETIC_DEMO_NOT_REAL_SITE_PERMISSION"},
+        "audit_receipt_sha256":"d"*64,
+        "screened_pair_count":6,"screened_flagged_count":1
+    },sort_keys=True,indent=2)+"\n").encode("utf-8")
+
 def build(repo, output, commit):
     entries = _read_inputs(repo)
     entries.update({
@@ -282,7 +364,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-19-pilot",
+                "version":"2026-11-19-pilot-field-csv-v2",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,
