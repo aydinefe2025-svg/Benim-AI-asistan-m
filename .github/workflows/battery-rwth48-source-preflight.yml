@@ -1,0 +1,57 @@
+name: Battery RWTH 48-cell source preflight (metadata only)
+
+on:
+  pull_request:
+    paths:
+      - "research/battery_curve_audit/rwth48_source_preflight.py"
+      - "tests/test_battery_rwth48_source_preflight.py"
+      - ".github/workflows/battery-rwth48-source-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rwth48-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Checkout exact PR ref
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Run eight synthetic resource, source and redirect safety regressions
+        run: python -m unittest tests.test_battery_rwth48_source_preflight -v
+      - name: Probe only 256 publisher archive bytes and HTTP headers
+        run: |
+          python research/battery_curve_audit/rwth48_source_preflight.py "${RUNNER_TEMP}/rwth48_preflight.json"
+      - name: Inspect truthful scope of real source probe
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          x=json.loads((Path(os.environ["RUNNER_TEMP"])/"rwth48_preflight.json").read_text())
+          assert x["doi"]=="10.18154/RWTH-2021-04545"
+          assert x["expected_physical_cells_in_publication"]==48
+          assert x["source_integrity_full_zip"]=="NOT_CHECKED"
+          assert x["physical_measurement_validation"]=="NOT_RUN"
+          assert x["retrieved_bytes_max"]==256
+          assert x["decision"] in {
+            "LARGE_ARCHIVE_REQUIRE_PARTIAL_SOURCE_ACCESS",
+            "BOUNDED_ARCHIVE_FEASIBLE",
+            "MANUAL_SOURCE_BUDGET_REVIEW",
+          }
+          print("SOURCE_PREFLIGHT_NOT_A_PHYSICAL_VALIDATION",json.dumps({
+            "decision":x["decision"],"bytes":x["size_bytes"],
+            "range_verified":x["range_verified"],
+          },sort_keys=True))
+          PY
+      - name: Upload only non-sensitive source metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rwth48-source-preflight-metadata-not-measurements
+          path: ${{ runner.temp }}/rwth48_preflight.json
+          retention-days: 7
+          if-no-files-found: error
