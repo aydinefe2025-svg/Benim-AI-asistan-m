@@ -168,4 +168,3 @@ def run(path):
 if __name__=="__main__":
     ap=argparse.ArgumentParser();ap.add_argument("--table",type=Path,default=DEFAULT_TABLE);ap.add_argument("--output",type=Path,default=Path(__file__).with_name("MPA1_F67_hybrid_crust_TOV_20261119.json"));a=ap.parse_args()
     out=run(a.table);a.output.write_text(json.dumps(out,indent=2,sort_keys=True,allow_nan=False)+"\n",encoding="utf-8");print(json.dumps(out,indent=2,sort_keys=True))
-
