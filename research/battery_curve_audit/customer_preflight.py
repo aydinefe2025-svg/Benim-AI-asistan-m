@@ -284,6 +284,8 @@ def main():
     ap.add_argument('--report', type=Path, required=True)
     ap.add_argument('--split', type=Path)
     args = ap.parse_args()
+    if args.split:
+        raise ValueError('REVIEW_REQUIRED: legacy text/numeric-only --split disabled; use integrated_customer_gate.py')
     manifest = json.loads(args.manifest.read_text(encoding='utf-8'))
     root = args.root if args.root else args.manifest.resolve().parent
     result = audit_customer(manifest, root)

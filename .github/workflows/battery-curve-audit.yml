@@ -6,6 +6,9 @@ on:
       - "research/battery_curve_audit/**"
       - "tests/test_battery_independent_holdout.py"
       - "tests/test_battery_customer_pipeline.py"
+      - "tests/test_battery_integrated_gate.py"
+      - "tests/test_battery_integrated_output_safety.py"
+      - "tests/test_battery_field_pilot_evidence.py"
       - "tests/test_customer_preflight.py"
       - "tests/test_battery_numeric_equivalence.py"
       - "tests/test_battery_near_duplicate_guard.py"
@@ -45,6 +48,11 @@ jobs:
 
       - name: Customer preflight synthetic regression suite
         run: python -m unittest discover -s tests -p "test_customer_preflight.py" -v
+
+      - name: Integrated fail-closed acceptance regression suites
+        run: |
+          python -m unittest discover -s tests -p "test_battery_integrated_gate.py" -v
+          python -m unittest discover -s tests -p "test_battery_integrated_output_safety.py" -v
 
       - name: Fetch and independently parse all 20 publisher CSVs
         run: |
@@ -100,23 +108,19 @@ jobs:
           python research/battery_curve_audit/customer_preflight.py \
             --manifest "${RUNNER_TEMP}/customer_manifest.json" \
             --root "${RUNNER_TEMP}/publisher_csvs" \
-            --report "${RUNNER_TEMP}/customer_report.json" \
-            --split "${RUNNER_TEMP}/customer_holdout.json"
+            --report "${RUNNER_TEMP}/customer_report.json"
           python - <<'PY'
           import json, os
           from pathlib import Path
           work=Path(os.environ["RUNNER_TEMP"])
           original=json.loads((work/"battery_audit.json").read_text())
           customer=json.loads((work/"customer_report.json").read_text())
-          holdout=json.loads((work/"customer_holdout.json").read_text())
           key=lambda c: (c["cell"],c["mode"],c["run"],c["trace_sha256"])
           assert sorted(map(key, original["all_curve_identity"])) == sorted(map(key, customer["all_curve_identity"]))
           assert original["source_files"] == customer["source_files"] == 20
           assert original["measured_time_voltage_pairs"] == customer["measured_time_voltage_pairs"] == 703657
-          assert holdout["independent_cell_group_count"] == 8
-          assert holdout["partition_cell_counts"] == {"train":6,"validation":2,"test":2}
           assert customer["review_status"] == "REVIEW_REQUIRED"
-          print("PASS: real 20 publisher CSV customer adapter exact-identity matches 60-curve provenance audit; 8 groups; holdout 6/2/2")
+          print("PASS: read-only customer adapter matches original 20 CSV and 60 curve hashes; no customer split accepted in this stage")
           PY
 
       - name: Near-screen original publisher CSVs (no automatic physical-duplicate claim)
@@ -149,8 +153,7 @@ jobs:
           python research/battery_curve_audit/numeric_equivalence_guard.py \
             --manifest "${RUNNER_TEMP}/customer_manifest.json" \
             --root "${RUNNER_TEMP}/publisher_csvs" \
-            --report "${RUNNER_TEMP}/battery_numeric_audit.json" \
-            --holdout "${RUNNER_TEMP}/battery_numeric_holdout.json"
+            --report "${RUNNER_TEMP}/battery_numeric_audit.json"
           python - <<'PY'
           import json, os, sys
           from pathlib import Path
@@ -160,7 +163,6 @@ jobs:
           root = Path(os.environ["RUNNER_TEMP"])
           original = json.loads((root/"customer_report.json").read_text())
           numeric = json.loads((root/"battery_numeric_audit.json").read_text())
-          split = json.loads((root/"battery_numeric_holdout.json").read_text())
           assert numeric["original_text_audit_sha256"] == digest(original)
           assert numeric["source_files"] == 20
           assert numeric["trace_count"] == 60
@@ -169,13 +171,10 @@ jobs:
           assert all(a["trace_sha256"] == b["raw_trace_sha256"] and
                      a["source_sha256"] == b["source_sha256"] for a,b in
                      zip(original["all_curve_identity"], numeric["all_curve_identity"]))
-          counts = verify_manifest(numeric, split)
-          assert all(counts.values())
           print("PASS: numeric equality source-pinned full 20 publisher CSVs;",
                 "numeric_unique",numeric["unique_curve_count"],
                 "numeric_only_groups",len(numeric["numeric_only_duplicate_groups"]),
-                "independent_groups",split["independent_cell_group_count"],
-                "split",counts)
+                "screen_only",True)
           PY
 
       - name: Exercise one-command offline customer pipeline on 20 original CSVs
@@ -210,6 +209,35 @@ jobs:
           print("PASS: one-command customer pipeline, original 20 CSVs, privacy, 8 groups, review gate held")
           PY
 
+      - name: Integrated customer acceptance (original publisher triplet must require review)
+        run: |
+          set +e
+          python research/battery_curve_audit/integrated_customer_gate.py \
+            --manifest "${RUNNER_TEMP}/customer_manifest.json" \
+            --root "${RUNNER_TEMP}/publisher_csvs" \
+            --report "${RUNNER_TEMP}/battery_integrated_report.json" \
+            --accepted-split "${RUNNER_TEMP}/accepted_customer_split.json"
+          status=$?
+          set -e
+          test "$status" -eq 2
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ["RUNNER_TEMP"])
+          a=json.loads((p/"battery_integrated_report.json").read_text())
+          assert a["decision"] == "REVIEW_REQUIRED"
+          assert a["source_files"] == 20 and a["trace_count"] == 60
+          assert a["time_voltage_pairs"] == 703657
+          assert a["raw_unique"] == a["numeric_unique"] == 58
+          assert a["cross_cell_numeric_duplicate_groups"] == 1
+          assert a["numeric_only_duplicate_groups"] == 0
+          assert a["near_candidate_count"] == 0
+          assert a["split"]["exact_and_candidate_connected_groups"] == 8
+          assert a["split"]["partition_cell_counts"] == {"train":6,"validation":2,"test":2}
+          assert not (p/"accepted_customer_split.json").exists()
+          print("PASS: combined 20 CSV source gate REVIEW_REQUIRED; no unsafe accepted split")
+          PY
+
       - name: Publish read-only evidence artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -222,8 +250,7 @@ jobs:
             ${{ runner.temp }}/battery_holdout.json
             ${{ runner.temp }}/run_stdout.log
             ${{ runner.temp }}/customer_report.json
-            ${{ runner.temp }}/customer_holdout.json
             ${{ runner.temp }}/battery_near_screen.json
             ${{ runner.temp }}/battery_numeric_audit.json
-            ${{ runner.temp }}/battery_numeric_holdout.json
+            ${{ runner.temp }}/battery_integrated_report.json
             ${{ runner.temp }}/customer_public_summary.json

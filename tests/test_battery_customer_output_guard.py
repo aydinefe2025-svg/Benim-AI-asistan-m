@@ -46,7 +46,7 @@ class CustomerOutputSafetyTests(unittest.TestCase):
     def test_split_cannot_replace_source_csv(self):
         report = self.root / "report.json"
         with self.assertRaisesRegex(ValueError, "output|overwrite|source|collision"):
-            self.run_cli(report, self.source)
+            product.write_new_reports([(report, {"review": 1}), (self.source, {"unsafe": 1})], [self.manifest, self.source])
         self.assertEqual(self.source.read_bytes(), self.original_source)
         self.assertFalse(report.exists(), "report must not be left after rejected split")
 
@@ -65,7 +65,7 @@ class CustomerOutputSafetyTests(unittest.TestCase):
     def test_report_and_split_same_path_rejected(self):
         report = self.root / "report.json"
         with self.assertRaisesRegex(ValueError, "output|collision|duplicate"):
-            self.run_cli(report, report)
+            product.write_new_reports([(report, {"a": 1}), (report, {"b": 1})], [self.manifest, self.source])
         self.assertFalse(report.exists())
 
     def test_report_symlink_to_source_rejected(self):
@@ -82,24 +82,29 @@ class CustomerOutputSafetyTests(unittest.TestCase):
         report = self.root / "report.json"
         split = self.root / "nonexistent" / "split.json"
         with self.assertRaisesRegex(ValueError, "parent|directory|output"):
-            self.run_cli(report, split)
+            product.write_new_reports([(report, {"a": 1}), (split, {"b": 1})], [self.manifest, self.source])
         self.assertFalse(report.exists())
 
-    def test_new_output_is_private_and_reproducible(self):
+    def test_new_read_only_output_is_private_and_reproducible(self):
         report = self.root / "report.json"
         split = self.root / "split.json"
-        self.run_cli(report, split)
+        self.run_cli(report)
         self.assertTrue(report.is_file())
-        self.assertTrue(split.is_file())
+        self.assertFalse(split.exists(), "legacy CLI never issues a split")
         result = json.loads(report.read_text(encoding="utf-8"))
-        manifest = json.loads(split.read_text(encoding="utf-8"))
         self.assertEqual(result["trace_count"], 3)
-        self.assertEqual(manifest["independent_cell_group_count"], 3)
         self.assertEqual(self.source.read_bytes(), self.original_source)
         self.assertEqual(self.manifest.read_bytes(), self.original_manifest)
         if os.name == "posix":
             self.assertEqual(stat.S_IMODE(report.stat().st_mode), 0o600)
-            self.assertEqual(stat.S_IMODE(split.stat().st_mode), 0o600)
+
+    def test_legacy_split_rejected_without_any_output(self):
+        report = self.root / "report.json"
+        split = self.root / "split.json"
+        with self.assertRaisesRegex(ValueError, "legacy.*--split"):
+            self.run_cli(report, split)
+        self.assertFalse(report.exists())
+        self.assertFalse(split.exists())
 
     def test_failure_during_second_write_rolls_back_first(self):
         report = self.root / "report.json"
@@ -111,7 +116,7 @@ class CustomerOutputSafetyTests(unittest.TestCase):
             return real_open(path, flags, mode)
         with mock.patch.object(product.os, "open", side_effect=simulate_disk_failure):
             with self.assertRaisesRegex(OSError, "simulated full disk"):
-                self.run_cli(report, split)
+                product.write_new_reports([(report, {"a": 1}), (split, {"b": 1})], [self.source, self.manifest])
         self.assertFalse(report.exists(), "first output must be rolled back")
         self.assertFalse(split.exists(), "no partial split output")
         self.assertEqual(self.source.read_bytes(), self.original_source)
