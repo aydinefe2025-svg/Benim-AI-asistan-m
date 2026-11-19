@@ -285,11 +285,13 @@ class OwnerIsolationAndCITests(unittest.TestCase):
 class WorkerCredentialGuardTests(unittest.TestCase):
     """Administrative Neon credentials must never run the unattended code worker."""
 
-    def store(self, role_row, rls_row=(True, False)):
+    def store(self, role_row, rls_row=(True, False), *, inherited_memberships=0):
         from scripts.cano_autodev_worker import NeonJobStore
         class GuardCursor(FakePGCursor):
             def fetchone(self):
                 sql = self.queries[-1][0]
+                if 'FROM pg_auth_members' in sql:
+                    return (inherited_memberships > 0,)
                 if 'FROM pg_roles' in sql:
                     return role_row
                 if 'FROM pg_class' in sql:
@@ -325,6 +327,18 @@ class WorkerCredentialGuardTests(unittest.TestCase):
             with self.subTest(role=roles), self.assertRaises(PermissionError):
                 store, _ = self.store(roles)
                 store.verify_worker_role()
+
+    def test_reject_worker_inheriting_any_other_role_before_claim(self):
+        # rolbypassrls=false is NOT sufficient. Role membership could give
+        # SET ROLE access to a privileged owner or other unintended policies.
+        store, cursor = self.store(
+            ('cano_autodev_worker', False, False), inherited_memberships=1)
+        with self.assertRaisesRegex(PermissionError, "membership"):
+            store.verify_worker_role()
+        self.assertFalse(any(
+            'UPDATE public.cano_code_jobs' in sql
+            for sql, _ in cursor.queries
+        ))
 
     def test_reject_worker_if_table_rls_is_disabled(self):
         store, _ = self.store(('cano_autodev_worker', False, False), (False, False))
