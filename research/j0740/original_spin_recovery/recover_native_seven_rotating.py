@@ -138,7 +138,7 @@ def observed_rotating_KDE_inference(result:dict,f38zip:Path,n:int=4001):
  # Reuse the exact same source-prior support and q/pi_eff from F38 as the previous
  # original 7-EOS STATIC result, switching only to authentic rotating GR curves.
  repo=Path(__file__).resolve().parents[3]
- for path in (repo/'research/j0740/original_seven_inference',Path('/mnt/data/eos_finish/library_readback')):
+ for path in (repo/'research/j0740/original_seven_inference',HERE,Path('/mnt/data/eos_finish/library_readback')):
   if path.is_dir() and str(path) not in sys.path:sys.path.insert(0,str(path))
  import original_seven_fullmass_integral as reference
  if sha(f38zip.read_bytes())!=F38_EXPECTED_SHA:raise EvidenceFailure('F38 native reconstructed source KDE ZIP SHA changed')
