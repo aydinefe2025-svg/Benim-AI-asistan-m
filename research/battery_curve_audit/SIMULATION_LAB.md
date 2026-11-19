@@ -43,3 +43,50 @@ python -m unittest discover -s tests -p 'test_battery_customer_pipeline.py' -v
 ```
 
 Bu simülasyon gerçek müşteri izni, sahada cihaz kalibrasyonu, SOH tahmini, gerçek hata oranı, gelir/ödeme veya fiziksel üretim yetkisi yerine geçmez. Tüm işlemler ağ bağlantısı olmadan yerel çalışır. Bükreş Politeknik'in bağımsız yayımlanmış 20 CSV testi GitHub CI'da ayrıca korunur; kaynak veri CC BY 4.0 (BulyK47/battery-datasets, DOI 10.21227/cm0f-jg66).
+
+## V3 ek deney — gerilim ötelemesi kaynaklı tanımlanamazlık (19 Kasım 2026)
+
+Aşağıdaki eski V2 ölçüm raporu **tarihsel kayıttır**, değiştirilmez. V3'te yeni
+`voltage_offset_review_candidates` yazılımı sadece **2–5 mV sabit gerilim farkı**
+olan, aynı çalışma modu, en az 100 ölçüm, en az 0,05 V değişim ve aynı mutlak
+zaman uçlarını taşıyan çiftleri, geçici gerilim düzeltmesi sonrasında kalan en
+fazla **0,5 mV** şekil farkıyla karşılaştırır. Eşleşme durumu yalnız
+`VOLTAGE_OFFSET_AMBIGUOUS_REVIEW_ONLY` olabilir: **fiziksel kopya, sahtecilik
+veya bağımsızlık kararı DEĞİLDİR**. Gerçek ölçümlerin voltajları, fiziksel
+beyanları veya kanonik SHA hashleri değiştirilmez. Belirsiz çiftler, aday bağlı
+hücre grupları içinden train / validation / test ayrılır.
+
+Bu tarama kasıtlı bir takas yapar. Gerçek bağımsız bir hücre 3,5 mV farklı
+ancak şekilce özdeş iz verebilir. Kopyadan dönüştürülmüş veri **aynı (t,V)
+çiftlerini** verebildiği için yalnız waveform ile farkları ispat etmek
+matematiksel olarak mümkün değildir. Bağımsız teknisyen incelemesi ve
+kaynak/ölçüm provenance kayıtları gerekir; bunların sahadaki güvenilirliği
+ayrıca doğrulanmalıdır.
+
+V3'e yeni `independent_bias_3mv` senaryosu eklenmiştir. Sentetik etiketi
+"bağımsız" olmasına rağmen karşılaştırılan A/B ölçümleri `noisy_clone_3mv`
+ile aynı formülden oluşturulur; bu bilinçli karşı örneğin amacı algoritmanın
+*gözlemlenemeyen etiketi* tahmin edemeyeceğini göstermektir.
+
+`python research/battery_curve_audit/battery_virtual_lab.py --trials 100 --seed 20261119 --output simulation_V3_1400.json`
+
+| Sentetik koşul | V2 | V3 |
+|---|---:|---:|
+| Toplam dört-hücreli simülasyon | 1.300 (13 aile) | 1.400 (14 aile) |
+| Üretilen yapay eğri | 5.200 | 5.600 |
+| Kontrollü kopya ailesi | 600 | 600 |
+| İnceleme veya bloklama | 500 | 600 |
+| Ekranı temiz geçen kontrollü kopya | 100 | 0 |
+| Ayrı kaynaklı ilan edilen yapay şablon | 200 | 300 |
+| Bunlardan inceleme gerektiren | 100 | 200 |
+| Ölçüme dayalı gerçek dünya FPR/FNR | bilinmiyor | bilinmiyor |
+
+**Yorum:** Sonuçlar yalnız tanımlı simülasyon dağılımı için geçerlidir.
+Daha fazla inceleme kontrolü bağımsız şablonların da işaretlenmesine neden
+olmuştur; bir modelin hepsine "kopya" hükmü vermesi kabul edilemez.
+Sahadaki cihaz kalibrasyonu, cihaz/batch/kampanya kimliği, ölçüm zaman damgası,
+kör iki-teknisyen kontrolü ve audit-receipt bağı sürdürülmelidir.
+
+Yeni V3 testleri: `test_battery_voltage_offset_review.py`, ayrıca mevcut
+`test_battery_virtual_lab.py` ve entegrasyon testleri. Repo kaynak dışı
+kişisel ölçümler veya ücretli servisler kullanılmaz.
