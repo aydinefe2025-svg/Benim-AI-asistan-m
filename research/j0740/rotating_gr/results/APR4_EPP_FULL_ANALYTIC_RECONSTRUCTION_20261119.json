@@ -1,0 +1,320 @@
+{
+  "schema": "j0740_apr4_epp_full_analytic_source_reconstruction_v1",
+  "source_identity": {
+    "lalsuite_release": "lalsuite-v7.26.4",
+    "lalsuite_table_bytes": 72350,
+    "lalsuite_table_sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+    "jester_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+    "jester_npz_bytes": 56300,
+    "jester_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+    "jester_generator_sha256": "30ff07b009b422e918dca1ee42ca967ffedc26e88ace611133a4ee486a133784"
+  },
+  "model_basis": {
+    "crust": "Pinned LALSuite SLY4 four-piece low-density constants",
+    "core": "Read et al. 2009 APR4: log10(p1)=34.269 dyn cm^-2; Gamma=(2.830,3.445,3.348)",
+    "causal_extension": "Endrizzi et al. 2016 APR4_EPP: Gamma=3 from 1.4e15 g cm^-3; Gamma=2 above 1.61e15 g cm^-3",
+    "first_law": "p=K rho^Gamma; epsilon=(1+a_i)rho+p/(Gamma-1); a_i recursively chosen for energy continuity",
+    "cs2": "Gamma*p/(epsilon+p), exact analytic derivative within each cold polytropic segment"
+  },
+  "reconstruction": {
+    "segments": [
+      {
+        "name": "SLy4_crust_0",
+        "gamma": 1.58424999,
+        "rho_range_geom_m_inv2": [
+          0.0,
+          1.8122354391647388e-17
+        ],
+        "p_range_geom_m_inv2": [
+          0.0,
+          2.552179976427669e-21
+        ],
+        "energy_offset_1_plus_a": 1.0,
+        "cs2_max_or_asymptotic_supremum": 0.0002230255280743698,
+        "analytic_piece_causal": true,
+        "thermodynamically_stable_gamma_positive": true
+      },
+      {
+        "name": "SLy4_crust_1",
+        "gamma": 1.28732904,
+        "rho_range_geom_m_inv2": [
+          1.8122354391647388e-17,
+          2.8097481719133174e-13
+        ],
+        "p_range_geom_m_inv2": [
+          2.5521796129724857e-21,
+          6.329986553366584e-16
+        ],
+        "energy_offset_1_plus_a": 0.9997509082843179,
+        "cs2_max_or_asymptotic_supremum": 0.002871907547367158,
+        "analytic_piece_causal": true,
+        "thermodynamically_stable_gamma_positive": true
+      },
+      {
+        "name": "SLy4_crust_2",
+        "gamma": 0.62223344,
+        "rho_range_geom_m_inv2": [
+          2.8097481719133174e-13,
+          1.951450012059054e-12
+        ],
+        "p_range_geom_m_inv2": [
+          6.329987675218386e-16,
+          2.1141244528106587e-15
+        ],
+        "energy_offset_1_plus_a": 1.013555273211132,
+        "cs2_max_or_asymptotic_supremum": 0.0006662608765421692,
+        "analytic_piece_causal": true,
+        "thermodynamically_stable_gamma_positive": true
+      },
+      {
+        "name": "SLy4_crust_3",
+        "gamma": 1.35692395,
+        "rho_range_geom_m_inv2": [
+          1.951450012059054e-12,
+          1.1228461302966622e-10
+        ],
+        "p_range_geom_m_inv2": [
+          2.1141241867123916e-15,
+          5.167329914167941e-13
+        ],
+        "energy_offset_1_plus_a": 1.007652197592289,
+        "cs2_max_or_asymptotic_supremum": 0.006091370578755254,
+        "analytic_piece_causal": true,
+        "thermodynamically_stable_gamma_positive": true
+      },
+      {
+        "name": "APR4_Read_Gamma1",
+        "gamma": 2.83,
+        "rho_range_geom_m_inv2": [
+          1.1228461302966622e-10,
+          3.7218967217523377e-10
+        ],
+        "p_range_geom_m_inv2": [
+          5.167329914167934e-13,
+          1.5350513642195717e-11
+        ],
+        "energy_offset_1_plus_a": 1.018030930414667,
+        "cs2_max_or_asymptotic_supremum": 0.10789296021874087,
+        "analytic_piece_causal": true,
+        "thermodynamically_stable_gamma_positive": true
+      },
+      {
+        "name": "APR4_Read_Gamma2",
+        "gamma": 3.445,
+        "rho_range_geom_m_inv2": [
+          3.7218967217523377e-10,
+          7.426160269118665e-10
+        ],
+        "p_range_geom_m_inv2": [
+          1.5350513642195717e-11,
+          1.6581465511505772e-10
+        ],
+        "energy_offset_1_plus_a": 1.0236998951673053,
+        "cs2_max_or_asymptotic_supremum": 0.5747671908879737,
+        "analytic_piece_causal": true,
+        "thermodynamically_stable_gamma_positive": true
+      },
+      {
+        "name": "APR4_Read_Gamma3_pre_EPP",
+        "gamma": 3.348,
+        "rho_range_geom_m_inv2": [
+          7.426160269118665e-10,
+          1.039662437676613e-09
+        ],
+        "p_range_geom_m_inv2": [
+          1.658146551150577e-10,
+          5.115164152861809e-10
+        ],
+        "energy_offset_1_plus_a": 1.0199271856089338,
+        "cs2_max_or_asymptotic_supremum": 0.956870246070975,
+        "analytic_piece_causal": true,
+        "thermodynamically_stable_gamma_positive": true
+      },
+      {
+        "name": "APR4_EPP_added_Gamma3",
+        "gamma": 3.0,
+        "rho_range_geom_m_inv2": [
+          1.039662437676613e-09,
+          1.195611803328105e-09
+        ],
+        "p_range_geom_m_inv2": [
+          5.115164152861809e-10,
+          7.779525280983705e-10
+        ],
+        "energy_offset_1_plus_a": 0.9834670417728602,
+        "cs2_max_or_asymptotic_supremum": 0.9961942497570102,
+        "analytic_piece_causal": true,
+        "thermodynamically_stable_gamma_positive": true
+      },
+      {
+        "name": "APR4_EPP_added_Gamma2",
+        "gamma": 2.0,
+        "rho_range_geom_m_inv2": [
+          1.195611803328105e-09,
+          null
+        ],
+        "p_range_geom_m_inv2": [
+          7.779525280983705e-10,
+          null
+        ],
+        "energy_offset_1_plus_a": 0.6581304542898403,
+        "cs2_max_or_asymptotic_supremum": 1.0,
+        "analytic_piece_causal": true,
+        "thermodynamically_stable_gamma_positive": true
+      }
+    ],
+    "joins": [
+      {
+        "left": "SLy4_crust_0",
+        "right": "SLy4_crust_1",
+        "rho_geom_m_inv2": 1.8122354391647388e-17,
+        "relative_pressure_jump": -1.424096994773194e-07,
+        "relative_energy_jump": -6.97834012797216e-11,
+        "enthalpy_jump": -8.982159986495666e-11,
+        "cs2_left": 0.0002230255280743698,
+        "cs2_right": 0.0001812259428137376
+      },
+      {
+        "left": "SLy4_crust_1",
+        "right": "SLy4_crust_2",
+        "rho_geom_m_inv2": 2.8097481719133174e-13,
+        "relative_pressure_jump": 1.7722814926734998e-07,
+        "relative_energy_jump": -1.0489626944831798e-09,
+        "enthalpy_jump": -6.512436562244872e-10,
+        "cs2_left": 0.002871907547367158,
+        "cs2_right": 0.0013881433377982027
+      },
+      {
+        "left": "SLy4_crust_2",
+        "right": "SLy4_crust_3",
+        "rho_geom_m_inv2": 1.951450012059054e-12,
+        "relative_pressure_jump": -1.2586688868942986e-07,
+        "relative_energy_jump": -3.780001867070837e-10,
+        "enthalpy_jump": -5.123681028063043e-10,
+        "cs2_left": 0.0006662608765421692,
+        "cs2_right": 0.00145293577760685
+      },
+      {
+        "left": "SLy4_crust_3",
+        "right": "APR4_Read_Gamma1",
+        "rho_geom_m_inv2": 1.1228461302966622e-10,
+        "relative_pressure_jump": -1.3322676295501878e-15,
+        "relative_energy_jump": 2.220446049250313e-16,
+        "enthalpy_jump": 2.185751579730777e-16,
+        "cs2_left": 0.006091370578755254,
+        "cs2_right": 0.012704159829942822
+      },
+      {
+        "left": "APR4_Read_Gamma1",
+        "right": "APR4_Read_Gamma2",
+        "rho_geom_m_inv2": 3.7218967217523377e-10,
+        "relative_pressure_jump": 0.0,
+        "relative_energy_jump": 2.220446049250313e-16,
+        "enthalpy_jump": 1.942890293094024e-16,
+        "cs2_left": 0.10789296021874087,
+        "cs2_right": 0.13133966358783117
+      },
+      {
+        "left": "APR4_Read_Gamma2",
+        "right": "APR4_Read_Gamma3_pre_EPP",
+        "rho_geom_m_inv2": 7.426160269118665e-10,
+        "relative_pressure_jump": -1.1102230246251565e-16,
+        "relative_energy_jump": -1.1102230246251565e-16,
+        "enthalpy_jump": -1.6653345369377348e-16,
+        "cs2_left": 0.5747671908879737,
+        "cs2_right": 0.5585836154115925
+      },
+      {
+        "left": "APR4_Read_Gamma3_pre_EPP",
+        "right": "APR4_EPP_added_Gamma3",
+        "rho_geom_m_inv2": 1.039662437676613e-09,
+        "relative_pressure_jump": 0.0,
+        "relative_energy_jump": 0.0,
+        "enthalpy_jump": 0.0,
+        "cs2_left": 0.956870246070975,
+        "cs2_right": 0.8574106147589382
+      },
+      {
+        "left": "APR4_EPP_added_Gamma3",
+        "right": "APR4_EPP_added_Gamma2",
+        "rho_geom_m_inv2": 1.195611803328105e-09,
+        "relative_pressure_jump": 0.0,
+        "relative_energy_jump": 0.0,
+        "enthalpy_jump": 0.0,
+        "cs2_left": 0.9961942497570102,
+        "cs2_right": 0.6641294998380068
+      }
+    ],
+    "lalsuite_table_rows": 1447,
+    "max_abs_relative_epsilon_residual_vs_lalsuite_table": 4.807279920870933e-05,
+    "max_residual_source_row_zero_based": 1369,
+    "max_residual_pressure_geom_m_inv2": 1.6124447813106748e-11,
+    "all_reconstructed_source_table_cs2_finite_positive": true,
+    "max_analytic_cs2_on_lalsuite_table_support": 0.996115294169006,
+    "max_analytic_cs2_source_pressure_geom_m_inv2": 7.777682760985296e-10
+  },
+  "jester_crosscheck": {
+    "rows": 865,
+    "max_abs_relative_epsilon_residual": 0.001781471180541283,
+    "max_epsilon_residual_row_zero_based": 814,
+    "max_abs_relative_enthalpy_residual": 0.00019766439916901746,
+    "max_enthalpy_residual_row_zero_based": 724,
+    "max_abs_relative_cs2_residual": 0.2665289929179978,
+    "max_cs2_residual_row_zero_based": 262,
+    "max_cs2_residual_pressure_geom_m_inv2": 6.33881091137495e-16,
+    "source_rows_abs_cs2_relative_difference_over_1pct": [
+      262,
+      309,
+      310,
+      311,
+      312,
+      525,
+      526,
+      527,
+      657,
+      659,
+      660,
+      661,
+      662,
+      754,
+      796,
+      798,
+      799,
+      801,
+      810,
+      811,
+      812,
+      813,
+      814,
+      815,
+      816,
+      817,
+      818
+    ],
+    "stored_native_cs2_gt_one_rows": [
+      812,
+      813
+    ],
+    "stored_native_cs2_gt_one_values": [
+      1.0290674703621383,
+      1.0982782452928908
+    ],
+    "analytic_cs2_at_those_rows": [
+      0.9709589724146827,
+      0.9794049798992479
+    ],
+    "interpretation": "The APR4_EPP analytic source reconstruction is causal at those pressures; the stored derivative array's two >1 samples are not the analytic piecewise-polytrope sound speed.",
+    "baryon_density_note": "Pinned generator defines n=e/m_avg (rest-mass approximation); analytic first-law density is proportional to rho. Absolute RNS baryon-mass normalization is not certified by this reconstruction."
+  },
+  "acceptance": {
+    "both_pinned_source_identities": true,
+    "LAL_epsilon_reconstruction_max_relative_error_below_1e-4": true,
+    "all_segment_joins_within_published_constant_rounding_tolerance": true,
+    "all_piecewise_segments_stable_and_causal": true,
+    "APR4_EPP_cold_barotrope_physical_source_model": "PASS_RECONSTRUCTED_ANALYTIC_MODEL",
+    "absolute_RNS_baryon_mass_normalization": "NOT_ESTABLISHED",
+    "rotating_sequence_and_continuous_stability": "NOT_ESTABLISHED",
+    "EOS_Bayes": "NOT_RUN"
+  }
+}
+
