@@ -12,6 +12,7 @@ on:
       - "tests/test_battery_integrated_output_safety.py"
       - "tests/test_battery_field_pilot_evidence.py"
       - "tests/test_battery_field_csv_intake.py"
+      - "tests/test_battery_field_receipt_binding.py"
       - "tests/test_customer_preflight.py"
       - "tests/test_battery_numeric_equivalence.py"
       - "tests/test_battery_near_duplicate_guard.py"
@@ -62,6 +63,9 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "test_battery_integrated_gate.py" -v
           python -m unittest discover -s tests -p "test_battery_integrated_output_safety.py" -v
+
+      - name: Verify source-to-field receipt linkage on synthetic fixtures
+        run: python -m unittest discover -s tests -p "test_battery_field_receipt_binding.py" -v
 
       - name: Offline field technician CSV intake regressions and redacted demonstration
         run: |
@@ -282,6 +286,58 @@ jobs:
           print("PASS: 1300 synthetic batches, 500/600 clone reviews, 100 unresolved bias cases; no field-success claim")
           PY
 
+      - name: Bind publisher evidence to synthetic-only field metadata (not real field proof)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, json, os
+          root=Path(os.environ["RUNNER_TEMP"])
+          data=(root/"battery_integrated_report.json").read_bytes()
+          audit=json.loads(data)
+          assert audit["decision"]=="REVIEW_REQUIRED"
+          assignments={row["cell"]:row["partition"] for row in audit["split"]["assignments"]}
+          cells=sorted(assignments)
+          ledger={
+            "schema":"cano.battery.field-pilot.v1",
+            "site_authorization":{"permitted":True,"reference":"SYNTHETIC-NOT-A-REAL-SITE"},
+            "audit_receipt_sha256":hashlib.sha256(data).hexdigest(),
+            "cells":[{"cell":c,"device":"SYN-D"+str(i),"batch":"SYN-B"+str(i),
+                      "campaign":"SYN-C"+str(i)} for i,c in enumerate(cells)],
+            "assignments":[{"cell":c,"partition":assignments[c]} for c in cells],
+            "screened_pair_count":len(cells)*(len(cells)-1)//2,
+            "screened_flagged_count":0,
+            "reviews":[]
+          }
+          (root/"synthetic_only_lab_ledger.json").write_text(json.dumps(ledger),encoding="utf-8")
+          PY
+          set +e
+          python research/battery_curve_audit/field_receipt_binding.py \
+            --manifest "${RUNNER_TEMP}/customer_manifest.json" \
+            --root "${RUNNER_TEMP}/publisher_csvs" \
+            --audit-report "${RUNNER_TEMP}/battery_integrated_report.json" \
+            --ledger "${RUNNER_TEMP}/synthetic_only_lab_ledger.json" \
+            --summary "${RUNNER_TEMP}/battery_bound_redacted.json"
+          status=$?
+          set -e
+          test "$status" -eq 2
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ["RUNNER_TEMP"])/"battery_bound_redacted.json"
+          x=json.loads(p.read_text(encoding="utf-8"))
+          assert x["decision"]=="BLOCK_AUDIT_REVIEW"
+          assert x["source_recalculated_and_matched"] is True
+          assert x["receipt_and_partitions_bound"] is True
+          assert x["field_acceptance"]=="NOT_ESTABLISHED"
+          assert x["source_trace_count"]==60
+          assert x["source_time_voltage_pairs"]==703657
+          assert x["source_cross_cell_numeric_groups"]==1
+          s=p.read_text(encoding="utf-8")
+          for forbidden in ("apreh","SYNTHETIC-NOT-A-REAL-SITE",".csv","audit_receipt_sha256"):
+              assert forbidden not in s
+          print("PASS: 20 real public CSVs rechecked, synthetic field ledger bound, source review BLOCKED")
+          PY
+
       - name: Build and verify source-pinned offline Windows pilot ZIP
         run: |
           python research/battery_curve_audit/package_offline_pilot.py \
@@ -300,7 +356,7 @@ jobs:
                   z.extractall(tmp)
               folder=Path(tmp)/"CANO_BATARYA_CEVRIMDISI_PILOT"
               subprocess.run([sys.executable,"verify_package.py","--tests","--demo"],cwd=folder,check=True)
-          print("PASS: isolated ZIP extraction, checksum readback, full regressions and 3 synthetic demos")
+          print("PASS: isolated ZIP extraction, checksum readback, regressions and 3 synthetic demo runs")
           PY
 
       - name: Publish offline Windows/Linux pilot bundle
@@ -326,6 +382,7 @@ jobs:
             ${{ runner.temp }}/battery_near_screen.json
             ${{ runner.temp }}/battery_numeric_audit.json
             ${{ runner.temp }}/battery_integrated_report.json
+            ${{ runner.temp }}/battery_bound_redacted.json
             ${{ runner.temp }}/customer_public_summary.json
             ${{ runner.temp }}/CANO_BATARYA_SANAL_LAB_1300.json
 

@@ -28,6 +28,7 @@ PROGRAMS = [
     "integrated_customer_gate.py",
     "field_pilot_evidence.py",
     "field_pilot_csv_intake.py",
+    "field_receipt_binding.py",
 ]
 DOCUMENTS = [
     "SIMULATION_LAB.md",
@@ -38,6 +39,7 @@ DOCUMENTS = [
     "NEAR_DUPLICATES.md",
     "FIELD_PILOT_EVIDENCE.md",
     "FIELD_PILOT_CSV_INTAKE.md",
+    "FIELD_RECEIPT_BINDING.md",
     "README.md",
 ]
 TESTS = [
@@ -54,6 +56,7 @@ TESTS = [
     "test_battery_integrated_output_safety.py",
     "test_battery_field_pilot_evidence.py",
     "test_battery_field_csv_intake.py",
+    "test_battery_field_receipt_binding.py",
     "test_customer_preflight.py",
 ]
 
@@ -94,6 +97,7 @@ def tests():
         "test_battery_units_guard.py",
         "test_battery_field_pilot_evidence.py",
         "test_battery_field_csv_intake.py",
+        "test_battery_field_receipt_binding.py",
     ]
     for name in patterns:
         subprocess.run([sys.executable,"-m","unittest","discover","-s","tests","-p",name,"-v"],cwd=ROOT,check=True)
@@ -386,7 +390,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-19-pilot-simlab-field-csv-v3",
+                "version":"2026-11-19-pilot-simlab-receipt-field-csv-v4",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,
