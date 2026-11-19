@@ -42,7 +42,7 @@ class BPSPhaseGateTests(unittest.TestCase):
         if not (F.PHYS/'JESTER_BPS_crust_e6768650.csv').is_file():
             self.skipTest('real original source files only available in GitHub CI worktree')
         r=F.calculate(F.PHYS/'JESTER_BPS_crust_e6768650.csv',
-                      F.PHYS/'F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat',
+                      F.CANON_F67,
                       F.PHYS/'mpa1_jester_hybrid_crust_tov.py')
         ep=r['at_native_BPS_upper_endpoint']
         self.assertAlmostEqual(ep['e_f67_MeV_fm-3'],71.75359534449984,places=4)
@@ -57,7 +57,7 @@ class BPSPhaseGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             p=pathlib.Path(d)/'fake_bps.csv';p.write_text('forged')
             with self.assertRaisesRegex(ValueError,'F73_BPS_BYTES_DRIFT'):
-                F.calculate(p,F.PHYS/'F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat',
+                F.calculate(p,F.CANON_F67,
                             F.PHYS/'mpa1_jester_hybrid_crust_tov.py')
 
 if __name__=='__main__':unittest.main()
