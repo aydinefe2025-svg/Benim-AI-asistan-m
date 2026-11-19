@@ -26,6 +26,7 @@ PROGRAMS = [
     "independent_holdout.py",
     "integrated_customer_gate.py",
     "field_pilot_evidence.py",
+    "field_receipt_binding.py",
 ]
 DOCUMENTS = [
     "CUSTOMER_PIPELINE.md",
@@ -34,6 +35,7 @@ DOCUMENTS = [
     "NUMERIC_EQUIVALENCE.md",
     "NEAR_DUPLICATES.md",
     "FIELD_PILOT_EVIDENCE.md",
+    "FIELD_RECEIPT_BINDING.md",
     "README.md",
 ]
 TESTS = [
@@ -47,6 +49,7 @@ TESTS = [
     "test_battery_integrated_gate.py",
     "test_battery_integrated_output_safety.py",
     "test_battery_field_pilot_evidence.py",
+    "test_battery_field_receipt_binding.py",
     "test_customer_preflight.py",
 ]
 
@@ -84,6 +87,7 @@ def tests():
         "test_battery_integrated_output_safety.py",
         "test_battery_units_guard.py",
         "test_battery_field_pilot_evidence.py",
+        "test_battery_field_receipt_binding.py",
     ]
     for name in patterns:
         subprocess.run([sys.executable,"-m","unittest","discover","-s","tests","-p",name,"-v"],cwd=ROOT,check=True)
