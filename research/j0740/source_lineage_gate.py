@@ -175,6 +175,14 @@ def require_proven_lineage(manifest_path=None, *, historical_proxy_only=False) -
             "status": "UNVERIFIED_HISTORICAL_PROXY_ONLY",
             "caution": "No matched 15D X-PSI source prior, not EOS Bayes evidence",
         }
+    # F31/F32 already verified original local TAR source bytes and the
+    # same source run's weighted MultiNest moments on 2026-11-17.
+    # Reuse byte-pinned receipts instead of demanding that Windows re-read
+    # 12.9 GB of source material every time this pipeline is invoked.
+    saved = Path(__file__).parent / "saved_lineage_receipts"
+    from saved_lineage_proof import verify_saved_source_lineage, F31_NAME, F32_NAME
+    if (saved / F31_NAME).is_file() and (saved / F32_NAME).is_file():
+        return verify_saved_source_lineage(saved)
     raise RunLineageNotProven(
         "Published Salmi 2024 README confirms gamma NxX outputs map to "
         "STU_NICER_XMM_hr headline run, but original prior/runner byte identity "
