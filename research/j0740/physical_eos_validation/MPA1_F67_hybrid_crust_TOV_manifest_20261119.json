@@ -22,6 +22,11 @@
       "path": "test_mpa1_f67_hybrid_crust_tov.py",
       "bytes": 2602,
       "sha256": "fa1870fd39c5e979bc44c4d5fb641c9ae126c85acbec0b600f8cee5c55e03f36"
+    },
+    {
+      "path": "MPA1_F67_hybrid_crust_TOV_execution_20261119.txt",
+      "bytes": 608,
+      "sha256": "65971879f1810d61a67c43b3a5701d3d70bbb54608eb3764dcac3a288e49ff5e"
     }
   ],
   "external_inputs": [
@@ -50,4 +55,3 @@
   },
   "interpretation": "Conditional causal, first-law-consistent hybrid candidate; crust and high-density completion are explicit surrogates, not microphysical acceptance."
 }
-
