@@ -34,7 +34,7 @@ def inspect_zip_bytes(raw: bytes) -> dict:
     """
     if not isinstance(raw, bytes) or not 4 <= len(raw) <= MAX_DOWNLOAD_BYTES:
         raise ValueError("SOURCE_REVIEW_REQUIRED: invalid or excessive archive length")
-    if not raw.startswith((b"PK\\x03\\x04", b"PK\\x05\\x06")):
+    if not raw.startswith((b"PK\x03\x04", b"PK\x05\x06")):
         raise ValueError("SOURCE_REVIEW_REQUIRED: source is not a ZIP header")
     try:
         with zipfile.ZipFile(io.BytesIO(raw)) as z:
@@ -44,11 +44,11 @@ def inspect_zip_bytes(raw: bytes) -> dict:
             total, seen, kinds = 0, set(), collections.Counter()
             safe_headers = collections.defaultdict(list)
             for info in members:
-                name = info.filename.replace("\\\\", "/")
+                name = info.filename.replace("\\", "/")
                 clean = PurePosixPath(name)
                 if (not name or name.startswith("/") or
                     ".." in clean.parts or ":" in name or
-                    "\\x00" in name):
+                    "\x00" in name):
                     raise ValueError("SOURCE_REVIEW_REQUIRED: ZIP path is unsafe")
                 key=name.casefold()
                 if key in seen:
@@ -73,7 +73,7 @@ def inspect_zip_bytes(raw: bytes) -> dict:
                         preview=src.read(1200)
                     header=preview.splitlines()[0] if preview.splitlines() else b""
                     tokens=[c.strip()[:48] for c in header.decode(
-                        "utf-8", "replace").replace("\\t", ",").split(",")[:24]]
+                        "utf-8", "replace").replace("\t", ",").split(",")[:24]]
                     # Exclude value-like tokens; include only generic schema
                     # signals (time, current, voltage, temperature, cell etc.).
                     generic=[]
