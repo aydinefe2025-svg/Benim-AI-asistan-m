@@ -29,6 +29,7 @@ PROGRAMS = [
     "field_pilot_evidence.py",
     "field_pilot_csv_intake.py",
     "field_receipt_binding.py",
+    "field_source_csv_bridge.py",
 ]
 DOCUMENTS = [
     "SIMULATION_LAB.md",
@@ -40,6 +41,7 @@ DOCUMENTS = [
     "FIELD_PILOT_EVIDENCE.md",
     "FIELD_PILOT_CSV_INTAKE.md",
     "FIELD_RECEIPT_BINDING.md",
+    "BOUND_FIELD_CSV.md",
     "README.md",
 ]
 TESTS = [
@@ -57,6 +59,7 @@ TESTS = [
     "test_battery_field_pilot_evidence.py",
     "test_battery_field_csv_intake.py",
     "test_battery_field_receipt_binding.py",
+    "test_battery_bound_field_csv.py",
     "test_customer_preflight.py",
 ]
 
@@ -98,6 +101,7 @@ def tests():
         "test_battery_field_pilot_evidence.py",
         "test_battery_field_csv_intake.py",
         "test_battery_field_receipt_binding.py",
+        "test_battery_bound_field_csv.py",
     ]
     for name in patterns:
         subprocess.run([sys.executable,"-m","unittest","discover","-s","tests","-p",name,"-v"],cwd=ROOT,check=True)
@@ -141,7 +145,65 @@ def demo():
         if "DEMO_" in out.read_text("utf-8") or "SYNTHETIC_DEMO_NOT_REAL_SITE_PERMISSION" in out.read_text("utf-8"):
             raise AssertionError("field summary leaked identifiers")
         print("FIELD CSV DEMO PASS: BLOCK_PROVENANCE_LEAKAGE")
-    print("THREE SYNTHETIC DEMO CASES PASS")
+    # An end-to-end synthetic source->audit->technician CSV->receipt demo.
+    # The audit receipt is computed from exact JSON bytes, not invented.
+    with tempfile.TemporaryDirectory() as tmp:
+        work=Path(tmp)
+        manifest=ROOT/"demo-data"/"manifest_clean.json"
+        audit=work/"original-source-audit.json"
+        pre=subprocess.run([
+            sys.executable,"research/battery_curve_audit/integrated_customer_gate.py",
+            "--manifest",str(manifest),"--root",str(ROOT/"demo-data"),
+            "--report",str(audit)
+        ],cwd=ROOT,capture_output=True,text=True)
+        if pre.returncode!=0:
+            raise AssertionError("synthetic source audit did not pass: "+pre.stderr)
+        doc=json.loads(audit.read_text("utf-8"))
+        assignments=doc["split"]["assignments"]
+        if len(assignments)!=3 or doc["decision"]!="PASS_SCREEN_ONLY":
+            raise AssertionError("synthetic source partition unexpectedly blocked")
+        cells=work/"cells.csv"
+        rows=["cell,device,batch,campaign,partition"]
+        for i,entry in enumerate(assignments):
+            rows.append(",".join([entry["cell"],"DEV"+str(i),"BATCH"+str(i),
+                                  "CAMP"+str(i),entry["partition"]]))
+        cells.write_text("\n".join(rows)+"\n",encoding="utf-8")
+        reviews=work/"reviews.csv"
+        reviewers=[v["cell"] for v in assignments[:2]]
+        reviews.write_text(
+            "a,b,flagged,reviewer_a_id,reviewer_a_verdict,reviewer_b_id,reviewer_b_verdict\n"
+            +reviewers[0]+","+reviewers[1]+",false,BLIND_1,independent,BLIND_2,independent\n",
+            encoding="utf-8")
+        frame=work/"frame.json"
+        frame.write_text(json.dumps({
+            "schema":"cano.battery.field-intake-frame.v1",
+            "site_authorization":{"permitted":True,
+                                  "reference":"SYNTHETIC_ONLY_NOT_REAL_LAB"},
+            "audit_receipt_sha256":hashlib.sha256(audit.read_bytes()).hexdigest(),
+            "screened_pair_count":3,"screened_flagged_count":0
+        },sort_keys=True)+"\n",encoding="utf-8")
+        report=work/"bound-redacted.json"
+        trial=subprocess.run([
+            sys.executable,"research/battery_curve_audit/field_source_csv_bridge.py",
+            "--manifest",str(manifest),"--root",str(ROOT/"demo-data"),
+            "--audit-report",str(audit),"--cells",str(cells),
+            "--reviews",str(reviews),"--frame",str(frame),"--summary",str(report)
+        ],cwd=ROOT,capture_output=True,text=True)
+        if trial.returncode!=0:
+            raise AssertionError("synthetic bound CSV demo failed: "+trial.stderr)
+        result=json.loads(report.read_text("utf-8"))
+        if (result["decision"]!="PILOT_ONLY_NOT_CERTIFIED" or
+                result["field_acceptance"]!="NOT_ESTABLISHED" or
+                not result["source_recalculated_and_matched"] or
+                not result["receipt_and_partitions_bound"]):
+            raise AssertionError("source/ledger not bound or overclaimed acceptance")
+        visible=report.read_text("utf-8")
+        if any(v in visible for v in
+               ("DEMO_", "BLIND_1", "SYNTHETIC_ONLY_NOT_REAL_LAB",
+                "audit_receipt_sha256", "BATCH0")):
+            raise AssertionError("source-bound report leaked private identifiers")
+        print("FOURTH DEMO PASS: source-bound CSV PILOT_ONLY_NOT_CERTIFIED")
+    print("FOUR SYNTHETIC DEMO CASES PASS")
 
 if __name__ == "__main__":
     verify()
@@ -174,6 +236,14 @@ It does not need pip, cloud tokens, API keys, or customer uploads.
    Run-Field-CSV-Demo.cmd is synthetic and intentionally blocks.
 6. Existing output files are never overwritten. Select a NEW filename for each
    run; do not delete old evidence before your own archive procedure.
+
+7. To VERIFY the technician CSV roster against the actual raw time/voltage CSVs
+   and exact audited split, first generate a private-source-audit.json using
+   integrated_customer_gate.py and set frame.json audit_receipt_sha256 to
+   the SHA-256 of the exact audit-report bytes (see BOUND_FIELD_CSV.md).
+   Then run:
+   Run-Field-Verified.cmd "C:\Lab\manifest.json" "C:\Lab\private-source-audit.json" "C:\Lab\cells.csv" "C:\Lab\reviews.csv" "C:\Lab\frame.json" "C:\Lab\NEW-bound-summary.json"
+   This verifies source and ledger linkage, NOT site permission or calibration.
 
 ## Windows PowerShell alternative
    py -3 research/battery_curve_audit/customer_pipeline.py --manifest
@@ -335,6 +405,27 @@ echo Existing reports are not overwritten.
 pause
 exit /b %RC%
 ''',
+"Run-Field-Verified.cmd": r'''@echo off
+setlocal
+if "%~1"=="" goto usage
+if "%~2"=="" goto usage
+if "%~3"=="" goto usage
+if "%~4"=="" goto usage
+if "%~5"=="" goto usage
+if "%~6"=="" goto usage
+cd /d "%~dp0"
+where py >nul 2>nul
+if not errorlevel 1 (
+  py -3 research\battery_curve_audit\field_source_csv_bridge.py --manifest "%~f1" --root "%~dp1" --audit-report "%~f2" --cells "%~f3" --reviews "%~f4" --frame "%~f5" --summary "%~f6"
+) else (
+  python research\battery_curve_audit\field_source_csv_bridge.py --manifest "%~f1" --root "%~dp1" --audit-report "%~f2" --cells "%~f3" --reviews "%~f4" --frame "%~f5" --summary "%~f6"
+)
+exit /b %errorlevel%
+:usage
+echo Usage: Run-Field-Verified.cmd "manifest.json" "source-audit.json" "cells.csv" "reviews.csv" "frame.json" "NEW-summary.json"
+echo The source audit report must match the original authorized CSVs.
+exit /b 2
+''',
 }
 
 def _read_inputs(repo):
@@ -390,7 +481,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-19-pilot-simlab-receipt-field-csv-v4",
+                "version":"2026-11-19-pilot-verified-bound-csv-v5",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,
