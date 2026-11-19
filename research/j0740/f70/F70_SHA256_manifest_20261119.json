@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-19",
+  "files": {
+    "F70_mesh_spin_crosswalk_20261119.json": {
+      "bytes": 4374,
+      "sha256": "5083dd597b9af69549f0c1bac764a03ef50f54401ea9cb3aa63c7b7fa6752eb3"
+    },
+    "F70_science_report_20261119.md": {
+      "bytes": 3622,
+      "sha256": "2b168427f6dcf0e5c489f0775fa5e0ed649daf639d9f6a0bdf7e06caf9bd1122"
+    },
+    "f70_mesh_spin_crosswalk.py": {
+      "bytes": 9453,
+      "sha256": "f8d54888c235274cbb7ee239d28befed0b32e4d7ca86fc0bf4c95ff65dc7fe39"
+    },
+    "inputs/F68_science_summary_20261119.json": {
+      "bytes": 4859,
+      "sha256": "de2168c281ed90c975c5d658eb395cd88b3114c10e97d0137f181af61ab6f1be"
+    },
+    "inputs/F69_Fe56_conditional_surface_static_TOV_and_baryon_20261119.json": {
+      "bytes": 8943,
+      "sha256": "4ffe44817f978b05f9888738ac4373cf345b959cac2c27cedebd93aa8dc7fb37"
+    },
+    "test_f70_mesh_spin_crosswalk.py": {
+      "bytes": 3048,
+      "sha256": "a76179f8449d4e8a73815e4be090dd16b1ea4ff947ccdc4be04dcf6b009c67aa"
+    }
+  },
+  "local_tests_passed": 9,
+  "model_physics_scope": "NOT_ORIGINAL_NOT_PHYSICAL_BAYES",
+  "source_file_count": 2
+}
