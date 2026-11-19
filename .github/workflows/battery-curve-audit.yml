@@ -180,12 +180,22 @@ jobs:
 
       - name: Exercise one-command offline customer pipeline on 20 original CSVs
         run: |
+          # Public read-only summary deliberately cannot emit a private split.
           python research/battery_curve_audit/customer_pipeline.py \
             --manifest "${RUNNER_TEMP}/customer_manifest.json" \
             --root "${RUNNER_TEMP}/publisher_csvs" \
             --summary "${RUNNER_TEMP}/customer_public_summary.json" \
-            --private-split "${RUNNER_TEMP}/customer_private_split.json" \
             --report-only
+          # Explicit private output on the known triplet must return REVIEW_REQUIRED (exit 2).
+          set +e
+          python research/battery_curve_audit/customer_pipeline.py \
+            --manifest "${RUNNER_TEMP}/customer_manifest.json" \
+            --root "${RUNNER_TEMP}/publisher_csvs" \
+            --summary "${RUNNER_TEMP}/customer_private_summary.json" \
+            --private-split "${RUNNER_TEMP}/customer_private_split.json"
+          expected_review_exit=$?
+          set -e
+          test "$expected_review_exit" -eq 2
           python - <<'PY'
           import json, os, sys
           from pathlib import Path
