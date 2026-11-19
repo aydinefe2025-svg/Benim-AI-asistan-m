@@ -9,6 +9,7 @@ on:
       - "tests/test_battery_integrated_gate.py"
       - "tests/test_battery_integrated_output_safety.py"
       - "tests/test_battery_field_pilot_evidence.py"
+      - "tests/test_battery_field_csv_intake.py"
       - "tests/test_customer_preflight.py"
       - "tests/test_battery_numeric_equivalence.py"
       - "tests/test_battery_near_duplicate_guard.py"
@@ -53,6 +54,11 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "test_battery_integrated_gate.py" -v
           python -m unittest discover -s tests -p "test_battery_integrated_output_safety.py" -v
+
+      - name: Offline field technician CSV intake regressions and redacted demonstration
+        run: |
+          python -m unittest discover -s tests -p "test_battery_field_csv_intake.py" -v
+          python -m py_compile research/battery_curve_audit/field_pilot_csv_intake.py
 
       - name: Fetch and independently parse all 20 publisher CSVs
         run: |
@@ -262,7 +268,7 @@ jobs:
                   z.extractall(tmp)
               folder=Path(tmp)/"CANO_BATARYA_CEVRIMDISI_PILOT"
               subprocess.run([sys.executable,"verify_package.py","--tests","--demo"],cwd=folder,check=True)
-          print("PASS: isolated ZIP extraction, checksum readback, targeted regressions and 2 synthetic demo runs")
+          print("PASS: isolated ZIP extraction, checksum readback, 18 intake regressions and 3 synthetic demo runs")
           PY
 
       - name: Publish offline Windows/Linux pilot bundle
