@@ -34,7 +34,7 @@ SCHEMA='cano.battery.virtual-lab.v1'
 FAMILIES=(
     'independent_clear', 'exact_clone', 'numeric_format_clone',
     'near_clone_1mv', 'resampled_clone', 'time_origin_shift_clone',
-    'noisy_clone_3mv', 'independent_alike_1mv',
+    'noisy_clone_3mv', 'independent_alike_1mv', 'independent_bias_3mv',
     'short_unscreened', 'flat_unscreened',
     'mixed_declared_units', 'invalid_time', 'all_clones_no_holdout',
 )
@@ -47,6 +47,7 @@ TAG={
     'time_origin_shift_clone':'controlled_clone',
     'noisy_clone_3mv':'controlled_clone',
     'independent_alike_1mv':'independent_template',
+    'independent_bias_3mv':'independent_template',
     'short_unscreened':'unscannable_template',
     'flat_unscreened':'unscannable_template',
     'mixed_declared_units':'invalid_template',
@@ -62,8 +63,9 @@ BASELINE_EXPECTED={
     'near_clone_1mv':'REVIEW_REQUIRED',
     'resampled_clone':'REVIEW_REQUIRED',
     'time_origin_shift_clone':'REVIEW_REQUIRED',
-    'noisy_clone_3mv':'SCREEN_ONLY_NO_CROSS_CELL_CANDIDATES',
+    'noisy_clone_3mv':'REVIEW_REQUIRED',
     'independent_alike_1mv':'REVIEW_REQUIRED',
+    'independent_bias_3mv':'REVIEW_REQUIRED',
     'short_unscreened':'REVIEW_REQUIRED',
     'flat_unscreened':'REVIEW_REQUIRED',
     'mixed_declared_units':'REJECTED_INPUT',
@@ -130,6 +132,11 @@ def run_case(family, trial, *, seed, max_traces=120):
         # Different synthetic object/lab template but deliberately observationally
         # indistinguishable within 2mV. Review is not proof of a copying event.
         other['B']=curve_points(base,wiggle,phase,v_offset=0.001)
+    elif family=='independent_bias_3mv':
+        # Deliberately an INDEPENDENT declared origin with the exact same
+        # observable A/B values as noisy_clone_3mv. Waveforms alone cannot
+        # distinguish it: review NOT physical-copy proof.
+        other['B']=curve_points(base,wiggle,phase,v_offset=0.0035)
     elif family=='short_unscreened':
         other['B']=curve_points(base-0.2,wiggle,phase,n=64)
     elif family=='flat_unscreened':
@@ -228,7 +235,7 @@ def run_all(trials=20, seed=20261119, *, with_raw=False):
     negative_flagged=sum(flagged(r) for r in negatives)
     summary={
         'schema':SCHEMA,'source':'synthetic math templates only; no original/customer lab curves',
-        'program':'customer_pipeline.audit_offline with relative-origin review guard',
+        'program':'customer_pipeline.audit_offline with time-origin and bias-ambiguity review guards',
         'seed':seed,'trials_per_family':trials,'total_simulated_batches':len(rows),
         'total_generated_curves':sum(4 for _ in rows),
         'controlled_clone_batches':len(clones),
@@ -254,7 +261,7 @@ def run_all(trials=20, seed=20261119, *, with_raw=False):
             'Controlled clone = synthetic transform applied to the same formula. Not an independent physical duplicate label.',
             'Independent template = separate declared synthetic source; nearby values can legitimately trigger review.',
             'Metrics are CONDITIONAL on constructed cases and are not field FPR/FNR, sensitivity, specificity or calibration.',
-            'Constant time-origin shifts are review-screened in this candidate version; >2 mV bias and changed shape remain possible misses.',
+            'Constant time-origin shifts and small 2–5 mV voltage offsets are REVIEW-ONLY; input waveforms cannot distinguish synthetic clone from declared independent twin.',
             'SCREEN_ONLY says no candidate under this screen; it is not certification, release approval, or proof of sample independence.',
             'No physical materials tested; no model deployed; no paid customer data accessed.'
         ]
