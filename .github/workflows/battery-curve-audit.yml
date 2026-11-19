@@ -13,6 +13,8 @@ on:
       - "tests/test_battery_integrated_output_safety.py"
       - "tests/test_battery_field_pilot_evidence.py"
       - "tests/test_battery_provenance_aliases.py"
+      - "tests/test_battery_reviewer_identity_guard.py"
+      - "tests/test_battery_reviewer_identity_lab.py"
       - "tests/test_battery_provenance_alias_lab.py"
       - "tests/test_battery_field_csv_intake.py"
       - "tests/test_battery_field_receipt_binding.py"
@@ -74,6 +76,11 @@ jobs:
 
       - name: Verify source-to-field receipt linkage on synthetic fixtures
         run: python -m unittest discover -s tests -p "test_battery_field_receipt_binding.py" -v
+
+      - name: Enforce distinct reviewer identities after NFKC/case/space normalization
+        run: |
+          python -m unittest discover -s tests -p "test_battery_reviewer_identity_guard.py" -v
+          python -m unittest discover -s tests -p "test_battery_reviewer_identity_lab.py" -v
 
       - name: Field metadata canonical-alias safety regressions
         run: |
@@ -331,6 +338,27 @@ jobs:
           print("PASS: 900/900 provenance aliases reviewed; 300/300 distinct synthetic identifiers not blocked")
           PY
 
+      - name: Run 1000 fake reviewer-identity controls without accepting human proof
+        run: |
+          python research/battery_curve_audit/reviewer_identity_lab.py \
+            --trials 100 --seed 20261119 \
+            --output "${RUNNER_TEMP}/battery_reviewer_identity_1000.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path=Path(os.environ["RUNNER_TEMP"])/"battery_reviewer_identity_1000.json"
+          r=json.loads(path.read_text())
+          assert r["total_cases"] == 1000
+          assert r["alias_cases"] == 600
+          assert r["same_person_label_alias_rejected"] == 600
+          assert r["alias_escapes"] == 0
+          assert r["distinct_text_control_cases"] == 400
+          assert r["distinct_text_controls_not_rejected"] == 400
+          assert r["reviewer_independence_cryptographically_verified"] is False
+          assert r["field_false_positive_or_negative_rate_measured"] is False
+          print("PASS: 1000 synthetic reviewer cases, 600 alias blocks, 400 distinct string controls")
+          PY
+
       - name: Bind publisher evidence to synthetic-only field metadata (not real field proof)
         run: |
           python - <<'PY'
@@ -429,6 +457,7 @@ jobs:
             ${{ runner.temp }}/battery_integrated_report.json
             ${{ runner.temp }}/battery_bound_redacted.json
             ${{ runner.temp }}/battery_provenance_alias_1200.json
+            ${{ runner.temp }}/battery_reviewer_identity_1000.json
             ${{ runner.temp }}/customer_public_summary.json
             ${{ runner.temp }}/CANO_BATARYA_SANAL_LAB_V3_1400.json
 
@@ -466,6 +495,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Native Run-Customer.cmd failed" }
           cmd /c Run-Field-Verified.cmd
           if ($LASTEXITCODE -ne 2) { throw "Native field verified launcher must refuse missing required arguments" }
+          cmd /c Run-Reviewer-Simulation.cmd
+          if ($LASTEXITCODE -ne 0) { throw "Native Run-Reviewer-Simulation.cmd failed" }
+          $reviewer = Get-Content "reviewer-simulation-1000.json" -Raw | ConvertFrom-Json
+          if ($reviewer.total_cases -ne 1000 -or $reviewer.alias_escapes -ne 0 -or $reviewer.same_person_label_alias_rejected -ne 600) {
+            throw "Native Windows reviewer identity simulation mismatched"
+          }
           cmd /c Run-Provenance-Simulation.cmd
           if ($LASTEXITCODE -ne 0) { throw "Native Run-Provenance-Simulation.cmd failed" }
           $alias = Get-Content "provenance-simulation-1200.json" -Raw | ConvertFrom-Json
