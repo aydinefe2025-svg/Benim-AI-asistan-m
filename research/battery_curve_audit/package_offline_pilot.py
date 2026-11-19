@@ -136,7 +136,8 @@ It does not need pip, cloud tokens, API keys, or customer uploads.
 1. Unzip to a regular folder; do not run directly inside the ZIP.
 2. Double-click Verify-Package.cmd (hashes only) or run:
    py -3 verify_package.py --tests --demo
-3. Double-click Run-Demo.cmd to generate an aggregate result from synthetic
+3. Double-click Run-Simulation.cmd to run the 1,300 synthetic-batch
+   laboratory study (no real customer data). Then use Run-Demo.cmd to generate an aggregate result from synthetic
    independent curves. Double-click Run-Detection-Demo.cmd for a controlled
    duplicate example; it intentionally returns REVIEW_REQUIRED (exit code 2).
 4. For authorized customer CSVs, supply an explicit manifest and an output path:
@@ -191,6 +192,21 @@ SHA-256 receipt. Never treat a self-supplied checksum as a digital signature.
 '''
 
 LAUNCHERS = {
+"Run-Simulation.cmd": r'''@echo off
+setlocal
+cd /d "%~dp0"
+where py >nul 2>nul
+if not errorlevel 1 (
+  py -3 research\battery_curve_audit\battery_virtual_lab.py --trials 100 --seed 20261119 --output "simulation-evidence.json"
+) else (
+  python research\battery_curve_audit\battery_virtual_lab.py --trials 100 --seed 20261119 --output "simulation-evidence.json"
+)
+set "RC=%errorlevel%"
+echo.
+echo Synthetic tests ONLY; output files never overwritten.
+pause
+exit /b %RC%
+''',
 "Verify-Package.cmd": r'''@echo off
 setlocal
 cd /d "%~dp0"
