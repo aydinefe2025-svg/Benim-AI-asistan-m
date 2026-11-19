@@ -49,7 +49,7 @@ def csv_unit_signature(raw, label):
     signatures = set()
     for i in range(0, len(header), 2):
         mt = re.fullmatch(r'Timestamp(?:[_ -]?[A-Za-z0-9]+)?\s*\[(h|s|ms)\]', header[i].strip(), re.I)
-        mv = re.fullmatch(r'(?:DC\d+|Voltage(?:[_ -]?\d+)?|V\d+)\s*\[(V|mV)\]', header[i+1].strip(), re.I)
+        mv = re.fullmatch(r'(?:DC\d+|Voltage(?:[_ -]?\d+)?|V\d+|BATT_\d+_(?:DC|CC)\d+)\s*\[(V|mV)\]', header[i+1].strip(), re.I)
         if not mt or not mv:
             raise ValueError(f'UNIT_REVIEW_REQUIRED: missing/unknown units {label}')
         signatures.add((mt.group(1).lower(), mv.group(1).lower()))
