@@ -12,7 +12,8 @@ class TestF68RNSConversion(unittest.TestCase):
     def test_model_is_separately_named(self):
         self.assertIn('EXPLORATORY',MODEL)
         self.assertIn('NOT_ORIGINAL',MODEL)
-        self.assertNotEqual(MODEL,EOS_LABEL)
+        self.assertEqual(MODEL,EOS_LABEL)
+        self.assertNotEqual(MODEL,'MPA1')
 
     def test_only_pinned_meshes_allowed(self):
         for n in MESHES:
