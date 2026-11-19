@@ -69,6 +69,10 @@ jobs:
                   assert row['static_rns']['status']=='PASS_DIRECT_RNS_C_ROOT', (mesh,mass)
                   assert row['rotating_rns']['status']=='PASS_DIRECT_RNS_C_ROOT', (mesh,mass)
                   assert abs(row['static_radius_delta_vs_f67_km'])<=.20,(mesh,mass)
+                  for root in ('static_rns','rotating_rns'):
+                      trial=row[root]
+                      assert abs(trial['mass_residual_msun'])<=.0015,(mesh,mass,root)
+                      assert abs(trial['spin_residual_hz'])<=trial['allowed_spin_residual_hz'],(mesh,mass,root)
           assert all(x['pass_abs_delta_le_0p060_km'] for x in d['mesh_convergence'].values())
           print('F68 RNS numerical gates PASS; physical EOS/Bayes gates correctly NOT_ESTABLISHED/NOT_RUN')
           PY

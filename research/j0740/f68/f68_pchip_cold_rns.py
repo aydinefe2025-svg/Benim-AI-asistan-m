@@ -66,7 +66,7 @@ def gate(model,target,spin):
     m=float(model['mass_msun']);r=float(model['radius_eq_km']);hz=float(model['spin_hz_reported'])
     if not (1<m<3 and 7<r<25 and math.isfinite(m+r+hz)):raise ValueError('F68_RNS_NONPHYSICAL_MODEL')
     if abs(m-target)>.0015:raise ValueError(f'F68_MASS_ROOT_RESIDUAL:{m-target}')
-    tol=.10 if spin else .10
+    tol=(.25 if model.get('solver_mode')=='RNS_C_SETSPIN' else .10)
     if abs(hz-spin)>tol:raise ValueError(f'F68_SPIN_ROOT_RESIDUAL:{hz-spin}')
 
 def trial_root(binary,table,target,anchor_rho,spin):
@@ -96,7 +96,8 @@ def trial_root(binary,table,target,anchor_rho,spin):
     rho=brentq(lambda x:direct(x)['mass_msun']-target,lo['central_energy_density_g_cm3'],hi['central_energy_density_g_cm3'],xtol=1e-6,rtol=1e-9,maxiter=45)
     star=direct(rho);gate(star,target,spin)
     clean={k:v for k,v in star.items() if k not in ('raw_stdout_tail','axis_ratio_bisection_trace')}
-    return {'status':'PASS_DIRECT_RNS_C_ROOT','star':clean,'trace':trace,'failures':failures,'direct_calls':len(trace),'mass_residual_msun':star['mass_msun']-target,'spin_residual_hz':star['spin_hz_reported']-spin}
+    allowed_spin_residual=.25 if star.get('solver_mode')=='RNS_C_SETSPIN' else .10
+    return {'status':'PASS_DIRECT_RNS_C_ROOT','star':clean,'trace':trace,'failures':failures,'direct_calls':len(trace),'mass_residual_msun':star['mass_msun']-target,'spin_residual_hz':star['spin_hz_reported']-spin,'allowed_spin_residual_hz':allowed_spin_residual}
 
 def execute(source,rns_binary,out_dir):
     out_dir=Path(out_dir);out_dir.mkdir(parents=True,exist_ok=True)

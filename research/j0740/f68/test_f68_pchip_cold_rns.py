@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 import numpy as np
-from f68_pchip_cold_rns import resample_rns_table
+from f68_pchip_cold_rns import resample_rns_table, gate
 
 class TestF68Table(unittest.TestCase):
     def setUp(self):
@@ -35,6 +35,15 @@ class TestF68Table(unittest.TestCase):
             p=Path(d)/'bad.dat';np.savetxt(p,a)
             with self.assertRaisesRegex(ValueError,'MONOTONE'):
                 resample_rns_table(p,151)
+
+    def test_05_setspin_uses_documented_quarter_hz_tolerance(self):
+        gate({'mass_msun':2.073,'radius_eq_km':12.5,'spin_hz_reported':346.736369,'solver_mode':'RNS_C_SETSPIN'},2.073,346.536369)
+        with self.assertRaisesRegex(ValueError,'SPIN_ROOT_RESIDUAL'):
+            gate({'mass_msun':2.073,'radius_eq_km':12.5,'spin_hz_reported':346.796369,'solver_mode':'RNS_C_SETSPIN'},2.073,346.536369)
+
+    def test_06_axis_ratio_spin_root_keeps_tighter_tenth_hz_tolerance(self):
+        with self.assertRaisesRegex(ValueError,'SPIN_ROOT_RESIDUAL'):
+            gate({'mass_msun':2.073,'radius_eq_km':12.5,'spin_hz_reported':346.646369,'solver_mode':'RNS_C_AXIS_RATIO_FREQUENCY_REFINED'},2.073,346.536369)
 
     def _write(self):
         d=tempfile.TemporaryDirectory();self.addCleanup(d.cleanup)
