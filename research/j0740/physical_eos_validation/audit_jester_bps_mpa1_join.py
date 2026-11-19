@@ -15,6 +15,8 @@ HERE = Path(__file__).resolve().parent
 BPS = HERE / "JESTER_BPS_crust_e6768650.csv"
 ORIGINAL_BPS_SHA = "372ce088e061997f7c05594e61e7c624a112d7ce66443c28c4633d03b7da6137"
 CORE = HERE / "F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat"
+JESTER_MPA1 = HERE / "JESTER_LALSuite_MPA1_source_e6768650.csv"
+JESTER_MPA1_NPZ_SHA = "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22"
 MODULE = HERE / "mpa1_jester_hybrid_crust_tov.py"
 G, C = 6.67430e-11, 299792458.0
 MEV_FM3_TO_GEOM = 1.602176634e32 * G / C**4
@@ -47,6 +49,14 @@ def run() -> dict:
     p_core_mev = float(p_bps_geom/MEV_FM3_TO_GEOM)
     e_rel = e_core/e_bps_geom-1
     p_equal_n_rel = p_core_mev/p_bps_at_n-1
+    # Independently interrogate the byte-pinned original JESTER/LALSuite MPA1 export.
+    src = np.loadtxt(JESTER_MPA1, delimiter=",", skiprows=1, dtype=float)
+    if src.shape != (836,5) or not np.all(np.diff(src[:,1])>0):
+        raise AssertionError("original JESTER MPA1 export shape/pressure check failed")
+    esrc=float(np.interp(p_bps_geom,src[:,1],src[:,2]))
+    nsrc=float(np.interp(p_bps_geom,src[:,1],src[:,0]))
+    hsrc=float(np.interp(p_bps_geom,src[:,1],src[:,3]))
+    cs2src=float(np.interp(p_bps_geom,src[:,1],src[:,4]))
     report = {
       "schema":"J0740_BPS_MPA1_JOIN_AUDIT_V1",
       "status":"PASS_AUDIT_FAILS_DIRECT_MATCH",
@@ -54,7 +64,9 @@ def run() -> dict:
         "jester_commit":"e6768650ce992abfd1153a6833857572fe5cd230",
         "bps_original_npz_sha256":ORIGINAL_BPS_SHA,"bps_csv_sha256":sha(BPS),
         "bps_rows":len(n),"bps_units":"n: fm^-3; p,e: MeV fm^-3",
-        "core_table_sha256":sha(CORE),"core_rows":2425,"source_core_is_exploratory":True},
+        "core_table_sha256":sha(CORE),"core_rows":2425,"source_core_is_exploratory":True,
+        "original_jester_lalsuite_mpa1_npz_sha256":JESTER_MPA1_NPZ_SHA,
+        "original_jester_mpa1_csv_sha256":sha(JESTER_MPA1),"original_jester_mpa1_rows":len(src)},
       "at_bps_upper_pressure":{"n_bps_fm3":float(n[-1]),"p_bps_mev_fm3":float(p[-1]),
         "e_bps_mev_fm3":float(e[-1]),"p_geom_m-2":p_bps_geom,
         "e_core_mev_fm3_equivalent":e_core/MEV_FM3_TO_GEOM,
@@ -67,7 +79,11 @@ def run() -> dict:
         "e_core_mev_fm3":e_core/MEV_FM3_TO_GEOM,
         "p_core_mev_fm3":p_core_mev,
         "relative_pressure_mismatch_core_over_bps":p_equal_n_rel},
-      "interpretation":"The authentic BPS table is not directly thermodynamically matched to the F67 exploratory MPA1-PCHIP core at its upper endpoint. The prior power-law crust is not upgraded to BPS by this result. A new explicitly named interpolating EOS and full TOV/RNS/inference validation would be required.",
+      "original_jester_mpa1_at_bps_upper_pressure":{"n_fm3":nsrc/1e45,
+        "e_mev_fm3":esrc/MEV_FM3_TO_GEOM,"h":hsrc,"cs2":cs2src,
+        "relative_energy_mismatch_vs_bps":esrc/e_bps_geom-1,
+        "same_source_as":"LALSimulation"},
+      "interpretation":"The byte-pinned original JESTER/LALSuite MPA1 export independently reproduces the same ~4.45% energy mismatch, so the mismatch is not introduced only by the derived F67 PCHIP processing. The authentic BPS table is not directly thermodynamically matched to this source export at its upper endpoint. The prior power-law crust is not upgraded to BPS by this result. A separately named transition construction and full TOV/RNS/inference validation are required.",
       "physical_eos_acceptance":"NOT_ESTABLISHED",
       "new_bps_joined_tov":"NOT_RUN",
       "new_bps_joined_rns":"NOT_RUN",
