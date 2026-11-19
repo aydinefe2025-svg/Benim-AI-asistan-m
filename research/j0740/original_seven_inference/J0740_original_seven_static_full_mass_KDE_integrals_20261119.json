@@ -1,0 +1,685 @@
+{
+  "conditional_seven_original_static_model_scores": "COMPUTED",
+  "evidence_operator": "I_EOS = integral \u03c0radio(M) [q(M,R_static_EOS(M))/\u03c0source(M,R_static_EOS(M))] dM; source M/R geometry hard mask, EOS star nonexistent outside Mtov",
+  "limitations": [
+    "The physical pulsar rotates at 346.536369 Hz; static EOS curve is a diagnostic, not a spin-corrected physical Bayes evidence.",
+    "Original LALSuite EOS spline has documented negative cs^2 on six source EOSs (F66); high-density superluminal candidates also occur (F61). Physical 7-EOS admissibility is NOT_CERTIFIED.",
+    "The six F38 KDE ratio arrays approximate the source-native nuisance-marginalized likelihood from published weighted/equal-weight posterior; they are not re-evaluated original photon-event likelihood.",
+    "Only seven discrete source hypotheses, equal model prior. Do not treat this conditional probability as universal EOS posterior.",
+    "Original run1 source 4/4 byte and 4/4 weighted moments validated in prior F31/F32; complete resumed engine v1.2.0/1.2.1 version uncertain."
+  ],
+  "observed_spin_hz": 346.536369,
+  "original_eos_zip_sha256": "2521501b7aaf0afec0e067d7bbb680ae1c36327a1f64c83070b58d4e2bc5e119",
+  "physical_EOS_acceptance": "NOT_CERTIFIED",
+  "real_seven_spin_corrected_eos_Bayes": "NOT_COMPUTED",
+  "result_status": "SEVEN_ORIGINAL_EOS_STATIC_FULL_MASS_PRIOR_KDE_BAYES_DIAGNOSTIC_CALCULATED",
+  "sample_count_source_F38_original_weighted": 1137394,
+  "schema": "j0740-original-seven-native-static-full-radio-mass-source-KDE-v1",
+  "six_F38_KDE_surfaces": {
+    "resampled_0.015_0.20": {
+      "mathematical_setting": "static original JESTER LALSuite seven discrete sources, equal prior, F38 reconstructed source-marginalized likelihood; excludes unphysical star masses",
+      "max_KDE_L_over_Z": 7.248965263366699,
+      "model_scores": {
+        "APR4_EPP": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.07793560092594118,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1591669543848258
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 7.554492587047434e-10,
+          "source_support_prior_probability": 0.8638282413601484,
+          "static_branch_mass_max_msun": 2.1591669543848258,
+          "upper_truncated_radio_prior_mass": 0.13617175788440242,
+          "value": 0.4613048341893781
+        },
+        "ENG": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.2983063993635554,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.252090040159999
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 9.192351324571746e-10,
+          "source_support_prior_probability": 0.9922291047703042,
+          "static_branch_mass_max_msun": 2.252090040159999,
+          "upper_truncated_radio_prior_mass": 0.007770894310460648,
+          "value": 1.7656909353505896
+        },
+        "MPA1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.42180365652384133,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.4686392693496426,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 2.496677558412683
+        },
+        "MS1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.06406511113470369,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.799082457834451,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.37920469102948245
+        },
+        "MS1B": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.07990483283168176,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.797101204989841,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.4729608192201643
+        },
+        "WFF1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.0042908555974613865,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1136703143450717
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 6.752722825353885e-10,
+          "source_support_prior_probability": 0.673825964525517,
+          "static_branch_mass_max_msun": 2.1136703143450717,
+          "upper_truncated_radio_prior_mass": 0.3261740347992107,
+          "value": 0.0253977951847503
+        },
+        "WFF2": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.05369354362281516,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.185070287239653
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 8.011064034363358e-10,
+          "source_support_prior_probability": 0.928696419738535,
+          "static_branch_mass_max_msun": 2.185070287239653,
+          "upper_truncated_radio_prior_mass": 0.0713035794603586,
+          "value": 0.31781484897383266
+        }
+      }
+    },
+    "resampled_0.025_0.35": {
+      "mathematical_setting": "static original JESTER LALSuite seven discrete sources, equal prior, F38 reconstructed source-marginalized likelihood; excludes unphysical star masses",
+      "max_KDE_L_over_Z": 11.684114456176758,
+      "model_scores": {
+        "APR4_EPP": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.08794138641365393,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1591669543848258
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 7.554492587047434e-10,
+          "source_support_prior_probability": 0.8638282413601484,
+          "static_branch_mass_max_msun": 2.1591669543848258,
+          "upper_truncated_radio_prior_mass": 0.13617175788440242,
+          "value": 0.524696754716395
+        },
+        "ENG": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.2877605228170357,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.252090040159999
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 9.192351324571746e-10,
+          "source_support_prior_probability": 0.9922291047703042,
+          "static_branch_mass_max_msun": 2.252090040159999,
+          "upper_truncated_radio_prior_mass": 0.007770894310460648,
+          "value": 1.7169050729697075
+        },
+        "MPA1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.4047608652103698,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.4686392693496426,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 2.4149802621158956
+        },
+        "MS1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.06533954083997064,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.799082457834451,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.3898442636795756
+        },
+        "MS1B": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.0807840449801543,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.797101204989841,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.48199292690897516
+        },
+        "WFF1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.008590954997880955,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1136703143450717
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 6.752722825353885e-10,
+          "source_support_prior_probability": 0.673825964525517,
+          "static_branch_mass_max_msun": 2.1136703143450717,
+          "upper_truncated_radio_prior_mass": 0.3261740347992107,
+          "value": 0.05125739303335415
+        },
+        "WFF2": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.06482268474093468,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.185070287239653
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 8.011064034363358e-10,
+          "source_support_prior_probability": 0.928696419738535,
+          "static_branch_mass_max_msun": 2.185070287239653,
+          "upper_truncated_radio_prior_mass": 0.0713035794603586,
+          "value": 0.3867604742502855
+        }
+      }
+    },
+    "resampled_0.040_0.50": {
+      "mathematical_setting": "static original JESTER LALSuite seven discrete sources, equal prior, F38 reconstructed source-marginalized likelihood; excludes unphysical star masses",
+      "max_KDE_L_over_Z": 75.38703155517578,
+      "model_scores": {
+        "APR4_EPP": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.09903351193976302,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1591669543848258
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 7.554492587047434e-10,
+          "source_support_prior_probability": 0.8638282413601484,
+          "static_branch_mass_max_msun": 2.1591669543848258,
+          "upper_truncated_radio_prior_mass": 0.13617175788440242,
+          "value": 0.5958901202595585
+        },
+        "ENG": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.27335378203642186,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.252090040159999
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 9.192351324571746e-10,
+          "source_support_prior_probability": 0.9922291047703042,
+          "static_branch_mass_max_msun": 2.252090040159999,
+          "upper_truncated_radio_prior_mass": 0.007770894310460648,
+          "value": 1.644784829504637
+        },
+        "MPA1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.38098142831240317,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.4686392693496426,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 2.2923863315260666
+        },
+        "MS1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.06848765482061693,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.799082457834451,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.4120940080583616
+        },
+        "MS1B": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.08362062616173656,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.797101204989841,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.5031499338325496
+        },
+        "WFF1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.01614760149816542,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1136703143450717
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 6.752722825353885e-10,
+          "source_support_prior_probability": 0.673825964525517,
+          "static_branch_mass_max_msun": 2.1136703143450717,
+          "upper_truncated_radio_prior_mass": 0.3261740347992107,
+          "value": 0.09716101156240833
+        },
+        "WFF2": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.07837539523089294,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.185070287239653
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 8.011064034363358e-10,
+          "source_support_prior_probability": 0.928696419738535,
+          "static_branch_mass_max_msun": 2.185070287239653,
+          "upper_truncated_radio_prior_mass": 0.0713035794603586,
+          "value": 0.47158908913514364
+        }
+      }
+    },
+    "weighted_0.015_0.20": {
+      "mathematical_setting": "static original JESTER LALSuite seven discrete sources, equal prior, F38 reconstructed source-marginalized likelihood; excludes unphysical star masses",
+      "max_KDE_L_over_Z": 5.4102702140808105,
+      "model_scores": {
+        "APR4_EPP": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.07809518811785549,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1591669543848258
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 7.554492587047434e-10,
+          "source_support_prior_probability": 0.8638282413601484,
+          "static_branch_mass_max_msun": 2.1591669543848258,
+          "upper_truncated_radio_prior_mass": 0.13617175788440242,
+          "value": 0.46205338831839904
+        },
+        "ENG": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.29876870108031756,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.252090040159999
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 9.192351324571746e-10,
+          "source_support_prior_probability": 0.9922291047703042,
+          "static_branch_mass_max_msun": 2.252090040159999,
+          "upper_truncated_radio_prior_mass": 0.007770894310460648,
+          "value": 1.7676772920927881
+        },
+        "MPA1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.42150391477693494,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.4686392693496426,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 2.4938452253708534
+        },
+        "MS1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.06379812182103038,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.799082457834451,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.3774642083103872
+        },
+        "MS1B": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.0798189543568287,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.797101204989841,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.4722521220762903
+        },
+        "WFF1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.004285895353514198,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1136703143450717
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 6.752722825353885e-10,
+          "source_support_prior_probability": 0.673825964525517,
+          "static_branch_mass_max_msun": 2.1136703143450717,
+          "upper_truncated_radio_prior_mass": 0.3261740347992107,
+          "value": 0.02535767590547034
+        },
+        "WFF2": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.053729224493518704,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.185070287239653
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 8.011064034363358e-10,
+          "source_support_prior_probability": 0.928696419738535,
+          "static_branch_mass_max_msun": 2.185070287239653,
+          "upper_truncated_radio_prior_mass": 0.0713035794603586,
+          "value": 0.3178911636845668
+        }
+      }
+    },
+    "weighted_0.025_0.35": {
+      "mathematical_setting": "static original JESTER LALSuite seven discrete sources, equal prior, F38 reconstructed source-marginalized likelihood; excludes unphysical star masses",
+      "max_KDE_L_over_Z": 8.666586875915527,
+      "model_scores": {
+        "APR4_EPP": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.08807783128535422,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1591669543848258
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 7.554492587047434e-10,
+          "source_support_prior_probability": 0.8638282413601484,
+          "static_branch_mass_max_msun": 2.1591669543848258,
+          "upper_truncated_radio_prior_mass": 0.13617175788440242,
+          "value": 0.5253363727468511
+        },
+        "ENG": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.2879592419246175,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.252090040159999
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 9.192351324571746e-10,
+          "source_support_prior_probability": 0.9922291047703042,
+          "static_branch_mass_max_msun": 2.252090040159999,
+          "upper_truncated_radio_prior_mass": 0.007770894310460648,
+          "value": 1.7175203049846886
+        },
+        "MPA1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.4045911146685052,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.4686392693496426,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 2.4131660092418796
+        },
+        "MS1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.06518530991064593,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.799082457834451,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.3887949301782173
+        },
+        "MS1B": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.08066845158155392,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.797101204989841,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.48114345154187776
+        },
+        "WFF1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.008603413242542903,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1136703143450717
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 6.752722825353885e-10,
+          "source_support_prior_probability": 0.673825964525517,
+          "static_branch_mass_max_msun": 2.1136703143450717,
+          "upper_truncated_radio_prior_mass": 0.3261740347992107,
+          "value": 0.051314682027499656
+        },
+        "WFF2": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.06491463738678034,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.185070287239653
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 8.011064034363358e-10,
+          "source_support_prior_probability": 0.928696419738535,
+          "static_branch_mass_max_msun": 2.185070287239653,
+          "upper_truncated_radio_prior_mass": 0.0713035794603586,
+          "value": 0.3871805157470864
+        }
+      }
+    },
+    "weighted_0.040_0.50": {
+      "mathematical_setting": "static original JESTER LALSuite seven discrete sources, equal prior, F38 reconstructed source-marginalized likelihood; excludes unphysical star masses",
+      "max_KDE_L_over_Z": 71.95550537109375,
+      "model_scores": {
+        "APR4_EPP": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.09915101254445137,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1591669543848258
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 7.554492587047434e-10,
+          "source_support_prior_probability": 0.8638282413601484,
+          "static_branch_mass_max_msun": 2.1591669543848258,
+          "upper_truncated_radio_prior_mass": 0.13617175788440242,
+          "value": 0.5964800386455713
+        },
+        "ENG": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.2734438341824571,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.252090040159999
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 9.192351324571746e-10,
+          "source_support_prior_probability": 0.9922291047703042,
+          "static_branch_mass_max_msun": 2.252090040159999,
+          "upper_truncated_radio_prior_mass": 0.007770894310460648,
+          "value": 1.6450037634000212
+        },
+        "MPA1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.3809009727964942,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.4686392693496426,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 2.2914524132764695
+        },
+        "MS1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.06836998972817285,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.799082457834451,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.4113052713100108
+        },
+        "MS1B": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.08350224540983217,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.4335
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 2.4778672447212102e-09,
+          "source_support_prior_probability": 0.9999999975221328,
+          "static_branch_mass_max_msun": 2.797101204989841,
+          "upper_truncated_radio_prior_mass": 0.0,
+          "value": 0.5023390209627866
+        },
+        "WFF1": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.0161708167730209,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.1136703143450717
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 6.752722825353885e-10,
+          "source_support_prior_probability": 0.673825964525517,
+          "static_branch_mass_max_msun": 2.1136703143450717,
+          "upper_truncated_radio_prior_mass": 0.3261740347992107,
+          "value": 0.09728160274084602
+        },
+        "WFF2": {
+          "equal_discrete_model_prior_posterior_conditioned_on_static_source_model_set": 0.0784611285655714,
+          "integrated_mass_interval_msun": [
+            1.7304999999999997,
+            2.185070287239653
+          ],
+          "source_geometry_rejected_in_static_branch_fraction": 8.011064034363358e-10,
+          "source_support_prior_probability": 0.928696419738535,
+          "static_branch_mass_max_msun": 2.185070287239653,
+          "upper_truncated_radio_prior_mass": 0.0713035794603586,
+          "value": 0.47201229516426346
+        }
+      }
+    }
+  },
+  "source_eos_git_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+  "source_prior_radio_mass_mu_sigma_msun": [
+    2.082,
+    0.0703
+  ],
+  "source_prior_radio_mass_truncation_sigma": [
+    -5.0,
+    5.0
+  ],
+  "source_reconstructed_likelihood_zip_sha256": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307",
+  "static_not_rotating": true,
+  "summary": {
+    "APR4_EPP": {
+      "equal_discrete_seven_prior_probability_median_conditional_static_model_set": 0.08800960884950407,
+      "equal_discrete_seven_prior_probability_range_conditional_static_model_set": [
+        0.07793560092594118,
+        0.09915101254445137
+      ],
+      "full_radio_support_L_over_Z_median": 0.5250165637316231,
+      "full_radio_support_L_over_Z_range": [
+        0.4613048341893781,
+        0.5964800386455713
+      ],
+      "observational_support_outside_static_Mtov": 0.13617175788440242,
+      "original_static_R_at_2p073_km": 10.698631510582917,
+      "original_static_tov_mmax_msun": 2.1591669543848258,
+      "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88"
+    },
+    "ENG": {
+      "equal_discrete_seven_prior_probability_median_conditional_static_model_set": 0.2878598823708266,
+      "equal_discrete_seven_prior_probability_range_conditional_static_model_set": [
+        0.27335378203642186,
+        0.29876870108031756
+      ],
+      "full_radio_support_L_over_Z_median": 1.717212688977198,
+      "full_radio_support_L_over_Z_range": [
+        1.644784829504637,
+        1.7676772920927881
+      ],
+      "observational_support_outside_static_Mtov": 0.007770894310460648,
+      "original_static_R_at_2p073_km": 11.504800295566058,
+      "original_static_tov_mmax_msun": 2.252090040159999,
+      "source_npz_sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953"
+    },
+    "MPA1": {
+      "equal_discrete_seven_prior_probability_median_conditional_static_model_set": 0.40467598993943754,
+      "equal_discrete_seven_prior_probability_range_conditional_static_model_set": [
+        0.3809009727964942,
+        0.42180365652384133
+      ],
+      "full_radio_support_L_over_Z_median": 2.414073135678888,
+      "full_radio_support_L_over_Z_range": [
+        2.2914524132764695,
+        2.496677558412683
+      ],
+      "observational_support_outside_static_Mtov": 0.0,
+      "original_static_R_at_2p073_km": 12.451532235775941,
+      "original_static_tov_mmax_msun": 2.4686392693496426,
+      "source_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22"
+    },
+    "MS1": {
+      "equal_discrete_seven_prior_probability_median_conditional_static_model_set": 0.06526242537530828,
+      "equal_discrete_seven_prior_probability_range_conditional_static_model_set": [
+        0.06379812182103038,
+        0.06848765482061693
+      ],
+      "full_radio_support_L_over_Z_median": 0.38931959692889645,
+      "full_radio_support_L_over_Z_range": [
+        0.3774642083103872,
+        0.4120940080583616
+      ],
+      "observational_support_outside_static_Mtov": 0.0,
+      "original_static_R_at_2p073_km": 15.011622257635416,
+      "original_static_tov_mmax_msun": 2.799082457834451,
+      "source_npz_sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad"
+    },
+    "MS1B": {
+      "equal_discrete_seven_prior_probability_median_conditional_static_model_set": 0.08072624828085412,
+      "equal_discrete_seven_prior_probability_range_conditional_static_model_set": [
+        0.0798189543568287,
+        0.08362062616173656
+      ],
+      "full_radio_support_L_over_Z_median": 0.48156818922542644,
+      "full_radio_support_L_over_Z_range": [
+        0.4722521220762903,
+        0.5031499338325496
+      ],
+      "observational_support_outside_static_Mtov": 0.0,
+      "original_static_R_at_2p073_km": 14.777977615427064,
+      "original_static_tov_mmax_msun": 2.797101204989841,
+      "source_npz_sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c"
+    },
+    "WFF1": {
+      "equal_discrete_seven_prior_probability_median_conditional_static_model_set": 0.008597184120211928,
+      "equal_discrete_seven_prior_probability_range_conditional_static_model_set": [
+        0.004285895353514198,
+        0.0161708167730209
+      ],
+      "full_radio_support_L_over_Z_median": 0.0512860375304269,
+      "full_radio_support_L_over_Z_range": [
+        0.02535767590547034,
+        0.09728160274084602
+      ],
+      "observational_support_outside_static_Mtov": 0.3261740347992107,
+      "original_static_R_at_2p073_km": 9.929483217564819,
+      "original_static_tov_mmax_msun": 2.1136703143450717,
+      "source_npz_sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3"
+    },
+    "WFF2": {
+      "equal_discrete_seven_prior_probability_median_conditional_static_model_set": 0.06486866106385751,
+      "equal_discrete_seven_prior_probability_range_conditional_static_model_set": [
+        0.05369354362281516,
+        0.0784611285655714
+      ],
+      "full_radio_support_L_over_Z_median": 0.38697049499868597,
+      "full_radio_support_L_over_Z_range": [
+        0.31781484897383266,
+        0.47201229516426346
+      ],
+      "observational_support_outside_static_Mtov": 0.0713035794603586,
+      "original_static_R_at_2p073_km": 10.57539362700915,
+      "original_static_tov_mmax_msun": 2.185070287239653,
+      "source_npz_sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae"
+    }
+  }
+}
