@@ -20,9 +20,17 @@
     "relative_pressure_mismatch_core_over_bps": 0.07593139553746786
   },
   "final_eos_bayes": "NOT_RUN",
-  "interpretation": "The authentic BPS table is not directly thermodynamically matched to the F67 exploratory MPA1-PCHIP core at its upper endpoint. The prior power-law crust is not upgraded to BPS by this result. A new explicitly named interpolating EOS and full TOV/RNS/inference validation would be required.",
+  "interpretation": "The byte-pinned original JESTER/LALSuite MPA1 export independently reproduces the same ~4.45% energy mismatch, so the mismatch is not introduced only by the derived F67 PCHIP processing. The authentic BPS table is not directly thermodynamically matched to this source export at its upper endpoint. The prior power-law crust is not upgraded to BPS by this result. A separately named transition construction and full TOV/RNS/inference validation are required.",
   "new_bps_joined_rns": "NOT_RUN",
   "new_bps_joined_tov": "NOT_RUN",
+  "original_jester_mpa1_at_bps_upper_pressure": {
+    "cs2": 0.008865663380177973,
+    "e_mev_fm3": 71.75500544397805,
+    "h": 0.02421543037220132,
+    "n_fm3": 0.07642301861824417,
+    "relative_energy_mismatch_vs_bps": -0.04444583008272507,
+    "same_source_as": "LALSimulation"
+  },
   "physical_eos_acceptance": "NOT_ESTABLISHED",
   "schema": "J0740_BPS_MPA1_JOIN_AUDIT_V1",
   "source": {
@@ -34,6 +42,9 @@
     "core_table_sha256": "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22",
     "jester_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
     "jester_repo": "nuclear-multimessenger-astronomy/jester",
+    "original_jester_lalsuite_mpa1_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+    "original_jester_mpa1_csv_sha256": "f51d6476f999bf02a839fcb5f318d94c9f11338d270644c3c8b617cdb95a32c9",
+    "original_jester_mpa1_rows": 836,
     "source_core_is_exploratory": true
   },
   "source_native_xpsi_marginalization": "NOT_RUN",
