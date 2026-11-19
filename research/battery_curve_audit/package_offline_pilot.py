@@ -204,7 +204,7 @@ if not errorlevel 1 (
 set "RC=%errorlevel%"
 echo.
 echo Synthetic tests ONLY; output files never overwritten.
-pause
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
 exit /b %RC%
 ''',
 "Verify-Package.cmd": r'''@echo off
@@ -218,7 +218,7 @@ if not errorlevel 1 (
 )
 set "RC=%errorlevel%"
 echo.
-pause
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
 exit /b %RC%
 ''',
 "Run-Demo.cmd": r'''@echo off
@@ -233,7 +233,7 @@ if not errorlevel 1 (
 set "RC=%errorlevel%"
 echo.
 echo Existing reports are never overwritten. Review demo-clean-summary.json.
-pause
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
 exit /b %RC%
 ''',
 "Run-Detection-Demo.cmd": r'''@echo off
@@ -249,7 +249,7 @@ set "RC=%errorlevel%"
 echo.
 echo REVIEW_REQUIRED and exit 2 is EXPECTED in the controlled duplicate demo.
 echo Existing reports are never overwritten.
-pause
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
 exit /b %RC%
 ''',
 "Run-Customer.cmd": r'''@echo off
@@ -259,9 +259,9 @@ if "%~2"=="" goto usage
 cd /d "%~dp0"
 where py >nul 2>nul
 if not errorlevel 1 (
-  py -3 research\battery_curve_audit\customer_pipeline.py --manifest "%~f1" --root "%~dp1" --summary "%~f2"
+  py -3 research\battery_curve_audit\customer_pipeline.py --manifest "%~f1" --summary "%~f2"
 ) else (
-  python research\battery_curve_audit\customer_pipeline.py --manifest "%~f1" --root "%~dp1" --summary "%~f2"
+  python research\battery_curve_audit\customer_pipeline.py --manifest "%~f1" --summary "%~f2"
 )
 exit /b %errorlevel%
 :usage
