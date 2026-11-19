@@ -1,0 +1,1104 @@
+{
+  "APR4_same_raw_lowP_as_six": false,
+  "PCHIP_six_no_negative_derivative": true,
+  "all_seven_cubic_reproduce_LAL_F65": false,
+  "any_direct_C_cubic_hypothesis_exact_all_seven": true,
+  "apparent_common_negative_crust_origin": "RAW_POSITIVE_NATIVE_DERIVATIVE_NEGATIVE_AND_INDEPENDENT_CUBIC_HYPOTHESIS_REPRODUCES_SOURCE",
+  "continuous_causality_certification": "NOT_RUN",
+  "eos": {
+    "APR4_EPP": {
+      "LAL_F65_direct_negative_samples": 0,
+      "PCHIP_diagnostic_negative_derivative_samples": 0,
+      "PCHIP_only_a_mathematical_sensitivity_test_NOT_PHYSICAL_EOS": true,
+      "best_descriptive_cubic_hypothesis": {
+        "boundary_condition": "natural",
+        "energy_axis": "lnE",
+        "max_relative_energy_difference": 3.728319804338494e-15,
+        "max_scale1_derivative_difference": 7.233480993657928e-15,
+        "negative_derivative_samples": 0,
+        "pressure_axis": "lnP",
+        "reproduced_direct_LAL": true,
+        "sign_disagreements_with_direct_LAL": 0
+      },
+      "cubic_reproduced_F65_native_C_to_tolerance": false,
+      "cubic_vs_F65_derivative_sign_disagreements": 0,
+      "eight_cubic_axis_boundary_hypotheses": [
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.728319804338494e-15,
+          "max_scale1_derivative_difference": 7.233480993657928e-15,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.728319804338494e-15,
+          "max_scale1_derivative_difference": 7.233480993657928e-15,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 2.333681074696737e-08,
+          "max_scale1_derivative_difference": 3.7625978435616045e-06,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 2.333681074696737e-08,
+          "max_scale1_derivative_difference": 3.7625978435616045e-06,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 1.8246396790705174e-07,
+          "max_scale1_derivative_difference": 1.8398380587047702e-05,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 1.8246396790705174e-07,
+          "max_scale1_derivative_difference": 1.8398380587047702e-05,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 2.1655619310861322e-07,
+          "max_scale1_derivative_difference": 2.2945653901010834e-05,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 2.1655619310861322e-07,
+          "max_scale1_derivative_difference": 2.2945653901010834e-05,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        }
+      ],
+      "max_relative_cubic_vs_F65_energy_discrepancy": 1.8246396790705174e-07,
+      "max_scale_1_cubic_vs_F65_dedp_discrepancy": 1.8398380587047702e-05,
+      "natural_cubic_negative_derivative_samples": 0,
+      "raw_lal_data_row_count": 1447,
+      "raw_lal_data_sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+      "raw_local_2_column_tabular_rows": [
+        [
+          3.055633026180926e-16,
+          1.605946134230733e-13
+        ],
+        [
+          3.147673935692521e-16,
+          1.6434705533493901e-13
+        ],
+        [
+          3.242487275319606e-16,
+          1.6818722538870408e-13
+        ],
+        [
+          3.340156555414144e-16,
+          1.7211717604490598e-13
+        ],
+        [
+          3.4407678018031196e-16,
+          1.761390078269496e-13
+        ],
+        [
+          3.5444096315590725e-16,
+          1.8025487044793467e-13
+        ],
+        [
+          3.6511733310528207e-16,
+          1.844669639639346e-13
+        ],
+        [
+          3.761152936357239e-16,
+          1.8877753995435524e-13
+        ],
+        [
+          3.8744453160731352e-16,
+          1.9318890273001808e-13
+        ],
+        [
+          3.9911502566497037e-16,
+          1.9770341056960274e-13
+        ],
+        [
+          4.111370550275256e-16,
+          2.0232347698513659e-13
+        ],
+        [
+          4.235212085415188e-16,
+          2.0705157201719798e-13
+        ],
+        [
+          4.3627839400770834e-16,
+          2.1189022356053832e-13
+        ],
+        [
+          4.494198477885361e-16,
+          2.168420187208484e-13
+        ],
+        [
+          4.629571447049501e-16,
+          2.2190960520337975e-13
+        ],
+        [
+          4.769022082313723e-16,
+          2.2709569273419818e-13
+        ],
+        [
+          4.912673209977325e-16,
+          2.3240305451481327e-13
+        ],
+        [
+          5.0606513560784025e-16,
+          2.378345287109812e-13
+        ],
+        [
+          5.213086857836512e-16,
+          2.433930199764917e-13
+        ],
+        [
+          5.370113978451787e-16,
+          2.4908150101274154e-13
+        ],
+        [
+          5.531871025362422e-16,
+          2.5490301416496586e-13
+        ],
+        [
+          5.698500472063837e-16,
+          2.608606730559585e-13
+        ],
+        [
+          5.87014908359768e-16,
+          2.669576642581962e-13
+        ],
+        [
+          6.046968045820468e-16,
+          2.73197249005245e-13
+        ],
+        [
+          6.229113098566018e-16,
+          2.79582764943383e-13
+        ],
+        [
+          6.371578615645112e-16,
+          2.861176039363649e-13
+        ],
+        [
+          6.463633355905332e-16,
+          2.9280508723631925e-13
+        ],
+        [
+          6.5570180766485e-16,
+          2.996487448283781e-13
+        ],
+        [
+          6.651751993051168e-16,
+          3.066522219601318e-13
+        ],
+        [
+          6.747854597905196e-16,
+          3.138192489347225e-13
+        ],
+        [
+          6.845345665628781e-16,
+          3.211536430950772e-13
+        ],
+        [
+          6.944245256335169e-16,
+          3.2865931085440343e-13
+        ],
+        [
+          7.044573719960422e-16,
+          3.363402497740685e-13
+        ],
+        [
+          7.146351700450646e-16,
+          3.442005506899327e-13
+        ],
+        [
+          7.249600140009693e-16,
+          3.5224439988827926e-13
+        ],
+        [
+          7.354340283408457e-16,
+          3.6047608133251435e-13
+        ],
+        [
+          7.460593682356103e-16,
+          3.6889997894178346e-13
+        ],
+        [
+          7.568382199934791e-16,
+          3.775205789227615e-13
+        ],
+        [
+          7.677728015098138e-16,
+          3.863424721558079e-13
+        ],
+        [
+          7.788653627234983e-16,
+          3.9537035663680323e-13
+        ],
+        [
+          7.901181860798883e-16,
+          4.0460903997592664e-13
+        ]
+      ],
+      "raw_source_energy_nonincreasing_edges": 0,
+      "raw_source_pressure_nonincreasing_edges": 0,
+      "source_tabular_all_energy_monotone": true
+    },
+    "ENG": {
+      "LAL_F65_direct_negative_samples": 205,
+      "PCHIP_diagnostic_negative_derivative_samples": 0,
+      "PCHIP_only_a_mathematical_sensitivity_test_NOT_PHYSICAL_EOS": true,
+      "best_descriptive_cubic_hypothesis": {
+        "boundary_condition": "natural",
+        "energy_axis": "lnE",
+        "max_relative_energy_difference": 3.7226299099389204e-15,
+        "max_scale1_derivative_difference": 1.1024514634527804e-13,
+        "negative_derivative_samples": 205,
+        "pressure_axis": "lnP",
+        "reproduced_direct_LAL": true,
+        "sign_disagreements_with_direct_LAL": 0
+      },
+      "cubic_reproduced_F65_native_C_to_tolerance": false,
+      "cubic_vs_F65_derivative_sign_disagreements": 205,
+      "eight_cubic_axis_boundary_hypotheses": [
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.7226299099389204e-15,
+          "max_scale1_derivative_difference": 1.1024514634527804e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.7226299099389204e-15,
+          "max_scale1_derivative_difference": 1.1024514634527804e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702399784650748,
+          "max_scale1_derivative_difference": 42.86116807234323,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702399784650748,
+          "max_scale1_derivative_difference": 42.86116807234332,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026894934495895455,
+          "max_scale1_derivative_difference": 130.48411965571242,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026895454370562528,
+          "max_scale1_derivative_difference": 130.4867072686051,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587827995431156,
+          "max_scale1_derivative_difference": 118.79503057046811,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587827995431156,
+          "max_scale1_derivative_difference": 118.79503057046811,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        }
+      ],
+      "max_relative_cubic_vs_F65_energy_discrepancy": 0.007702399784650748,
+      "max_scale_1_cubic_vs_F65_dedp_discrepancy": 42.861168072343325,
+      "natural_cubic_negative_derivative_samples": 0,
+      "raw_lal_data_row_count": 108,
+      "raw_lal_data_sha256": "e471644d8b7bda5a6a616d1764e4de6ad67b708c04182cd9bf0e92b1cab9629d",
+      "raw_local_2_column_tabular_rows": [
+        [
+          3.6952331172513934e-16,
+          1.9497572378403226e-13
+        ],
+        [
+          4.804674567344333e-16,
+          2.455660272401238e-13
+        ],
+        [
+          6.447788056504376e-16,
+          3.175002571949458e-13
+        ],
+        [
+          6.517949865510213e-16,
+          3.293908150529345e-13
+        ],
+        [
+          6.899629978881485e-16,
+          3.861110313286517e-13
+        ],
+        [
+          7.515870871085187e-16,
+          4.881778664403938e-13
+        ]
+      ],
+      "raw_source_energy_nonincreasing_edges": 0,
+      "raw_source_pressure_nonincreasing_edges": 0,
+      "source_tabular_all_energy_monotone": true
+    },
+    "MPA1": {
+      "LAL_F65_direct_negative_samples": 205,
+      "PCHIP_diagnostic_negative_derivative_samples": 0,
+      "PCHIP_only_a_mathematical_sensitivity_test_NOT_PHYSICAL_EOS": true,
+      "best_descriptive_cubic_hypothesis": {
+        "boundary_condition": "natural",
+        "energy_axis": "lnE",
+        "max_relative_energy_difference": 3.72239668017969e-15,
+        "max_scale1_derivative_difference": 1.1002310174035301e-13,
+        "negative_derivative_samples": 205,
+        "pressure_axis": "lnP",
+        "reproduced_direct_LAL": true,
+        "sign_disagreements_with_direct_LAL": 0
+      },
+      "cubic_reproduced_F65_native_C_to_tolerance": false,
+      "cubic_vs_F65_derivative_sign_disagreements": 205,
+      "eight_cubic_axis_boundary_hypotheses": [
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.72239668017969e-15,
+          "max_scale1_derivative_difference": 1.1002310174035301e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.72239668017969e-15,
+          "max_scale1_derivative_difference": 1.1002310174035301e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702400361661482,
+          "max_scale1_derivative_difference": 42.86117100841396,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702400361661482,
+          "max_scale1_derivative_difference": 42.86117100841399,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026894942208843083,
+          "max_scale1_derivative_difference": 130.4841502798308,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026895462083521435,
+          "max_scale1_derivative_difference": 130.4867378927152,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587801293380985,
+          "max_scale1_derivative_difference": 118.79492930686652,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587801293380985,
+          "max_scale1_derivative_difference": 118.79492930686652,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        }
+      ],
+      "max_relative_cubic_vs_F65_energy_discrepancy": 0.007702400361661482,
+      "max_scale_1_cubic_vs_F65_dedp_discrepancy": 42.86117100841396,
+      "natural_cubic_negative_derivative_samples": 0,
+      "raw_lal_data_row_count": 102,
+      "raw_lal_data_sha256": "bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec",
+      "raw_local_2_column_tabular_rows": [
+        [
+          3.6952331172513934e-16,
+          1.9497572378403226e-13
+        ],
+        [
+          4.804674567344333e-16,
+          2.455660272401238e-13
+        ],
+        [
+          6.447788056504376e-16,
+          3.175002571949458e-13
+        ],
+        [
+          6.517949865510213e-16,
+          3.293908150529345e-13
+        ],
+        [
+          6.899629978881485e-16,
+          3.861110313286517e-13
+        ],
+        [
+          7.515870871085187e-16,
+          4.881778664403938e-13
+        ]
+      ],
+      "raw_source_energy_nonincreasing_edges": 0,
+      "raw_source_pressure_nonincreasing_edges": 0,
+      "source_tabular_all_energy_monotone": true
+    },
+    "MS1": {
+      "LAL_F65_direct_negative_samples": 205,
+      "PCHIP_diagnostic_negative_derivative_samples": 0,
+      "PCHIP_only_a_mathematical_sensitivity_test_NOT_PHYSICAL_EOS": true,
+      "best_descriptive_cubic_hypothesis": {
+        "boundary_condition": "natural",
+        "energy_axis": "lnE",
+        "max_relative_energy_difference": 3.7226299099389204e-15,
+        "max_scale1_derivative_difference": 2.113864638886298e-13,
+        "negative_derivative_samples": 205,
+        "pressure_axis": "lnP",
+        "reproduced_direct_LAL": true,
+        "sign_disagreements_with_direct_LAL": 0
+      },
+      "cubic_reproduced_F65_native_C_to_tolerance": false,
+      "cubic_vs_F65_derivative_sign_disagreements": 205,
+      "eight_cubic_axis_boundary_hypotheses": [
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.7226299099389204e-15,
+          "max_scale1_derivative_difference": 2.113864638886298e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.7226299099389204e-15,
+          "max_scale1_derivative_difference": 2.113864638886298e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702399784650748,
+          "max_scale1_derivative_difference": 42.86116807234328,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702399784650748,
+          "max_scale1_derivative_difference": 42.86116807234337,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026894934495895455,
+          "max_scale1_derivative_difference": 130.48411965571248,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026895454370562528,
+          "max_scale1_derivative_difference": 130.48670726860516,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587827995442474,
+          "max_scale1_derivative_difference": 118.79503057051012,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587827995442474,
+          "max_scale1_derivative_difference": 118.79503057051012,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        }
+      ],
+      "max_relative_cubic_vs_F65_energy_discrepancy": 0.007702399784650748,
+      "max_scale_1_cubic_vs_F65_dedp_discrepancy": 42.861168072343375,
+      "natural_cubic_negative_derivative_samples": 0,
+      "raw_lal_data_row_count": 122,
+      "raw_lal_data_sha256": "8f65aeeccd11f974c41d9b4c7cb2042250804702da9ee247d5b8fe91bd547ecb",
+      "raw_local_2_column_tabular_rows": [
+        [
+          3.6952331172513934e-16,
+          1.9497572378403226e-13
+        ],
+        [
+          4.804674567344333e-16,
+          2.455660272401238e-13
+        ],
+        [
+          6.447788056504376e-16,
+          3.175002571949458e-13
+        ],
+        [
+          6.517949865510213e-16,
+          3.293908150529345e-13
+        ],
+        [
+          6.899629978881485e-16,
+          3.861110313286517e-13
+        ],
+        [
+          7.515870871085187e-16,
+          4.881778664403938e-13
+        ]
+      ],
+      "raw_source_energy_nonincreasing_edges": 0,
+      "raw_source_pressure_nonincreasing_edges": 0,
+      "source_tabular_all_energy_monotone": true
+    },
+    "MS1B": {
+      "LAL_F65_direct_negative_samples": 205,
+      "PCHIP_diagnostic_negative_derivative_samples": 0,
+      "PCHIP_only_a_mathematical_sensitivity_test_NOT_PHYSICAL_EOS": true,
+      "best_descriptive_cubic_hypothesis": {
+        "boundary_condition": "natural",
+        "energy_axis": "lnE",
+        "max_relative_energy_difference": 3.72239668017969e-15,
+        "max_scale1_derivative_difference": 1.1002310174035301e-13,
+        "negative_derivative_samples": 205,
+        "pressure_axis": "lnP",
+        "reproduced_direct_LAL": true,
+        "sign_disagreements_with_direct_LAL": 0
+      },
+      "cubic_reproduced_F65_native_C_to_tolerance": false,
+      "cubic_vs_F65_derivative_sign_disagreements": 205,
+      "eight_cubic_axis_boundary_hypotheses": [
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.72239668017969e-15,
+          "max_scale1_derivative_difference": 1.1002310174035301e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.72239668017969e-15,
+          "max_scale1_derivative_difference": 1.1002310174035301e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702400361661482,
+          "max_scale1_derivative_difference": 42.86117100841396,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702400361661482,
+          "max_scale1_derivative_difference": 42.86117100841399,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026894942208843083,
+          "max_scale1_derivative_difference": 130.4841502798308,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026895462083521435,
+          "max_scale1_derivative_difference": 130.4867378927152,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587801293381186,
+          "max_scale1_derivative_difference": 118.79492930686695,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587801293381186,
+          "max_scale1_derivative_difference": 118.79492930686695,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        }
+      ],
+      "max_relative_cubic_vs_F65_energy_discrepancy": 0.007702400361661482,
+      "max_scale_1_cubic_vs_F65_dedp_discrepancy": 42.86117100841396,
+      "natural_cubic_negative_derivative_samples": 0,
+      "raw_lal_data_row_count": 126,
+      "raw_lal_data_sha256": "818b1bda1e64e35b792613dff1cf27134bbcd97ec0432f48d65e766d6e882aee",
+      "raw_local_2_column_tabular_rows": [
+        [
+          3.6952331172513934e-16,
+          1.9497572378403226e-13
+        ],
+        [
+          4.804674567344333e-16,
+          2.455660272401238e-13
+        ],
+        [
+          6.447788056504376e-16,
+          3.175002571949458e-13
+        ],
+        [
+          6.517949865510213e-16,
+          3.293908150529345e-13
+        ],
+        [
+          6.899629978881485e-16,
+          3.861110313286517e-13
+        ],
+        [
+          7.515870871085187e-16,
+          4.881778664403938e-13
+        ]
+      ],
+      "raw_source_energy_nonincreasing_edges": 0,
+      "raw_source_pressure_nonincreasing_edges": 0,
+      "source_tabular_all_energy_monotone": true
+    },
+    "WFF1": {
+      "LAL_F65_direct_negative_samples": 205,
+      "PCHIP_diagnostic_negative_derivative_samples": 0,
+      "PCHIP_only_a_mathematical_sensitivity_test_NOT_PHYSICAL_EOS": true,
+      "best_descriptive_cubic_hypothesis": {
+        "boundary_condition": "natural",
+        "energy_axis": "lnE",
+        "max_relative_energy_difference": 3.72239668017969e-15,
+        "max_scale1_derivative_difference": 1.1002310174035301e-13,
+        "negative_derivative_samples": 205,
+        "pressure_axis": "lnP",
+        "reproduced_direct_LAL": true,
+        "sign_disagreements_with_direct_LAL": 0
+      },
+      "cubic_reproduced_F65_native_C_to_tolerance": false,
+      "cubic_vs_F65_derivative_sign_disagreements": 205,
+      "eight_cubic_axis_boundary_hypotheses": [
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.72239668017969e-15,
+          "max_scale1_derivative_difference": 1.1002310174035301e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.72239668017969e-15,
+          "max_scale1_derivative_difference": 1.1002310174035301e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702400361661482,
+          "max_scale1_derivative_difference": 42.86117100841396,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702400361661482,
+          "max_scale1_derivative_difference": 42.86117100841399,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026894942208843083,
+          "max_scale1_derivative_difference": 130.4841502798308,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026895462083521435,
+          "max_scale1_derivative_difference": 130.4867378927152,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587801293380985,
+          "max_scale1_derivative_difference": 118.7949293068657,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587801293380985,
+          "max_scale1_derivative_difference": 118.7949293068657,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        }
+      ],
+      "max_relative_cubic_vs_F65_energy_discrepancy": 0.007702400361661482,
+      "max_scale_1_cubic_vs_F65_dedp_discrepancy": 42.86117100841396,
+      "natural_cubic_negative_derivative_samples": 0,
+      "raw_lal_data_row_count": 109,
+      "raw_lal_data_sha256": "7ed773ea0e0328b16ed71f66d27f7f71289bfe978fa8f7d04a8f449690d30776",
+      "raw_local_2_column_tabular_rows": [
+        [
+          3.6952331172513934e-16,
+          1.9497572378403226e-13
+        ],
+        [
+          4.804674567344333e-16,
+          2.455660272401238e-13
+        ],
+        [
+          6.447788056504376e-16,
+          3.175002571949458e-13
+        ],
+        [
+          6.517949865510213e-16,
+          3.293908150529345e-13
+        ],
+        [
+          6.899629978881485e-16,
+          3.861110313286517e-13
+        ],
+        [
+          7.515870871085187e-16,
+          4.881778664403938e-13
+        ]
+      ],
+      "raw_source_energy_nonincreasing_edges": 0,
+      "raw_source_pressure_nonincreasing_edges": 0,
+      "source_tabular_all_energy_monotone": true
+    },
+    "WFF2": {
+      "LAL_F65_direct_negative_samples": 205,
+      "PCHIP_diagnostic_negative_derivative_samples": 0,
+      "PCHIP_only_a_mathematical_sensitivity_test_NOT_PHYSICAL_EOS": true,
+      "best_descriptive_cubic_hypothesis": {
+        "boundary_condition": "natural",
+        "energy_axis": "lnE",
+        "max_relative_energy_difference": 3.72239668017969e-15,
+        "max_scale1_derivative_difference": 1.1002310174035301e-13,
+        "negative_derivative_samples": 205,
+        "pressure_axis": "lnP",
+        "reproduced_direct_LAL": true,
+        "sign_disagreements_with_direct_LAL": 0
+      },
+      "cubic_reproduced_F65_native_C_to_tolerance": false,
+      "cubic_vs_F65_derivative_sign_disagreements": 205,
+      "eight_cubic_axis_boundary_hypotheses": [
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.72239668017969e-15,
+          "max_scale1_derivative_difference": 1.1002310174035301e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 3.72239668017969e-15,
+          "max_scale1_derivative_difference": 1.1002310174035301e-13,
+          "negative_derivative_samples": 205,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": true,
+          "sign_disagreements_with_direct_LAL": 0
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702400361661482,
+          "max_scale1_derivative_difference": 42.86117100841396,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.007702400361661482,
+          "max_scale1_derivative_difference": 42.86117100841399,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026894942208843083,
+          "max_scale1_derivative_difference": 130.4841502798308,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "lnE",
+          "max_relative_energy_difference": 0.026895462083521435,
+          "max_scale1_derivative_difference": 130.4867378927152,
+          "negative_derivative_samples": 0,
+          "pressure_axis": "P",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 205
+        },
+        {
+          "boundary_condition": "natural",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587801293380784,
+          "max_scale1_derivative_difference": 118.79492930686622,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        },
+        {
+          "boundary_condition": "not-a-knot",
+          "energy_axis": "E",
+          "max_relative_energy_difference": 0.027587801293380784,
+          "max_scale1_derivative_difference": 118.79492930686622,
+          "negative_derivative_samples": 719,
+          "pressure_axis": "lnP",
+          "reproduced_direct_LAL": false,
+          "sign_disagreements_with_direct_LAL": 514
+        }
+      ],
+      "max_relative_cubic_vs_F65_energy_discrepancy": 0.007702400361661482,
+      "max_scale_1_cubic_vs_F65_dedp_discrepancy": 42.86117100841396,
+      "natural_cubic_negative_derivative_samples": 0,
+      "raw_lal_data_row_count": 109,
+      "raw_lal_data_sha256": "04698be6750edd326cab423a21956a276b1fcdec2851e35d1e298082f9b89667",
+      "raw_local_2_column_tabular_rows": [
+        [
+          3.6952331172513934e-16,
+          1.9497572378403226e-13
+        ],
+        [
+          4.804674567344333e-16,
+          2.455660272401238e-13
+        ],
+        [
+          6.447788056504376e-16,
+          3.175002571949458e-13
+        ],
+        [
+          6.517949865510213e-16,
+          3.293908150529345e-13
+        ],
+        [
+          6.899629978881485e-16,
+          3.861110313286517e-13
+        ],
+        [
+          7.515870871085187e-16,
+          4.881778664403938e-13
+        ]
+      ],
+      "raw_source_energy_nonincreasing_edges": 0,
+      "raw_source_pressure_nonincreasing_edges": 0,
+      "source_tabular_all_energy_monotone": true
+    }
+  },
+  "f65_direct_LAL_781016bytes_sha256": "6e35cd5ea33d3f3e9e3d0fb7cee585f809638e4b8507804bd7c0789148cd6e74",
+  "full_physical_EOS_admission": "NOT_ESTABLISHED",
+  "installed_lalsuite_source_dir": "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/lalapps/data",
+  "installed_wheel_source_file_sha256": {
+    "APR4_EPP": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+    "ENG": "e471644d8b7bda5a6a616d1764e4de6ad67b708c04182cd9bf0e92b1cab9629d",
+    "MPA1": "bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec",
+    "MS1": "8f65aeeccd11f974c41d9b4c7cb2042250804702da9ee247d5b8fe91bd547ecb",
+    "MS1B": "818b1bda1e64e35b792613dff1cf27134bbcd97ec0432f48d65e766d6e882aee",
+    "WFF1": "7ed773ea0e0328b16ed71f66d27f7f71289bfe978fa8f7d04a8f449690d30776",
+    "WFF2": "04698be6750edd326cab423a21956a276b1fcdec2851e35d1e298082f9b89667"
+  },
+  "original_physical_source_EOS_modified": false,
+  "original_seven_EOS_Bayes": "NOT_RUN",
+  "raw_source_all_positive_secants": true,
+  "schema": "J0740_F66_ORIGINAL_LAL_TABULAR_SPLINE_FORENSICS_V1",
+  "scientific_scope": "installed LALSuite raw table vs direct F65 LAL C E(P),dE/dP, GSL-natural spline reconstruction and PCHIP diagnostic only",
+  "six_common_lowpressure_row_count": 15,
+  "six_common_lowpressure_source_rows_equal": true,
+  "six_negative_cubic_reproduced": false,
+  "source_native_XPSI_photon_likelihood": "NOT_RUN",
+  "source_original_not_F42": true,
+  "status": "ORIGINAL_MONOTONE_RAW_TABLE_DIRECT_LAL_NEGATIVE_CUBIC_AXIS_REPRODUCED_NO_EOS_REPAIR"
+}
