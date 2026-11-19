@@ -47,6 +47,13 @@ def identities(audit):
             raise ValueError("REVIEW_REQUIRED: duplicate trace identity")
         keys.add(ident)
         digest_set.add(sha)
+    numeric_hashes = [c.get("numeric_trace_sha256") for c in curves]
+    if any(x is not None for x in numeric_hashes) or audit.get("schema") == "cano.battery.customer-audit.v1":
+        if not all(isinstance(x, str) and re.fullmatch("[0-9a-f]{64}", x)
+                   for x in numeric_hashes):
+            raise ValueError("REVIEW_REQUIRED: partial/invalid numeric trace identity")
+        if audit.get("numeric_unique_curve_count") != len(set(numeric_hashes)):
+            raise ValueError("REVIEW_REQUIRED: inconsistent numeric_unique_curve_count")
     if audit.get("unique_curve_count") != len(digest_set):
         raise ValueError("REVIEW_REQUIRED: inconsistent unique_curve_count")
     return curves
@@ -69,7 +76,9 @@ def cell_groups(curves):
 
     same_sha_cells = defaultdict(set)
     for c in curves:
-        same_sha_cells[c["trace_sha256"]].add(c["cell"])
+        same_sha_cells[("text", c["trace_sha256"])].add(c["cell"])
+        if c.get("numeric_trace_sha256") is not None:
+            same_sha_cells[("decimal", c["numeric_trace_sha256"])].add(c["cell"])
     for members in same_sha_cells.values():
         ordered = sorted(members)
         for cell in ordered[1:]:
@@ -120,7 +129,7 @@ def create_manifest(audit, seed="cano-battery-v1"):
         "groups": sorted(group_entries, key=lambda x: x["group_id"]),
         "assignments": assignments,
         "limitations": [
-            "Exact time-voltage equality only; near duplicates, shared batches and correlated experiments are not ruled out.",
+            "Customer audits guard exact decimal-value identities as well as raw text; near, resampled and shared-batch dependence remain.",
             "No customer field validation, no model predictive accuracy or commercial validation.",
         ],
     }
@@ -140,6 +149,9 @@ def verify_manifest(audit, manifest):
     seen = set()
     by_cell = defaultdict(set)
     by_sha = defaultdict(set)
+    by_numeric = defaultdict(set)
+    expected_numeric = {(c["cell"], c["mode"], c["run"], c["trace_sha256"]):
+                        c.get("numeric_trace_sha256") for c in curves}
     for c in assignments:
         if not isinstance(c, dict):
             raise ValueError("REVIEW_REQUIRED: invalid assignment")
@@ -152,6 +164,9 @@ def verify_manifest(audit, manifest):
         seen.add(key)
         by_cell[c["cell"]].add(p)
         by_sha[c["trace_sha256"]].add(p)
+        numeric_sha = expected_numeric.get(key)
+        if numeric_sha is not None:
+            by_numeric[numeric_sha].add(p)
     expected = {(c["cell"], c["mode"], c["run"], c["trace_sha256"]) for c in curves}
     if seen != expected:
         raise ValueError("REVIEW_REQUIRED: identity/trace mismatch")
@@ -159,6 +174,8 @@ def verify_manifest(audit, manifest):
         raise ValueError("REVIEW_REQUIRED: same cell leaks across partitions")
     if any(len(v) > 1 for v in by_sha.values()):
         raise ValueError("REVIEW_REQUIRED: exact curve leaks across partitions")
+    if any(len(v) > 1 for v in by_numeric.values()):
+        raise ValueError("REVIEW_REQUIRED: exact numeric-value curve leaks across partitions")
     if {next(iter(v)) for v in by_cell.values()} != set(PARTITIONS):
         raise ValueError("REVIEW_REQUIRED: train/validation/test must all be nonempty")
     groups = manifest.get("groups")
