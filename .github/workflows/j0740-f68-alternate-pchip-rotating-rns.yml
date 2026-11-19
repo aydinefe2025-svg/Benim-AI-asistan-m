@@ -1,0 +1,199 @@
+name: J0740 F68 NEW separate MPA1 PCHIP cold EOS rotating GR 2 spatial grids
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f68/**'
+      - '.github/workflows/j0740-f68-alternate-pchip-rotating-rns.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pchip-151x301-spinning-gr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install exact numerical dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: SHA pinned F67 source and 18 fail closed tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'd3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22  research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat' | sha256sum -c -
+          echo '811b6b9e3763e77df0e300f54cae0301cdac1cb1c285b09da8f32e23c0aa0dc8  research/j0740/f67/F67_MPA1_PCHIP_COLD_2p073_static_TOV_20261119.json' | sha256sum -c -
+          echo '7b2cbcf6df2dc55d33046d9af587dba179dcb2ec77bad0395e628742479cce0a  research/j0740/f61/F61_original_seven_LAL_static_TOV.json' | sha256sum -c -
+          python -m unittest discover -s research/j0740/f68 -p 'test_f68_*.py' -v
+      - name: Output-only C printf precision patch, unchanged original GR physics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f62/f62_rns_precision_patch.py rns-upstream/rns.c
+          mkdir -p results/F68
+          python - <<'PY'
+          import hashlib,json,pathlib
+          p=pathlib.Path('rns-upstream/rns.c');m=pathlib.Path('rns-upstream/makefile')
+          text=m.read_text()
+          act=[s for s in text.splitlines() if s.strip().startswith('HIGHSIZE=')]
+          assert act==['HIGHSIZE=-DMDIV=151 -DSDIV=301'],act
+          rec={'RNS_COMMIT':'97e85d325a33e37f702306414533f6cd77812477','C_sha256_output_only_patch':hashlib.sha256(p.read_bytes()).hexdigest(),
+            'makefile_sha256':hashlib.sha256(m.read_bytes()).hexdigest(),'spacetime_grid':'151x301','GR_physics_equations_modified':False}
+          pathlib.Path('results/F68/F68_RNS_C_compile_provenance.json').write_text(json.dumps(rec,sort_keys=True,indent=2)+'\n')
+          PY
+      - name: Compile upstream C full Einstein rotating star solver
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Real C RNS F67 alternative rotating and static roots at 4 masses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f68/f68_alt_mpa1_rotating_gr.py \
+            --f67-thermo research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat \
+            --f67-tov research/j0740/f67/F67_MPA1_PCHIP_COLD_2p073_static_TOV_20261119.json \
+            --f61 research/j0740/f61/F61_original_seven_LAL_static_TOV.json \
+            --rns-binary rns-upstream/rns --rns-table results/F68/ALT196.rns \
+            --grid 151x301 --output results/F68/F68_new_MPA1_PCHIP_COLD_rotating_coarse_C.json
+      - name: Reject artificial results and original EOS relabeling
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,pathlib,hashlib
+          d=json.loads(pathlib.Path('results/F68/F68_new_MPA1_PCHIP_COLD_rotating_coarse_C.json').read_text())
+          assert d['status']=='DIRECT_RNS_C_ALTERNATE_PCHIP_COLD_GRID_DIAGNOSTIC_PASS_NO_EOS_BAYES'
+          assert d['model']=='MPA1_PCHIP_COLD_V1_EXPLORATORY_NOT_ORIGINAL' and d['not_original_MPA1'] is True
+          assert len(d['direct_C_stars'])==4
+          assert all(v['status'].startswith('DIRECT_RNS_C') for v in d['direct_C_stars'].values())
+          assert d['source_native_NICER_XMM_XPSI_likelihood']=='NOT_RUN' and d['original_seven_EOS_Bayes']=='NOT_RUN'
+          assert abs(d['direct_RNS_static_minus_independent_F67_TOV_km'])<.2
+          assert hashlib.sha256(pathlib.Path('results/F68/ALT196.rns').read_bytes()).hexdigest()==d['rns_derived_table_sha256']
+          print('F68 four actual RNS spinning and static stars: NUMERICAL_PASS, PHYSICAL_POSTERIOR_NOT_RUN')
+          PY
+      - name: SHA256 result and binary receipt
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib,hashlib,json
+          root=pathlib.Path('results/F68');root.mkdir(exist_ok=True,parents=True)
+          files=[*root.glob('*'),pathlib.Path('research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat'),pathlib.Path('rns-upstream/rns')]
+          rec={str(x):{'bytes':x.stat().st_size,'sha256':hashlib.sha256(x.read_bytes()).hexdigest()} for x in files if x.is_file() and x.name!='F68_SHA256_receipt.json'}
+          (root/'F68_SHA256_receipt.json').write_text(json.dumps(rec,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-F68-new-MPA1-PCHIP-COLD-RNS-coarse-or-failure
+          path: results/F68/
+          if-no-files-found: warn
+          retention-days: 30
+
+  pchip-201x401-identical-EOS-spinning-gr:
+    needs: pchip-151x301-spinning-gr
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: j0740-F68-new-MPA1-PCHIP-COLD-RNS-coarse-or-failure
+          path: results/F68/coarse
+      - name: Verify full source and byte-identical EOS before new C spacetime grid
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f68 -p 'test_f68_*.py' -v
+          python - <<'PY'
+          import pathlib,json,hashlib
+          d=json.loads(pathlib.Path('results/F68/coarse/F68_new_MPA1_PCHIP_COLD_rotating_coarse_C.json').read_text())
+          p=pathlib.Path('results/F68/coarse/ALT196.rns')
+          assert d['status'].startswith('DIRECT_RNS_C')
+          assert hashlib.sha256(p.read_bytes()).hexdigest()==d['rns_derived_table_sha256']
+          print('F68 exact same 196 row EOS SHA',d['rns_derived_table_sha256'])
+          PY
+      - name: C output precision only and exact finer 201x401 spacetime grid
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f62/f62_rns_precision_patch.py rns-upstream/rns.c
+          python - <<'PY'
+          import pathlib,json,hashlib
+          p=pathlib.Path('rns-upstream/makefile');s=p.read_text()
+          old='HIGHSIZE=-DMDIV=151 -DSDIV=301';new='HIGHSIZE=-DMDIV=201 -DSDIV=401'
+          assert sum(line==old for line in s.splitlines())==1 and sum(line==new for line in s.splitlines())==0
+          p.write_text(s.replace(old,new,1))
+          active=[line for line in p.read_text().splitlines() if line.strip().startswith('HIGHSIZE=')]
+          assert active==[new],active
+          o=pathlib.Path('results/F68/fine');o.mkdir(parents=True,exist_ok=True)
+          o.joinpath('F68_fine_C_provenance.json').write_text(json.dumps({'fine_spacetime_grid':'201x401','makefile_sha':hashlib.sha256(p.read_bytes()).hexdigest(),
+            'rns_c_printf_only_sha':hashlib.sha256(pathlib.Path('rns-upstream/rns.c').read_bytes()).hexdigest(),
+            'source_RNS_commit':'97e85d325a33e37f702306414533f6cd77812477','GR_equations_changed':False},sort_keys=True,indent=2)+'\n')
+          PY
+      - name: Compile independently actual 201x401 rotating GR C model
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Direct spinning and static C stars with SAME EOS bytes at 2.073 and 2.250 Msun
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA=$(python -c 'import json;print(json.load(open("results/F68/coarse/F68_new_MPA1_PCHIP_COLD_rotating_coarse_C.json"))["rns_derived_table_sha256"])')
+          python -u research/j0740/f68/f68_alt_mpa1_rotating_gr.py \
+            --f67-thermo research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat \
+            --f67-tov research/j0740/f67/F67_MPA1_PCHIP_COLD_2p073_static_TOV_20261119.json \
+            --f61 research/j0740/f61/F61_original_seven_LAL_static_TOV.json \
+            --rns-binary rns-upstream/rns --rns-table results/F68/coarse/ALT196.rns \
+            --grid 201x401 --eos-identity-sha "$SHA" --targets 2.073 2.250 \
+            --output results/F68/fine/F68_new_MPA1_PCHIP_COLD_rotating_fine_C.json
+      - name: Real two-spacetime-grid star consistency gate, not physical EOS certification
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,pathlib,hashlib
+          a=json.loads(pathlib.Path('results/F68/coarse/F68_new_MPA1_PCHIP_COLD_rotating_coarse_C.json').read_text())
+          b=json.loads(pathlib.Path('results/F68/fine/F68_new_MPA1_PCHIP_COLD_rotating_fine_C.json').read_text())
+          assert a['rns_derived_table_sha256']==b['rns_derived_table_sha256']
+          for k in ('2.073','2.250'):
+            assert a['direct_C_stars'][k]['status'].startswith('DIRECT_RNS_C')
+            assert b['direct_C_stars'][k]['status'].startswith('DIRECT_RNS_C')
+            for state in ('rotating','static'):
+              x=a['direct_C_stars'][k][state]['star'];y=b['direct_C_stars'][k][state]['star']
+              dr=abs(x['radius_eq_km']-y['radius_eq_km']);dm=abs(x['mass_msun']-y['mass_msun'])
+              assert dr<.10 and dm<.003,(k,state,dr,dm)
+          assert b['original_seven_EOS_Bayes']=='NOT_RUN'
+          print('F68 two-spatial-grid byte-identical EOS numerical C-stars PASS; EOS FULL MICROPHYSICS NOT_ESTABLISHED')
+          PY
+      - name: Write source and output evidence manifest
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib,json,hashlib
+          root=pathlib.Path('results/F68/fine');root.mkdir(exist_ok=True,parents=True)
+          paths=[*root.glob('*.json'),pathlib.Path('results/F68/coarse/ALT196.rns'),pathlib.Path('results/F68/coarse/F68_new_MPA1_PCHIP_COLD_rotating_coarse_C.json'),pathlib.Path('rns-upstream/rns')]
+          d={str(p):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in paths if p.is_file() and p.name!='F68_fine_SHA256_receipt.json'}
+          (root/'F68_fine_SHA256_receipt.json').write_text(json.dumps(d,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-F68-new-MPA1-PCHIP-COLD-RNS-fine-or-failure
+          path: results/F68/fine/
+          if-no-files-found: warn
+          retention-days: 30
