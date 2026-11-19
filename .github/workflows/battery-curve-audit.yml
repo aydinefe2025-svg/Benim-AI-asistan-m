@@ -1,0 +1,82 @@
+name: Battery independent holdout and real CSV audit
+
+on:
+  pull_request:
+    paths:
+      - "research/battery_curve_audit/**"
+      - "tests/test_battery_independent_holdout.py"
+      - ".github/workflows/battery-curve-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  battery-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Synthetic parser smoke test
+        run: python research/battery_curve_audit/original_20261118.py --self-test
+
+      - name: Independent split regression suite
+        run: python -m unittest discover -s tests -p "test_battery_independent_holdout.py" -v
+
+      - name: Fetch and independently parse all 20 publisher CSVs
+        run: |
+          python research/battery_curve_audit/original_20261118.py \
+            --download --data-dir "${RUNNER_TEMP}/publisher_csvs" \
+            --output-json "${RUNNER_TEMP}/battery_audit.json" \
+            > "${RUNNER_TEMP}/run_stdout.log"
+
+      - name: Verify published baseline values and hash-pinned provenance
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          a = json.loads((Path(os.environ["RUNNER_TEMP"]) / "battery_audit.json").read_text())
+          curves = a["all_curve_identity"]
+          assert a["source_files"] == 20, a["source_files"]
+          assert a["trace_count"] == 60, a["trace_count"]
+          assert sum(x["n"] for x in curves if x["mode"] == "dchg") == 506141
+          assert sum(x["n"] for x in curves if x["mode"] == "chg") == 197516
+          expected_widths = {"chg_2":4600, "chg_4":2008, "chg_6":66644, "dchg_6":323258}
+          assert a["width_counts"] == expected_widths, a["width_counts"]
+          assert len(a["duplicate_groups"]) == 1
+          group = a["duplicate_groups"][0]
+          assert len(group) == 3 and all(c["mode"] == "dchg" and c["run"] == 1 and c["n"] == 3764 for c in group)
+          assert {c["cell"] for c in group} == {
+              "apreh171000701957", "apreh171000707901", "apreh171000711199"
+          }
+          print("PASS: 20 publisher Git blob pinned originals; 60 traces; 703657 samples; one exact three-cell group")
+          PY
+
+      - name: Create independent partition manifest and verify readback
+        run: |
+          python research/battery_curve_audit/independent_holdout.py \
+            --audit-json "${RUNNER_TEMP}/battery_audit.json" \
+            --output-json "${RUNNER_TEMP}/battery_holdout.json"
+          python research/battery_curve_audit/independent_holdout.py \
+            --audit-json "${RUNNER_TEMP}/battery_audit.json" \
+            --verify-json "${RUNNER_TEMP}/battery_holdout.json"
+
+      - name: Publish read-only evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battery-publisher-audit-and-holdout
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/battery_audit.json
+            ${{ runner.temp }}/battery_holdout.json
+            ${{ runner.temp }}/run_stdout.log
