@@ -335,7 +335,7 @@ It does not need pip, cloud tokens, API keys, or customer uploads.
    not an operator's self-written 'flagged' values. Two generated reviewer forms
    omit flagged predictions and have different order; return the completed forms
    separately. Source binding and raw CSVs are checked again on finalize.
-   Run-Blind-Review-Demo.cmd tests this with SYNTHETIC inputs only.
+   Run-Blind-Review-Demo.cmd tests this with SYNTHETIC inputs only.\n   Private blind-review sampling now authenticates a v2 HMAC seal with a\n   separate 32-byte operator key (--operator-key), which must never be\n   uploaded or shared with reviewers. Older unsigned v1 seals fail closed.
    Real personnel independence and site authorization cannot be proven in code.
 
 ## Windows PowerShell alternative
@@ -619,7 +619,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-19-reviewer-identity-guard-v8",
+                "version":"2026-11-20-blind-review-authenticated-seal-v9",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,
