@@ -119,7 +119,7 @@ jobs:
           assert original["source_files"] == customer["source_files"] == 20
           assert original["measured_time_voltage_pairs"] == customer["measured_time_voltage_pairs"] == 703657
           assert customer["review_status"] == "REVIEW_REQUIRED"
-          print("PASS: real 20 publisher CSV customer adapter exact-identity matches 60-curve provenance audit; 8 groups; holdout 6/2/2")
+          print("PASS: read-only customer adapter matches original 20 CSV and 60 curve hashes; no customer split accepted in this stage")
           PY
 
       - name: Near-screen original publisher CSVs (no automatic physical-duplicate claim)
