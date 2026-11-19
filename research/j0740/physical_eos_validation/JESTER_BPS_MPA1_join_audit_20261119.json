@@ -1,0 +1,42 @@
+{
+  "at_bps_upper_pressure": {
+    "e_bps_mev_fm3": 75.09255644835926,
+    "e_core_mev_fm3_equivalent": 71.75359534449984,
+    "mu_bps_mev": 952.7997558931602,
+    "mu_core_mev": 953.0796175597671,
+    "n_bps_fm3": 0.0792,
+    "n_core_fm3_firstlaw_mu_surface_930p4": 0.07567340464959224,
+    "p_bps_mev_fm3": 0.36918421837903626,
+    "p_geom_m-2": 4.887383671331346e-13,
+    "relative_energy_mismatch_core_over_bps": -0.04446460823524645,
+    "relative_mu_mismatch": 0.0002937255859649657
+  },
+  "at_equal_baryon_density": {
+    "e_bps_mev_fm3": 71.73317615968817,
+    "e_core_mev_fm3": 71.75359534449984,
+    "n_fm3": 0.07567340464959224,
+    "p_bps_mev_fm3": 0.3431298871937974,
+    "p_core_mev_fm3": 0.3691842183790363,
+    "relative_pressure_mismatch_core_over_bps": 0.07593139553746786
+  },
+  "final_eos_bayes": "NOT_RUN",
+  "interpretation": "The authentic BPS table is not directly thermodynamically matched to the F67 exploratory MPA1-PCHIP core at its upper endpoint. The prior power-law crust is not upgraded to BPS by this result. A new explicitly named interpolating EOS and full TOV/RNS/inference validation would be required.",
+  "new_bps_joined_rns": "NOT_RUN",
+  "new_bps_joined_tov": "NOT_RUN",
+  "physical_eos_acceptance": "NOT_ESTABLISHED",
+  "schema": "J0740_BPS_MPA1_JOIN_AUDIT_V1",
+  "source": {
+    "bps_csv_sha256": "a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787",
+    "bps_original_npz_sha256": "372ce088e061997f7c05594e61e7c624a112d7ce66443c28c4633d03b7da6137",
+    "bps_rows": 130,
+    "bps_units": "n: fm^-3; p,e: MeV fm^-3",
+    "core_rows": 2425,
+    "core_table_sha256": "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22",
+    "jester_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+    "jester_repo": "nuclear-multimessenger-astronomy/jester",
+    "source_core_is_exploratory": true
+  },
+  "source_native_xpsi_marginalization": "NOT_RUN",
+  "status": "PASS_AUDIT_FAILS_DIRECT_MATCH"
+}
+
