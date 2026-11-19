@@ -1,0 +1,61 @@
+{
+  "schema": "J0740_A01_01_51_F68_DIRECT_RNS_RECEIPT_V1",
+  "date": "2026-11-19",
+  "task": "Direct full-GR RNS validation of separate F67 MPA1 PCHIP alternative",
+  "model": "MPA1_PCHIP_COLD_V1_EXPLORATORY_NOT_ORIGINAL",
+  "original_MPA1_modified": false,
+  "F42_mixed": false,
+  "source": {
+    "package": "LALSuite 7.26.4 raw MPA1 table",
+    "sha256": "bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec"
+  },
+  "rns_source": {
+    "repository": "rns-alberta/rns",
+    "commit": "97e85d325a33e37f702306414533f6cd77812477",
+    "precision_change": "output formatting only; solver equations unchanged"
+  },
+  "method": {
+    "eos_mesh_points": [
+      151,
+      196
+    ],
+    "target_masses_msun": [
+      2.073,
+      2.175,
+      2.25
+    ],
+    "target_spin_hz": 346.536369,
+    "direct_C_roots": 12,
+    "static_roots": 6,
+    "rotating_roots": 6,
+    "inherited_acceptance_thresholds": {
+      "mass_abs_msun": 0.0015,
+      "spin_abs_hz": 0.25,
+      "mesh_delta_Req_abs_km": 0.06,
+      "static_RNS_vs_TOV_abs_km": 0.2
+    }
+  },
+  "result": {
+    "status": "PASS_DIRECT_RNS_NUMERICAL_ONLY_NOT_PHYSICAL_EOS",
+    "failure_count": 0,
+    "tests": "4/4 F68 conversion tests passed; RNS build passed; all six mass-mesh cases and all inherited gates passed"
+  },
+  "history": {
+    "earlier_CI_failures": "First stopped at missing PYTHONPATH; second exposed model-label test assertion; third retained 12 Path-type interface failures. All were corrected and are not the final scientific run."
+  },
+  "evidence": {
+    "pull_request": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/634",
+    "head_commit": "d2a5d7c0fbcf2fb15be5343b3fcdd3f2933a8b64",
+    "workflow_run": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44485284126",
+    "artifact_id": 14510970789,
+    "artifact_bytes": 22601,
+    "artifact_zip_sha256": "076d69e3efbd6e52abc53d082ea539c118e607c7ca6f3e8834488984399f5463"
+  },
+  "limitations": {
+    "P_zero_crust": "NOT_ESTABLISHED",
+    "physical_baryon_normalization": "NOT_ESTABLISHED; n0 arbitrary and RNS M0 not physical",
+    "original_MPA1_global_physical_acceptance": "NOT_ESTABLISHED",
+    "native_XPSI_likelihood": "NOT_RUN",
+    "final_EOS_Bayes": "NOT_RUN"
+  }
+}
