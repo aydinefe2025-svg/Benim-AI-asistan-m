@@ -29,7 +29,7 @@ def verify(root:Path,truth:Path,out:Path):
  if witnesses['source_2d_F38_archive_SHA256']!=original.F38_EXPECTED_SHA or set(witnesses['models'])!=set(original.SEVEN):
   raise original.EvidenceFailure('F38 source 2D archive pin changed')
  repo=Path(__file__).resolve().parents[3]
- for path in [repo/'research/j0740/original_seven_inference',Path('/mnt/data/eos_finish/library_readback')]:
+ for path in [repo/'research/j0740/original_seven_inference',HERE,Path('/mnt/data/eos_finish/library_readback')]:
   if path.is_dir() and str(path) not in sys.path:sys.path.insert(0,str(path))
  import original_seven_fullmass_integral as likelihood_source
  maxrel=0.0;count=0;source_witnesses={}
