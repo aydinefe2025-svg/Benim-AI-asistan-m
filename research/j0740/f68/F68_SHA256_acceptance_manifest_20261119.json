@@ -1,0 +1,38 @@
+{
+  "files": {
+    "F62_original_MPA1_rotating_direct_C_20261118.json": {
+      "bytes": 141490,
+      "sha256": "aca15e711f18ef7646dc5520d8874700475def17f0bcf5e57e354cfcf3cc8f84"
+    },
+    "F68_MPA1_PCHIP_COLD_151x301_GR_CI_20261119.zip": {
+      "bytes": 14268,
+      "sha256": "b4649db1180c04278dd37936819b5f2b32f36dd09e223589893bdeb7d7a374cf"
+    },
+    "F68_MPA1_PCHIP_COLD_201x401_GR_CI_20261119.zip": {
+      "bytes": 4056,
+      "sha256": "e9d1bd332ea7168182333c2206247f980791c073c473082fd30ed31ceb6c21bd"
+    },
+    "F68_independent_static_four_mass_TOV_20261119.json": {
+      "bytes": 2650,
+      "sha256": "8aaea404554c1c06226b46f5a6d0f0e29062fb4b194b0432a382641a6cb88b25"
+    },
+    "F68_new_MPA1_PCHIP_COLD_rotating_coarse_C.json": {
+      "bytes": 40096,
+      "sha256": "addf2967955bbc2dada48a981027cc64aeb8349c9380060e491f18f30f04196b"
+    },
+    "F68_new_MPA1_PCHIP_COLD_rotating_fine_C.json": {
+      "bytes": 20321,
+      "sha256": "91ee06034bf170905fc71e2d5a1b01a338bb20086f6ed249a50de5c9c7536507"
+    },
+    "F68_science_report_20261119.md": {
+      "bytes": 3605,
+      "sha256": "6cae8d0f5ed2fe80f04435e233917c741f4ccd87aacd86d861f3579e493e8971"
+    },
+    "F68_science_summary_20261119.json": {
+      "bytes": 4859,
+      "sha256": "de2168c281ed90c975c5d658eb395cd88b3114c10e97d0137f181af61ab6f1be"
+    }
+  },
+  "git_source_models_not_overwritten": true,
+  "schema": "F68_SHA256_MANIFEST"
+}

@@ -1,0 +1,82 @@
+{
+  "F67_model": "MPA1_PCHIP_COLD_V1_EXPLORATORY_NOT_ORIGINAL",
+  "full_physical_EOS": "NOT_ESTABLISHED",
+  "original_F67_thermo_SHA256": "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22",
+  "schema": "F68_INDEPENDENT_F67_ALTERNATE_FOUR_MASS_STATIC_TOV_DIAGNOSTIC",
+  "source_native_XPSI": "NOT_RUN",
+  "stars": {
+    "2.073": {
+      "independent_mass_difference_msun": 1.0082572776681786e-07,
+      "independent_radius_difference_m": 0.000526912625531395,
+      "rm": {
+        "central_enthalpy_h": 0.38418639038284685,
+        "mass_msun": 2.0730000300937883,
+        "method": "rm",
+        "radius_km": 12.406156505153048
+      },
+      "uv": {
+        "central_enthalpy_h": 0.38418639038284685,
+        "mass_msun": 2.0729999292680605,
+        "method": "uv",
+        "radius_km": 12.406155978240422
+      }
+    },
+    "2.175": {
+      "independent_mass_difference_msun": 1.5591781377111147e-07,
+      "independent_radius_difference_m": 3.857006269925023e-05,
+      "rm": {
+        "central_enthalpy_h": 0.43119816009718626,
+        "mass_msun": 2.17500005172445,
+        "method": "rm",
+        "radius_km": 12.322892393312111
+      },
+      "uv": {
+        "central_enthalpy_h": 0.43119816009718626,
+        "mass_msun": 2.174999895806636,
+        "method": "uv",
+        "radius_km": 12.322892431882174
+      }
+    },
+    "2.200": {
+      "independent_mass_difference_msun": 2.6179398204817517e-08,
+      "independent_radius_difference_m": 6.705515431804088e-05,
+      "rm": {
+        "central_enthalpy_h": 0.44461951278422923,
+        "mass_msun": 2.1999999546424074,
+        "method": "rm",
+        "radius_km": 12.296156984099936
+      },
+      "uv": {
+        "central_enthalpy_h": 0.44461951278422923,
+        "mass_msun": 2.1999999808218056,
+        "method": "uv",
+        "radius_km": 12.29615705115509
+      }
+    },
+    "2.250": {
+      "independent_mass_difference_msun": 1.2612203090789365e-06,
+      "independent_radius_difference_m": 0.00010970809150023797,
+      "rm": {
+        "central_enthalpy_h": 0.47459623672164075,
+        "mass_msun": 2.249999971114883,
+        "method": "rm",
+        "radius_km": 12.232612021745494
+      },
+      "uv": {
+        "central_enthalpy_h": 0.47459623672164075,
+        "mass_msun": 2.249998709894574,
+        "method": "uv",
+        "radius_km": 12.232612131453585
+      }
+    }
+  },
+  "status": "TWO_INDEPENDENT_STATIC_TOV_FORMULATIONS_PASS_NOT_ROTATING",
+  "target_masses_msun": [
+    2.073,
+    2.175,
+    2.2,
+    2.25
+  ],
+  "warning": "This crosscheck is STATIC only and cannot substitute for real rotating RNS C.",
+  "zero_pressure_surface": "NOT_ESTABLISHED"
+}
