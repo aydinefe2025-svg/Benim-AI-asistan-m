@@ -6,6 +6,8 @@ on:
       - "research/battery_curve_audit/**"
       - "tests/test_battery_independent_holdout.py"
       - "tests/test_battery_customer_pipeline.py"
+      - "tests/test_battery_time_origin_guard.py"
+      - "tests/test_battery_virtual_lab.py"
       - "tests/test_battery_integrated_gate.py"
       - "tests/test_battery_integrated_output_safety.py"
       - "tests/test_battery_field_pilot_evidence.py"
@@ -39,6 +41,12 @@ jobs:
 
       - name: Offline one-command customer pipeline regression suite
         run: python -m unittest discover -s tests -p "test_battery_customer_pipeline.py" -v
+
+      - name: Time-origin shifted-clone safety regressions
+        run: python -m unittest discover -s tests -p "test_battery_time_origin_guard.py" -v
+
+      - name: Virtual-lab deterministic simulation regressions
+        run: python -m unittest discover -s tests -p "test_battery_virtual_lab.py" -v
 
       - name: Near-duplicate regression suite (synthetic only)
         run: python -m unittest discover -s tests -p "test_battery_near_duplicate_guard.py" -v
@@ -244,10 +252,34 @@ jobs:
           print("PASS: combined 20 CSV source gate REVIEW_REQUIRED; no unsafe accepted split")
           PY
 
+      - name: Run reproducible 1300-batch synthetic virtual lab
+        run: |
+          python research/battery_curve_audit/battery_virtual_lab.py \
+            --trials 100 --seed 20261119 \
+            --output "${RUNNER_TEMP}/CANO_BATARYA_SANAL_LAB_1300.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ["RUNNER_TEMP"])/"CANO_BATARYA_SANAL_LAB_1300.json"
+          r=json.loads(p.read_text())
+          assert r["total_simulated_batches"] == 1300
+          assert r["total_generated_curves"] == 5200
+          assert r["controlled_clone_batches"] == 600
+          assert r["controlled_clone_review_or_block"] == 500
+          assert r["controlled_clone_screen_only_misses"] == 100
+          assert r["independent_template_batches"] == 200
+          assert r["independent_templates_flagged_for_review"] == 100
+          assert r["baseline_deviations"] == 0
+          assert r["categories"]["time_origin_shift_clone"]["observed_decisions"] == {"REVIEW_REQUIRED": 100}
+          assert r["categories"]["noisy_clone_3mv"]["observed_decisions"] == {"SCREEN_ONLY_NO_CROSS_CELL_CANDIDATES": 100}
+          assert r["experimental_second_stage"]["NOT_DEPLOYED_OR_CERTIFIED"]
+          print("PASS: 1300 synthetic batches, 500/600 clone reviews, 100 unresolved bias cases; no field-success claim")
+          PY
+
       - name: Build and verify source-pinned offline Windows pilot ZIP
         run: |
           python research/battery_curve_audit/package_offline_pilot.py \
-            --output "${RUNNER_TEMP}/CANO_BATARYA_OFFLINE_PILOT_20261119.zip"
+            --output "${RUNNER_TEMP}/CANO_BATARYA_OFFLINE_SIMULASYON_V2_20261119.zip"
           python - <<'PY'
           import os
           import sys
@@ -255,7 +287,7 @@ jobs:
           import subprocess
           from pathlib import Path
           from zipfile import ZipFile
-          artifact=Path(os.environ["RUNNER_TEMP"])/"CANO_BATARYA_OFFLINE_PILOT_20261119.zip"
+          artifact=Path(os.environ["RUNNER_TEMP"])/"CANO_BATARYA_OFFLINE_SIMULASYON_V2_20261119.zip"
           with tempfile.TemporaryDirectory() as tmp:
               with ZipFile(artifact) as z:
                   assert z.testzip() is None
@@ -268,10 +300,10 @@ jobs:
       - name: Publish offline Windows/Linux pilot bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: cano-battery-offline-pilot-20261119
+          name: cano-battery-offline-simulation-v2-20261119
           if-no-files-found: error
           retention-days: 7
-          path: ${{ runner.temp }}/CANO_BATARYA_OFFLINE_PILOT_20261119.zip
+          path: ${{ runner.temp }}/CANO_BATARYA_OFFLINE_SIMULASYON_V2_20261119.zip
 
       - name: Publish read-only evidence artifact
         if: always()
@@ -289,3 +321,46 @@ jobs:
             ${{ runner.temp }}/battery_numeric_audit.json
             ${{ runner.temp }}/battery_integrated_report.json
             ${{ runner.temp }}/customer_public_summary.json
+            ${{ runner.temp }}/CANO_BATARYA_SANAL_LAB_1300.json
+
+  windows-launchers:
+    name: Windows native offline batch launchers
+    needs: battery-audit
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Package, extract and run native Windows CMD tests
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP "CANO_BATARYA_WIN_SIM_V2.zip"
+          $folder = Join-Path $env:RUNNER_TEMP "CANO_BATARYA_WIN_PILOT"
+          python research/battery_curve_audit/package_offline_pilot.py --output "$zip"
+          if ($LASTEXITCODE -ne 0) { throw "Windows package build failed" }
+          Expand-Archive -LiteralPath "$zip" -DestinationPath "$folder"
+          Set-Location (Join-Path $folder "CANO_BATARYA_CEVRIMDISI_PILOT")
+          $env:CANO_BATCH_NONINTERACTIVE = "1"
+          cmd /c Verify-Package.cmd
+          if ($LASTEXITCODE -ne 0) { throw "Native Verify-Package.cmd failed" }
+          cmd /c Run-Demo.cmd
+          if ($LASTEXITCODE -ne 0) { throw "Native Run-Demo.cmd failed" }
+          cmd /c Run-Detection-Demo.cmd
+          if ($LASTEXITCODE -ne 2) { throw "Controlled duplicate must require review, exit 2" }
+          cmd /c Run-Customer.cmd "demo-data\manifest_clean.json" "windows-customer-summary.json"
+          if ($LASTEXITCODE -ne 0) { throw "Native Run-Customer.cmd failed" }
+          cmd /c Run-Simulation.cmd
+          if ($LASTEXITCODE -ne 0) { throw "Native Run-Simulation.cmd failed" }
+          $result = Get-Content "simulation-evidence.json" -Raw | ConvertFrom-Json
+          if ($result.total_simulated_batches -ne 1300 -or $result.controlled_clone_screen_only_misses -ne 100) {
+            throw "Windows simulation result mismatch"
+          }
+          $duplicate = Get-Content "demo-duplicate-summary.json" -Raw | ConvertFrom-Json
+          if ($duplicate.decision -ne "REVIEW_REQUIRED") { throw "Windows copied curve erroneously approved" }
+          Write-Host "PASS: real Windows CMD launchers, checksum, 1300 simulations and controlled demo decisions"

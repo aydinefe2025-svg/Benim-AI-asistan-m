@@ -18,6 +18,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 PREFIX = "CANO_BATARYA_CEVRIMDISI_PILOT"
 EPOCH = (2026, 11, 19, 0, 0, 0)
 PROGRAMS = [
+    "battery_virtual_lab.py",
     "customer_pipeline.py",
     "customer_preflight.py",
     "numeric_equivalence_guard.py",
@@ -28,6 +29,7 @@ PROGRAMS = [
     "field_pilot_evidence.py",
 ]
 DOCUMENTS = [
+    "SIMULATION_LAB.md",
     "CUSTOMER_PIPELINE.md",
     "CUSTOMER_PREFLIGHT.md",
     "INTEGRATED_CUSTOMER_GATE.md",
@@ -37,6 +39,8 @@ DOCUMENTS = [
     "README.md",
 ]
 TESTS = [
+    "test_battery_virtual_lab.py",
+    "test_battery_time_origin_guard.py",
     "test_battery_customer_pipeline.py",
     "test_battery_customer_output_guard.py",
     "test_battery_decimal_identity.py",
@@ -78,6 +82,8 @@ def verify():
 
 def tests():
     patterns = [
+        "test_battery_virtual_lab.py",
+        "test_battery_time_origin_guard.py",
         "test_battery_customer_pipeline.py",
         "test_battery_customer_output_guard.py",
         "test_battery_integrated_gate.py",
@@ -130,7 +136,8 @@ It does not need pip, cloud tokens, API keys, or customer uploads.
 1. Unzip to a regular folder; do not run directly inside the ZIP.
 2. Double-click Verify-Package.cmd (hashes only) or run:
    py -3 verify_package.py --tests --demo
-3. Double-click Run-Demo.cmd to generate an aggregate result from synthetic
+3. Double-click Run-Simulation.cmd to run the 1,300 synthetic-batch
+   laboratory study (no real customer data). Then use Run-Demo.cmd to generate an aggregate result from synthetic
    independent curves. Double-click Run-Detection-Demo.cmd for a controlled
    duplicate example; it intentionally returns REVIEW_REQUIRED (exit code 2).
 4. For authorized customer CSVs, supply an explicit manifest and an output path:
@@ -185,6 +192,21 @@ SHA-256 receipt. Never treat a self-supplied checksum as a digital signature.
 '''
 
 LAUNCHERS = {
+"Run-Simulation.cmd": r'''@echo off
+setlocal
+cd /d "%~dp0"
+where py >nul 2>nul
+if not errorlevel 1 (
+  py -3 research\battery_curve_audit\battery_virtual_lab.py --trials 100 --seed 20261119 --output "simulation-evidence.json"
+) else (
+  python research\battery_curve_audit\battery_virtual_lab.py --trials 100 --seed 20261119 --output "simulation-evidence.json"
+)
+set "RC=%errorlevel%"
+echo.
+echo Synthetic tests ONLY; output files never overwritten.
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
+exit /b %RC%
+''',
 "Verify-Package.cmd": r'''@echo off
 setlocal
 cd /d "%~dp0"
@@ -196,7 +218,7 @@ if not errorlevel 1 (
 )
 set "RC=%errorlevel%"
 echo.
-pause
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
 exit /b %RC%
 ''',
 "Run-Demo.cmd": r'''@echo off
@@ -211,7 +233,7 @@ if not errorlevel 1 (
 set "RC=%errorlevel%"
 echo.
 echo Existing reports are never overwritten. Review demo-clean-summary.json.
-pause
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
 exit /b %RC%
 ''',
 "Run-Detection-Demo.cmd": r'''@echo off
@@ -227,7 +249,7 @@ set "RC=%errorlevel%"
 echo.
 echo REVIEW_REQUIRED and exit 2 is EXPECTED in the controlled duplicate demo.
 echo Existing reports are never overwritten.
-pause
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
 exit /b %RC%
 ''',
 "Run-Customer.cmd": r'''@echo off
@@ -237,9 +259,9 @@ if "%~2"=="" goto usage
 cd /d "%~dp0"
 where py >nul 2>nul
 if not errorlevel 1 (
-  py -3 research\battery_curve_audit\customer_pipeline.py --manifest "%~f1" --root "%~dp1" --summary "%~f2"
+  py -3 research\battery_curve_audit\customer_pipeline.py --manifest "%~f1" --summary "%~f2"
 ) else (
-  python research\battery_curve_audit\customer_pipeline.py --manifest "%~f1" --root "%~dp1" --summary "%~f2"
+  python research\battery_curve_audit\customer_pipeline.py --manifest "%~f1" --summary "%~f2"
 )
 exit /b %errorlevel%
 :usage
@@ -282,7 +304,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-19-pilot",
+                "version":"2026-11-19-simulation-v2",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,
