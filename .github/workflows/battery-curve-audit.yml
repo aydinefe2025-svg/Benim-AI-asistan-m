@@ -15,6 +15,7 @@ on:
       - "tests/test_battery_field_csv_intake.py"
       - "tests/test_battery_field_receipt_binding.py"
       - "tests/test_battery_bound_field_csv.py"
+      - "tests/test_battery_blind_field_review.py"
       - "tests/test_customer_preflight.py"
       - "tests/test_battery_numeric_equivalence.py"
       - "tests/test_battery_near_duplicate_guard.py"
@@ -81,6 +82,11 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "test_battery_bound_field_csv.py" -v
           python -m py_compile research/battery_curve_audit/field_source_csv_bridge.py
+
+      - name: Prospective two-technician prediction-blind review and source-integrity regressions
+        run: |
+          python -m unittest discover -s tests -p "test_battery_blind_field_review.py" -v
+          python -m py_compile research/battery_curve_audit/blind_field_review.py
 
       - name: Fetch and independently parse all 20 publisher CSVs
         run: |
@@ -367,7 +373,7 @@ jobs:
                   z.extractall(tmp)
               folder=Path(tmp)/"CANO_BATARYA_CEVRIMDISI_PILOT"
               subprocess.run([sys.executable,"verify_package.py","--tests","--demo"],cwd=folder,check=True)
-          print("PASS: isolated ZIP extraction, checksum readback, linked-source regressions and 4 synthetic demo runs")
+          print("PASS: isolated ZIP extraction, checksum readback, blinded-review regressions and 5 synthetic demo runs")
           PY
 
       - name: Publish offline Windows/Linux pilot bundle
@@ -431,6 +437,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Native Run-Customer.cmd failed" }
           cmd /c Run-Field-Verified.cmd
           if ($LASTEXITCODE -ne 2) { throw "Native field verified launcher must refuse missing required arguments" }
+          cmd /c Run-Blind-Review-Demo.cmd
+          if ($LASTEXITCODE -ne 0) { throw "Native prediction-blind field demo failed" }
           cmd /c Run-Simulation.cmd
           if ($LASTEXITCODE -ne 0) { throw "Native Run-Simulation.cmd failed" }
           $result = Get-Content "simulation-evidence.json" -Raw | ConvertFrom-Json
