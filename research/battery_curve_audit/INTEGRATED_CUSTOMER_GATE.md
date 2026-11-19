@@ -26,7 +26,7 @@ python research/battery_curve_audit/integrated_customer_gate.py \
   --accepted-split ./accepted-split.json
 ```
 
-Exit 0 means **PASS_SCREEN_ONLY**, *not* a certificate of experimental independence. Exit 2 means **REVIEW_REQUIRED** or **BLOCK_INSUFFICIENT_GROUPS**, and there is **no accepted split**. A proposed transitive group holdout may remain in the private report for technician review. `--verify-report old_report.json` reruns original local files and compares all evidence, including the proposed split. All split-creating legacy calls through `customer_preflight.py --split` are deliberately rejected; that unsafe text-only acceptance path is disabled. `customer_preflight.py --report` remains supported for read-only baseline provenance.
+Exit 0 means **PASS_SCREEN_ONLY**, *not* a certificate of experimental independence. Exit 2 means **REVIEW_REQUIRED** or **BLOCK_INSUFFICIENT_GROUPS**, and there is **no accepted split**. A proposed transitive group holdout may remain in the private report for technician review. `--verify-report old_report.json` reruns original local files and compares all evidence, including the proposed split. All split-creating legacy calls through `customer_preflight.py --split` are deliberately rejected; that unsafe text-only acceptance path is disabled. `customer_preflight.py --report` remains supported for read-only baseline provenance. Likewise `numeric_equivalence_guard.py --holdout` is disabled because it skips the near-curve gate; `numeric_equivalence_guard.py --report` remains read-only.
 
 ## Applied layers
 
