@@ -1,0 +1,32 @@
+{
+  "schema": "j0740_apr4_source_interpolant_causality_manifest_v1",
+  "files": [
+    {
+      "name": "apr4_source_interpolant_causality_20261119.py",
+      "local_name": "audit_apr4_source_causality_interpolants_20261119.py",
+      "bytes": 6526,
+      "sha256": "7e478d91efae47d1a557583d32363438198cf3f51da5f19f172be3a5d2ab7858"
+    },
+    {
+      "name": "APR4_SOURCE_INTERPOLANT_CAUSALITY_20261119.json",
+      "local_name": "J0740_APR4_SOURCE_INTERPOLANT_CAUSALITY_20261119.json",
+      "bytes": 2906,
+      "sha256": "1281c2acc3c10e001c29c6c4c51a0c2749a2aaa94731258d76668f6aa22644ba"
+    }
+  ],
+  "source": {
+    "lalsuite_tag": "lalsuite-v7.26.4",
+    "bytes": 72350,
+    "sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f"
+  },
+  "limitations": [
+    "APR4 global causality FAIL under both tested interpolants.",
+    "Saved target-root local causal screen remains conditional.",
+    "EOS_Bayes NOT_RUN; no EOS modification or result matching."
+  ],
+  "branch": "science/j0740-apr4-firstlaw-gr-pilot-20261117",
+  "commits": [
+    "149867df70a86bc8fcd51c11b0e9f53c472286a7",
+    "2dc17ae47c0f87fbd58924d3a61f0d1a7eeddb29"
+  ]
+}
