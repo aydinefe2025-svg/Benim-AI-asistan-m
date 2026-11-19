@@ -1,0 +1,59 @@
+{
+  "schema": "J0740_MPA1_PCHIP_PARTIAL_F38_EXECUTION_MANIFEST_V1",
+  "execution": {
+    "date_local": "2026-11-19",
+    "commands": [
+      "python -m unittest -v test_mpa1_pchip_partial_f38_evidence.py",
+      "python mpa1_pchip_partial_f38_evidence.py --f38-zip <pinned F38.zip> --f68-report <pinned F68 report> --output MPA1_PCHIP_partial_F38_evidence_20261119.json"
+    ],
+    "exit_code": 0,
+    "tests": 4,
+    "status": "PASS",
+    "interpreter": "Python 3.15",
+    "numpy": "2.5.4",
+    "scope": "partial approximate evidence integral on 2.073–2.250 Msun only"
+  },
+  "outputs": [
+    {
+      "path": "mpa1_pchip_partial_f38_evidence.py",
+      "bytes": 9590,
+      "sha256": "7c855cce6a687c250e1ce70db9c0182c5a881beda4371acc51ab72648a70f5d5"
+    },
+    {
+      "path": "test_mpa1_pchip_partial_f38_evidence.py",
+      "bytes": 2298,
+      "sha256": "477d94d1238ac272718c3e42e181f997b843475d21cfe2b11e79729b30ccd683"
+    },
+    {
+      "path": "MPA1_PCHIP_partial_F38_evidence_20261119.json",
+      "bytes": 8447,
+      "sha256": "dbfc457e2227305832582250967b55dfa785ed5302a006335bb9f6db65945be4"
+    }
+  ],
+  "inputs": [
+    {
+      "label": "F38 source archive",
+      "sha256": "4bb3220988cb0ecd5cb1ef17370721d3fec82f99dc48f7ca57217cce3dc2d307",
+      "verification": "ZIP CRC PASS and internal member hashes verified"
+    },
+    {
+      "label": "F68 direct RNS anchors report",
+      "run_id": 44490729799,
+      "sha256": "ee7b238c22f28b08a22ae621b1e5a6996f6df07cb4f113acef6d45dc28e1266b"
+    },
+    {
+      "label": "Salmi posterior member",
+      "sha256": "1549467c64a8801c39213bd28c89737d087cc5ab7a70da1d8d3a32b2d09185c8"
+    }
+  ],
+  "science_status": {
+    "physical_EOS_acceptance": "NOT_ESTABLISHED",
+    "complete_EOS_evidence": "NOT_ESTABLISHED",
+    "source_native_XPSI_photon_reanalysis": "NOT_RUN",
+    "full_nuisance_marginalization": "NOT_RUN",
+    "seven_original_EOS_model_Bayes": "NOT_RUN",
+    "fixed_J_stability": "NOT_RUN"
+  },
+  "caveat": "F38 posterior-derived surface is approximate and bandwidth-dependent; R(M) is piecewise linear between four direct RNS anchors. This partial contribution is not a Bayes factor."
+}
+
