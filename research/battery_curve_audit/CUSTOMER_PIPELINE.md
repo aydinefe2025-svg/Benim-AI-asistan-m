@@ -26,7 +26,7 @@ python research/battery_curve_audit/customer_pipeline.py \
   --summary ./local-safe-summary.json
 ```
 
-The program returns **exit 2** for a duplicate/near-match review, invalid input, or insufficient independent groups, even if it successfully writes an aggregate report. `--report-only` explicitly permits exit 0 to *inspect* that report; it **never** approves a train/test split. The public summary contains only counts and unit tags, not measurements, file names, customer aliases, source hashes, or trace SHA-256 values.
+The program returns **exit 2** for a duplicate/near-match review, invalid input, or insufficient independent groups, even if it successfully writes an aggregate report. `--report-only` explicitly permits exit 0 to *inspect* a summary **only**, and cannot be combined with `--private-split`; it **never** approves a train/test split. The public summary contains only counts and unit tags, not measurements, file names, customer aliases, source hashes, or trace SHA-256 values.
 
 A genuinely private holdout file can be requested explicitly:
 
@@ -44,7 +44,7 @@ This opt-in JSON contains cell aliases and trace SHA-256 hashes, and is marked `
 - No missing timestamp or voltage is filled with zero. Complete trailing omitted column pairs are preserved; malformed/missing half-pairs are rejected.
 - Exact Decimal equality is distinct from near equality. Near candidates require the same charge/discharge mode, at least 100 measurements, nonflat traces, endpoints within 0.5%, and at most 2 mV piecewise-linear difference over original knots. Identical numerical curves form groups even when CSV formatting differs. Near candidates are **review-only** and not evidence of deliberate copying.
 - All exact/numeric and near links become a transitive connected component of cells. Each component's entire trace history goes to only one split; if fewer than three groups exist, the tool **blocks split creation**, never fabricates statistical independence.
-- The pilot caps processing at 120 traces, to avoid unbounded quadratic comparisons. Larger datasets require separately controlled batching and acceptance.
+- The pilot caps processing at 120 traces and 1,000,000 measured time-voltage pairs, to avoid unbounded quadratic comparisons. Curves with fewer than 100 measurements or voltage span under 0.05 V **are not near-screenable and force REVIEW_REQUIRED**, rather than silently clearing an incomplete screen. The summary adds an aggregate `unscreened_traces` count but does not expose file names. Larger datasets require separately controlled batching and acceptance.
 - A negative screen does not prove physically independent samples, exclude unrecorded shared batches, or validate any battery SOH/SOC prediction. Real lab technician labels, instrument metadata and false-positive/false-negative rates remain unverified.
 - Raw measurement pairs never leave the local Python process. However, local input file and manifest access still require appropriate customer permissions. This tool does not upload to Notion, GitHub, Render or Neon.
 
