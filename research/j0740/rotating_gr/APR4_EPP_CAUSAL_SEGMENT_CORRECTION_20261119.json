@@ -1,0 +1,77 @@
+{
+  "schema": "j0740_apr4_epp_causal_segment_correction_v1",
+  "source": {
+    "release": "LALSuite lalsuite-v7.26.4 APR4_EPP",
+    "url": "https://git.ligo.org/lscsoft/lalsuite/-/raw/lalsuite-v7.26.4/lalsimulation/lib/LALSimNeutronStarEOS_APR4_EPP.dat",
+    "bytes": 72350,
+    "sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+    "pinned_identity_pass": true,
+    "rows": 1447
+  },
+  "published_model_basis": {
+    "reference": "Endrizzi et al. 2016, arXiv:1604.03445",
+    "url": "https://arxiv.org/pdf/1604.03445",
+    "reported_extension": "Gamma=3 segment beginning near 1.4e15 g cm^-3 and Gamma=2 above 1.61e15 g cm^-3, added to make modified APR4 causal",
+    "formula": "cold polytrope: cs2 = Gamma*P/(epsilon+P), geometrized units"
+  },
+  "mapped_join": {
+    "gamma3_start_row_zero_based": 1413,
+    "join_row_zero_based": 1419,
+    "join_pressure_geom_m2": 7.777682760985296e-10,
+    "join_energy_geom_m2": 1.5645821110440575e-09,
+    "boundary_evaluated_from_both_sides": true,
+    "cs2_gamma3_at_join": 0.9961382554477545,
+    "cs2_gamma2_at_join": 0.664092170298503,
+    "caveat": "The LAL table has no rest-mass-density column; density locations come from the cited model description, while row mapping uses source P,epsilon knots."
+  },
+  "analytic_pieces": [
+    {
+      "name": "added_Gamma_3",
+      "gamma": 3.0,
+      "source_rows_zero_based_inclusive": [
+        1413,
+        1419
+      ],
+      "pressure_range_geom_m2": [
+        5.136142888139959e-10,
+        7.777682760985296e-10
+      ],
+      "cs2_min_at_knots": 0.8587699375150927,
+      "cs2_max_at_knots": 0.9961382554477545,
+      "cs2_max_pressure_geom_m2": 7.777682760985296e-10,
+      "p_over_epsilon_monotone_non_decreasing": true,
+      "causal_on_piece_by_analytic_barotropic_relation": true
+    },
+    {
+      "name": "added_Gamma_2",
+      "gamma": 2.0,
+      "source_rows_zero_based_inclusive": [
+        1419,
+        1446
+      ],
+      "pressure_range_geom_m2": [
+        7.777682760985296e-10,
+        2.7009336819150513e-09
+      ],
+      "cs2_min_at_knots": 0.664092170298503,
+      "cs2_max_at_knots": 0.7865291612019558,
+      "cs2_max_pressure_geom_m2": 2.7009336819150513e-09,
+      "p_over_epsilon_monotone_non_decreasing": true,
+      "causal_on_piece_by_analytic_barotropic_relation": true
+    }
+  ],
+  "correction_to_prior_report": {
+    "withdrawn": "A natural-cubic or PCHIP derivative overshoot above cs2=1 proves the APR4_EPP source EOS is globally acausal.",
+    "correct_interpretation": "Those values are diagnostics of the chosen smoothed interpolants. They smooth over intended piecewise-polytrope derivative changes and are not the analytic EOS sound speed.",
+    "previous_interpolant_diagnostics_remain_valid_as_interpolant_diagnostics": true
+  },
+  "acceptance": {
+    "source_identity": true,
+    "added_Gamma3_piece_causal": true,
+    "added_Gamma2_piece_causal": true,
+    "all_original_APR4_crust_and_core_segments_independently_certified": false,
+    "global_APR4_EPP_causality": "NOT_ESTABLISHED",
+    "EOS_Bayes": "NOT_RUN"
+  }
+}
+
