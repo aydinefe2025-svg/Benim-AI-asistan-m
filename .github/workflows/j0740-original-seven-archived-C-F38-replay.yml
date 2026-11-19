@@ -22,6 +22,8 @@ jobs:
       - name: 10 adversarial tests on all 7 ORIGINAL source-pinned RNS C artifact ZIPS
         working-directory: research/j0740/original_spin_recovery
         run: python -m unittest -v test_recover_native_seven_rotating
+      - name: Guard future source RNS high-density timeouts (no real C subprocesses run)
+        run: python -m unittest discover -s research/j0740/original_spin_mass_sweep -p 'test_*.py' -v
       - name: Recover all 323 previously computed REAL original C stars, no extra expensive 48-grid reruns
         run: |
           python research/j0740/original_spin_recovery/recover_native_seven_rotating.py \
