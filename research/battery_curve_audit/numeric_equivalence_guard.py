@@ -130,6 +130,9 @@ def main(argv=None):
     parser.add_argument('--report', type=Path, required=True)
     parser.add_argument('--holdout', type=Path)
     args = parser.parse_args(argv)
+    if args.holdout:
+        args.holdout.unlink(missing_ok=True)
+        raise ValueError('REVIEW_REQUIRED: legacy numeric-only --holdout blocked; use integrated_customer_gate.py')
     manifest = json.loads(args.manifest.read_text(encoding='utf-8'))
     root = args.root if args.root else args.manifest.resolve().parent
     audit = build_numeric_audit(manifest, root)
