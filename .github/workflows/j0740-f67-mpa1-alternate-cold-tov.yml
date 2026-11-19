@@ -20,7 +20,7 @@ jobs:
           python-version: '3.12'
       - name: Pinned original source package, independent high-precision TOV solver
         run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3' 'lalsuite==7.26.4'
-      - name: Sixteen fail-closed source, thermodynamic and independent TOV tests
+      - name: Eighteen fail-closed source, thermodynamic and independent TOV tests
         run: python -m unittest discover -s research/j0740/f67 -p 'test_f67_*.py' -v
       - name: Resolve installed LALSuite MPA1 ORIGINAL raw table with exact F66 source SHA
         run: |
@@ -53,6 +53,9 @@ jobs:
           assert d['original_JESTER_MPA1_npz_sha256']=='0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22'
           assert d['installed_original_MPA1_raw_source_sha256']=='bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec'
           assert d['sampled_sound_speed_in_star']['continuous_causality_proof']=='NOT_ESTABLISHED'
+          assert d['analytic_piecewise_cubic_sound_speed_extrema']['all_piecewise_interval_extrema_checked'] is True
+          assert d['analytic_piecewise_cubic_sound_speed_extrema']['physical_nuclear_EOS_continuous_certification']=='NOT_ESTABLISHED'
+          assert d['analytic_piecewise_cubic_sound_speed_extrema']['new_alternate_mathematical_interpolant_causal_to_star_center'] is True
           assert d['physically_admissible_full_EOS']=='NOT_ESTABLISHED'
           assert d['rotating_RNS_equilibria_on_alternative']=='NOT_RUN'
           assert d['native_photon_XPSI_likelihood']=='NOT_RUN' and d['seven_original_EOS_Bayes']=='NOT_RUN'
