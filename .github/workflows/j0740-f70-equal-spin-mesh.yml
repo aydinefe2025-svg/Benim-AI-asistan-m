@@ -1,0 +1,156 @@
+name: J0740 F70 strict mass-spin RNS C convergence on identical EOS
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f70/**'
+      - '.github/workflows/j0740-f70-equal-spin-mesh.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  match-mass-spin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - grid: 151x301
+            mdiv: 151
+            sdiv: 301
+            baseline: F68_new_MPA1_PCHIP_COLD_rotating_coarse_C_20261119.json
+          - grid: 201x401
+            mdiv: 201
+            sdiv: 401
+            baseline: F68_new_MPA1_PCHIP_COLD_rotating_fine_C_20261119.json
+          - grid: 251x501
+            mdiv: 251
+            sdiv: 501
+            baseline: F68_new_MPA1_PCHIP_COLD_rotating_fine_C_20261119.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Strict regression tests and pinned original F68 EOS SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f70 -p 'test_f70_*.py' -v
+          echo '5af6e77740c3af282d30918e69a1794dab84895092209ac850c1e2ed2945ac16  research/j0740/f68/F68_ALT196_identical_RNS_source_EOS_20261119.rns' | sha256sum -c -
+      - name: Prepare verbatim 196-row same EOS and exact RNS spacetime grid
+        env:
+          MDIV: ${{ matrix.mdiv }}
+          SDIV: ${{ matrix.sdiv }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/F70
+          cp research/j0740/f68/F68_ALT196_identical_RNS_source_EOS_20261119.rns results/F70/ALT196.rns
+          python research/j0740/f62/f62_rns_precision_patch.py rns-upstream/rns.c
+          python - <<'PY'
+          import os,pathlib
+          p=pathlib.Path('rns-upstream/makefile');x=p.read_text()
+          old='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+          new=f'HIGHSIZE=-DMDIV={os.environ["MDIV"]} -DSDIV={os.environ["SDIV"]}'
+          assert sum(s==old for s in x.splitlines())==1
+          p.write_text(x.replace(old,new,1))
+          assert [s for s in p.read_text().splitlines() if s.startswith('HIGHSIZE=')]==[new]
+          PY
+      - name: Independently compile actual GR C source
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: True two-constraint rotating star roots with direct C axis ratio solver
+        shell: bash
+        env:
+          GRID: ${{ matrix.grid }}
+          BASELINE: ${{ matrix.baseline }}
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f70/f70_spin_matched_rns.py \
+            --binary rns-upstream/rns \
+            --eos results/F70/ALT196.rns \
+            --f68 "research/j0740/f68/$BASELINE" \
+            --grid "$GRID" \
+            --out "results/F70/F70_${GRID}_equal_spin.json"
+          python - <<'PY'
+          import json,glob,os
+          f=glob.glob('results/F70/F70_*_equal_spin.json');assert len(f)==1
+          d=json.load(open(f[0]));assert d['status'].startswith('DIRECT_C_TRUE_')
+          assert len(d['stars'])==2
+          print('F70 direct C mass- and spin-matched',os.environ['GRID'],flush=True)
+          PY
+      - name: SHA provenance for final direct C output
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,hashlib,pathlib
+          out=pathlib.Path('results/F70');out.mkdir(parents=True,exist_ok=True)
+          names=[*out.glob('*'),pathlib.Path('rns-upstream/rns')]
+          info={str(x):{'size':x.stat().st_size,'sha256':hashlib.sha256(x.read_bytes()).hexdigest()} for x in names if x.is_file()}
+          (out/'F70_sha256_manifest.json').write_text(json.dumps(info,indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: F70-true-C-${{ matrix.grid }}-or-failure
+          path: results/F70/
+          if-no-files-found: warn
+          retention-days: 90
+
+  compare-three-spacetime-grids:
+    needs: match-mass-spin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: F70-true-C-*
+          path: results/F70/all
+          merge-multiple: false
+      - name: Source-locked numeric three-grid convergence and physical scope
+        run: |
+          python - <<'PY'
+          import sys,json,pathlib
+          sys.path.insert(0,'research/j0740/f70')
+          from f70_spin_matched_rns import compare
+          root=pathlib.Path('results/F70/all')
+          oldbase=pathlib.Path('research/j0740/f68')
+          c=json.loads((root/'F70-true-C-151x301-or-failure'/'F70_151x301_equal_spin.json').read_text())
+          f=json.loads((root/'F70-true-C-201x401-or-failure'/'F70_201x401_equal_spin.json').read_text())
+          g=json.loads((root/'F70-true-C-251x501-or-failure'/'F70_251x501_equal_spin.json').read_text())
+          co=json.loads((oldbase/'F68_new_MPA1_PCHIP_COLD_rotating_coarse_C_20261119.json').read_text())
+          fi=json.loads((oldbase/'F68_new_MPA1_PCHIP_COLD_rotating_fine_C_20261119.json').read_text())
+          ans=compare(c,f,(co,fi));ans['third_grid_actual']={};ans['third_grid_status']='CHECKED_NOT_AUTOMATICALLY_CERTIFIED'
+          for key in ('2.073','2.250'):
+            a=c['stars'][key]['actual_direct_RNS_C_model'];b=f['stars'][key]['actual_direct_RNS_C_model'];d=g['stars'][key]['actual_direct_RNS_C_model']
+            if abs(d['mass_msun']-float(key))>5e-6 or abs(d['spin_hz_reported']-346.536369)>.005:raise ValueError('F70_THIRD_GRID_MASS_SPIN_FAIL')
+            dr1=(b['radius_eq_km']-a['radius_eq_km'])*1000
+            dr2=(d['radius_eq_km']-b['radius_eq_km'])*1000
+            ans['third_grid_actual'][key]={'grid_151_to_201_delta_m':dr1,'grid_201_to_251_delta_m':dr2,
+                'difference_magnitude_decreased':abs(dr2)<abs(dr1),
+                'three_grid_monotone_radius':(b['radius_eq_km']-a['radius_eq_km'])*(d['radius_eq_km']-b['radius_eq_km'])>0,
+                'grid_251_R_eq_km':d['radius_eq_km']}
+          pathlib.Path('results/F70/F70_three_spatial_grid_comparison.json').write_text(json.dumps(ans,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(ans,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: F70-final-comparison-or-failure
+          path: results/F70/F70_three_spatial_grid_comparison.json
+          if-no-files-found: warn
+          retention-days: 90
