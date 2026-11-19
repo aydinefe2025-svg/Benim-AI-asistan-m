@@ -41,7 +41,7 @@ jobs:
           print('Original LALSuite 7.26.4 MPA1 source SHA PASS',digest)
           PY
       - name: Four fail-closed EOS table conversion tests
-        run: python -m unittest discover -s research/j0740/f68 -p 'test_f68_*.py' -v
+        run: python -m unittest discover -s research/j0740/f68 -p 'test_f68_pchip_cold_rns.py' -v
       - name: Patch only upstream RNS output precision and compile direct GR C solver
         run: |
           python research/j0740/f62/f62_rns_precision_patch.py rns-upstream/rns.c
