@@ -23,9 +23,14 @@ class RunLineageGateTests(unittest.TestCase):
         self.assertFalse(m["exact_original_prior_bytes_verified"])
 
 
-    def test_default_blocks_unverified_gamma_vs_stu(self):
-        with self.assertRaisesRegex(RunLineageNotProven, "not yet verified"):
-            require_proven_lineage()
+    def test_default_uses_saved_authentic_F31_F32_proofs_not_12GB_reread(self):
+        x = require_proven_lineage()
+        self.assertEqual(
+            x["status"], "ARCHIVED_4_SOURCE_BYTES_AND_4_WEIGHTED_MOMENTS_RUN1_ASSOCIATION_VERIFIED")
+        self.assertEqual(x["xpsi_original_run1_log_version"], "1.2.0")
+        self.assertEqual(x["resume_final_engine_version"], "UNRESOLVED")
+        self.assertFalse(x["original_tar_read_now"])
+        self.assertEqual(x["seven_original_eos_bayes"], "NOT_RUN")
 
     def test_historical_proxy_explicitly_nonfinal(self):
         x = require_proven_lineage(historical_proxy_only=True)
