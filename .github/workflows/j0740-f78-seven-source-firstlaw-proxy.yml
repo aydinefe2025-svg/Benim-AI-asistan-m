@@ -1,0 +1,69 @@
+name: J0740 F78 original 7 EOS n(epsilon) proxy and 323 RNS centre first-law shapes
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f78/**'
+      - '.github/workflows/j0740-f78-seven-source-firstlaw-proxy.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-7-source-baryon-proxy-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-original
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned numpy, without downloaded photon archives
+        run: python -m pip install 'numpy==2.3.5'
+      - name: Sixteen mathematical and provenance tests
+        run: python -m unittest discover -s research/j0740/f78 -p 'test_f78_*.py' -v
+      - name: Independently audit seven pinned source files and 323 authentic original RNS stars
+        run: |
+          python research/j0740/f78/f78_seven_eos_firstlaw_proxy_audit.py \
+            --source-dir jester-original/jesterTOV/tabulated_eos/lalsuite \
+            --artifacts-dir research/j0740/original_spin_recovery/artifacts \
+            --source-manifest research/j0740/f75/F75_pinned_source_manifest.json \
+            --artifact-manifest research/j0740/original_spin_recovery/archived_artifact_manifest.json \
+            --out results/F78/F78_original_323_C_firstlaw_proxy_shapes_20261120.json
+      - name: Verify complete actual JSON digest and source-seven subclaims
+        run: |
+          python - <<'PY'
+          import pathlib,hashlib,json,math
+          path=pathlib.Path('results/F78/F78_original_323_C_firstlaw_proxy_shapes_20261120.json')
+          d=json.loads(path.read_text())
+          c=json.loads(pathlib.Path('research/j0740/f78/F78_expected_CI_certificate_20261120.json').read_text())
+          assert hashlib.sha256(path.read_bytes()).hexdigest()==c['result_json_sha256'], 'actual output differs from pinned source result'
+          assert d['number_real_stars']==323 and d['source_n_is_not_thermodynamic_baryon_density']
+          assert d['absolute_baryon_number_or_mass']=='NOT_CALIBRATED'
+          assert d['new_rotating_RNS']=='NOT_RUN' and d['source_native_XPSI_photon_likelihood']=='NOT_RUN'
+          assert set(d['models'])==set(c['EOS'])
+          for name,expected in c['EOS'].items():
+              actual=d['models'][name]
+              for k,v in expected.items():
+                  if isinstance(v,float):
+                      assert math.isclose(actual[k],v,rel_tol=1e-12,abs_tol=1e-15),(name,k)
+                  else:assert actual[k]==v,(name,k)
+              assert actual['max_n_over_e_relative_residual']<1e-12
+          assert sum(v['original_RNS_C_stars'] for v in d['models'].values())==323
+          print('F78 seven original SHA sources & all 323 real RNS centres & first-law proxy proof VERIFIED')
+          PY
+      - name: Archive actual independent result for byte-level comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F78-original-seven-EOS-firstlaw-323-centres
+          path: results/F78/
+          if-no-files-found: warn
