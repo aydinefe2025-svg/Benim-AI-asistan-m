@@ -62,6 +62,41 @@ class WorkerTests(unittest.TestCase):
             with self.subTest(goal=goal):
                 self.assertIsNone(extract_target(goal))
 
+    def test_canonical_self_development_goal_has_bounded_real_target(self):
+        from core.cano_solution_dispatch import SELF_DEVELOPMENT_GOAL
+        from core.cano_code_jobs import _CYCLE_SUFFIX
+        expected = "core/cano_development_status.py"
+        self.assertEqual(extract_target(SELF_DEVELOPMENT_GOAL), expected)
+        self.assertEqual(
+            extract_target(SELF_DEVELOPMENT_GOAL + "\nDöngü 2" + _CYCLE_SUFFIX),
+            expected,
+        )
+        # A lookalike or a generic unscoped request must never gain
+        # automatic access to a code file.
+        for invalid in (
+            "Improve CANO automatically",
+            SELF_DEVELOPMENT_GOAL + " edit core/auth_login.py",
+            SELF_DEVELOPMENT_GOAL + "\nDöngü 0" + _CYCLE_SUFFIX,
+            SELF_DEVELOPMENT_GOAL + "\nDöngü 2" + _CYCLE_SUFFIX + "!",
+        ):
+            with self.subTest(invalid=invalid[-80:]):
+                self.assertIsNone(extract_target(invalid))
+
+    def test_canonical_self_development_job_creates_only_bounded_draft(self):
+        from core.cano_solution_dispatch import SELF_DEVELOPMENT_GOAL
+        github = FakeGitHub()
+        store = FakeDatabase()
+        model = FakeModel()
+        status = process_job(
+            Job("00000000-0000-0000-0000-000000000001", SELF_DEVELOPMENT_GOAL),
+            store, github, model,
+        )
+        self.assertEqual(status, "pr_open")
+        self.assertIn(("fetch", "core/cano_development_status.py"), github.calls)
+        self.assertEqual(model.calls[0][1], "core/cano_development_status.py")
+        self.assertEqual(len(store.completed), 1)
+        self.assertEqual(store.blocked, [])
+
     def test_safe_syntax_correct_fix_is_accepted(self):
         self.assertEqual(validate_candidate(SOURCE, REWRITE), REWRITE)
 
