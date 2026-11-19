@@ -1,0 +1,112 @@
+{
+  "status": "PASS",
+  "validation_method": "independent GitHub Actions reproduction compared to local reproduction and historical cached result",
+  "github_actions_run": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44321341032",
+  "github_actions_job_id": 134860781146,
+  "artifact_sha256": "c774c5788897b8c1cfdc12e2c4972fc500db5872311e766648fc223065f5ec59",
+  "github_actions_result_sha256": "f303eb7d68993a832b1a51c17199e88997d8f737ad12f72cc6b656366c3ccb2e",
+  "github_actions_runner_code_sha256": "c46132661653be42bbb30ef79d84525b1f01bc9bb1fcb73cccd9f42bd3bfe4a7",
+  "source_integrity_matches_local_bundle": true,
+  "metric_comparison": {
+    "ESS": {
+      "local": 8884.995132020025,
+      "github_actions": 8884.995132019996,
+      "max_absolute_delta": 2.9103830456733704e-11,
+      "pass": true
+    },
+    "R14_km": {
+      "local": [
+        11.670219296019644,
+        12.405136853361066,
+        13.027917794033987
+      ],
+      "github_actions": [
+        11.670219296019642,
+        12.405136853361064,
+        13.027917794033987
+      ],
+      "max_absolute_delta": 1.7763568394002505e-15,
+      "pass": true
+    },
+    "Lambda14": {
+      "local": [
+        303.47380385679025,
+        469.9656192710664,
+        603.9763230438555
+      ],
+      "github_actions": [
+        303.47380385679065,
+        469.9656192710668,
+        603.9763230438558
+      ],
+      "max_absolute_delta": 4.547473508864641e-13,
+      "pass": true
+    },
+    "R_at_2.073_km": {
+      "local": [
+        11.423147005453327,
+        12.125795126927727,
+        12.735057550000139
+      ],
+      "github_actions": [
+        11.423147005453325,
+        12.125795126927729,
+        12.735057550000139
+      ],
+      "max_absolute_delta": 1.7763568394002505e-15,
+      "pass": true
+    },
+    "Mmax_Msun": {
+      "local": [
+        2.0796512642853813,
+        2.1951397491135327,
+        2.391797557199088
+      ],
+      "github_actions": [
+        2.0796512642853813,
+        2.1951397491135327,
+        2.391797557199088
+      ],
+      "max_absolute_delta": 0.0,
+      "pass": true
+    }
+  },
+  "historical_result_checks": {
+    "ESS": {
+      "absolute_delta": 2.7284841053187847e-11,
+      "historical_2025_10_25": 8884.995132020023,
+      "pass": true,
+      "reproduced": 8884.995132019996,
+      "tolerance": 0.01
+    },
+    "Lambda14": {
+      "absolute_delta": 3.410605131648481e-13,
+      "historical_2025_10_25": 469.96561927106717,
+      "pass": true,
+      "reproduced": 469.9656192710668,
+      "tolerance": 0.001
+    },
+    "Mmax_Msun": {
+      "absolute_delta": 0.0,
+      "historical_2025_10_25": 2.1951397491135327,
+      "pass": true,
+      "reproduced": 2.1951397491135327,
+      "tolerance": 1e-05
+    },
+    "R14_km": {
+      "absolute_delta": 1.7763568394002505e-15,
+      "historical_2025_10_25": 12.405136853361066,
+      "pass": true,
+      "reproduced": 12.405136853361064,
+      "tolerance": 0.0001
+    },
+    "R_at_2.073_km": {
+      "absolute_delta": 3.552713678800501e-15,
+      "historical_2025_10_25": 12.125795126927732,
+      "pass": true,
+      "reproduced": 12.125795126927729,
+      "tolerance": 0.0001
+    }
+  },
+  "scientific_scope": "Conditional Legred GP-EOS posterior update; final physical EOS Bayes remains NOT_RUN; no duplicate multiplication of same NICER photons."
+}

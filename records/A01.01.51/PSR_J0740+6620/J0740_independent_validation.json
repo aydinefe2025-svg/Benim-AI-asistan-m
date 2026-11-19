@@ -1,0 +1,46 @@
+{
+  "status": "PASS",
+  "historical_result_path": "research/j0740/historical_20261025/J0740_EOS_FINAL_RESULT.json",
+  "historical_result_git_blob_sha1": "814735349463152169a9c28e8c5511d58f637d7a",
+  "historical_result_sha256": "50364726f0177096358f7b298d5329f25726195e3bd692ac04547ed37677c8ed",
+  "historical_full_result_git_blob_sha1": "7d0ee5dc897f5292376f1448abdf70f64bf5a1a2",
+  "historical_full_result_sha256": "951872fef229fce129fad45df81394868f0130b62f16f4aff76295e7c4ba09b2",
+  "recomputed_result_sha256": "47596f915aa39c3b4e7f3e5171df5cba5774ef61e60a4c608494b56d6045ac4b",
+  "source_input_md5s_match_historical_manifest": true,
+  "sample_counts_match": {
+    "new_Salmi": 379669,
+    "old_Miller": 1600920,
+    "Legred_EOS": 10000
+  },
+  "KDE_to_KDE_abs_differences": {
+    "R14_km": {
+      "q16": 0.0,
+      "median": 0.0,
+      "q84": 0.0
+    },
+    "Lambda14": {
+      "q16": 3.979039320256561e-13,
+      "median": 7.958078640513122e-13,
+      "q84": 6.821210263296962e-13
+    },
+    "R_at_2.073_Msun_km": {
+      "q16": 1.7763568394002505e-15,
+      "median": 5.329070518200751e-15,
+      "q84": 0.0
+    },
+    "Mmax_Msun": {
+      "q16": 0.0,
+      "median": 0.0,
+      "q84": 0.0
+    }
+  },
+  "Flow_to_KDE_abs_differences_vs_historical_flow_check": {
+    "R14_km_median": 0.0,
+    "Lambda14_median": 4.8004999371187296e-06,
+    "R_at_2.073_Msun_km_median": 6.5040257624104925e-09,
+    "Mmax_Msun_median": 0.0
+  },
+  "KDE_KDE_ESS": 8884.995132020025,
+  "Flow_KDE_ESS": 8842.531241315202,
+  "likelihood_handling": "Replaced the historical J0740 factor with the Salmi 2024 source posterior ratio; no duplicate multiplication of the same NICER photon data."
+}

@@ -1,0 +1,8 @@
+numpy==2.5.4
+scipy==1.18.1
+h5py==3.16.0
+jax[cpu]==0.7.2
+equinox==0.13.8
+flowjax==17.2.1
+jaxtyping==0.3.11
+optax==0.2.8

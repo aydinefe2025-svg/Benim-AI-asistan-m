@@ -1,0 +1,29 @@
+{
+  "commit_sha": "45262d5d60a884c33b19b61be75e5af87a0030e8",
+  "raw_inputs_in_artifact": false,
+  "reproduction_json": "J0740_reproduction_20261118.json",
+  "result_json_sha256": "f303eb7d68993a832b1a51c17199e88997d8f737ad12f72cc6b656366c3ccb2e",
+  "runner_code_sha256": "c46132661653be42bbb30ef79d84525b1f01bc9bb1fcb73cccd9f42bd3bfe4a7",
+  "source_files": {
+    "LCEHL_EOS_posterior_samples_PSR+GW+NICER.h5": {
+      "bytes": 192213112,
+      "md5": "64bdad9b43726162a25546d07305747d",
+      "sha256": "39ff1308fb2461eddaf82525ec8581db554c0d3907431ba7d23a04f4621b5abe",
+      "url": "https://zenodo.org/records/6502467/files/LCEHL_EOS_posterior_samples_PSR+GW+NICER.h5"
+    },
+    "NICER+XMM_J0740_full.txt": {
+      "bytes": 168073694,
+      "md5": "c28a3995e60f364b34a66c29a37bf79d",
+      "sha256": "125cee5208d31c25791023e84e020362df56ad3ef808e8b325f57c2be65a79e2",
+      "url": "https://zenodo.org/records/4670689/files/NICER+XMM_J0740_full.txt"
+    },
+    "mr_samples_and_contours.tar.gz": {
+      "bytes": 40605003,
+      "md5": "ca8e70eeca81feb71321f1a88a24f2f9",
+      "sha256": "1549467c64a8801c39213bd28c89737d087cc5ab7a70da1d8d3a32b2d09185c8",
+      "url": "https://zenodo.org/records/10519473/files/mr_samples_and_contours.tar.gz"
+    }
+  },
+  "status": "PASS_HISTORICAL_REPRODUCTION; NOT_NEW_POSTERIOR",
+  "workflow_run_id": "44321341032"
+}

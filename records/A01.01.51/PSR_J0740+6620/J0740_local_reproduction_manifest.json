@@ -1,0 +1,83 @@
+{
+  "status": "PASS",
+  "started_utc": "2026-11-18T14:14:25.151579+00:00",
+  "elapsed_seconds": 26.69991374015808,
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26100-SP0",
+  "device": "JAX CPU",
+  "historical_script": "research/j0740/historical_20261025/run_final_weighted_old_source_update.py",
+  "historical_script_git_blob_sha1": "9fa9db8b95107c291688117cda6d41a470e6775e",
+  "historical_script_sha256": "29e0567aa88d6ae7dd86719b01c0125ddccf82bf9937b4c72031ad4b5322899f",
+  "runtime_path_adapter_sha256": "518043db9acd74c33b09f8ebee2638a854c1e759d43642ba345e48110616f0f0",
+  "path_only_adaptations": 3,
+  "bundle_verification": "C:\\Users\\User\\Documents\\Codex\\2026-11-17\\referenced-chatgpt-conversation-this-is-an-2\\outputs\\J0740_EOS_Closure_20261118\\raw_bundle_verification.json",
+  "flow_assets_sha256": {
+    "flow.py": "eecc225f055c6b2f59d109c5f651e2a18024982bb5c38f50b3ee790a9748c8f4",
+    "flow_kwargs.json": "c9a2fb8fc6579dabdba6fdfd4191c7d6d2c6e2435ba8963acc1215e7c0c8b2ee",
+    "flow_weights.eqx": "571b19240ac7106a6794f791c42422c74f896b386e21d531404011e7938fe640",
+    "metadata.json": "ba0bcb8cc24fdb6dfb35c071aaf037042f90d8b824acb85cd452a321dd5a0cf2"
+  },
+  "log": "C:\\Users\\User\\Documents\\Codex\\2026-11-17\\referenced-chatgpt-conversation-this-is-an-2\\outputs\\J0740_EOS_Closure_20261118\\J0740_local_reproduction.log",
+  "recomputed": {
+    "EOS_count": 10000,
+    "old_raw_samples": 1600920,
+    "new_samples": 379669,
+    "old_corrected_weight_ESS": 425907.93303147925,
+    "KDE_KDE_bw016": {
+      "ESS": 8884.995132020025,
+      "R14_km": [
+        11.670219296019644,
+        12.405136853361066,
+        13.027917794033987
+      ],
+      "Lambda14": [
+        303.47380385679025,
+        469.9656192710664,
+        603.9763230438555
+      ],
+      "R_at_2.073_km": [
+        11.423147005453327,
+        12.125795126927727,
+        12.735057550000139
+      ],
+      "Mmax_Msun": [
+        2.0796512642853813,
+        2.1951397491135327,
+        2.391797557199088
+      ],
+      "nonzero": 10000
+    },
+    "Flow_KDE_bw016": {
+      "ESS": 8842.531241315202,
+      "R14_km": [
+        11.674387000681017,
+        12.405058650000115,
+        13.025815797577128
+      ],
+      "Lambda14": [
+        304.54185380323736,
+        469.37121683717703,
+        603.0208940951346
+      ],
+      "R_at_2.073_km": [
+        11.428533262691138,
+        12.118684844100192,
+        12.726367005429914
+      ],
+      "Mmax_Msun": [
+        2.0796825080484047,
+        2.194417972293832,
+        2.3909405191755795
+      ],
+      "nonzero": 10000
+    }
+  },
+  "result_output": "C:\\Users\\User\\Documents\\Codex\\2026-11-17\\referenced-chatgpt-conversation-this-is-an-2\\outputs\\J0740_EOS_Closure_20261118\\J0740_final_weighted_old_source_update.json",
+  "result_sha256": "47596f915aa39c3b4e7f3e5171df5cba5774ef61e60a4c608494b56d6045ac4b",
+  "independent_method_agreement": {
+    "R14_median_abs_diff_km": 7.820336095143432e-05,
+    "Lambda14_median_abs_diff": 0.5944024338893428,
+    "R2073_median_abs_diff_km": 0.007110282827534675,
+    "Mmax_median_abs_diff_Msun": 0.000721776819700537
+  }
+}
