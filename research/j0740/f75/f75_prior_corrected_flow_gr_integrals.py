@@ -7,8 +7,9 @@ and previously computed F51 direct C/GR roots. This is a KDE posterior/prior
 likelihood approximation over a common measured mass window, NOT EOS evidence.
 """
 from __future__ import annotations
-import argparse, hashlib, json, math
+import argparse, hashlib, json, math, sys
 from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"f51"))
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RegularGridInterpolator
