@@ -1,6 +1,8 @@
 name: Core tests
 
 on:
+  # Opt-in worker may explicitly dispatch secret-free proposal CI.
+  workflow_dispatch:
   push:
     branches: ["main", "feature/buyuk-sistem-core", "fix/sqlite-backup-restore-20261031", "fix/executor-cancellation-20261104"]
   pull_request:
