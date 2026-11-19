@@ -1,0 +1,72 @@
+{
+  "EOS": {
+    "APR4_EPP": {
+      "C_center_proxy_over_n_H_at_mass_nearest_2p073": 1.2357342164964285,
+      "C_center_proxy_over_n_H_median": 1.229829930002747,
+      "highest_source_knot_n_proxy_over_n_H": 1.8665788876224987,
+      "max_n_over_e_relative_residual": 2.220446049250313e-16,
+      "n_H_monotonicity_bad_edges": 0,
+      "original_RNS_C_stars": 48,
+      "original_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88"
+    },
+    "ENG": {
+      "C_center_proxy_over_n_H_at_mass_nearest_2p073": 1.210644836012712,
+      "C_center_proxy_over_n_H_median": 1.2057058712541369,
+      "highest_source_knot_n_proxy_over_n_H": 2.326885813738263,
+      "max_n_over_e_relative_residual": 2.220446049250313e-16,
+      "n_H_monotonicity_bad_edges": 1,
+      "original_RNS_C_stars": 48,
+      "original_npz_sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953"
+    },
+    "MPA1": {
+      "C_center_proxy_over_n_H_at_mass_nearest_2p073": 1.140692781862929,
+      "C_center_proxy_over_n_H_median": 1.1367491860352659,
+      "highest_source_knot_n_proxy_over_n_H": 1.5432640992254265,
+      "max_n_over_e_relative_residual": 2.220446049250313e-16,
+      "n_H_monotonicity_bad_edges": 1,
+      "original_RNS_C_stars": 48,
+      "original_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22"
+    },
+    "MS1": {
+      "C_center_proxy_over_n_H_at_mass_nearest_2p073": 1.109299097025337,
+      "C_center_proxy_over_n_H_median": 1.1065234802750066,
+      "highest_source_knot_n_proxy_over_n_H": 2.954295387022027,
+      "max_n_over_e_relative_residual": 2.220446049250313e-16,
+      "n_H_monotonicity_bad_edges": 1,
+      "original_RNS_C_stars": 48,
+      "original_npz_sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad"
+    },
+    "MS1B": {
+      "C_center_proxy_over_n_H_at_mass_nearest_2p073": 1.1050947258637078,
+      "C_center_proxy_over_n_H_median": 1.1022425207265516,
+      "highest_source_knot_n_proxy_over_n_H": 2.943522799356221,
+      "max_n_over_e_relative_residual": 2.220446049250313e-16,
+      "n_H_monotonicity_bad_edges": 1,
+      "original_RNS_C_stars": 48,
+      "original_npz_sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c"
+    },
+    "WFF1": {
+      "C_center_proxy_over_n_H_at_mass_nearest_2p073": 1.2670436313252058,
+      "C_center_proxy_over_n_H_median": 1.1952276617618176,
+      "highest_source_knot_n_proxy_over_n_H": 1.6847760909031169,
+      "max_n_over_e_relative_residual": 2.220446049250313e-16,
+      "n_H_monotonicity_bad_edges": 1,
+      "original_RNS_C_stars": 41,
+      "original_npz_sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3"
+    },
+    "WFF2": {
+      "C_center_proxy_over_n_H_at_mass_nearest_2p073": 1.2295896265413107,
+      "C_center_proxy_over_n_H_median": 1.1900654842720648,
+      "highest_source_knot_n_proxy_over_n_H": 1.8104339551469728,
+      "max_n_over_e_relative_residual": 2.220446049250313e-16,
+      "n_H_monotonicity_bad_edges": 1,
+      "original_RNS_C_stars": 42,
+      "original_npz_sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae"
+    }
+  },
+  "original_C_stars": 323,
+  "original_JESTER_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+  "result_json_sha256": "55e86ad4464cc1c008100a3e49a388c021246387a787d3b49eda86d610a94096",
+  "schema": "F78_SOURCE_PINNED_RESULT_CERTIFICATE_V1",
+  "source_n_is_not_thermodynamic_baryon_density": true
+}
