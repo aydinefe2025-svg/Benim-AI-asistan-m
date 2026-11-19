@@ -1,0 +1,89 @@
+name: J0740 original six missing native EOS GR rotating C two-mesh roots
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/original_native_six_rns/**'
+      - '.github/workflows/j0740-six-original-direct-C.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-original-six:
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [APR4_EPP, ENG, MS1, MS1B, WFF1, WFF2]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned numerical stack
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Check existing source numerical physical guard tests
+        run: |
+          python -m unittest discover -s research/j0740/f62 -p 'test_f62_*.py' -v
+          python -m unittest discover -s research/j0740/original_native_six_rns -p 'test_*.py' -v
+      - name: Check pinned F61 7 original TOV and corresponding native source
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '7b2cbcf6df2dc55d33046d9af587dba179dcb2ec77bad0395e628742479cce0a  research/j0740/f61/F61_original_seven_LAL_static_TOV.json' | sha256sum -c -
+          python - <<'PY'
+          import pathlib,hashlib,sys
+          sys.path.insert(0,'research/j0740/original_native_six_rns')
+          from native_six_direct_rns import SOURCE_SHA
+          p=pathlib.Path('jester-upstream/jesterTOV/tabulated_eos/lalsuite')/'${{ matrix.model }}.npz'
+          assert hashlib.sha256(p.read_bytes()).hexdigest()==SOURCE_SHA['${{ matrix.model }}']
+          print('ORIGINAL_SOURCE_SHA_PASS',p.name)
+          PY
+      - name: Patch ONLY physical C stdout precision, not EOS physics
+        run: python research/j0740/f62/f62_rns_precision_patch.py rns-upstream/rns.c
+      - name: Build exact source RNS C full general relativity solver
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Real direct rotating and static RNS C stars 151 and 196 original source EOS nodes
+        run: |
+          python -u research/j0740/original_native_six_rns/native_six_direct_rns.py \
+            --model '${{ matrix.model }}' \
+            --source 'jester-upstream/jesterTOV/tabulated_eos/lalsuite/${{ matrix.model }}.npz' \
+            --f61 research/j0740/f61/F61_original_seven_LAL_static_TOV.json \
+            --rns rns-upstream/rns \
+            --out 'results/J0740_native_six/${{ matrix.model }}'
+      - name: Save real numerical star and model source hashes whether accepted or rejected
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p 'results/J0740_native_six/${{ matrix.model }}'
+          python - <<'PY'
+          import json,hashlib,pathlib
+          root=pathlib.Path('results/J0740_native_six/${{ matrix.model }}')
+          src=pathlib.Path('jester-upstream/jesterTOV/tabulated_eos/lalsuite/${{ matrix.model }}.npz')
+          files=[*root.glob('*.json'),*root.glob('*.rns'),src,pathlib.Path('rns-upstream/rns'),pathlib.Path('rns-upstream/rns.c'),pathlib.Path('research/j0740/original_native_six_rns/native_six_direct_rns.py')]
+          data={str(f):{'sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'size_bytes':f.stat().st_size} for f in files if f.is_file()}
+          (root/'sha256_receipt.json').write_text(json.dumps(data,indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: original-J0740-native-C-${{ matrix.model }}-two-mesh-20261119
+          path: results/J0740_native_six/${{ matrix.model }}
+          if-no-files-found: warn
+          retention-days: 45
