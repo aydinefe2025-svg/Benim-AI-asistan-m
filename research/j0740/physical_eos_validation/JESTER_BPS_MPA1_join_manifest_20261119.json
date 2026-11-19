@@ -1,0 +1,34 @@
+{
+  "files": {
+    "F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat": {
+      "bytes": 223209,
+      "sha256": "d3c4388ef18ab645d410672da3d886d2b9bda446236c2cc4784024fe3be39f22"
+    },
+    "JESTER_BPS_MPA1_join_audit_20261119.json": {
+      "bytes": 1998,
+      "sha256": "06cb2efd84bb9a302a5028010566d729c8d0a3e687da694b593f10aaa0554358"
+    },
+    "JESTER_BPS_MPA1_join_execution_20261119.txt": {
+      "bytes": 1998,
+      "sha256": "06cb2efd84bb9a302a5028010566d729c8d0a3e687da694b593f10aaa0554358"
+    },
+    "JESTER_BPS_crust_e6768650.csv": {
+      "bytes": 8160,
+      "sha256": "a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787"
+    },
+    "audit_jester_bps_mpa1_join.py": {
+      "bytes": 4471,
+      "sha256": "b0392929bbe169739d30e7193f1fcdeb5c55488d0e00107d31ce63127d7e7b99"
+    },
+    "test_jester_bps_mpa1_join.py": {
+      "bytes": 1553,
+      "sha256": "c4546f7a50e2aee4b9b83c68e2cd0ad486909df6a99112eb95590e53b8a6d64a"
+    }
+  },
+  "numpy": "2.5.4",
+  "original_pinned_bps_npz_sha256": "372ce088e061997f7c05594e61e7c624a112d7ce66443c28c4633d03b7da6137",
+  "python": "3.12.10",
+  "schema": "J0740_BPS_MPA1_JOIN_AUDIT_MANIFEST_V1",
+  "test_command": "python test_jester_bps_mpa1_join.py -v",
+  "tests_passed": 4
+}\n
