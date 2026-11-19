@@ -1,0 +1,45 @@
+name: J0740 F70 source-locked F68 mesh-spin and F69 static crosswalk
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f70/**'
+      - '.github/workflows/j0740-f70-source-locked-mesh-spin.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  f70-source-locked-science-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Use existing pinned F68/F69 machine-readable outputs without rerunning expensive RNS
+        run: |
+          mkdir -p research/j0740/f70/inputs
+          cp research/j0740/f68/F68_science_summary_20261119.json research/j0740/f70/inputs/
+          cp research/j0740/f69/F69_Fe56_conditional_surface_static_TOV_and_baryon_20261119.json research/j0740/f70/inputs/
+      - name: Nine source identity, physics-scope, and adversarial fail-closed tests
+        run: python -m unittest discover -s research/j0740/f70 -p 'test_f70_mesh_spin_crosswalk.py' -v
+      - name: Recompute exact F70 crosswalk from original F68/F69 JSON
+        run: |
+          python research/j0740/f70/f70_mesh_spin_crosswalk.py \
+            --f68 research/j0740/f70/inputs/F68_science_summary_20261119.json \
+            --f69 research/j0740/f70/inputs/F69_Fe56_conditional_surface_static_TOV_and_baryon_20261119.json \
+            --out /tmp/F70_mesh_spin_crosswalk_20261119.json
+          cmp research/j0740/f70/F70_mesh_spin_crosswalk_20261119.json /tmp/F70_mesh_spin_crosswalk_20261119.json
+          sha256sum research/j0740/f70/F70_mesh_spin_crosswalk_20261119.json
+          echo 'F70 RECOMPUTATION AND BYTE IDENTITY: PASS'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: F70-exact-evidence-reproduction
+          path: |
+            /tmp/F70_mesh_spin_crosswalk_20261119.json
+            research/j0740/f70/F70_science_report_20261119.md
+            research/j0740/f70/F70_SHA256_manifest_20261119.json
+            research/j0740/f70/f70_mesh_spin_crosswalk.py
+            research/j0740/f70/test_f70_mesh_spin_crosswalk.py
