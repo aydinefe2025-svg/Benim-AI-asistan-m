@@ -19,6 +19,7 @@ import threading
 import queue
 import math
 import os
+import re
 from pathlib import Path
 import secrets
 import shutil
@@ -361,6 +362,46 @@ def decrypt_to_sink(path:Path,sink,*,key_env='CANO_BACKUP_KEY_HEX')->dict:
     with path.open('rb') as inp:
         return _decrypt_from_file(inp,sink,key_env=key_env)
 
+def verify_encrypted_archive_direct(path:Path,*,expected_sha256:str)->dict:
+    """Authenticate a pinned orphan archive without an external receipt.
+
+    Only authenticates the encrypted bytes and PostgreSQL archive signature.
+    It cannot assert original source identity, row parity, or restored state.
+    The key is consumed by the established secure decrypt_to_sink helper.
+    No plaintext is saved to disk or forwarded to an unverified process.
+    """
+    if (not isinstance(expected_sha256,str)
+            or re.fullmatch(r'[0-9a-f]{64}',expected_sha256) is None):
+        raise BackupError('A pinned lowercase SHA-256 is required')
+    path=Path(path)
+    if path.is_symlink() or not path.is_file() or path.suffix!='.canoenc':
+        raise BackupError('Invalid standalone encrypted archive path')
+    if path.stat().st_size<len(MAGIC)+NONCE_BYTES+TAG_BYTES+6:
+        raise BackupError('Encrypted archive is truncated')
+    original=_sha256(path)
+    if not hmac.compare_digest(original,expected_sha256):
+        raise BackupError('Encrypted archive SHA-256 does not match pinned evidence')
+    with path.open('rb') as source:
+        if source.read(len(MAGIC))!=MAGIC:
+            raise BackupError('Unknown encrypted archive format')
+    proof=decrypt_to_sink(path,None)
+    if proof.get('authenticated') is not True:
+        raise BackupError('Encrypted archive was not authenticated')
+    if not hmac.compare_digest(_sha256(path),original):
+        raise BackupError('Encrypted archive changed during authentication')
+    return {
+        'authenticated':True,
+        'ciphertext_sha256':original,
+        'plaintext_sha256':proof['plaintext_sha256'],
+        'plaintext_size_bytes':proof['plaintext_size_bytes'],
+        'pg_custom_archive_header_verified':True,
+        'receipt_authenticated':False,
+        'source_identity_verified':False,
+        'isolated_restore_verified':False,
+        'note':'Ciphertext authentication only; source attribution and restore remain separate.',
+    }
+
+
 def verify_encrypted_backup(receipt_path: Path,*,key_env='CANO_BACKUP_KEY_HEX')->dict:
     receipt_path=Path(receipt_path)
     if receipt_path.is_symlink():raise BackupError('Refusing symlink receipt')
@@ -502,6 +543,9 @@ def main():
     b.add_argument('--require-application-profile',
                    choices=('full','colony','tasks','memory','p0_19'),default='full')
     v=sub.add_parser('verify');v.add_argument('receipt',type=Path)
+    direct=sub.add_parser('verify-archive')
+    direct.add_argument('archive',type=Path)
+    direct.add_argument('--expected-sha256',required=True)
     t=sub.add_parser('restore-isolated');t.add_argument('archive',type=Path)
     t.add_argument('--target-database-env',default='CANO_RESTORE_DATABASE_URL')
     t.add_argument('--confirm-empty-isolated-target',action='store_true')
@@ -511,6 +555,8 @@ def main():
             r=make_encrypted_backup(a.destination,database_env=a.database_env,
                                     source_profile=a.require_application_profile)
         elif a.command=='verify':r=verify_encrypted_backup(a.receipt)
+        elif a.command=='verify-archive':
+            r=verify_encrypted_archive_direct(a.archive,expected_sha256=a.expected_sha256)
         else:r=restore_to_empty_database(a.archive,target_db_url_env=a.target_database_env,confirm=a.confirm_empty_isolated_target)
     except (BackupError,OSError,ValueError):
         print('ERROR: encrypted backup or isolated recovery failed; no secrets printed')
