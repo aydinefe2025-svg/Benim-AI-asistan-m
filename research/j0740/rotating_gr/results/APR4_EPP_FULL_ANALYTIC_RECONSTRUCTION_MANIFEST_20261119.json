@@ -1,0 +1,48 @@
+{
+  "schema": "j0740_apr4_epp_full_reconstruction_manifest_v1",
+  "date": "2026-11-19",
+  "evidence": [
+    {
+      "path": "reconstruct_apr4_epp_source_model_20261119.py",
+      "bytes": 12774,
+      "sha256": "dd0e8f3ba0931597ba1adb83cf5d5de4bef1541242dd3f1dca5ea6139b82ab16"
+    },
+    {
+      "path": "J0740_APR4_EPP_FULL_ANALYTIC_RECONSTRUCTION_20261119.json",
+      "bytes": 11050,
+      "sha256": "e07478ba0feab5c95631cbd856f16859d2c1a794ce02c4bac64affcae94ff58e"
+    }
+  ],
+  "inputs": [
+    {
+      "name": "LALSuite v7.26.4 APR4_EPP table",
+      "bytes": 72350,
+      "sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f"
+    },
+    {
+      "name": "JESTER pinned APR4_EPP NPZ",
+      "bytes": 56300,
+      "sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88"
+    },
+    {
+      "name": "JESTER pinned generator",
+      "bytes": 13593,
+      "sha256": "30ff07b009b422e918dca1ee42ca967ffedc26e88ace611133a4ee486a133784"
+    }
+  ],
+  "scientific_state": {
+    "APR4_EPP_analytic_cold_barotrope": "PASS_RECONSTRUCTED_ANALYTIC_MODEL",
+    "max_relative_epsilon_residual_vs_LAL_table": 4.807279920870933e-05,
+    "max_finite_segment_cs2": 0.9961942497570102,
+    "last_Gamma2_asymptotic_cs2_supremum": 1.0,
+    "absolute_RNS_baryon_mass_normalization": "NOT_ESTABLISHED",
+    "rotating_sequence_and_continuous_stability": "NOT_ESTABLISHED",
+    "EOS_Bayes": "NOT_RUN"
+  },
+  "supersedes_prior_apr4_global_acausality_inference": {
+    "file": "J0740_APR4_SOURCE_INTERPOLANT_CAUSALITY_20261119.json",
+    "sha256": "1281c2acc3c10e001c29c6c4c51a0c2749a2aaa94731258d76668f6aa22644ba",
+    "correction": "Spline/PCHIP and stored LAL derivative-field overshoots are interpolation diagnostics, not the analytic APR4_EPP source sound speed."
+  }
+}
+
