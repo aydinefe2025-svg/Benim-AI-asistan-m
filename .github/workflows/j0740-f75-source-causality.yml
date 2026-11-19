@@ -1,0 +1,68 @@
+name: J0740 F75 original-seven EOS source-pinned central-causality gate
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f75/**'
+      - '.github/workflows/j0740-f75-source-causality.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-seven-source-causality-not-physical-cert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-original
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned array math only, no RNS/star/salmi rerun
+        run: python -m pip install 'numpy==2.3.5'
+      - name: Ten causality/mass-bracket regression tests
+        run: python -m unittest discover -s research/j0740/f75 -p 'test_f75_*.py' -v
+      - name: SHA-pin seven genuine JESTER EOS and all 323 saved RNS C solver stars
+        run: |
+          python research/j0740/f75/f75_original_eos_causality_gate.py \
+            --source-dir jester-original/jesterTOV/tabulated_eos/lalsuite \
+            --artifacts-dir research/j0740/original_spin_recovery/artifacts \
+            --source-manifest research/j0740/f75/F75_pinned_source_manifest.json \
+            --artifact-manifest research/j0740/original_spin_recovery/archived_artifact_manifest.json \
+            --out results/F75/F75_source_causality_results_20261119.json
+      - name: Assert actual seven source central-density limits and no fabricated physical posterior
+        run: |
+          python - <<'PY'
+          import json,math,pathlib
+          p=pathlib.Path('results/F75/F75_source_causality_results_20261119.json')
+          d=json.loads(p.read_text())
+          expected=json.loads(pathlib.Path('research/j0740/f75/F75_source_causality_results_20261119.json').read_text())
+          assert d==expected, 'exact original-source saved F75 certificate drift'
+          assert d['EOS_Bayesian_evidence']=='NOT_RUN'
+          assert d['XPSI_source_native_photon_likelihood']=='NOT_RUN'
+          assert d['global_EOS_physical_admissibility']=='NOT_ESTABLISHED'
+          expected_counts={'APR4_EPP':(0,0),'ENG':(1,1),'MPA1':(1,0),
+                           'MS1':(1,0),'MS1B':(1,0),'WFF1':(1,17),'WFF2':(1,8)}
+          assert sum(x['original_RNS_star_count'] for x in d['models'].values())==323
+          for name,(neg,supra) in expected_counts.items():
+              x=d['models'][name]
+              assert (x['negative_cs2_knots_inside_reference_star_EOS_range'],
+                      x['superluminal_cs2_knots_inside_reference_star_EOS_range'])==(neg,supra)
+              assert x['physical_certification']=='NOT_ESTABLISHED'
+          print('F75_REAL_SOURCE_SEVEN_MODELS_CENTRAL_CAUSALITY_323_ORIGINAL_C_STARS_PASS')
+          PY
+      - name: Save independent source-verification result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F75-original-source-central-causality
+          path: results/F75/
+          if-no-files-found: warn
