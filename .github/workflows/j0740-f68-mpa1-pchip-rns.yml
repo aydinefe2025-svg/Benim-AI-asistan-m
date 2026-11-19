@@ -1,0 +1,92 @@
+name: J0740 F68 separate MPA1 PCHIP alternate direct rotating RNS
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f68/**'
+      - '.github/workflows/j0740-f68-mpa1-pchip-rns.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mpa1-pchip-alt-direct-rns:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite/MPA1.npz
+          path: jester-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install exact numerical dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Lock original raw MPA1 input, do not modify it
+        run: echo 'bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec  jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.dat' | sha256sum -c -
+      - name: Fail-closed conversion unit tests
+        run: |
+          PYTHONPATH=research/j0740/f67:research/j0740/f62:research/j0740/rotating_gr python -m unittest research/j0740/f68/test_f68_mpa1_pchip_cold_rns.py -v
+      - name: Build exact pinned full-GR RNS C binary, output-only precision patch
+        run: |
+          python research/j0740/f62/f62_rns_precision_patch.py rns-upstream/rns.c
+          make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Compute direct C roots and preserve failures
+        id: f68
+        continue-on-error: true
+        run: |
+          set +e
+          PYTHONPATH=research/j0740/f67:research/j0740/f62:research/j0740/rotating_gr python -u research/j0740/f68/f68_mpa1_pchip_cold_rns.py             --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.dat             --out results/F68/F68_MPA1_PCHIP_COLD_direct_RNS.json             --table-dir results/F68/tables
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+      - name: Fail if any independent target or gate did not pass
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          p=pathlib.Path('results/F68/F68_MPA1_PCHIP_COLD_direct_RNS.json')
+          if not p.is_file():
+              raise SystemExit('F68 result missing; computation did not produce evidence')
+          x=json.loads(p.read_text())
+          print(json.dumps({'status':x['status'],'failures':x['failures']},indent=2))
+          assert x['model_label']=='MPA1_PCHIP_COLD_V1_EXPLORATORY_NOT_ORIGINAL'
+          assert x['not_original_MPA1'] is True and x['not_F42'] is True
+          assert x['native_XPSI_likelihood']=='NOT_RUN' and x['EOS_Bayes']=='NOT_RUN'
+          assert x['status']=='PASS_DIRECT_RNS_NUMERICAL_ONLY_NOT_PHYSICAL_EOS', 'F68 scientific gate failed; see preserved JSON'
+          PY
+      - name: Hash result, tables, source, and binary even on failure
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F68')
+          files=[Path('research/j0740/f68/f68_mpa1_pchip_cold_rns.py'),
+                 Path('research/j0740/f68/test_f68_mpa1_pchip_cold_rns.py'),
+                 Path('research/j0740/f67/f67_mpa1_pchip_firstlaw_tov.py'),
+                 Path('jester-upstream/jesterTOV/tabulated_eos/lalsuite/MPA1.dat'),
+                 Path('rns-upstream/rns'),Path('rns-upstream/rns.c'),
+                 *root.glob('*.json'),*root.glob('tables/*.rns')]
+          d={str(p):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}
+             for p in files if p.is_file()}
+          root.mkdir(parents=True,exist_ok=True)
+          (root/'F68_SHA256_manifest.json').write_text(json.dumps(d,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f68-mpa1-pchip-alternate-direct-rns-or-failure
+          path: results/F68/
+          if-no-files-found: warn
+          retention-days: 30
