@@ -18,6 +18,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 PREFIX = "CANO_BATARYA_CEVRIMDISI_PILOT"
 EPOCH = (2026, 11, 19, 0, 0, 0)
 PROGRAMS = [
+    "reviewer_identity_lab.py",
     "provenance_alias_lab.py",
     "battery_virtual_lab.py",
     "customer_pipeline.py",
@@ -49,6 +50,8 @@ DOCUMENTS = [
     "README.md",
 ]
 TESTS = [
+    "test_battery_reviewer_identity_guard.py",
+    "test_battery_reviewer_identity_lab.py",
     "test_battery_virtual_lab.py",
     "test_battery_time_origin_guard.py",
     "test_battery_provenance_aliases.py",
@@ -99,6 +102,8 @@ def verify():
 
 def tests():
     patterns = [
+        "test_battery_reviewer_identity_guard.py",
+        "test_battery_reviewer_identity_lab.py",
         "test_battery_virtual_lab.py",
         "test_battery_time_origin_guard.py",
     "test_battery_provenance_aliases.py",
@@ -301,7 +306,7 @@ It does not need pip, cloud tokens, API keys, or customer uploads.
 1. Unzip to a regular folder; do not run directly inside the ZIP.
 2. Double-click Verify-Package.cmd (hashes only) or run:
    py -3 verify_package.py --tests --demo
-3. Double-click Run-Provenance-Simulation.cmd to run 1,200 synthetic\n   device/batch/campaign spelling variants, then Run-Simulation.cmd to run the\n   1,400 synthetic-batch
+3. Double-click Run-Reviewer-Simulation.cmd to run 1,000 synthetic reviewer\n   alias and distinct-text controls. Reviewer independence remains unverified.\n   Double-click Run-Provenance-Simulation.cmd to run 1,200 synthetic\n   device/batch/campaign spelling variants, then Run-Simulation.cmd to run the\n   1,400 synthetic-batch
    laboratory study (no real customer data). Then use Run-Demo.cmd to generate an aggregate result from synthetic
    independent curves. Double-click Run-Detection-Demo.cmd for a controlled
    duplicate example; it intentionally returns REVIEW_REQUIRED (exit code 2).
@@ -383,6 +388,21 @@ SHA-256 receipt. Never treat a self-supplied checksum as a digital signature.
 '''
 
 LAUNCHERS = {
+"Run-Reviewer-Simulation.cmd": r'''@echo off
+setlocal
+cd /d "%~dp0"
+where py >nul 2>nul
+if not errorlevel 1 (
+  py -3 research\battery_curve_audit\reviewer_identity_lab.py --trials 100 --seed 20261119 --output "reviewer-simulation-1000.json"
+) else (
+  python research\battery_curve_audit\reviewer_identity_lab.py --trials 100 --seed 20261119 --output "reviewer-simulation-1000.json"
+)
+set "RC=%errorlevel%"
+echo.
+echo Synthetic reviewer identity labels only; different IDs do not prove distinct people.
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
+exit /b %RC%
+''',
 "Run-Provenance-Simulation.cmd": r'''@echo off
 setlocal
 cd /d "%~dp0"
@@ -599,7 +619,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-19-pilot-provenance-and-blind-review-v7",
+                "version":"2026-11-19-reviewer-identity-guard-v8",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,
