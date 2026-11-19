@@ -47,6 +47,7 @@ DOCUMENTS = [
 TESTS = [
     "test_battery_virtual_lab.py",
     "test_battery_time_origin_guard.py",
+    "test_battery_voltage_offset_review.py",
     "test_battery_customer_pipeline.py",
     "test_battery_customer_output_guard.py",
     "test_battery_decimal_identity.py",
@@ -93,6 +94,7 @@ def tests():
     patterns = [
         "test_battery_virtual_lab.py",
         "test_battery_time_origin_guard.py",
+    "test_battery_voltage_offset_review.py",
         "test_battery_customer_pipeline.py",
         "test_battery_customer_output_guard.py",
         "test_battery_integrated_gate.py",
@@ -223,7 +225,7 @@ It does not need pip, cloud tokens, API keys, or customer uploads.
 1. Unzip to a regular folder; do not run directly inside the ZIP.
 2. Double-click Verify-Package.cmd (hashes only) or run:
    py -3 verify_package.py --tests --demo
-3. Double-click Run-Simulation.cmd to run the 1,300 synthetic-batch
+3. Double-click Run-Simulation.cmd to run the 1,400 synthetic-batch
    laboratory study (no real customer data). Then use Run-Demo.cmd to generate an aggregate result from synthetic
    independent curves. Double-click Run-Detection-Demo.cmd for a controlled
    duplicate example; it intentionally returns REVIEW_REQUIRED (exit code 2).
@@ -481,7 +483,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-19-pilot-verified-bound-csv-v5",
+                "version":"2026-11-19-offset-ambiguity-v6",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,
