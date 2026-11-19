@@ -99,7 +99,7 @@ class CustomerPilotTests(unittest.TestCase):
 
     def test_two_column_and_four_column_files_supported(self):
         (self.root / 'A.csv').write_text('Timestamp [h],Voltage [V]\n0,3.4\n1,3.3\n', encoding='utf-8')
-        (self.root / 'B.csv').write_text('Timestamp 1,Voltage [V],Timestamp 2,Voltage [V]\n0,3.4,0,3.2\n1,3.3,1,3.1\n', encoding='utf-8')
+        (self.root / 'B.csv').write_text('Timestamp 1 [h],Voltage [V],Timestamp 2 [h],Voltage [V]\n0,3.4,0,3.2\n1,3.3,1,3.1\n', encoding='utf-8')
         report = product.audit_customer(self.manifest, self.root)
         self.assertEqual(report['trace_count'], 9)
         self.assertEqual(report['width_counts']['2'], 4)  # 2 A rows, 1 C row, 1 D row

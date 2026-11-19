@@ -34,6 +34,30 @@ def sha256(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
+def csv_unit_signature(raw, label):
+    """Never compare raw numeric text across incompatible declared units.
+
+    All columns and all files must use one unambiguous time/voltage unit pair.
+    No unit conversion is attempted: mixed units fail before hashing/splitting.
+    """
+    try:
+        header = next(csv.reader(io.StringIO(raw.decode('utf-8-sig'), newline=''), strict=True))
+    except (UnicodeError, StopIteration, csv.Error) as exc:
+        raise ValueError(f'UNIT_REVIEW_REQUIRED: invalid CSV header {label}') from exc
+    if len(header) not in (2, 4, 6):
+        raise ValueError(f'UNIT_REVIEW_REQUIRED: header width {label}')
+    signatures = set()
+    for i in range(0, len(header), 2):
+        mt = re.fullmatch(r'Timestamp(?:[_ -]?[A-Za-z0-9]+)?\s*\[(h|s|ms)\]', header[i].strip(), re.I)
+        mv = re.fullmatch(r'(?:DC\d+|Voltage(?:[_ -]?\d+)?|V\d+|BATT_\d+_(?:DC|CC)\d+)\s*\[(V|mV)\]', header[i+1].strip(), re.I)
+        if not mt or not mv:
+            raise ValueError(f'UNIT_REVIEW_REQUIRED: missing/unknown units {label}')
+        signatures.add((mt.group(1).lower(), mv.group(1).lower()))
+    if len(signatures) != 1:
+        raise ValueError(f'UNIT_REVIEW_REQUIRED: mixed units in file {label}')
+    return next(iter(signatures))
+
+
 def parse_csv(raw, label):
     try:
         stream = io.StringIO(raw.decode('utf-8-sig'), newline='')
@@ -47,7 +71,7 @@ def parse_csv(raw, label):
     if len(header) not in (2, 4, 6):
         raise ValueError(f'REVIEW_REQUIRED: expected unique 2/4/6-column header at {label}')
     for i in range(0, len(header), 2):
-        if 'timestamp' not in header[i].lower() or not ('voltage' in header[i+1].lower() or '[v]' in header[i+1].lower()):
+        if 'timestamp' not in header[i].lower() or not ('voltage' in header[i+1].lower() or '[v]' in header[i+1].lower() or '[mv]' in header[i+1].lower()):
             raise ValueError(f'REVIEW_REQUIRED: timestamp/voltage schema {label}')
     traces = [[] for _ in range(len(header)//2)]
     last = [None] * len(traces)
@@ -109,6 +133,7 @@ def audit_customer(manifest, root):
     pair_count = 0
     source_records = []
     next_run = defaultdict(int)
+    batch_units = None
     for entry in entries:
         if not isinstance(entry, dict) or set(entry) != {'path', 'cell', 'mode'}:
             raise ValueError('REVIEW_REQUIRED: invalid file mapping fields')
@@ -126,6 +151,10 @@ def audit_customer(manifest, root):
         raw = path.read_bytes()
         if len(raw) > MAX_FILE_BYTES:
             raise ValueError('REVIEW_REQUIRED: file too large after read')
+        units = csv_unit_signature(raw, relative)
+        if batch_units is not None and units != batch_units:
+            raise ValueError('UNIT_REVIEW_REQUIRED: mixed time/voltage units across files')
+        batch_units = units
         parsed, row_widths, file_rows = parse_csv(raw, relative)
         rows += file_rows
         for width, amount in row_widths.items():
@@ -154,6 +183,8 @@ def audit_customer(manifest, root):
         'width_counts': dict(sorted(widths.items())),
         'duplicate_groups': duplicates, 'all_curve_identity': curves,
         'sources': source_records,
+        'unit_contract': {'time_unit': batch_units[0], 'voltage_unit': batch_units[1],
+                          'policy': 'strict_uniform_units_no_implicit_conversion'},
         'review_status': 'REVIEW_REQUIRED' if cross_cell else 'NO_EXACT_CROSS_CELL_DUPLICATES',
         'limits': ['Exact text equality only; other duplicate and shared-batch dependence may remain.',
                    'Sensitive cell aliases and file names remain in local report; do not publish without consent.',
