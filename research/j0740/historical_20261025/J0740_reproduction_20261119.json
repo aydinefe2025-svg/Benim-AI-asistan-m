@@ -1,0 +1,79 @@
+{
+  "record": "A01.01.51 / PSR J0740+6620",
+  "reproduction_date": "2026-11-19",
+  "reproduction_status": "PASS_HISTORICAL_KDE_KDE_REPRODUCTION",
+  "interpretation": "Reproduces the previously computed 2026-10-25 model-conditional Legred EOS reweighting; it is not a new posterior.",
+  "workflow": {
+    "run_id": 44321341032,
+    "url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44321341032",
+    "branch": "science/j0740-apr4-firstlaw-gr-pilot-20261117",
+    "head_commit": "45262d5d60a884c33b19b61be75e5af87a0030e8",
+    "job": "historical-reproduction",
+    "steps_passed": 8,
+    "steps_total": 8
+  },
+  "source_counts": {
+    "legred_eos_draws": 10000,
+    "miller_weighted_source_rows": 1600920,
+    "salmi_equal_weight_source_rows": 379669
+  },
+  "comparison": {
+    "R14_km": {
+      "reproduced_median": 12.405136853361064,
+      "historical_median": 12.405136853361066,
+      "absolute_difference": 1.7763568394002505e-15,
+      "tolerance": 0.0001
+    },
+    "Lambda14": {
+      "reproduced_median": 469.9656192710668,
+      "historical_median": 469.96561927106717,
+      "absolute_difference": 3.410605131648481e-13,
+      "tolerance": 0.001
+    },
+    "Mmax_Msun": {
+      "reproduced_median": 2.1951397491135327,
+      "historical_median": 2.1951397491135327,
+      "absolute_difference": 0,
+      "tolerance": 0.00001
+    },
+    "R_at_2_073_Msun_km": {
+      "reproduced_median": 12.125795126927729,
+      "historical_median": 12.125795126927732,
+      "absolute_difference": 3.552713678800501e-15,
+      "tolerance": 0.0001
+    },
+    "importance_ESS": {
+      "reproduced": 8884.995132019996,
+      "historical": 8884.995132020023,
+      "absolute_difference": 2.7284841053187847e-11,
+      "tolerance": 0.01
+    }
+  },
+  "source_sha256": {
+    "salmi_2024": "1549467c64a8801c39213bd28c89737d087cc5ab7a70da1d8d3a32b2d09185c8",
+    "miller_2021": "125cee5208d31c25791023e84e020362df56ad3ef808e8b325f57c2be65a79e2",
+    "legred_2021": "39ff1308fb2461eddaf82525ec8581db554c0d3907431ba7d23a04f4621b5abe"
+  },
+  "raw_bundle_integrity": {
+    "part_count": 54,
+    "bytes": 222910037,
+    "md5": "9fec0d9cd29df816bfea78565d0a6bb2",
+    "sha256": "5057752bec77b2417368fe144a6c1fc94203ce1eb15b975613a9ca334ddbfc2f",
+    "manifest_match": true,
+    "verification": "streamed content hash over all stored chunks"
+  },
+  "artifact": {
+    "id": 14436225742,
+    "name": "j0740-historical-legred-reproduction-20261118",
+    "bytes": 5403,
+    "github_sha256": "c774c5788897b8c1cfdc12e2c4972fc500db5872311e766648fc223065f5ec59"
+  },
+  "statuses": {
+    "historical_model_conditional_kde_reproduction": "PASS",
+    "new_legred_posterior": "NOT_RUN",
+    "native_xpsi_photon_likelihood_and_nuisance_marginalization": "NOT_RUN",
+    "final_physical_eos_bayes": "NOT_ESTABLISHED",
+    "nicER_photon_double_counting": "NOT_PRESENT_IN_HISTORICAL_UPDATE",
+    "F52_WFF1": "SEPARATE_TASK"
+  }
+}
