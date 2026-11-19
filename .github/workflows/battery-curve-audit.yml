@@ -5,6 +5,7 @@ on:
     paths:
       - "research/battery_curve_audit/**"
       - "tests/test_battery_independent_holdout.py"
+      - "tests/test_battery_customer_pipeline.py"
       - "tests/test_customer_preflight.py"
       - "tests/test_battery_numeric_equivalence.py"
       - "tests/test_battery_near_duplicate_guard.py"
@@ -32,6 +33,9 @@ jobs:
 
       - name: Independent split regression suite
         run: python -m unittest discover -s tests -p "test_battery_independent_holdout.py" -v
+
+      - name: Offline one-command customer pipeline regression suite
+        run: python -m unittest discover -s tests -p "test_battery_customer_pipeline.py" -v
 
       - name: Near-duplicate regression suite (synthetic only)
         run: python -m unittest discover -s tests -p "test_battery_near_duplicate_guard.py" -v
@@ -174,6 +178,38 @@ jobs:
                 "split",counts)
           PY
 
+      - name: Exercise one-command offline customer pipeline on 20 original CSVs
+        run: |
+          python research/battery_curve_audit/customer_pipeline.py \
+            --manifest "${RUNNER_TEMP}/customer_manifest.json" \
+            --root "${RUNNER_TEMP}/publisher_csvs" \
+            --summary "${RUNNER_TEMP}/customer_public_summary.json" \
+            --private-split "${RUNNER_TEMP}/customer_private_split.json" \
+            --report-only
+          python - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, "research/battery_curve_audit")
+          import near_duplicate_guard as near
+          p=Path(os.environ["RUNNER_TEMP"])
+          s=json.loads((p/"customer_public_summary.json").read_text())
+          private=json.loads((p/"customer_private_split.json").read_text())
+          numeric=json.loads((p/"battery_numeric_audit.json").read_text())
+          assert s["schema"]=="cano.battery.customer-local-pipeline.v1"
+          assert s["decision"]=="REVIEW_REQUIRED"  # Real known APR triplet, not a certified pass.
+          assert (s["source_files"],s["trace_count"],s["sample_pairs"])==(20,60,703657)
+          assert s["numeric_unique_traces"]==58 and s["cross_cell_numeric_duplicate_groups"]==1
+          assert s["near_candidates"]==0 and s["independent_groups"]==8
+          assert s["unit_contract"]["time_unit"]=="h" and s["unit_contract"]["voltage_unit"]=="v"
+          assert private["status"]=="NOT_CERTIFIED" and private["review_required"]
+          assert private["split"]["exact_and_candidate_connected_groups"]==8
+          assert near.verify_split(numeric["all_curve_identity"], [], private["split"])=={"train":6,"validation":2,"test":2}
+          raw=(p/"customer_public_summary.json").read_text()
+          for forbidden in ("apreh", "bse001", ".csv", "raw_trace_sha256", "numeric_trace_sha256"):
+              assert forbidden not in raw, forbidden
+          print("PASS: one-command customer pipeline, original 20 CSVs, privacy, 8 groups, review gate held")
+          PY
+
       - name: Publish read-only evidence artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -190,3 +226,4 @@ jobs:
             ${{ runner.temp }}/battery_near_screen.json
             ${{ runner.temp }}/battery_numeric_audit.json
             ${{ runner.temp }}/battery_numeric_holdout.json
+            ${{ runner.temp }}/customer_public_summary.json
