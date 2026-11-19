@@ -24,6 +24,7 @@ import math
 import re
 import sys
 from collections import defaultdict
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 SCHEMA = 'cano.battery.customer-files.v1'
@@ -32,6 +33,34 @@ MAX_FILE_BYTES = 30_000_000
 
 def sha256(raw):
     return hashlib.sha256(raw).hexdigest()
+
+
+def canonical_numeric_token(raw):
+    """Exact decimal value identity; never quantize or round measurements.
+
+    Using the Decimal tuple avoids binary-float aliasing and context rounding.
+    3.40, 03.4000 and 3.4e0 have the same fingerprint; near values do not.
+    """
+    try:
+        number = Decimal(raw)
+    except InvalidOperation as exc:
+        raise ValueError('REVIEW_REQUIRED: invalid numeric fingerprint input') from exc
+    if not number.is_finite() or number < 0:
+        raise ValueError('REVIEW_REQUIRED: unsafe numeric fingerprint input')
+    sign, digits, exponent = number.as_tuple()
+    if not any(digits):
+        return '0'
+    digits = list(digits)
+    while digits and digits[-1] == 0:
+        digits.pop()
+        exponent += 1
+    return ''.join(str(d) for d in digits) + 'e' + str(exponent)
+
+
+def numeric_trace_digest(pairs):
+    payload = ''.join(canonical_numeric_token(t) + '\t' +
+                      canonical_numeric_token(v) + '\n' for t, v in pairs)
+    return sha256(payload.encode('ascii'))
 
 
 def csv_unit_signature(raw, label):
@@ -166,15 +195,22 @@ def audit_customer(manifest, root):
             next_run[(cell, mode)] += 1
             pair_count += len(pairs)
             digest = sha256(''.join(t+'\t'+v+'\n' for t, v in pairs).encode('utf-8'))
+            numeric_digest = numeric_trace_digest(pairs)
             curves.append({'cell': cell, 'mode': mode, 'run': next_run[(cell, mode)],
                            'n': len(pairs), 'trace_sha256': digest,
+                           'numeric_trace_sha256': numeric_digest,
                            'source_sha256': source_sha})
     digest_map = defaultdict(list)
     for curve in curves:
         digest_map[curve['trace_sha256']].append(curve)
     duplicates = sorted((d for d in digest_map.values() if len(d) > 1),
                         key=lambda d: d[0]['trace_sha256'])
-    cross_cell = any(len({c['cell'] for c in group}) > 1 for group in duplicates)
+    normalized_map = defaultdict(list)
+    for curve in curves:
+        normalized_map[curve['numeric_trace_sha256']].append(curve)
+    normalized_duplicates = sorted((d for d in normalized_map.values() if len(d) > 1),
+                                   key=lambda d: d[0]['numeric_trace_sha256'])
+    cross_cell = any(len({c['cell'] for c in group}) > 1 for group in normalized_duplicates)
     return {
         'schema': 'cano.battery.customer-audit.v1',
         'source_files': len(entries), 'csv_data_rows': rows,
@@ -182,11 +218,14 @@ def audit_customer(manifest, root):
         'trace_count': len(curves), 'unique_curve_count': len(digest_map),
         'width_counts': dict(sorted(widths.items())),
         'duplicate_groups': duplicates, 'all_curve_identity': curves,
+        'numeric_unique_curve_count': len(normalized_map),
+        'numeric_duplicate_groups': normalized_duplicates,
+        'identity_contract': 'exact_decimal_value_no_rounding_with_uniform_declared_units',
         'sources': source_records,
         'unit_contract': {'time_unit': batch_units[0], 'voltage_unit': batch_units[1],
                           'policy': 'strict_uniform_units_no_implicit_conversion'},
         'review_status': 'REVIEW_REQUIRED' if cross_cell else 'NO_EXACT_CROSS_CELL_DUPLICATES',
-        'limits': ['Exact text equality only; other duplicate and shared-batch dependence may remain.',
+        'limits': ['Exact text plus decimal-value identity only; approximate/resampled and shared-batch dependence may remain.',
                    'Sensitive cell aliases and file names remain in local report; do not publish without consent.',
                    'Not an accredited test, battery-SOH estimate or commercial field validation.'],
     }
@@ -216,7 +255,7 @@ def main():
     if args.split:
         split = generate_holdout(result)
         args.split.write_text(json.dumps(split, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-        print('PASS: no exact-curve or same-cell cross-split leakage')
+        print('PASS: no text/numeric-exact-curve or same-cell cross-split leakage')
     else:
         print(result['review_status'] + ': report only; no train/test split accepted')
 
