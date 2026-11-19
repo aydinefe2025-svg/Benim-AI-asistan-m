@@ -1,0 +1,8 @@
+test_external_rns_provenance_is_pinned (__main__.RNSExportTests.test_external_rns_provenance_is_pinned) ... ok
+test_table_has_native_rns_columns_and_cold_firstlaw_density (__main__.RNSExportTests.test_table_has_native_rns_columns_and_cold_firstlaw_density) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.167s
+
+OK
+
