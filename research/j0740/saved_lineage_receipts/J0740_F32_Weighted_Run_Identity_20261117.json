@@ -1,0 +1,146 @@
+{
+  "comparison_candidates": [
+    {
+      "delta_mass_mean_vs_published_weighted": -0.00022890411995657445,
+      "delta_radius_mean_km_vs_published_weighted": -0.22604553649651749,
+      "mean_mass": 2.0726808089796975,
+      "mean_radius": 12.425730862583894,
+      "name": "run1",
+      "version": "0.7.10"
+    },
+    {
+      "delta_mass_mean_vs_published_weighted": 0.001556167121639529,
+      "delta_radius_mean_km_vs_published_weighted": -0.17117215011414366,
+      "mean_mass": 2.0744658802212936,
+      "mean_radius": 12.480604248966268,
+      "name": "run1_IMrep",
+      "version": "1.2.1"
+    },
+    {
+      "delta_mass_mean_vs_published_weighted": 0.0019281811582461117,
+      "delta_radius_mean_km_vs_published_weighted": 0.005642819499970031,
+      "mean_mass": 2.0748378942579,
+      "mean_radius": 12.657419218580381,
+      "name": "run1_IMrep_se001",
+      "version": "1.2.1"
+    },
+    {
+      "delta_mass_mean_vs_published_weighted": 0.0001926582965730006,
+      "delta_radius_mean_km_vs_published_weighted": 0.075207204880952,
+      "mean_mass": 2.073102371396227,
+      "mean_radius": 12.726983603961363,
+      "name": "run1_IMrep_Xse00001_Dfix",
+      "version": "1.2.0"
+    },
+    {
+      "delta_mass_mean_vs_published_weighted": -0.0002970079862296693,
+      "delta_radius_mean_km_vs_published_weighted": -0.367243601156618,
+      "mean_mass": 2.0726127051134244,
+      "mean_radius": 12.284532797923793,
+      "name": "run1_lp10",
+      "version": "1.2.1"
+    },
+    {
+      "delta_mass_mean_vs_published_weighted": -0.0008603596129490576,
+      "delta_radius_mean_km_vs_published_weighted": -0.2930940588472666,
+      "mean_mass": 2.072049353486705,
+      "mean_radius": 12.358682340233145,
+      "name": "run1_lp20",
+      "version": "1.2.1"
+    },
+    {
+      "delta_mass_mean_vs_published_weighted": -0.0005987403518066259,
+      "delta_radius_mean_km_vs_published_weighted": -0.24645572702666563,
+      "mean_mass": 2.0723109727478475,
+      "mean_radius": 12.405320672053746,
+      "name": "run1_lp30",
+      "version": "1.2.1"
+    },
+    {
+      "delta_mass_mean_vs_published_weighted": -5.950795411990839e-14,
+      "delta_radius_mean_km_vs_published_weighted": -2.5934809855243657e-13,
+      "mean_mass": 2.0729097130995946,
+      "mean_radius": 12.651776399080152,
+      "name": "run1_lp40k_Xse001_Dfix",
+      "version": "1.2.0"
+    },
+    {
+      "delta_mass_mean_vs_published_weighted": 0.008898500075778415,
+      "delta_radius_mean_km_vs_published_weighted": 0.11966166311718851,
+      "mean_mass": 2.0818082131754325,
+      "mean_radius": 12.7714380621976,
+      "name": "run1_lp40k_Xse001_Dfix_stemp615",
+      "version": "1.2.1"
+    }
+  ],
+  "date": "2026-11-17",
+  "deltas": {
+    "mean_mass_msun": 5.950795411990839e-14,
+    "mean_radius_km": 2.5934809855243657e-13,
+    "std_mass_msun": -1.091945978082265e-12,
+    "std_radius_km": -8.681944052568724e-13
+  },
+  "limits": {
+    "complete_nuisance_marginalization_15d": "NOT_RUN",
+    "dont_double_count": "NICER+XMM and radio mass cannot be entered twice; evidence here is not EOS Bayes evidence.",
+    "final_sampler_resume_version": "UNRESOLVED: possible resumed 1.2.1 chain not attested",
+    "matched_pi_eff_MR": "NOT_COMPUTED",
+    "meaning": "The published 1,137,394-row weighted posterior and run1 stats are numerically identical in mass/radius first two moments to ~1e-12, strongly anchoring the specific analysis run. This is not a bytewise replay of original sampler chain.",
+    "published_headline_inference_version": "1.2.1",
+    "source_log_version": "1.2.0",
+    "source_native_seven_EOS_Bayes": "NOT_RUN"
+  },
+  "max_absolute_moment_delta": 1.091945978082265e-12,
+  "observational_source": {
+    "archive": "mr_samples_and_contours.tar.gz",
+    "archive_md5": "ca8e70eeca81feb71321f1a88a24f2f9",
+    "archive_sha256": "1549467c64a8801c39213bd28c89737d087cc5ab7a70da1d8d3a32b2d09185c8",
+    "size_bytes": 40605003,
+    "weighted_posterior_member": "mr_samples_and_contours/J0740_gamma_NxX_lp40k_se001_wmrsamples.dat",
+    "weighted_posterior_size_bytes": 85304550
+  },
+  "original_run1_multinest_stats_moments": {
+    "mean_mass_msun": 2.0729097130995946,
+    "mean_radius_km": 12.651776399080152,
+    "std_mass_msun": 0.06873184724762173,
+    "std_radius_km": 1.0803450741659
+  },
+  "published_equal_weighted_control": {
+    "count": 379669,
+    "mean_mass_msun": 2.0729544349094575,
+    "mean_radius_km": 12.651933922799982,
+    "note": "Equal-weighted resampling differs from original MultiNest weighted moments; do not treat as mismatch.",
+    "std_mass_msun": 0.06868141009220273,
+    "std_radius_km": 1.0805338684413066
+  },
+  "rerun": "python verify_f32_weighted_posterior_run.py --archive <original-small-tar> --stats <source-run1-stats> --output <new-json>",
+  "run_stats_source": {
+    "out_banner_version": "1.2.0",
+    "out_evidence_error": 0.02440913459400789,
+    "out_evidence_lnZ": -21889.9868120139,
+    "out_sha256": "f20ae7db9550a9fd608542c1b43fc9534a3e396df7ef5c2dad66493793caa2de",
+    "run_directory": "STU/STU_NICER_XMM_hr/STU_outputs/run1_lp40k_Xse001_Dfix",
+    "stats_evidence_error": 0.02440913459400789,
+    "stats_evidence_lnZ": -21889.98681201393,
+    "stats_filename": "stu_nlive40000_eff0.01_noCONST_noMM_noIS_tol-1stats.dat",
+    "stats_sha256": "779167d6d11e40d21eb733523e4759773ef1e1f9eb913227e8550d7dd30f5b14",
+    "stats_size_bytes": 2144
+  },
+  "schema": "j0740-f32-source-weighted-posterior-vs-multinest-stats-moment-proof-v1",
+  "source_code_provenance": {
+    "F30_prior_canonical_ast_sha256": "7cf1d95df5565f11a7556493a328b625446f682b1f6fbc9c93ae2dda6f3aaa91",
+    "F30_runner_canonical_ast_sha256": "3ec2b87733f84b457931b28afa1b6257537e7966b1a1219ce44925f1c3b74a37",
+    "original_prior_sha256": "ecabb879c38d4e4e343e5e304e1be39d87a7b0a35d7077454e4677ea1458aa93",
+    "original_runner_sha256": "440451fd57c8d8c775f3c847861d6fce77a82ab975ca090fb660289191d8c1af",
+    "original_tar_members_4_of_4_sha_pass": true
+  },
+  "status": "FOUR_WEIGHTED_MOMENTS_MATCH_ORIGINAL_RUN1_STATS_WITH_ABS_RESIDUAL_UNDER_2e-12",
+  "weighted_posterior_moments": {
+    "count": 1137394,
+    "mean_mass_msun": 2.072909713099654,
+    "mean_radius_km": 12.651776399080411,
+    "std_mass_msun": 0.06873184724652978,
+    "std_radius_km": 1.0803450741650318,
+    "sum_weight": 0.9999999996409588
+  }
+}
