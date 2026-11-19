@@ -39,4 +39,16 @@ class OriginalSevenSweepTests(unittest.TestCase):
   with self.assertRaises(ValueError):
    m.seed_source(pathlib.Path('/doesnotexist'),pathlib.Path('/doesnotexist'),'UNKNOWN')
 
+
+ def test_late_timeout_accepted_only_after_real_sampled_mass_turnover(self):
+  def models(ms):
+   return [{'mass_msun':float(v),'central_energy_density_g_cm3':5e14+i*1e13} for i,v in enumerate(ms)]
+  source=[.95+i*.033 for i in range(37)]+[2.14,2.135,2.13]
+  self.assertTrue(m.original_late_timeout_after_witnessed_mass_peak(models(source)))
+  self.assertFalse(m.original_late_timeout_after_witnessed_mass_peak(models(source[:-2])))
+  self.assertFalse(m.original_late_timeout_after_witnessed_mass_peak(models([.95+i*.025 for i in range(40)])))
+ def test_early_rns_timeout_still_fails_closed(self):
+  a=[{'mass_msun':1.7+i*.01,'central_energy_density_g_cm3':5e14+i*1e13} for i in range(30)]
+  self.assertFalse(m.original_late_timeout_after_witnessed_mass_peak(a))
+
 if __name__=='__main__':unittest.main()
