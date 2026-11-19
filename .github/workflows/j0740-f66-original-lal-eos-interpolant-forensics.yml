@@ -1,0 +1,81 @@
+name: J0740 F66 original 7 LALSuite RAW tabular EOS vs cubic spline cause
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f66/**'
+      - '.github/workflows/j0740-f66-original-lal-eos-interpolant-forensics.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-source-table-interpolation-causal-forensics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 27
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install source-native LALSuite 7.26.4, SciPy exact natural-cubic and PCHIP diagnostics
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3' 'lalsuite==7.26.4'
+      - name: Fifteen fail-closed monotonic and provenance tests
+        run: python -m unittest discover -s research/j0740/f66 -p 'test_f66_*.py' -v
+      - name: Locate the ACTUAL installed named EOS raw two-column .dat files and reproduce native F65 derivatives
+        run: |
+          python -u research/j0740/f66/f66_original_lal_table_spline_forensics.py \
+            --f65 research/j0740/f65/F65_original_seven_LAL_crust_derivative_20261119.json \
+            --out results/F66/F66_source_raw_vs_natural_cubic_vs_PCHIP_20261119.json
+      - name: Independent scientific acceptance gate (raw monotonic, 7x cubic LAL derivative, six negatives PCHIP none)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('results/F66/F66_source_raw_vs_natural_cubic_vs_PCHIP_20261119.json')
+          j=json.loads(p.read_text())
+          assert j['status'] in {'ORIGINAL_MONOTONE_RAW_TABLE_DIRECT_LAL_NEGATIVE_CUBIC_AXIS_REPRODUCED_NO_EOS_REPAIR', 'MONOTONE_NATIVE_RAW_TABLE_LAL_NEGATIVE_DERIVATIVE_INTERPOLATION_STAGE_ISOLATED_EXACT_ALGORITHM_UNRESOLVED'}
+          assert j['source_original_not_F42'] and j['original_physical_source_EOS_modified'] is False
+          assert j['six_common_lowpressure_source_rows_equal']
+          assert all(len(v['eight_cubic_axis_boundary_hypotheses'])==8 for v in j['eos'].values())
+          assert j['raw_source_all_positive_secants']
+          assert all(j['eos'][n]['LAL_F65_direct_negative_samples']==205 for n in ('ENG','MPA1','MS1','MS1B','WFF1','WFF2'))
+          assert j['PCHIP_six_no_negative_derivative']
+          assert j['source_native_XPSI_photon_likelihood']=='NOT_RUN'
+          assert j['original_seven_EOS_Bayes']=='NOT_RUN'
+          assert j['full_physical_EOS_admission']=='NOT_ESTABLISHED'
+          for name,v in j['eos'].items():
+            assert v['raw_source_energy_nonincreasing_edges']==0
+            assert isinstance(v['cubic_reproduced_F65_native_C_to_tolerance'],bool)
+            assert v['cubic_vs_F65_derivative_sign_disagreements']>=0
+            assert v['PCHIP_diagnostic_negative_derivative_samples']==0
+            if name=='APR4_EPP':assert v['LAL_F65_direct_negative_samples']==0
+            else:assert v['LAL_F65_direct_negative_samples']==205
+          print('F66 SOURCE RAW VS LAL NEGATIVE CHECK PASS: exact cubic mechanism labelled as observed, never assumed')
+          PY
+      - name: SHA256 source file, code and result receipt
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib,importlib.metadata
+          out=pathlib.Path('results/F66');out.mkdir(parents=True,exist_ok=True)
+          files=[*out.glob('*.json'),pathlib.Path('research/j0740/f65/F65_original_seven_LAL_crust_derivative_20261119.json'),
+                 pathlib.Path('research/j0740/f66/f66_original_lal_table_spline_forensics.py'),
+                 pathlib.Path('research/j0740/f66/test_f66_original_lal_table_spline_forensics.py')]
+          report=out/'F66_source_raw_vs_natural_cubic_vs_PCHIP_20261119.json'
+          if report.exists():
+            j=json.loads(report.read_text())
+            files.extend(pathlib.Path(j['installed_lalsuite_source_dir']).glob('LALSimNeutronStarEOS_*.dat'))
+          record={'status':'PROVENANCE_ARTIFACT_ONLY_NOT_PHYSICS_CERTIFICATE',
+                  'lalsuite_distribution_version':importlib.metadata.version('lalsuite'),
+                  'scipy_version':importlib.metadata.version('scipy'),
+                  'files':{str(f):{'sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'bytes':f.stat().st_size} for f in files if f.is_file()}}
+          (out/'F66_sha256_provenance.json').write_text(json.dumps(record,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-F66-original-LAL-tabular-derivative-forensics-or-failure
+          path: results/F66/
+          if-no-files-found: warn
+          retention-days: 30
