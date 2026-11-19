@@ -289,3 +289,81 @@ class WorkerCredentialGuardTests(unittest.TestCase):
         self.assertEqual(len(cur.queries), 2)
         self.assertIn('FROM pg_roles', cur.queries[0][0])
         self.assertIn('FROM pg_class', cur.queries[1][0])
+
+
+
+class InterruptedDraftRecoveryTests(unittest.TestCase):
+    """A created GitHub PR must not disappear from the Neon acceptance trail."""
+
+    def test_failed_receipt_write_does_not_mark_a_real_pr_as_blocked(self):
+        class BrokenReceipt(FakeDatabase):
+            def record_pr(self, job_id, branch, pr_url, commit):
+                raise RuntimeError("db temporarily unavailable")
+        db, github = BrokenReceipt(), FakeGitHub()
+        outcome = process_job(
+            Job("12345678", "Fix core/cano_development_status.py count"),
+            db, github, FakeModel())
+        self.assertEqual(outcome, "pr_receipt_needs_reconcile")
+        self.assertEqual(db.blocked, [])
+        self.assertEqual(len([x for x in github.calls if x[0] == "draft"]), 1)
+
+    def test_stale_running_job_is_owner_scoped_and_never_reclaimed_for_reexecution(self):
+        from scripts.cano_autodev_worker import NeonJobStore
+        cursor = FakePGCursor(("12345678-1234-4123-8123-123456789abc", "Fix core/safe.py"))
+        store = NeonJobStore.__new__(NeonJobStore)
+        store.owner_key = "oidc_" + "a" * 64
+        store._connect = lambda: FakePGConnection(cursor)
+        job = store.stale_running_one()
+        self.assertEqual(job.id, "12345678-1234-4123-8123-123456789abc")
+        statement, args = cursor.queries[0]
+        self.assertIn("owner_key=%s", statement)
+        self.assertIn("attempts=1", statement)
+        self.assertIn("pr_url IS NULL", statement)
+        self.assertIn("FOR UPDATE SKIP LOCKED", statement)
+        self.assertEqual(args, (store.owner_key,))
+
+    def test_verified_existing_draft_restores_receipt_without_any_model_call(self):
+        from scripts.cano_autodev_worker import reconcile_job
+        job = Job("12345678-1234-4123-8123-123456789abc", "Fix core/safe.py")
+        db, github = FakeDatabase(), FakeGitHub()
+        branch = "cano-autodev-" + job.id.replace("-", "")
+        github.find_existing_draft = lambda job_id: (branch, "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/999", "a"*40)
+        result = reconcile_job(job, db, github)
+        self.assertEqual(result, "pr_open")
+        self.assertEqual(len(db.completed), 1)
+        self.assertEqual(db.completed[0][1], branch)
+        self.assertEqual(len([x for x in github.calls if x[0] == "ci"]), 1)
+
+    def test_missing_draft_never_reexecutes_or_blocks_stale_job(self):
+        from scripts.cano_autodev_worker import reconcile_job
+        db, github = FakeDatabase(), FakeGitHub()
+        github.find_existing_draft = lambda job_id: None
+        result = reconcile_job(Job("12345678-1234-4123-8123-123456789abc", "Fix core/safe.py"), db, github)
+        self.assertEqual(result, "recovery_requires_reconcile")
+        self.assertFalse(db.completed)
+        self.assertFalse(db.blocked)
+        self.assertEqual(github.calls, [])
+
+    def test_existing_draft_must_match_repository_branch_base_and_open_draft(self):
+        from scripts.cano_autodev_worker import GitHubDrafts
+        api = GitHubDrafts.__new__(GitHubDrafts)
+        job_id = "12345678-1234-4123-8123-123456789abc"
+        branch = "cano-autodev-" + job_id.replace("-", "")
+        valid = {
+            "state": "open", "draft": True,
+            "html_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/999",
+            "head": {"ref": branch, "sha": "a"*40,
+                     "repo": {"full_name": "aydinefe2025-svg/Benim-AI-asistan-m"}},
+            "base": {"ref": "main"},
+        }
+        api._request = lambda method, path, **options: [valid]
+        self.assertEqual(api.find_existing_draft(job_id), (branch, valid["html_url"], "a"*40))
+        for edit in (
+            {"draft": False},
+            {"base": {"ref": "dev"}},
+            {"head": {"ref": "other", "sha": "a"*40, "repo": {"full_name": "aydinefe2025-svg/Benim-AI-asistan-m"}}},
+            {"html_url": "https://attacker.invalid/pull/999"},
+        ):
+            bad = dict(valid, **edit)
+            api._request = lambda method, path, **options: [bad]
+            self.assertIsNone(api.find_existing_draft(job_id))
