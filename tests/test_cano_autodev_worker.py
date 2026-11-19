@@ -348,10 +348,11 @@ class WorkerCredentialGuardTests(unittest.TestCase):
     def test_accepts_only_rls_enforced_worker_and_queries_metadata(self):
         store, cur = self.store(('cano_autodev_worker', False, False), (True, False))
         store.verify_worker_role()
-        self.assertEqual(len(cur.queries), 3)
+        self.assertEqual(len(cur.queries), 4)
         self.assertIn('FROM pg_roles', cur.queries[0][0])
-        self.assertIn('FROM pg_class', cur.queries[1][0])
-        self.assertIn('FROM pg_policies', cur.queries[2][0])
+        self.assertIn('FROM pg_auth_members', cur.queries[1][0])
+        self.assertIn('FROM pg_class', cur.queries[2][0])
+        self.assertIn('FROM pg_policies', cur.queries[3][0])
 
 
 
