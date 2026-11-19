@@ -1,0 +1,76 @@
+name: J0740 seven original EOS full 346Hz RNS C mass-sequence sweeps
+# Historical direct RNS full 48-center scan. Five source models completed 48/48,
+# WFF1 and WFF2 independently reached observed-mass and post-peak solutions
+# then timed out at high central density. Original source SHA-pinned C outputs
+# are reused by the automatic j0740-original-seven-archived-C-F38-replay workflow.
+# Do not rerun expensive 7 x 48 C models on unrelated research PR commits.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-original-seven-gr-C-sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [APR4_EPP, ENG, MPA1, MS1, MS1B, WFF1, WFF2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pin mathematical packages
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Validate source and sampled-branch safeguards
+        run: python -m unittest discover -s research/j0740/original_spin_mass_sweep -p 'test_*.py' -v
+      - name: Exactly match previous native LALSuite 7/7 static source JSON
+        run: |
+          echo '7b2cbcf6df2dc55d33046d9af587dba179dcb2ec77bad0395e628742479cce0a  research/j0740/f61/F61_original_seven_LAL_static_TOV.json' | sha256sum -c -
+      - name: Patch ONLY C printed physical output precision
+        run: python research/j0740/f62/f62_rns_precision_patch.py rns-upstream/rns.c
+      - name: Compile exact pinned RNS C full GR binary
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Generate 48 direct observed-spin GR equilibrium stars (first stable M increasing branch diagnostic)
+        run: |
+          python -u research/j0740/original_spin_mass_sweep/native_original_seven_spin_sweep.py \
+            --model '${{ matrix.model }}' \
+            --source 'jester-upstream/jesterTOV/tabulated_eos/lalsuite/${{ matrix.model }}.npz' \
+            --f61 research/j0740/f61/F61_original_seven_LAL_static_TOV.json \
+            --rns rns-upstream/rns \
+            --outdir 'results/J0740_spin_mass_sweep/${{ matrix.model }}'
+      - name: Generate separate SHA256 receipt, preserve raw failed as well as accepted stars
+        if: always()
+        run: |
+          mkdir -p 'results/J0740_spin_mass_sweep/${{ matrix.model }}'
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          root=Path('results/J0740_spin_mass_sweep/${{ matrix.model }}')
+          original=Path('jester-upstream/jesterTOV/tabulated_eos/lalsuite/${{ matrix.model }}.npz')
+          files=[*root.glob('*.json'),*root.glob('*.rns'),original,Path('rns-upstream/rns'),Path('rns-upstream/rns.c'),Path('research/j0740/original_spin_mass_sweep/native_original_seven_spin_sweep.py')]
+          data={str(x):{'sha256':hashlib.sha256(x.read_bytes()).hexdigest(),'bytes':x.stat().st_size} for x in files if x.is_file()}
+          (root/'source_SHA256_manifest.json').write_text(json.dumps(data,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-original-${{ matrix.model }}-48-real-GR-spinning-stars-20261119
+          path: results/J0740_spin_mass_sweep/${{ matrix.model }}
+          if-no-files-found: warn
+          retention-days: 45

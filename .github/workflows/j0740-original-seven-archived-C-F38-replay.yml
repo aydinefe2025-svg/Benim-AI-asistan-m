@@ -1,0 +1,72 @@
+name: J0740 original 7 RNS C high-density-timeout recovery and 42 F38 true source witness replays
+on:
+  pull_request:
+    branches: [science/j0740-apr4-firstlaw-gr-pilot-20261117]
+    paths:
+      - 'research/j0740/original_spin_recovery/**'
+      - '.github/workflows/j0740-original-seven-archived-C-F38-replay.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-seven-from-exact-archived-C:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned scientific math
+        run: python -m pip install numpy==2.3.5 scipy==1.16.3
+      - name: 10 adversarial tests on all 7 ORIGINAL source-pinned RNS C artifact ZIPS
+        working-directory: research/j0740/original_spin_recovery
+        run: python -m unittest -v test_recover_native_seven_rotating
+      - name: Guard future source RNS high-density timeouts (no real C subprocesses run)
+        run: python -m unittest discover -s research/j0740/original_spin_mass_sweep -p 'test_*.py' -v
+      - name: Recover all 323 previously computed REAL original C stars, no extra expensive 48-grid reruns
+        run: |
+          python research/j0740/original_spin_recovery/recover_native_seven_rotating.py \
+            --archive-root research/j0740/original_spin_recovery \
+            --outdir results/J0740_archived_C_full_rotating_massline_replay
+      - name: Independently verify ALL 42 prior-corrected observational F38 1D line witnesses against original full 2D source run
+        run: |
+          python research/j0740/original_spin_recovery/verify_rotating_F38_witness.py \
+            --archive-root research/j0740/original_spin_recovery \
+            --full-2d-result research/j0740/original_spin_recovery/J0740_seven_original_RNS_C_full_mass_recovery_20261119.json \
+            --out results/J0740_archived_C_full_rotating_massline_replay/CI_42_real_F38_line_witness_replay.json
+      - name: Fail closed on source tampering, missing real WFF turning points, or unproved physical EOS status
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('results/J0740_archived_C_full_rotating_massline_replay')
+          a=json.loads((root/'J0740_seven_original_RNS_C_full_mass_recovery_20261119.json').read_text())
+          b=json.loads((root/'CI_42_real_F38_line_witness_replay.json').read_text())
+          assert len(a['all_seven_original_rotating_massline_C_sequences'])==7
+          assert a['physical_EOS_acceptance']=='NOT_CERTIFIED'
+          assert b['score_count']==42 and b['seven_real_RNS_C_source_stars_total']==323
+          assert b['worst_relative_original_F38_2D_integral_replay_difference']<1e-5
+          assert b['physical_EOS_microphysics_global_cert']=='NOT_CERTIFIED'
+          assert a['all_seven_original_rotating_massline_C_sequences']['WFF1']['raw_original_solver_count']==41
+          assert a['all_seven_original_rotating_massline_C_sequences']['WFF2']['raw_original_solver_count']==42
+          print('SUCCESS: 7/7 original nuclear EOS, 323 authentic RNS C stars, 42/42 F38 source massline integrals, no physical EOS false certificates')
+          PY
+      - name: Add SHA256 receipts to the new numerical replay evidence
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/J0740_archived_C_full_rotating_massline_replay')
+          root.mkdir(parents=True,exist_ok=True)
+          files=sorted(root.glob('*.json'))
+          (root/'SHA256_CI_manifest.json').write_text(json.dumps({str(x):{'sha256':hashlib.sha256(x.read_bytes()).hexdigest(),'bytes':x.stat().st_size} for x in files},indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-seven-original-RNS-C-323-real-models-six-F38-42-witnesses
+          path: results/J0740_archived_C_full_rotating_massline_replay/
+          if-no-files-found: warn
+          retention-days: 45

@@ -1,0 +1,71 @@
+{
+  "artifacts": {
+    "APR4_EPP": {
+      "file": "APR4_EPP_authentic_GitHub_artifact_zip.base64.txt",
+      "json_name": "APR4_EPP_original_346Hz_RNS_C_mass_sequence_20261119.json",
+      "json_sha256": "192ce952e712247f8b4c7076b4424362bd7c9ae496cae6d14d9f06cf119efd57",
+      "original_C_star_count": 48,
+      "original_artifact_id": 14552082326,
+      "original_run_status": "ORIGINAL_EOS_ROTATING_FULL_C_SEQUENCE_SAMPLED_AND_CROSSCHECKED_NOT_PHYSICALLY_CERTIFIED",
+      "zip_sha256": "c905be3854dcb5277c4ab410402a1199eba26b38702884beda98aacffcf63dc5"
+    },
+    "ENG": {
+      "file": "ENG_authentic_GitHub_artifact_zip.base64.txt",
+      "json_name": "ENG_original_346Hz_RNS_C_mass_sequence_20261119.json",
+      "json_sha256": "496982a22c7b05812a90a234c1d73460b0fb4e008f162a0a48022c6b9e2de607",
+      "original_C_star_count": 48,
+      "original_artifact_id": 14551562905,
+      "original_run_status": "ORIGINAL_EOS_ROTATING_FULL_C_SEQUENCE_SAMPLED_AND_CROSSCHECKED_NOT_PHYSICALLY_CERTIFIED",
+      "zip_sha256": "6bbdf6bbd6706fb0cba537bf517303f85853f35cd2c38d2d5803505e8a9cb503"
+    },
+    "MPA1": {
+      "file": "MPA1_authentic_GitHub_artifact_zip.base64.txt",
+      "json_name": "MPA1_original_346Hz_RNS_C_mass_sequence_20261119.json",
+      "json_sha256": "feb43add7ce097cf8d13ee5029c083cb7e92da1bf05b603b3ceed12d6fc058f9",
+      "original_C_star_count": 48,
+      "original_artifact_id": 14550734023,
+      "original_run_status": "ORIGINAL_EOS_ROTATING_FULL_C_SEQUENCE_SAMPLED_AND_CROSSCHECKED_NOT_PHYSICALLY_CERTIFIED",
+      "zip_sha256": "1ac6bee2f8720ca43015ef190c60e530481f56cb66f6008501c751da5c110519"
+    },
+    "MS1": {
+      "file": "MS1_authentic_GitHub_artifact_zip.base64.txt",
+      "json_name": "MS1_original_346Hz_RNS_C_mass_sequence_20261119.json",
+      "json_sha256": "89638423d13bfbf7dc3d248a2532e51d84704872cb66f78dc1fa3ed666872214",
+      "original_C_star_count": 48,
+      "original_artifact_id": 14551852570,
+      "original_run_status": "ORIGINAL_EOS_ROTATING_FULL_C_SEQUENCE_SAMPLED_AND_CROSSCHECKED_NOT_PHYSICALLY_CERTIFIED",
+      "zip_sha256": "7f517332a6d391e59c043279b1deb8b103262dc5294222d3ea2b187b157fde3e"
+    },
+    "MS1B": {
+      "file": "MS1B_authentic_GitHub_artifact_zip.base64.txt",
+      "json_name": "MS1B_original_346Hz_RNS_C_mass_sequence_20261119.json",
+      "json_sha256": "e974c08937b98b8327d1841d1edad831853c02289f5c7022ed3e619b9b39973c",
+      "original_C_star_count": 48,
+      "original_artifact_id": 14552137092,
+      "original_run_status": "ORIGINAL_EOS_ROTATING_FULL_C_SEQUENCE_SAMPLED_AND_CROSSCHECKED_NOT_PHYSICALLY_CERTIFIED",
+      "zip_sha256": "4ea67a8519d86d2f37a84992b45f4a6fb130e76c27c39a3039bf8c0392032b96"
+    },
+    "WFF1": {
+      "file": "WFF1_authentic_GitHub_artifact_zip.base64.txt",
+      "json_name": "WFF1_original_346Hz_RNS_C_mass_sequence_20261119.json",
+      "json_sha256": "78366a7022450761bdf87a2463d18d12c8ffabf6a40ce06c709e3423d8cb7b21",
+      "original_C_star_count": 41,
+      "original_artifact_id": 14551184618,
+      "original_run_status": "NUMERICAL_RECONSTRUCTION_NOT_ACCEPTED",
+      "zip_sha256": "f6b03bedd2c1c067901747ee2090b2a5bcfcfff3aa1b1476b975ddb053930ff3"
+    },
+    "WFF2": {
+      "file": "WFF2_authentic_GitHub_artifact_zip.base64.txt",
+      "json_name": "WFF2_original_346Hz_RNS_C_mass_sequence_20261119.json",
+      "json_sha256": "c0cece2a7ac2f3d7bce70b5fc9ef52385632ab45ca6bea3087ae3c993a030fbb",
+      "original_C_star_count": 42,
+      "original_artifact_id": 14549589762,
+      "original_run_status": "NUMERICAL_RECONSTRUCTION_NOT_ACCEPTED",
+      "zip_sha256": "97af6068b2d024549a784acfc0984ef1d448f892a52edb1a961104c8d3c3861a"
+    }
+  },
+  "original_JESTER_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+  "original_RNS_commit": "97e85d325a33e37f702306414533f6cd77812477",
+  "schema": "j0740-seven-native-rotating-gr-saved-C-archive-source-v1",
+  "source_C_job_run_id": 44565658458
+}
