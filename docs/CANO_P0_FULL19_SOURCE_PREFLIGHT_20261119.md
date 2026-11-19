@@ -39,3 +39,20 @@ The default legacy `full` profile is unchanged for backward compatibility; P0 re
 `python -m unittest tests.test_cano_p0_source_preflight -v`
 
 Covers good 19/113 acceptance, missing/invalid expected rows, 18/20-table deviations, 112/114-row deviations, wrong db/host, provider failure, backwards-compatible `full`, the CLI option and actual propagation into encrypted-backup preflight. GitHub Actions on the PR is the independent integration gate.
+
+
+## Receiptless archive authentication (new, independent operator step)
+
+An orphan `.canoenc` without an authenticated companion receipt cannot use the old `verify RECEIPT.json` command. The new `verify-archive` command runs AES-256-GCM verification on the **actual pinned ciphertext** without fabricating a receipt or writing a plaintext dump.
+
+Verified existing Windows resources: `cano-tools-pg18/bin/pg_restore.exe` is PostgreSQL **18.7**, and `cano-tools-pg18/pydeps` supplies `cryptography 50.0.2`. No new packages or paid resources are needed. The new command is on **draft PR #643** and must not be claimed installed on the Windows machine before that branch's code is present.
+
+After providing the correct matching `CANO_BACKUP_KEY_HEX` **locally only** (not in chat or GitHub), run the updated script against the pinned archive:
+
+~~~powershell
+python scripts/cano_encrypted_backup.py verify-archive C:\Users\User\AppData\Local\SentinelX\workspace\CANO_P0_PG18_19TABLE_113ROWS_20261119.canoenc --expected-sha256 a22cdb7175ed3c006d95fdf76cd00ef37c8d0b22aaa89f274b69a7fa0b45ba07
+~~~
+
+The command rejects an invalid/missing expected SHA-256, symlink, truncation, wrong header or missing/wrong AES key before reporting success. It verifies GCM tag and `PGDMP` signature without writing plaintext, and checks disk bytes again before producing results. It returns a plaintext SHA-256/size plus explicit `receipt_authenticated=false`, `source_identity_verified=false` and `isolated_restore_verified=false` boundaries.
+
+This is verification only: it never creates a DB or calls `pg_restore`. Actual isolation restore and source attribution still need separate evidence. The 19-Nov Windows `.cano-neon-backup.env` metadata check listed only `DATABASE_URL`; `CANO_BACKUP_KEY_HEX` was not present in that file, and no secret values were printed.
