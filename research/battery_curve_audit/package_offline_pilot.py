@@ -31,6 +31,7 @@ PROGRAMS = [
     "field_pilot_csv_intake.py",
     "field_receipt_binding.py",
     "field_source_csv_bridge.py",
+    "blind_field_review.py",
 ]
 DOCUMENTS = [
     "PROVENANCE_ALIAS_LAB.md",
@@ -44,6 +45,7 @@ DOCUMENTS = [
     "FIELD_PILOT_CSV_INTAKE.md",
     "FIELD_RECEIPT_BINDING.md",
     "BOUND_FIELD_CSV.md",
+    "BLIND_FIELD_REVIEW.md",
     "README.md",
 ]
 TESTS = [
@@ -65,6 +67,7 @@ TESTS = [
     "test_battery_field_csv_intake.py",
     "test_battery_field_receipt_binding.py",
     "test_battery_bound_field_csv.py",
+    "test_battery_blind_field_review.py",
     "test_customer_preflight.py",
 ]
 
@@ -110,6 +113,7 @@ def tests():
         "test_battery_field_csv_intake.py",
         "test_battery_field_receipt_binding.py",
         "test_battery_bound_field_csv.py",
+        "test_battery_blind_field_review.py",
     ]
     for name in patterns:
         subprocess.run([sys.executable,"-m","unittest","discover","-s","tests","-p",name,"-v"],cwd=ROOT,check=True)
@@ -211,7 +215,73 @@ def demo():
                 "audit_receipt_sha256", "BATCH0")):
             raise AssertionError("source-bound report leaked private identifiers")
         print("FOURTH DEMO PASS: source-bound CSV PILOT_ONLY_NOT_CERTIFIED")
-    print("FOUR SYNTHETIC DEMO CASES PASS")
+    # Fifth demonstration: make prediction-blind forms from original RAW source
+    # report, then only allow publication of source-rebound aggregate statistics.
+    with tempfile.TemporaryDirectory() as tmp:
+        from csv import DictReader,DictWriter
+        work=Path(tmp)
+        manifest=ROOT/"demo-data"/"manifest_clean.json"
+        rawroot=ROOT/"demo-data"
+        audit=work/"source-audit.json"
+        pre=subprocess.run([
+            sys.executable,"research/battery_curve_audit/integrated_customer_gate.py",
+            "--manifest",str(manifest),"--root",str(rawroot),"--report",str(audit)
+        ],cwd=ROOT,capture_output=True,text=True)
+        if pre.returncode!=0:
+            raise AssertionError("Fifth demo original source audit failed: "+pre.stderr)
+        source=json.loads(audit.read_text("utf-8"))
+        if source["decision"]!="PASS_SCREEN_ONLY":
+            raise AssertionError("Fifth demo unexpectedly has unresolved source evidence")
+        partition={r["cell"]:r["partition"] for r in source["split"]["assignments"]}
+        cells=work/"cells.csv"
+        cells.write_text("cell,device,batch,campaign,partition\n"+
+            "".join(f"{c},SYN_DEVICE_{i},SYN_BATCH_{i},SYN_CAMP_{i},{partition[c]}\n"
+                    for i,c in enumerate(sorted(partition))),encoding="utf-8")
+        pairs,frame=work/"private-screened.csv",work/"private-frame.json"
+        def invoke(*params):
+            result=subprocess.run([sys.executable,
+                  "research/battery_curve_audit/blind_field_review.py",*map(str,params)],
+                  cwd=ROOT,capture_output=True,text=True)
+            if result.returncode:
+                raise AssertionError("Fifth demo command failed: "+result.stderr)
+        invoke("screen","--manifest",manifest,"--root",rawroot,"--audit-report",audit,
+               "--cells",cells,"--pairs-out",pairs,"--frame-out",frame)
+        config=json.loads(frame.read_text("utf-8"))
+        if config["site_authorization"]["permitted"]:
+            raise AssertionError("Fifth demo generated authorization was not false")
+        config["site_authorization"]={"permitted":True,"reference":"SYNTHETIC_ONLY_NOT_A_REAL_SITE"}
+        frame.write_text(json.dumps(config),encoding="utf-8")
+        form_a,form_b,seal=work/"reviewer-A.csv",work/"reviewer-B.csv",work/"operator-only.json"
+        invoke("prepare","--cells",cells,"--pairs",pairs,"--frame",frame,
+               "--audit-report",audit,"--reviewer-a-form",form_a,
+               "--reviewer-b-form",form_b,"--operator-seal",seal,"--per-stratum","2")
+        for form in (form_a,form_b):
+            with form.open(newline="",encoding="utf-8") as stream:
+                rows=list(DictReader(stream))
+            if not rows or any("flagged" in row or row["verdict"] for row in rows):
+                raise AssertionError("Reviewer form accidentally reveals predictions")
+            for row in rows:
+                row["verdict"]="independent"
+            with form.open("w",newline="",encoding="utf-8") as stream:
+                writer=DictWriter(stream,fieldnames=("pair_id","a","b","verdict"))
+                writer.writeheader();writer.writerows(rows)
+        out=work/"redacted-bound-review.json"
+        invoke("finalize","--manifest",manifest,"--root",rawroot,
+               "--audit-report",audit,"--cells",cells,"--pairs",pairs,"--frame",frame,
+               "--reviewer-a-form",form_a,"--reviewer-b-form",form_b,
+               "--operator-seal",seal,"--summary",out,
+               "--reviewer-a-id","SYN_REVIEWER_A","--reviewer-b-id","SYN_REVIEWER_B")
+        result=json.loads(out.read_text("utf-8"))
+        if (result["decision"]!="PILOT_ONLY_NOT_CERTIFIED" or
+                result["field_acceptance"]!="NOT_ESTABLISHED" or
+                not result["source_recalculated_and_matched"]):
+            raise AssertionError("Fifth demo generated unsafe field acceptance")
+        raw=out.read_text("utf-8")
+        if any(x in raw for x in ("SYN_DEVICE_","SYN_REVIEWER_","SYNTHETIC_ONLY_NOT_A_REAL_SITE",
+                                  "audit_receipt_sha256")):
+            raise AssertionError("Fifth demo exposed private cell/reviewer metadata")
+        print("FIFTH BLINDED SYNTHETIC SOURCE-LINKED DEMO PASS")
+    print("FIVE SYNTHETIC DEMOS PASS")
 
 if __name__ == "__main__":
     verify()
@@ -252,6 +322,16 @@ It does not need pip, cloud tokens, API keys, or customer uploads.
    Then run:
    Run-Field-Verified.cmd "C:\Lab\manifest.json" "C:\Lab\private-source-audit.json" "C:\Lab\cells.csv" "C:\Lab\reviews.csv" "C:\Lab\frame.json" "C:\Lab\NEW-bound-summary.json"
    This verifies source and ledger linkage, NOT site permission or calibration.
+
+8. For a PROSPECTIVE prediction-blind, two-technician review protocol, see
+   research/battery_curve_audit/BLIND_FIELD_REVIEW.md. Three commands:
+   blind_field_review.py screen / prepare / finalize.
+   A screen derives private model pair decisions from reverified original CSVs,
+   not an operator's self-written 'flagged' values. Two generated reviewer forms
+   omit flagged predictions and have different order; return the completed forms
+   separately. Source binding and raw CSVs are checked again on finalize.
+   Run-Blind-Review-Demo.cmd tests this with SYNTHETIC inputs only.
+   Real personnel independence and site authorization cannot be proven in code.
 
 ## Windows PowerShell alternative
    py -3 research/battery_curve_audit/customer_pipeline.py --manifest
@@ -449,6 +529,21 @@ echo Usage: Run-Field-Verified.cmd "manifest.json" "source-audit.json" "cells.cs
 echo The source audit report must match the original authorized CSVs.
 exit /b 2
 ''',
+"Run-Blind-Review-Demo.cmd": r'''@echo off
+setlocal
+cd /d "%~dp0"
+where py >nul 2>nul
+if not errorlevel 1 (
+  py -3 verify_package.py --demo
+) else (
+  python verify_package.py --demo
+)
+set "RC=%errorlevel%"
+echo.
+echo Prediction-blind fifth demo is synthetic only, not lab acceptance.
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
+exit /b %RC%
+''',
 }
 
 def _read_inputs(repo):
@@ -504,7 +599,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-19-provenance-alias-v7",
+                "version":"2026-11-19-pilot-provenance-and-blind-review-v7",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,
