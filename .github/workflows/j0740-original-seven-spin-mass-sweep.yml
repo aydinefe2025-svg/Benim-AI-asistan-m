@@ -1,11 +1,10 @@
 name: J0740 seven original EOS full 346Hz RNS C mass-sequence sweeps
+# Historical direct RNS full 48-center scan. Five source models completed 48/48,
+# WFF1 and WFF2 independently reached observed-mass and post-peak solutions
+# then timed out at high central density. Original source SHA-pinned C outputs
+# are reused by the automatic j0740-original-seven-archived-C-F38-replay workflow.
+# Do not rerun expensive 7 x 48 C models on unrelated research PR commits.
 on:
-  pull_request:
-    branches:
-      - science/j0740-apr4-firstlaw-gr-pilot-20261117
-    paths:
-      - 'research/j0740/original_spin_mass_sweep/**'
-      - '.github/workflows/j0740-original-seven-spin-mass-sweep.yml'
   workflow_dispatch:
 permissions:
   contents: read
