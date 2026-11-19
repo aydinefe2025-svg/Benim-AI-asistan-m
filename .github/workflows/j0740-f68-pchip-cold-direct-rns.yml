@@ -1,0 +1,92 @@
+name: J0740 F68 F67 PCHIP cold EOS direct RNS rotation
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f68/**'
+      - 'research/j0740/f67/**'
+      - '.github/workflows/j0740-f68-pchip-cold-direct-rns.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  f68-direct-rns:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned numerical stack and original LALSuite MPA1 source
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3' 'lalsuite==7.26.4'
+      - name: Find source-pinned installed raw MPA1 table without modifying its nodes
+        run: |
+          python - <<'PY'
+          import sys,pathlib,hashlib
+          sys.path.insert(0,'research/j0740/f66')
+          from f66_original_lal_table_spline_forensics import find_installed_sources
+          source=find_installed_sources(pathlib.Path(sys.prefix))/'LALSimNeutronStarEOS_MPA1.dat'
+          digest=hashlib.sha256(source.read_bytes()).hexdigest()
+          assert digest=='bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec',digest
+          pathlib.Path('results/F68').mkdir(parents=True,exist_ok=True)
+          pathlib.Path('results/F68/source_path.txt').write_text(str(source)+'\n')
+          print('Original LALSuite 7.26.4 MPA1 source SHA PASS',digest)
+          PY
+      - name: Four fail-closed EOS table conversion tests
+        run: python -m unittest discover -s research/j0740/f68 -p 'test_f68_*.py' -v
+      - name: Patch only upstream RNS output precision and compile direct GR C solver
+        run: |
+          python research/j0740/f62/f62_rns_precision_patch.py rns-upstream/rns.c
+          make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: F67 table regeneration and F68 direct rotating plus static RNS roots at two meshes
+        run: |
+          SOURCE="$(cat results/F68/source_path.txt)"
+          python -u research/j0740/f68/f68_pchip_cold_rns.py \
+            --source "$SOURCE" \
+            --rns rns-upstream/rns \
+            --out-dir results/F68
+      - name: Scientific scope and numerical acceptance assertions
+        run: |
+          python - <<'PY'
+          import json
+          p='results/F68/F68_direct_RNS_result_20261119.json'
+          d=json.load(open(p))
+          assert d['status']=='PASS_DIRECT_RNS_TWO_MESH_EXPLORATORY_ONLY',d['status']
+          assert d['posterior']=='NOT_RUN' and d['native_XPSI']=='NOT_RUN' and d['fixed_J_stability']=='NOT_RUN'
+          assert d['physical_EOS_acceptance'].startswith('NOT_ESTABLISHED')
+          assert set(d['targets'])=={'151','196'}
+          for mesh in ('151','196'):
+              assert len(d['targets'][mesh]['masses'])==4
+              for mass,row in d['targets'][mesh]['masses'].items():
+                  assert row['static_rns']['status']=='PASS_DIRECT_RNS_C_ROOT', (mesh,mass)
+                  assert row['rotating_rns']['status']=='PASS_DIRECT_RNS_C_ROOT', (mesh,mass)
+                  assert abs(row['static_radius_delta_vs_f67_km'])<=.20,(mesh,mass)
+          assert all(x['pass_abs_delta_le_0p060_km'] for x in d['mesh_convergence'].values())
+          print('F68 RNS numerical gates PASS; physical EOS/Bayes gates correctly NOT_ESTABLISHED/NOT_RUN')
+          PY
+      - name: Hash run output, code, source and RNS executable
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F68');root.mkdir(parents=True,exist_ok=True)
+          files=[*root.glob('*.json'),*root.glob('*.rns'),Path('research/j0740/f68/f68_pchip_cold_rns.py'),Path('research/j0740/f68/test_f68_pchip_cold_rns.py'),Path('research/j0740/f67/f67_mpa1_pchip_firstlaw_tov.py'),Path('research/j0740/f67/F67_MPA1_PCHIP_COLD_relative_thermo_20261119.dat'),Path('research/j0740/f62/f62_rns_precision_patch.py'),Path('rns-upstream/rns'),Path('rns-upstream/rns.c')]
+          data={str(p):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in files if p.is_file()}
+          (root/'F68_SHA256_manifest_20261119.json').write_text(json.dumps(data,indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: j0740-f68-f67-pchip-cold-direct-rns
+          path: results/F68/
+          if-no-files-found: warn
+          retention-days: 30
