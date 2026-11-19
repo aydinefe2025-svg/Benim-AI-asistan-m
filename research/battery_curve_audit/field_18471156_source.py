@@ -46,6 +46,7 @@ def inspect_zip_bytes(raw: bytes) -> dict:
             header_cols = collections.Counter()
             header_signatures = set()
             header_samples = []
+            voltage_counts, temperature_counts, current_counts, time_counts = [], [], [], []
             for info in members:
                 name = info.filename.replace("\\", "/")
                 clean = PurePosixPath(name)
@@ -94,6 +95,19 @@ def inspect_zip_bytes(raw: bytes) -> dict:
                         sanitized.append(label)
                     header_signatures.add(sha256(json.dumps(
                         sanitized,ensure_ascii=False).encode("utf-8")).hexdigest())
+                    normalized=[word.lower().replace(" ","") for word in sanitized]
+                    voltage_counts.append(sum(
+                        word.startswith(("vol_","voltage","cell_voltage"))
+                        for word in normalized))
+                    temperature_counts.append(sum(
+                        word.startswith(("temp_","temperature")) for word in normalized))
+                    current_counts.append(sum(
+                        word in ("cur","current","current_a","i/a")
+                        for word in normalized))
+                    time_counts.append(sum(
+                        word in ("time","time_s","time(s)","timestamp","datetime",
+                                 "test_time(s)","test_time_s")
+                        for word in normalized))
                     if len(header_samples)<3:
                         header_samples.append(sanitized[:24])
                     if len(safe_headers[ext]) < 3:
@@ -123,6 +137,18 @@ def inspect_zip_bytes(raw: bytes) -> dict:
             "header_column_count_histogram": dict(sorted(header_cols.items())),
             "distinct_header_patterns": len(header_signatures),
             "header_samples": header_samples,
+            "voltage_channel_count": voltage_counts[0] if voltage_counts and
+                len(set(voltage_counts))==1 else None,
+            "temperature_channel_count": temperature_counts[0] if temperature_counts and
+                len(set(temperature_counts))==1 else None,
+            "current_channel_count": current_counts[0] if current_counts and
+                len(set(current_counts))==1 else None,
+            "time_axis_status": (
+                "MISSING" if time_counts and all(x==0 for x in time_counts)
+                else "HEADER_PRESENT_NOT_UNITS_VALIDATED" if time_counts and all(x>0 for x in time_counts)
+                else "INCONSISTENT_OR_UNREADABLE"
+            ),
+            "time_voltage_screening_allowed": False,
             "physical_cell_identity_confirmed": False}
 
 
