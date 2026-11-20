@@ -40,8 +40,9 @@ def parse_sidecar(z:ZipFile,source_file:str,temp:int)->dict:
     p=source_file[:-4]+'_meta.txt'
     fields=summarize_meta_sidecar(z.read(p))['parsed_fields']
     point=str(fields.get('testpoint') or '').strip().casefold().replace(' ','')
-    # Publisher original sidecar uses 'k04'; the 04-06 no-intermediate-CU
-    # protocol is documented separately in the paper, not encoded here.
+    # The publisher's actual k04 sidecar labels this testpoint 'k04'.
+    # The omission of interim CUs for 04-06 follows the paper's cohort protocol,
+    # not a 'noCU' claim embedded in this sidecar.
     if point!='k04':
         raise ValueError('SOURCE_REVIEW_REQUIRED: incorrect source calendar k04 protocol label; published=' + repr(point[:40]))
     temp_text=str(meta.get('temperature') or '').strip().replace(' ','')
@@ -132,15 +133,38 @@ def pinned_metadata(meta:dict):
     return examined
 
 
-def run(save_originals:Path|None=None):
-    raw_meta=fetch_bounded(URL,MAX_METADATA_BYTES)
-    meta=json.loads(raw_meta)
-    approved=pinned_metadata(meta)
+def run(save_originals:Path|None=None, offline_originals:Path|None=None):
+    """Use the same physical parser either on publisher HTTPS or saved original ZIPs.
+
+    Offline files must still match the exact publisher MD5, bytes and full ZIP
+    CRC; do not claim a fresh publisher API check in offline mode.
+    """
+    if save_originals is not None and offline_originals is not None:
+        raise ValueError('SOURCE_REVIEW_REQUIRED: cannot save a second copy of offline originals')
+    if offline_originals is None:
+        raw_meta=fetch_bounded(URL,MAX_METADATA_BYTES)
+        meta=json.loads(raw_meta)
+        approved=pinned_metadata(meta)
+        meta_sha=sha256(raw_meta).hexdigest()
+        source_doi=meta['doi']
+    else:
+        if not offline_originals.is_dir():
+            raise ValueError('SOURCE_REVIEW_REQUIRED: offline source directory missing')
+        if set(x.name for x in offline_originals.iterdir())!={x[1] for x in ORIGINALS}:
+            raise ValueError('SOURCE_REVIEW_REQUIRED: unexpected/missing offline original archive')
+        meta_sha=None  # no fabricated metadata fetch
+        source_doi='10.6084/m9.figshare.25975315.v1'  # pinned original metadata version, not fresh HTTP evidence
     if save_originals is not None and (not save_originals.is_dir() or list(save_originals.iterdir())):
         raise ValueError('SOURCE_REVIEW_REQUIRED: save directory must exist and be empty')
     cells=[]
     for fid,name,size,digest in ORIGINALS:
-        raw=fetch_bounded('https://ndownloader.figshare.com/files/'+str(fid),MAX_ORIGINAL_BYTES)
+        if offline_originals is None:
+            raw=fetch_bounded('https://ndownloader.figshare.com/files/'+str(fid),MAX_ORIGINAL_BYTES)
+        else:
+            source=offline_originals/name
+            if source.is_symlink() or not source.is_file() or source.stat().st_size!=size:
+                raise ValueError('SOURCE_REVIEW_REQUIRED: offline original size/identity invalid')
+            raw=source.read_bytes()
         record={'id':fid,'name':name,'size':size,'md5':digest}
         validated=inspect_zip(raw,record)
         if len(raw)!=size or md5(raw).hexdigest()!=digest:
@@ -155,8 +179,9 @@ def run(save_originals:Path|None=None):
                       'source_profiles':profiles})
     allp=[p for c in cells for p in c['source_profiles']]
     return {'schema':'cano.battery.figshare25975315.original-k04-three-cell-etat-channel-audit.v1',
-            'publisher_article_id':25975315,'publisher_doi':meta['doi'],
-            'publisher_metadata_sha256':sha256(raw_meta).hexdigest(),
+            'publisher_article_id':25975315,'publisher_doi':source_doi,
+            'publisher_metadata_sha256':meta_sha,
+            'publisher_api_queried_this_run':offline_originals is None,
             'cohort':'TP_k04','source_archives':cells,'original_archives_verified':3,
             'source_cells':3,'source_temperature_pairs':len(allp),
             'source_csv_files_processed':len(allp)*2,
@@ -170,17 +195,17 @@ def run(save_originals:Path|None=None):
             'causal_storage_only_aging_established':False,
             'decision':'NEW_K04_ORIGINAL_THREE_CELL_SOURCE_RESEARCH_ONLY'}
 
-
 def main(argv=None):
     a=list(sys.argv[1:] if argv is None else argv)
     try:
-        if len(a) not in (1,3) or (len(a)==3 and a[1]!='--archive-dir'):
-            raise ValueError('usage: python -m research.battery_curve_audit.figshare_k04_original_capacity RESULT.json [--archive-dir EMPTY_DIR]')
+        if len(a) not in (1,3) or (len(a)==3 and a[1] not in ('--archive-dir','--offline-originals')):
+            raise ValueError('usage: python -m research.battery_curve_audit.figshare_k04_original_capacity RESULT.json [--archive-dir EMPTY_DIR | --offline-originals ZIP_DIR]')
         path=Path(a[0])
         if path.exists() or not path.parent.is_dir():
             raise ValueError('SOURCE_REVIEW_REQUIRED: result must not exist')
-        save=Path(a[2]) if len(a)==3 else None
-        out=run(save)
+        save=Path(a[2]) if len(a)==3 and a[1]=='--archive-dir' else None
+        offline=Path(a[2]) if len(a)==3 and a[1]=='--offline-originals' else None
+        out=run(save, offline)
         with path.open('x',encoding='utf-8') as f:
             json.dump(out,f,indent=2,sort_keys=True);f.write('\n')
         print('NEW_SOURCE_COHORT_ORIGINAL_K04',json.dumps({
