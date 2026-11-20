@@ -1,0 +1,63 @@
+name: Battery Figshare three original time-step-current alignment
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/figshare_phase_guard.py'
+      - 'tests/test_battery_figshare_phase_guard.py'
+      - '.github/workflows/battery-figshare-three-phase-guard.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-3cell-regime-screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Checkout exact PR commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Test timing regime mismatch, duplicate timestamps, no interpolation
+        run: python -m unittest tests.test_battery_figshare_phase_guard -v
+      - name: Compare only three original publisher MD5 and CRC-verified ET_T23 recordings
+        run: |
+          python -m research.battery_curve_audit.figshare_phase_guard \
+            "${RUNNER_TEMP}/cano_figshare_phase_regime_receipt.json"
+      - name: Enforce research-only claims and no customer-data publication
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads((Path(os.environ['RUNNER_TEMP'])/'cano_figshare_phase_regime_receipt.json').read_text())
+          assert d['source_article_id']==25975315
+          assert len(d['source_windows'])==3 and d['pair_count']==3
+          assert d['total_source_time_voltage_points']==60_000
+          assert d['field_FPR_FNR_established'] is False
+          assert d['independently_proven_same_test_conditions'] is False
+          assert d['publisher_meta_to_physical_cell_identity_independently_verified'] is False
+          assert d['field_acceptance']=='NOT_ESTABLISHED'
+          assert d['production_release_allowed'] is False
+          for x in d['pair_results']:
+              assert x['field_FPR_FNR_established'] is False
+              assert x['physical_phase_alignment_authenticated'] is False
+              assert x['independent_cell_identity_authenticated'] is False
+              assert x['same_step_and_current_points'] <= x['matched_unique_elapsed_time_points']
+              assert x['full_window_comparability_established'] is False
+              if x['same_step_and_current_points'] < 1000:
+                  assert x['exact_voltage_pairs'] is None
+                  assert x['near_2mV_voltage_pairs'] is None
+              if (x['same_step_and_current_points'] >= 1000 and
+                  float(x['source_window_coverage_fraction']) < 0.5):
+                  assert x['decision']=='LOW_SOURCE_WINDOW_COVERAGE_REVIEW_REQUIRED'
+                  assert x['voltage_deltas_gt_50mV'] is not None
+          print('RESEARCH_ONLY',[(x['matched_unique_elapsed_time_points'],x['same_step_and_current_points'],x['decision']) for x in d['pair_results']])
+          PY
+      - name: Retain only anonymous source hashes and aggregate counts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-three-source-phase-step-current-data-quality-receipt
+          path: ${{ runner.temp }}/cano_figshare_phase_regime_receipt.json
+          retention-days: 7
+          if-no-files-found: error
