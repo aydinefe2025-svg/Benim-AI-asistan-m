@@ -679,10 +679,12 @@ def main() -> int:
         if unfinished_ci is not None:
             recovery = recover_ci_dispatch(unfinished_ci, github)
             print("CANO draft worker CI recovery: " + recovery)
-            if recovery == "ci_dispatch_recovered":
+            # A draft already has a Core CI run in flight, or the lost
+            # dispatch was recovered. In both cases this invocation has
+            # handled its one owner-scoped job; do not claim another.
+            if recovery in ("ci_dispatch_recovered", "ci_already_started"):
                 return 0
-            if recovery != "ci_already_started":
-                return 1
+            return 1
         job = db.claim_one()
         if job is None:
             print("CANO draft worker: no queued job")
