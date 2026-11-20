@@ -59,7 +59,7 @@ def audit_article(obj: dict) -> dict:
     if not isinstance(files, list) or not 1 <= len(files) <= MAX_FILES:
         raise ValueError("SOURCE_REVIEW_REQUIRED: empty/oversized file list")
     seen_ids, seen_names, formats, small = set(), set(), Counter(), []
-    total, missing_md5 = 0, 0
+    total, missing_md5, duplicate_names = 0, 0, 0
     for item in files:
         if not isinstance(item, dict):
             raise ValueError("SOURCE_REVIEW_REQUIRED: file item")
@@ -73,8 +73,10 @@ def audit_article(obj: dict) -> dict:
             raise ValueError("SOURCE_REVIEW_REQUIRED: unsafe file name")
         if not isinstance(size, int) or isinstance(size, bool) or not 0 <= size <= MAX_SINGLE:
             raise ValueError("SOURCE_REVIEW_REQUIRED: file size")
-        if fid in seen_ids or name.casefold() in seen_names:
-            raise ValueError("SOURCE_REVIEW_REQUIRED: duplicate file")
+        if fid in seen_ids:
+            raise ValueError("SOURCE_REVIEW_REQUIRED: duplicate file ID")
+        if name.casefold() in seen_names:
+            duplicate_names += 1
         seen_ids.add(fid)
         seen_names.add(name.casefold())
         total += size
@@ -100,6 +102,7 @@ def audit_article(obj: dict) -> dict:
         "total_bytes_metadata": total,
         "format_counts_metadata": dict(sorted(formats.items())),
         "missing_publisher_md5_count": missing_md5,
+        "duplicate_file_names_metadata": duplicate_names,
         "small_text_candidates_count": len(small),
         "small_text_candidates_first_20": small[:20],
         "original_files_downloaded": 0,
@@ -110,8 +113,9 @@ def audit_article(obj: dict) -> dict:
         "time_voltage_pairs_measured": 0,
         "field_false_match_rate_calculated": False,
         "production_release_allowed": False,
-        "decision": "METADATA_ONLY_NOT_PHYSICAL_VALIDATION"
-        if license_ok(obj.get("license")) else "SOURCE_LICENSE_REVIEW_REQUIRED",
+        "decision": ("SOURCE_LICENSE_REVIEW_REQUIRED" if not license_ok(obj.get("license"))
+                     else "SOURCE_NAME_COLLISIONS_REVIEW_REQUIRED" if duplicate_names
+                     else "METADATA_ONLY_NOT_PHYSICAL_VALIDATION"),
     }
 
 
@@ -145,6 +149,7 @@ def main() -> int:
             "file_count": report["file_count_metadata"],
             "total_bytes": report["total_bytes_metadata"],
             "small_text_candidates": report["small_text_candidates_count"],
+            "duplicate_file_names": report["duplicate_file_names_metadata"],
             "decision": report["decision"]
         }, sort_keys=True))
         return 0 if report["license_status"] == "CC_BY_4_0_PUBLISHER_METADATA" else 2
