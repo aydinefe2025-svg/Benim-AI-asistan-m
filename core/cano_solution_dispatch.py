@@ -74,7 +74,7 @@ def infer_code_goal(message, history):
     message = message.strip()
     if not 8 <= len(message) <= 1200 or _SECRET.search(message):
         return None
-    normalized = " ".join(_ascii(message).split())
+    normalized = " ".join(_ascii(message).replace("’", "'").split())
     if re.match(r"^(?:cano\s+)?(?:kod|gorev|gelistir|yazilim)\s*:", normalized):
         return None  # Existing explicit code or specialist task router owns this.
     if "?" in message or re.search(r"\b(misin|musun|miyiz|miyim)\b", normalized):
@@ -88,6 +88,18 @@ def infer_code_goal(message, history):
         "cano kendini gelistirmeye devam et",
     }:
         return SELF_DEVELOPMENT_GOAL
+    # A direct Turkish owner request such as "Yap artık şu CANO'yu ya"
+    # must not silently fall back to ordinary chat. The strictly bounded
+    # self-development goal uses the existing owner-scoped queue, cycle
+    # deduplication, CI and review gates. Do not interpret research, questions
+    # or open-ended assistant text as development consent.
+    if re.fullmatch(
+        r"yap artik su cano'?yu(?: ya)?"
+        r"|(?:artik )?cano'?yu (?:gelistir|tamamla|yap(?: artik)?)",
+        normalized.rstrip("!."),
+    ):
+        return SELF_DEVELOPMENT_GOAL
+
     # A user's explicit request to fix the immediately preceding *known*
     # provider error is an authorized code task, not another call to the
     # failed text model. Never turn arbitrary assistant output into commands.
