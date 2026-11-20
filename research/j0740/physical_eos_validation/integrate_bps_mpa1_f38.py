@@ -63,15 +63,22 @@ def selftest():
     coverage=float(truncnorm.cdf(MASS_WINDOW[1],-5,5,loc=M_MU,scale=M_SIG)-
                    truncnorm.cdf(MASS_WINDOW[0],-5,5,loc=M_MU,scale=M_SIG))
     assert .90<coverage<.91
-    print("PASS: bilinear interpolation, fail-closed source boundary, normalized prior, and window coverage")
+    # The interpolation axis is the requested mass root, while RNS reports a
+    # finite root residual. Endpoint queries must remain finite without extrapolation.
+    target=np.array([1.89,2.175]); actual=target+np.array([1e-7,-1e-7])
+    p=PchipInterpolator(target,np.array([12.8,12.4]),extrapolate=False)
+    assert np.isfinite(p(target)).all() and np.max(np.abs(actual-target))<1e-5
+    print("PASS: bilinear interpolation, fail-closed support, prior, window, and root-residual endpoint handling")
 
 def run(curve_path,f38_dir):
     curve=json.loads(Path(curve_path).read_text())
     if curve.get("status")!="PASS_TWO_GRID_CURVE": raise ValueError("two-grid direct RNS curve did not pass")
     fine=next(x for x in curve["runs"] if x["grid"]=="201x401")
-    points=sorted((x["result"] for x in fine["points"]),key=lambda x:x["M_msun"])
-    masses=np.array([x["M_msun"] for x in points],float)
-    radii=np.array([x["R_equatorial_km"] for x in points],float)
+    points=sorted(fine["points"],key=lambda x:x["target_mass_msun"])
+    masses=np.array([x["target_mass_msun"] for x in points],float)
+    radii=np.array([x["result"]["R_equatorial_km"] for x in points],float)
+    root_errors=np.array([abs(x["result"]["M_msun"]-x["target_mass_msun"]) for x in points],float)
+    if np.max(root_errors)>1e-5: raise ValueError("direct RNS mass root exceeds 1e-5 Msun tolerance")
     if np.any(np.diff(masses)<=0): raise ValueError("fine-grid RNS mass curve is not strictly increasing")
     if abs(masses[0]-MASS_WINDOW[0])>2e-5 or abs(masses[-1]-MASS_WINDOW[1])>2e-5:
         raise ValueError("direct RNS curve endpoints do not match the declared integration window")
