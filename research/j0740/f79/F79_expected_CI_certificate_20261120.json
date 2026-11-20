@@ -1,0 +1,71 @@
+{
+  "additional_H_only_rejected_stars": 0,
+  "final_physical_Bayes": "NOT_RUN",
+  "models": {
+    "APR4_EPP": {
+      "F79_additional_C_stars": 0,
+      "H_affected_C_stars": 19,
+      "causal_H_bad_source_intervals": 2,
+      "monotone_H_bad_source_intervals": 0,
+      "original_C_star_count": 48,
+      "source_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88"
+    },
+    "ENG": {
+      "F79_additional_C_stars": 0,
+      "H_affected_C_stars": 48,
+      "causal_H_bad_source_intervals": 411,
+      "monotone_H_bad_source_intervals": 364,
+      "original_C_star_count": 48,
+      "source_sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953"
+    },
+    "MPA1": {
+      "F79_additional_C_stars": 0,
+      "H_affected_C_stars": 48,
+      "causal_H_bad_source_intervals": 364,
+      "monotone_H_bad_source_intervals": 319,
+      "original_C_star_count": 48,
+      "source_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22"
+    },
+    "MS1": {
+      "F79_additional_C_stars": 0,
+      "H_affected_C_stars": 48,
+      "causal_H_bad_source_intervals": 338,
+      "monotone_H_bad_source_intervals": 321,
+      "original_C_star_count": 48,
+      "source_sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad"
+    },
+    "MS1B": {
+      "F79_additional_C_stars": 0,
+      "H_affected_C_stars": 48,
+      "causal_H_bad_source_intervals": 338,
+      "monotone_H_bad_source_intervals": 322,
+      "original_C_star_count": 48,
+      "source_sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c"
+    },
+    "WFF1": {
+      "F79_additional_C_stars": 0,
+      "H_affected_C_stars": 41,
+      "causal_H_bad_source_intervals": 316,
+      "monotone_H_bad_source_intervals": 208,
+      "original_C_star_count": 41,
+      "source_sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3"
+    },
+    "WFF2": {
+      "F79_additional_C_stars": 0,
+      "H_affected_C_stars": 42,
+      "causal_H_bad_source_intervals": 251,
+      "monotone_H_bad_source_intervals": 139,
+      "original_C_star_count": 42,
+      "source_sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae"
+    }
+  },
+  "original_JESTER_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+  "original_RNS_commit": "97e85d325a33e37f702306414533f6cd77812477",
+  "original_numerical_source_rejected_stars": 294,
+  "original_stars": 323,
+  "result_json_sha256": "e13f2684e21a6788aa864f71d26a7fd71d441fcdc6dbdf66a676405619a64790",
+  "schema": "J0740_F79_HASH_LOCKED_REPLAY_CERTIFICATE_V1",
+  "source_native_XPSI_photons": "NOT_RUN",
+  "total_h_causal_bad_source_intervals": 2020,
+  "total_h_monotone_bad_source_intervals": 1673
+}
