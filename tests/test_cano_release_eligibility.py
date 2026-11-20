@@ -139,6 +139,37 @@ class ReleaseEligibilityTests(unittest.TestCase):
                 files[0]["patch"] = "@@ -1 +1 @@\n" + line
                 self.assertFalse(assess(copy_pr(), files)[0])
 
+    def test_removing_existing_source_guards_cannot_be_auto_released(self):
+        # A PR could remove a receipt-validation guard and still add only a
+        # harmless source line. The previous policy only screened additions.
+        files = copy_files()
+        files[0]["deletions"] = 1
+        files[0]["additions"] = 1
+        files[0]["patch"] = (
+            "@@ -1,2 +1,2 @@\n"
+            "-    if not _CANONICAL_CI.fullmatch(ci):\n"
+            "+    # No extra imports or suspicious calls added\n"
+        )
+        self.assertEqual(
+            (False, "source_deletion_requires_review"),
+            assess(copy_pr(), files),
+        )
+
+    def test_redefining_receipt_validator_cannot_be_auto_released(self):
+        # A duplicate definition can shadow the existing private-receipt
+        # validator without any forbidden import or API call.
+        files = copy_files()
+        files[0]["additions"] = 2
+        files[0]["patch"] = (
+            "@@ -1,0 +1,2 @@\n"
+            "+def _safe_deployed_receipts(rows):\n"
+            "+    return iter(())\n"
+        )
+        self.assertEqual(
+            (False, "unsafe_source_addition"),
+            assess(copy_pr(), files),
+        )
+
     def test_too_large_source_or_test_change_requires_review(self):
         for index, key, count in ((0, "additions", 41),
                                   (0, "deletions", 41),
