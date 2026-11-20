@@ -29,7 +29,9 @@ jobs:
           from pathlib import Path
           for name in ('JESTER_BPS_crust_e6768650.csv','JESTER_LALSuite_MPA1_source_e6768650.csv'):
               p=Path('research/j0740/physical_eos_validation')/name
-              b=p.read_bytes().replace(bytes([13,10]),bytes([10])).rstrip(bytes([10]))+bytes([10])
+              b=p.read_bytes()
+              nl=bytes([13,10]) if bytes([13,10]) in b else bytes([10])
+              p.write_bytes(b.rstrip(bytes([13,10]))+nl)
               p.write_bytes(b)
           PY
           test "$(sha256sum research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv | cut -d' ' -f1)" = "a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787"
