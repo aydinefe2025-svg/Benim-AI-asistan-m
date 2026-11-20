@@ -37,6 +37,18 @@ class WindowGuards(unittest.TestCase):
         with ZipFile(source(rows=1100)) as z:a=read_matched_window(z,NAME)
         with ZipFile(source(rows=1101)) as z:b=read_matched_window(z,NAME)
         self.assertIsNone(compare_windows(a,b)['exact_voltage_matches'])
+    def test_source_with_publisher_stage_folder_resolves_unique_basename(self):
+        buf=io.BytesIO()
+        with ZipFile(buf,'w') as z:
+            lines=['run_time,c_vol,c_cur,step_type']
+            lines.extend(f'{i},{4.2-i/100000},-0.1,1' for i in range(1100))
+            z.writestr('Stage_1/TP_k01_05/'+NAME,'\n'.join(lines)+'\n')
+            z.writestr('Stage_1/TP_k01_05/'+NAME[:-4]+'_meta.txt','lab: dummy\n')
+        buf.seek(0)
+        with ZipFile(buf) as z:
+            result=read_matched_window(z,NAME)
+        self.assertEqual(result['count'],1100)
+
     def test_missing_meta_fails_closed(self):
         with ZipFile(source(withmeta=False)) as z:
             with self.assertRaisesRegex(ValueError,'metadata'):read_matched_window(z,NAME)
