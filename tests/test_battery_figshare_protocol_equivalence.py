@@ -48,6 +48,39 @@ class SourceProtocolTests(unittest.TestCase):
         self.assertIsNone(out['sidecar_testpoint_equivalent'])
         self.assertEqual(out['sidecar_testpoint_format_pattern'], 'TP_k##_##_##_ET_T##')
 
+    def test_original_k01_nocu_suffix_is_documented_for_calendar_04_06(self):
+        for cell in ('04','05','06'):
+            with self.subTest(cell=cell):
+                out=compare_protocol_identifiers(f'TP_k01_{cell}',
+                    {'type':'k','tp':'1','cell':str(int(cell))},'k01noCU')
+                self.assertTrue(out['sidecar_testpoint_equivalent'])
+                self.assertEqual(out['sidecar_testpoint_shape'],'type_tp_nocu')
+                self.assertTrue(out['overview_filename_type_tp_cell_match'])
+                self.assertFalse(out['physical_conditions_independently_verified'])
+
+    def test_nocu_suffix_not_allowed_for_calendar_regular_01_to_03(self):
+        for cell in ('01','02','03'):
+            with self.subTest(cell=cell):
+                out=compare_protocol_identifiers(f'TP_k01_{cell}',
+                   {'type':'k','tp':'1','cell':str(int(cell))},'k01noCU')
+                self.assertFalse(out['sidecar_testpoint_equivalent'])
+                self.assertEqual(out['decision'],'SIDECAR_TESTPOINT_CONFLICT_REVIEW_REQUIRED')
+
+    def test_nocu_suffix_not_allowed_for_cycle_type(self):
+        out=compare_protocol_identifiers('TP_z01_05',
+                   {'type':'z','tp':'1','cell':'5'},'z01noCU')
+        self.assertFalse(out['sidecar_testpoint_equivalent'])
+
+    def test_nocu_suffix_must_still_match_exact_testpoint_number(self):
+        out=compare_protocol_identifiers('TP_k01_05',
+                   {'type':'k','tp':'1','cell':'5'},'k02noCU')
+        self.assertFalse(out['sidecar_testpoint_equivalent'])
+
+    def test_nocu_suffix_with_extra_tail_is_not_accepted(self):
+        out=compare_protocol_identifiers('TP_k01_05',
+                   {'type':'k','tp':'1','cell':'5'},'k01noCU-something')
+        self.assertIsNone(out['sidecar_testpoint_equivalent'])
+
     def test_sidecar_missing_field_keeps_unverified(self):
         out=compare_protocol_identifiers('TP_k01_05',{'type':'k','tp':'1','cell':'5'},None)
         self.assertIsNone(out['sidecar_testpoint_equivalent'])
