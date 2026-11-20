@@ -1,0 +1,55 @@
+name: Battery original Figshare charge-discharge direction audit
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/figshare_k01_channel_consistency.py'
+      - 'research/battery_curve_audit/figshare_k01_three_temperatures.py'
+      - 'tests/test_figshare_k01_channel_consistency.py'
+      - '.github/workflows/battery-figshare-original-channel-sign-guard.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-three-cells-channel-direction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Guard source validity and falsified physical claims (32 regression tests)
+        run: |
+          python -m unittest tests.test_figshare_k01_channel_consistency tests.test_figshare_k01_three_temperatures tests.test_figshare_k01_et_at_capacity -v
+      - name: Download and verify three publisher-original ZIPs then inspect eighteen CSVs
+        run: |
+          python -m research.battery_curve_audit.figshare_k01_channel_consistency /tmp/cano_k01_real_channel_direction_receipt.json
+      - name: Preserve proven mixed direction rather than fake nine consistent decreases
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('/tmp/cano_k01_real_channel_direction_receipt.json').read_text())
+          assert d['source_doi']=='10.6084/m9.figshare.25975315'
+          assert d['original_csv_files_processed']==18
+          assert d['original_source_rows_processed']==5825726
+          assert d['source_groups']==3 and d['source_temperature_pairs']==9
+          assert (d['mean_negative_pairs'],d['both_charge_and_discharge_negative_pairs'],d['mixed_sign_pairs'])==(9,7,2)
+          assert len(d['comparisons'])==9
+          mixed={(p['source_archive_id'],p['temperature_C']) for p in d['comparisons'] if p['decision'].startswith('MIXED_SIGN')}
+          assert mixed=={(47627092,10),(47639005,10)}
+          assert all(not p['field_FPR_FNR_established'] and not p['unqualified_aging_loss_established'] for p in d['comparisons'])
+          assert d['unqualified_9_of_9_aging_loss_claim_allowed'] is False
+          assert d['field_FPR_FNR_established'] is False
+          assert d['production_release_allowed'] is False
+          print('REAL_SOURCE_18_CSV_CHANNEL_SIGN_DISCOVERY',[(x['source_archive_id'],x['temperature_C'],x['charge_channel_delta_percent'],x['discharge_channel_delta_percent']) for x in d['comparisons'] if x['decision'].startswith('MIXED_SIGN')])
+          PY
+      - name: Archive only anonymous hashes and aggregate source metrics
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cano-original-18csv-channel-direction-real-source-evidence
+          path: /tmp/cano_k01_real_channel_direction_receipt.json
+          retention-days: 7
+          if-no-files-found: error
