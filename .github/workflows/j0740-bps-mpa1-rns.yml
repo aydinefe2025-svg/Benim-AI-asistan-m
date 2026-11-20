@@ -39,7 +39,17 @@ jobs:
         run: |
           test "$(git -C vendor/rns rev-parse HEAD)" = "97e85d325a33e37f702306414533f6cd77812477"
           sed -i '36i #include <stdlib.h>' vendor/rns/equil.c
-          sha256sum vendor/rns/equil.c
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('vendor/rns/rns.c')
+          s=p.read_text()
+          old='    printf("%g \\t %4.3f \\t %4.2f \\t %4.1f \\n",'
+          new='    printf("%.12e \\t %.12e \\t %.12e \\t %.12e \\n",'
+          if old not in s:
+              raise SystemExit("Pinned RNS output format changed; refusing unreviewed patch")
+          p.write_text(s.replace(old,new,1))
+          PY
+          sha256sum vendor/rns/equil.c vendor/rns/rns.c
           make -C vendor/rns -B HIGHSIZE="-DMDIV=151 -DSDIV=301" rns
           cp vendor/rns/rns vendor/rns151
           mkdir -p /tmp/rns201
