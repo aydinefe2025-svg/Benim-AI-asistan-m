@@ -1,0 +1,50 @@
+name: Battery independent three-cell original source schema gate
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/zenodo19380245_three_cell_source.py'
+      - 'tests/test_zenodo19380245_three_cell_source.py'
+      - '.github/workflows/battery-zenodo19380245-three-cell-source.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-original-3-cell-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Check synthetic attack and licensing regressions
+        run: python -m unittest tests.test_zenodo19380245_three_cell_source -v
+      - name: Obtain original publisher bytes only (145MB cap)
+        run: |
+          python -m research.battery_curve_audit.zenodo19380245_three_cell_source /tmp/cano_battery19380245_source_receipt.json
+      - name: Fail closed on unsupported physical or commercial claims
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('/tmp/cano_battery19380245_source_receipt.json').read_text())
+          assert r['publisher_license_verified'] is True
+          assert r['publisher_original_md5_verified'] is True
+          assert r['zip_file_count'] > 0
+          assert r['time_axis_per_cell_verified'] is False
+          assert r['physical_cell_ids_independently_verified'] == 0
+          assert r['whole_cell_holdout_calculated'] is False
+          assert r['empirical_false_match_rate_calculated'] is False
+          assert r['original_samples_archived'] is False
+          assert r['customer_release_allowed'] is False
+          print('PUBLISHER_ARCHIVE_AND_STRUCTURE_ONLY',r['original_sha256'])
+          PY
+      - name: Archive metadata-only source receipt, no original measurements
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-zenodo19380245-original-source-structure-only
+          path: /tmp/cano_battery19380245_source_receipt.json
+          retention-days: 7
+          if-no-files-found: error
