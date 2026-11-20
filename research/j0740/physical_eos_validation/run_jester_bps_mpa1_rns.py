@@ -25,8 +25,11 @@ CGS_G=6.673e-8
 
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
-def export_rns_eos(path:Path,n_grid=800,max_enthalpy=1.5):
+def export_rns_eos(path:Path,n_grid=800,max_enthalpy=None):
     eos=Hybrid(subdivisions=1)
+    # Export the complete causal EOS domain (up to h=2.5 safety cap), so the
+    # rotating central-density root is not silently outside the RNS table.
+    if max_enthalpy is None:max_enthalpy=min(eos.hmax*(1.0-1e-10),2.5)
     if max_enthalpy>=eos.hmax:raise ValueError("RNS table enthalpy exceeds completed EOS domain")
     hs=np.unique(np.r_[np.geomspace(1e-9,max_enthalpy,n_grid),eos.hh,eos.h0,eos.ht])
     hs=hs[(hs>0)&(hs<=max_enthalpy)]
