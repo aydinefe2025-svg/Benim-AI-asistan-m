@@ -1,0 +1,32 @@
+name: Security CI isolated
+on:
+  push:
+    branches: [security-ci-isolated-20261103]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Run security smoke regression tests
+        run: python3 -m unittest discover -s tests -p 'test_security_smoke.py' -v
+      - name: Python syntax and JSON integrity
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import pathlib, py_compile, json
+          files=list(pathlib.Path('.').rglob('*.py'))
+          for p in files:
+              if '.git' not in p.parts:
+                  py_compile.compile(str(p), doraise=True)
+          for p in pathlib.Path('.').rglob('*.json'):
+              if '.git' not in p.parts:
+                  with p.open(encoding='utf-8') as f: json.load(f)
+          print('Python files:',len(files))
+          print('Static integrity PASS')
+          PY
