@@ -130,14 +130,39 @@ def inspect_archive(raw: bytes, original: dict) -> dict:
                 if len(source) != entry.file_size:
                     raise ValueError("SOURCE_REVIEW_REQUIRED: partial member")
                 inspected += 1
+                # Real CSVs may start with equipment metadata/preamble rather
+                # than a header. Never promote the first numeric row to units.
                 try:
                     lines = source.decode("utf-8-sig").splitlines()
-                    header = next(csv.reader(lines[:1]))
-                except (UnicodeError, csv.Error, StopIteration):
-                    raise ValueError("SOURCE_REVIEW_REQUIRED: bad original CSV header") from None
+                except UnicodeError:
+                    lines = []
+                header = None
+                for line in lines[:32]:
+                    if not line or len(line) > 12000:
+                        continue
+                    delim = "\t" if line.count("\t") > max(line.count(","), line.count(";")) else (
+                        ";" if line.count(";") > line.count(",") else ",")
+                    try:
+                        candidate = next(csv.reader([line], delimiter=delim))
+                    except (csv.Error, StopIteration):
+                        continue
+                    tokens = [s.strip().lower().replace(" ", "") for s in candidate]
+                    if (2 <= len(tokens) <= 100 and len(set(tokens)) == len(tokens)
+                        and all(tokens) and
+                        any(k in TIME_FIELDS | VOLT_FIELDS | CURRENT_FIELDS for k in tokens)):
+                        header = candidate
+                        break
+                if header is None:
+                    # No measurement is exposed in a receipt as an alleged header.
+                    header_shapes["unrecognized_or_preamble_only"] += 1
+                    sampled.append({"file_sha256": sha256(source).hexdigest(),
+                                    "bytes": len(source), "columns": None,
+                                    "time_header": False, "voltage_header": False,
+                                    "current_header": False, "header_names": [],
+                                    "filename_is_cell_identity": False,
+                                    "schema_review_required": True})
+                    continue
                 normalized = [s.strip().lower().replace(" ", "") for s in header]
-                if not header or len(header) > 100 or len(set(normalized)) != len(header):
-                    raise ValueError("SOURCE_REVIEW_REQUIRED: malformed CSV schema")
                 has_t = any(x in TIME_FIELDS for x in normalized)
                 has_v = any(x in VOLT_FIELDS for x in normalized)
                 has_i = any(x in CURRENT_FIELDS for x in normalized)
