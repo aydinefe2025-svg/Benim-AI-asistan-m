@@ -54,12 +54,18 @@ class MultiCellPublisherGate(unittest.TestCase):
                 f = fixture()
                 f["files"][0][key] = val
                 audit_article(f)
-    def test_duplicate_file_identity_is_rejected(self):
-        for key in ("id", "name"):
-            with self.subTest(key=key), self.assertRaises(ValueError):
-                f = fixture()
-                f["files"][1][key] = f["files"][0][key]
-                audit_article(f)
+    def test_duplicate_file_id_is_rejected(self):
+        f = fixture()
+        f["files"][1]["id"] = f["files"][0]["id"]
+        with self.assertRaises(ValueError):
+            audit_article(f)
+    def test_duplicate_names_flagged_not_treated_as_independent_cells(self):
+        f = fixture()
+        f["files"][1]["name"] = f["files"][0]["name"]
+        d = audit_article(f)
+        self.assertEqual(d["duplicate_file_names_metadata"], 1)
+        self.assertEqual(d["decision"], "SOURCE_NAME_COLLISIONS_REVIEW_REQUIRED")
+        self.assertEqual(d["verified_independent_physical_cells"], 0)
     def test_small_file_list_is_bounded_and_zip_is_not_downloaded(self):
         f = fixture()
         f["files"] += [
