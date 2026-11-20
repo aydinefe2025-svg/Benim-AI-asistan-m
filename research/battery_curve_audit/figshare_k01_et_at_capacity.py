@@ -135,7 +135,7 @@ def inspect_phase(csv_file: ZipFile, name: str) -> dict:
             "last_voltage_V":round(seg["end_v"],4),
         }
     ready=all(phase_data[str(x)]["status"]=="VALID" for x in (21,22))
-    q_mean=round((phase_data["21"]["capacity_Ah"]+phase_data["22"]["capacity_Ah"])/2,6) if ready else None
+    q_mean=round(sum(segments[k][0]["charge_As"] for k in (21,22))/7200,6) if ready else None
     return {
         "original_measurement_name":PurePosixPath(name).name,
         "source_rows_processed":count,
