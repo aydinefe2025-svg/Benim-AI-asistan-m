@@ -32,7 +32,6 @@ jobs:
               b=p.read_bytes()
               nl=bytes([13,10]) if bytes([13,10]) in b else bytes([10])
               p.write_bytes(b.rstrip(bytes([13,10]))+nl)
-              p.write_bytes(b)
           PY
           test "$(sha256sum research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv | cut -d' ' -f1)" = "a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787"
           test "$(sha256sum research/j0740/physical_eos_validation/JESTER_LALSuite_MPA1_source_e6768650.csv | cut -d' ' -f1)" = "f51d6476f999bf02a839fcb5f318d94c9f11338d270644c3c8b617cdb95a32c9"
