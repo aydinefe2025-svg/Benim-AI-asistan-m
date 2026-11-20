@@ -17,6 +17,81 @@ EXPECTED_SOURCE_ZIP='8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77
 TARGET_M=2.073;TARGET_F=346.536369
 
 
+
+def solve_grid_bounded(evaluate, seed_rho: float):
+    """Root measured C mass and spin with a tolerance-aware bracketed outer solve.
+
+    The measured 0.005-Hz acceptance criterion is never relaxed. Avoid a
+    1e-4-Hz Brent convergence requirement (and a 12-iteration cap) that is
+    stricter than the actual physical acceptance gate.
+    """
+    from scipy.optimize import brentq
+    if not (1e13 < seed_rho < 1e17):
+        raise ValueError('INVALID_REAL_C_SEED')
+    trace = []
+
+    def checked(logrho, requested_f):
+        star = evaluate(float(logrho), float(requested_f))
+        for key in ('M_msun','spin_hz','R_equatorial_km','J_cgs','rho_c_g_cm3'):
+            if key not in star or not math.isfinite(float(star[key])) or star[key] <= 0:
+                raise ValueError('INVALID_REAL_C_STAR_'+key)
+        trace.append({'log10_rho':float(logrho),'f_command_hz':float(requested_f),
+                      'M_msun':float(star['M_msun']),
+                      'f_reported_hz':float(star['spin_hz']),
+                      'J_cgs':float(star['J_cgs'])})
+        return star
+
+    def mass_root(requested_f):
+        seed = math.log10(seed_rho)
+        bracket = None
+        for half in (.045, .09, .14):
+            left, right = seed-half, seed+half
+            delta_l=checked(left,requested_f)['M_msun']-TARGET_M
+            delta_r=checked(right,requested_f)['M_msun']-TARGET_M
+            if delta_l*delta_r < 0:
+                bracket=(left,right)
+                break
+        if bracket is None:
+            raise ValueError('MASS_NOT_BRACKETED_IN_REAL_C')
+        lr=brentq(lambda x:checked(x,requested_f)['M_msun']-TARGET_M,
+                  *bracket,xtol=5e-9,rtol=1e-12,maxiter=30)
+        star=dict(checked(lr,requested_f))
+        star['commanded_f_hz']=float(requested_f)
+        star['mass_error_msun']=float(star['M_msun']-TARGET_M)
+        star['spin_error_hz']=float(star['spin_hz']-TARGET_F)
+        return star
+
+    lo,hi=TARGET_F-.3,TARGET_F+.3
+    left=mass_root(lo)
+    right=mass_root(hi)
+    if left['spin_error_hz']*right['spin_error_hz'] >= 0:
+        raise ValueError('SPIN_NOT_BRACKETED_BY_MEASURED_C_OUTPUT')
+    best=min((left,right), key=lambda s: abs(s['spin_error_hz']))
+    for _ in range(32):
+        if abs(best['spin_error_hz']) <= .005 and abs(best['mass_error_msun']) <= 5e-6:
+            break
+        mid=(lo+hi)/2
+        star=mass_root(mid)
+        if abs(star['spin_error_hz'])<abs(best['spin_error_hz']):
+            best=star
+        if left['spin_error_hz']*star['spin_error_hz'] <= 0:
+            hi=mid
+            right=star
+        else:
+            lo=mid
+            left=star
+    else:
+        raise ValueError('MEASURED_C_SPIN_NOT_WITHIN_0p005_HZ_AFTER_32_BISECTIONS')
+    if abs(best['mass_error_msun'])>5e-6 or abs(best['spin_error_hz'])>.005:
+        raise ValueError('REAL_C_MASS_SPIN_TOLERANCE_NOT_REACHED')
+    if not (1e47<best['J_cgs']<1e51):
+        raise ValueError('REAL_C_ANGULAR_MOMENTUM_RANGE_FAIL')
+    best['direct_C_evaluations']=len(trace)
+    best['trace']=trace
+    best['root_method']='measured_C_mass_brentq_spin_bisection_tolerance_aware'
+    best['status']='ACTUAL_DIRECT_C_TWO_CONSTRAINT_PASS_NOT_PHYSICAL_EOS_STABILITY'
+    return best
+
 def verify(stars,bins,source_data,rns_source,eos_file,static):
     if set(stars)!=set(GRIDS) or set(bins)!=set(GRIDS):raise ValueError('TWO_INDEPENDENT_GRIDS_REQUIRED')
     if bins[GRIDS[0]]==bins[GRIDS[1]]:raise ValueError('TWO_RNS_BINARY_SHA_IDENTICAL')
@@ -51,7 +126,21 @@ def run(source_dir,eos,eosmeta,rns151,rns201,static,out):
     bins={k:F81.sha(v) for k,v in zip(GRIDS,[rns151,rns201])}
     stars={}
     for g,binary in zip(GRIDS,[rns151,rns201]):
-        stars[g]=F81.solve_grid(lambda lr,f,b=binary:F81.evaluate_rns(b,eos,lr,f),SEEDS[g])
+        # Write every direct physical C evaluation immediately: failures must retain traces.
+        journal=Path(out).parent/('F88_live_C_trace_'+g+'.jsonl')
+        journal.parent.mkdir(parents=True,exist_ok=True)
+        journal.unlink(missing_ok=True)
+        def observed(lr,f,b=binary,log=journal):
+            try:
+                star=F81.evaluate_rns(b,eos,lr,f)
+                rec={'log10_rho':lr,'commanded_spin_Hz':f,'actual_C_star':star}
+            except Exception as error:
+                rec={'log10_rho':lr,'commanded_spin_Hz':f,'C_error':repr(error)}
+                with log.open('a') as handle: handle.write(json.dumps(rec,allow_nan=False)+'\\n')
+                raise
+            with log.open('a') as handle: handle.write(json.dumps(rec,allow_nan=False)+'\\n')
+            return star
+        stars[g]=solve_grid_bounded(observed,SEEDS[g])
         print('ACTUAL_COMPOSE_UNIFIED_C_RNS',g,{k:stars[g][k] for k in ('M_msun','spin_hz','R_equatorial_km','J_cgs','rho_c_g_cm3','direct_C_evaluations')},flush=True)
     audit=verify(stars,bins,sd,model,eos,tov)
     obj={'audit':audit,'actual_C_stars':stars,'binary_sha256':bins,'source':sd,'source_static_sha256':F81.sha(static)}
