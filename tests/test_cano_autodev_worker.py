@@ -184,22 +184,99 @@ class IntegrationBoundaryTests(unittest.TestCase):
             if path.endswith("/git/ref/heads/main"):
                 return {"object": {"sha": "mainsha"}}
             if path.endswith("/contents/core/safe.py"):
-                return {"commit": {"sha": "newsha"}}
+                return {"commit": {"sha": "a" * 40}}
             if path.endswith("/pulls"):
-                return {"html_url": "https://github.com/example/pull/7"}
+                return {
+                    "state": "open", "draft": True,
+                    "html_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/7",
+                    "head": {
+                        "ref": "cano-autodev-12345678123441238123123456789abc",
+                        "sha": "a" * 40,
+                        "repo": {"full_name": "aydinefe2025-svg/Benim-AI-asistan-m"},
+                    },
+                    "base": {"ref": "main"},
+                }
             return {}
         api._request = request
         uid = "12345678-1234-4123-8123-123456789abc"
         private_goal = "Fix core/safe.py; confidential meeting identifier 24680"
         branch, url, sha = api.create_draft(
             uid, "core/safe.py", "blobsha", REWRITE, private_goal)
-        self.assertEqual(sha, "newsha")
-        self.assertEqual(url, "https://github.com/example/pull/7")
+        self.assertEqual(sha, "a" * 40)
+        self.assertEqual(
+            url, "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/7")
         self.assertTrue(branch.startswith("cano-autodev-"))
         pull = request_log[-1][2]["json"]
         self.assertTrue(pull["draft"])
         self.assertNotIn("24680", pull["body"])
         self.assertNotIn("24680", pull["title"])
+
+    def test_github_draft_receipt_rejects_wrong_branch_sha_repo_or_state(self):
+        from scripts.cano_autodev_worker import GitHubDrafts
+        uid = "12345678-1234-4123-8123-123456789abc"
+        branch = "cano-autodev-" + uid.replace("-", "")
+        correct = {
+            "state": "open", "draft": True,
+            "html_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/7",
+            "head": {
+                "ref": branch, "sha": "a" * 40,
+                "repo": {"full_name": "aydinefe2025-svg/Benim-AI-asistan-m"},
+            },
+            "base": {"ref": "main"},
+        }
+        corrupt = {
+            "merged_or_closed": dict(correct, state="closed"),
+            "not_draft": dict(correct, draft=False),
+            "different_branch": dict(correct, head=dict(correct["head"], ref="other")),
+            "different_commit": dict(correct, head=dict(correct["head"], sha="b" * 40)),
+            "different_repository": dict(correct, head=dict(
+                correct["head"], repo={"full_name": "attacker/repo"})),
+            "different_base": dict(correct, base={"ref": "not-main"}),
+            "wrong_url": dict(correct, html_url="https://example.invalid/pull/7"),
+            "missing_head": dict(correct, head=None),
+        }
+        for name, response in corrupt.items():
+            with self.subTest(name=name):
+                api = GitHubDrafts.__new__(GitHubDrafts)
+                def request(method, path, **options):
+                    if path.endswith("/git/ref/heads/main"):
+                        return {"object": {"sha": "c" * 40}}
+                    if path.endswith("/contents/core/safe.py"):
+                        return {"commit": {"sha": "a" * 40}}
+                    if path.endswith("/pulls"):
+                        return response
+                    return {}
+                api._request = request
+                with self.assertRaisesRegex(ValueError, "Unverified draft PR receipt"):
+                    api.create_draft(uid, "core/safe.py", "blobsha", REWRITE,
+                                     "Fix core/safe.py without secrets")
+
+    def test_invalid_created_draft_never_records_success_or_dispatches_ci(self):
+        from scripts.cano_autodev_worker import GitHubDrafts
+        api = GitHubDrafts.__new__(GitHubDrafts)
+        uid = "12345678-1234-4123-8123-123456789abc"
+        api.fetch = lambda path: (SOURCE, "blobsha")
+        api.dispatch_core_ci = lambda branch: self.fail("must not dispatch")
+        def request(method, path, **options):
+            if path.endswith("/git/ref/heads/main"):
+                return {"object": {"sha": "c" * 40}}
+            if path.endswith("/contents/core/cano_development_status.py"):
+                return {"commit": {"sha": "a" * 40}}
+            if path.endswith("/pulls"):
+                return {
+                    "state": "open", "draft": False,
+                    "html_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/7",
+                }
+            return {}
+        api._request = request
+        store = FakeDatabase()
+        result = process_job(
+            Job(uid, "Fix core/cano_development_status.py summary"),
+            store, api, FakeModel(),
+        )
+        self.assertEqual(result, "recovery_requires_reconcile")
+        self.assertEqual(store.completed, [])
+        self.assertEqual(store.blocked, [])
 
     def test_disabled_worker_does_not_touch_database_or_model(self):
         from scripts.cano_autodev_worker import main
