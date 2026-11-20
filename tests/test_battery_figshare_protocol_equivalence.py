@@ -42,6 +42,12 @@ class SourceProtocolTests(unittest.TestCase):
         self.assertIsNone(out['sidecar_testpoint_equivalent'])
         self.assertEqual(out['decision'],'SIDECAR_TESTPOINT_FORMAT_REVIEW_REQUIRED')
 
+    def test_unrecognized_sidecar_format_audit_redacts_all_digits(self):
+        out=compare_protocol_identifiers('TP_k01_05',{'type':'k','tp':'1','cell':'5'},
+                                         'TP_k01_05_01_ET_T23')
+        self.assertIsNone(out['sidecar_testpoint_equivalent'])
+        self.assertEqual(out['sidecar_testpoint_format_pattern'], 'TP_k##_##_##_ET_T##')
+
     def test_sidecar_missing_field_keeps_unverified(self):
         out=compare_protocol_identifiers('TP_k01_05',{'type':'k','tp':'1','cell':'5'},None)
         self.assertIsNone(out['sidecar_testpoint_equivalent'])
