@@ -61,6 +61,22 @@ class BatteryOriginalETATTests(unittest.TestCase):
         self.assertEqual(d["step22_discharging"]["rows"],80)
         self.assertAlmostEqual(d["capacity_mean_Ah"],79*60*4/3600,places=5)
 
+    def test_round_only_after_both_raw_current_integrals(self):
+        # Author capacity mean is derived from raw current-time integrals, not
+        # a second rounding of each 6-decimal channel readout. This fixture
+        # exposes a genuine 0.000001 Ah double-rounding boundary.
+        lines=sample_csv(current=4.000059202722689).splitlines()
+        for j in range(1,len(lines)):
+            if lines[j].endswith(",22"):
+                fields=lines[j].split(",")
+                fields[2]="-4.000042374740824"
+                lines[j]=",".join(fields)
+        with ZipFile(io.BytesIO(),"w") as z:
+            z.writestr("test.csv","\n".join(lines)+"\n")
+            q=inspect_phase(z,"test.csv")
+        self.assertTrue(q["source_capacity_extractable"])
+        self.assertEqual(q["capacity_mean_Ah"],5.266734)
+
     def test_et_at_real_within_source_relative_change_only(self):
         with example_zip() as z:
             d=select_et_at(z,"TP_k01_05")
