@@ -15,7 +15,8 @@ _CANONICAL_CI = re.compile(
 )
 _CANONICAL_DEPLOY = re.compile(r"dep-[a-z0-9]{12,32}\Z")
 _RENDER_SERVICE = "srv-dbiulm8473hc73amkjtg"
-_ACTIVE = frozenset(("queued", "running", "pr_open", "ci_verified"))
+_STAGES = ("queued", "running", "pr_open", "ci_verified")
+_ACTIVE = frozenset(_STAGES)
 
 
 def _safe_deployed_receipts(jobs):
@@ -49,11 +50,16 @@ def summarize_recent_code_jobs(jobs):
         if receipt["pr"] and receipt["ci"] and receipt["deploy"]
     ]
     labeled_deployed = sum(row.get("status") == "deployed" for row in records)
+    stage_counts = {
+        stage: sum(row.get("status") == stage for row in records)
+        for stage in _STAGES
+    }
     return {
         "total": len(records),
         "deployed": len(completed),
         "unverified_deployments": labeled_deployed - len(completed),
-        "active": sum(row.get("status") in _ACTIVE for row in records),
+        "active": sum(stage_counts.values()),
+        "stage_counts": stage_counts,
         "blocked": sum(row.get("status") == "blocked" for row in records),
         "last_pr_url": completed[0]["pr"] if completed else None,
     }
@@ -66,7 +72,10 @@ def render_owner_code_status(st, jobs):
         f"🛠️ CANO kod işleri — Son {stats['total']} kayıt: "
         f"{stats['deployed']} tam makbuzlu yayın kaydı · "
         f"{stats['unverified_deployments']} makbuzu eksik yayın etiketi · "
-        f"{stats['active']} sırada/çalışıyor · "
+        f"{stats['stage_counts']['queued']} sırada · "
+        f"{stats['stage_counts']['running']} çalışıyor · "
+        f"{stats['stage_counts']['pr_open']} PR taslağı kaydı · "
+        f"{stats['stage_counts']['ci_verified']} CI doğrulama etiketi · "
         f"{stats['blocked']} engellendi. "
         "Görünen bağlantılar kayıt kanıtıdır; CI başarısı ve Render LIVE "
         "bu ekranda bağımsız olarak yeniden kontrol edilmemiştir."
