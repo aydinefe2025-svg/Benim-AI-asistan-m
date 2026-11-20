@@ -1,0 +1,51 @@
+name: Battery original author one-cell time-voltage verification
+on:
+  pull_request:
+    paths:
+      - "research/battery_publisher_sample/**"
+      - "tests/test_battery_author_onecell_original.py"
+      - ".github/workflows/battery-publisher-onecell.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  author-original-onecell:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Configure Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Synthetic safety contract for exact author source
+        run: python -m unittest discover -s tests -p 'test_battery_author_onecell_original.py' -v
+      - name: Verify original source-author Git blob and parse full real CSV (no waveform retained)
+        run: |
+          python research/battery_publisher_sample/author_onecell_original.py "${RUNNER_TEMP}/author_real_onecell_receipt.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ['RUNNER_TEMP'])/'author_real_onecell_receipt.json'
+          x=json.loads(p.read_text('utf-8'))
+          assert x['source_status']=='AUTHORS_GITHUB_ORIGINAL_GIT_BLOB_VERIFIED'
+          assert x['git_blob_sha1']=='296c18a9bf7d90af1cae7e82f5f82c870bb9c77f'
+          assert x['original_bytes']==23079267
+          assert x['measurements_file_count']==1
+          assert x['full_time_voltage_sample_rows']>=100
+          assert x['voltage_span_V']>=0.05
+          assert x['source_publisher_figshare_byte_identity_verified'] is False
+          assert x['physical_cell_independence_verified'] is False
+          assert x['field_false_match_rate_measured'] is False
+          assert x['reference_cell_id_link_to_279_row_original_metadata_verified'] is False
+          assert x['commercial_product_certification'] is False
+          print('PASS: immutable author-hosted single physical measurement checked; no field accuracy claim')
+          PY
+      - name: Publish metadata-only reproducibility receipt (no measurement rows)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cano-original-author-onecell-time-voltage-20261120
+          retention-days: 7
+          if-no-files-found: error
+          path: ${{ runner.temp }}/author_real_onecell_receipt.json
