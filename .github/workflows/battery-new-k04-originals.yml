@@ -31,6 +31,32 @@ jobs:
           python -m research.battery_curve_audit.figshare_k04_original_capacity \
             /tmp/cano_original_figshare_k04_etat_receipt.json \
             --archive-dir /tmp/cano_original_figshare_k04
+      - name: Re-run exact tested scientific code completely offline on verified publisher bytes
+        run: |
+          python -m research.battery_curve_audit.figshare_k04_original_capacity \
+            /tmp/cano_original_figshare_k04_offline_receipt.json \
+            --offline-originals /tmp/cano_original_figshare_k04
+      - name: Compare full online and offline original-source results, excluding API-only metadata
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('/tmp')
+          online=json.loads((p/'cano_original_figshare_k04_etat_receipt.json').read_text())
+          offline=json.loads((p/'cano_original_figshare_k04_offline_receipt.json').read_text())
+          assert online['publisher_api_queried_this_run'] is True
+          assert offline['publisher_api_queried_this_run'] is False
+          assert online['publisher_doi']==offline['publisher_doi']
+          assert online['publisher_metadata_sha256'] is not None
+          assert offline['publisher_metadata_sha256'] is None
+          for obj in (online,offline):
+              for k in ('publisher_api_queried_this_run','publisher_metadata_sha256'):
+                  obj.pop(k,None)
+          assert online==offline
+          assert online['source_csv_files_processed']==18
+          assert online['source_temperature_pairs']==9
+          print('NEW_K04_LIVE_OFFLINE_FULL_MEASURED_SOURCE_CONTENT_IDENTICAL',online['original_timestamp_voltage_current_rows_processed'])
+          PY
       - name: Enforce exact 3 source groups, dates and no invented physical claims
         run: |
           python - <<'PY'
@@ -80,6 +106,13 @@ jobs:
         with:
           name: battery-figshare-new-k04-18csv-actual-source-receipt
           path: /tmp/cano_original_figshare_k04_etat_receipt.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Upload original-source fully offline-verified numeric receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-figshare-k04-18csv-offline-reproduction
+          path: /tmp/cano_original_figshare_k04_offline_receipt.json
           retention-days: 7
           if-no-files-found: error
       - name: Temporary licensed original source ZIP bridge for permanent Library archive
