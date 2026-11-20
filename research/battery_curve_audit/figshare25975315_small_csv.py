@@ -132,6 +132,7 @@ def _read_exact_source(url: str, limit: int) -> bytes:
             target.hostname in ("figshare.com", "ndownloader.figshare.com")
             or (target.hostname or "").endswith(".figshare.com")
             or (target.hostname or "").endswith(".amazonaws.com")
+            or target.hostname == "44c1cec316ec56bca76dfd65d2882b20.r2.cloudflarestorage.com"
         ):
             raise ValueError("SOURCE_REVIEW_REQUIRED: publisher file host " + str(target.hostname or "<empty>")[:100])
         return response.read(limit + 1)
