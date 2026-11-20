@@ -1,0 +1,117 @@
+name: J0740 BPS-MPA1 direct RNS curve and partial F38 integral
+on:
+  push:
+    branches:
+      - science/j0740-bps-mpa1-f38-curve-20261120
+    paths:
+      - "research/j0740/physical_eos_validation/run_jester_bps_mpa1_rns_curve.py"
+      - "research/j0740/physical_eos_validation/integrate_bps_mpa1_f38.py"
+      - ".github/workflows/j0740-bps-mpa1-f38-curve.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: j0740-bps-mpa1-f38-curve
+  cancel-in-progress: false
+jobs:
+  curve-and-partial-integral:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: vendor/rns
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Install numerical dependencies
+        run: python -m pip install "numpy>=1.26,<3" "scipy>=1.13,<2"
+      - name: Normalize and verify original EOS source tables
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for name in ('JESTER_BPS_crust_e6768650.csv','JESTER_LALSuite_MPA1_source_e6768650.csv'):
+              p=Path('research/j0740/physical_eos_validation')/name
+              b=p.read_bytes()
+              nl=bytes([13,10]) if bytes([13,10]) in b else bytes([10])
+              p.write_bytes(b.rstrip(bytes([13,10]))+nl)
+          PY
+          test "$(sha256sum research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv | cut -d' ' -f1)" = "a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787"
+          test "$(sha256sum research/j0740/physical_eos_validation/JESTER_LALSuite_MPA1_source_e6768650.csv | cut -d' ' -f1)" = "f51d6476f999bf02a839fcb5f318d94c9f11338d270644c3c8b617cdb95a32c9"
+      - name: Pin RNS source and compile two grids with precise output
+        run: |
+          test "$(git -C vendor/rns rev-parse HEAD)" = "97e85d325a33e37f702306414533f6cd77812477"
+          sed -i '36i #include <stdlib.h>' vendor/rns/equil.c
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('vendor/rns/rns.c')
+          s=p.read_text()
+          old='    printf("%g \\t %4.3f \\t %4.2f \\t %4.1f \\n",'
+          new='    printf("%.12e \\t %.12e \\t %.12e \\t %.12e \\n",'
+          if old not in s: raise SystemExit("Pinned RNS output format changed")
+          p.write_text(s.replace(old,new,1))
+          PY
+          make -C vendor/rns -B HIGHSIZE="-DMDIV=151 -DSDIV=301" rns
+          cp vendor/rns/rns vendor/rns151
+          mkdir -p /tmp/rns201
+          cp vendor/rns/*.c vendor/rns/*.h vendor/rns/makefile /tmp/rns201/
+          make -C /tmp/rns201 -B HIGHSIZE="-DMDIV=201 -DSDIV=401" rns
+          cp /tmp/rns201/rns vendor/rns201
+          sha256sum vendor/rns151 vendor/rns201
+      - name: Run existing independent TOV and native RNS export tests
+        run: |
+          python research/j0740/physical_eos_validation/test_jester_bps_mpa1_matched_tov.py | tee results_tov_tests.txt
+          python research/j0740/physical_eos_validation/test_jester_bps_mpa1_rns_export.py | tee results_rns_tests.txt
+      - name: Solve direct fixed-spin RNS curve at two resolutions
+        run: |
+          python research/j0740/physical_eos_validation/run_jester_bps_mpa1_rns_curve.py \
+            --eos-file research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_curve_20261120.rns \
+            --rns-binary vendor/rns151 vendor/rns201 \
+            --grid-tags 151x301 201x401 \
+            --output results/JESTER_BPS_MPA1_RNS_curve_20261120.json \
+            | tee results/JESTER_BPS_MPA1_RNS_curve_execution_20261120.txt
+      - name: Download the already verified F38 source-marginalized surfaces
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 44715864764 --repo "$GITHUB_REPOSITORY" --name j0740-F38-published-source-marginalized-mr-likelihood --dir results/F38
+      - name: Run partial evidence preflight and source-prior-corrected integral
+        run: |
+          python research/j0740/physical_eos_validation/integrate_bps_mpa1_f38.py --selftest
+          python research/j0740/physical_eos_validation/integrate_bps_mpa1_f38.py \
+            --curve results/JESTER_BPS_MPA1_RNS_curve_20261120.json \
+            --f38-dir results/F38 \
+            --output results/JESTER_BPS_MPA1_partial_F38_20261120.json \
+            | tee results/JESTER_BPS_MPA1_partial_F38_execution_20261120.txt
+      - name: Write SHA256 manifest
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          files=list(Path('results').rglob('*'))
+          out={}
+          for p in sorted(x for x in files if x.is_file()):
+              out[str(p)]={'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+          Path('results/SHA256_manifest.json').write_text(json.dumps({
+            'rns_commit':'97e85d325a33e37f702306414533f6cd77812477',
+            'f38_run_id':44715864764,'files':out},indent=2,sort_keys=True)+'\\n')
+          print(json.dumps(out,indent=2))
+          PY
+      - name: Upload curve, evidence, tests, source surfaces and hashes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: j0740-bps-mpa1-rns-curve-f38
+          path: |
+            research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_curve_20261120.rns
+            results/**
+            results_tov_tests.txt
+            results_rns_tests.txt
+            vendor/rns151
+            vendor/rns201
+          retention-days: 30
