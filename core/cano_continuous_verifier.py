@@ -88,11 +88,17 @@ def _app_search(boundary, path: Path):
 
 def _probe_public(get):
     response = get(_PUBLIC, timeout=20)
-    body = getattr(response, "text", "")
+    if getattr(response, "status_code", None) != 200:
+        return False
+    # Streamlit's rendered page is white-labelled by st.set_page_config, so
+    # its HTML need not contain the literal word "Streamlit". Confirm the
+    # application server with Streamlit's public health endpoint instead.
+    health = get(_PUBLIC.rstrip("/") + "/_stcore/health", timeout=10)
+    body = getattr(health, "text", "")
     return (
-        getattr(response, "status_code", None) == 200
+        getattr(health, "status_code", None) == 200
         and isinstance(body, str)
-        and "streamlit" in body[:50_000].casefold()
+        and body.strip().casefold() == "ok"
     )
 
 
@@ -153,3 +159,4 @@ def run_checks(get, *, app_path=None):
             "third_party_credentials_sent": False,
         },
     }
+
