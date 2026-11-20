@@ -58,7 +58,7 @@ class RealSourceGuardTests(unittest.TestCase):
             validate_publisher_metadata(m)
 
     def test_reject_source_byte_tamper(self):
-        z = make_zip({"Cell_1/c.csv": "time(s),voltage(V),current(A)\\n0,3.3,1\\n"})
+        z = make_zip({"Cell_1/c.csv": "time(s),voltage(V),current(A)\n0,3.3,1\n"})
         with self.assertRaisesRegex(ValueError, "MD5 mismatch"):
             inspect_archive(z, {"original_size": len(z),
                                 "publisher_md5": "0" * 32})
@@ -66,23 +66,23 @@ class RealSourceGuardTests(unittest.TestCase):
     def test_reject_html_and_zip_path_traversal(self):
         with self.assertRaisesRegex(ValueError, "not ZIP"):
             audit(b"<!doctype html>")
-        z = make_zip({"../escape.csv": "time,voltage,current\\n0,3.4,1\\n"})
+        z = make_zip({"../escape.csv": "time,voltage,current\n0,3.4,1\n"})
         with self.assertRaisesRegex(ValueError, "unsafe"):
             audit(z)
 
     def test_reject_duplicate_member_names(self):
         b = io.BytesIO()
         with ZipFile(b, "w", compression=ZIP_DEFLATED) as z:
-            z.writestr("Cell_1/Test.csv", "time,voltage,current\\n0,3,1\\n")
-            z.writestr("cell_1/test.CSV", "time,voltage,current\\n0,3,1\\n")
+            z.writestr("Cell_1/Test.csv", "time,voltage,current\n0,3,1\n")
+            z.writestr("cell_1/test.CSV", "time,voltage,current\n0,3,1\n")
         with self.assertRaisesRegex(ValueError, "duplicate"):
             audit(b.getvalue())
 
     def test_three_distinct_folders_not_physical_cell_attestation(self):
         z = make_zip({
-            "Cell_1/a.csv": "Time(s),Voltage(V),Current(A)\\n0,3.3,1\\n1,3.4,1\\n",
-            "Cell_2/a.csv": "Time(s),Voltage(V),Current(A)\\n0,3.2,2\\n1,3.4,2\\n",
-            "Cell_3/a.csv": "Time(s),Voltage(V),Current(A)\\n0,3.1,3\\n1,3.4,3\\n"})
+            "Cell_1/a.csv": "Time(s),Voltage(V),Current(A)\n0,3.3,1\n1,3.4,1\n",
+            "Cell_2/a.csv": "Time(s),Voltage(V),Current(A)\n0,3.2,2\n1,3.4,2\n",
+            "Cell_3/a.csv": "Time(s),Voltage(V),Current(A)\n0,3.1,3\n1,3.4,3\n"})
         receipt = audit(z)
         self.assertEqual(receipt["zip_file_count"], 3)
         self.assertEqual(receipt["csv_examples_crc_verified"], 3)
@@ -92,7 +92,7 @@ class RealSourceGuardTests(unittest.TestCase):
         self.assertFalse(receipt["customer_release_allowed"])
 
     def test_time_missing_never_claims_physical_screening(self):
-        z = make_zip({"Cell_1/no_time.csv": "Voltage,Current\\n3.2,1\\n"})
+        z = make_zip({"Cell_1/no_time.csv": "Voltage,Current\n3.2,1\n"})
         r = audit(z)
         self.assertEqual(r["csv_example_column_checks"], {"t0v1i1": 1})
         self.assertFalse(r["empirical_false_match_rate_calculated"])
