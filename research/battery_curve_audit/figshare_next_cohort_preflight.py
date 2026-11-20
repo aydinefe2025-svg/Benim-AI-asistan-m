@@ -27,15 +27,15 @@ def inspect_metadata(meta:dict,raw_sha256:str='') -> dict:
     if not isinstance(files,list) or not 1<=len(files)<=5000:
         raise ValueError('SOURCE_REVIEW_REQUIRED: unexpected publisher file list')
     by_group=defaultdict(dict)
-    seen_ids=set();seen_names=set()
+    seen_ids=set();name_counts=defaultdict(int)
     for x in files:
         if not isinstance(x,dict):raise ValueError('SOURCE_REVIEW_REQUIRED: malformed publisher file')
         fid,name,size=x.get('id'),x.get('name'),x.get('size')
         if type(fid) is not int or fid<=0 or not isinstance(name,str) or type(size) is not int or size<0:
             raise ValueError('SOURCE_REVIEW_REQUIRED: invalid source metadata types')
-        if fid in seen_ids or name in seen_names or '/' in name or '\\' in name or '..' in name:
+        if fid in seen_ids or '/' in name or '\\' in name or '..' in name:
             raise ValueError('SOURCE_REVIEW_REQUIRED: duplicate or unsafe source listing')
-        seen_ids.add(fid);seen_names.add(name)
+        seen_ids.add(fid);name_counts[name]+=1
         match=NAME_RE.fullmatch(name)
         if not match or match.group(1)=='01': continue
         digest=x.get('computed_md5') or x.get('supplied_md5')
@@ -43,26 +43,30 @@ def inspect_metadata(meta:dict,raw_sha256:str='') -> dict:
             continue
         if size<=0 or size>MAX_SINGLE_BYTES:continue
         key=int(match.group(1));cell=match.group(2)
-        by_group[key][cell]={'filename':name,'id':fid,'size_bytes':size,'publisher_md5':digest.lower()}
+        by_group[key].setdefault(cell,[]).append({'filename':name,'id':fid,'size_bytes':size,'publisher_md5':digest.lower()})
     candidates=[]
     for cohort,group in sorted(by_group.items()):
-        if set(group)!={'4','5','6'}:continue
-        total=sum(group[x]['size_bytes'] for x in ('4','5','6'))
+        if set(group)!={'4','5','6'} or any(len(group[x])!=1 for x in ('4','5','6')):continue
+        total=sum(group[x][0]['size_bytes'] for x in ('4','5','6'))
         if total>MAX_COHORT_BYTES:continue
         candidates.append({'testpoint':f'TP_k{cohort:02d}',
                            'total_original_bytes':total,
-                           'original_publisher_files':[group[x] for x in ('4','5','6')]})
+                           'original_publisher_files':[group[x][0] for x in ('4','5','6')]})
     return {'schema':'cano.battery.publisher-new-cohort-metadata-preflight.v1',
             'publisher_article_id':25975315,'publisher_doi':meta['doi'],
             'publisher_metadata_sha256':raw_sha256,
-            'source_files_listed':len(files),'eligible_full_three_cell_cohorts':len(candidates),
+            'source_files_listed':len(files),
+            'publisher_duplicate_filename_count':sum(v>1 for v in name_counts.values()),
+            'publisher_duplicate_filename_examples':sorted((k,v) for k,v in name_counts.items() if v>1)[:30],
+            'source_cell_name_collision_cohorts':sum(set(g)=={'4','5','6'} and any(len(g[c])>1 for c in ('4','5','6')) for g in by_group.values()),
+            'eligible_full_three_cell_cohorts':len(candidates),
             'eligible_cohorts':candidates,
             'chosen_cohort':candidates[0] if candidates else None,
             'already_studied_testpoint':'TP_k01',
             'next_source_zip_downloaded':False,'real_measurements_examined':0,
             'external_physical_identity_authenticated':False,
             'population_field_FPR_FNR_established':False,
-            'decision':'NEW_SOURCE_COHORT_METADATA_FOUND' if candidates else 'NO_NEW_COHORT_WITHIN_BOUNDED_BUDGET'}
+            'decision':'NEW_SOURCE_COHORT_METADATA_FOUND' if candidates else 'NO_UNAMBIGUOUS_NEW_COHORT_WITHIN_BOUNDED_BUDGET'}
 
 
 def main(argv=None):
