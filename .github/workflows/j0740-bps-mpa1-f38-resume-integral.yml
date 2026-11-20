@@ -1,0 +1,65 @@
+name: J0740 resume BPS-MPA1 F38 integral from existing RNS artifact
+on:
+  push:
+    branches:
+      - science/j0740-bps-mpa1-f38-curve-20261120
+    paths:
+      - ".github/workflows/j0740-bps-mpa1-f38-resume-integral.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: j0740-bps-mpa1-f38-resume-integral
+  cancel-in-progress: false
+jobs:
+  integrate-existing-curve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Install numerical dependencies
+        run: python -m pip install "numpy>=1.26,<3" "scipy>=1.13,<2"
+      - name: Download completed direct RNS curve artifact without recomputing roots
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 44722239243 --repo "$GITHUB_REPOSITORY" --name j0740-bps-mpa1-rns-curve-f38 --dir results/curve
+      - name: Download previously verified F38 source-marginalized likelihood surfaces
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 44715864764 --repo "$GITHUB_REPOSITORY" --name j0740-F38-published-source-marginalized-mr-likelihood --dir results/F38
+      - name: Check existing curve artifact and run F38 partial integral
+        run: |
+          python research/j0740/physical_eos_validation/integrate_bps_mpa1_f38.py --selftest
+          curve="$(find results/curve -name 'JESTER_BPS_MPA1_RNS_curve_20261120.json' -print -quit)"
+          test -n "$curve"
+          python research/j0740/physical_eos_validation/integrate_bps_mpa1_f38.py \
+            --curve "$curve" --f38-dir results/F38 \
+            --output results/JESTER_BPS_MPA1_partial_F38_20261120.json \
+            | tee results/JESTER_BPS_MPA1_partial_F38_execution_20261120.txt
+      - name: Write SHA256 manifest
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results'); root.mkdir(parents=True,exist_ok=True)
+          out={}
+          for p in sorted(x for x in root.rglob('*') if x.is_file()):
+              out[str(p)]={'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+          (root/'SHA256_manifest.json').write_text(json.dumps({
+            'curve_run_id':44722239243,'curve_artifact_id':14623177557,
+            'f38_run_id':44715864764,'f38_artifact_id':14620095080,
+            'files':out},indent=2,sort_keys=True)+'\\n')
+          print(json.dumps(out,indent=2))
+          PY
+      - name: Upload partial evidence result and exact reused inputs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: j0740-bps-mpa1-partial-f38-evidence
+          path: results/**
+          retention-days: 30
