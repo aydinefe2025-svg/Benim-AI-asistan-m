@@ -84,11 +84,15 @@ def verify_cell_directory(z:ZipFile, archive_serial:str) -> dict:
     if len(matches) != 1:
         raise ValueError('SOURCE_REVIEW_REQUIRED: ambiguous or absent original source CSV')
     path=PurePosixPath(matches[0])
-    if path.is_absolute() or '\\' in matches[0] or '..' in path.parts or len(path.parts)<3:
+    if path.is_absolute() or '\\' in matches[0] or '..' in path.parts or any(not x for x in path.parts):
         raise ValueError('SOURCE_REVIEW_REQUIRED: unsafe source path')
-    stage=_stage(path.parts[0])
-    if path.parts[-2] != archive_serial:
-        raise ValueError('SOURCE_REVIEW_REQUIRED: ZIP directory differs from source identity')
+    stage_paths=[p for p in path.parts[:-1] if re.fullmatch(r'Stage_[12]',p)]
+    if len(stage_paths)>1:
+        raise ValueError('SOURCE_REVIEW_REQUIRED: ambiguous source stage directories')
+    for directory in path.parts[:-1]:
+        if re.fullmatch(r'TP_[kz]\d{2}_\d{2}',directory) and directory!=archive_serial:
+            raise ValueError('SOURCE_REVIEW_REQUIRED: source parent directory identity mismatch')
+    stage=_stage(stage_paths[0]) if stage_paths else None
     paired=str(path)[:-4]+'_meta.txt'
     if paired not in names:
         raise ValueError('SOURCE_REVIEW_REQUIRED: paired source metadata missing')
@@ -97,7 +101,8 @@ def verify_cell_directory(z:ZipFile, archive_serial:str) -> dict:
     sidecar=z.read(paired)
     if len(sidecar)>MAX_META_BYTES_PER_FILE:
         raise ValueError('SOURCE_REVIEW_REQUIRED: sidecar read budget')
-    return {'stage':stage,'serial':archive_serial,
+    return {'stage':stage,'stage_origin':'source_path' if stage is not None else 'unavailable',
+            'path_depth':len(path.parts),'serial':archive_serial,
             'csv_name_suffix':filename,'sidecar_name_suffix':PurePosixPath(paired).name,
             'sidecar_sha256':sha256(sidecar).hexdigest(),'sidecar_bytes':sidecar}
 
@@ -150,9 +155,16 @@ def _first(parsed: dict, keys:tuple[str,...]):
 
 def reconcile_records(location:dict, overview:dict, meta:dict) -> dict:
     """Conservative public-source records join; NEVER independent physical evidence."""
-    key=(location['stage'],location['serial'])
-    row=overview.get(key)
-    out={'stage':location['stage'],
+    stage=location['stage']
+    stage_origin=location.get('stage_origin','source_path' if stage is not None else 'unavailable')
+    if stage is None:
+        raw_stage=_first(meta['parsed_fields'], ('stage','experiment_stage','measurement_stage'))
+        if raw_stage is not None:
+            stage=_stage(raw_stage)
+            stage_origin='explicit_sidecar_field'
+    key=(stage,location['serial'])
+    row=overview.get(key) if stage is not None else None
+    out={'stage':stage,'stage_origin':stage_origin,
          'overview_composite_key_found':row is not None,
          'sidecar_format':meta['format'],
          'sidecar_label_keys':meta['field_keys'],
@@ -162,6 +174,9 @@ def reconcile_records(location:dict, overview:dict, meta:dict) -> dict:
          'sidecar_internal_id_field_recognized':False,
          'physical_identity_authenticated':False,
          'laboratory_institution_independently_authenticated':False}
+    if stage is None:
+        out['decision']='STAGE_RECORD_PROVENANCE_INCOMPLETE'
+        return out
     if row is None:
         out['decision']='OVERVIEW_COMPOSITE_KEY_NOT_FOUND'
         return out
