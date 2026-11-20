@@ -81,6 +81,30 @@ class IdentityGuards(unittest.TestCase):
         out=reconcile_records(r,rows,meta)
         self.assertFalse(out['sidecar_internal_id_matches_overview'])
         self.assertEqual(out['decision'],'SOURCE_METADATA_LINK_INCOMPLETE')
+    def test_two_level_stage_folder_source_is_accepted_with_explicit_stage(self):
+        f=io.BytesIO()
+        with ZipFile(f,'w') as z:
+            z.writestr('Stage_1/TP_k01_05_01_ET_T23.csv','run_time,c_vol\n')
+            z.writestr('Stage_1/TP_k01_05_01_ET_T23_meta.txt','lab: LAB_A\n')
+        f.seek(0)
+        with ZipFile(f) as z:out=verify_cell_directory(z,'TP_k01_05')
+        self.assertEqual(out['stage'],'1')
+        self.assertEqual(out['stage_origin'],'source_path')
+
+    def test_flat_source_with_no_stage_stays_unresolved(self):
+        f=io.BytesIO()
+        with ZipFile(f,'w') as z:
+            z.writestr('TP_k01_05_01_ET_T23.csv','run_time,c_vol\n')
+            z.writestr('TP_k01_05_01_ET_T23_meta.txt','lab: LAB_A\n')
+        f.seek(0)
+        with ZipFile(f) as z:location=verify_cell_directory(z,'TP_k01_05')
+        self.assertIsNone(location['stage'])
+        self.assertEqual(location['stage_origin'],'unavailable')
+        rows=read_overview(overview([('INT_A','TP_k01_05','LAB_A','k01','05',1),('INT_B','TP_k01_05','LAB_B','k01','05',2)]))
+        result=reconcile_records(location,rows,summarize_meta_sidecar(b'lab: LAB_A\n'))
+        self.assertEqual(result['decision'],'STAGE_RECORD_PROVENANCE_INCOMPLETE')
+        self.assertFalse(result['overview_composite_key_found'])
+
     def test_filename_ambiguous_across_zip_fails_closed(self):
         f=io.BytesIO()
         with ZipFile(f,'w') as z:
