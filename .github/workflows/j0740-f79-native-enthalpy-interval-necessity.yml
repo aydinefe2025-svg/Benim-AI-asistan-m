@@ -1,0 +1,81 @@
+name: J0740 F79 native seven EOS enthalpy causal interval necessity
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f79/**'
+      - '.github/workflows/j0740-f79-native-enthalpy-interval-necessity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-native-p-e-h-necessary-causality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      F79_SOURCE_DIR: jester-original/jesterTOV/tabulated_eos/lalsuite
+      F79_ARTIFACTS_DIR: research/j0740/original_spin_recovery/artifacts
+      F79_SOURCE_MANIFEST: research/j0740/f75/F75_pinned_source_manifest.json
+      F79_ARTIFACT_MANIFEST: research/j0740/original_spin_recovery/archived_artifact_manifest.json
+    steps:
+      - name: Checkout science branch
+        uses: actions/checkout@v4
+      - name: Checkout exact immutable original JESTER source
+        uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-original
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Use same numpy binary compatible version
+        run: python -m pip install 'numpy==2.3.5'
+      - name: 18 physical theorem/provenance adversarial tests
+        run: python -m unittest discover -s research/j0740/f79 -p 'test_f79_*.py' -v
+      - name: Independently recompute pinned seven-source P-E-H interval theorem for all 323 real C stars
+        run: |
+          python research/j0740/f79/f79_enthalpy_causal_feasibility.py \
+            --source-dir "$F79_SOURCE_DIR" \
+            --artifacts-dir "$F79_ARTIFACTS_DIR" \
+            --source-manifest "$F79_SOURCE_MANIFEST" \
+            --artifact-manifest "$F79_ARTIFACT_MANIFEST" \
+            --out results/F79/F79_original_seven_enthalpy_causality_323_real_stars_20261120.json
+      - name: Independently verify complete result bytes, physical counts, and no false inference
+        run: |
+          python - <<'PY'
+          import pathlib,hashlib,json
+          p=pathlib.Path('results/F79/F79_original_seven_enthalpy_causality_323_real_stars_20261120.json')
+          data=json.loads(p.read_text())
+          cert=json.loads(pathlib.Path('research/j0740/f79/F79_expected_CI_certificate_20261120.json').read_text())
+          assert hashlib.sha256(p.read_bytes()).hexdigest()==cert['result_json_sha256'],'original source F79 output SHA differs'
+          assert data['original_star_count']==cert['original_stars']==323
+          assert data['original_numerical_source_rejected_stars']==cert['original_numerical_source_rejected_stars']==294
+          assert data['candidate_without_endpoint_obstruction']==29
+          assert data['native_XPSI_photon_inference']=='NOT_RUN'
+          assert data['physical_seven_EOS_Bayes']=='NOT_RUN'
+          assert sum(v['source_interval_violation_counts']['causal_enthalpy_violation'] for v in data['models'].values())==cert['total_h_causal_bad_source_intervals']==2020
+          assert sum(v['source_interval_violation_counts']['monotone_enthalpy_violation'] for v in data['models'].values())==cert['total_h_monotone_bad_source_intervals']==1673
+          assert set(data['models'])==set(cert['models'])
+          assert sum(v['F79_additional_C_star_count_not_already_F77'] for v in data['models'].values())==0
+          for name,want in cert['models'].items():
+              got=data['models'][name]
+              assert got['native_source_sha256']==want['source_sha256'],name
+              assert got['original_C_star_count']==want['original_C_star_count'],name
+              assert got['source_interval_violation_counts']['causal_enthalpy_violation']==want['causal_H_bad_source_intervals'],name
+              assert got['source_interval_violation_counts']['monotone_enthalpy_violation']==want['monotone_H_bad_source_intervals'],name
+              assert got['F79_C_star_count_with_enthalpy_bound_violation']==want['H_affected_C_stars'],name
+              assert got['F79_additional_C_star_count_not_already_F77']==want['F79_additional_C_stars']==0,name
+          print('F79 original 7 JESTER EOS and all 323 original RNS C star source H bounds REPRODUCED and SHA verified')
+          PY
+      - name: Archive actual independent GitHub F79 proof output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F79-original-seven-enthalpy-causality-323-C-stars
+          path: results/F79/
+          if-no-files-found: warn
