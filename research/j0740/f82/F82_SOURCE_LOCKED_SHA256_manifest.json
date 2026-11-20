@@ -1,0 +1,35 @@
+{
+  "eos_sha256": "f4a183661962acdddc7aebde3830116578feb6fba88a1a68c9fd57a993058675",
+  "f81_JSON_sha256": "36d726706f8aadcbae416693dc4f682c890defe9ca896b76641655140aede620",
+  "files": {
+    "F81_REAL_two_grid_mass_f_report_J_20261120.json": {
+      "bytes": 48104,
+      "sha256": "36d726706f8aadcbae416693dc4f682c890defe9ca896b76641655140aede620"
+    },
+    "F82_local_tests.log": {
+      "bytes": 1647,
+      "sha256": "00a24f6854385c132d94d40120780ca062618c3201c114658716e895c5db5194"
+    },
+    "F82_science_scope_20261120.md": {
+      "bytes": 1689,
+      "sha256": "109070096c855daf585c7e77e0a98be74375828e6da53188ffafff8b0b198ee5"
+    },
+    "f82_bps_mpa1_real_fixed_j.py": {
+      "bytes": 9836,
+      "sha256": "168471858831d3c88ad71de19a7dc369f5646308becc392a782a847f20bfb788"
+    },
+    "j0740-f82-real-fixed-J-bps-mpa1.yml": {
+      "bytes": 8107,
+      "sha256": "89eaf21e6837af1c4279eb8da3654ec587dff099764a9f80fa9e396506b70053"
+    },
+    "m.rns": {
+      "bytes": 106749,
+      "sha256": "f4a183661962acdddc7aebde3830116578feb6fba88a1a68c9fd57a993058675"
+    },
+    "test_f82_bps_mpa1_fixed_j.py": {
+      "bytes": 3918,
+      "sha256": "010f9f89aafcb904841f3aeb855ea274be3d56636b8764cffdcb79359a6366c0"
+    }
+  },
+  "source_RNS_commit": "97e85d325a33e37f702306414533f6cd77812477"
+}
