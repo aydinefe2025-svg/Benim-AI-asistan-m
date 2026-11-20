@@ -167,8 +167,23 @@ def reconcile_records(location:dict, overview:dict, meta:dict) -> dict:
     internal=_first(fields,('serial_internal','internal_serial','internal_cell_serial','cell_serial_internal'))
     lab=_first(fields,('lab','laboratory','lab_id','laboratory_identifier'))
     tp=_first(fields,('tp','testpoint','test_point','testpoint_identifier'))
+    # Aggregate-only diagnosis of source formats. No original identifiers leak.
+    all_rows=list(overview.values())
+    serial_pred=lambda row:_identity(row['serial'])==_identity(location['serial'])
+    internal_pred=lambda row:internal is not None and _identity(row['serial_internal'])==_identity(internal)
+    lab_pred=lambda row:lab is not None and _identity(row['lab'])==_identity(lab)
+    tp_pred=lambda row:tp is not None and row['tp'] is not None and _norm_testpoint(row['tp'])==_norm_testpoint(tp)
+    evidence_counts={
+        'overview_same_archive_serial':sum(serial_pred(row) for row in all_rows),
+        'overview_matching_internal_serial':sum(internal_pred(row) for row in all_rows),
+        'overview_matching_lab':sum(lab_pred(row) for row in all_rows),
+        'overview_matching_testpoint':sum(tp_pred(row) for row in all_rows),
+        'overview_same_archive_serial_internal_and_lab':sum(serial_pred(row) and internal_pred(row) and lab_pred(row) for row in all_rows),
+        'overview_same_archive_serial_internal_lab_and_testpoint':sum(serial_pred(row) and internal_pred(row) and lab_pred(row) and tp_pred(row) for row in all_rows),
+    }
     out={'stage':stage,'stage_origin':stage_origin,
          'overview_composite_key_found':False,
+         'diagnostic_matching_row_counts':evidence_counts,
          'sidecar_format':meta['format'],
          'sidecar_label_keys':meta['field_keys'],
          'sidecar_lab_matches_overview':False,
