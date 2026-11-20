@@ -1,0 +1,122 @@
+{
+  "RNS_upstream_commit": "97e85d325a33e37f702306414533f6cd77812477",
+  "compiler": "Microsoft C/C++ Optimizing Compiler 19.51.36260 for x64; linker 14.51.36260",
+  "link_libraries": [
+    {
+      "bytes": 12677100,
+      "name": "gsl.lib",
+      "sha256": "61f66f94eb1522330e18ff839b9e8a01afb89895ae0a41ae7760bd867794b71e"
+    },
+    {
+      "bytes": 774514,
+      "name": "gslcblas.lib",
+      "sha256": "fda37279b343872ecefe5f3dff7ff0401ae499178ee556525bf5f9c7cae751de"
+    }
+  ],
+  "meshes": {
+    "151x301": {
+      "compile_command": "cl /O2 /W0 /MD /DMDIV=151 /DSDIV=301 <source>; link RNS and GSL static objects",
+      "main_source_sha256": "73d1c0d4099de77d08501c28b8e6ae81d32b83fdf34326aacd01a7f986d6902b",
+      "objects": [
+        {
+          "bytes": 12500,
+          "name": "rns_main_151.obj",
+          "sha256": "2f1fd68ceb508bded5743162c09f5657ed68d1c2f2759a87c97c35f29fca889a"
+        },
+        {
+          "bytes": 36591,
+          "name": "findmodel_sourcebytes_151.obj",
+          "sha256": "ec930d8887fef69bd1e2f21256c555cbe0541457ed776ee780b8942398381887"
+        },
+        {
+          "bytes": 14110,
+          "name": "equil_util.obj",
+          "sha256": "e945fc3df1bb0fa71fdb6bd047eb2ff4d7869a0a9cdda4c952155d413e098afd"
+        },
+        {
+          "bytes": 56018,
+          "name": "equil.obj",
+          "sha256": "a136062d686533a5b1cb417b21ca8f02a8afc7a5b28cb61092d7a94f2961c6a5"
+        },
+        {
+          "bytes": 36489,
+          "name": "findmodel.obj",
+          "sha256": "7d68d48dbfa17afbca235d68c0ec8017c39b67251a76dd5cee0dfe26bb819bd3"
+        },
+        {
+          "bytes": 20565,
+          "name": "nrutil.obj",
+          "sha256": "20741d09e1cef958944066f1033bfbb034e9e865f2bcca50e0e5c43a8a7ca045"
+        },
+        {
+          "bytes": 12138,
+          "name": "stableorbit.obj",
+          "sha256": "b5c8b069442c3ddb1e2a5e0dc31116a0f2bd0b60846ce8a90cd0cf7928e284b7"
+        },
+        {
+          "bytes": 12180,
+          "name": "surface.obj",
+          "sha256": "6d71015daf6c2a547cdf4e23959e4473ca74d47b0e7084b78a9b11d0a427fad4"
+        }
+      ],
+      "output_binary_sha256": "0fef1eca08ce9f5652137f02991e18cb2d1270cd91aa28dca7a74e6b92bb51e6"
+    },
+    "201x401": {
+      "compile_command": "cl /O2 /W0 /MD /DMDIV=201 /DSDIV=401 <source>; link RNS and GSL static objects",
+      "main_source_sha256": "73d1c0d4099de77d08501c28b8e6ae81d32b83fdf34326aacd01a7f986d6902b",
+      "objects": [
+        {
+          "bytes": 12500,
+          "name": "rns_main_201.obj",
+          "sha256": "a19b21519388cdd3c943dc74dfdbedbd1378028d87a8c88f401825c2a9e9fc6a"
+        },
+        {
+          "bytes": 36591,
+          "name": "findmodel_sourcebytes_201.obj",
+          "sha256": "baf323c0d7f6d47cb1cba94abbb28988ae34e2c55e1ae470171e1de32e31b744"
+        },
+        {
+          "bytes": 14110,
+          "name": "equil_util.obj",
+          "sha256": "cfcb2a2ce11904c056a7e43e5cc8c0f0e784e9363a5282fdec3c12d72a01fa67"
+        },
+        {
+          "bytes": 56259,
+          "name": "equil.obj",
+          "sha256": "91063aa284cb5d80fc5f8e8655fd1037fcd2d6913d71804708738a5047ed6a28"
+        },
+        {
+          "bytes": 36489,
+          "name": "findmodel.obj",
+          "sha256": "38f576d87c67600fbd36dcebd6f7af54c49ce68185c4ee0dd69ceedc41d3ca78"
+        },
+        {
+          "bytes": 20565,
+          "name": "nrutil.obj",
+          "sha256": "fcdfa895d0337e12ba853a64f1b3cd61076ccea7577b9f431782c306c1ae8d19"
+        },
+        {
+          "bytes": 12138,
+          "name": "stableorbit.obj",
+          "sha256": "96b654a4d3262df2b60938ce7f0c8746b3ecb30d1f0221ddc3aac5525d36ead9"
+        },
+        {
+          "bytes": 11811,
+          "name": "surface.obj",
+          "sha256": "79dfe7ad4601fbd4c15f189282861aac9b44cf0e7ee6a70a4f61ddc71372d094"
+        }
+      ],
+      "output_binary_sha256": "0afa785614721516eda1e6ab8cddecede96dd9f4a0938ceefee67e88c7f522cf"
+    }
+  },
+  "note": "The precompiled RNS numerical objects are retained locally and hashed here; no object code is uploaded to GitHub. Executable PE timestamps vary between link runs, while direct numerical root JSON is independently byte-identical.",
+  "schema": "j0740-apr4-rns-tight-inner-build-manifest-v1",
+  "source_patch": {
+    "file": "APR4_RNS_TIGHT_INNER_EQUILIBRIUM_20261120.patch",
+    "original_findmodel_sha256": "01c75752fec9453ec63f0ef2fcb2de2070b5129d31134a238143428852200407",
+    "patched_findmodel_sha256": "998bd60d57cb49a6fbb3950dbfd8eee7543ef9afe69504a79fc60af28fd324b7",
+    "scope": "one byte-string replacement, preserving all CRLF/LF bytes",
+    "sha256": "6710269ea3fda12db6736c6809b873c1014eea88c5345a34e356cabdbc825717"
+  }
+}
+
