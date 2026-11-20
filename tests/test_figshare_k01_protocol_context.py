@@ -103,9 +103,9 @@ class ProtocolContextTests(unittest.TestCase):
         row["source_window_coverage_fraction"]="0.0125"
         row["near_2mV_voltage_pairs"]=None
         out=inspect_source_receipt(x)
-        self.assertEqual(out["pair_results"][-1]["classification"],
+        self.assertEqual(next(r for r in out["pair_results"] if r["source_file_ids"]==[47627089,47627092])["classification"],
                          "INSUFFICIENT_COMMON_REGIME_POINTS")
-        self.assertIsNone(out["pair_results"][-1]["near_fraction_of_common_regime"])
+        self.assertIsNone(next(r for r in out["pair_results"] if r["source_file_ids"]==[47627089,47627092])["near_fraction_of_common_regime"])
 
     def test_identical_initial_trace_still_not_a_physical_duplicate_label(self):
         x=fixture(); row=x["pair_results"][0]
