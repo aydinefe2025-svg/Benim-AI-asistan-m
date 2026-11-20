@@ -63,6 +63,10 @@ def compare_protocol_identifiers(archive_stem:str, overview_row:dict,
     return {'overview_filename_type_tp_cell_match':matches,
             'sidecar_testpoint_equivalent':sidecar_match,
             'sidecar_testpoint_shape':sidecar_shape,
+            'sidecar_testpoint_format_pattern':(
+                ''.join('#' if c.isdigit() else (c if c.isascii() and (c.isalpha() or c in '_-./: ' ) else '?')
+                        for c in str(sidecar_testpoint)[:96])
+                if sidecar_testpoint is not None else None),
             'source_paper_type_code':kind,
             'decision':decision,
             'physical_conditions_independently_verified':False}
