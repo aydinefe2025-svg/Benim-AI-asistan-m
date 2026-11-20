@@ -132,6 +132,32 @@ class CodeJobReceiptLinksTests(unittest.TestCase):
         ])
         self.assertEqual([], ui.links)
 
+    def test_active_job_stages_are_distinguishable_without_exposing_goals(self):
+        # A real running job and an existing draft currently appear under the
+        # same vague "queued/running" count. Owners cannot tell whether their
+        # new job has progressed to a PR or a CI receipt.
+        rows = [
+            {"status": "queued", "goal": "SECRET QUEUED GOAL"},
+            {"status": "running", "goal": "SECRET RUNNING GOAL",
+             "owner_key": "SECRET OWNER"},
+            {"status": "pr_open", "pr_url":
+             "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/123"},
+            {"status": "ci_verified", "ci_run_url":
+             "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/456"},
+        ]
+        ui = FakeUI()
+        stats = render_owner_code_status(ui, rows)
+        self.assertEqual(4, stats["active"])
+        message = ui.messages[0]
+        self.assertIn("1 sırada", message)
+        self.assertIn("1 çalışıyor", message)
+        self.assertIn("1 PR taslağı kaydı", message)
+        self.assertIn("1 CI doğrulama etiketi", message)
+        self.assertNotIn("SECRET", message)
+        # Merely stored pr_open/ci_verified labels cannot be advertised as
+        # independently verified CI, and must not expose nondeployed links.
+        self.assertEqual([], ui.links)
+
     def test_private_goal_and_owner_are_not_shown(self):
         ui = FakeUI()
         render_owner_code_status(ui, [{"status": "deployed", "pr_url": "", "goal": "SECRET GOAL", "owner_key": "SECRET OWNER"}])
