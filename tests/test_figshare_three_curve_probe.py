@@ -37,6 +37,20 @@ class WindowGuards(unittest.TestCase):
         with ZipFile(source(rows=1100)) as z:a=read_matched_window(z,NAME)
         with ZipFile(source(rows=1101)) as z:b=read_matched_window(z,NAME)
         self.assertIsNone(compare_windows(a,b)['exact_voltage_matches'])
+    def test_publisher_documented_hhmmss_milliseconds_runtime_parses(self):
+        buf=io.BytesIO()
+        with ZipFile(buf,'w') as z:
+            lines=['run_time,c_vol,c_cur,step_type']
+            lines.extend(f'00:{i//60:02d}:{i%60:02d}.000,{4.2-i/100000},-0.1,1'
+                         for i in range(1100))
+            z.writestr(NAME,'\n'.join(lines)+'\n')
+            z.writestr(NAME[:-4]+'_meta.txt','lab: dummy\n')
+        buf.seek(0)
+        with ZipFile(buf) as z:
+            d=read_matched_window(z,NAME)
+        self.assertEqual(d['count'],1100)
+        self.assertEqual(d['points'][61][0],61)
+
     def test_source_with_publisher_stage_folder_resolves_unique_basename(self):
         buf=io.BytesIO()
         with ZipFile(buf,'w') as z:
