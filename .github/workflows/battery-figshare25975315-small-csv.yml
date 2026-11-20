@@ -34,6 +34,12 @@ jobs:
           assert r["original_file_id"]==47627029
           assert r["original_file_bytes"]==30658
           assert r["original_md5_matches_publisher"] is True
+          assert r["record_rows"]==279
+          assert r["distinct_serial_values"]==141
+          assert r["distinct_stage_serial_pairs"]==279
+          assert r["serial_alone_collides_across_stages"] is True
+          assert r["valid_metadata_composite_identity_key"]==["stage","serial"]
+          assert r["composite_stage_serial_row_collisions"]==0
           assert r["raw_cell_waveforms_downloaded"]==0
           assert r["independently_authenticated_physical_cell_identities"]==0
           assert r["cross_cell_confusion_rate_measured"] is False
