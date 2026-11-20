@@ -129,13 +129,19 @@ def audit(seed_report: dict, training_report: dict) -> dict:
     }
 
 
-def raw_replay(npz: Path, jsonl: Path, seed_report: dict) -> dict:
+def raw_replay(npz: Path, jsonl: Path, seed_report: dict, *, support_field: str | None = None) -> dict:
     """Optional original *private* full-sample replay, fails closed if missing.
 
     Only reads existing bytes; NEVER calls native X-PSI or modifies source.
     """
     if not npz.is_file() or not jsonl.is_file():
         raise FileNotFoundError("F85_ORIGINAL_PRIVATE_RAW_NPZ_AND_JSONL_UNAVAILABLE")
+    # F85's historical raw replay incorrectly omitted the nuisance-support
+    # normalizer. Never assume that this factor is zero. The original source
+    # schema's explicit field name must be supplied after inspecting the raw
+    # archived events; no auto-guessing or silent normalization is permitted.
+    if not support_field or not isinstance(support_field, str):
+        raise SourceError('F86_NATIVE_NUISANCE_SUPPORT_FIELD_NOT_VERIFIED')
     import numpy as np
     from scipy.special import logsumexp
     if hashlib.sha256(npz.read_bytes()).hexdigest()!=seed_report['npz_sha256'] or hashlib.sha256(jsonl.read_bytes()).hexdigest()!=seed_report['jsonl_sha256']:
@@ -161,8 +167,16 @@ def raw_replay(npz: Path, jsonl: Path, seed_report: dict) -> dict:
             continue
         if 'logq' not in r:
             raise SourceError('F85_REAL_EVENT_LOGQ_MISSING')
+        if support_field not in r:
+            raise SourceError('F86_REAL_EVENT_LOG_NUISANCE_SUPPORT_MISSING')
+        support=r[support_field]
+        if isinstance(support, bool) or not isinstance(support, (float,int)) or not math.isfinite(support):
+            raise SourceError('F86_BAD_NATIVE_NUISANCE_LOG_SUPPORT')
+        q=r['logq']
+        if isinstance(q,bool) or not isinstance(q,(float,int)) or not math.isfinite(q):
+            raise SourceError('F86_BAD_REAL_EVENT_LOGQ')
         native_base=-0.5*(13*math.log(2*math.pi)+float(np.dot(z[i],z[i])))
-        vals.append(float(logL)+native_base-float(r['logq']))
+        vals.append(float(logL)+native_base-float(support)-float(q))
     if not np.allclose(np.asarray(vals),logw,atol=1e-9,rtol=0):
         raise SourceError('F85_REAL_LOGWEIGHT_NOT_RECONSTRUCTIBLE')
     weights=np.exp(logw-logsumexp(logw))
@@ -170,7 +184,7 @@ def raw_replay(npz: Path, jsonl: Path, seed_report: dict) -> dict:
     obs=seed_report['independently_reconstructed']
     if not math.isclose(ess,obs['ESS'],abs_tol=5e-8) or not math.isclose(m,obs['max_weight_fraction'],abs_tol=1e-10) or top!=seed_report['top_samples'][0]['index']:
         raise SourceError('F85_REAL_REPLAY_DOES_NOT_MATCH_OLD_AUDIT')
-    return {'status':'BYTE_VERIFIED_REAL_RAW_REPLAY_PASS','ess':ess,'max_weight':m,'top_index':top,'original_accepted':False,'new_photon_calls':0}
+    return {'status':'BYTE_VERIFIED_REAL_RAW_REPLAY_PASS','ess':ess,'max_weight':m,'top_index':top,'original_accepted':False,'support_correction_status':'APPLIED_TO_ALL_FINITE_LIKELIHOODS','support_field':support_field,'new_photon_calls':0}
 
 
 def main():
@@ -180,6 +194,7 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--npz',type=Path)
     p.add_argument('--jsonl',type=Path)
+    p.add_argument('--support-field',type=str,help='exact field key of original log(nuisance-support) in each raw JSONL event; mandatory for raw replay')
     a=p.parse_args()
     r=read_source_json(a.summary,ORIGINAL_SUMMARY_BLOB)
     t=read_source_json(a.training,ORIGINAL_TRAINING_BLOB)
@@ -187,7 +202,7 @@ def main():
     if (a.npz is None)!=(a.jsonl is None):
         raise SourceError('F85_BOTH_RAW_NPZ_AND_JSONL_REQUIRED')
     if a.npz:
-        result['raw_replay']=raw_replay(a.npz,a.jsonl,r)
+        result['raw_replay']=raw_replay(a.npz,a.jsonl,r,support_field=a.support_field)
         result['raw_2048_row_NPZ_JSONL_replayed_this_run']=True
     a.output.parent.mkdir(parents=True,exist_ok=True)
     a.output.write_text(json.dumps(result,ensure_ascii=False,indent=2,sort_keys=True,allow_nan=False)+'\n',encoding='utf8')
