@@ -1,0 +1,114 @@
+name: J0740 F89 real two-grid C RNS local constant-J mass-slope audit
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f89/**'
+      - '.github/workflows/j0740-f89-real-fixed-j-turning-point-screen.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  actual_local_constant_j_two_grids:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fixed numerical dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Run seven mock-only fail-closed F89 unit tests (not physical data)
+        run: |
+          set -euo pipefail
+          mkdir -p results/F89
+          python -m unittest discover -s research/j0740/f89 -p 'test_f89_fixed_j.py' -v 2>&1 | tee results/F89/F89_UNIT_TESTS_MOCKS_ONLY.log
+      - name: Restore original F88 source-pinned real solver evidence rather than repeat F88
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F88
+          gh run download 44818195695 -R "$GITHUB_REPOSITORY" \
+            -n J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID -D results/F88
+          test -s results/F88/F88_REAL_two_grid_C_RNS.json
+          test -s results/F88/m.rns
+          test -s results/F88/F87_verified_publisher_original.zip
+          printf '%s  %s\n' '8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12' \
+            results/F88/F87_verified_publisher_original.zip | sha256sum -c -
+      - name: Rebuild original Einstein C code on two grids (print precision and J only)
+        run: |
+          set -euo pipefail
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          cp -a rns-upstream rns151
+          cp -a rns-upstream rns201
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          for folder,grid in (('rns151','151x301'),('rns201','201x401')):
+              p=Path(folder)/'rns.c'
+              p.write_text(patch_print_only(p.read_text()))
+              make=Path(folder)/'makefile'
+              old='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+              t=make.read_text()
+              assert t.splitlines().count(old)==1
+              if grid=='201x401':make.write_text(t.replace(old,'HIGHSIZE=-DMDIV=201 -DSDIV=401',1))
+          PY
+          make -C rns151 CC='gcc -include stdlib.h' rns
+          make -C rns201 CC='gcc -include stdlib.h' rns
+          sha256sum rns151/rns rns201/rns | tee results/F89/F89_COMPILATION_HASHES.txt
+      - name: Execute real source-pinned C/RNS at constant J around each F88 rotating star
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f89/f89_fixed_j_real_rns.py \
+            --f88 results/F88/F88_REAL_two_grid_C_RNS.json \
+            --eos results/F88/m.rns \
+            --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
+            --rns201 "$GITHUB_WORKSPACE/rns201/rns" \
+            --out results/F89/F89_ACTUAL_two_grid_fixed_J_local_screen.json \
+            2>&1 | tee results/F89/F89_DIRECT_C_RUN.log
+      - name: Independent audit of real C evaluations and constant-J matching
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('results/F89/F89_ACTUAL_two_grid_fixed_J_local_screen.json').read_text())
+          assert len(d['grid_results'])==2
+          assert d['full_native_XPSI_photon_likelihood']=='NOT_RUN'
+          for name,grid in d['grid_results'].items():
+              assert len(grid['points'])==5,name
+              assert len({round(x['fractional_rho_change'],5) for x in grid['points']})==5
+              assert all(x['real_solver_checked'] for x in grid['points'])
+              assert all(x['J_relative_error']<=3e-5 for x in grid['points'])
+              assert grid['actual_C_evaluations_in_F89']>=9
+          print('F89_REAL_C_FIXED_J_FIVE_STARS_EACH_GRID_AUDIT_PASS',d['joint_numerical_interpretation'])
+          PY
+      - name: Always retain real C traces and checksums even if numerical root fails
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          folder=Path('results/F89');folder.mkdir(parents=True,exist_ok=True)
+          receipt={f.name:{'sha256':hashlib.sha256(f.read_bytes()).hexdigest(),
+                   'bytes':f.stat().st_size} for f in folder.iterdir() if f.is_file()}
+          (folder/'F89_SHA256_manifest.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+      - name: Upload evidence ZIP containing direct C evaluations, unit tests and SHA receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F89-REAL-C-RNS-FIXED-J-LOCAL-SLOPE-EVIDENCE
+          path: results/F89/
+          if-no-files-found: warn
