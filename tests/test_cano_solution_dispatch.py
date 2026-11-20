@@ -1,5 +1,6 @@
 import unittest
-from core.cano_solution_dispatch import infer_code_goal, actionable_solution
+from core.cano_solution_dispatch import (infer_code_goal, actionable_solution,
+                                         SELF_DEVELOPMENT_GOAL)
 
 class CanoNaturalCodeDispatchTests(unittest.TestCase):
     def test_owner_explicit_fix_followup_after_known_provider_error_routes_to_code(self):
@@ -71,6 +72,36 @@ class CanoNaturalCodeDispatchTests(unittest.TestCase):
         self.assertIn("GitHub", goals[0])
         self.assertIn("güven", goals[0].casefold())
         self.assertIsNone(infer_code_goal("CANO kendini geliştirebilir misin?", []))
+
+    def test_natural_owner_request_to_finish_cano_reuses_canonical_job(self):
+        # Owner should not need a magic self-development phrase. These
+        # ordinary Turkish commands currently return None and silently fail
+        # to produce an actionable development goal.
+        requests = (
+            "Yap artık şu CANO'yu ya",
+            "Yap artık şu CANO’yu ya",
+            "CANO'yu geliştir",
+            "Artık CANO'yu geliştir",
+            "CANO'yu tamamla",
+            "Canoyu yap artık",
+        )
+        for request in requests:
+            with self.subTest(request=request):
+                self.assertEqual(SELF_DEVELOPMENT_GOAL,
+                                 infer_code_goal(request, []))
+
+    def test_natural_development_language_keeps_routing_safety_boundary(self):
+        for request in (
+            "CANO'yu geliştirebilir misin?",
+            "CANO'yu geliştirebilir misin",
+            "CANO'yu kapat",
+            "CANO'nun tarihini araştır",
+            "CANO görev: araştırma hazırla",
+            "CANO kod: Uygulama hatasını düzelt",
+            "Yap artık şu CANO'yu ya sk-" + "A" * 24,
+        ):
+            with self.subTest(request=request):
+                self.assertIsNone(infer_code_goal(request, []))
 
     def test_authenticated_chat_self_development_enqueues_job_without_preview(self):
         import ast
