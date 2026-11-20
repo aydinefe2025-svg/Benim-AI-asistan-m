@@ -40,8 +40,8 @@ def parse_sidecar(z:ZipFile,source_file:str,temp:int)->dict:
     p=source_file[:-4]+'_meta.txt'
     fields=summarize_meta_sidecar(z.read(p))['parsed_fields']
     point=str(fields.get('testpoint') or '').strip().casefold().replace(' ','')
-    if point!='k04nocu':
-        raise ValueError('SOURCE_REVIEW_REQUIRED: incorrect source calendar k04noCU protocol label; published=' + repr(point[:40]))
+    # Publisher original sidecar uses 'k04'; the 04-06 no-intermediate-CU\n    # protocol is documented separately in the paper, not encoded here.\n    if point!='k04':
+        raise ValueError('SOURCE_REVIEW_REQUIRED: incorrect source calendar k04 protocol label; published=' + repr(point[:40]))
     temp_text=str(meta.get('temperature') or '').strip().replace(' ','')
     m=re.fullmatch(r'(\d+(?:\.\d+)?)°C',temp_text)
     if not m or float(m.group(1))!=temp:
