@@ -105,6 +105,39 @@ class IdentityGuards(unittest.TestCase):
         self.assertEqual(result['decision'],'STAGE_RECORD_PROVENANCE_INCOMPLETE')
         self.assertFalse(result['overview_composite_key_found'])
 
+    def test_official_sidecar_field_names_join_unique_stage_without_zip_stage(self):
+        f=io.BytesIO()
+        with ZipFile(f,'w') as z:
+            z.writestr('TP_k01_05_01_ET_T23.csv','run_time,c_vol\n')
+            z.writestr('TP_k01_05_01_ET_T23_meta.txt','internal_cell_serial: INT_A\nlaboratory_identifier: LAB_A\ntestpoint: k01\n')
+        f.seek(0)
+        with ZipFile(f) as z:location=verify_cell_directory(z,'TP_k01_05')
+        rows=read_overview(overview([('INT_A','TP_k01_05','LAB_A','k01','05',1),('INT_B','TP_k01_05','LAB_B','k01','05',2)]))
+        result=reconcile_records(location,rows,summarize_meta_sidecar(b'internal_cell_serial: INT_A\nlaboratory_identifier: LAB_A\ntestpoint: k01\n'))
+        self.assertTrue(result['overview_composite_key_found'])
+        self.assertEqual(result['stage'],'1')
+        self.assertEqual(result['stage_origin'],'sidecar_overview_unique_source_record')
+        self.assertEqual(result['decision'],'SOURCE_RECORDS_CROSS_LINKED_NOT_PHYSICAL_AUTHENTICATION')
+        self.assertFalse(result['physical_identity_authenticated'])
+
+    def test_identical_sidecar_identifiers_across_stages_are_ambiguous(self):
+        with ZipFile(sample_zip()) as z:location=verify_cell_directory(z,'TP_k01_05')
+        location['stage']=None
+        location['stage_origin']='unavailable'
+        rows=read_overview(overview([('INT_A','TP_k01_05','LAB_A','k01','05',1),('INT_A','TP_k01_05','LAB_A','k01','05',2)]))
+        meta=summarize_meta_sidecar(b'internal_cell_serial: INT_A\nlaboratory_identifier: LAB_A\n')
+        result=reconcile_records(location,rows,meta)
+        self.assertEqual(result['decision'],'SOURCE_METADATA_AMBIGUOUS_STAGE_REVIEW_REQUIRED')
+        self.assertFalse(result['physical_identity_authenticated'])
+
+    def test_sidecar_wrong_internal_fails_unique_stage_search(self):
+        with ZipFile(sample_zip()) as z:location=verify_cell_directory(z,'TP_k01_05')
+        location['stage']=None
+        location['stage_origin']='unavailable'
+        rows=read_overview(overview([('INT_A','TP_k01_05','LAB_A','k01','05',1),('INT_B','TP_k01_05','LAB_B','k01','05',2)]))
+        result=reconcile_records(location,rows,summarize_meta_sidecar(b'internal_cell_serial: INT_WRONG\nlaboratory_identifier: LAB_A\n'))
+        self.assertEqual(result['decision'],'SOURCE_METADATA_CONFLICT_REVIEW_REQUIRED')
+
     def test_filename_ambiguous_across_zip_fails_closed(self):
         f=io.BytesIO()
         with ZipFile(f,'w') as z:
