@@ -1,0 +1,144 @@
+name: J0740 F82 real C/RNS sampled constant-J turning point hybrid BPS-MPA1 two grids
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f82/**'
+      - '.github/workflows/j0740-f82-real-fixed-J-bps-mpa1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  actual-two-grid-C-fixed-J:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install exact required numerical libraries
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: F82 new fail-closed mathematical acceptance unit tests (not physical star evidence)
+        run: python -m unittest discover -s research/j0740/f82 -p 'test_f82_*.py' -v
+      - name: Recover immutable F81 actual C J anchor and original 1213-row hybrid EOS
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F82/parents
+          curl --fail --location --silent --show-error --retry 3 --max-time 180 \
+            -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14622014802/zip' \
+            -o results/F82/parents/F81_actual_C_source.zip
+          echo '9a77b4f940e8dc7489cbfd582b929019b2f6266a412f100d0815023dd88a4b47  results/F82/parents/F81_actual_C_source.zip' | sha256sum -c -
+          unzip -tq results/F82/parents/F81_actual_C_source.zip
+          unzip -q results/F82/parents/F81_actual_C_source.zip -d results/F82/parents
+          echo '36d726706f8aadcbae416693dc4f682c890defe9ca896b76641655140aede620  results/F82/parents/F81_REAL_two_grid_mass_f_report_J_20261120.json' | sha256sum -c -
+          cp results/F82/parents/m.rns results/F82/m.rns
+          echo 'f4a183661962acdddc7aebde3830116578feb6fba88a1a68c9fd57a993058675  results/F82/m.rns' | sha256sum -c -
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+      - name: Rebuild TWO full Einstein C binaries with only F81 validated print and J output modification
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a rns-upstream rns151
+          cp -a rns-upstream rns201
+          python - <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          p={}
+          for folder,g in [('rns151','151x301'),('rns201','201x401')]:
+              src=Path(folder)/'rns.c';raw=src.read_bytes()
+              src.write_bytes(patch_print_only(raw.decode('utf-8')).encode('utf-8'))
+              mk=Path(folder)/'makefile';old=mk.read_text()
+              selector='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+              assert old.splitlines().count(selector)==1
+              if g=='201x401':mk.write_text(old.replace(selector,'HIGHSIZE=-DMDIV=201 -DSDIV=401',1))
+              p[g]={'unchanged_pinned_RNS_c_SHA256':hashlib.sha256(raw).hexdigest(),
+                    'print_only_patched_c_SHA256':hashlib.sha256(src.read_bytes()).hexdigest(),
+                    'grid':g,'physics_equations_modified':False}
+          Path('results/F82/F82_C_source_and_mesh_provenance.json').write_text(json.dumps(p,indent=2,sort_keys=True)+'\n')
+          PY
+          make -C rns151 CC='gcc -include stdlib.h' rns
+          make -C rns201 CC='gcc -include stdlib.h' rns
+          test "$(sha256sum rns151/rns | cut -d' ' -f1)" != "$(sha256sum rns201/rns | cut -d' ' -f1)"
+      - name: Actually solve real C/RNS fixed-J sequence and matched two-grid sampled turning point
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f82/f82_bps_mpa1_real_fixed_j.py \
+            --eos results/F82/m.rns \
+            --f81 results/F82/parents/F81_REAL_two_grid_mass_f_report_J_20261120.json \
+            --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
+            --rns201 "$GITHUB_WORKSPACE/rns201/rns" \
+            --out results/F82/F82_actual_real_C_fixed_J_two_grid_20261120.json \
+            2>&1 | tee results/F82/F82_real_C_fixed_J_execution.txt
+      - name: Independently recheck true C source roots, different binaries, sampled turning points and no physical overclaim
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json,hashlib
+          r=json.loads(Path('results/F82/F82_actual_real_C_fixed_J_two_grid_20261120.json').read_text())
+          assert r['status']=='REAL_C_TWO_MESH_SAMPLED_FIXED_J_TURNOVER_ACCEPTED_NOT_DYNAMIC_STABILITY'
+          assert r['BPS_core_Gibbs_phase_thermodynamics']=='NOT_ESTABLISHED'
+          assert r['source_native_XPSI_photons']=='NOT_RUN'
+          assert r['seven_physical_EOS_Bayes']=='NOT_RUN'
+          assert r['source_real_RNS_binary_SHA256']['151x301']!=r['source_real_RNS_binary_SHA256']['201x401']
+          assert r['source_EOS_sha256']=='f4a183661962acdddc7aebde3830116578feb6fba88a1a68c9fd57a993058675'
+          assert abs(r['J_fixed_cgs']/6.065849263583e48-1)<1e-12
+          assert r['mesh_comparison']['count']>=5
+          assert r['coarse_peak']['status'].startswith('SAMPLED_') and r['matched_fine_peak']['status'].startswith('SAMPLED_')
+          assert len([x for x in r['coarse_stars'] if x['status'].startswith('DIRECT_C_')])>=10
+          for d in r['fine_spatial_star_pairs']:
+              for g in ('151x301','201x401'):
+                  z=d[g]
+                  if z['status'].startswith('DIRECT_C_'):
+                      assert abs(z['relative_J_residual'])<1e-5 and z['direct_C_evaluations']>=2
+                      assert len(z['trace'])>=2
+          print('F82_REAL_SOURCE_C_SAMPLED_TURNING_NUMERICALLY_ACCEPTED_NOT_DYNAMIC_STABILITY')
+          print('F82_FULL_JSON_SHA256',hashlib.sha256(Path('results/F82/F82_actual_real_C_fixed_J_two_grid_20261120.json').read_bytes()).hexdigest())
+          print('F82_FIXED_J_PEAK',json.dumps(r['matched_fine_peak'],sort_keys=True))
+          PY
+      - name: Preserve run SHA-256 and exact executable and raw star results even on failure
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          folder=Path('results/F82');folder.mkdir(parents=True,exist_ok=True)
+          ps=[*folder.glob('*.json'),*folder.glob('*.txt'),
+              Path('results/F82/m.rns'),Path('results/F82/parents/F81_actual_C_source.zip'),
+              Path('rns151/rns'),Path('rns201/rns'),Path('rns151/rns.c'),Path('rns201/rns.c'),
+              Path('research/j0740/f82/f82_bps_mpa1_real_fixed_j.py'),
+              Path('research/j0740/f82/test_f82_bps_mpa1_fixed_j.py')]
+          v={str(x):{'bytes':x.stat().st_size,'sha256':hashlib.sha256(x.read_bytes()).hexdigest()} for x in ps if x.is_file()}
+          (folder/'F82_SHA256_REAL_RNS_ARTIFACT_RECEIPT.json').write_text(json.dumps({'solver_RNS_commit':'97e85d325a33e37f702306414533f6cd77812477',
+             'files':v},sort_keys=True,indent=2)+'\n')
+          PY
+      - name: Upload real C solver output, full C call traces, or honest failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F82-REAL-C-fixed-J-BPS-MPA1-two-grid-or-failure
+          path: |
+            results/F82/F82_actual_real_C_fixed_J_two_grid_20261120.json
+            results/F82/F82_real_C_fixed_J_execution.txt
+            results/F82/F82_C_source_and_mesh_provenance.json
+            results/F82/F82_SHA256_REAL_RNS_ARTIFACT_RECEIPT.json
+          if-no-files-found: warn
+          retention-days: 30
