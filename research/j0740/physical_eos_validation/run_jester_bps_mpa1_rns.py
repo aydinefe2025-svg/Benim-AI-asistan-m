@@ -7,7 +7,7 @@ P[dyn/cm^2], H*c^2[cm^2/s^2], n_b[cm^-3]. The baryon number density comes from
 the absolute first-law normalization, not the source LALSimulation n column.
 """
 from __future__ import annotations
-import argparse, hashlib, json, math, re, subprocess
+import argparse, hashlib, json, math, os, re, subprocess
 import sys
 from pathlib import Path
 import numpy as np
