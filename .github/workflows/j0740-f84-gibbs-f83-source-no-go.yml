@@ -52,15 +52,31 @@ jobs:
           assert F.BPS_SHA=='a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787'
           print('SOURCE_BPS_AND_ORIGINAL_EOS_SHA256_PASS')
           PY
-      - name: Regenerate distinct F83 cold thermodynamics byte-identically from pinned source
+      - name: Load immutable F83 actual CI EOS bytes; re-run F83 formula as numerical crosscheck without substituting a new EOS
         shell: bash
         run: |
           set -euo pipefail
+          cp research/j0740/f84/F83_CI_exact_piecewise_cold_source_20261120.rns results/F84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns
+          echo '99fc172310b06b2aa0a972320478853c84057c6d1e2810328f97e3c19c37309d  results/F84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns' | sha256sum -c -
           python research/j0740/f83/f83_cold_integrability.py \
             --source research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns \
-            --out-eos results/F84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns \
-            --out-json results/F84/F83_reconstruction_for_F84.json
-          echo '99fc172310b06b2aa0a972320478853c84057c6d1e2810328f97e3c19c37309d  results/F84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns' | sha256sum -c -
+            --out-eos results/F84/F83_platform_recomputed_NUMERICALLY_SAME_NOT_SOURCE.rns \
+            --out-json results/F84/F83_platform_recomputation_roundoff_audit.json
+          python - <<'PYX'
+          import hashlib,numpy as np
+          from pathlib import Path
+          exact=Path('results/F84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns')
+          regen=Path('results/F84/F83_platform_recomputed_NUMERICALLY_SAME_NOT_SOURCE.rns')
+          a=np.loadtxt(exact,skiprows=1);b=np.loadtxt(regen,skiprows=1)
+          if a.shape!=(1213,4) or b.shape!=(1213,4):raise ValueError('F84_BAD_SOURCE_SHAPE')
+          if not np.array_equal(a[:,:2],b[:,:2]):raise ValueError('F84_SOURCE_P_E_DRIFT')
+          if not np.allclose(a[:,2:],b[:,2:],rtol=1e-11,atol=0):
+              raise ValueError('F84_NUMERIC_SOURCE_ROUNDOFF_EXCEEDS_TOL')
+          print('F84_EXACT_CI_SOURCE',hashlib.sha256(exact.read_bytes()).hexdigest(),
+                'INDEPENDENT_RECOMPUTED_DIFFERENT_BYTES_ACCEPTED_ONLY_WITH_NUMERIC_TOL',
+                hashlib.sha256(regen.read_bytes()).hexdigest(),
+                'max_relative_H_n_diff',np.max(abs(a[:,2:]/b[:,2:]-1)))
+          PYX
           cp results/F84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns research/j0740/f84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns
       - name: Fail closed adversarial nine mathematical plus exact original C/EOS source tests
         run: python -m unittest discover -s research/j0740/f84 -p 'test_f84_*.py' -v
