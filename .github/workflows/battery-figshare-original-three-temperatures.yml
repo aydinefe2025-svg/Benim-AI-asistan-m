@@ -1,0 +1,85 @@
+name: Battery Figshare 3 original cells 10 23 45 C ET AT source replay
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/figshare_k01_three_temperatures.py'
+      - 'tests/test_figshare_k01_three_temperatures.py'
+      - '.github/workflows/battery-figshare-original-three-temperatures.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-three-temperatures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Reject missing data phase mismatch and unsupported physical claims
+        run: python -m unittest tests.test_figshare_k01_three_temperatures -v
+      - name: Analyze all 18 publisher original ET AT T10 T23 T45 CSV measurements
+        run: |
+          python -m research.battery_curve_audit.figshare_k01_three_temperatures \
+            /tmp/cano_figshare_three_originals_all_temperature_ET_AT.json
+      - name: Require 3 complete original ZIPs 9 same-source pairs and cautious interpretations
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('/tmp/cano_figshare_three_originals_all_temperature_ET_AT.json').read_text())
+          assert d['source_doi']=='10.6084/m9.figshare.25975315'
+          assert d['original_archives_verified']==3
+          assert d['original_csv_files_processed']==18
+          assert d['source_capacity_pair_count']==9
+          assert d['original_timestamp_voltage_current_rows_processed']==5825726
+          assert d['all_capacity_pairs_current_time_and_sidecar_validated'] is True
+          assert d['source_testpoint_04_05_06_has_no_intermediate_CU']=='k01noCU'
+          assert d['field_FPR_FNR_established'] is False
+          assert d['storage_only_aging_attribution_proven'] is False
+          assert d['external_physical_cell_custody_authenticated'] is False
+          assert d['commercial_release_allowed'] is False
+          r={}
+          for src in d['source_archives']:
+              assert src['publisher_md5_verified'] and src['original_crc_verified']
+              assert len(src['source_profiles'])==3
+              for p in src['source_profiles']:
+                  assert p['original_step21_and_step22_valid_both_phases']
+                  assert p['source_sidecar_identity_matched']
+                  assert p['measurement_source_temperature_matched']
+                  assert not p['physical_identity_independently_authenticated']
+                  assert not p['storage_only_aging_attribution_proved']
+                  r[(src['publisher_original_filename'],p['temperature_C'])]=p
+          assert len(r)==9
+          for name,et,at in [('TP_k01_04.zip',4.838563,4.819792),
+                             ('TP_k01_05.zip',4.848685,4.838294),
+                             ('TP_k01_06.zip',4.904947,4.879858)]:
+              p=r[(name,23)]
+              assert p['et_capacity_Ah']==et and p['at_capacity_Ah']==at
+          print('ORIGINAL_3_CELLS_3_TEMPERATURES',[(k,p['et_to_at_change_percent']) for k,p in sorted(r.items())])
+          PY
+      - name: Publish only aggregate original-source 18 CSV metadata and derived Ah not raw waveforms
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-figshare-k01-18-csv-three-temperatures-original-real-capacities
+          path: /tmp/cano_figshare_three_originals_all_temperature_ET_AT.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Temporarily transport exact stdlib source for independent offline reexecution
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-figshare-k01-3temp-offline-replay-code-no-raw
+          path: |
+            research/battery_curve_audit/figshare_k01_three_temperatures.py
+            research/battery_curve_audit/figshare_k01_et_at_capacity.py
+            research/battery_curve_audit/figshare_three_archive_probe.py
+            research/battery_curve_audit/figshare_three_curve_probe.py
+            research/battery_curve_audit/figshare_identity_provenance.py
+            research/battery_curve_audit/figshare_waveform_inventory.py
+            tests/test_figshare_k01_three_temperatures.py
+            tests/test_figshare_k01_et_at_capacity.py
+          if-no-files-found: error
+          retention-days: 7
