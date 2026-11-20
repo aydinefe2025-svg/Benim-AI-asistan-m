@@ -27,14 +27,22 @@ jobs:
           mkdir -p results/F84
           python - <<'PY'
           from pathlib import Path
-          import sys
+          import sys,hashlib
           sys.path.insert(0,'research/j0740/f84')
           import f84_gibbs_endpoint_no_go as F
           sys.path.insert(0,'research/j0740/f83')
           import f83_cold_integrability as G
           bps=Path('research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv')
           orig=Path('research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns')
+          bpsraw=bps.read_bytes()
+          if F.sha(bps)!=F.BPS_SHA:
+              # Source GitHub's historic BPS CSV ends with one extra blank CRLF.
+              # Normalize transport ONLY if exact known source hash reappears.
+              if not (bpsraw.endswith(b'\r\n\r\n') and hashlib.sha256(bpsraw[:-2]).hexdigest()==F.BPS_SHA):
+                  raise ValueError('F84_UNEXPLAINED_BPS_BYTE_DRIFT '+hashlib.sha256(bpsraw).hexdigest())
+              bps.write_bytes(bpsraw[:-2])
           assert F.sha(bps)==F.BPS_SHA
+          print('BPS_SOURCE_TRANSPORT_SHA',hashlib.sha256(bpsraw).hexdigest(),'NORMALIZED_TO',F.sha(bps))
           raw=orig.read_bytes()
           if G.sha(orig)!=G.EOS_SHA:
               if not (raw.endswith(b'\n\r\n') and G.sha(raw[:-2])==G.EOS_SHA):
