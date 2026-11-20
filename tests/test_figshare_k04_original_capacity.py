@@ -30,7 +30,7 @@ def fixture(*,missing=None,ambiguous=False,wrong_temp=None,wrong_point=None,
                 lab='LAB_A' if not (wrong_lab==t and phase=='AT') else 'LAB_B'
                 serial='CELL_A' if not (wrong_serial==t and phase=='AT') else 'CELL_B'
                 temp=t if not (wrong_temp==t and phase=='AT') else 99
-                point='k04noCU' if not (wrong_point==t and phase=='AT') else 'k01noCU'
+                point='k04' if not (wrong_point==t and phase=='AT') else 'k01noCU'
                 date=('01.01.2025' if phase=='AT' else '01.01.2024')
                 if reversed_dates:date='01.01.2024' if phase=='AT' else '01.01.2025'
                 z.writestr(name[:-4]+'_meta.txt',
