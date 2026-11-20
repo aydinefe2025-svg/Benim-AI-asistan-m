@@ -98,5 +98,19 @@ class RealSourceGuardTests(unittest.TestCase):
         self.assertFalse(r["empirical_false_match_rate_calculated"])
 
 
+    def test_instrument_preamble_and_semicolon_header(self):
+        content = "Metadata for equipment\nTime (s);Voltage (V);Current (A)\n0;3.3;1\n"
+        r = audit(make_zip({"Cell_1/pre.csv": content}))
+        self.assertEqual(r["csv_example_column_checks"], {"t1v1i1": 1})
+        self.assertFalse(r["time_axis_per_cell_verified"])
+
+    def test_numeric_first_line_is_never_exposed_as_header(self):
+        r = audit(make_zip({"Cell_1/values.csv": "0,3.3,1\n1,3.4,1\n"}))
+        self.assertEqual(r["csv_example_column_checks"], {"unrecognized_or_preamble_only": 1})
+        self.assertEqual(r["csv_examples"][0]["header_names"], [])
+        self.assertFalse(r["empirical_false_match_rate_calculated"])
+
+
+
 if __name__ == "__main__":
     unittest.main()
