@@ -133,7 +133,7 @@ def _read_exact_source(url: str, limit: int) -> bytes:
             or (target.hostname or "").endswith(".figshare.com")
             or (target.hostname or "").endswith(".amazonaws.com")
         ):
-            raise ValueError("SOURCE_REVIEW_REQUIRED: publisher file host")
+            raise ValueError("SOURCE_REVIEW_REQUIRED: publisher file host " + str(target.hostname or "<empty>")[:100])
         return response.read(limit + 1)
 
 
