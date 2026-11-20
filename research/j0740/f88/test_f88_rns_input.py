@@ -38,4 +38,39 @@ class OriginalRNSInputChecks(unittest.TestCase):
     copy2(R/n,Path(t)/n)
    p=Path(t)/'eos.thermo';p.write_bytes(p.read_bytes()+b'# malicious')
    with self.assertRaises(AssertionError):create(Path(t),Path(t)/'out.rns',Path(t)/'meta.json')
+
+class F88MeasuredCRootRegressions(unittest.TestCase):
+ def fake_C(self,lr,fc):
+  import math
+  from f88_real_two_grid_apr_rns import TARGET_M,TARGET_F
+  mass=TARGET_M+2.7*(lr-math.log10(1.74127315e15))+0.000013*(fc-TARGET_F)
+  return dict(M_msun=mass,spin_hz=fc+0.0812+0.00013*math.sin(fc*3),
+              R_equatorial_km=10.8122,J_cgs=4.8266e48,rho_c_g_cm3=10**lr)
+ def test_accepts_direct_measured_mass_and_frequency_not_cli_input(self):
+  from f88_real_two_grid_apr_rns import solve_grid_bounded
+  s=solve_grid_bounded(self.fake_C,1.72e15)
+  self.assertLessEqual(abs(s['mass_error_msun']),5e-6)
+  self.assertLessEqual(abs(s['spin_error_hz']),0.005)
+  self.assertGreaterEqual(s['direct_C_evaluations'],5)
+  self.assertEqual(len(s['trace']),s['direct_C_evaluations'])
+  self.assertGreater(abs(s['commanded_f_hz']-s['spin_hz']),0.05)
+ def test_rejects_measured_spin_without_bracket(self):
+  from f88_real_two_grid_apr_rns import solve_grid_bounded,TARGET_F
+  def bad(lr,fc):
+   s=self.fake_C(lr,fc);s['spin_hz']=TARGET_F+1.2;return s
+  with self.assertRaisesRegex(ValueError,'SPIN_NOT_BRACKETED'):
+   solve_grid_bounded(bad,1.72e15)
+ def test_rejects_unbracketed_real_C_mass(self):
+  from f88_real_two_grid_apr_rns import solve_grid_bounded
+  def bad(lr,fc):
+   s=self.fake_C(lr,fc);s['M_msun']=3.8;return s
+  with self.assertRaisesRegex(ValueError,'MASS_NOT_BRACKETED'):
+   solve_grid_bounded(bad,1.72e15)
+ def test_rejects_missing_actual_C_angular_momentum(self):
+  from f88_real_two_grid_apr_rns import solve_grid_bounded
+  def bad(lr,fc):
+   s=self.fake_C(lr,fc);s.pop('J_cgs');return s
+  with self.assertRaisesRegex(ValueError,'INVALID_REAL_C_STAR_J_cgs'):
+   solve_grid_bounded(bad,1.72e15)
+
 if __name__=='__main__':unittest.main()
