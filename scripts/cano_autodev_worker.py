@@ -586,7 +586,28 @@ class GitHubDrafts:
                 "Target: `" + path + "`\n"
                 "Owner goal remains private in Neon; it is not reproduced here."
             )})
-        return branch, pr["html_url"], commit
+        # A successful POST alone is not proof of the exact draft. Never
+        # record pr_open or dispatch CI for a different repository or commit.
+        head = pr.get("head") if isinstance(pr, dict) else None
+        base = pr.get("base") if isinstance(pr, dict) else None
+        head_repo = head.get("repo") if isinstance(head, dict) else None
+        url = pr.get("html_url") if isinstance(pr, dict) else None
+        if (not isinstance(pr, dict)
+                or not isinstance(commit, str)
+                or not re.fullmatch(r"[0-9a-f]{40}", commit)
+                or pr.get("state") != "open" or pr.get("draft") is not True
+                or not isinstance(head, dict) or not isinstance(base, dict)
+                or not isinstance(head_repo, dict)
+                or head_repo.get("full_name") != REPOSITORY
+                or head.get("ref") != branch or head.get("sha") != commit
+                or base.get("ref") != "main"
+                or not isinstance(url, str)
+                or not re.fullmatch(
+                    r"https://github\.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/[1-9][0-9]*",
+                    url,
+                )):
+            raise ValueError("Unverified draft PR receipt")
+        return branch, url, commit
 
 
 class GroqRewriteModel:
