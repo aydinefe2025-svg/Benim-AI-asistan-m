@@ -1,0 +1,76 @@
+name: Battery 3 publisher originals ET AT capacity and permanent archive input
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/figshare_k01_et_at_capacity.py'
+      - 'tests/test_figshare_k01_et_at_capacity.py'
+      - '.github/workflows/battery-figshare-original-et-at-capacity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  three-original-source-et-at-capacity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source version
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Test real-source ET AT regression and safety
+        run: python -m unittest tests.test_figshare_k01_et_at_capacity -v
+      - name: Prepare separate ephemeral original source storage
+        run: mkdir -p /tmp/cano_original_publisher_figshare
+      - name: Fetch all original bytes verify publisher MD5 and CRC then compute original ET AT
+        run: |
+          python -m research.battery_curve_audit.figshare_k01_et_at_capacity \
+            /tmp/cano_three_original_et_at_capacity_receipt.json \
+            --archive-dir /tmp/cano_original_publisher_figshare
+      - name: Check no physical identity or production readiness invented
+        run: |
+          python - <<'PY'
+          from hashlib import md5
+          from pathlib import Path
+          import json
+          root=Path('/tmp/cano_original_publisher_figshare')
+          d=json.loads(Path('/tmp/cano_three_original_et_at_capacity_receipt.json').read_text())
+          assert d['publisher_article_id']==25975315
+          assert d['archive_count']==3 and len(d['cells'])==3
+          assert d['physical_cells_independently_authenticated']==0
+          assert d['field_FPR_FNR_established'] is False
+          assert d['production_release_allowed'] is False
+          assert d['real_original_source_bytes_downloaded']==21253761
+          assert all(c['publisher_md5_verified'] and c['original_zip_crc_verified'] for c in d['cells'])
+          expected={'TP_k01_05.zip':'fe9d2c2d84050af909926795a55a0e58',
+                    'TP_k01_06.zip':'940dd27960c7c13cacc611cb33f99796',
+                    'TP_k01_04.zip':'8e4f64b05547738d52f8e34a53c578d9'}
+          assert set(f.name for f in root.iterdir())==set(expected)
+          for filename,digest in expected.items():
+              assert md5((root/filename).read_bytes()).hexdigest()==digest
+          for c in d['cells']:
+              if c.get('capacity_established'):
+                  assert c['et']['source_capacity_extractable'] is True
+                  assert c['at']['source_capacity_extractable'] is True
+                  assert c['physical_cell_identity_independently_authenticated'] is False
+                  assert c['aging_storage_only_causal_attribution_established'] is False
+              else:
+                  assert c['et_at_capacity_change_percent'] is None
+          print('THREE_ORIGINAL_SOURCE_HASHES_REVERIFIED',d['source_cell_pair_capacity_calculated'])
+          PY
+      - name: Upload only aggregate derived measurement receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-k01-three-original-et-at-source-capacity-receipt
+          path: /tmp/cano_three_original_et_at_capacity_receipt.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Temporarily carry authentic public CC BY 4.0 publisher ZIP inputs for Library preservation
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-k01-three-actual-public-figshare-originals-ccby4
+          path: /tmp/cano_original_publisher_figshare/*.zip
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
