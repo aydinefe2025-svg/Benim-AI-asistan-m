@@ -43,8 +43,8 @@ def run(args):
             abs(a["R_equatorial_km"]-b["R_equatorial_km"])<RADIUS_TOL_KM)
         good &= ok
         paired.append({"target_mass_msun":float(mass),
-          "mass_difference_msun":abs(a.get("M_msun",float("nan"))-b.get("M_msun",float("nan"))),
-          "radius_difference_km":abs(a.get("R_equatorial_km",float("nan"))-b.get("R_equatorial_km",float("nan"))),
+          "mass_difference_msun":abs(a["M_msun"]-b["M_msun"]) if "M_msun" in a and "M_msun" in b else None,
+          "radius_difference_km":abs(a["R_equatorial_km"]-b["R_equatorial_km"]) if "R_equatorial_km" in a and "R_equatorial_km" in b else None,
           "passed":bool(ok)})
     out={"schema":"J0740_BPS_MPA1_FIXED_SPIN_RNS_CURVE_V1",
       "model":"JESTER_BPS_CRUST_LAL_MPA1_HIGH_PRESSURE_CROSSING_CAUSAL_TAIL_V1",
