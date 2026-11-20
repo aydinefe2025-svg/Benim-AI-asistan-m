@@ -76,10 +76,13 @@ def live_fixtures():
 
 class FakeNetwork:
     def __init__(self, *, public_status=200, public_text="streamlit app",
+                 health_status=200, health_text="ok",
                  stale=False, error_text=None):
         self.calls = []
         self.public_status = public_status
         self.public_text = public_text
+        self.health_status = health_status
+        self.health_text = health_text
         self.geo, self.weather = live_fixtures()
         if stale:
             self.weather["current"]["time"] = "2000-01-01T00:00"
@@ -91,6 +94,8 @@ class FakeNetwork:
             raise OSError(self.error_text)
         if url == "https://benim-ai-asistan-streamlit.onrender.com/":
             return Response(self.public_status, text=self.public_text)
+        if url == "https://benim-ai-asistan-streamlit.onrender.com/_stcore/health":
+            return Response(self.health_status, text=self.health_text)
         if url == "https://geocoding-api.open-meteo.com/v1/search":
             return Response(data=self.geo)
         if url == "https://api.open-meteo.com/v1/forecast":
@@ -123,6 +128,8 @@ class ContinuousVerificationTests(unittest.TestCase):
         hosts = [url for url, _ in network.calls]
         self.assertEqual(1, hosts.count(
             "https://benim-ai-asistan-streamlit.onrender.com/"))
+        self.assertEqual(1, hosts.count(
+            "https://benim-ai-asistan-streamlit.onrender.com/_stcore/health"))
         self.assertEqual(2, hosts.count(
             "https://geocoding-api.open-meteo.com/v1/search"))
         self.assertEqual(2, hosts.count(
@@ -132,13 +139,33 @@ class ContinuousVerificationTests(unittest.TestCase):
             for _, kwargs in network.calls
         ))
 
-    def test_a_public_200_without_streamlit_is_not_accepted(self):
-        report = run_checks(FakeNetwork(public_text="unrelated web page"),
+    def test_rebranded_streamlit_page_uses_health_endpoint_not_branding(self):
+        network = FakeNetwork(public_text="<html>custom CANO page</html>")
+        report = run_checks(network, app_path=APP)
+        self.assertEqual("ok", report["verdict"], report)
+        self.assertTrue(report["checks"]["public_startup"]["ok"])
+        self.assertIn(
+            "https://benim-ai-asistan-streamlit.onrender.com/_stcore/health",
+            [url for url, _ in network.calls],
+        )
+
+    def test_an_unrelated_public_page_without_streamlit_health_is_not_accepted(self):
+        report = run_checks(
+            FakeNetwork(public_text="unrelated web page", health_text="not ok"),
                             app_path=APP)
         self.assertEqual("failed", report["verdict"])
         self.assertFalse(report["checks"]["public_startup"]["ok"])
         self.assertTrue(report["checks"]["current_weather_failover"]["ok"])
         self.assertIn("public_startup", report["failures"])
+
+    def test_non_200_root_is_not_accepted_even_if_health_route_is_healthy(self):
+        network = FakeNetwork(public_status=503)
+        report = run_checks(network, app_path=APP)
+        self.assertFalse(report["checks"]["public_startup"]["ok"])
+        self.assertNotIn(
+            "https://benim-ai-asistan-streamlit.onrender.com/_stcore/health",
+            [url for url, _ in network.calls],
+        )
 
     def test_stale_or_invalid_weather_is_an_actionable_failure(self):
         report = run_checks(FakeNetwork(stale=True), app_path=APP)
@@ -188,3 +215,4 @@ class ContinuousVerificationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
