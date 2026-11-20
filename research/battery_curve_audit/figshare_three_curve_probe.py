@@ -9,6 +9,7 @@ from hashlib import sha256
 import csv
 import io
 import json
+import re
 from pathlib import Path, PurePosixPath
 import sys
 from zipfile import ZipFile
@@ -20,6 +21,23 @@ from research.battery_curve_audit.figshare_three_archive_probe import (
 
 SAMPLE_LIMIT = 20_000
 MIN_ROWS = 1_000
+
+
+def parse_source_runtime(raw: str) -> Decimal:
+    """Publisher Table 5: run_time uses HH:mm:ss.SSS; convert to elapsed seconds."""
+    if not isinstance(raw,str):
+        raise ValueError('REVIEW_REQUIRED: missing run_time')
+    raw=raw.strip()
+    if ':' not in raw:
+        return Decimal(raw)
+    match=re.fullmatch(r'(\d{1,7}):([0-5]\d):([0-5]\d)(?:\.(\d{1,6}))?',raw)
+    if not match:
+        raise ValueError('REVIEW_REQUIRED: malformed HH:mm:ss.SSS run_time')
+    hour,minute,seconds,fraction=match.groups()
+    result=Decimal(int(hour)*3600+int(minute)*60+int(seconds))
+    if fraction is not None:
+        result += Decimal('0.'+fraction)
+    return result
 
 
 def read_matched_window(z: ZipFile, filename: str, *, limit=SAMPLE_LIMIT) -> dict:
@@ -48,7 +66,7 @@ def read_matched_window(z: ZipFile, filename: str, *, limit=SAMPLE_LIMIT) -> dic
             if len(points)==limit:break
             if None in row:raise ValueError('REVIEW_REQUIRED: malformed source row')
             try:
-                t=Decimal(row['run_time'])
+                t=parse_source_runtime(row['run_time'])
                 v=Decimal(row['c_vol'])
                 cur=Decimal(row['c_cur'])
             except (InvalidOperation,TypeError) as e:
