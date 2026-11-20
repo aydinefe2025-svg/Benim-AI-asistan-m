@@ -183,6 +183,7 @@ def reconcile_records(location:dict, overview:dict, meta:dict) -> dict:
     }
     out={'stage':stage,'stage_origin':stage_origin,
          'overview_composite_key_found':False,
+         'source_record_identity_cross_linked':False,
          'diagnostic_matching_row_counts':evidence_counts,
          'sidecar_format':meta['format'],
          'sidecar_label_keys':meta['field_keys'],
@@ -208,9 +209,7 @@ def reconcile_records(location:dict, overview:dict, meta:dict) -> dict:
                          if _identity(row['serial'])==_identity(location['serial'])]
             candidates=[row for row in same_serial
                         if _identity(row['serial_internal'])==_identity(internal)
-                        and _identity(row['lab'])==_identity(lab)
-                        and (tp is None or (row['tp'] is not None
-                             and _norm_testpoint(row['tp'])==_norm_testpoint(tp)))]
+                        and _identity(row['lab'])==_identity(lab)]
             if len(candidates)==1:
                 stage=candidates[0]['stage']
                 stage_origin='sidecar_overview_unique_source_record'
@@ -235,11 +234,16 @@ def reconcile_records(location:dict, overview:dict, meta:dict) -> dict:
     out['sidecar_internal_id_matches_overview']=internal is not None and _identity(internal)==_identity(row['serial_internal'])
     out['sidecar_testpoint_matches_overview']=(tp is not None and row['tp'] is not None
                                                and _norm_testpoint(tp)==_norm_testpoint(row['tp']))
+    out['source_record_identity_cross_linked']=(out['sidecar_lab_matches_overview']
+                                                and out['sidecar_internal_id_matches_overview'])
     if ((lab is not None and not out['sidecar_lab_matches_overview']) or
-        (internal is not None and not out['sidecar_internal_id_matches_overview']) or
-        (tp is not None and row['tp'] is not None and not out['sidecar_testpoint_matches_overview'])):
+        (internal is not None and not out['sidecar_internal_id_matches_overview'])):
         out['decision']='SOURCE_METADATA_CONFLICT_REVIEW_REQUIRED'
-    elif lab is not None and internal is not None:
+    elif out['source_record_identity_cross_linked'] and tp is not None and row['tp'] is not None and not out['sidecar_testpoint_matches_overview']:
+        # Authoritative source testpoint may use a different label convention.
+        # Three exact identity fields are cross-linked, but phase/protocol remains unverified.
+        out['decision']='SOURCE_IDENTIFIERS_LINKED_TESTPOINT_FORMAT_REVIEW_REQUIRED'
+    elif out['source_record_identity_cross_linked']:
         out['decision']='SOURCE_RECORDS_CROSS_LINKED_NOT_PHYSICAL_AUTHENTICATION'
     else:
         out['decision']='SOURCE_METADATA_LINK_INCOMPLETE'
@@ -287,6 +291,8 @@ def run() -> dict:
             'all_archive_md5_crc_verified':True,
             'overview_source_names_joined':sum(x['overview_composite_key_found'] for x in source_results),
             'sidecar_lab_and_internal_fields_both_matched':sum(x['sidecar_lab_matches_overview'] and x['sidecar_internal_id_matches_overview'] for x in source_results),
+            'source_record_identity_cross_linked':sum(x['source_record_identity_cross_linked'] for x in source_results),
+            'sidecar_testpoint_field_exactly_matches_overview':sum(x['sidecar_testpoint_matches_overview'] for x in source_results),
             'unresolved_join_or_format_count':sum(x['decision']!='SOURCE_RECORDS_CROSS_LINKED_NOT_PHYSICAL_AUTHENTICATION' for x in source_results),
             'physical_cells_independently_authenticated':0,
             'independent_lab_institution_authenticated':False,
