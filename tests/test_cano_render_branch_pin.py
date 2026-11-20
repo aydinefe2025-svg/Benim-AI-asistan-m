@@ -63,5 +63,52 @@ class ProductionBranchPinTests(unittest.TestCase):
         self.assertFalse(plan_branch_pin(service(), live(), "")[0])
 
 
+    def test_pinning_calls_only_one_branch_patch_after_proof(self):
+        from unittest.mock import patch
+        from scripts.cano_render_branch_pin import pin_service_branch
+        name = "scripts.cano_render_branch_pin."
+        with (patch(name + "_production_sha",
+                    side_effect=[EXPECTED_LIVE_SHA] * 3),
+              patch(name + "_service",
+                    side_effect=[service(), service(TARGET_BRANCH)]),
+              patch(name + "_latest_deploy",
+                    side_effect=[live(), live()]),
+              patch(name + "_read_json") as request):
+            self.assertEqual(
+                "pinned_and_verified", pin_service_branch("test-key")
+            )
+            request.assert_called_once_with(
+                "https://api.render.com/v1/services/" + SERVICE_ID,
+                token="test-key", method="PATCH",
+                body={"branch": TARGET_BRANCH},
+            )
+
+    def test_missing_api_key_makes_no_external_calls(self):
+        from unittest.mock import patch
+        from scripts.cano_render_branch_pin import (
+            VerificationBlocked, pin_service_branch,
+        )
+        with patch("scripts.cano_render_branch_pin._production_sha") as sha:
+            with self.assertRaises(VerificationBlocked):
+                pin_service_branch("")
+            sha.assert_not_called()
+
+    def test_production_branch_moving_aborts_before_patch(self):
+        from unittest.mock import patch
+        from scripts.cano_render_branch_pin import (
+            VerificationBlocked, pin_service_branch,
+        )
+        name = "scripts.cano_render_branch_pin."
+        with (patch(name + "_production_sha",
+                    side_effect=[EXPECTED_LIVE_SHA, "a" * 40]),
+              patch(name + "_service", return_value=service()),
+              patch(name + "_latest_deploy", return_value=live()),
+              patch(name + "_read_json") as request):
+            with self.assertRaises(VerificationBlocked):
+                pin_service_branch("test-key")
+            request.assert_not_called()
+
+
+
 if __name__ == "__main__":
     unittest.main()
