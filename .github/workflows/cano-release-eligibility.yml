@@ -1,0 +1,45 @@
+name: CANO bounded self-release eligibility (read-only)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "core/cano_development_status.py"
+      - "tests/test_cano_owner_code_progress.py"
+      - "tests/test_cano_code_job_receipt_links.py"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: cano-release-eligibility-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  safe-owner-release:
+    # Never consume Neon jobs or run an untrusted fork/candidate. Other PRs
+    # are skipped and must not be interpreted as eligible.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.head.ref, 'cano/owner-job-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read trusted main policy, not PR candidate code
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Screen actual GitHub PR paths and added source lines
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.cano_release_eligibility
+      - name: Clarify review and evidence scope
+        if: always()
+        run: |
+          echo "Eligibility is a read-only independent static check." >> "$GITHUB_STEP_SUMMARY"
+          echo "It does not prove CI, owner OIDC, production safety, merge or deploy." >> "$GITHUB_STEP_SUMMARY"
+          echo "Other GitHub protections, exact SHA, Core Linux/Windows CI and main drift must be separately verified." >> "$GITHUB_STEP_SUMMARY"
