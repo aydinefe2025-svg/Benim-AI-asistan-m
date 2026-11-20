@@ -44,7 +44,7 @@ class OriginalPublisherCSVGate(unittest.TestCase):
         raw=b"serial,stage\nA,1\n"
         p=pub(raw)
         with self.assertRaisesRegex(ValueError,"MD5"):
-            inspect_original_csv(raw+b" ",p)
+            inspect_original_csv(raw.replace(b"A,1",b"B,1"),p)
 
     def test_aggregate_serial_and_stage_counts_do_not_claim_physical_auth(self):
         raw=b"serial,stage,voltage_V\nA,one,3.1\nA,two,3.0\nB,one,2.9\n"
