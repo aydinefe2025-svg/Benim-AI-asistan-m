@@ -18,6 +18,8 @@ TIME_TOLERANCE_S = Decimal('0.5')
 CURRENT_TOLERANCE_A = Decimal('0.02')
 VOLTAGE_NEAR_V = Decimal('0.002')
 MIN_SAME_REGIME_POINTS = 1000
+MIN_FULL_WINDOW_COVERAGE = Decimal('0.5')
+LARGE_VOLTAGE_DELTA_V = Decimal('0.05')
 
 
 def _unique_times(window: dict) -> tuple[list, int]:
@@ -85,8 +87,13 @@ def compare_phase_controlled(left:dict,right:dict)->dict:
     same_step=[(a,b,delta) for a,b,delta in pairs if a[3]==b[3]]
     matched=[(a,b,delta) for a,b,delta in same_step
              if abs(a[2]-b[2])<=CURRENT_TOLERANCE_A]
+    # A small but voltage-similar subset must not be promoted to a full-trace conclusion.
+    # Coverage denominator is the larger of the two original source windows.
+    source_coverage=(Decimal(len(matched))/Decimal(max(len(left['points']),len(right['points']))))
     if count==0: decision='NO_BOUNDED_TIME_OVERLAP'
     elif len(matched)<MIN_SAME_REGIME_POINTS: decision='INSUFFICIENT_SAME_REGIME_PAIRS'
+    elif source_coverage<MIN_FULL_WINDOW_COVERAGE:
+        decision='LOW_SOURCE_WINDOW_COVERAGE_REVIEW_REQUIRED'
     else: decision='BOUNDED_REGIME_OVERLAP_RESEARCH_ONLY'
     stats={'matched_unique_elapsed_time_points':count,
            'left_unmatched_unique_elapsed_time_points':len(l)-count,
@@ -94,14 +101,19 @@ def compare_phase_controlled(left:dict,right:dict)->dict:
            'same_step_points':len(same_step),
            'same_step_and_current_points':len(matched),
            'max_pair_time_delta_seconds':str(max((x[2] for x in pairs),default=None)) if pairs else None,
+           'source_window_coverage_fraction':str(source_coverage),
+           'minimum_full_window_coverage_fraction':str(MIN_FULL_WINDOW_COVERAGE),
+           'full_window_comparability_established':False,
            'exact_voltage_pairs':None,
            'near_2mV_voltage_pairs':None,
+           'voltage_deltas_gt_50mV':None,
            'max_voltage_delta_volts':None,
            'decision':decision}
-    if decision=='BOUNDED_REGIME_OVERLAP_RESEARCH_ONLY':
+    if len(matched)>=MIN_SAME_REGIME_POINTS:
         diffs=[abs(a[1]-b[1]) for a,b,_ in matched]
         stats.update({'exact_voltage_pairs':sum(v==0 for v in diffs),
                       'near_2mV_voltage_pairs':sum(v<=VOLTAGE_NEAR_V for v in diffs),
+                      'voltage_deltas_gt_50mV':sum(v>LARGE_VOLTAGE_DELTA_V for v in diffs),
                       'max_voltage_delta_volts':str(max(diffs))})
     return {**base,**stats}
 
