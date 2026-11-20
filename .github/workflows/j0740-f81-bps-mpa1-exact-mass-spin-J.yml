@@ -1,0 +1,139 @@
+name: J0740 F81 real BPS-MPA1 C-RNS exact measured mass frequency J two grids
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f81/**'
+      - '.github/workflows/j0740-f81-bps-mpa1-exact-mass-spin-J.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-c-reported-mass-frequency-J-dual-grid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout exact immutable upstream Einstein RNS C code
+        uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pin exact numerical dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Source pin, original 1213-row cold EOS, actual old static GR result; no new EOS
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          from sys import path
+          path.insert(0,'research/j0740/f81')
+          import f81_exact_mass_spin as F
+          p=Path('research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns')
+          raw=p.read_bytes()
+          if F.sha(p)!=F.EOS_SHA:
+              if not raw.endswith(b'\n\r\n') or hashlib.sha256(raw[:-2]).hexdigest()!=F.EOS_SHA:
+                  raise ValueError('F81_UNEXPECTED_SOURCE_EOS_DRIFT')
+              p.write_bytes(raw[:-2])
+          assert F.sha(p)==F.EOS_SHA
+          assert p.read_text().splitlines()[0]=='1213'
+          assert len(p.read_text().splitlines())==1214
+          src=Path('research/j0740/physical_eos_validation/JESTER_BPS_MPA1_matched_TOV_20261119.json')
+          j=json.loads(src.read_text());assert j['model']==F.TOV_MODEL
+          assert abs(j['TOV']['M2p073']['R_km']-12.399789130135465)<1e-8
+          print('F81 original input EOS SHA256',F.sha(p),'static TOV source',F.sha(src))
+          PY
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+      - name: Fail closed TDD mass spin J synthetic and source-identity checks (not star evidence)
+        run: python -m unittest discover -s research/j0740/f81 -p 'test_f81_*.py' -v
+      - name: Build *two* distinct pinned Einstein C/RNS meshes, only print J and precision
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a rns-upstream rns151
+          cp -a rns-upstream rns201
+          python - <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f81')
+          import f81_exact_mass_spin as F
+          d={}
+          for folder,grid in [('rns151','151x301'),('rns201','201x401')]:
+              p=Path(folder)/'rns.c';orig=p.read_bytes()
+              s=F.patch_print_only(orig.decode('utf-8'))
+              p.write_bytes(s.encode('utf-8'))
+              mk=Path(folder)/'makefile';old=mk.read_text()
+              selector='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+              if old.splitlines().count(selector)!=1:raise ValueError('F81_PINNED_C_MESH_DRIFT')
+              if grid=='201x401':mk.write_text(old.replace(selector,'HIGHSIZE=-DMDIV=201 -DSDIV=401',1))
+              d[folder]={'grid':grid,'upstream_rns.c_sha':hashlib.sha256(orig).hexdigest(),
+                 'printf_and_J_only_C_sha':F.sha(p),'patched_equations':False,
+                 'original_makefile_sha256':hashlib.sha256(old.encode()).hexdigest()}
+          root=Path('results/F81');root.mkdir(parents=True,exist_ok=True)
+          (root/'F81_pinned_print_J_and_mesh_provenance.json').write_text(json.dumps(d,indent=2,sort_keys=True)+'\n')
+          PY
+          make -C rns151 CC='gcc -include stdlib.h' rns
+          make -C rns201 CC='gcc -include stdlib.h' rns
+          test "$(sha256sum rns151/rns | cut -d' ' -f1)" != "$(sha256sum rns201/rns | cut -d' ' -f1)"
+      - name: Actually solve two measured (M=2.073 Msun, f=346.536369 Hz) roots with real C binaries and read genuine J
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns results/F81/m.rns
+          cd results/F81
+          python -u ../../research/j0740/f81/f81_exact_mass_spin.py \
+            --eos m.rns \
+            --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
+            --rns201 "$GITHUB_WORKSPACE/rns201/rns" \
+            --tov ../../research/j0740/physical_eos_validation/JESTER_BPS_MPA1_matched_TOV_20261119.json \
+            --out F81_REAL_two_grid_mass_f_report_J_20261120.json \
+            2>&1 | tee F81_actual_C_root_execution.txt
+      - name: Independently validate real outputs and no false EOS Bayes claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,math
+          from pathlib import Path
+          p=Path('results/F81/F81_REAL_two_grid_mass_f_report_J_20261120.json')
+          d=json.loads(p.read_text());a=d['audit']; assert a['status']=='TWO_GRID_REAL_C_MASS_SPIN_J_NUMERICAL_PASS_NOT_PHYSICAL_EOS'
+          assert a['EOS_microphysical_acceptance']=='NOT_ESTABLISHED'
+          assert a['global_fixed_J_stability']=='NOT_RUN' and a['source_native_XPSI_photon_likelihood']=='NOT_RUN'
+          assert a['seven_original_physical_EOS_Bayes']=='NOT_RUN'
+          assert len(d['actual_source_C_stars'])==2 and a['diff_R_eq_m']<50
+          for g,z in d['actual_source_C_stars'].items():
+              assert abs(z['M_msun']-2.073)<5e-6 and abs(z['spin_hz']-346.536369)<.005
+              assert 1e47<z['J_cgs']<1e51 and z['direct_C_evaluations']>=5
+              assert z['status']=='ACTUAL_DIRECT_C_TWO_CONSTRAINT_PASS_NOT_PHYSICAL_EOS_STABILITY'
+          print('REAL_SOURCE_NATIVE_C_RNS_TWO_CONSTRAINT_ACCEPTANCE',json.dumps(a['grids'],sort_keys=True))
+          print('F81_FULL_JSON_SHA256',hashlib.sha256(p.read_bytes()).hexdigest())
+          PY
+      - name: SHA-256 source, C binaries, original-EOS and actual solver bytes even on failure
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F81');root.mkdir(parents=True,exist_ok=True)
+          paths=[*root.glob('*'),Path('rns151/rns'),Path('rns201/rns'),Path('rns151/rns.c'),Path('rns201/rns.c'),
+                Path('research/j0740/f81/f81_exact_mass_spin.py'),Path('research/j0740/f81/test_f81_exact_mass_spin.py')]
+          a={str(p):{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size} for p in paths if p.is_file()}
+          (root/'F81_SHA256_actual_C_grids_and_input_receipt.json').write_text(json.dumps({'source_RNS_commit':'97e85d325a33e37f702306414533f6cd77812477','artifacts':a},indent=2,sort_keys=True)+'\n')
+          PY
+      - name: Archive actual RNS C results, every root evaluation and provenance or honest failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F81-REAL-C-mass-spinfreq-J-two-grid-or-failure
+          path: results/F81/
+          if-no-files-found: warn
+          retention-days: 30

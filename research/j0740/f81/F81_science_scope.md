@@ -1,0 +1,9 @@
+# J0740 F81 — observed mass/frequency two-constraint RNS root + J anchor
+
+**New experiment, not F80 repeat.** F80 has two genuine C general-relativistic rotating equilibrium solutions for the separate BPS–LAL-MPA1 numerical candidate at 2.073 Msun, but the C-reported spin differs from target by ~+0.079–0.083 Hz. F81 solves the actual C output, not just the `-s` command value. Its two numerical constraints are |M−2.073 Msun| < 5e-6 Msun and |f_report−346.536369 Hz| < .005 Hz independently in 151x301 and 201x401 spacetime C binaries. Bracketed nested C roots and all evaluations saved. The C patch only adjusts the original model-result printf to report higher precision and the already calculated real `star.ang_mom` (CGS), no Einstein equations or native EOS rows changed.
+
+Source EOS must exactly match archived original 1213-row alternative model sha256 `f4a183661962acdddc7aebde3830116578feb6fba88a1a68c9fd57a993058675`. Original RNS commit `97e85d325a33e37f702306414533f6cd77812477`. Pin input at GitHub and do not replace F80 status. TOV static reference 12.399789130135465 km.
+
+Strictly distinguish: real C rotating equilibrium ≠ global constant-J turning-point or dynamical stability; existing BPS–MPA1 mathematical E(P) crossing ≠ full cold Gibbs µ phase equilibrium; this explicitly hybrid model ≠ genuine original nuclear MPA1; two spatial grids do not constitute a continuum convergence theorem; no original NICER/XMM X-PSI photon likelihood, no final physical 7-EOS posterior.
+
+**Pre-CI**: 12 synthetic and adversarial tests PASSED locally. **Real C experiment**: status PENDING_CI, will be changed based ONLY on actual pinned independent GitHub execution and downloaded evidence. All results saved in canonical A01.01.51 and matched to original Notion page, without duplicate reports.

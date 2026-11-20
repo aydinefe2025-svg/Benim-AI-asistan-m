@@ -1,0 +1,10 @@
+{
+  "F81_science_scope.md": "5a8382fb5f16c05829c31f63b0a799b7b99815826631ba0f0b00116532156f47",
+  "FULL_LOCAL_TEST.log": "3ee0a8cb71ff797ebff961c12a448ad90bc929d7770582ea005d53a346f052e9",
+  "TDD_GREEN.log": "7e5215a151dbdfde0ff63602e850f9383b47315af3685f10b3cfca1d7afeed96",
+  "TDD_RED.log": "42861ecd481dc164eec01696f43e30f44801db30220abf26ac3ae851b393318a",
+  "f81_exact_mass_spin.py": "2a32740b5649a3ef539a885c625bef29d848284089322addb5eb5cace1a1dbac",
+  "j0740-f81-bps-mpa1-exact-mass-spin-J.yml": "80c1b23c3f9ac9c58f0783700bd785d1d3b3eb6bd47c02d3dfedcbb60bbfd281",
+  "source_F80_original_BPS_MPA1_1213_rows.rns": "f4a183661962acdddc7aebde3830116578feb6fba88a1a68c9fd57a993058675",
+  "test_f81_exact_mass_spin.py": "a8b2f2d5e504d1870d36b5922c43b5f333788b78f8ece98ea380ef977e96f7dd"
+}
