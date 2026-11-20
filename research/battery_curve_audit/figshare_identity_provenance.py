@@ -153,41 +153,76 @@ def _first(parsed: dict, keys:tuple[str,...]):
     return None
 
 
+def _norm_testpoint(value:object) -> str:
+    """Normalize the published TP prefix only (never a fuzzy or numeric join)."""
+    v=_identity(value)
+    return v[3:] if v.startswith('tp_') else v
+
+
 def reconcile_records(location:dict, overview:dict, meta:dict) -> dict:
-    """Conservative public-source records join; NEVER independent physical evidence."""
+    """Join separate *publisher* records; NEVER assert physical/human custody."""
     stage=location['stage']
     stage_origin=location.get('stage_origin','source_path' if stage is not None else 'unavailable')
-    if stage is None:
-        raw_stage=_first(meta['parsed_fields'], ('stage','experiment_stage','measurement_stage'))
-        if raw_stage is not None:
-            stage=_stage(raw_stage)
-            stage_origin='explicit_sidecar_field'
-    key=(stage,location['serial'])
-    row=overview.get(key) if stage is not None else None
+    fields=meta['parsed_fields']
+    internal=_first(fields,('serial_internal','internal_serial','internal_cell_serial','cell_serial_internal'))
+    lab=_first(fields,('lab','laboratory','lab_id','laboratory_identifier'))
+    tp=_first(fields,('tp','testpoint','test_point','testpoint_identifier'))
     out={'stage':stage,'stage_origin':stage_origin,
-         'overview_composite_key_found':row is not None,
+         'overview_composite_key_found':False,
          'sidecar_format':meta['format'],
          'sidecar_label_keys':meta['field_keys'],
          'sidecar_lab_matches_overview':False,
          'sidecar_internal_id_matches_overview':False,
-         'sidecar_lab_field_recognized':False,
-         'sidecar_internal_id_field_recognized':False,
+         'sidecar_testpoint_matches_overview':False,
+         'sidecar_lab_field_recognized':lab is not None,
+         'sidecar_internal_id_field_recognized':internal is not None,
+         'sidecar_testpoint_field_recognized':tp is not None,
          'physical_identity_authenticated':False,
          'laboratory_institution_independently_authenticated':False}
+
     if stage is None:
-        out['decision']='STAGE_RECORD_PROVENANCE_INCOMPLETE'
-        return out
+        explicit_stage=_first(fields,('stage','experiment_stage','measurement_stage'))
+        if explicit_stage is not None:
+            stage=_stage(explicit_stage)
+            stage_origin='explicit_sidecar_field'
+        elif internal is not None and lab is not None:
+            # Filename serial alone collides across Stage_1 and Stage_2. A
+            # cross-record stage join needs independent label values from the
+            # paired original sidecar, not guessed stage from folder or paper.
+            same_serial=[row for row in overview.values()
+                         if _identity(row['serial'])==_identity(location['serial'])]
+            candidates=[row for row in same_serial
+                        if _identity(row['serial_internal'])==_identity(internal)
+                        and _identity(row['lab'])==_identity(lab)
+                        and (tp is None or (row['tp'] is not None
+                             and _norm_testpoint(row['tp'])==_norm_testpoint(tp)))]
+            if len(candidates)==1:
+                stage=candidates[0]['stage']
+                stage_origin='sidecar_overview_unique_source_record'
+            elif len(candidates)>1:
+                out['decision']='SOURCE_METADATA_AMBIGUOUS_STAGE_REVIEW_REQUIRED'
+                return out
+            elif same_serial:
+                out['decision']='SOURCE_METADATA_CONFLICT_REVIEW_REQUIRED'
+                return out
+        if stage is None:
+            out['decision']='STAGE_RECORD_PROVENANCE_INCOMPLETE'
+            return out
+    out['stage']=stage
+    out['stage_origin']=stage_origin
+    key=(stage,location['serial'])
+    row=overview.get(key)
     if row is None:
         out['decision']='OVERVIEW_COMPOSITE_KEY_NOT_FOUND'
         return out
-    fields=meta['parsed_fields']
-    internal=_first(fields,('serial_internal','internal_serial','internal_cell_serial','cell_serial_internal'))
-    lab=_first(fields,('lab','laboratory','lab_id','laboratory_identifier'))
-    out['sidecar_lab_field_recognized'] = lab is not None
-    out['sidecar_internal_id_field_recognized'] = internal is not None
-    out['sidecar_lab_matches_overview']= lab is not None and _identity(lab)==_identity(row['lab'])
+    out['overview_composite_key_found']=True
+    out['sidecar_lab_matches_overview']=lab is not None and _identity(lab)==_identity(row['lab'])
     out['sidecar_internal_id_matches_overview']=internal is not None and _identity(internal)==_identity(row['serial_internal'])
-    if (lab is not None and not out['sidecar_lab_matches_overview']) or (internal is not None and not out['sidecar_internal_id_matches_overview']):
+    out['sidecar_testpoint_matches_overview']=(tp is not None and row['tp'] is not None
+                                               and _norm_testpoint(tp)==_norm_testpoint(row['tp']))
+    if ((lab is not None and not out['sidecar_lab_matches_overview']) or
+        (internal is not None and not out['sidecar_internal_id_matches_overview']) or
+        (tp is not None and row['tp'] is not None and not out['sidecar_testpoint_matches_overview'])):
         out['decision']='SOURCE_METADATA_CONFLICT_REVIEW_REQUIRED'
     elif lab is not None and internal is not None:
         out['decision']='SOURCE_RECORDS_CROSS_LINKED_NOT_PHYSICAL_AUTHENTICATION'
