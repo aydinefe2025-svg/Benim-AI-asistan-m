@@ -44,9 +44,14 @@ jobs:
               assert x['physical_phase_alignment_authenticated'] is False
               assert x['independent_cell_identity_authenticated'] is False
               assert x['same_step_and_current_points'] <= x['matched_unique_elapsed_time_points']
+              assert x['full_window_comparability_established'] is False
               if x['same_step_and_current_points'] < 1000:
                   assert x['exact_voltage_pairs'] is None
                   assert x['near_2mV_voltage_pairs'] is None
+              if (x['same_step_and_current_points'] >= 1000 and
+                  float(x['source_window_coverage_fraction']) < 0.5):
+                  assert x['decision']=='LOW_SOURCE_WINDOW_COVERAGE_REVIEW_REQUIRED'
+                  assert x['voltage_deltas_gt_50mV'] is not None
           print('RESEARCH_ONLY',[(x['matched_unique_elapsed_time_points'],x['same_step_and_current_points'],x['decision']) for x in d['pair_results']])
           PY
       - name: Retain only anonymous source hashes and aggregate counts
