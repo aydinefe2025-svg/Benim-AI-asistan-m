@@ -26,7 +26,7 @@ SHA = re.compile(r"[a-f0-9]{40}\Z")
 DANGEROUS_ADDITION = re.compile(
     r"(?i)(?:\b(?:import|from|eval|exec|compile|open|input|globals|locals|"
     r"vars|getattr|setattr|delattr|__import__|subprocess|requests|urllib|"
-    r"httpx|socket|pickle|secret|credential|password|token)\b"
+    r"httpx|socket|pickle|secret|credential|password|token|def|class|lambda)\b"
     r"|\b(?:os|sys|shutil|pathlib|importlib)\s*\."
     r"|__|\b(?:st\.secrets|st\.session_state|st\.user)\b"
     r"|\bst\.(?:info|write|caption|json|markdown|text|code|link_button|"
@@ -82,6 +82,10 @@ def assess(pr, files):
         if f["filename"] == SOURCE:
             if f["additions"] > 40 or f["deletions"] > 40:
                 return False, "source_diff_too_large"
+            # Removing a receipt guard can weaken owner privacy without any
+            # suspicious added line. Require independent review instead.
+            if f["deletions"]:
+                return False, "source_deletion_requires_review"
             added = [
                 line[1:] for line in f["patch"].splitlines()
                 if line.startswith("+") and not line.startswith("+++")
