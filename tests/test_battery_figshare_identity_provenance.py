@@ -138,6 +138,21 @@ class IdentityGuards(unittest.TestCase):
         result=reconcile_records(location,rows,summarize_meta_sidecar(b'internal_cell_serial: INT_WRONG\nlaboratory_identifier: LAB_A\n'))
         self.assertEqual(result['decision'],'SOURCE_METADATA_CONFLICT_REVIEW_REQUIRED')
 
+    def test_crosswalk_diagnostic_counts_are_aggregate_only(self):
+        with ZipFile(sample_zip()) as z:loc=verify_cell_directory(z,'TP_k01_05')
+        loc['stage']=None
+        loc['stage_origin']='unavailable'
+        rows=read_overview(overview([('INT_A','TP_k01_05','LAB_A','k01','05',1),('INT_B','TP_k01_05','LAB_B','k01','05',2)]))
+        meta=summarize_meta_sidecar(b'internal_cell_serial: INT_A\nlaboratory_identifier: LAB_A\ntestpoint: k01\n')
+        out=reconcile_records(loc,rows,meta)
+        diag=out['diagnostic_matching_row_counts']
+        self.assertEqual(diag['overview_same_archive_serial'],2)
+        self.assertEqual(diag['overview_matching_internal_serial'],1)
+        self.assertEqual(diag['overview_matching_lab'],1)
+        self.assertEqual(diag['overview_matching_testpoint'],2)
+        self.assertEqual(diag['overview_same_archive_serial_internal_and_lab'],1)
+        self.assertTrue(all(isinstance(x,int) for x in diag.values()))
+
     def test_filename_ambiguous_across_zip_fails_closed(self):
         f=io.BytesIO()
         with ZipFile(f,'w') as z:
