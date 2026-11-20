@@ -55,7 +55,7 @@ def validate_publisher_metadata(meta: dict) -> dict:
     if not isinstance(meta, dict) or meta.get("id") != RECORD_ID:
         raise ValueError("SOURCE_REVIEW_REQUIRED: Zenodo record ID")
     metadata = meta.get("metadata")
-    if not isinstance(metadata, dict) or str(metadata.get("doi", "")).strip().lower() != DOI:
+    if not isinstance(metadata, dict) or str(metadata.get("doi") or meta.get("doi") or "").strip().lower() != DOI:
         raise ValueError("SOURCE_REVIEW_REQUIRED: DOI")
     licenses = []
     for item in metadata.get("rights", []):
@@ -93,7 +93,7 @@ def inspect_archive(raw: bytes, original: dict) -> dict:
         raise ValueError("SOURCE_REVIEW_REQUIRED: archive byte size")
     if md5(raw).hexdigest() != original["publisher_md5"]:
         raise ValueError("SOURCE_REVIEW_REQUIRED: original MD5 mismatch")
-    if not raw.startswith((b"PK\\x03\\x04", b"PK\\x05\\x06")):
+    if not raw.startswith((b"PK\x03\x04", b"PK\x05\x06")):
         raise ValueError("SOURCE_REVIEW_REQUIRED: not ZIP data")
     try:
         with ZipFile(BytesIO(raw)) as archive:
@@ -103,10 +103,10 @@ def inspect_archive(raw: bytes, original: dict) -> dict:
             names, total, extensions, top_dirs, header_shapes = set(), 0, Counter(), Counter(), Counter()
             sampled, inspected = [], 0
             for entry in entries:
-                name = entry.filename.replace("\\\\", "/")
+                name = entry.filename.replace("\\", "/")
                 path = PurePosixPath(name)
                 if (not name or name.startswith("/") or ".." in path.parts or
-                    ":" in name or "\\x00" in name):
+                    ":" in name or "\x00" in name):
                     raise ValueError("SOURCE_REVIEW_REQUIRED: unsafe member path")
                 if name.casefold() in names:
                     raise ValueError("SOURCE_REVIEW_REQUIRED: duplicate ZIP member")
@@ -205,7 +205,7 @@ def main() -> int:
         result = run()
         with dest.open("x", encoding="utf-8") as fh:
             json.dump(result, fh, sort_keys=True, indent=2)
-            fh.write("\\n")
+            fh.write("\n")
         print(json.dumps({k: result[k] for k in
                           ("decision", "original_bytes", "zip_file_count",
                            "extension_counts", "csv_example_column_checks",
