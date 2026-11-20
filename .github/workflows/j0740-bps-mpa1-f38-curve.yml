@@ -5,8 +5,6 @@ on:
       - science/j0740-bps-mpa1-f38-curve-20261120
     paths:
       - "research/j0740/physical_eos_validation/run_jester_bps_mpa1_rns_curve.py"
-      - "research/j0740/physical_eos_validation/integrate_bps_mpa1_f38.py"
-      - ".github/workflows/j0740-bps-mpa1-f38-curve.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -69,6 +67,7 @@ jobs:
           python research/j0740/physical_eos_validation/test_jester_bps_mpa1_rns_export.py | tee results_rns_tests.txt
       - name: Solve direct fixed-spin RNS curve at two resolutions
         run: |
+          mkdir -p results
           python research/j0740/physical_eos_validation/run_jester_bps_mpa1_rns_curve.py \
             --eos-file results/bps_mpa1_curve.rns \
             --rns-binary vendor/rns151 vendor/rns201 \
@@ -109,7 +108,6 @@ jobs:
         with:
           name: j0740-bps-mpa1-rns-curve-f38
           path: |
-            research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_curve_20261120.rns
             results/**
             results_tov_tests.txt
             results_rns_tests.txt
