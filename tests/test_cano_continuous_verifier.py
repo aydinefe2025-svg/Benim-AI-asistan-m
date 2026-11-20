@@ -158,6 +158,15 @@ class ContinuousVerificationTests(unittest.TestCase):
         self.assertTrue(report["checks"]["current_weather_failover"]["ok"])
         self.assertIn("public_startup", report["failures"])
 
+    def test_non_200_root_is_not_accepted_even_if_health_route_is_healthy(self):
+        network = FakeNetwork(public_status=503)
+        report = run_checks(network, app_path=APP)
+        self.assertFalse(report["checks"]["public_startup"]["ok"])
+        self.assertNotIn(
+            "https://benim-ai-asistan-streamlit.onrender.com/_stcore/health",
+            [url for url, _ in network.calls],
+        )
+
     def test_stale_or_invalid_weather_is_an_actionable_failure(self):
         report = run_checks(FakeNetwork(stale=True), app_path=APP)
         self.assertEqual("failed", report["verdict"])
