@@ -28,7 +28,11 @@ DANGEROUS_ADDITION = re.compile(
     r"vars|getattr|setattr|delattr|__import__|subprocess|requests|urllib|"
     r"httpx|socket|pickle|secret|credential|password|token)\b"
     r"|\b(?:os|sys|shutil|pathlib|importlib)\s*\."
-    r"|__|\b(?:st\.secrets|st\.session_state|st\.user)\b)"
+    r"|__|\b(?:st\.secrets|st\.session_state|st\.user)\b"
+    r"|\bst\.(?:info|write|caption|json|markdown|text|code|link_button|"
+    r"metric|dataframe|table|success|warning|error|exception)\s*\("
+    r"|\b(?:print|display|logging)\s*\("
+    r"|\b(?:goal|owner_key|email|identity|subject)\b)"
 )
 
 
