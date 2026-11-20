@@ -7,7 +7,7 @@ does not infer cross-cell error rates, time units or genuine trials from headers
 Only a redacted structure receipt leaves the runner; no raw samples are saved.
 """
 from __future__ import annotations
-from collections import Counter
+from collections import Counter, defaultdict
 from hashlib import md5, sha256
 from io import BytesIO
 import csv
@@ -86,6 +86,55 @@ def validate_publisher_metadata(meta: dict) -> dict:
         raise ValueError("SOURCE_REVIEW_REQUIRED: original publisher checksum")
     return {"original_size": size, "publisher_md5": PUBLISHER_MD5,
             "license": "CC_BY_4_0_ZENODO_RECORD", "doi": DOI}
+
+
+
+def inspect_cross_rate_exact_duplicates(archive: ZipFile, entries: list) -> dict:
+    """Confirm only byte-identical files in distinct publisher rate folders.
+
+    ZIP CRC+size produce candidates, never truth. Candidate CSV bytes are fully
+    re-read and SHA-256 compared, within strict budgets. An incomplete scan
+    explicitly forbids inferring that zero duplicates exist.
+    """
+    grouped = defaultdict(list)
+    folders = {"1C", "2C", "2.75C"}
+    for item in entries:
+        parts = PurePosixPath(item.filename.replace("\\", "/")).parts
+        if len(parts) > 1 and parts[0] in folders and parts[-1].lower().endswith(".csv"):
+            grouped[(item.file_size, item.CRC)].append((parts[0], item))
+    candidates = [v for v in grouped.values()
+                  if len(v) > 1 and len({folder for folder, _ in v}) > 1]
+    candidate_files = sum(len(items) for items in candidates)
+    candidate_bytes = sum(item.file_size for items in candidates for _, item in items)
+    if candidate_files > 300 or candidate_bytes > 60_000_000:
+        return {"cross_rate_crc_size_candidate_groups": len(candidates),
+                "cross_rate_exact_sha256_duplicate_clusters": None,
+                "cross_rate_exact_duplicate_member_count": None,
+                "cross_rate_duplicate_audit_complete": False,
+                "cross_rate_duplicate_audit_reason": "CANDIDATE_RESOURCE_BUDGET"}
+    clusters = 0
+    members = 0
+    for candidate in candidates:
+        confirmed = defaultdict(set)
+        counts = Counter()
+        for folder, member in candidate:
+            sha = sha256()
+            with archive.open(member) as src:
+                while chunk := src.read(256_000):
+                    sha.update(chunk)
+            digest = sha.hexdigest()
+            confirmed[digest].add(folder)
+            counts[digest] += 1
+        for digest, rate_folders in confirmed.items():
+            if len(rate_folders) > 1:
+                clusters += 1
+                members += counts[digest]
+    return {"cross_rate_crc_size_candidate_groups": len(candidates),
+            "cross_rate_exact_sha256_duplicate_clusters": clusters,
+            "cross_rate_exact_duplicate_member_count": members,
+            "cross_rate_duplicate_audit_complete": True,
+            "cross_rate_duplicate_audit_reason": None}
+
 
 
 def inspect_archive(raw: bytes, original: dict) -> dict:
@@ -174,6 +223,7 @@ def inspect_archive(raw: bytes, original: dict) -> dict:
                                 "header_names": [re.sub(r"[^A-Za-z0-9_./()%-]", "", h)[:50]
                                                  for h in header[:25]],
                                 "filename_is_cell_identity": False})
+            cross_rate_duplicates = inspect_cross_rate_exact_duplicates(archive, entries)
     except (BadZipFile, OSError, RuntimeError, EOFError):
         raise ValueError("SOURCE_REVIEW_REQUIRED: corrupted ZIP member") from None
     return {"schema": "cano.battery.zenodo19380245.source-survey.v1",
@@ -192,6 +242,7 @@ def inspect_archive(raw: bytes, original: dict) -> dict:
             "empirical_false_match_rate_calculated": False,
             "original_samples_archived": False,
             "customer_release_allowed": False,
+            **cross_rate_duplicates,
             "decision": "ORIGINAL_SOURCE_STRUCTURE_ONLY_NO_CROSS_CELL_METRIC"}
 
 
