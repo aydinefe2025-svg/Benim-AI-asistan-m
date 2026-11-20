@@ -1,0 +1,44 @@
+name: CANO one-time verified Render production branch pin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cano-render-pin-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cano-one-time-render-branch-pin
+  cancel-in-progress: false
+
+jobs:
+  pin-existing-live-source:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout only trusted main
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Validate fail-closed proof gate before any credential use
+        run: python -m unittest discover -s tests -p 'test_cano_render_branch_pin.py' -v
+      - name: Repoint only the existing Render service to its proven LIVE commit
+        env:
+          CANO_RENDER_PIN_ENABLED: "true"
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: python -m scripts.cano_render_branch_pin
+      - name: Document the narrow action and explicit non-goals
+        if: always()
+        run: |
+          echo '## CANO Render production branch pin' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Changes only service source branch main to cano-production if the latest LIVE SHA equals the pinned production branch SHA.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Readback required. No deploy, Neon owner job, second worker, autoDeploy enablement, or full autonomous E2E proof.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Missing RENDER_API_KEY fails closed and leaves the live service unchanged.' >> "$GITHUB_STEP_SUMMARY"
