@@ -60,6 +60,20 @@ class OwnerCodeStatusTests(unittest.TestCase):
             result["deployed"], result["active"], result["blocked"]))
         self.assertIn("0 tam makbuzlu", " ".join(st.messages))
 
+    def test_single_pass_recent_jobs_keep_visible_verified_receipt_links(self):
+        """A one-pass owner-scoped result must not lose its receipt links."""
+        st = FakeStreamlit()
+        jobs = iter([{
+            "status": "deployed",
+            "pr_url": CANONICAL_PR,
+            "ci_run_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44717625508",
+            "deploy_id": "dep-dc01u0v40ujc73f694rg",
+        }])
+        stats = render_owner_code_status(st, jobs)
+        self.assertEqual(1, stats["deployed"])
+        self.assertEqual(3, len(st.links))
+        self.assertEqual(CANONICAL_PR, st.links[0][1])
+
     def test_main_mobile_view_is_owner_gated_and_not_sidebar_only(self):
         source = (ROOT / "app.py").read_text(encoding="utf-8")
         self.assertIn("_CODE_JOB_RECEIPTS = None", source)

@@ -67,6 +67,9 @@ def summarize_recent_code_jobs(jobs):
 
 def render_owner_code_status(st, jobs):
     """Render once in the main pane, only when the calling app authenticated."""
+    # Materialize once: recent results may be single-pass iterables.
+    # Both the summary and receipt links must inspect the same owner-scoped rows.
+    jobs = list(jobs)
     stats = summarize_recent_code_jobs(jobs)
     st.info(
         f"🛠️ CANO kod işleri — Son {stats['total']} kayıt: "
