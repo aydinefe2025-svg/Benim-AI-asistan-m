@@ -112,5 +112,24 @@ class RealSourceGuardTests(unittest.TestCase):
 
 
 
+    def test_cross_rate_exact_copy_confirmed_not_a_false_match_rate(self):
+        source = "time(s),voltage(v),current(a)\n0,3.1,1\n1,3.2,1\n"
+        r = audit(make_zip({
+            "1C/a.csv": source, "2C/b.csv": source,
+            "2.75C/c.csv": "time(s),voltage(v),current(a)\n0,3.5,2\n"}))
+        self.assertTrue(r["cross_rate_duplicate_audit_complete"])
+        self.assertEqual(r["cross_rate_exact_sha256_duplicate_clusters"], 1)
+        self.assertEqual(r["cross_rate_exact_duplicate_member_count"], 2)
+        self.assertFalse(r["empirical_false_match_rate_calculated"])
+
+    def test_distinct_cross_rate_files_do_not_conflate_crc_candidates(self):
+        r = audit(make_zip({
+            "1C/a.csv": "time,voltage,current\n0,3.11,1\n",
+            "2C/b.csv": "time,voltage,current\n0,3.42,1\n"}))
+        self.assertEqual(r["cross_rate_exact_sha256_duplicate_clusters"], 0)
+        self.assertTrue(r["cross_rate_duplicate_audit_complete"])
+
+
+
 if __name__ == "__main__":
     unittest.main()
