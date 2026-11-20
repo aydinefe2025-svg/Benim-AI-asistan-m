@@ -88,4 +88,24 @@ class PhaseGuardTests(unittest.TestCase):
         self.assertEqual(x['near_2mV_voltage_pairs'],1499)
 
 
+    def test_low_coverage_of_entire_source_fails_full_window_gate(self):
+        # 1,200 matched points are not enough evidence about 3,000 source points.
+        result=compare_phase_controlled(window(3000), window(1200))
+        self.assertEqual(result['same_step_and_current_points'], 1200)
+        self.assertEqual(result['source_window_coverage_fraction'], '0.4')
+        self.assertEqual(result['decision'], 'LOW_SOURCE_WINDOW_COVERAGE_REVIEW_REQUIRED')
+        self.assertFalse(result['full_window_comparability_established'])
+
+    def test_major_outlier_reported_even_when_almost_every_voltage_close(self):
+        left=window(1500)
+        right=window(1500)
+        t,v,c,step=right['points'][400]
+        right['points'][400]=(t,D('4.370'),c,step)
+        result=compare_phase_controlled(left,right)
+        self.assertEqual(result['near_2mV_voltage_pairs'],1499)
+        self.assertEqual(result['voltage_deltas_gt_50mV'],1)
+        self.assertEqual(result['max_voltage_delta_volts'],'0.270')
+        self.assertFalse(result['full_window_comparability_established'])
+
+
 if __name__=='__main__': unittest.main()
