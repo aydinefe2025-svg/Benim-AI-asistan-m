@@ -1,0 +1,31 @@
+name: J0740 F87 retrieve original publisher CompOSE unified APR crust-core
+on:
+  push:
+    paths:
+      - 'research/j0740/f87/**'
+      - '.github/workflows/j0740-f87-original-compose-unified-apr.yml'
+  pull_request:
+    paths:
+      - 'research/j0740/f87/**'
+      - '.github/workflows/j0740-f87-original-compose-unified-apr.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original_compose_source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download exact published CC BY 4.0 original unified APR source and verify MD5 and ZIP CRC
+        run: python research/j0740/f87/f87_fetch_source_probe.py results/F87
+      - name: Retain actual publisher source, SHA256, original CompOSE tables and audit receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F87-real-original-CompOSE-APR-source-ccby4
+          path: results/F87/
+          if-no-files-found: warn
