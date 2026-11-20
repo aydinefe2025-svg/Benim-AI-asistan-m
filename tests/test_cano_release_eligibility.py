@@ -126,17 +126,17 @@ class ReleaseEligibilityTests(unittest.TestCase):
         # A patch can pass syntax and normal CI while disclosing owner-only
         # goal text. Static low-risk auto-release must reject such additions.
         snippets = (
-            "+    st.info(jobs)\\n",
-            "+    st.write(row.get('goal'))\\n",
-            "+    st.caption(row['owner_key'])\\n",
-            "+    st.json(records)\\n",
-            "+    st.link_button('Owner', str(row.get('goal')))\\n",
-            "+    print(jobs)\\n",
+            "+    st.info(jobs)\n",
+            "+    st.write(row.get('goal'))\n",
+            "+    st.caption(row['owner_key'])\n",
+            "+    st.json(records)\n",
+            "+    st.link_button('Owner', str(row.get('goal')))\n",
+            "+    print(jobs)\n",
         )
         for line in snippets:
             with self.subTest(line=line):
                 files = copy_files()
-                files[0]["patch"] = "@@ -1 +1 @@\\n" + line
+                files[0]["patch"] = "@@ -1 +1 @@\n" + line
                 self.assertFalse(assess(copy_pr(), files)[0])
 
     def test_too_large_source_or_test_change_requires_review(self):
