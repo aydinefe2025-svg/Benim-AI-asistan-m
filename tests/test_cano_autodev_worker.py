@@ -278,6 +278,40 @@ class IntegrationBoundaryTests(unittest.TestCase):
         self.assertEqual(store.completed, [])
         self.assertEqual(store.blocked, [])
 
+    def test_existing_ci_run_does_not_claim_a_second_owner_job(self):
+        """One scheduled invocation must not consume another queued job
+        while an older draft is still waiting on its real Core CI run.
+        """
+        from unittest.mock import Mock, patch
+        from scripts import cano_autodev_worker as worker
+
+        db = Mock()
+        db.stale_running_one.return_value = None
+        db.unverified_pr_one.return_value = worker.OpenCIReceipt(
+            "00000000-0000-4000-8000-000000000001",
+            "cano-autodev-" + "a" * 32,
+            "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/1",
+            "a" * 40,
+        )
+        # The defect previously called claim_one() and returned success
+        # even though a different owner's draft still occupied this run.
+        db.claim_one.return_value = None
+        values = {
+            "CANO_AUTODEV_ENABLED": "true",
+            "CANO_AUTODEV_DATABASE_URL": "postgresql://example.invalid/db",
+            "CANO_AUTODEV_OWNER_KEY": "oidc_" + "a" * 64,
+            "GROQ_API_KEY": "test-only",
+            "GH_TOKEN": "test-only",
+            "CANO_AUTODEV_MODEL": "test-model",
+        }
+        with (patch.dict("os.environ", values, clear=True),
+              patch.object(worker, "NeonJobStore", return_value=db),
+              patch.object(worker, "GitHubDrafts", return_value=Mock()),
+              patch.object(worker, "recover_ci_dispatch",
+                           return_value="ci_already_started")):
+            self.assertEqual(worker.main(), 0)
+        db.claim_one.assert_not_called()
+
     def test_disabled_worker_does_not_touch_database_or_model(self):
         from scripts.cano_autodev_worker import main
         from unittest.mock import patch
