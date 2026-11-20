@@ -83,18 +83,32 @@ def solve_one_grid(rns_binary,eos_path,grid_tag):
         row["stdout_tail"]=p.stdout[-1200:]
         return row
     logs=np.log10(rho_guess)+np.array([-0.20,-0.10,0.0,0.10,0.20])
-    rows=[evaluate(x) for x in logs]
+    rows=[];failed=[]
+    for x in logs:
+        try: rows.append(evaluate(x))
+        except RuntimeError as exc:
+            if "root must be bracketed in zriddr. (SetSpin)" not in str(exc): raise
+            failed.append({"rho_c_g_cm3":10.0**float(x),"status":"RNS_FIXED_SPIN_NOT_BRACKETED","diagnostic":str(exc)[-500:]})
     bracket=None
     for left,right in zip(rows[:-1],rows[1:]):
         if left["mass_residual_msun"]==0 or left["mass_residual_msun"]*right["mass_residual_msun"]<0:
             bracket=(math.log10(left["rho_c_g_cm3"]),math.log10(right["rho_c_g_cm3"]));break
     if bracket is None:
-        raise RuntimeError("RNS mass root not bracketed near independent TOV seed; "+json.dumps(rows))
-    root=brentq(lambda x:evaluate(x)["mass_residual_msun"],*bracket,xtol=3e-6,rtol=1e-12,maxiter=12)
-    final=evaluate(root)
+        return {"result":{"grid":grid_tag,"status":"FAIL_FIXED_SPIN_MASS_ROOT_NOT_BRACKETED",
+          "seed_rho_g_cm3":rho_guess,"error":"No pair of successful fixed-spin RNS models brackets target mass"},
+          "trace":rows,"failed_trial_densities":failed}
+    try:
+        root=brentq(lambda x:evaluate(x)["mass_residual_msun"],*bracket,xtol=3e-6,rtol=1e-12,maxiter=12)
+        final=evaluate(root)
+    except RuntimeError as exc:
+        if "root must be bracketed in zriddr. (SetSpin)" not in str(exc): raise
+        return {"result":{"grid":grid_tag,"status":"FAIL_RNS_ROOT_DURING_MASS_SOLVE",
+          "root_bracket_log10_rho":list(bracket),"error":str(exc)[-500:]},
+          "trace":rows,"failed_trial_densities":failed}
     final.update({"grid":grid_tag,"root_bracket_log10_rho":list(bracket),"seed_rho_g_cm3":rho_guess,
       "mass_tolerance_msun":1e-5,"spin_tolerance_hz":0.1,
-      "status":"PASS" if abs(final["mass_residual_msun"])<1e-5 and abs(final["spin_hz"]-TARGET_SPIN_HZ)<0.1 else "FAIL"})
+      "status":"PASS" if abs(final["mass_residual_msun"])<1e-5 and abs(final["spin_hz"]-TARGET_SPIN_HZ)<0.1 else "FAIL",
+      "failed_trial_densities":failed})
     return {"result":final,"trace":rows}
 
 def run(args):
@@ -114,9 +128,10 @@ def run(args):
             result["rns_binary_sha256"]=sha(binary)
             result["rns_binary_path"]=str(binary)
         results=[r["result"] for r in runs]
-        dm=abs(results[0]["M_msun"]-results[-1]["M_msun"])
-        dr=abs(results[0]["R_equatorial_km"]-results[-1]["R_equatorial_km"])
-        converged=(all(r["status"]=="PASS" for r in results) and dm<1e-4 and dr<0.05)
+        valid=all(r.get("status")=="PASS" for r in results)
+        dm=abs(results[0]["M_msun"]-results[-1]["M_msun"]) if valid else None
+        dr=abs(results[0]["R_equatorial_km"]-results[-1]["R_equatorial_km"]) if valid else None
+        converged=(valid and dm<1e-4 and dr<0.05)
         out.update({"status":"PASS_RNS_TWO_GRID_CONVERGENCE" if converged else "FAIL_RNS_OR_GRID_CONVERGENCE",
           "RNS_runs":runs,"grid_convergence":{"mass_difference_msun":dm,"radius_difference_km":dr,"mass_tolerance_msun":1e-4,"radius_tolerance_km":0.05,"passed":converged},
           "limits":{"new_model_RNS":"PASS" if converged else "FAIL","XPSI_source_native_marginalization":"NOT_RUN","final_EOS_Bayes":"NOT_RUN"}})
