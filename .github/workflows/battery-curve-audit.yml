@@ -20,6 +20,7 @@ on:
       - "tests/test_battery_field_receipt_binding.py"
       - "tests/test_battery_bound_field_csv.py"
       - "tests/test_battery_blind_field_review.py"
+      - "tests/test_battery_external_witness_receipt.py"
       - "tests/test_customer_preflight.py"
       - "tests/test_battery_numeric_equivalence.py"
       - "tests/test_battery_near_duplicate_guard.py"
@@ -101,6 +102,11 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "test_battery_blind_field_review.py" -v
           python -m py_compile research/battery_curve_audit/blind_field_review.py
+
+      - name: Offline external-witness keyed proof, tamper/replay limitation and no-certification tests
+        run: |
+          python -m unittest discover -s tests -p "test_battery_external_witness_receipt.py" -v
+          python -m py_compile research/battery_curve_audit/external_witness_receipt.py
 
       - name: Fetch and independently parse all 20 publisher CSVs
         run: |
@@ -507,6 +513,8 @@ jobs:
           if ($alias.scenario_count -ne 1200 -or $alias.conservative_alias_reviews -ne 900 -or $alias.controls_not_blocked -ne 300) {
             throw "Native Windows provenance alias simulation counts mismatched"
           }
+          cmd /c Run-Witness-Synthetic-Tests.cmd
+          if ($LASTEXITCODE -ne 0) { throw "Native Windows external witness HMAC safety tests failed" }
           cmd /c Run-Blind-Review-Demo.cmd
           if ($LASTEXITCODE -ne 0) { throw "Native prediction-blind review demo failed" }
           cmd /c Run-Simulation.cmd

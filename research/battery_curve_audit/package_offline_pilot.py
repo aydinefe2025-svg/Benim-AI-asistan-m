@@ -18,6 +18,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 PREFIX = "CANO_BATARYA_CEVRIMDISI_PILOT"
 EPOCH = (2026, 11, 19, 0, 0, 0)
 PROGRAMS = [
+    "external_witness_receipt.py",
     "reviewer_identity_lab.py",
     "provenance_alias_lab.py",
     "battery_virtual_lab.py",
@@ -35,6 +36,7 @@ PROGRAMS = [
     "blind_field_review.py",
 ]
 DOCUMENTS = [
+    "EXTERNAL_WITNESS_RECEIPT.md",
     "PROVENANCE_ALIAS_LAB.md",
     "SIMULATION_LAB.md",
     "CUSTOMER_PIPELINE.md",
@@ -50,6 +52,7 @@ DOCUMENTS = [
     "README.md",
 ]
 TESTS = [
+    "test_battery_external_witness_receipt.py",
     "test_battery_reviewer_identity_guard.py",
     "test_battery_reviewer_identity_lab.py",
     "test_battery_virtual_lab.py",
@@ -102,6 +105,7 @@ def verify():
 
 def tests():
     patterns = [
+        "test_battery_external_witness_receipt.py",
         "test_battery_reviewer_identity_guard.py",
         "test_battery_reviewer_identity_lab.py",
         "test_battery_virtual_lab.py",
@@ -336,7 +340,10 @@ It does not need pip, cloud tokens, API keys, or customer uploads.
    omit flagged predictions and have different order; return the completed forms
    separately. Source binding and raw CSVs are checked again on finalize.
    Run-Blind-Review-Demo.cmd tests this with SYNTHETIC inputs only.\n   Private blind-review sampling now authenticates a v2 HMAC seal with a\n   separate 32-byte operator key (--operator-key), which must never be\n   uploaded or shared with reviewers. Older unsigned v1 seals fail closed.
-   Real personnel independence and site authorization cannot be proven in code.
+   Real personnel independence and site authorization cannot be proven in code.\n4. Run-Witness-Synthetic-Tests.cmd tests third-party keyed witness integrity
+   with temporary SYNTHETIC keys only; external witness key, pre-pinned fingerprint,
+   actual institutional authority and independent people are NOT included.
+   See research/battery_curve_audit/EXTERNAL_WITNESS_RECEIPT.md.
 
 ## Windows PowerShell alternative
    py -3 research/battery_curve_audit/customer_pipeline.py --manifest
@@ -388,6 +395,22 @@ SHA-256 receipt. Never treat a self-supplied checksum as a digital signature.
 '''
 
 LAUNCHERS = {
+"Run-Witness-Synthetic-Tests.cmd": r'''@echo off
+setlocal
+cd /d "%~dp0"
+where py >nul 2>nul
+if not errorlevel 1 (
+  py -3 -m unittest discover -s tests -p "test_battery_external_witness_receipt.py" -q
+) else (
+  python -m unittest discover -s tests -p "test_battery_external_witness_receipt.py" -q
+)
+set "RC=%errorlevel%"
+echo.
+echo TEST KEYS ONLY. Witness HMAC is not institutional identity or physical acceptance.
+if not "%CANO_BATCH_NONINTERACTIVE%"=="1" pause
+exit /b %RC%
+''',
+
 "Run-Reviewer-Simulation.cmd": r'''@echo off
 setlocal
 cd /d "%~dp0"
@@ -619,7 +642,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-20-blind-review-authenticated-seal-v9",
+                "version":"2026-11-20-external-keyed-witness-v10",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,
