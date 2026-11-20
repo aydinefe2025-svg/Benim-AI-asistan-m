@@ -9,7 +9,7 @@ from hashlib import sha256
 import csv
 import io
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import sys
 from zipfile import ZipFile
 
@@ -24,15 +24,20 @@ MIN_ROWS = 1_000
 
 def read_matched_window(z: ZipFile, filename: str, *, limit=SAMPLE_LIMIT) -> dict:
     names=set(z.namelist())
-    if filename not in names or not filename.endswith('_ET_T23.csv'):
-        raise ValueError('REVIEW_REQUIRED: expected source ET_T23 recording missing')
-    stem=filename[:-4]
-    meta_name=stem+'_meta.txt'
+    if not filename.endswith('_ET_T23.csv') or '/' in filename or '\\' in filename:
+        raise ValueError('REVIEW_REQUIRED: unsafe requested measurement name')
+    matches=[n for n in names if PurePosixPath(n).name==filename]
+    if len(matches)!=1:
+        raise ValueError('REVIEW_REQUIRED: original ET_T23 file absent or ambiguous')
+    original_path=matches[0]
+    if PurePosixPath(original_path).is_absolute() or '..' in PurePosixPath(original_path).parts:
+        raise ValueError('REVIEW_REQUIRED: unsafe source path')
+    meta_name=original_path[:-4]+'_meta.txt'
     if meta_name not in names:
         raise ValueError('REVIEW_REQUIRED: source paired recording metadata missing')
     meta_sha=sha256(z.read(meta_name)).hexdigest()
     points=[]
-    with z.open(filename) as fh:
+    with z.open(original_path) as fh:
         text=io.TextIOWrapper(fh, encoding='utf-8-sig', errors='strict',newline='')
         reader=csv.DictReader(text)
         required={'run_time','c_vol','c_cur','step_type'}
