@@ -15,7 +15,7 @@ import sys
 from zipfile import ZipFile
 
 ARCHIVE = re.compile(r'^TP_([kz])(\d{1,2})_(\d{1,2})$')
-SIDECAR_TP = re.compile(r'^(?:TP[_ -]?)?([kz])[_ -]?(\d{1,2})(?:[_ -](\d{1,2}))?$', re.I)
+SIDECAR_TP = re.compile(r'^(?:TP[_ -]?)?([kz])[_ -]?(\d{1,2})(?:[_ -](\d{1,2}))?(noCU)?$', re.I)
 DATE_FORMATS = ('%Y-%m-%dT%H:%M:%S.%f','%Y-%m-%d %H:%M:%S.%f',
                 '%Y-%m-%dT%H:%M:%S','%Y-%m-%d %H:%M:%S',
                 '%d.%m.%Y %H:%M:%S','%d/%m/%Y %H:%M:%S','%Y-%m-%d',
@@ -49,9 +49,12 @@ def compare_protocol_identifiers(archive_stem:str, overview_row:dict,
         if r is None:
             sidecar_shape='unrecognized'
         else:
-            sidecar_shape='type_tp_cell' if r.group(3) else 'type_tp'
+            calendar_nocu=(r.group(4) is not None)
+            sidecar_shape=('type_tp_nocu' if calendar_nocu else
+                           'type_tp_cell' if r.group(3) else 'type_tp')
             sidecar_match=(r.group(1).lower()==kind and int(r.group(2))==number
-                           and (r.group(3) is None or int(r.group(3))==cell))
+                           and (r.group(3) is None or int(r.group(3))==cell)
+                           and (not calendar_nocu or (kind=='k' and cell in (4,5,6))))
     if not matches:
         decision='OVERVIEW_PROTOCOL_CONFLICT_REVIEW_REQUIRED'
     elif sidecar_match is False:
