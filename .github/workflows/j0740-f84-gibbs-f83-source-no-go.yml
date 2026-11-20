@@ -1,0 +1,101 @@
+name: J0740 F84 original BPS vs F83 source Gibbs phase upper pressure no-go
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f84/**'
+      - '.github/workflows/j0740-f84-gibbs-f83-source-no-go.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-source-native-gibbs-overlap-no-go:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pin Python numerical dependency
+        run: python -m pip install 'numpy==2.3.5'
+      - name: Verify original BPS source and original F82 BPS MPA1 EOS source bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/F84
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0,'research/j0740/f84')
+          import f84_gibbs_endpoint_no_go as F
+          sys.path.insert(0,'research/j0740/f83')
+          import f83_cold_integrability as G
+          bps=Path('research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv')
+          orig=Path('research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns')
+          assert F.sha(bps)==F.BPS_SHA
+          raw=orig.read_bytes()
+          if G.sha(orig)!=G.EOS_SHA:
+              if not (raw.endswith(b'\n\r\n') and G.sha(raw[:-2])==G.EOS_SHA):
+                  raise ValueError('F84_UPSTREAM_F82_SOURCE_CHANGED_NOT_JUST_TRAILING_CRLF')
+              orig.write_bytes(raw[:-2])
+          assert G.sha(orig)==G.EOS_SHA
+          assert F.BPS_SHA=='a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787'
+          print('SOURCE_BPS_AND_ORIGINAL_EOS_SHA256_PASS')
+          PY
+      - name: Regenerate distinct F83 cold thermodynamics byte-identically from pinned source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f83/f83_cold_integrability.py \
+            --source research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns \
+            --out-eos results/F84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns \
+            --out-json results/F84/F83_reconstruction_for_F84.json
+          echo '99fc172310b06b2aa0a972320478853c84057c6d1e2810328f97e3c19c37309d  results/F84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns' | sha256sum -c -
+          cp results/F84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns research/j0740/f84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns
+      - name: Fail closed adversarial nine mathematical plus exact original C/EOS source tests
+        run: python -m unittest discover -s research/j0740/f84 -p 'test_f84_*.py' -v
+      - name: Real independent 130 BPS original knots and 1213 F83 numerical source Gibbs no-go
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/j0740/f84/f84_gibbs_endpoint_no_go.py \
+            --bps research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv \
+            --eos results/F84/F83_PIECEWISE_COLD_BPS_MPA1_SOURCE_P_E.rns \
+            --out results/F84/F84_BPS_F83_GIBBS_COMPLETE_NATIVE_20261120.json
+          python - <<'PY'
+          from pathlib import Path
+          import json,hashlib
+          a=Path('results/F84/F84_BPS_F83_GIBBS_COMPLETE_NATIVE_20261120.json')
+          z=json.loads(a.read_text())
+          assert z['status']=='SOURCE_NATIVE_GIBBS_MATCHED_AT_JOIN_GLOBAL_SINGLE_SWITCH_NO_GO'
+          assert z['BPS_native_rows']==130 and z['F83_RNS_rows']==1213
+          assert z['BPS_native_shared_pressure_knots_with_F83_core']==52
+          assert len(z['BPS_native_knot_delta_mu_sign_change_brackets'])==1
+          lo,hi=z['if_mu0_rescaled_to_force_equality_at_junction']['upper_core_minus_BPS_MeV_interval']
+          assert .20<lo<hi<.21
+          assert z['physical_original_MPA1_Gibbs_or_complete_inner_crust_EOS']=='NOT_ESTABLISHED'
+          assert z['source_native_XPSI_photon_likelihood']=='NOT_RUN'
+          print('F84_SHA256',hashlib.sha256(a.read_bytes()).hexdigest())
+          PY
+      - name: Retain original source and actual source test evidence SHA even on failure
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          root=Path('results/F84');root.mkdir(parents=True,exist_ok=True)
+          paths=[*root.glob('*'),Path('research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv'),Path('research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns'),Path('research/j0740/f84/f84_gibbs_endpoint_no_go.py')]
+          x={str(p):{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in paths if p.is_file()}
+          (root/'F84_GITHUB_SOURCE_SHA_MANIFEST.json').write_text(json.dumps({'source_sha':x,'physical_original_MPA1_Gibbs':'NOT_ESTABLISHED','XPSI':'NOT_RUN'},indent=2,sort_keys=True)+'\n')
+          PY
+      - name: Archive actual source-native BPS F83 Gibbs evidence or honest source fail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F84-actual-source-BPS-F83-native-Gibbs-no-go
+          path: results/F84/
+          if-no-files-found: warn
+          retention-days: 60
