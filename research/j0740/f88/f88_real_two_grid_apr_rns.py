@@ -136,9 +136,9 @@ def run(source_dir,eos,eosmeta,rns151,rns201,static,out):
                 rec={'log10_rho':lr,'commanded_spin_Hz':f,'actual_C_star':star}
             except Exception as error:
                 rec={'log10_rho':lr,'commanded_spin_Hz':f,'C_error':repr(error)}
-                with log.open('a') as handle: handle.write(json.dumps(rec,allow_nan=False)+'\\n')
+                with log.open('a') as handle: handle.write(json.dumps(rec,allow_nan=False)+'\n')
                 raise
-            with log.open('a') as handle: handle.write(json.dumps(rec,allow_nan=False)+'\\n')
+            with log.open('a') as handle: handle.write(json.dumps(rec,allow_nan=False)+'\n')
             return star
         stars[g]=solve_grid_bounded(observed,SEEDS[g])
         print('ACTUAL_COMPOSE_UNIFIED_C_RNS',g,{k:stars[g][k] for k in ('M_msun','spin_hz','R_equatorial_km','J_cgs','rho_c_g_cm3','direct_C_evaluations')},flush=True)
