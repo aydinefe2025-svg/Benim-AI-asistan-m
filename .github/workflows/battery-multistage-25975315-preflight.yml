@@ -1,0 +1,48 @@
+name: Battery Figshare 25975315 official metadata preflight
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/multistage_25975315_preflight.py'
+      - 'tests/test_battery_multistage_25975315_preflight.py'
+      - '.github/workflows/battery-multistage-25975315-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  publisher-metadata-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact ref
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Synthetic fail-closed tests
+        run: python -m unittest tests.test_battery_multistage_25975315_preflight -v
+      - name: Publisher Figshare metadata only, strict 2MB budget
+        run: |
+          python research/battery_curve_audit/multistage_25975315_preflight.py /tmp/cano_figshare25975315_receipt.json
+      - name: Assert no false physical acceptance
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("/tmp/cano_figshare25975315_receipt.json").read_text())
+          assert r["article_id"]==25975315
+          assert r["license_status"]=="CC_BY_4_0_PUBLISHER_METADATA"
+          assert r["original_files_downloaded"]==0
+          assert r["verified_independent_physical_cells"]==0
+          assert r["raw_time_axis_verified"] is False
+          assert r["field_false_match_rate_calculated"] is False
+          assert r["production_release_allowed"] is False
+          print("METADATA_ONLY",r["file_count_metadata"],r["total_bytes_metadata"])
+          PY
+      - name: Archive bounded publisher inventory only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: figshare-25975315-publisher-metadata-only
+          path: /tmp/cano_figshare25975315_receipt.json
+          retention-days: 7
+          if-no-files-found: error
