@@ -70,7 +70,7 @@ def parse_rns_stdout(stdout):
 def solve_one_grid(rns_binary,eos_path,grid_tag):
     eos=Hybrid(subdivisions=1)
     pc=find_pc_for_mass(eos,TARGET_M); h=eos.h_at_p(pc); _,ec=eos.state_h(h)
-    rho_guess=ec*CGS_C**2/CGS_G*1e-3
+    rho_guess=ec*C**2/G*1e-3  # SI geom m^-2 -> g cm^-3, same as RNS table exporter
     def evaluate(logrho):
         rho=10.0**float(logrho)
         eos_arg=os.path.relpath(eos_path,Path.cwd())
