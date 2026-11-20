@@ -70,7 +70,7 @@ jobs:
       - name: Solve direct fixed-spin RNS curve at two resolutions
         run: |
           python research/j0740/physical_eos_validation/run_jester_bps_mpa1_rns_curve.py \
-            --eos-file research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_curve_20261120.rns \
+            --eos-file results/bps_mpa1_curve.rns \
             --rns-binary vendor/rns151 vendor/rns201 \
             --grid-tags 151x301 201x401 \
             --output results/JESTER_BPS_MPA1_RNS_curve_20261120.json \
@@ -93,6 +93,7 @@ jobs:
           python - <<'PY'
           import hashlib,json
           from pathlib import Path
+          Path('results').mkdir(parents=True,exist_ok=True)
           files=list(Path('results').rglob('*'))
           out={}
           for p in sorted(x for x in files if x.is_file()):
