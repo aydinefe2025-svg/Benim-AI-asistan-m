@@ -109,6 +109,16 @@ def inspect_original_csv(raw: bytes, publisher: dict) -> dict:
         "rows_missing_serial": empty_serial if serial is not None else None,
         "distinct_serial_values": len(seen) if serial is not None else None,
         "distinct_stage_serial_pairs": len(seen_stage) if stage is not None and serial is not None else None,
+        "serial_alone_collides_across_stages": (
+            len(seen_stage) > len(seen) if stage is not None and serial is not None else None
+        ),
+        "valid_metadata_composite_identity_key": (
+            ["stage", "serial"] if stage is not None and serial is not None
+            and len(seen_stage) == row_count and empty_serial == 0 else None
+        ),
+        "composite_stage_serial_row_collisions": (
+            row_count - len(seen_stage) if stage is not None and serial is not None else None
+        ),
         "contains_full_time_voltage_waveforms": False,
         "raw_cell_waveforms_downloaded": 0,
         "independently_authenticated_physical_cell_identities": 0,
