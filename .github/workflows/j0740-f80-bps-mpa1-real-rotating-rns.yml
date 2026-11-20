@@ -41,6 +41,22 @@ jobs:
           PY
           echo 'a4195d48ae98fd64d0a9676891ccab5a5c035e713780ad1187e85571a98a1787  research/j0740/physical_eos_validation/JESTER_BPS_crust_e6768650.csv' | sha256sum -c -
           echo 'f51d6476f999bf02a839fcb5f318d94c9f11338d270644c3c8b617cdb95a32c9  research/j0740/physical_eos_validation/JESTER_LALSuite_MPA1_source_e6768650.csv' | sha256sum -c -
+          # The committed text includes one transport-added terminal CRLF blank line.
+          # Remove ONLY that provably unphysical blank line if and only if it restores
+          # the existing independent F67/BPS source-export SHA; never regenerate EOS.
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          p=Path('research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns')
+          raw=p.read_bytes()
+          expected='f4a183661962acdddc7aebde3830116578feb6fba88a1a68c9fd57a993058675'
+          digest=lambda b:hashlib.sha256(b).hexdigest()
+          if digest(raw)!=expected:
+              if not raw.endswith(b'\n\r\n') or digest(raw[:-2])!=expected:
+                  raise ValueError('F80_SOURCE_RNS_UNEXPLAINED_DRIFT')
+              p.write_bytes(raw[:-2]); print('F80 exact canonical source restored after removing one transport terminal empty CRLF; no physical data modified')
+          print('source EOS digest',digest(p.read_bytes()))
+          PY
           echo 'f4a183661962acdddc7aebde3830116578feb6fba88a1a68c9fd57a993058675  research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns' | sha256sum -c -
           test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
       - name: Run 12 adversarial *synthetic validator tests* (NOT rotating evidence)
