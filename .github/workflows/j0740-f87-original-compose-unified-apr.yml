@@ -1,4 +1,4 @@
-name: J0740 F87 retrieve original publisher CompOSE unified APR crust-core
+name: J0740 F87 original unified APR source and real TOV validation
 on:
   push:
     paths:
@@ -12,20 +12,43 @@ on:
 permissions:
   contents: read
 jobs:
-  original_compose_source:
+  native_publisher_apr_tov:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Download exact published CC BY 4.0 original unified APR source and verify MD5 and ZIP CRC
-        run: python research/j0740/f87/f87_fetch_source_probe.py results/F87
-      - name: Retain actual publisher source, SHA256, original CompOSE tables and audit receipts
+      - name: Install fixed science numerical libraries
+        run: python -m pip install numpy==2.3.3 scipy==1.16.3
+      - name: Download exact original CC BY 4.0 unified APR source and check publisher MD5 ZIP CRC
+        run: python research/j0740/f87/f87_fetch_source_probe.py results/F87 > results-F87-source.log
+      - name: Test actual original publisher EOS including explicit high-density causality violation and tamper detection
+        run: |
+          cp -r results/F87 research/j0740/f87/actual
+          python -m unittest discover -s research/j0740/f87 -p 'test_f87*.py' -v > results/F87/F87_ALL_TESTS.log 2>&1
+          tail -27 results/F87/F87_ALL_TESTS.log
+      - name: Integrate real 2.073 Msun GR TOV on original unified EOS and compare original publisher M-R
+        run: |
+          python research/j0740/f87/f87_real_tov_from_compose.py results/F87 --out results/F87/F87_REAL_ORIGINAL_APR_TOV.json > results/F87/F87_TOV_execution.log
+          python - <<'PY'
+          import json
+          d=json.load(open('results/F87/F87_REAL_ORIGINAL_APR_TOV.json'))
+          assert abs(d['target_M2p073_static']['M_Msun']-2.073)<1e-6
+          assert abs(d['radius_difference_from_publisher_at_exact_M_m'])<25
+          assert abs(d['tight_crosscheck_R_diff_m'])<.1
+          assert d['target_star_central_P_below_first_source_acausal_P'] is True
+          assert d['native_source_cs2_gt1_count']==24
+          assert d['max_native_source_cs2']>1
+          print('REAL_ORIGINAL_APR_TOV_SOURCE_MR_CROSSCHECK_SUCCESS:',d['target_M2p073_static']['R_km'])
+          PY
+      - name: Archive real original source and real publisher-comparison CIs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: J0740-F87-real-original-CompOSE-APR-source-ccby4
-          path: results/F87/
+          name: J0740-F87-real-original-CompOSE-APR-causal-TOV
+          path: |
+            results/F87/
+            results-F87-source.log
           if-no-files-found: warn
