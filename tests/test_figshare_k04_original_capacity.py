@@ -99,6 +99,32 @@ class NewK04SourceTests(unittest.TestCase):
         with fixture() as z:
             with self.assertRaisesRegex(ValueError,'wrong new source cohort'):
                 analyze_new_cell(z,'TP_k01_04')
+    def test_offline_missing_complete_original_cohort_fails_without_network(self):
+        import tempfile
+        from pathlib import Path
+        from research.battery_curve_audit.figshare_k04_original_capacity import run
+        with tempfile.TemporaryDirectory() as td:
+            with self.assertRaisesRegex(ValueError,'unexpected/missing offline original archive'):
+                run(offline_originals=Path(td))
+
+    def test_offline_fake_original_byte_length_rejected(self):
+        import tempfile
+        from pathlib import Path
+        from research.battery_curve_audit.figshare_k04_original_capacity import run, ORIGINALS
+        with tempfile.TemporaryDirectory() as td:
+            p=Path(td)
+            for _,name,_,_ in ORIGINALS:(p/name).write_bytes(b'not a licensed original ZIP')
+            with self.assertRaisesRegex(ValueError,'offline original size/identity invalid'):
+                run(offline_originals=p)
+
+    def test_cannot_duplicate_offline_source_as_new_download(self):
+        import tempfile
+        from pathlib import Path
+        from research.battery_curve_audit.figshare_k04_original_capacity import run
+        with tempfile.TemporaryDirectory() as td:
+            with self.assertRaisesRegex(ValueError,'cannot save a second copy'):
+                run(save_originals=Path(td),offline_originals=Path(td))
+
     def test_exact_publisher_pin_immutable_metadata_gate(self):
         f=[{'id':fid,'name':name,'size':size,'computed_md5':digest} for fid,name,size,digest in ORIGINALS]
         meta={'id':25975315,'doi':'10.6084/m9.figshare.25975315',
