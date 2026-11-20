@@ -1,0 +1,75 @@
+name: J0740 F85 actual archived X-PSI 198301 failed-seed concentration and exact-replay gate
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/windows_access/f85/**'
+      - '.github/workflows/j0740-f85-real-heldout-198301-concentration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-pinned-real-failed-seed-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check two original archived real X-PSI audit Git blob IDs
+        run: |
+          python - <<'PY'
+          import subprocess
+          p='research/j0740/windows_access/v3_frozen_training_audit_20261114/'
+          expected={'v3_first_heldout_198301_FAIL_verified.json':'3c53b253c509c401faf60a85ae22e49bdeb91074',
+                    'v3_training_frozen_density_audit.json':'0f6e1662b336b31eb9f5d0101756beb83028e2d5'}
+          for k,v in expected.items():
+              got=subprocess.check_output(['git','hash-object',p+k],text=True).strip()
+              if got!=v:raise SystemExit('SOURCE_AUDIT_BYTE_DRIFT '+k+' '+got)
+              print('REAL_HISTORICAL_SOURCE_GIT_BLOB_PASS',k,got)
+          PY
+      - name: Run 14 adversarial tests with immutable failure gate
+        run: python -m unittest discover -s research/j0740/windows_access/f85 -p 'test_f85_*.py' -v
+      - name: Replay archived real 2048-row seed summary without photon calls
+        run: |
+          mkdir -p results/F85
+          python research/j0740/windows_access/f85/f85_native_heldout_replay.py \
+            --output results/F85/F85_actual_198301_concentration_20261120.json
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          p=Path('results/F85/F85_actual_198301_concentration_20261120.json')
+          d=json.loads(p.read_text())
+          assert d['real_seed_198301_status']=='FAIL_UNCHANGED'
+          assert d['new_native_XPSI_photon_calls_this_audit']==0
+          assert not d['historical_gates_passed_except_maxW']['maxW_max_0p02']
+          assert d['actual_top_index']==932
+          assert .2927 < d['top_weight_squared_fraction_of_all_weight_squares'] < .2928
+          assert 1.3115 < d['counterfactual_DO_NOT_USE_FOR_SCIENCE']['top_local_q_factor_needed_if_others_fixed'] < 1.3116
+          print('REPRODUCED_REAL_HISTORICAL_FAILED_SEED_CONCENTRATION_PASS')
+          print('RESULT_SHA256',hashlib.sha256(p.read_bytes()).hexdigest())
+          PY
+      - name: Archive machine verifiable result and source receipt
+        if: always()
+        run: |
+          mkdir -p results/F85
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          names=['research/j0740/windows_access/v3_frozen_training_audit_20261114/v3_first_heldout_198301_FAIL_verified.json',
+                 'research/j0740/windows_access/v3_frozen_training_audit_20261114/v3_training_frozen_density_audit.json',
+                 'research/j0740/windows_access/f85/f85_native_heldout_replay.py',
+                 'research/j0740/windows_access/f85/test_f85_native_heldout_replay.py',
+                 'results/F85/F85_actual_198301_concentration_20261120.json']
+          m={n:{'sha256':hashlib.sha256(Path(n).read_bytes()).hexdigest(),'bytes':Path(n).stat().st_size} for n in names if Path(n).is_file()}
+          (Path('results/F85')/'F85_CI_source_sha256_manifest.json').write_text(json.dumps({'files':m,'full_MR_XPSI_Bayes':'NOT_ESTABLISHED','real_seed_198301_status':'FAIL','photons_run_in_F85':0},indent=2,sort_keys=True)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F85-ARCHIVED-REAL-198301-FAIL-and-sensitive-top-density
+          path: results/F85/
+          if-no-files-found: error
+          retention-days: 60
