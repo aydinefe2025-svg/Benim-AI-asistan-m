@@ -1,0 +1,176 @@
+name: J0740 F83 real source cold integrability repair and two-grid C/RNS crosscheck
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f83/**'
+      - '.github/workflows/j0740-f83-piecewise-cold-real-rns.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  source-integrability-and-real-C-numerical-sensitivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install exactly pinned numerical libraries
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Prove exact original EOS identity without changing physical P-E data
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/F83
+          cp research/j0740/physical_eos_validation/JESTER_BPS_MPA1_RNS_20261119.rns \
+            research/j0740/f83/F82_source_locked_BPS_MPA1.rns
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f83')
+          from f83_cold_integrability import EOS_SHA,locked_source,sha
+          b,a,t=locked_source(Path('research/j0740/f83/F82_source_locked_BPS_MPA1.rns'))
+          assert sha(b)==EOS_SHA and len(t)==1213
+          print('F83_OLD_SOURCE_IDENTICAL',EOS_SHA,'rows',len(t))
+          PY
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+      - name: Fourteen mathematical source identity and adversarial tests
+        run: python -m unittest discover -s research/j0740/f83 -p 'test_f83_*.py' -v
+      - name: Actually repair P-E-H-n original 1213-row source using exact piecewise cold first law
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f83/f83_cold_integrability.py \
+            --source research/j0740/f83/F82_source_locked_BPS_MPA1.rns \
+            --out-eos results/F83/m.rns \
+            --out-json results/F83/F83_original_source_thermo_20261120.json \
+            | tee results/F83/F83_actual_source_reconstruction.txt
+          echo '99fc172310b06b2aa0a972320478853c84057c6d1e2810328f97e3c19c37309d  results/F83/m.rns' | sha256sum -c -
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('results/F83/F83_original_source_thermo_20261120.json').read_text())
+          assert d['original_num_causal_enthalpy_interval_failures']==11
+          assert d['original_num_monotone_enthalpy_interval_failures']==8
+          assert d['new_causal_bad_intervals']==0 and d['new_monotone_bad_intervals']==0
+          assert d['cold_first_law_analytically_exact_on_open_piecewise_linear_intervals']
+          assert d['original_EOS_sha256']=='f4a183661962acdddc7aebde3830116578feb6fba88a1a68c9fd57a993058675'
+          assert d['BPS_core_Gibbs_phase_and_microphysics']=='NOT_ESTABLISHED'
+          print('F83_REAL_SOURCE_INTEGRABILITY_ZERO_VIOLATIONS_NUMERICALLY_ACCEPTED')
+          PY
+      - name: Independently recover actual immutable F81 C/RNS baseline with full source hash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results/F83/parent
+          curl -fLsS --retry 3 --max-time 180 \
+            -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/14622014802/zip' \
+            -o results/F83/parent/F81_original_C_evidence.zip
+          echo '9a77b4f940e8dc7489cbfd582b929019b2f6266a412f100d0815023dd88a4b47  results/F83/parent/F81_original_C_evidence.zip' | sha256sum -c -
+          unzip -tq results/F83/parent/F81_original_C_evidence.zip
+          unzip -q results/F83/parent/F81_original_C_evidence.zip -d results/F83/parent/
+          echo '36d726706f8aadcbae416693dc4f682c890defe9ca896b76641655140aede620  results/F83/parent/F81_REAL_two_grid_mass_f_report_J_20261120.json' | sha256sum -c -
+      - name: Compile original Einstein RNS C in two distinct spacetime grids (stdout only patch)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a rns-upstream rns151
+          cp -a rns-upstream rns201
+          python - <<'PY'
+          import json,hashlib,sys
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          rec={}
+          for folder,g in [('rns151','151x301'),('rns201','201x401')]:
+              p=Path(folder)/'rns.c'; orig=p.read_bytes()
+              p.write_bytes(patch_print_only(orig.decode()).encode())
+              m=Path(folder)/'makefile';s=m.read_text()
+              clause='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+              assert s.splitlines().count(clause)==1
+              if g=='201x401':m.write_text(s.replace(clause,'HIGHSIZE=-DMDIV=201 -DSDIV=401',1))
+              rec[g]={'source_unmodified_C_sha256':hashlib.sha256(orig).hexdigest(),
+                  'patched_C_print_only_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),
+                  'physics_modified':False}
+          Path('results/F83/F83_solver_provenance.json').write_text(json.dumps(rec,indent=2,sort_keys=True)+'\n')
+          PY
+          make -C rns151 CC='gcc -include stdlib.h' rns
+          make -C rns201 CC='gcc -include stdlib.h' rns
+          test "$(sha256sum rns151/rns | cut -d' ' -f1)" != "$(sha256sum rns201/rns | cut -d' ' -f1)"
+      - name: Re-solve two genuine C/RNS (M,f) roots on the *new* F83 EOS and compare to old F81
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd results/F83
+          python -u ../../research/j0740/f83/f83_real_c_compare.py \
+            --new-eos m.rns \
+            --f81 parent/F81_REAL_two_grid_mass_f_report_J_20261120.json \
+            --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
+            --rns201 "$GITHUB_WORKSPACE/rns201/rns" \
+            --out F83_real_C_rotating_sensitivity_20261120.json \
+            2>&1 | tee F83_real_C_execution.txt
+      - name: Independent physical claims gate on actual two C stars, source hashes and non-native status
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          p=Path('results/F83/F83_real_C_rotating_sensitivity_20261120.json')
+          d=json.loads(p.read_text());a=d['audit']
+          assert a['status']=='NEW_PIECEWISE_INTEGRABLE_SOURCE_REAL_TWO_GRID_C_NUMERICAL_PASS'
+          assert a['new_F83_EOS_sha256']=='99fc172310b06b2aa0a972320478853c84057c6d1e2810328f97e3c19c37309d'
+          assert a['Gibbs_BPS_core_phase_thermodynamics']=='NOT_ESTABLISHED'
+          assert a['XPSI_full_native_photon_likelihood']=='NOT_RUN'
+          assert a['global_fixed_J_and_dynamic_mode_stability']=='NOT_ESTABLISHED_FOR_NEW_EOS'
+          assert len(d['new_actual_real_C_stars'])==2
+          assert len(set(d['solver_binary_sha256'].values()))==2
+          for g,s in d['new_actual_real_C_stars'].items():
+              assert abs(s['M_msun']-2.073)<5e-6
+              assert abs(s['spin_hz']-346.536369)<.005
+              assert 1e47<s['J_cgs']<1e51
+              assert s['direct_C_evaluations']>=5 and len(s['trace'])>=5
+          print('F83_ACTUAL_TWO_GRID_REAL_C_AND_PI1_NUMERIC_PASS_SHA',hashlib.sha256(p.read_bytes()).hexdigest())
+          PY
+      - name: Preserve exact code, source EOS, new EOS, actual C evidence and SHA receipts on failure too
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json,hashlib
+          p=Path('results/F83');p.mkdir(parents=True,exist_ok=True)
+          fs=[*p.glob('*.json'),*p.glob('*.rns'),*p.glob('*.txt'),
+              Path('research/j0740/f83/f83_cold_integrability.py'),
+              Path('research/j0740/f83/f83_real_c_compare.py'),
+              Path('research/j0740/f83/test_f83_cold_integrability.py'),
+              Path('research/j0740/f83/test_f83_real_c_compare.py'),
+              Path('rns151/rns'),Path('rns201/rns'),Path('rns151/rns.c'),Path('rns201/rns.c')]
+          d={str(f):{'sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'bytes':f.stat().st_size} for f in fs if f.is_file()}
+          (p/'F83_GITHUB_ACTUAL_SHA256_MANIFEST.json').write_text(json.dumps({'RNS_original_commit':'97e85d325a33e37f702306414533f6cd77812477','files':d},indent=2,sort_keys=True)+'\n')
+          PY
+      - name: Archive actual C solver results, source P E H n reconstruction and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F83-ORIGINAL-P-E-PIECEWISE-COLD-REAL-C-RNS-or-failure
+          path: |
+            results/F83/F83_original_source_thermo_20261120.json
+            results/F83/m.rns
+            results/F83/F83_actual_source_reconstruction.txt
+            results/F83/F83_solver_provenance.json
+            results/F83/F83_real_C_rotating_sensitivity_20261120.json
+            results/F83/F83_real_C_execution.txt
+            results/F83/F83_GITHUB_ACTUAL_SHA256_MANIFEST.json
+          if-no-files-found: warn
+          retention-days: 30
