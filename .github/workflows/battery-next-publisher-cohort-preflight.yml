@@ -1,0 +1,51 @@
+name: Battery publisher new calendar cohort source metadata preflight
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/figshare_next_cohort_preflight.py'
+      - 'tests/test_figshare_next_cohort_preflight.py'
+      - '.github/workflows/battery-next-publisher-cohort-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  publisher-source-cohort-availability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout pinned PR source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Reject unsafe or invented cohort and verify 8 tests
+        run: python -m unittest tests.test_figshare_next_cohort_preflight -v
+      - name: Read actual Figshare publisher licensed file inventory no waveforms
+        run: python -m research.battery_curve_audit.figshare_next_cohort_preflight /tmp/cano_next_cohort_publisher_metadata.json
+      - name: Fail closed on result schema and physical proof claims
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('/tmp/cano_next_cohort_publisher_metadata.json').read_text())
+          assert d['publisher_article_id']==25975315
+          assert d['source_files_listed']>250
+          assert d['next_source_zip_downloaded'] is False
+          assert d['real_measurements_examined']==0
+          assert d['external_physical_identity_authenticated'] is False
+          assert d['population_field_FPR_FNR_established'] is False
+          if d['chosen_cohort'] is not None:
+              assert d['chosen_cohort']['testpoint']!='TP_k01'
+              assert len(d['chosen_cohort']['original_publisher_files'])==3
+              assert all(x['size_bytes']<=15000000 for x in d['chosen_cohort']['original_publisher_files'])
+              assert d['chosen_cohort']['total_original_bytes']<=42000000
+          print('PUBLISHER_ONLY_NEW_COHORT',d['chosen_cohort'], 'eligible',d['eligible_full_three_cell_cohorts'])
+          PY
+      - name: Retain metadata-only origin receipt seven days
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-next-calendar-three-cell-publisher-metadata-only
+          path: /tmp/cano_next_cohort_publisher_metadata.json
+          retention-days: 7
+          if-no-files-found: error
