@@ -88,18 +88,22 @@ def _app_search(boundary, path: Path):
 
 def _probe_public(get):
     response = get(_PUBLIC, timeout=20)
-    if getattr(response, "status_code", None) != 200:
-        return False
+    status = getattr(response, "status_code", None)
+    if status != 200:
+        return False, f"root_http_{status}" if isinstance(status, int) else "root_http_unknown"
     # Streamlit's rendered page is white-labelled by st.set_page_config, so
     # its HTML need not contain the literal word "Streamlit". Confirm the
     # application server with Streamlit's public health endpoint instead.
     health = get(_PUBLIC.rstrip("/") + "/_stcore/health", timeout=10)
+    health_status = getattr(health, "status_code", None)
     body = getattr(health, "text", "")
-    return (
-        getattr(health, "status_code", None) == 200
-        and isinstance(body, str)
-        and body.strip().casefold() == "ok"
-    )
+    if health_status != 200:
+        reason = (f"health_http_{health_status}" if isinstance(health_status, int)
+                  else "health_http_unknown")
+        return False, reason
+    if not isinstance(body, str) or body.strip().casefold() != "ok":
+        return False, "health_body_not_ok"
+    return True, None
 
 
 def _probe_weather(search, *, forecast: bool):
@@ -135,7 +139,7 @@ def run_checks(get, *, app_path=None):
                  "dated_forecast_failover"):
         try:
             if name == "public_startup":
-                ok = _probe_public(get)
+                ok, reason = _probe_public(get)
             else:
                 if search is None:
                     search = _app_search(boundary, path)
@@ -145,7 +149,10 @@ def run_checks(get, *, app_path=None):
         except Exception:
             # Never serialize upstream exception messages or response bodies.
             ok = False
+            reason = "request_failed" if name == "public_startup" else None
         checks[name] = {"ok": bool(ok)}
+        if name == "public_startup" and reason:
+            checks[name]["reason"] = reason
         if not ok:
             failures.append(name)
 
@@ -159,4 +166,5 @@ def run_checks(get, *, app_path=None):
             "third_party_credentials_sent": False,
         },
     }
+
 

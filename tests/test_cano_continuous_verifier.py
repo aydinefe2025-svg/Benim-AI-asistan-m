@@ -155,6 +155,8 @@ class ContinuousVerificationTests(unittest.TestCase):
                             app_path=APP)
         self.assertEqual("failed", report["verdict"])
         self.assertFalse(report["checks"]["public_startup"]["ok"])
+        self.assertEqual(
+            "health_body_not_ok", report["checks"]["public_startup"]["reason"])
         self.assertTrue(report["checks"]["current_weather_failover"]["ok"])
         self.assertIn("public_startup", report["failures"])
 
@@ -162,10 +164,19 @@ class ContinuousVerificationTests(unittest.TestCase):
         network = FakeNetwork(public_status=503)
         report = run_checks(network, app_path=APP)
         self.assertFalse(report["checks"]["public_startup"]["ok"])
+        self.assertEqual("root_http_503", report["checks"]["public_startup"]["reason"])
         self.assertNotIn(
             "https://benim-ai-asistan-streamlit.onrender.com/_stcore/health",
             [url for url, _ in network.calls],
         )
+
+    def test_health_http_status_is_reported_without_response_body(self):
+        private = "private response body must never be logged"
+        report = run_checks(
+            FakeNetwork(health_status=404, health_text=private), app_path=APP)
+        encoded = json.dumps(report)
+        self.assertEqual("health_http_404", report["checks"]["public_startup"]["reason"])
+        self.assertNotIn(private, encoded)
 
     def test_stale_or_invalid_weather_is_an_actionable_failure(self):
         report = run_checks(FakeNetwork(stale=True), app_path=APP)
@@ -215,4 +226,5 @@ class ContinuousVerificationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 
