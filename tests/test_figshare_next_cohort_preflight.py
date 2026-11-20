@@ -1,5 +1,5 @@
 import unittest
-from figshare_next_cohort_preflight import inspect_metadata
+from research.battery_curve_audit.figshare_next_cohort_preflight import inspect_metadata
 
 
 def source(c=3):
