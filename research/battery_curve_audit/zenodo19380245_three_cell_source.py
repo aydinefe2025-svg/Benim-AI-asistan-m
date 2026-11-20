@@ -70,7 +70,7 @@ def validate_publisher_metadata(meta: dict) -> dict:
     licensed = any(re.search(r"(?:^|[^a-z])cc[-_ ]?by[-_ ]?4(?:[.]0)?(?:$|[^a-z0-9])", x)
                    or "creative commons attribution 4.0" in x for x in licenses)
     if not licensed:
-        raise ValueError("SOURCE_REVIEW_REQUIRED: publisher CC BY 4.0 not established")
+        raise ValueError("SOURCE_REVIEW_REQUIRED: publisher license CC BY 4.0 not established")
     files = meta.get("files")
     if not isinstance(files, list):
         raise ValueError("SOURCE_REVIEW_REQUIRED: publisher file list")
