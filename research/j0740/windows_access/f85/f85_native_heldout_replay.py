@@ -134,6 +134,8 @@ def raw_replay(npz: Path, jsonl: Path, seed_report: dict) -> dict:
 
     Only reads existing bytes; NEVER calls native X-PSI or modifies source.
     """
+    if not npz.is_file() or not jsonl.is_file():
+        raise FileNotFoundError("F85_ORIGINAL_PRIVATE_RAW_NPZ_AND_JSONL_UNAVAILABLE")
     import numpy as np
     from scipy.special import logsumexp
     if hashlib.sha256(npz.read_bytes()).hexdigest()!=seed_report['npz_sha256'] or hashlib.sha256(jsonl.read_bytes()).hexdigest()!=seed_report['jsonl_sha256']:
