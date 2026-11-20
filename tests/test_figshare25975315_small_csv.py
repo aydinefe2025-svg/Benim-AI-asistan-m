@@ -52,6 +52,8 @@ class OriginalPublisherCSVGate(unittest.TestCase):
         self.assertEqual(d["record_rows"],3)
         self.assertEqual(d["distinct_serial_values"],2)
         self.assertEqual(d["distinct_stage_serial_pairs"],3)
+        self.assertTrue(d["serial_alone_collides_across_stages"])
+        self.assertEqual(d["valid_metadata_composite_identity_key"],["stage","serial"])
         self.assertFalse(d["cross_cell_confusion_rate_measured"])
         self.assertEqual(d["independently_authenticated_physical_cell_identities"],0)
         self.assertEqual(d["raw_cell_waveforms_downloaded"],0)
@@ -62,6 +64,8 @@ class OriginalPublisherCSVGate(unittest.TestCase):
         self.assertEqual(d["record_rows"],3)
         self.assertEqual(d["distinct_serial_values"],2)
         self.assertEqual(d["distinct_stage_serial_pairs"],2)
+        self.assertEqual(d["composite_stage_serial_row_collisions"],1)
+        self.assertIsNone(d["valid_metadata_composite_identity_key"])
 
     def test_no_serial_column_reports_unknown_not_fake_identity(self):
         raw=b"foo,other\nv,1\n"
