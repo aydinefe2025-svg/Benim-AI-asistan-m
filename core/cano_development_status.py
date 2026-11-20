@@ -72,6 +72,7 @@ def render_owner_code_status(st, jobs):
         f"🛠️ CANO kod işleri — Son {stats['total']} kayıt: "
         f"{stats['deployed']} tam makbuzlu yayın kaydı · "
         f"{stats['unverified_deployments']} makbuzu eksik yayın etiketi · "
+        f"{stats['active']} sırada/çalışıyor (toplam) · "
         f"{stats['stage_counts']['queued']} sırada · "
         f"{stats['stage_counts']['running']} çalışıyor · "
         f"{stats['stage_counts']['pr_open']} PR taslağı kaydı · "
