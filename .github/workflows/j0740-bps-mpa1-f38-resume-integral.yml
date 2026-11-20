@@ -5,6 +5,7 @@ on:
       - science/j0740-bps-mpa1-f38-curve-20261120
     paths:
       - ".github/workflows/j0740-bps-mpa1-f38-resume-integral.yml"
+      - "research/j0740/physical_eos_validation/integrate_bps_mpa1_f38.py"
   workflow_dispatch:
 permissions:
   contents: read
