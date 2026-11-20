@@ -294,7 +294,7 @@ class IntegrationBoundaryTests(unittest.TestCase):
             "a" * 40,
         )
         # The defect previously called claim_one() and returned success
-        # even though a different owner's draft still occupied this run.
+        # even though an earlier draft for the same owner occupied this run.
         db.claim_one.return_value = None
         values = {
             "CANO_AUTODEV_ENABLED": "true",
