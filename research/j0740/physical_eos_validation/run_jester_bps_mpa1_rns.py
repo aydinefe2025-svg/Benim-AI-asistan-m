@@ -87,8 +87,13 @@ def solve_one_grid(rns_binary,eos_path,grid_tag):
     for x in logs:
         try: rows.append(evaluate(x))
         except RuntimeError as exc:
-            if "root must be bracketed in zriddr. (SetSpin)" not in str(exc): raise
-            failed.append({"rho_c_g_cm3":10.0**float(x),"status":"RNS_FIXED_SPIN_NOT_BRACKETED","diagnostic":str(exc)[-500:]})
+            diagnostic=str(exc)
+            accepted=("root must be bracketed in zriddr. (SetSpin)" in diagnostic or
+                      "RNS output did not contain its four-column model row" in diagnostic)
+            if not accepted: raise
+            failed.append({"rho_c_g_cm3":10.0**float(x),
+              "status":"RNS_FIXED_SPIN_NOT_BRACKETED" if "zriddr" in diagnostic else "RNS_NONFINITE_MODEL_OUTPUT",
+              "diagnostic":diagnostic[-700:]})
     bracket=None
     for left,right in zip(rows[:-1],rows[1:]):
         if left["mass_residual_msun"]==0 or left["mass_residual_msun"]*right["mass_residual_msun"]<0:
