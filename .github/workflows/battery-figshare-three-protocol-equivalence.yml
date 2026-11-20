@@ -25,6 +25,13 @@ jobs:
         run: |
           python -m research.battery_curve_audit.figshare_protocol_equivalence \
             /tmp/cano_figshare_original_three_source_protocol_receipt.json
+      - name: Save redacted metadata labels only never signal rows, identity values, or keys
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-original-figshare-three-publisher-protocol-provenance
+          path: /tmp/cano_figshare_original_three_source_protocol_receipt.json
+          retention-days: 7
+          if-no-files-found: error
       - name: Require source protocol match without false physical claims
         run: |
           python - <<'PY'
@@ -48,10 +55,3 @@ jobs:
           print('REAL_PUBLISHER_PROTOCOL_3_OF_3',d['sidecar_testpoint_equivalent_count'],
                 'device_channel_date',d['measurement_setup_label_complete_count'])
           PY
-      - name: Save redacted metadata labels only never signal rows, identity values, or keys
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: battery-original-figshare-three-publisher-protocol-provenance
-          path: /tmp/cano_figshare_original_three_source_protocol_receipt.json
-          retention-days: 7
-          if-no-files-found: error
