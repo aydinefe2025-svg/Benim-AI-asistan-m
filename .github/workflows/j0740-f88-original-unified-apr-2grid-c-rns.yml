@@ -1,0 +1,108 @@
+name: J0740 F88 actual C RNS 2grid GR on original unified CompOSE APR
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f88/**'
+      - '.github/workflows/j0740-f88-original-unified-apr-2grid-c-rns.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  real_two_grid_apr_rns:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install fixed numerical dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Download source-pinned original publisher CompOSE EOS 328 and run real independent static TOV
+        run: |
+          set -euo pipefail
+          mkdir -p results/F88
+          python research/j0740/f87/f87_fetch_source_probe.py results/F88 > results/F88/actual_source_download.log
+          python research/j0740/f87/f87_real_tov_from_compose.py results/F88 --out results/F88/real_static_TOV.json > results/F88/real_static_TOV.log
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+      - name: Exact source nodes preserved, explicitly analytic cold surface extension only
+        run: |
+          python research/j0740/f88/f88_unified_apr_rns_input.py \
+            --source results/F88 --out-eos results/F88/m.rns \
+            --out-json results/F88/F88_explicit_surface_source_conversion.json > results/F88/source_conversion_execution.log
+          F88_SOURCE_ROOT="${GITHUB_WORKSPACE}/results/F88" python -m unittest discover -s research/j0740/f88 -p 'test_f88_rns_input.py' -v > results/F88/F88_5_SOURCE_TESTS.log 2>&1
+          tail -17 results/F88/F88_5_SOURCE_TESTS.log
+      - name: Compile two original Einstein C/RNS spacetime grids with stdout-only precision and actual J field
+        run: |
+          set -euo pipefail
+          cp -a rns-upstream rns151
+          cp -a rns-upstream rns201
+          python - <<'PY'
+          import sys,hashlib,json
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          o={}
+          for folder,gr in [('rns151','151x301'),('rns201','201x401')]:
+              p=Path(folder)/'rns.c';raw=p.read_bytes()
+              p.write_bytes(patch_print_only(raw.decode()).encode())
+              make=Path(folder)/'makefile';t=make.read_text()
+              clause='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+              assert t.splitlines().count(clause)==1
+              if gr=='201x401':make.write_text(t.replace(clause,'HIGHSIZE=-DMDIV=201 -DSDIV=401',1))
+              o[gr]={'original_C_sha256':hashlib.sha256(raw).hexdigest(),'stdout_patched_C_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'Einstein_equations_modified':False}
+          Path('results/F88/F88_C_solver_provenance.json').write_text(json.dumps(o,indent=2)+'\n')
+          PY
+          make -C rns151 CC='gcc -include stdlib.h' rns
+          make -C rns201 CC='gcc -include stdlib.h' rns
+          test "$(sha256sum rns151/rns | cut -d' ' -f1)" != "$(sha256sum rns201/rns | cut -d' ' -f1)"
+      - name: ACTUALLY SOLVE C RNS at M2.073 and reported f346.536369 both grids; retain every C trace
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f88/f88_real_two_grid_apr_rns.py \
+            --source results/F88 --eos results/F88/m.rns \
+            --eosmeta results/F88/F88_explicit_surface_source_conversion.json \
+            --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
+            --rns201 "$GITHUB_WORKSPACE/rns201/rns" \
+            --static results/F88/real_static_TOV.json \
+            --out results/F88/F88_REAL_two_grid_C_RNS.json \
+            2>&1 | tee results/F88/F88_REAL_C_execution.log
+      - name: Independent strict real physical C source acceptance (no synthetic success)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('results/F88/F88_REAL_two_grid_C_RNS.json').read_text())
+          a=d['audit'];assert 'TWO_REAL_INDEPENDENT_C_RNS_GR_ROOTS_NUMERICALLY_MATCHED' in a['status']
+          assert a['source_referenced_high_density_superluminal_nodes']==24
+          assert a['current_native_photon_calls']==0
+          assert len(set(d['binary_sha256'].values()))==2
+          assert sum(x['direct_C_evaluations'] for x in d['actual_C_stars'].values())>=10
+          print('F88_GENUINE_C_RNS_EINSTEIN_DUAL_MASS_FREQUENCY_NUMERIC_PASS',a['grids'])
+          PY
+      - name: Retain real original publisher source and every actual solver trace also on failure
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          p=Path('results/F88')
+          x={q.name:{'sha256':hashlib.sha256(q.read_bytes()).hexdigest(),'bytes':q.stat().st_size} for q in sorted(p.iterdir()) if q.is_file()}
+          (p/'F88_actual_C_RNS_SHA_receipt.json').write_text(json.dumps(x,indent=2)+'\n')
+          PY
+      - name: Archive actual C, source identity and genuine star records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID
+          path: results/F88/
+          if-no-files-found: warn
