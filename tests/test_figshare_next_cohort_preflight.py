@@ -26,9 +26,12 @@ class PreflightTests(unittest.TestCase):
     def test_large_input_triplet_skipped(self):
         a=source();a['files'][4]['size']=16_000_000
         self.assertEqual(inspect_metadata(a)['chosen_cohort']['testpoint'],'TP_k03')
-    def test_source_name_duplication_rejected(self):
-        a=source();a['files'][1]['name']=a['files'][0]['name']
-        with self.assertRaisesRegex(ValueError,'duplicate'):inspect_metadata(a)
+    def test_source_name_collision_detected_not_silently_overwritten(self):
+        a=source();a['files'][4]['name']=a['files'][3]['name']
+        r=inspect_metadata(a)
+        self.assertEqual(r['publisher_duplicate_filename_count'],1)
+        self.assertEqual(r['eligible_full_three_cell_cohorts'],1)
+        self.assertEqual(r['chosen_cohort']['testpoint'],'TP_k03')
     def test_source_id_duplication_rejected(self):
         a=source();a['files'][1]['id']=a['files'][0]['id']
         with self.assertRaisesRegex(ValueError,'duplicate'):inspect_metadata(a)
