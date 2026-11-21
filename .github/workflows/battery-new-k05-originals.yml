@@ -1,0 +1,126 @@
+name: Battery k05 three NEW publisher originals ET AT 10 23 45
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/figshare_k05_original_capacity.py'
+      - 'tests/test_figshare_k05_original_capacity.py'
+      - 'research/battery_curve_audit/figshare_next_cohort_preflight.py'
+      - 'tests/test_figshare_next_cohort_preflight.py'
+      - '.github/workflows/battery-new-k05-originals.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-three-k05-source-backed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - name: Checkout exact PR commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Source validity, malformed timestamp, authenticity and old regression tests
+        run: |
+          python -m unittest tests.test_figshare_k05_original_capacity tests.test_figshare_next_cohort_preflight tests.test_figshare_k01_et_at_capacity tests.test_figshare_k01_three_temperatures -v
+      - name: Prepare safe separate original licensed archive transfer directory
+        run: mkdir -p /tmp/cano_original_figshare_k05
+      - name: Download three NEW original publisher ZIPs, full MD5 and CRC, compute ET to AT
+        run: |
+          python -m research.battery_curve_audit.figshare_k05_original_capacity \
+            /tmp/cano_original_figshare_k05_etat_receipt.json \
+            --archive-dir /tmp/cano_original_figshare_k05
+      - name: Re-run exact tested scientific code completely offline on verified publisher bytes
+        run: |
+          python -m research.battery_curve_audit.figshare_k05_original_capacity \
+            /tmp/cano_original_figshare_k05_offline_receipt.json \
+            --offline-originals /tmp/cano_original_figshare_k05
+      - name: Compare full online and offline original-source results, excluding API-only metadata
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('/tmp')
+          online=json.loads((p/'cano_original_figshare_k05_etat_receipt.json').read_text())
+          offline=json.loads((p/'cano_original_figshare_k05_offline_receipt.json').read_text())
+          assert online['publisher_api_queried_this_run'] is True
+          assert offline['publisher_api_queried_this_run'] is False
+          assert online['publisher_doi']==offline['publisher_doi']
+          assert online['publisher_metadata_sha256'] is not None
+          assert offline['publisher_metadata_sha256'] is None
+          for obj in (online,offline):
+              for k in ('publisher_api_queried_this_run','publisher_metadata_sha256'):
+                  obj.pop(k,None)
+          assert online==offline
+          assert online['source_csv_files_processed']==18
+          assert online['source_temperature_pairs']==9
+          print('NEW_K05_LIVE_OFFLINE_FULL_MEASURED_SOURCE_CONTENT_IDENTICAL',online['original_timestamp_voltage_current_rows_processed'])
+          PY
+      - name: Enforce exact 3 source groups, dates and no invented physical claims
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from hashlib import md5
+          p=Path('/tmp/cano_original_figshare_k05_etat_receipt.json')
+          x=json.loads(p.read_text())
+          assert x['cohort']=='TP_k05'
+          assert x['original_archives_verified']==3
+          assert x['publisher_lab_internal_serials_distinct_across_archives'] is True
+          assert x['source_cells']==3 and x['source_temperature_pairs']==9
+          assert x['source_csv_files_processed']==18
+          assert x['original_timestamp_voltage_current_rows_processed']>500000
+          assert x['external_physical_sample_identity_authenticated'] is False
+          assert x['field_FPR_FNR_established'] is False
+          assert x['production_release_allowed'] is False
+          assert x['causal_storage_only_aging_established'] is False
+          pins={'TP_k05_04.zip':(11575252,'1f53af4102360914a5f254d1b35119f2'),
+                'TP_k05_05.zip':(11567664,'d106fde7c02f30e0963a922f9af0baa8'),
+                'TP_k05_06.zip':(11548013,'4d931628efab64a2e892333f073e6ae0')}
+          root=Path('/tmp/cano_original_figshare_k05')
+          assert set(f.name for f in root.iterdir())==set(pins)
+          for name,(n,m) in pins.items():
+              raw=(root/name).read_bytes()
+              assert len(raw)==n and md5(raw).hexdigest()==m
+          pairs=[]
+          for cell in x['source_archives']:
+              assert cell['publisher_md5_matched'] and cell['zip_crc_checked']
+              assert len(cell['source_profiles'])==3
+              assert {a['temperature_C'] for a in cell['source_profiles']}=={10,23,45}
+              for q in cell['source_profiles']:
+                  assert q['source_lab_and_internal_serial_match']
+                  assert q['field_FPR_FNR_established'] is False
+                  assert q['physical_cell_identity_independently_authenticated'] is False
+                  assert q['storage_only_aging_loss_proven'] is False
+                  assert q['original_csv_rows']>2000
+                  for k in ('et_mean_capacity_Ah','at_mean_capacity_Ah',
+                            'et_charge_capacity_Ah','at_charge_capacity_Ah',
+                            'et_discharge_capacity_Ah','at_discharge_capacity_Ah'):
+                      assert .2<q[k]<8
+                  pairs.append((cell['publisher_file_id'],q['temperature_C'],q['mean_change_percent'],q['charge_change_percent'],q['discharge_change_percent'],q['et_to_at_days']))
+          assert len(pairs)==9
+          print('NEW_REAL_K05_NEW_PHYSICAL_SOURCES_NOT_FIELD_CLAIMS',pairs)
+          PY
+      - name: Upload anonymous original-source numeric measurements only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-figshare-new-k05-18csv-actual-source-receipt
+          path: /tmp/cano_original_figshare_k05_etat_receipt.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Upload original-source fully offline-verified numeric receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-figshare-k05-18csv-offline-reproduction
+          path: /tmp/cano_original_figshare_k05_offline_receipt.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Temporary licensed original source ZIP bridge for permanent Library archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-figshare-new-k05-three-original-public-source-zips
+          path: /tmp/cano_original_figshare_k05/*.zip
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
