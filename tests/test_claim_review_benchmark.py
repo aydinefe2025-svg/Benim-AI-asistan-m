@@ -161,6 +161,19 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
             [f"v4_{index:02d}" for index in range(1, 25)])
 
 
+    def test_ambiguous_trial_excerpts_name_the_comparison_groups(self):
+        cases = {case["case_id"]: case["excerpt"]
+                 for case in SUPPLEMENTAL_COMPARISON_CASES}
+        self.assertIn("control group", cases["v4_05"].lower())
+        self.assertIn("finerenone vs placebo", cases["v4_07"].lower())
+        self.assertIn("finerenone", cases["v4_08"].lower())
+        self.assertIn("placebo", cases["v4_08"].lower())
+        self.assertIn("oral semaglutide", cases["v4_13"].lower())
+        self.assertIn("placebo", cases["v4_13"].lower())
+        self.assertIn("oral semaglutide", cases["v4_14"].lower())
+        self.assertIn("placebo", cases["v4_14"].lower())
+
+
 if __name__ == "__main__":
     unittest.main()
 
