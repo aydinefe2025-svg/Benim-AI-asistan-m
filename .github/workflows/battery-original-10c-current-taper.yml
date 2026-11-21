@@ -6,6 +6,8 @@ on:
       - 'research/battery_curve_audit/cccv_protocol_split.py'
       - 'tests/test_original_t10_tail_current_audit.py'
       - 'tests/test_cccv_protocol_split.py'
+      - 'research/battery_curve_audit/original_50soc_dcir.py'
+      - 'tests/test_original_50soc_dcir.py'
       - '.github/workflows/battery-original-10c-current-taper.yml'
   workflow_dispatch:
 permissions:
@@ -23,7 +25,7 @@ jobs:
           python-version: '3.12'
       - name: Source and targeted regression guards
         run: |
-          python -m unittest tests.test_original_t10_tail_current_audit tests.test_phase_boundary_thermal_audit tests.test_cccv_protocol_split -v
+          python -m unittest tests.test_original_t10_tail_current_audit tests.test_phase_boundary_thermal_audit tests.test_cccv_protocol_split tests.test_original_50soc_dcir -v
       - name: Fetch only four immutable publisher original ZIPs
         run: |
           python - <<'PY'
@@ -97,6 +99,48 @@ jobs:
               assert c['source_device_accuracy_or_calibration_verified'] is False
           print('FOUR_10C_SOURCE_CURRENT_TAPER_DESCRIPTIVE_ONLY_ACCEPTED')
           PY
+      - name: Independently extract author's 50-percent-SOC 1C 10-second DCIR pulse from 24 ORIGINAL CSVs
+        run: |
+          python -m research.battery_curve_audit.original_50soc_dcir \
+            /tmp/cano_original_four_50soc_dcir_24csv.json \
+            --original-dir /tmp/cano_original_four_t10_tail
+      - name: Verify real pulse counts, temperature sensitivity and scientific limitations
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('/tmp/cano_original_four_50soc_dcir_24csv.json')
+          x=json.loads(p.read_text())
+          assert x['publisher_originals_MD5_ZIP_CRC_verified'] is True
+          assert x['source_cells']==4
+          assert x['temperature_conditions_per_cell']==3
+          assert x['original_source_measurement_CSV']==24
+          assert x['original_rows_read']==7702133
+          assert x['observed_pseudoOCV_corrected_AT_higher_than_ET_count']==12
+          assert len(x['measurements'])==12
+          assert x['independent_physical_cell_count_NOT_12'] is True
+          assert x['12_condition_results_NOT_12_independent_cells'] is True
+          assert x['temperature_equalization_only_a_local_secant_sensitivity_not_calibration'] is True
+          assert x['measurement_calibration_uncertainty_quantified'] is False
+          assert x['measurement_bias_excluded'] is False
+          assert x['physical_cell_recovery_proven'] is False
+          assert x['field_FPR_FNR_established'] is False
+          assert x['commercial_release_allowed'] is False
+          assert sum(z['paired_protocol_variant_positive_count'] for z in x['measurements'])==70
+          assert all(z['paired_protocol_variant_total']==6 for z in x['measurements'])
+          assert sum(z['thermal_ET_secant_scenario_after_equalization_milliohm'][0]<0
+                     for z in x['measurements'] if z['temperature_setpoint_C']==10)==2
+          assert all(-5.1<z[stage]['pulse_current_A']<-4.75
+                     for z in x['measurements'] for stage in ('ET','AT'))
+          print('AUTHOR_50SOC_ORIGINAL_PULSE_24CSV_NOT_PHYSICAL_CLAIM',x['original_rows_read'])
+          PY
+      - name: Upload source-derived aggregate DCIR and thermal sensitivity only, never raw waveforms
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-four-source-24csv-50soc-10s-dcir-and-temperature-sensitivity
+          path: /tmp/cano_original_four_50soc_dcir_24csv.json
+          retention-days: 7
+          if-no-files-found: error
       - name: Upload numeric-only original source receipt, not raw signals
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
