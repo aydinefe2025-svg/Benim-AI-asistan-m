@@ -5,17 +5,31 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
-
+# The general Core test matrix intentionally installs no scientific packages.
+# Only the existing source-backed scientific job installs numpy/pandas/scipy.
+# Do NOT make all general CI jobs depend on large numerical wheels.
 try:
-    from research.battery_curve_audit.author_soc_units_audit import (
-        check_soc_capacity_axis, author_pulse_view, author_reproduction, audit,
-    )
-except ImportError:
-    from author_soc_units_audit import (
-        check_soc_capacity_axis, author_pulse_view, author_reproduction, audit,
-    )
+    import numpy as np
+    import pandas as pd
+except ModuleNotFoundError as e:
+    if e.name not in {"numpy", "pandas"}:
+        raise
+    np = pd = None
+
+if np is not None and pd is not None:
+    try:
+        from research.battery_curve_audit.author_soc_units_audit import (
+            check_soc_capacity_axis, author_pulse_view, author_reproduction, audit,
+        )
+    except ModuleNotFoundError as e:
+        if e.name == "research":
+            from author_soc_units_audit import (
+                check_soc_capacity_axis, author_pulse_view, author_reproduction, audit,
+            )
+        elif e.name == "scipy":
+            np = pd = None
+        else:
+            raise
 
 
 def synthetic_pulse_df():
@@ -32,6 +46,7 @@ def synthetic_pulse_df():
     return pd.DataFrame(rest+rows+rest_after)
 
 
+@unittest.skipUnless(np is not None and pd is not None, "Scientific NumPy/Pandas/SciPy only in dedicated publisher-source CI")
 class OriginalAuthorAxisTests(unittest.TestCase):
     def test_percent_axis_has_exact_100_fold_range(self):
         s=np.linspace(0,100,1001)
