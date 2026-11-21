@@ -367,8 +367,66 @@ st.markdown(
 )
 
 # 💬 SOHBET GEÇMİŞİ VE KULLANICI DENETİMLİ HAFIZA
+# The visible conversation is distinct from explicitly saved knowledge notes.
+# It is loaded per verified OIDC owner from the existing Neon connection.
+if st.session_state.get("_cano_chat_owner") != _OWNER_KEY:
+    st.session_state.pop("messages", None)
+    st.session_state.pop("_cano_chat_saved", None)
+    st.session_state["_cano_chat_owner"] = _OWNER_KEY
+_CHAT_STORE = None
+if _AUTH_REQUIRED and _OWNER_KEY and _MEMORY_DATABASE_URL:
+    try:
+        from core.cano_chat_history import ChatHistoryStore
+        _CHAT_STORE = ChatHistoryStore(_MEMORY_DATABASE_URL, _OWNER_KEY)
+        _CHAT_STORE.verify_schema()
+    except Exception:
+        st.error("CANO sohbet geçmişi Neon bağlantısı doğrulanamadı. Eski kayıtlara dokunulmadı.")
+        st.stop()
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    if _CHAT_STORE is not None:
+        try:
+            st.session_state.messages = _CHAT_STORE.load()
+            # Explicit last-confirmed baseline persists across Streamlit reruns.
+            # A tab with stale messages must not overwrite another device.
+            st.session_state["_cano_chat_saved"] = [
+                dict(item) for item in st.session_state.messages
+            ]
+        except Exception:
+            st.error("CANO sohbet geçmişi yüklenemedi; kayıtlar değiştirilmedi.")
+            st.stop()
+    else:
+        st.session_state.messages = []
+elif _CHAT_STORE is not None and "_cano_chat_saved" not in st.session_state:
+    # An old in-memory Streamlit session has no version receipt. Do not guess
+    # that it matches the database and overwrite a newer owner's messages.
+    st.error("Sohbet geçmişi sürümü doğrulanamadı. Yeni oturum açıp kayıtlı sohbeti yeniden yükleyin.")
+    st.stop()
+
+
+def _save_cano_chat():
+    if _CHAT_STORE is not None:
+        from core.cano_chat_history import ChatHistoryConflict, MAX_MESSAGES
+        try:
+            _CHAT_STORE.save(
+                st.session_state.messages,
+                expected=st.session_state["_cano_chat_saved"],
+            )
+            # Update the snapshot only AFTER commit and readback verification.
+            st.session_state["_cano_chat_saved"] = [
+                {"role":m["role"], "content":m["content"]}
+                for m in st.session_state.messages[-MAX_MESSAGES:]
+            ]
+        except ChatHistoryConflict:
+            st.error(
+                "Sohbet başka bir oturumda değişti; eski kayıt üzerine yazılmadı. "
+                "Bu oturumdaki yeni mesajı kaybetmemek için kopyalayın, "
+                "sonra kayıtlı sohbeti yeniden yükleyin."
+            )
+            st.stop()
+        except Exception:
+            st.error("CANO sohbeti Neon'a doğrulanarak kaydedilemedi. Yeni oturum açmayın.")
+            st.stop()
+
 if "saved_memories" not in st.session_state:
     if _MEMORY_STORE is not None:
         try:
@@ -1021,6 +1079,7 @@ if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
+    _save_cano_chat()
 
     # Explicit memory requests are saved instead of merely promised by an LLM.
     if explicit_memory_request(prompt):
@@ -1043,6 +1102,7 @@ if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
             except Exception:
                 result = "Kayıt başarısız oldu; hafızaya kaydedildiğini söylemiyorum."
         st.session_state.messages.append({"role": "assistant", "content": result})
+        _save_cano_chat()
         with st.chat_message("assistant"):
             st.markdown(result)
         st.stop()
@@ -1058,6 +1118,7 @@ if prompt := st.chat_input("Asistanınıza dilediğiniz her şeyi sorun..."):
             st.markdown(ajan_cevabi)
             
             st.session_state.messages.append({"role": "assistant", "content": ajan_cevabi})
+            _save_cano_chat()
 
 # CANO may propose a code change in normal chat. Its answer remains
 # untrusted content until the OIDC owner explicitly invokes this action.
@@ -1095,6 +1156,7 @@ if (_AUTH_REQUIRED and _OWNER_KEY and os.environ.get("AGENT_TASK_DATABASE_URL"))
                     st.session_state.messages.append({
                         "role": "assistant", "content": _result,
                     })
+                    _save_cano_chat()
                     st.rerun()
                 except Exception as exc:
                     logging.getLogger(__name__).warning(
@@ -1136,4 +1198,5 @@ if isinstance(_chat_pending_task, dict):
                 st.session_state.messages.append({
                     "role": "assistant", "content": _chat_task_result,
                 })
+                _save_cano_chat()
 
