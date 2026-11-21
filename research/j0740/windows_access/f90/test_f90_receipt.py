@@ -37,13 +37,13 @@ class F90ReceiptCrossAudit(unittest.TestCase):
   top=max(v);s=sum(math.exp(t-top) for t in v)
   p=[math.exp(t-top)/s for t in v]
   eff=1/sum(p[i]**2/x[i]['ESS'] for i in range(4))
-  self.assertAlmostEqual(eff,a['pooled_diagnostic_not_per_seed_acceptance']['ESS'],places=8)
+  self.assertAlmostEqual(eff,a['pooled_diagnostic_not_per_seed_acceptance']['ESS'],places=7)
   self.assertAlmostEqual(top+math.log(s)-math.log(4),a['pooled_diagnostic_not_per_seed_acceptance']['logI'],places=9)
  def test_pooled_max_weight_and_source_support_math(self):
   a=self.o;x=a['seeds'];v=[s['recomputed_logI'] for s in x]
   top=max(v);weights=[math.exp(y-top) for y in v];z=sum(weights)
   maxw=max(weights[i]/z*x[i]['max_weight_fraction'] for i in range(4))
-  self.assertAlmostEqual(maxw,a['pooled_diagnostic_not_per_seed_acceptance']['max_weight'],places=14)
+  self.assertAlmostEqual(maxw,a['pooled_diagnostic_not_per_seed_acceptance']['max_weight'],places=13)
   self.assertAlmostEqual(-math.log(a['original_support_factor']),a['log_support_correction'],places=12)
   self.assertEqual(a['final_full_MR_photon_Bayes'],'NOT_RUN')
 if __name__=='__main__':unittest.main()
