@@ -5,7 +5,9 @@ general performance against human reviewers. Expected labels stay server-side.
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import random
 
 from core.claim_evidence import _parse_assessments
 
@@ -182,6 +184,28 @@ def load_expected_labels(raw, cases=HUMAN_COMPARISON_CASES):
     if any(value not in allowed for value in answer_key.values()):
         raise ValueError("Private benchmark answer key contains invalid labels")
     return answer_key
+
+
+def blind_case_order(cases, *, seed, cohort):
+    """Return a stable, session-randomized order for blind human labeling.
+
+    The random seed is generated server-side and retained only in Streamlit
+    session state. Case IDs preserve label mapping across reruns; expected
+    labels are never needed to produce the order.
+    """
+    cases = tuple(cases)
+    if not cases or not isinstance(seed, str) or len(seed) < 32:
+        raise ValueError("A nonempty case set and session-random seed are required")
+    if not isinstance(cohort, str) or not cohort.strip():
+        raise ValueError("Benchmark cohort is required")
+    case_ids = [case.get("case_id") for case in cases if isinstance(case, dict)]
+    if len(case_ids) != len(cases) or len(set(case_ids)) != len(case_ids):
+        raise ValueError("Benchmark cases must have unique case IDs")
+    material = ("cano-blind-order-v1\\0" + cohort + "\\0" + seed).encode("utf-8")
+    random_seed = int.from_bytes(hashlib.sha256(material).digest(), "big")
+    shuffled = list(cases)
+    random.Random(random_seed).shuffle(shuffled)
+    return tuple(shuffled)
 
 
 def score_labels(cases, labels, expected_labels):
