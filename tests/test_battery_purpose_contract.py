@@ -55,6 +55,14 @@ class PurposeContractTests(unittest.TestCase):
         report["use_scope"]["physical_identity_or_field_release_allowed"]="false"
         with self.assertRaisesRegex(ValueError,"PURPOSE_REVIEW_REQUIRED"):
             contract.verify_scope(report)
+        report["use_scope"]=contract.scope("PASS_SCREEN_ONLY")
+        report["use_scope"]["physical_identity_or_field_release_allowed"]=0
+        with self.assertRaisesRegex(ValueError,"PURPOSE_REVIEW_REQUIRED"):
+            contract.verify_scope(report)
+        report["use_scope"]=contract.scope("PASS_SCREEN_ONLY")
+        report["use_scope"]["data_integrity_screen_clear"]=1
+        with self.assertRaisesRegex(ValueError,"PURPOSE_REVIEW_REQUIRED"):
+            contract.verify_scope(report)
         report["use_scope"]=None
         with self.assertRaisesRegex(ValueError,"PURPOSE_REVIEW_REQUIRED"):
             contract.verify_scope(report)
