@@ -1,0 +1,45 @@
+{
+  "RNS_upstream_git_commit": "97e85d325a33e37f702306414533f6cd77812477",
+  "all_publisher_source_causality": "FAIL_SOURCE_HAS_24_SUPERLUMINAL_HIGH_DENSITY_NODES",
+  "canonical_identical_target_J_both_grids_cgs": 4.8245626795750385e+48,
+  "central_rho_common_reference_g_cm3": 1742409723942500.0,
+  "direct_new_native_C_RNS_evaluations_count": "NOT_RUN",
+  "first_source_acausal_limit_g_cm3": 1830010935450065.8,
+  "full_axisymmetric_dynamic_mode_eigenproblem": "NOT_RUN",
+  "full_seven_EOS_native_XPSI_photon_Bayes": "NOT_RUN",
+  "last_rho_below_causality_barrier_fraction": 0.995,
+  "new_grid_density_factors": [
+    -0.12,
+    -0.09,
+    -0.06,
+    -0.03,
+    0.0,
+    0.025,
+    0.035,
+    0.04,
+    0.04502451734073554
+  ],
+  "origin": "GitHub F88 actual solver artifact 44818195695 and F89 real source artifact 44830567226, archive SHA verified, no fake stars or original Salmi 12.9GB redownload",
+  "original_328_APR_publisher_sha256": "8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12",
+  "original_F88_compiled_C_sha256": {
+    "151x301": "d1f8f3000ccf5006292895a3565a4a807fea316fed2e48e0693076ba4788da7f",
+    "201x401": "e1dc995ddb1bb781e5f500bf1223cc92d38f99dc631bece3dac2fcde4805a69f"
+  },
+  "original_F88_real_C_two_grid_receipt_sha256": "771d7b494821a43485a8e1248185e768efe9b26e10c0ac8d07b9c1c0f206bc36",
+  "original_F88_source_extended_eos_sha256": "7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580",
+  "original_F89_real_C_five_point_receipt_sha256": "f880db902d4ef26dc268030fcfaba83c74f5a499bf92b4c8be57f7888657d00f",
+  "provenance_real_old_five_samples_both_grids": true,
+  "same_absolute_density_both_grids_g_cm3": [
+    1533320557069400.0,
+    1585592848787675.0,
+    1637865140505950.0,
+    1690137432224225.0,
+    1742409723942500.0,
+    1785969967041062.2,
+    1803394064280487.2,
+    1812106112900200.0,
+    1820860880772815.2
+  ],
+  "schema": "J0740_F96_FROZEN_NEW_NATIVE_ROTATING_COMMON_J_TWO_GRID_CAUSAL_DOMAIN_DESIGN_V1",
+  "status": "PREFLIGHT_PASS_ONLY_REAL_C_JOB_NOT_YET_RUN"
+}
