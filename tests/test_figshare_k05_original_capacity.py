@@ -125,6 +125,22 @@ class NewK05SourceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'cannot save a second copy'):
                 run(save_originals=Path(td),offline_originals=Path(td))
 
+    def test_three_original_publisher_serials_are_distinct(self):
+        from research.battery_curve_audit.figshare_k05_original_capacity import require_distinct_publisher_source_identities
+        self.assertTrue(require_distinct_publisher_source_identities([('LAB_A','CELL_04'),('LAB_A','CELL_05'),('LAB_B','CELL_06')]))
+
+    def test_cross_archive_duplicate_serial_rejected_case_and_whitespace_normalized(self):
+        from research.battery_curve_audit.figshare_k05_original_capacity import require_distinct_publisher_source_identities
+        with self.assertRaisesRegex(ValueError,'duplicate publisher lab/internal serial'):
+            require_distinct_publisher_source_identities([('Lab_A','Serial_1'),(' Lab_A ',' serial_1 '),('Lab_A','Serial_3')])
+
+    def test_incomplete_or_blank_cross_archive_identity_rejected(self):
+        from research.battery_curve_audit.figshare_k05_original_capacity import require_distinct_publisher_source_identities
+        with self.assertRaisesRegex(ValueError,'incomplete'):
+            require_distinct_publisher_source_identities([('lab','one'),('lab','two')])
+        with self.assertRaisesRegex(ValueError,'invalid'):
+            require_distinct_publisher_source_identities([('lab','one'),('lab','two'),('','three')])
+
     def test_exact_publisher_pin_immutable_metadata_gate(self):
         f=[{'id':fid,'name':name,'size':size,'computed_md5':digest} for fid,name,size,digest in ORIGINALS]
         meta={'id':25975315,'doi':'10.6084/m9.figshare.25975315',
