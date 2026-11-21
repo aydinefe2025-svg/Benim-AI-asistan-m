@@ -51,7 +51,7 @@ jobs:
           F96_EVIDENCE_ZIP: results/F96/F96_genuine_original_Einstein_C_artifact.zip
           F96_F88_ARCHIVE: results/F88_NATIVE_SOURCE_REFERENCE.zip
           F96_F89_ARCHIVE: results/F89_NATIVE_SOURCE_REFERENCE.zip
-          F96_FROZEN_DESIGN: research/j0740/f96/F96_source_locked_real_dual_grid_preflight_20261121.json
+          F96_FROZEN_DESIGN: research/j0740/receipts/f96/F96_original_source_locked_design_exact_2043bytes.json
           F96_STATIC_SOURCE: research/j0740/f97/F97_new_source_causal_9point_real_static_GR_eigenmodes_20261121.json
           F96_AUDIT_OUT: results/F96/F96_independent_actual_Einstein_C_18star_archive_receipt_20261121.json
         run: |
