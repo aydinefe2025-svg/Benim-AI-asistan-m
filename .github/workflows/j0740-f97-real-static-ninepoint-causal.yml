@@ -1,0 +1,81 @@
+name: J0740 F97 actual publisher APR radial source-vs-interpolation causality on 9 physical TOV stars
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f97/**'
+      - '.github/workflows/j0740-f97-real-static-ninepoint-causal.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  nine_original_APR_static_GR_radial_source_models:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Source physics numerical libraries
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Reuse original 250kB publisher EOS ZIP from prior F88 actual source evidence (no big data redownload)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F88 results/F97 research/j0740/f95/source
+          gh run download 44818195695 -R "$GITHUB_REPOSITORY" -n J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID -D results/F88
+          printf '%s  %s\n' 8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12 results/F88/F87_verified_publisher_original.zip | sha256sum -c -
+          for f in F87_verified_publisher_original.zip eos.nb eos.thermo eos.mr; do cp "results/F88/$f" "research/j0740/f95/source/$f"; done
+          cp research/j0740/f97/F97_new_source_causal_9point_real_static_GR_eigenmodes_20261121.json results/F97/F97_original_committed_static_reference.json
+      - name: Compute genuinely new 9 static TOV masses/radii and 18 GR l0 radial eigenmode matrices
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -u research/j0740/f97/f97_source_causal_static_anchor_9points.py 2>&1 | tee results/F97/F97_REAL_ORIGINAL_EOS_GR_RADIAL_EXECUTION.log
+      - name: Nine independent real-source regression tests including 7 physical versus 2 acausal interpolation
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s research/j0740/f97 -p 'test_f97_real_apr_static_causal_interpolation.py' -v 2>&1 | tee results/F97/F97_NINE_ACTUAL_SOURCE_TESTS.log
+      - name: Independently cross-check original receipt against fresh source computation (never relabel acausal positive modes)
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          orig=json.loads(Path('results/F97/F97_original_committed_static_reference.json').read_text())
+          now=json.loads(Path('research/j0740/f97/F97_new_source_causal_9point_real_static_GR_eigenmodes_20261121.json').read_text())
+          assert orig['original_source_publisher_SHA256']==now['original_source_publisher_SHA256']
+          assert orig['F95_interpolated_physically_causal_static_star_count']==now['F95_interpolated_physically_causal_static_star_count']==7
+          assert orig['F95_interpolated_rejected_static_star_count']==now['F95_interpolated_rejected_static_star_count']==2
+          assert now['rotating_star_dynamic_axisymmetric_stability']=='NOT_RUN'
+          assert now['full_seven_EOS_native_photon_Bayes']=='NOT_RUN'
+          assert abs(orig['F95_interpolation_first_causality_failure_pressure_MeVfm3']-
+                     now['F95_interpolation_first_causality_failure_pressure_MeVfm3'])<.05
+          for old,new in zip(orig['new_physical_real_source_static_stars'],now['new_physical_real_source_static_stars']):
+           assert old['F95_interpolated_static_model_causal']==new['F95_interpolated_static_model_causal']
+           assert abs(old['static_mass_Msun']-new['static_mass_Msun'])<.00005
+           assert abs(old['static_R_km']-new['static_R_km'])<.005
+           assert abs(old['static_radial_modes'][-1]['fundamental_radial_Hz']-
+                      new['static_radial_modes'][-1]['fundamental_radial_Hz'])<3.
+          print('F97_REAL_SOURCE_7_CAUSAL_2_INTERPOLATED_ACAUSAL_STATIC_RADIAL_AGREE')
+          PY
+          cp research/j0740/f97/F97_new_source_causal_9point_real_static_GR_eigenmodes_20261121.json results/F97/
+      - name: Record exact SHA256 for source-derived physical outputs
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          d=Path('results/F97');d.mkdir(exist_ok=True,parents=True)
+          m={p.name:{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size} for p in sorted(d.iterdir()) if p.is_file()}
+          (d/'F97_REAL_APR_SOURCE_SHA256_MANIFEST.json').write_text(json.dumps(m,indent=2)+'\n')
+          PY
+      - name: Archive original-source physical computations and honest causality rejection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F97-REAL-APR-STATIC-9-MODELS-7-CAUSAL-2-INTERPOLATION-FAIL
+          path: results/F97/
+          if-no-files-found: warn
