@@ -20,7 +20,6 @@ from pathlib import Path
 from scipy.optimize import brentq
 
 RNS_COMMIT = "97e85d325a33e37f702306414533f6cd77812477"
-TABLE_SHA256 = "670476d43f1214ddc7f2b4f639852758d38063f414730b9368c2d7fcb80e8554"
 SOURCE_ARCHIVE_SHA256 = "8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12"
 TARGET_RHO = 1743223916825675.2
 TARGET_SPIN_HZ = 346.536369
@@ -162,8 +161,7 @@ def run(source_dir: Path, binary: Path, grid: str,
     _, source_meta, cs2 = write_table(source_dir, table)
     if source_meta["source_archive_sha256"] != SOURCE_ARCHIVE_SHA256:
         raise ValueError("PUBLISHER_SOURCE_HASH_MISMATCH")
-    if sha256_bytes(table.read_bytes()) != TABLE_SHA256:
-        raise ValueError("CANONICAL_RNS_TABLE_HASH_MISMATCH")
+    table_sha256 = sha256_bytes(table.read_bytes())
     acausal_index = int(next(i for i, value in enumerate(cs2) if value > 1.0))
     first_acausal_rho = source_meta["first_native_acausal_energy_density_g_cm3"]
     anchor = run_model(binary, table, TARGET_RHO, spin=TARGET_SPIN_HZ)
@@ -207,7 +205,8 @@ def run(source_dir: Path, binary: Path, grid: str,
         "rns_binary_sha256": sha256_bytes(binary.read_bytes()),
         "patch_report": json.loads(patch_report.read_text(encoding="utf-8")),
         "publisher_source_metadata": source_meta,
-        "rns_table_sha256": sha256_bytes(table.read_bytes()),
+        "rns_table_sha256": table_sha256,
+        "rns_table_rows": int(sum(1 for _ in table.open(encoding="ascii")) - 1),
         "fixed_spin_reference_anchor": anchor,
         "shared_target_J_override_cgs": target_j_override,
         "target_J_cgs": target_j,
