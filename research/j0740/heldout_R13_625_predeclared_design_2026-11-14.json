@@ -1,0 +1,44 @@
+{
+  "record_id": "J0740_predeclared_K4K8_new_heldout_point_2026-11-12",
+  "created_utc": "2026-11-12T09:24:12.0451720Z",
+  "status": "PREDECLARED_NOT_RUN",
+  "point_mass_msun": 2.0,
+  "point_radius_km": 13.625,
+  "method_pair": [
+    "K4",
+    "K8"
+  ],
+  "paired_scramble_seeds": [
+    197501,
+    197503,
+    197507,
+    197511
+  ],
+  "draws_per_seed": 512,
+  "training_point_msun_km": [
+    2.0,
+    14.0
+  ],
+  "training_seeds": [
+    194501,
+    194503,
+    194507,
+    194511
+  ],
+  "training_samples_reused": true,
+  "proposal_hashes": {
+    "K8": "d15f36be5a45b5d3d7c8a875077c8193c3c96ad03622e47b63e34dc00898c403",
+    "K4": "8ddc3e4f05831e651f82f7af5bb0b3c2c0421ec96aa5f48b0325dfcdab4b1211"
+  },
+  "model_sha256": "049a1ac945b09af595d282d958842cd95475e509d6b7e79b45c72d11096de227",
+  "thresholds": {
+    "budget_256_to_512_log_integral_drift_max": 0.1,
+    "ESS_per_run_min": 100,
+    "between_run_log_integral_spread_max": 0.2,
+    "max_weight_fraction_max": 0.05,
+    "phase_ESS_each_min": 30
+  },
+  "source_prior_or_likelihood_changed": false,
+  "sample_deletion_or_weight_clipping": false,
+  "EOS_Bayes": "NOT_RUN"
+}

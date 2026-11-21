@@ -1,0 +1,31 @@
+{
+  "candidate_sha256": "03ec2daa1ae00e643c589e5adda5c6b8f95e8317fd87db6705857fda38e66174",
+  "comparison_runner_sha256": "c233825a5a842e1b3c88de38c27b841e4b41167aa73e84e6f3e7b919604c3b76",
+  "fixed_gates": {
+    "max_between_seed_logZ_spread": 0.15,
+    "max_half_full_logZ_drift": 0.1,
+    "max_weight_fraction": 0.02,
+    "min_ess_per_seed": 200,
+    "min_phase_half_ess": 50,
+    "zero_cdf_endpoints": true
+  },
+  "heldout_per_seed": 1024,
+  "native_XPSI_calls": 0,
+  "note": "No further changes to candidate or gate after new synthetic holdout outcomes; not a native X-PSI validation.",
+  "source_data": "NONE",
+  "status": "PREDECLARED_SYNTHETIC_ONLY",
+  "study": "J0740_K2_MULTIMODAL_SYNTHETIC_INDEPENDENT_HOLDOUT_20261114_v1",
+  "synthetic_test_seeds": [
+    2301,
+    2303,
+    2307,
+    2311
+  ],
+  "synthetic_training_seed": 20261201,
+  "targets": [
+    "correlated_gaussian",
+    "symmetric_bimodal",
+    "phase_edge_two_modes"
+  ],
+  "training_rows_per_target": 4096
+}

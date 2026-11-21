@@ -1,0 +1,31 @@
+{
+  "record_id": "J0740_conditional_torus_math_tests_2026-11-12",
+  "date": "2026-11-12",
+  "status": "PASS_MATH_COMPONENT_ONLY",
+  "python": "3.12; NumPy 2.5.4; SciPy 1.18.1",
+  "test_command": "python -c sys.path.insert(...); runpy.run_path(test_conditional_wrapped_normal.py, run_name='__main__')",
+  "tests_run": 4,
+  "tests_passed": 4,
+  "tests_failed": 0,
+  "checks": [
+    "unit-torus midpoint-grid integral equals one at two x-conditioned means",
+    "Fourier density agrees with an independent wrapped bivariate Gaussian lattice sum",
+    "sampled first and cross Fourier moments agree with analytic wrapped-normal moments",
+    "non-positive-definite covariance is rejected"
+  ],
+  "module": {
+    "path": "research/j0740/windows_access/conditional_wrapped_normal.py",
+    "bytes": 3637,
+    "sha256": "b48c88a1b15808e60f4a4dcb0b85ae76c5b6efee7190038bc760235ed30290b1"
+  },
+  "test": {
+    "path": "research/j0740/windows_access/test_conditional_wrapped_normal.py",
+    "bytes": 2711,
+    "sha256": "a32072f57f189061b3dd90fb0ad0ebcd40a82ad78b15990482d1b76ba3770ab9"
+  },
+  "photon_likelihood_calls": 0,
+  "importance_sampling_runs": 0,
+  "scientific_gate_status": "NOT_EVALUATED",
+  "EOS_Bayes": "NOT_RUN"
+}
+

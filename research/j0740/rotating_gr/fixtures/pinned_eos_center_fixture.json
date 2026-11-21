@@ -1,0 +1,59 @@
+{
+  "schema": "j0740-7-eos-fixed-source-pins-v1",
+  "source_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+  "RNS_GR_original_run": 42353019033,
+  "RNS_GR_original_json_sha256": "d8e1bca98238f1d02e093c8455a18b7588ac7a2aac178571d579edc0865ddf3c",
+  "source_forensics_sha256": "c1e2e776d1c0032756e7aac8dda1022d698721748133610d798ada0a353c8412",
+  "source_center_audit_sha256": "7a142086ac844c29ed1078d63ffffcf38527efaff4ab81a5b5787187eef919e1",
+  "eos": {
+    "APR4_EPP": {
+      "expected_source_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+      "expected_source_rows": 865,
+      "center_rho_g_cm3": 1749731258530239.8,
+      "expected_native_negative_count_global": 0,
+      "expected_source_energy_nonincreasing_edges_global": 0
+    },
+    "ENG": {
+      "expected_source_sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953",
+      "expected_source_rows": 889,
+      "center_rho_g_cm3": 1483021236227356.5,
+      "expected_native_negative_count_global": 1,
+      "expected_source_energy_nonincreasing_edges_global": 1
+    },
+    "MPA1": {
+      "expected_source_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+      "expected_source_rows": 836,
+      "center_rho_g_cm3": 1015311728048624.8,
+      "expected_native_negative_count_global": 1,
+      "expected_source_energy_nonincreasing_edges_global": 1
+    },
+    "MS1": {
+      "expected_source_sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad",
+      "expected_source_rows": 895,
+      "center_rho_g_cm3": 614380385405121.4,
+      "expected_native_negative_count_global": 1,
+      "expected_source_energy_nonincreasing_edges_global": 1
+    },
+    "MS1B": {
+      "expected_source_sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c",
+      "expected_source_rows": 895,
+      "center_rho_g_cm3": 616339393801634.8,
+      "expected_native_negative_count_global": 1,
+      "expected_source_energy_nonincreasing_edges_global": 1
+    },
+    "WFF1": {
+      "expected_source_sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3",
+      "expected_source_rows": 868,
+      "center_rho_g_cm3": 2085048899941732.0,
+      "expected_native_negative_count_global": 1,
+      "expected_source_energy_nonincreasing_edges_global": 1
+    },
+    "WFF2": {
+      "expected_source_sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae",
+      "expected_source_rows": 872,
+      "center_rho_g_cm3": 1760243611310092.5,
+      "expected_native_negative_count_global": 1,
+      "expected_source_energy_nonincreasing_edges_global": 1
+    }
+  }
+}

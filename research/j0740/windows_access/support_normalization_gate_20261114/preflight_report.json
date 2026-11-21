@@ -1,0 +1,21 @@
+{
+  "EOS_Bayes": "NOT_RUN",
+  "full_MR_convergence": "NOT_ESTABLISHED",
+  "hypothetical_raw_logZ_equals_logS_conditional_logZ": 0.0,
+  "new_photon_calls": 0,
+  "real_xpsi_source_measure": "NOT_VERIFIED",
+  "source_support_log_probability_illustration": -1.3884023843652795,
+  "source_support_probability_illustration": 0.24947354926879406,
+  "status": "MATHEMATICAL_ONLY_SOURCE_NOT_VERIFIED",
+  "synthetic_quarter_support_corrected_logZ": 0.0,
+  "synthetic_quarter_support_raw_logZ": -1.3862943611198906,
+  "toy_conditional_logZ_bounds_95": [
+    -0.3163996534337299,
+    0.3540947690382341
+  ],
+  "toy_iid_support_interval_95": [
+    0.17545211362287674,
+    0.34304463548061603
+  ],
+  "unit_tests_pass": 8
+}

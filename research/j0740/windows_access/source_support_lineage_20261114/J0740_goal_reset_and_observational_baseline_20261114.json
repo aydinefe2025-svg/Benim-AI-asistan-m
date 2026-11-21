@@ -1,0 +1,98 @@
+{
+  "as_of_date": "2026-11-14",
+  "new_EOS_Bayes_computed": false,
+  "new_photon_likelihood_calls": 0,
+  "old_files_modified": false,
+  "revised_execution_order": [
+    "Acceptance A: archive-verified published 379669-sample M,R baseline (ACHIEVED, source MD5 and sample count verified).",
+    "Acceptance B: source-matched rotating EOS physics: inspect existing RNS 2.073 M_sun / 346.536 Hz roots, causal/stability support; label modified EOS candidates honestly.",
+    "Acceptance C: match posterior to original source-run byte identities, use published posterior divided by exact run-specific pi_eff(M,R) once to construct appropriately qualified effective likelihood with uncertainty/smoothing and population/mass measure; do not double-count radio timing.",
+    "Acceptance D: compute 7-model relative EOS comparison and independent method sensitivity; require additional full native X-PSI integration only where posterior-ratio/KDE evidence cannot pass convergence or source-lineage requirements."
+  ],
+  "schema": "j0740-roadblock-postmortem-recover-deliverable-v1",
+  "self_audit": {
+    "physics_limitation": "existing seven-source-EOS tests have causal or source-table issues; causal Steffen candidates are different models from original EOS tables; continuous stability and model priors are incomplete",
+    "root_error_1": "Wrong goal priority: optimized a 13D nuisance proposal at one arbitrary M,R point instead of delivering the already verified published M,R posterior as first completed product.",
+    "root_error_2": "Repeated exploratory sampler variants/expensive photon runs while not resolving exact source-run posterior/prior lineage and the EOS physical+selection measure.",
+    "root_error_3": "Confused a strict internal max-weight sampler gate with the existence of a valid observational M,R result. First independent v3 seed failed, but original published posterior is still usable for its documented inference scope.",
+    "root_error_4": "Failed to separate three acceptance levels: original-data reproduced observation, physically valid rotating-star EOS curves, and quantitative EOS Bayes posterior.",
+    "scientific_provenance_limitation": "source_lineage_gate.py still requires run-specific original posterior-prior byte-identity; phase30 prior-corrected KDE seven-EOS calculation is explicitly nonfinal."
+  },
+  "verified_new_independent_v3": {
+    "EOS_Bayes": "NOT_RUN",
+    "full_MR_convergence": "NOT_ESTABLISHED",
+    "heldout": [
+      {
+        "ESS": 430.7264905645419,
+        "half_to_full_logI_drift": 0.02366082393564284,
+        "max_weight_fraction": 0.026068854248150627,
+        "min_phase_half_ESS": 182.38717212369775,
+        "seed": 198301,
+        "status": "FAIL"
+      },
+      {
+        "ESS": 590.7031633803365,
+        "half_to_full_logI_drift": 0.012677782640821533,
+        "max_weight_fraction": 0.012936581128734876,
+        "min_phase_half_ESS": 276.1730542228586,
+        "seed": 198303,
+        "status": "PASS"
+      },
+      {
+        "ESS": 530.0511487941106,
+        "half_to_full_logI_drift": 0.015380695549538359,
+        "max_weight_fraction": 0.01881568447601452,
+        "min_phase_half_ESS": 246.06824375768758,
+        "seed": 198307,
+        "status": "PASS"
+      },
+      {
+        "ESS": 548.7892982600112,
+        "half_to_full_logI_drift": 0.0409959208809596,
+        "max_weight_fraction": 0.017841777547097884,
+        "min_phase_half_ESS": 239.95917228030592,
+        "seed": 198311,
+        "status": "PASS"
+      }
+    ],
+    "source_photon_likelihood_calls": 10817,
+    "status": "FAIL",
+    "training_ESS": 829.5930208587542
+  },
+  "verified_observational_baseline": {
+    "classification": "PUBLISHED_SALMI_NICER_XMM_MR_POSTERIOR_RECALCULATED_NOT_NEW_ASTROPHYSICAL_DISCOVERY",
+    "equatorial_radius_km": {
+      "equal_tailed_quantiles": {
+        "0.025": 10.956336566892356,
+        "0.160": 11.606566092807602,
+        "0.500": 12.48812730513,
+        "0.840": 13.759246376339398,
+        "0.975": 15.173763596116462
+      },
+      "mean": 12.651933922799588
+    },
+    "mass_msun": {
+      "equal_tailed_quantiles": {
+        "0.025": 1.938963839669812,
+        "0.160": 2.004486766787342,
+        "0.500": 2.072787565429533,
+        "0.840": 2.1417026430988013,
+        "0.975": 2.207490045500042
+      },
+      "mean": 2.07295443490946
+    },
+    "mass_radius_correlation": 0.2718021220800945,
+    "posterior_member": "mr_samples_and_contours/J0740_gamma_NxX_lp40k_se001_mrsamples_post_equal_weights.dat",
+    "radius_gt_16_count": 0,
+    "rows": 379669,
+    "scope": "marginal observational posterior from pre-existing published samples; not full 15D likelihood reconstruction",
+    "source_archive": "mr_samples_and_contours.tar.gz",
+    "source_archive_md5": "ca8e70eeca81feb71321f1a88a24f2f9"
+  },
+  "verified_original_prior": {
+    "Z_star": 0.5780634963185343,
+    "grid_integral": 0.9999999999999993,
+    "source": "normalized_source_prior_results.json",
+    "status": "ORIGINAL_15D_SOURCE_PRIOR_MARGINAL_FACTORIZATION_NORMALIZED"
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "schema": "j0740-f34-existing-gr-radius-band-crosswalk-v1",
+  "recorded_date": "2026-11-17",
+  "status": "DIAGNOSTIC_CROSSWALK_ONLY_NOT_EOS_BAYES",
+  "inputs": {
+    "f34_comment": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/issues/280#issuecomment-6949353641",
+    "f34_zip_sha256": "79f52a158ff416d8571ca03143592ded45389401c2cc3d5fed783ad2636680ae",
+    "f34_mass_window_msun": {
+      "center": 2.082,
+      "half_width": 0.025,
+      "includes_gr_root_mass": 2.073
+    },
+    "f34_prior_corrected_band_likelihood_contrasts": {
+      "likelihood_ratio_12_14_over_10_12": 2.0661415503365594,
+      "likelihood_ratio_12_14_over_14_16": 4.637664847676289,
+      "interpretation": "Integrated equal-width radius-band contrast over the selected mass window; not a pointwise EOS-curve likelihood or Bayes factor."
+    },
+    "gr_eos_diagnostic_file": "A01.01.51/PSR_J0740+6620/J0740_native_source_eos_physics_20261116.json",
+    "gr_eos_diagnostic_file_bytes": 5289,
+    "gr_eos_diagnostic_file_sha256": "7f11320931da6b58586f51aa3259aaf7bb11dfaa5a73174f5f4867d48387c2bb",
+    "rotating_root": {
+      "mass_msun": 2.073,
+      "spin_hz": 346.536369,
+      "source_rns_commit": "97e85d325a33e37f702306414533f6cd77812477",
+      "source_jester_commit": "e6768650ce992abfd1153a6833857572fe5cd230"
+    }
+  },
+  "method": {
+    "rule": "Classify stored GR radius into F34 2-km bins [10,12), [12,14), [14,16]; otherwise outside support.",
+    "no_photon_likelihood_rerun": true,
+    "no_rns_rerun": true,
+    "no_source_eos_values_changed": true
+  },
+  "models": [
+    {
+      "eos": "APR4_EPP",
+      "gr_radius_km": 10.76,
+      "band": "10-12",
+      "source_physics": "No negative or superluminal source nodes through computed center; global high-density source causality violation remains."
+    },
+    {
+      "eos": "ENG",
+      "gr_radius_km": 11.59,
+      "band": "10-12",
+      "source_physics": "Superluminal native source node within rotating star."
+    },
+    {
+      "eos": "MPA1",
+      "gr_radius_km": 12.53,
+      "band": "12-14",
+      "source_physics": "Negative native source cs2 node."
+    },
+    {
+      "eos": "MS1",
+      "gr_radius_km": 15.26,
+      "band": "14-16",
+      "source_physics": "Negative native source cs2 node."
+    },
+    {
+      "eos": "MS1B",
+      "gr_radius_km": 14.99,
+      "band": "14-16",
+      "source_physics": "Negative native source cs2 node."
+    },
+    {
+      "eos": "WFF1",
+      "gr_radius_km": 9.98,
+      "band": "outside-10-16",
+      "source_physics": "Superluminal native source node within rotating star."
+    },
+    {
+      "eos": "WFF2",
+      "gr_radius_km": 10.62,
+      "band": "10-12",
+      "source_physics": "Superluminal native source node within rotating star."
+    }
+  ],
+  "result": {
+    "counts": {
+      "band_10_12": 3,
+      "band_12_14": 1,
+      "band_14_16": 2,
+      "outside_10_16": 1
+    },
+    "only_model_in_highest_integrated_likelihood_band": "MPA1"
+  },
+  "gates": {
+    "continuous_2d_likelihood_along_eos_curves": "NOT_VALIDATED",
+    "physical_seven_eos_acceptance": "NOT_ESTABLISHED",
+    "eos_bayes": "NOT_RUN"
+  },
+  "caveat": "The F34 integrated band contrast cannot be assigned to an individual EOS radius point. This mapping is a diagnostic visualization/classification only and does not rank EOS models."
+}

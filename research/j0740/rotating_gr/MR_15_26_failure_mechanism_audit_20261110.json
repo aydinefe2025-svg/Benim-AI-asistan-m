@@ -1,0 +1,252 @@
+{
+  "status": "EXPLANATORY_DIAGNOSTIC_NOT_CONVERGED",
+  "date": "2026-11-10",
+  "anchor_mass_radius_msun_km": [
+    2.073,
+    15.26
+  ],
+  "source_failure_status": "DEFENSIVE_CONDITIONAL_GMM_PROPOSAL_FAILS_INDEPENDENT_VALIDATION",
+  "new_native_likelihood_calls": 0,
+  "runs": [
+    {
+      "strongest_weighted_correlations": [
+        {
+          "r": 0.9992639970775888,
+          "parameters": [
+            "primary_phase",
+            "secondary_phase"
+          ]
+        },
+        {
+          "r": -0.7844721303098874,
+          "parameters": [
+            "primary_logT",
+            "NH"
+          ]
+        },
+        {
+          "r": -0.7706480809617958,
+          "parameters": [
+            "primary_radius",
+            "primary_logT"
+          ]
+        },
+        {
+          "r": -0.608915400281602,
+          "parameters": [
+            "secondary_radius",
+            "secondary_logT"
+          ]
+        },
+        {
+          "r": 0.5691227525011061,
+          "parameters": [
+            "primary_radius",
+            "secondary_radius"
+          ]
+        }
+      ],
+      "ess": 25.04483418344692,
+      "seed": 131301,
+      "max_weight_fraction": 0.11633054306948973,
+      "top_5pct_weight_fraction": 0.6592658102357082,
+      "phase_ess": [
+        14.043280306060197,
+        11.091802940788282
+      ],
+      "draws": 512
+    },
+    {
+      "strongest_weighted_correlations": [
+        {
+          "r": 0.9991563434824499,
+          "parameters": [
+            "primary_phase",
+            "secondary_phase"
+          ]
+        },
+        {
+          "r": -0.7838428510692621,
+          "parameters": [
+            "secondary_radius",
+            "secondary_logT"
+          ]
+        },
+        {
+          "r": -0.754981318343379,
+          "parameters": [
+            "primary_radius",
+            "primary_logT"
+          ]
+        },
+        {
+          "r": 0.6549125878005195,
+          "parameters": [
+            "primary_radius",
+            "NH"
+          ]
+        },
+        {
+          "r": -0.6525952029231975,
+          "parameters": [
+            "primary_logT",
+            "NH"
+          ]
+        }
+      ],
+      "ess": 58.82289646761545,
+      "seed": 131303,
+      "max_weight_fraction": 0.03990321210034358,
+      "top_5pct_weight_fraction": 0.5622251407665211,
+      "phase_ess": [
+        35.41369131424873,
+        23.45506664412178
+      ],
+      "draws": 512
+    },
+    {
+      "strongest_weighted_correlations": [
+        {
+          "r": 0.9992280455146859,
+          "parameters": [
+            "primary_phase",
+            "secondary_phase"
+          ]
+        },
+        {
+          "r": -0.7843674058369786,
+          "parameters": [
+            "primary_radius",
+            "primary_logT"
+          ]
+        },
+        {
+          "r": -0.781179719784886,
+          "parameters": [
+            "secondary_radius",
+            "secondary_logT"
+          ]
+        },
+        {
+          "r": -0.7286852124139814,
+          "parameters": [
+            "primary_logT",
+            "NH"
+          ]
+        },
+        {
+          "r": 0.6540512627116656,
+          "parameters": [
+            "primary_radius",
+            "NH"
+          ]
+        }
+      ],
+      "ess": 42.85569733251227,
+      "seed": 131307,
+      "max_weight_fraction": 0.08612486598712181,
+      "top_5pct_weight_fraction": 0.6045784970148664,
+      "phase_ess": [
+        32.35299375225449,
+        16.009019917751203
+      ],
+      "draws": 512
+    },
+    {
+      "strongest_weighted_correlations": [
+        {
+          "r": 0.9992134644157904,
+          "parameters": [
+            "primary_phase",
+            "secondary_phase"
+          ]
+        },
+        {
+          "r": -0.8845358929641474,
+          "parameters": [
+            "primary_radius",
+            "primary_logT"
+          ]
+        },
+        {
+          "r": -0.8220319577537505,
+          "parameters": [
+            "secondary_radius",
+            "secondary_logT"
+          ]
+        },
+        {
+          "r": -0.7603755042883152,
+          "parameters": [
+            "secondary_logT",
+            "NH"
+          ]
+        },
+        {
+          "r": 0.7494301542742982,
+          "parameters": [
+            "primary_radius",
+            "secondary_radius"
+          ]
+        }
+      ],
+      "ess": 56.29424510830886,
+      "seed": 131311,
+      "max_weight_fraction": 0.05664726315515497,
+      "top_5pct_weight_fraction": 0.5519695218671706,
+      "phase_ess": [
+        34.112093834344606,
+        25.512389825003236
+      ],
+      "draws": 512
+    }
+  ],
+  "aggregate": {
+    "log_integral_spread": 0.4640620963400579,
+    "ess_range": [
+      25.04483418344692,
+      58.82289646761545
+    ],
+    "point_separated_training_holdout": "FAIL: GMM training and validation shared the same fixed M,R",
+    "max_256_to_512_drift": 0.15956084006029414,
+    "candidate_failure_mechanism": "Strong coupled phase mode structure and radius-temperature-NH correlations combined with a heavy importance-weight tail; consistent with proposal undercoverage/shape mismatch, not proof of unique cause."
+  },
+  "independent_cross_point_k4_comparator": {
+    "ess": [
+      171.01240416947275,
+      126.83726442084865,
+      140.44402994996412,
+      137.36884761594752
+    ],
+    "training_mass_radius_msun_km": [
+      2.073,
+      14.5
+    ],
+    "max_weights": [
+      0.018465663345017973,
+      0.0336213861494929,
+      0.037252982040261375,
+      0.0340748352412971
+    ],
+    "interpretation": "Previously completed, independent point-separated K4 validation; not a full M,R-domain certificate and not rerun.",
+    "status": "PASS_FIXED_MR_NUISANCE_INTEGRATION_ONLY",
+    "seed_count": 4,
+    "log_integral_spread": 0.14558070062776096,
+    "test_mass_radius_msun_km": [
+      2.073,
+      15.26
+    ]
+  },
+  "source_hashes": {
+    "cross_point_k4_pass": "37b6b4bdd7a634941a3d422bebd06bc7929b2b484c9130722066fda629790978",
+    "failed_proposal": "83d660308479979079029338082e59b03c40e181f89291158c49ba7ed1f81cc5",
+    "weighted_correlation_audit": "a79b5e7a739c329cea029c62c411f1fb92e15339ccfb6afe291bfb171aeaf9b8"
+  },
+  "limitations": [
+    "Weighted correlations and mode summaries use low-ESS runs and are exploratory.",
+    "No unique causal mechanism or full-domain convergence is established.",
+    "No weights were clipped or samples removed.",
+    "EOS_Bayes=NOT_RUN."
+  ]
+}
+

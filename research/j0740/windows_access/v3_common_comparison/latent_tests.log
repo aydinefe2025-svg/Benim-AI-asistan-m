@@ -1,0 +1,11 @@
+test_density_matches_independent_scipy_oracle (test_defensive_latent_v3.DefensiveLatentTests.test_density_matches_independent_scipy_oracle) ... ok
+test_independent_synthetic_heldout_improves_ess_without_reweighting_training (test_defensive_latent_v3.DefensiveLatentTests.test_independent_synthetic_heldout_improves_ess_without_reweighting_training) ... ok
+test_native_source_cdf_endpoint_stress_guard (test_defensive_latent_v3.DefensiveLatentTests.test_native_source_cdf_endpoint_stress_guard) ... ok
+test_rejects_invalid_inputs_without_clipping (test_defensive_latent_v3.DefensiveLatentTests.test_rejects_invalid_inputs_without_clipping) ... ok
+test_sample_has_finite_density_and_exact_defensive_floor (test_defensive_latent_v3.DefensiveLatentTests.test_sample_has_finite_density_and_exact_defensive_floor) ... ok
+test_training_only_fit_is_deterministic_and_preserves_zero_weight_draws (test_defensive_latent_v3.DefensiveLatentTests.test_training_only_fit_is_deterministic_and_preserves_zero_weight_draws) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.494s
+
+OK

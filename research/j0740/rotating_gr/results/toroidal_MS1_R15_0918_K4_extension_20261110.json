@@ -1,0 +1,22 @@
+{
+  "record_id": "A01.01.51_J0740_MS1_R15_0918_K4_extension_20261110",
+  "status": "PASS_FIXED_MR_NUISANCE_INTEGRATION_ONLY",
+  "fixed_mass_radius_msun_km": [2.073, 15.09178666],
+  "method": "Frozen q(z)=0.7 exact conditional transport base + 0.3 correlated toroidal K4; four independent scrambled Sobol sequences extended from 512 to 1024 draws, preserving and exact-prefix-checking all existing 512 evaluations.",
+  "xpsi_version": "1.2.0",
+  "seeds": [221501, 221503, 221507, 221511],
+  "new_photon_calls": 1884,
+  "runs": [
+    {"seed": 221501, "draws": 1024, "ess": 304.88497751187765, "max_weight": 0.019413034471730526, "phase_ess": [148.53247052462348, 157.492720111202], "log_integral": -21891.250073028637, "drift_256_to_512": 0.046403662647207966, "drift_512_to_1024": -0.003509258214762667},
+    {"seed": 221503, "draws": 1024, "ess": 167.63742745896002, "max_weight": 0.036261305674920044, "phase_ess": [129.74612448215592, 65.338128398378], "log_integral": -21891.154970179072, "drift_256_to_512": -0.019310022340505384, "drift_512_to_1024": 0.056194834476627875},
+    {"seed": 221507, "draws": 1024, "ess": 295.1099393256477, "max_weight": 0.021588242437796952, "phase_ess": [141.51927636169643, 156.67661683133161], "log_integral": -21891.234317008046, "drift_256_to_512": -0.0019669003668241203, "drift_512_to_1024": 0.09302915503940312},
+    {"seed": 221511, "draws": 1024, "ess": 225.98318033144497, "max_weight": 0.0297874872390315, "phase_ess": [122.19924755448785, 104.20171955707669], "log_integral": -21891.167215424146, "drift_256_to_512": -0.06482420009342604, "drift_512_to_1024": -0.08120948536452488}
+  ],
+  "aggregate": {"between_run_log_integral_range": 0.0951028495655919, "minimum_ess": 167.63742745896002, "maximum_weight": 0.036261305674920044, "minimum_phase_ess": 65.338128398378, "maximum_absolute_drift_256_to_512": 0.06482420009342604, "maximum_absolute_drift_512_to_1024": 0.09302915503940312},
+  "gates": {"ess_each_ge_100": true, "max_weight_each_le_0.05": true, "phase_ess_each_ge_30": true, "between_run_range_le_0.2": true, "drift_256_to_512_each_le_0.1": true, "drift_512_to_1024_each_le_0.1": true},
+  "support_normalization": 0.24947354926879406,
+  "source_prior_or_likelihood_changed": false,
+  "scientific_scope": {"fixed_MR_nuisance_integral": "PASS", "full_continuous_MR_domain": "NOT_ESTABLISHED", "full_EOS_sequence_and_prior_normalization": "INCOMPLETE", "historical_logZ_discrepancy": "UNRESOLVED", "EOS_Bayes": "NOT_RUN"},
+  "raw_photon_data_uploaded": false,
+  "large_archive_redownloaded_or_uploaded": false
+}

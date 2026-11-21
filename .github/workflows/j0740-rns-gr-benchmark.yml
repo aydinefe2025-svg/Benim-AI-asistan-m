@@ -55,7 +55,7 @@ jobs:
           python -m compileall -q .
           python -m unittest -v test_rns_benchmark test_jester_to_rns test_validate_jester_rns test_target_mass_rns
       - name: Compile upstream RNS C relativity solver
-        run: make -C rns-upstream rns
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
       - name: Run original published APR 300 Hz control and J0740-spin 346.536369 Hz simulation
         run: |
           python research/j0740/rotating_gr/rns_benchmark.py \

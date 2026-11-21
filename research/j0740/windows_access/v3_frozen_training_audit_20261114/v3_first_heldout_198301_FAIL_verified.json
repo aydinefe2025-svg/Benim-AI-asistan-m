@@ -1,0 +1,189 @@
+{
+  "EOS_Bayes": "NOT_RUN",
+  "frozen_proposal_sha256": "2bc0bc1b1178f49422c72edbf89866404eb6133296bb92155485213fa55d85a8",
+  "gates": {
+    "ESS_min_400": true,
+    "drift_max_0p10": true,
+    "maxW_max_0p02": false,
+    "min_phase_ESS_min_100": true
+  },
+  "independently_reconstructed": {
+    "ESS": 430.7264905645419,
+    "finite_source_likelihood_count": 1721,
+    "half_full_logI_drift": 0.02366082393564284,
+    "logI": -21890.22383656928,
+    "max_weight_fraction": 0.026068854248150627,
+    "min_phase_half_ESS": 182.38717212369775,
+    "phase_half_ESS": [
+      182.38717212369775,
+      282.27418425123926
+    ]
+  },
+  "interpretation": "The first preregistered held-out seed fails maxW=0.02 despite other three within-seed gates passing. New adjusted candidate is not validated. Training mode ~z2 -0.62 and first heldout ~z2 -0.675 overlap but exact cause is not yet proven.",
+  "jsonl_sha256": "e35bee49ef3a4a5c9954927714fb457f094472749d3b808625b8a11176351c5d",
+  "kind": "EXACT_2048_DRAW_HELDOUT_FIRST_SEED_FAIL",
+  "max_abs_logweight_reconstruction_difference": 0.0,
+  "new_photon_calls_by_audit": 0,
+  "npz_sha256": "2289a061260e20998ee87a36f610d8955735d25f31f2dfbe4031219d2af5e29b",
+  "other_heldout_seeds_still_running": true,
+  "overall_protocol_pass_is_possible": false,
+  "preregistered_runner_sha256": "e5c2dedcc873b35547d1c55a673b424a3daf42f311fd38edbbccf64bbad19ac3",
+  "sample_identity_rows_pass": 2048,
+  "schema": "j0740-v3-first-heldout-source-independent-audit-20261114-v1",
+  "seed": 198301,
+  "source_model_sha256": "049a1ac945b09af595d282d958842cd95475e509d6b7e79b45c72d11096de227",
+  "source_prior_and_likelihood_mutated": false,
+  "status": "FAIL",
+  "top_samples": [
+    {
+      "fraction_of_total_normalized_weight": 0.026068854248150627,
+      "index": 932,
+      "logL": -21869.47995219453,
+      "logq": 1.327443269051449,
+      "logq_base": 1.8969235054330185,
+      "mixture_pdf_component_share": {
+        "K4_core": 0.10665723777704818,
+        "base": 0.8836741046818791,
+        "broad_tail": 0.009668657541072668
+      },
+      "q_v3_over_q_base": 0.5658194546506483,
+      "z2": -0.6747732099574584,
+      "z6": -0.8990603400489771
+    },
+    {
+      "fraction_of_total_normalized_weight": 0.009420487586637195,
+      "index": 1900,
+      "logL": -21869.207487654145,
+      "logq": 4.348505271060612,
+      "logq_base": 4.073225909793417,
+      "mixture_pdf_component_share": {
+        "K4_core": 0.6191548449337348,
+        "base": 0.37967997891543737,
+        "broad_tail": 0.00116517615082805
+      },
+      "q_v3_over_q_base": 1.3168985139228526,
+      "z2": -0.6342840073057504,
+      "z6": -0.8873007842435441
+    },
+    {
+      "fraction_of_total_normalized_weight": 0.009392440095787498,
+      "index": 501,
+      "logL": -21865.75604425158,
+      "logq": 0.7998639433307568,
+      "logq_base": 1.4821794166023756,
+      "mixture_pdf_component_share": {
+        "K4_core": 0.005619139854009343,
+        "base": 0.9892267444187752,
+        "broad_tail": 0.005154115727215497
+      },
+      "q_v3_over_q_base": 0.5054452913055607,
+      "z2": -0.6318821696931536,
+      "z6": -0.8774486148142171
+    },
+    {
+      "fraction_of_total_normalized_weight": 0.008895474093650687,
+      "index": 1681,
+      "logL": -21866.931801507802,
+      "logq": 5.620411130955351,
+      "logq_base": 6.267091373281014,
+      "mixture_pdf_component_share": {
+        "K4_core": 0.04522744142110546,
+        "base": 0.9545961206815458,
+        "broad_tail": 0.0001764378973487433
+      },
+      "q_v3_over_q_base": 0.523781722099413,
+      "z2": 0.46432751978193326,
+      "z6": 0.7067919127975312
+    },
+    {
+      "fraction_of_total_normalized_weight": 0.006504212358851056,
+      "index": 782,
+      "logL": -21867.43164457295,
+      "logq": 2.9911961910421563,
+      "logq_base": 3.528587989156366,
+      "mixture_pdf_component_share": {
+        "K4_core": 0.14255807178910895,
+        "base": 0.8557685007671492,
+        "broad_tail": 0.0016734274437419934
+      },
+      "q_v3_over_q_base": 0.5842701613249108,
+      "z2": 0.48455019862177745,
+      "z6": 0.7106796556591707
+    },
+    {
+      "fraction_of_total_normalized_weight": 0.005345060150618515,
+      "index": 1532,
+      "logL": -21868.92646663955,
+      "logq": 2.9469313173398346,
+      "logq_base": 3.2187863951459854,
+      "mixture_pdf_component_share": {
+        "K4_core": 0.3416565547793435,
+        "base": 0.6561983960531806,
+        "broad_tail": 0.002145049167475837
+      },
+      "q_v3_over_q_base": 0.7619646786815346,
+      "z2": 0.4799907870115378,
+      "z6": 0.7201350804561054
+    },
+    {
+      "fraction_of_total_normalized_weight": 0.005257755224570863,
+      "index": 649,
+      "logL": -21863.73720571146,
+      "logq": 3.7979590848154916,
+      "logq_base": 4.400840757893804,
+      "mixture_pdf_component_share": {
+        "K4_core": 0.08480108731356868,
+        "base": 0.9136885619144239,
+        "broad_tail": 0.0015103507720073523
+      },
+      "q_v3_over_q_base": 0.5472324168668202,
+      "z2": -0.6444515228370867,
+      "z6": -0.8369238771572479
+    },
+    {
+      "fraction_of_total_normalized_weight": 0.004369753789250031,
+      "index": 1769,
+      "logL": -21864.521741693043,
+      "logq": 1.2136162314730412,
+      "logq_base": 1.2342215885771597,
+      "mixture_pdf_component_share": {
+        "K4_core": 0.4787564062369709,
+        "base": 0.5104095565616865,
+        "broad_tail": 0.010834037201342633
+      },
+      "q_v3_over_q_base": 0.9796054826406284,
+      "z2": -0.678227263319669,
+      "z6": -0.9327752239073215
+    },
+    {
+      "fraction_of_total_normalized_weight": 0.004275140501947993,
+      "index": 1066,
+      "logL": -21871.6493487643,
+      "logq": 0.06209212369710315,
+      "logq_base": 0.04899313803425587,
+      "mixture_pdf_component_share": {
+        "K4_core": 0.4856338815800179,
+        "base": 0.4934932163392709,
+        "broad_tail": 0.020872902080711155
+      },
+      "q_v3_over_q_base": 1.0131851532002736,
+      "z2": 0.45136151180997813,
+      "z6": 0.6942128045732568
+    },
+    {
+      "fraction_of_total_normalized_weight": 0.004274978326004554,
+      "index": 1622,
+      "logL": -21867.029354567065,
+      "logq": 3.3845948472989558,
+      "logq_base": 3.797571848791883,
+      "mixture_pdf_component_share": {
+        "K4_core": 0.2417218265716938,
+        "base": 0.7556551338272116,
+        "broad_tail": 0.0026230396010947874
+      },
+      "q_v3_over_q_base": 0.661677500247528,
+      "z2": -0.6087552554180379,
+      "z6": -0.8590659660873136
+    }
+  ]
+}

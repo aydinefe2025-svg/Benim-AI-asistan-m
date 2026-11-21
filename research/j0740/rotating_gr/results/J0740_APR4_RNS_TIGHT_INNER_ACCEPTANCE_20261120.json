@@ -1,0 +1,94 @@
+{
+  "checks": [
+    {
+      "detail": "PASS_NUMERICAL_ROOT_AND_CROSS_MESH",
+      "name": "result_status",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "baseline_failure_sha256": "957f1d10a44f52fa7efb1651048247704380e38908b10856036fcf93fef871a4",
+        "eos_table_bytes": 17252,
+        "eos_table_sha256": "f74664c90d95cdbd82c032b251bd176e83482c34d6856e33ccb57827fc1427aa",
+        "findmodel_c_sha256": "01c75752fec9453ec63f0ef2fcb2de2070b5129d31134a238143428852200407",
+        "new_accuracy": 1e-09,
+        "old_accuracy": 0.0001,
+        "patched_findmodel_c_sha256": "998bd60d57cb49a6fbb3950dbfd8eee7543ef9afe69504a79fc60af28fd324b7",
+        "patched_lines": "double accuracy=1e-4; -> double accuracy=1e-9;",
+        "prior_root_sha256": "da55d91a695545fb64cba73e03d4cf4debd156392644dec275c637c34e5ce484",
+        "rns_commit": "97e85d325a33e37f702306414533f6cd77812477"
+      },
+      "name": "same_pinned_RNS_C_source_and_one_line_patch",
+      "status": "PASS"
+    },
+    {
+      "detail": "f74664c90d95cdbd82c032b251bd176e83482c34d6856e33ccb57827fc1427aa",
+      "name": "EOS_table_identity",
+      "status": "PASS"
+    },
+    {
+      "detail": "0fef1eca08ce9f5652137f02991e18cb2d1270cd91aa28dca7a74e6b92bb51e6",
+      "name": "grid_151x301_binary_hash",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "R_pair_delta_km": 1.1702070423780242e-09,
+        "failures": 0,
+        "roots": 2
+      },
+      "name": "grid_151x301_two_seed_roots",
+      "status": "PASS"
+    },
+    {
+      "detail": "0afa785614721516eda1e6ab8cddecede96dd9f4a0938ceefee67e88c7f522cf",
+      "name": "grid_201x401_binary_hash",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "R_pair_delta_km": 2.1929125182396092e-10,
+        "failures": 0,
+        "roots": 2
+      },
+      "name": "grid_201x401_two_seed_roots",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "M0_201_minus_151_msun": 6.256907717494542e-05,
+        "M_201_minus_151_msun": -9.858915461791184e-09,
+        "Req_201_minus_151_km": -0.001485912034056014,
+        "f_201_minus_151_hz": -1.5872270751060569e-06,
+        "radius_cross_mesh_pass": true
+      },
+      "name": "cross_mesh_radius",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "M_msun": 0.00027902084278963457,
+        "f_Hz": 0.10934620877105772
+      },
+      "name": "old_accuracy_failure_is_retained",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "151_two_independent_seeds_and_tolerances": true,
+        "201_two_independent_seeds_and_tolerances": true,
+        "EOS_Bayes": "NOT_RUN",
+        "absolute_baryon_normalization": "CONDITIONAL",
+        "continuous_rotating_stability": "NOT_ESTABLISHED",
+        "cross_mesh_radius": true,
+        "physical_EOS": "NOT_ESTABLISHED"
+      },
+      "name": "science_gates_not_overclaimed",
+      "status": "PASS"
+    }
+  ],
+  "schema": "j0740-apr4-rns-tight-inner-independent-acceptance-v1",
+  "status": "PASS",
+  "tested_result_sha256": "430398c1bfecc5a39850be3e28d71bd9362ed7ad1a960ea8aa1decc47880e093"
+}
+

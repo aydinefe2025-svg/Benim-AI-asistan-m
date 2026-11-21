@@ -1,0 +1,28 @@
+{
+  "status": "SYNTHETIC_PASS_NATIVE_NOT_RUN",
+  "analysis_date": "2026-11-13",
+  "files": {
+    "README.md": {
+      "size": 5705,
+      "sha256": "278c0a123b077c6c012a38ccd9cc706c563cdf166723f6c1ced1cfddd98c06d4"
+    },
+    "support_aware_mixture.py": {
+      "size": 8685,
+      "sha256": "36a48124478e2399ee075a11672ba16424e58f8b1b92451a616a25be9f1b8ac5"
+    },
+    "test_support_aware_mixture.py": {
+      "size": 4239,
+      "sha256": "684c885f1e8849e8608bf5a39f467a69008222c92fd11077b9b641e7b7f218fa"
+    },
+    "synthetic_preflight.py": {
+      "size": 2400,
+      "sha256": "a6b935896e1c34d01081f0734594f92765a1e33a63c4a5370d6c17202174d3db"
+    },
+    "synthetic_report.json": {
+      "size": 2051,
+      "sha256": "82079ff6fc30bb5b0221b0565325d12dcf75c27198034f6d5955ef86776b8281"
+    }
+  },
+  "original_v2_status": "FAIL_UNCHANGED",
+  "EOS_Bayes": "NOT_RUN"
+}

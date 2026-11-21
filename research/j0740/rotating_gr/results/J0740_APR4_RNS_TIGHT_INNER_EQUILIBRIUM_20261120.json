@@ -1,0 +1,326 @@
+{
+  "acceptance": {
+    "151_two_independent_seeds_and_tolerances": true,
+    "201_two_independent_seeds_and_tolerances": true,
+    "EOS_Bayes": "NOT_RUN",
+    "absolute_baryon_normalization": "CONDITIONAL",
+    "continuous_rotating_stability": "NOT_ESTABLISHED",
+    "cross_mesh_radius": true,
+    "physical_EOS": "NOT_ESTABLISHED"
+  },
+  "cross_mesh": {
+    "M0_201_minus_151_msun": 6.256907717494542e-05,
+    "M_201_minus_151_msun": -9.858915461791184e-09,
+    "Req_201_minus_151_km": -0.001485912034056014,
+    "f_201_minus_151_hz": -1.5872270751060569e-06,
+    "radius_cross_mesh_pass": true
+  },
+  "explanation": "The original RNS rns() wrapper stopped spin iteration at relative equatorial-radius change 1e-4. Tightening only that stopping threshold to 1e-9 removed the low-grid residual floor; EOS table, physics equations, grid, and M/f acceptance tolerances were unchanged.",
+  "mesh_results": [
+    {
+      "binary_sha256": "0fef1eca08ce9f5652137f02991e18cb2d1270cd91aa28dca7a74e6b92bb51e6",
+      "failures": [],
+      "grid": [
+        151,
+        301
+      ],
+      "independent_seed_agreement_pass": true,
+      "roots": [
+        {
+          "axis_ratio": 0.986137856854982,
+          "central_energy_density_g_cm3": 1753690119466676.2,
+          "mass_msun": 2.072999686013176,
+          "mass_residual_tolerance_msun": 1e-05,
+          "radius_eq_km": 10.751990541702254,
+          "rns_M0_using_native_Mb_msun": 2.4709748824520803,
+          "root_seed": [
+            1.7544997534495834,
+            0.9861323240269972
+          ],
+          "root_trace": [
+            {
+              "axis_ratio": 0.9861323240269972,
+              "delta_mass_msun": 0.0002658371010451077,
+              "delta_spin_hz": 0.14360705716649136,
+              "eval": "seed",
+              "mass_msun": 2.073265837101045,
+              "spin_hz": 346.67997605716647,
+              "status": "OK",
+              "u_ec_1e15": 1.7544997534495834
+            },
+            {
+              "axis_ratio": 0.9861323240269972,
+              "delta_mass_msun": 0.00027715750522760985,
+              "delta_spin_hz": 0.14672029982438062,
+              "eval": "jacobian_u_0",
+              "mass_msun": 2.0732771575052276,
+              "spin_hz": 346.68308929982436,
+              "status": "OK",
+              "u_ec_1e15": 1.7545348434446524
+            },
+            {
+              "axis_ratio": 0.9861343240269972,
+              "delta_mass_msun": 0.00026415962246773006,
+              "delta_spin_hz": 0.11766192193118741,
+              "eval": "jacobian_r_0",
+              "mass_msun": 2.0732641596224677,
+              "spin_hz": 346.65403092193117,
+              "status": "OK",
+              "u_ec_1e15": 1.7544997534495834
+            },
+            {
+              "axis_ratio": 0.986137856854982,
+              "delta_mass_msun": -3.1398682409644607e-07,
+              "delta_spin_hz": -2.6640320584192523e-05,
+              "eval": "newton_0_bt0",
+              "mass_msun": 2.072999686013176,
+              "spin_hz": 346.5363423596794,
+              "status": "OK",
+              "u_ec_1e15": 1.7536901194666763
+            }
+          ],
+          "spin_hz": 346.5363423596794,
+          "spin_residual_tolerance_hz": 0.0001
+        },
+        {
+          "axis_ratio": 0.9861378568137561,
+          "central_energy_density_g_cm3": 1753690121305339.8,
+          "mass_msun": 2.0729996866920586,
+          "mass_residual_tolerance_msun": 1e-05,
+          "radius_eq_km": 10.751990540532047,
+          "rns_M0_using_native_Mb_msun": 2.4709748834483944,
+          "root_seed": [
+            1.7544991051042071,
+            0.9861323227786258
+          ],
+          "root_trace": [
+            {
+              "axis_ratio": 0.9861323227786258,
+              "delta_mass_msun": 0.00026562893236059537,
+              "delta_spin_hz": 0.1435650998175788,
+              "eval": "seed",
+              "mass_msun": 2.0732656289323605,
+              "spin_hz": 346.67993409981756,
+              "status": "OK",
+              "u_ec_1e15": 1.7544991051042071
+            },
+            {
+              "axis_ratio": 0.9861323227786258,
+              "delta_mass_msun": 0.0002769493572949422,
+              "delta_spin_hz": 0.1466783448933029,
+              "eval": "jacobian_u_0",
+              "mass_msun": 2.073276949357295,
+              "spin_hz": 346.6830473448933,
+              "status": "OK",
+              "u_ec_1e15": 1.7545341950863091
+            },
+            {
+              "axis_ratio": 0.9861343227786258,
+              "delta_mass_msun": 0.0002639514537010612,
+              "delta_spin_hz": 0.1176199696352569,
+              "eval": "jacobian_r_0",
+              "mass_msun": 2.073263951453701,
+              "spin_hz": 346.65398896963524,
+              "status": "OK",
+              "u_ec_1e15": 1.7544991051042071
+            },
+            {
+              "axis_ratio": 0.9861378568137561,
+              "delta_mass_msun": -3.133079413686346e-07,
+              "delta_spin_hz": -2.5179723706969526e-05,
+              "eval": "newton_0_bt0",
+              "mass_msun": 2.0729996866920586,
+              "spin_hz": 346.5363438202763,
+              "status": "OK",
+              "u_ec_1e15": 1.7536901213053397
+            }
+          ],
+          "spin_hz": 346.5363438202763,
+          "spin_residual_tolerance_hz": 0.0001
+        }
+      ],
+      "seeds_used": [
+        [
+          1.7544997534495834,
+          0.9861323240269972
+        ],
+        [
+          1.7544991051042071,
+          0.9861323227786258
+        ]
+      ]
+    },
+    {
+      "binary_sha256": "0afa785614721516eda1e6ab8cddecede96dd9f4a0938ceefee67e88c7f522cf",
+      "failures": [],
+      "grid": [
+        201,
+        401
+      ],
+      "independent_seed_agreement_pass": true,
+      "roots": [
+        {
+          "axis_ratio": 0.9861843923342263,
+          "central_energy_density_g_cm3": 1755060120371867.2,
+          "mass_msun": 2.0729996761542604,
+          "mass_residual_tolerance_msun": 1e-05,
+          "radius_eq_km": 10.750504629668198,
+          "rns_M0_using_native_Mb_msun": 2.4710374515292552,
+          "root_seed": [
+            1.7558921413959234,
+            0.9861776900224013
+          ],
+          "root_trace": [
+            {
+              "axis_ratio": 0.9861776900224013,
+              "delta_mass_msun": 0.0002733872012332661,
+              "delta_spin_hz": 0.1561802757233295,
+              "eval": "seed",
+              "mass_msun": 2.073273387201233,
+              "spin_hz": 346.6925492757233,
+              "status": "OK",
+              "u_ec_1e15": 1.7558921413959234
+            },
+            {
+              "axis_ratio": 0.9861776900224013,
+              "delta_mass_msun": 0.00028469533286967774,
+              "delta_spin_hz": 0.15914168240641402,
+              "eval": "jacobian_u_0",
+              "mass_msun": 2.0732846953328696,
+              "spin_hz": 346.6955106824064,
+              "status": "OK",
+              "u_ec_1e15": 1.7559272592387514
+            },
+            {
+              "axis_ratio": 0.9861796900224012,
+              "delta_mass_msun": 0.000271754326175877,
+              "delta_spin_hz": 0.13051215876743072,
+              "eval": "jacobian_r_0",
+              "mass_msun": 2.073271754326176,
+              "spin_hz": 346.6668811587674,
+              "status": "OK",
+              "u_ec_1e15": 1.7558921413959234
+            },
+            {
+              "axis_ratio": 0.9861843923342263,
+              "delta_mass_msun": -3.2384573955823726e-07,
+              "delta_spin_hz": -2.822754765929858e-05,
+              "eval": "newton_0_bt0",
+              "mass_msun": 2.0729996761542604,
+              "spin_hz": 346.5363407724523,
+              "status": "OK",
+              "u_ec_1e15": 1.7550601203718672
+            }
+          ],
+          "spin_hz": 346.5363407724523,
+          "spin_residual_tolerance_hz": 0.0001
+        },
+        {
+          "axis_ratio": 0.9861843923131534,
+          "central_energy_density_g_cm3": 1755060120625925.2,
+          "mass_msun": 2.0729996762381617,
+          "mass_residual_tolerance_msun": 1e-05,
+          "radius_eq_km": 10.750504629448907,
+          "rns_M0_using_native_Mb_msun": 2.47103745165673,
+          "root_seed": [
+            1.7558921381233563,
+            0.9861776910012737
+          ],
+          "root_trace": [
+            {
+              "axis_ratio": 0.9861776910012737,
+              "delta_mass_msun": 0.0002733853285610266,
+              "delta_spin_hz": 0.15616716550835008,
+              "eval": "seed",
+              "mass_msun": 2.073273385328561,
+              "spin_hz": 346.69253616550833,
+              "status": "OK",
+              "u_ec_1e15": 1.7558921381233563
+            },
+            {
+              "axis_ratio": 0.9861776910012737,
+              "delta_mass_msun": 0.0002846934635254428,
+              "delta_spin_hz": 0.15912857292903482,
+              "eval": "jacobian_u_0",
+              "mass_msun": 2.0732846934635254,
+              "spin_hz": 346.695497572929,
+              "status": "OK",
+              "u_ec_1e15": 1.7559272559661188
+            },
+            {
+              "axis_ratio": 0.9861796910012737,
+              "delta_mass_msun": 0.0002717524535138516,
+              "delta_spin_hz": 0.13049904767848375,
+              "eval": "jacobian_r_0",
+              "mass_msun": 2.073271752453514,
+              "spin_hz": 346.66686804767846,
+              "status": "OK",
+              "u_ec_1e15": 1.7558921381233563
+            },
+            {
+              "axis_ratio": 0.9861843923131534,
+              "delta_mass_msun": -3.237618382279095e-07,
+              "delta_spin_hz": -2.8205606099618308e-05,
+              "eval": "newton_0_bt0",
+              "mass_msun": 2.0729996762381617,
+              "spin_hz": 346.5363407943939,
+              "status": "OK",
+              "u_ec_1e15": 1.7550601206259253
+            }
+          ],
+          "spin_hz": 346.5363407943939,
+          "spin_residual_tolerance_hz": 0.0001
+        }
+      ],
+      "seeds_used": [
+        [
+          1.7558921413959234,
+          0.9861776900224013
+        ],
+        [
+          1.7558921381233563,
+          0.9861776910012737
+        ]
+      ]
+    }
+  ],
+  "same_seed_solver_accuracy_comparison": {
+    "delta_tight_minus_old": {
+      "M_msun": 0.00027902084278963457,
+      "f_Hz": 0.10934620877105772
+    },
+    "old_accuracy_1e-4_seed": {
+      "M": 2.0729868162582554,
+      "f_Hz": 346.5706298483954
+    },
+    "same_seed": {
+      "axis_ratio": 0.9861323240269972,
+      "u_ec_1e15": 1.7544997534495834
+    },
+    "tight_accuracy_1e-9_seed": {
+      "M": 2.073265837101045,
+      "f_Hz": 346.67997605716647
+    }
+  },
+  "schema": "j0740-apr4-rns-tight-inner-equilibrium-roots-v1",
+  "source_identity": {
+    "baseline_failure_sha256": "957f1d10a44f52fa7efb1651048247704380e38908b10856036fcf93fef871a4",
+    "eos_table_bytes": 17252,
+    "eos_table_sha256": "f74664c90d95cdbd82c032b251bd176e83482c34d6856e33ccb57827fc1427aa",
+    "findmodel_c_sha256": "01c75752fec9453ec63f0ef2fcb2de2070b5129d31134a238143428852200407",
+    "new_accuracy": 1e-09,
+    "old_accuracy": 0.0001,
+    "patched_findmodel_c_sha256": "998bd60d57cb49a6fbb3950dbfd8eee7543ef9afe69504a79fc60af28fd324b7",
+    "patched_lines": "double accuracy=1e-4; -> double accuracy=1e-9;",
+    "prior_root_sha256": "da55d91a695545fb64cba73e03d4cf4debd156392644dec275c637c34e5ce484",
+    "rns_commit": "97e85d325a33e37f702306414533f6cd77812477"
+  },
+  "status": "PASS_NUMERICAL_ROOT_AND_CROSS_MESH",
+  "target": {
+    "M_msun": 2.073,
+    "M_tolerance_msun": 1e-05,
+    "f_hz": 346.536369,
+    "f_tolerance_hz": 0.0001
+  }
+}
+

@@ -1,0 +1,29 @@
+{
+  "schema": "j0740-support-normalization-math-only-20261114",
+  "source_files": {
+    "README.md": {
+      "bytes": 4082,
+      "sha256": "44d0bebe3fa43f191d1ea18361c6274298254379d7c1c8bd3d99289f8d250024"
+    },
+    "green.log": {
+      "bytes": 1404,
+      "sha256": "c4afbc35e88d6dc743db17dec7900b81307a906710e54c37e9424ff3a045064c"
+    },
+    "preflight_report.json": {
+      "bytes": 710,
+      "sha256": "1637778121ffd60c34b56127fddb7969e90c4062a313efc515778350e17765d5"
+    },
+    "red.log": {
+      "bytes": 14823,
+      "sha256": "f2550934cdbe6a5f10260a39bbb73869f388a27eca5da179e0b1a54d90094f14"
+    },
+    "support_normalization_gate.py": {
+      "bytes": 4667,
+      "sha256": "ea591517b072cbfe050983b752c07f4c9c4c063913c9ff67e05ce94e5cd90ee1"
+    },
+    "test_support_normalization_gate.py": {
+      "bytes": 4115,
+      "sha256": "3a3c84e95573727bdbf0e5d996fe2ecbaa992fdcd3ede59d292bf4ca0fb9b90a"
+    }
+  }
+}

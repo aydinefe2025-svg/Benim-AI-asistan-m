@@ -1,0 +1,373 @@
+{
+  "schema": "J0740_F91_V3_FIXED_POINT_NUISANCE_AND_SOURCE_SUPPORT_EVIDENCE_v1",
+  "date": "2026-11-21",
+  "raw_photons_or_nuisance_draws_included": false,
+  "local_sources": {
+    "nuisance_audit": {
+      "path": "records/A01.01.51/PSR_J0740+6620/J0740_F91_V3_COMPLETED_NATIVE_RUNS_INDEPENDENT_AUDIT_20261121.json",
+      "sha256": "2015804f6f8e568fa566b9be76dc3323cc50d26aefe032159150d0e02098b2d6"
+    },
+    "support_audit": {
+      "path": "records/A01.01.51/PSR_J0740+6620/J0740_XPSI_FIXED_MR_SOURCE_PRIOR_SUPPORT_IID_AUDIT_20261121.json",
+      "sha256": "c0f9c4ae1411afaa21f09d0c3b662010ce2c39339dbd9331db39356c1b9f5f85"
+    },
+    "log_weight_tests": "5/5 PASS; includes target-measure change-of-measure check"
+  },
+  "nuisance_audit": {
+    "EOS_Bayes": "NOT_RUN",
+    "aggregate_gates": {
+      "ESS_min_each": true,
+      "all_adjacent_budget_logI_drifts_le_0p1_each": true,
+      "between_seed_logI_range_max": true,
+      "maxW_max_each": true,
+      "phase_ESS_min_each": true
+    },
+    "all_MR_domain_certified": false,
+    "between_seed_logI_range": 0.09144861828463036,
+    "date": "2026-11-21",
+    "design_sha256": "6a9d11e2ebe90fdf1b9de5c14c36498dfc2f1706521eb43b07b2729c47f86535",
+    "draws_per_seed": 2048,
+    "fixed_MR": [
+      2.073,
+      15.26
+    ],
+    "independent_replay_new_photon_calls": 0,
+    "likelihood_model_sha256": "be896b89f38736dfa41eb296853ba021c6248dd389dacc88f6ecbfaff755c010",
+    "original_new_photon_calls": 7430,
+    "proposal_flow_sha256": "fbf6d7969072d96aeed1f883cd0b5fae726754355fea6c5593c2e329a4fe1fbb",
+    "raw_photon_data_or_nuisance_samples_uploaded": false,
+    "run_manifest_sha256": "831dcf85e54078e13bc4e0a968360e1f6e06afae884b00ed85101b992662d1ac",
+    "runs": [
+      {
+        "adjacent_budget_logI_drifts": [
+          0.07730033117695712,
+          0.05603559905284783
+        ],
+        "bytes": {
+          "jsonl": 1105768,
+          "npz": 232715,
+          "summary": 4071
+        },
+        "diagnostics": {
+          "ESS": 454.67466657198196,
+          "log_conditional_integral": -21891.35104858872,
+          "max_weight_fraction": 0.012520206976075247,
+          "phase_partitions": [
+            {
+              "ESS": 254.75932538770908,
+              "draws": 1054,
+              "posterior_weight_fraction": 0.5059861478861831
+            },
+            {
+              "ESS": 204.325102177382,
+              "draws": 994,
+              "posterior_weight_fraction": 0.49401385211346105
+            }
+          ]
+        },
+        "draws": 2048,
+        "gates": {
+          "ESS_ge_100": true,
+          "all_adjacent_budget_logI_drift_le_0p1": true,
+          "maxW_le_0p05": true,
+          "phase_ESS_each_ge_30": true
+        },
+        "max_abs_logq_replay_difference": 0,
+        "max_abs_logweight_replay_difference": 0,
+        "max_abs_z_replay_difference": 0,
+        "native_likelihood_calls": 1869,
+        "prefix_logI": [
+          -21891.21771265849,
+          -21891.295012989667,
+          -21891.35104858872
+        ],
+        "reason_counts": {
+          "FINITE": 1849,
+          "RATE_FLOOR": 20,
+          "SOURCE_SUPPORT": 179
+        },
+        "seed": 331401,
+        "sha256": {
+          "jsonl": "1d5997b193201bfcad0146d3b2ed9f60b7cce03a2212772c8d62c8099408c55e",
+          "npz": "081814765b1d10e10fd1bff21b0ffe4470fef50e1896d7053838dfc13e7efcc2",
+          "summary": "9421ce7e667486304c42c48ed2092f3be7f1bdf9cb50d46867a5cfd5d31f1894"
+        }
+      },
+      {
+        "adjacent_budget_logI_drifts": [
+          0.036942098620784236,
+          0.025580230685591232
+        ],
+        "bytes": {
+          "jsonl": 1105933,
+          "npz": 232685,
+          "summary": 4082
+        },
+        "diagnostics": {
+          "ESS": 426.00979455850467,
+          "log_conditional_integral": -21891.288904998397,
+          "max_weight_fraction": 0.018157295632355415,
+          "phase_partitions": [
+            {
+              "ESS": 290.03324020518323,
+              "draws": 1053,
+              "posterior_weight_fraction": 0.49417493338364776
+            },
+            {
+              "ESS": 169.96522687075768,
+              "draws": 995,
+              "posterior_weight_fraction": 0.5058250666163125
+            }
+          ]
+        },
+        "draws": 2048,
+        "gates": {
+          "ESS_ge_100": true,
+          "all_adjacent_budget_logI_drift_le_0p1": true,
+          "maxW_le_0p05": true,
+          "phase_ESS_each_ge_30": true
+        },
+        "max_abs_logq_replay_difference": 0,
+        "max_abs_logweight_replay_difference": 0,
+        "max_abs_z_replay_difference": 0,
+        "native_likelihood_calls": 1858,
+        "prefix_logI": [
+          -21891.300266866332,
+          -21891.26332476771,
+          -21891.288904998397
+        ],
+        "reason_counts": {
+          "FINITE": 1839,
+          "RATE_FLOOR": 19,
+          "SOURCE_SUPPORT": 190
+        },
+        "seed": 331403,
+        "sha256": {
+          "jsonl": "0a114ab6e7f7b88125f0de77d994ef71e1bfa59e6f5815d0c885983849a419d7",
+          "npz": "15381676f15cd5c6b84499e4f55bc056c30ffdcfb6f02f7263b0790b4f05ebdf",
+          "summary": "981609d1d10f57048ad19cc19fd988256e9d9f702b5292354873fa593ad1b6c0"
+        }
+      },
+      {
+        "adjacent_budget_logI_drifts": [
+          0.03560698558067088,
+          0.052398732339497656
+        ],
+        "bytes": {
+          "jsonl": 1105720,
+          "npz": 232593,
+          "summary": 4067
+        },
+        "diagnostics": {
+          "ESS": 455.32075728708287,
+          "log_conditional_integral": -21891.36391445652,
+          "max_weight_fraction": 0.014212912676819739,
+          "phase_partitions": [
+            {
+              "ESS": 308.2550337416429,
+              "draws": 1056,
+              "posterior_weight_fraction": 0.48907584544899807
+            },
+            {
+              "ESS": 183.79607571629177,
+              "draws": 992,
+              "posterior_weight_fraction": 0.5109241545527926
+            }
+          ]
+        },
+        "draws": 2048,
+        "gates": {
+          "ESS_ge_100": true,
+          "all_adjacent_budget_logI_drift_le_0p1": true,
+          "maxW_le_0p05": true,
+          "phase_ESS_each_ge_30": true
+        },
+        "max_abs_logq_replay_difference": 0,
+        "max_abs_logweight_replay_difference": 0,
+        "max_abs_z_replay_difference": 0,
+        "native_likelihood_calls": 1844,
+        "prefix_logI": [
+          -21891.2759087386,
+          -21891.31151572418,
+          -21891.36391445652
+        ],
+        "reason_counts": {
+          "FINITE": 1828,
+          "RATE_FLOOR": 16,
+          "SOURCE_SUPPORT": 204
+        },
+        "seed": 331407,
+        "sha256": {
+          "jsonl": "371e132cc8a705b667c420efdcfdc5a9cf72286817213272b5deeaba1caffe5d",
+          "npz": "08e9b62137933219b73a3ac1cc995f8335cecea68bbb90800051add51aee5ee8",
+          "summary": "01cdd71174c9a0afa3a774c3f08eda4aadd9c79f55c9ed1ef643d107135f6231"
+        }
+      },
+      {
+        "adjacent_budget_logI_drifts": [
+          0.036849736319709336,
+          0.015076230469276197
+        ],
+        "bytes": {
+          "jsonl": 1105948,
+          "npz": 232739,
+          "summary": 4070
+        },
+        "diagnostics": {
+          "ESS": 540.0622981925471,
+          "log_conditional_integral": -21891.38035361668,
+          "max_weight_fraction": 0.010660814653257609,
+          "phase_partitions": [
+            {
+              "ESS": 294.00296375523817,
+              "draws": 1055,
+              "posterior_weight_fraction": 0.4829880710118042
+            },
+            {
+              "ESS": 252.60349257285094,
+              "draws": 993,
+              "posterior_weight_fraction": 0.5170119289883652
+            }
+          ]
+        },
+        "draws": 2048,
+        "gates": {
+          "ESS_ge_100": true,
+          "all_adjacent_budget_logI_drift_le_0p1": true,
+          "maxW_le_0p05": true,
+          "phase_ESS_each_ge_30": true
+        },
+        "max_abs_logq_replay_difference": 0,
+        "max_abs_logweight_replay_difference": 0,
+        "max_abs_z_replay_difference": 0,
+        "native_likelihood_calls": 1859,
+        "prefix_logI": [
+          -21891.35858011083,
+          -21891.39542984715,
+          -21891.38035361668
+        ],
+        "reason_counts": {
+          "FINITE": 1843,
+          "RATE_FLOOR": 16,
+          "SOURCE_SUPPORT": 189
+        },
+        "seed": 331411,
+        "sha256": {
+          "jsonl": "97d02b7acd5eb412f264486358b9f2587cb5cfcd255d2d71f292ba7b9e49c907",
+          "npz": "bf449225eaf10b169c955674d0ece7b87424f6e1a333c559c6baf85ee65c8c73",
+          "summary": "e5d7f5a6c33d0fb5c3b88ef9ce71ded58d4c400e772f642e419f70463ea0ba62"
+        }
+      }
+    ],
+    "schema": "J0740_F91_V3_COMPLETED_NATIVE_RUNS_INDEPENDENT_AUDIT_v1",
+    "seeds": [
+      331401,
+      331403,
+      331407,
+      331411
+    ],
+    "status": "PASS_INDEPENDENT_REPLAY_AND_ALL_PRESPECIFIED_GATES",
+    "support_normalization": 0.24947354926879406,
+    "xpsi_version": "1.2.0"
+  },
+  "support_audit": {
+    "EOS_Bayes": "NOT_RUN",
+    "M_R_physical_cuts_are_deterministic_at_each_fixed_point": true,
+    "all_MR_domain_certified": false,
+    "analytical_candidate_support": 0.24947354926879406,
+    "date": "2026-11-21",
+    "fixed_points": [
+      {
+        "M": 2,
+        "R": 13.625,
+        "absolute_difference_from_analytic": 0.0005016551989793783,
+        "analytic_candidate": 0.24947354926879406,
+        "analytic_inside_95CI": true,
+        "estimated_support_fraction": 0.24997520446777344,
+        "exact_XPSI_prior_check": {
+          "all_direct_supported_draws_pass_source_prior": true,
+          "direct_supported_draws": 30,
+          "iid_check_samples": 128,
+          "no_likelihood_calls": true,
+          "source_prior_direct_support_predicate_disagreements": 0,
+          "source_prior_finite": 30
+        },
+        "iid_unit_cube_draws": 1048576,
+        "label": "required_midpoint",
+        "seed": 917151,
+        "source_geometric_distance_accepts": 262118,
+        "wilson95": [
+          0.24914735069973357,
+          0.2508048901610863
+        ]
+      },
+      {
+        "M": 2.073,
+        "R": 15.26,
+        "absolute_difference_from_analytic": 0.00010969505493640952,
+        "analytic_candidate": 0.24947354926879406,
+        "analytic_inside_95CI": true,
+        "estimated_support_fraction": 0.24958324432373047,
+        "exact_XPSI_prior_check": {
+          "all_direct_supported_draws_pass_source_prior": true,
+          "direct_supported_draws": 23,
+          "iid_check_samples": 128,
+          "no_likelihood_calls": true,
+          "source_prior_direct_support_predicate_disagreements": 0,
+          "source_prior_finite": 23
+        },
+        "iid_unit_cube_draws": 1048576,
+        "label": "F91V3_target",
+        "seed": 917157,
+        "source_geometric_distance_accepts": 261707,
+        "wilson95": [
+          0.24875582564039886,
+          0.250412497804217
+        ]
+      }
+    ],
+    "new_native_photon_likelihood_calls": 0,
+    "sampling": "1,048,576 IID unit-hypercube draws per fixed point transformed by equations in pinned CustomPrior.inverse_sample; direct support mask mirrors original CustomPrior.__call__; 128 additional IID points per target checked through actual source prior.__call__ and upstream HotRegion.psi",
+    "schema": "J0740_XPSI_FIXED_MR_SOURCE_PRIOR_SUPPORT_IID_AUDIT_v2",
+    "source_prior_model_sha256": "be896b89f38736dfa41eb296853ba021c6248dd389dacc88f6ecbfaff755c010",
+    "status": "PASS_FIXED_POINT_SUPPORT_NORMALIZATION",
+    "supporting_model_files": [
+      {
+        "bytes": 3203,
+        "path": "native_prior\\real-model\\config_postprocess_J0740_gamma.ini",
+        "sha256": "266252ff5bf5b922da729f86b9a3e919242100563f2172aa7084ec2fd491965a"
+      },
+      {
+        "bytes": 9328,
+        "path": "native_prior\\real-model\\CustomInstrument.py",
+        "sha256": "7feb037a65df0677ec3ae816e39b7fa9fbab043ffa0e25209641b1b08b7a12a9"
+      },
+      {
+        "bytes": 2661,
+        "path": "native_prior\\real-model\\CustomSignal.py",
+        "sha256": "e8d478da23d1a4112868d559da1546811baac12b0df64a0b1e772a052999cdca"
+      },
+      {
+        "bytes": 1769,
+        "path": "native_prior\\real-model\\CustomInterstellar.py",
+        "sha256": "acbe6ae1f43981433a017ce03811ace48b4c4c7034d883244a71ee3709fa8796"
+      },
+      {
+        "bytes": 2585,
+        "path": "native_prior\\real-model\\CustomPhotosphere.py",
+        "sha256": "dcaa040bcf9154d96f717868f9c209af35ba8015c35f392cad001f638fc1ceaa"
+      },
+      {
+        "bytes": 10010,
+        "path": "native_prior\\real-model\\CustomPrior_GLS_compressed_scaling_Dfix.py",
+        "sha256": "264e20da861dd9a3d198d103f97eea358281299b747294ddb5c862fdc23aed9a"
+      },
+      {
+        "bytes": 24175,
+        "path": "native_prior\\real-model\\main_lp40k_Xse001_Dfix.py",
+        "sha256": "cb750c4523222d05d42b9a255307d4d598d6a278bd36fcc5724a92d409603349"
+      }
+    ],
+    "xpsi_version": "1.2.0"
+  }
+}

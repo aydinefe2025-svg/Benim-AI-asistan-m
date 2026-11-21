@@ -1,0 +1,6 @@
+--- a/native_prior/rns-candidate-151/csrc/findmodel.c
++++ b/native_prior/rns-candidate-151/csrc/findmodel.c
+@@
+-  double accuracy=1e-4;
++  double accuracy=1e-9;
+
