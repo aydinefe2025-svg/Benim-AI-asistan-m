@@ -1,0 +1,74 @@
+name: Battery six-source ET to AT real remeasurement identity stress
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/figshare_cross_stage_real_identity.py'
+      - 'tests/test_figshare_cross_stage_real_identity.py'
+      - '.github/workflows/battery-six-cell-cross-stage-reality-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-et-at:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Test source-identity scope and synthetic transitions
+        run: python -m unittest tests.test_figshare_cross_stage_real_identity -v
+      - name: Download only six original publisher archives with pinned size and MD5
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from hashlib import md5,sha256
+          from research.battery_curve_audit.figshare_six_source_curve_screen import PINS
+          from research.battery_curve_audit.figshare_three_archive_probe import fetch_bounded
+          p=Path('/tmp/cano_6_original_et_at');p.mkdir()
+          for fid,name,size,digest in PINS:
+              raw=fetch_bounded('https://ndownloader.figshare.com/files/'+str(fid),min(size+1,16_000_000))
+              if len(raw)!=size or md5(raw).hexdigest()!=digest:
+                  raise RuntimeError('Publisher source provenance mismatch '+name)
+              (p/name).write_bytes(raw)
+              print('ORIGINAL_SOURCE_VERIFIED',fid,size,sha256(raw).hexdigest())
+          PY
+      - name: Recompute true separately recorded ET to AT same-source and cross-source comparisons
+        run: |
+          python -m research.battery_curve_audit.figshare_cross_stage_real_identity /tmp/cano_6_original_et_at /tmp/cano_6_longitudinal_source_identity.json
+      - name: Fail if true source remeasurement confusion or denominators are misrepresented
+        run: |
+          python - <<'PY'
+          import json
+          x=json.load(open('/tmp/cano_6_longitudinal_source_identity.json'))
+          assert (x['measured_source_rows'],x['original_CSV_count'])==(11_554_465,36)
+          assert x['cross_stage_ET_AT_all_candidate_pairs']==216
+          assert (x['cross_stage_same_source_record_pairs'],x['cross_stage_different_source_record_pairs'])==(36,180)
+          assert x['same_source_near_duplicate_rule_matches']==0
+          assert x['different_source_near_duplicate_rule_alerts']==0
+          assert x['same_source_top1_rank_count']==16
+          assert all(x[k] is False for k in ('waveform_near_duplicate_sufficient_for_physical_cell_identity',
+               'field_false_negative_rate_certified','field_false_positive_rate_certified',
+               'production_cell_identity_claim_allowed'))
+          print('PHYSICAL_WAVEFORM_IDENTITY_NOT_CERTIFIED_REMEASUREMENT_STRESS_FAIL_CLOSED')
+          PY
+      - name: Re-run original files offline and compare independent report bytes
+        run: |
+          python -m research.battery_curve_audit.figshare_cross_stage_real_identity /tmp/cano_6_original_et_at /tmp/cano_6_longitudinal_offline_replay.json
+          python - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          a=Path('/tmp/cano_6_longitudinal_source_identity.json').read_bytes()
+          b=Path('/tmp/cano_6_longitudinal_offline_replay.json').read_bytes()
+          if a!=b:raise RuntimeError('offline receipt drift')
+          print('BYTE_IDENTICAL_SOURCE_REPLAY',sha256(a).hexdigest())
+          PY
+      - name: Upload only source-labeled redacted summary, never raw measurements
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-real-et-at-longitudinal-six-cell-screen
+          path: /tmp/cano_6_longitudinal_source_identity.json
+          retention-days: 7
