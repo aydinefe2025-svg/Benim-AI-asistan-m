@@ -28,7 +28,14 @@ from scripts.cano_backup_source_gate import APP_SOURCE_PROFILES, require_applica
 _root = Path('/tmp/cano-owner-export')
 _lock = threading.Lock()
 _state = {'phase': 'idle', 'archive': '', 'receipt': '', 'size': 0, 'sha256': '', 'error': '',
-          'offsite_phase': 'not_started', 'offsite_sha256': '', 'offsite_bytes': 0}
+          'offsite_phase': 'not_started', 'offsite_sha256': '', 'offsite_bytes': 0,
+          'offsite_error': ''}
+_SAFE_FAILURE_STAGES = frozenset({
+    'configuration', 'source_inventory_query', 'source_inventory_empty',
+    'application_scope', 'encrypted_export', 'archive_verification',
+    'transfer_configuration', 'archive_package', 'archive_size',
+    'archive_validation', 'upload_request', 'provider_confirmation',
+})
 _ALLOWED_PHASES = ('idle', 'running', 'ready', 'failed', 'purged')
 
 
@@ -181,6 +188,7 @@ def _auto_upload_worker():
     only upload bytes are a ZIP containing authenticated ciphertext and a
     receipt. The private AES key is never in the ZIP or network request.
     """
+    stage = 'transfer_configuration'
     try:
         uri = os.environ.get('CANO_NOTION_UPLOAD_URL', '')
         auth = os.environ.get('CANO_NOTION_UPLOAD_AUTH', '')
@@ -194,14 +202,18 @@ def _auto_upload_worker():
         with _lock:
             if _state['phase'] != 'idle':
                 raise ValueError('Archive generation already started')
-            _state.update(phase='running', offsite_phase='dumping')
+            _state.update(phase='running', offsite_phase='dumping', offsite_error='')
+        stage = 'encrypted_export'
         _worker()
         with _lock:
             if _state['phase'] != 'ready':
+                saved_stage = _state.get('error', '')
+                stage = saved_stage if saved_stage in _SAFE_FAILURE_STAGES else 'encrypted_export'
                 raise ValueError('Encrypted dump has not been verified')
             archive = Path(_state['archive'])
             receipt = Path(_state['receipt'])
             _state['offsite_phase'] = 'packaging'
+        stage = 'archive_package'
         target = _root / 'CANO_RENDER_PG18_ENCRYPTED_BACKUP_20261112.zip'
         with zipfile.ZipFile(target, 'w', compression=zipfile.ZIP_STORED) as z:
             z.write(archive, arcname=archive.name)
@@ -211,9 +223,11 @@ def _auto_upload_worker():
                        'Contains only AES-256-GCM ciphertext and a verification receipt.\n'
                        'AES owner recovery key is NOT included.\n'
                        'Import requires separately retained owner key and isolated restore.\n')
+        stage = 'archive_size'
         if target.stat().st_size > 19 * 1024 * 1024:
             raise ValueError('Exceeds supported one-part upload size')
         # Never upload a file unless ZIP CRC and every included hash passes.
+        stage = 'archive_validation'
         with zipfile.ZipFile(target) as z:
             if z.testzip() is not None:
                 raise ValueError('ZIP failed self-check')
@@ -224,6 +238,7 @@ def _auto_upload_worker():
                  'Content-Disposition: form-data; name="file"; filename="' + target.name + '"\r\n'
                  'Content-Type: application/zip\r\n\r\n').encode()
                 + payload + ('\r\n--' + boundary + '--\r\n').encode())
+        stage = 'upload_request'
         req = Request(uri, data=body, method='POST', headers={
             'Authorization': auth,
             'Content-Type': 'multipart/form-data; boundary=' + boundary,
@@ -233,16 +248,18 @@ def _auto_upload_worker():
             _state['offsite_phase'] = 'uploading'
         with build_opener(_RejectUploadRedirect()).open(req, timeout=75) as result:
             reply = result.read(8192)
+            stage = 'provider_confirmation'
             parsed_reply = json.loads(reply)
             if result.status not in (200, 201) or parsed_reply.get('status') != 'uploaded':
                 raise ValueError('Offsite provider did not confirm upload')
         with _lock:
-            _state.update(offsite_phase='upload_http_accepted',
+            _state.update(offsite_phase='upload_http_accepted', offsite_error='',
                           offsite_sha256=digest, offsite_bytes=len(payload))
     except Exception:
         # Never serialize a provider URL, token, database URL or internal error.
         with _lock:
-            _state['offsite_phase'] = 'failed'
+            _state.update(offsite_phase='failed',
+                          offsite_error=stage if stage in _SAFE_FAILURE_STAGES else 'transfer_configuration')
 
 
 
@@ -299,7 +316,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/healthz':
             with _lock:
-                offsite = {k: _state[k] for k in ('offsite_phase', 'offsite_sha256', 'offsite_bytes')}
+                offsite = {k: _state[k] for k in ('offsite_phase', 'offsite_sha256', 'offsite_bytes', 'offsite_error')}
             return self._json(200, {'service': 'cano-encrypted-export', 'api': 'owner_only', **offsite})
         if not self._authorized():
             return

@@ -57,11 +57,28 @@ class SecurityTests(unittest.TestCase):
             BASE['CANO_RENDER_INTERNAL_URL']+'?sslmode=disable'}))
 
     def test_auto_upload_rejects_invalid_destination_without_dump(self):
+        _state.update(phase='idle', offsite_phase='not_started', offsite_error='')
         with patch.dict(os.environ, {'CANO_NOTION_UPLOAD_URL': 'https://example.com/v1/file_uploads/id/send', 'CANO_NOTION_UPLOAD_AUTH': 'Bearer placeholder-placeholder'}, clear=True):
             with patch('scripts.cano_cloud_encrypted_export._worker', side_effect=AssertionError('dump should not run')):
                 _auto_upload_worker()
-                self.assertEqual('failed', _state['offsite_phase'])
-                _state['offsite_phase'] = 'not_started'
+        self.assertEqual('failed', _state['offsite_phase'])
+        self.assertEqual('transfer_configuration', _state['offsite_error'])
+        _state.update(phase='idle', offsite_phase='not_started', offsite_error='')
+
+    def test_auto_upload_reports_safe_worker_failure_stage(self):
+        _state.update(phase='idle', error='', offsite_phase='not_started', offsite_error='')
+        def fail_at_safe_stage():
+            _state.update(phase='failed', error='source_inventory_query')
+        with patch.dict(os.environ, {
+            'CANO_NOTION_UPLOAD_URL': 'https://api.notion.com/v1/mcp/file_uploads/id/send',
+            'CANO_NOTION_UPLOAD_AUTH': 'Bearer ' + 'a' * 64,
+        }, clear=True):
+            with patch('scripts.cano_cloud_encrypted_export._worker', side_effect=fail_at_safe_stage):
+                _auto_upload_worker()
+        self.assertEqual('failed', _state['offsite_phase'])
+        self.assertEqual('source_inventory_query', _state['offsite_error'])
+        self.assertNotIn('secret', _state['offsite_error'])
+        _state.update(phase='idle', error='', offsite_phase='not_started', offsite_error='')
 
     def test_auth_fail_closed_on_bad_render_configuration(self):
         with patch.dict(os.environ, {'CANO_EXPORT_ACCESS_TOKEN': 'not64chars'}):
