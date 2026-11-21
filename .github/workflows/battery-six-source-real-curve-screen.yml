@@ -1,0 +1,89 @@
+name: Battery six original cell source-labeled waveform screening
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/figshare_six_source_curve_screen.py'
+      - 'tests/test_figshare_six_source_curve_screen.py'
+      - '.github/workflows/battery-six-source-real-curve-screen.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-six-cell-screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout exact tested commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Scientific metric and source safety regression tests
+        run: |
+          python -m unittest tests.test_figshare_six_source_curve_screen -v
+      - name: Download original publisher records only with per-file budget and pinned MD5
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from hashlib import md5,sha256
+          from research.battery_curve_audit.figshare_six_source_curve_screen import PINS
+          from research.battery_curve_audit.figshare_three_archive_probe import fetch_bounded
+          root=Path('/tmp/cano_six_original_source')
+          root.mkdir()
+          total=0
+          for fid,name,size,digest in PINS:
+              raw=fetch_bounded('https://ndownloader.figshare.com/files/'+str(fid),min(16_000_000,size+1))
+              if len(raw)!=size or md5(raw).hexdigest()!=digest or not raw.startswith(b'PK\x03\x04'):
+                  raise ValueError('SOURCE_REVIEW_REQUIRED: publisher archive not authentic ZIP')
+              (root/name).write_bytes(raw)
+              total+=len(raw)
+              print('PUBLISHER_ORIGINAL_VERIFIED',fid,len(raw),sha256(raw).hexdigest())
+          assert total==sum(x[2] for x in PINS)
+          PY
+      - name: Recompute all 36 authentic source measurement files and 180 cross-cell comparisons
+        run: |
+          python -m research.battery_curve_audit.figshare_six_source_curve_screen \
+            /tmp/cano_six_original_source /tmp/cano_six_source_receipt.json
+      - name: Verify denominators, phase replay controls, and no fictional field certification
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          r=json.loads(Path('/tmp/cano_six_source_receipt.json').read_text())
+          assert r['source_rows_processed']==11554465
+          assert r['original_zip_count']==6 and r['original_csv_count']==36
+          assert r['phase_curve_count']==72
+          assert r['cross_source_condition_phase_comparisons']==180
+          assert r['distinct_source_cell_pairs']==15
+          assert r['controlled_derived_same_trace_replay_positives']==72
+          assert r['controlled_derived_same_trace_replay_detected']==72
+          assert r['source_label_discordant_near_match_alerts']==0
+          assert r['unique_source_cell_pairs_with_any_alert']==0
+          assert r['source_identity_pairs_distinct_and_consistent'] is True
+          assert r['original_checksums_and_zip_crc_verified'] is True
+          assert r['field_fpr_fnr_established'] is False
+          assert r['field_release_allowed'] is False
+          assert len(r['conditions'])==12
+          assert all(c['distinct_publisher_labeled_cell_pairs']==15 for c in r['conditions'])
+          print('REAL_PUBLISHER_SOURCE_LABELED_SCREEN_ONLY_NO_FIELD_FPR_FNR')
+          PY
+      - name: Replay same published archive offline again and prove exact receipt hash equality
+        run: |
+          python -m research.battery_curve_audit.figshare_six_source_curve_screen \
+            /tmp/cano_six_original_source /tmp/cano_six_source_receipt_replay.json
+          python - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          x=Path('/tmp/cano_six_source_receipt.json').read_bytes()
+          y=Path('/tmp/cano_six_source_receipt_replay.json').read_bytes()
+          assert x==y
+          print('BYTE_IDENTICAL_OFFLINE_REPEAT',sha256(x).hexdigest())
+          PY
+      - name: Store only source-bounded provenance and comparison summary, never raw measurements
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-six-real-source-36csv-180comparisons-not-field-fpr
+          path: /tmp/cano_six_source_receipt.json
+          retention-days: 7
+          if-no-files-found: error
