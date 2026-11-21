@@ -1,7 +1,7 @@
 """Evidence-bound ET/AT 10 C CCCV capacity split from four original Figshare ZIPs.
 
 Source article Table 1: RPT step 6 discharges at 1 C until Umin, then CV
-until |I|< C/20. The voltage 2.500 V is inferred from source records and Fig.3.
+until |I|< C/20. Author Table 6 explicitly assigns step_type 22 to 2.5 V CV / C/20 cutoff.
 The binary split is an approximate segmentation of continuous measured I(t),U(t),
 not an assertion that a proprietary instrument's state log was supplied.
 No physical recalibration or cell-capacity recovery claims are made.
@@ -22,7 +22,7 @@ from research.battery_curve_audit.original_t10_tail_current_audit import (
     verify_original_zip, SOURCE_IDS,
 )
 
-# Inferred Umin from measured waveforms. Protocol nominal 4.9 Ah/20 = 0.245 A.
+# Table 6 explicitly specifies discharge CV hold at 2.5 V. Nominal C/20 = 0.245 A.
 VOLTAGE_SWITCH_THRESHOLDS = (2.505, 2.510, 2.515)
 C20_A = 4.9 / 20
 MIN_PHASE_ROWS = 50
@@ -189,7 +189,8 @@ def audit(directory:Path)->dict:
     return dict(schema='cano.battery.original-four-10C-rpt-cccv-mechanism.v1',
         source_article_doi='10.1038/s41597-024-03859-z',source_dataset_doi='10.6084/m9.figshare.25975315',
         author_protocol_table1='RPT step 6 discharge CCCV, I=1C, U=Umin, terminate |I|<C/20',
-        inferred_source_voltage_hold_V=2.5,
+        author_explicit_voltage_hold_V=2.5,
+        author_protocol_table6='step_type=22: CCCV discharge 1C, CV at 2.5 V, cut off at C/20',
         nominal_C20_A=C20_A,source_cell_count=len(obs),original_ET_AT_csv_count=2*len(obs),
         total_original_measurement_rows=sum(c[p]['original_rows'] for c in obs for p in ('ET','AT')),
         publisher_zip_md5_crc_all_verified=True,thresholds_V=list(VOLTAGE_SWITCH_THRESHOLDS),
