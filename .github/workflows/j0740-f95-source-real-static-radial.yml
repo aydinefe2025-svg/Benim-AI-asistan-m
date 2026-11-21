@@ -1,0 +1,82 @@
+name: J0740 F95 real CompOSE APR static GR radial eigenmodes
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f95/**'
+      - '.github/workflows/j0740-f95-source-real-static-radial.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native_source_physical_static_radial:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned numerical solver dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.17.0'
+      - name: Retrieve separate 250kB OPEN original publisher EOS 328 archive, never Salmi photon tar
+        run: |
+          set -euo pipefail
+          mkdir -p results/F95
+          python research/j0740/f87/f87_fetch_source_probe.py research/j0740/f95/source > results/F95/F95_original_publisher_fetch_receipt.json
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          z=Path('research/j0740/f95/source/F87_verified_publisher_original.zip').read_bytes()
+          assert len(z)==250015
+          assert hashlib.md5(z).hexdigest()=='ccc2fbef2b0f51df389ff8f7d9b00608'
+          assert hashlib.sha256(z).hexdigest()=='8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12'
+          print('F95_REAL_PUBLISHER_1833_NODES_SOURCE_SHA256_VERIFIED')
+          PY
+      - name: Re-solve actual nonrotating TOV and radial eigenmodes at 3 meshes plus numerical turning test
+        run: |
+          set -euo pipefail
+          cp research/j0740/f95/F95_real_APR_static_radial_eigenmodes_20261121.json results/F95/F95_committed_original_numeric_reference.json
+          python research/j0740/f95/f95_run_real_static_radial.py 2>&1 | tee results/F95/F95_real_static_radial_solver.log
+      - name: Nine independent source and physical eigenvalue checks
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f95 -p 'test_f95_real_apr_radial.py' -v 2>&1 | tee results/F95/F95_nine_real_source_tests.log
+      - name: Independent cross-check of previous pinned result versus fresh solve
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          p=Path('research/j0740/f95')
+          old=json.loads(Path('results/F95/F95_committed_original_numeric_reference.json').read_text())
+          new=json.loads((p/'F95_real_APR_static_radial_eigenmodes_20261121.json').read_text())
+          assert new['f95_algorithm_sha256']==hashlib.sha256((p/'f95_static_radial_modes.py').read_bytes()).hexdigest()
+          assert new['source_original_sha256']==old['source_original_sha256']
+          assert new['static_target_central_pressure_less_than_first_superluminal']
+          assert new['physical_central_PCHIP_cs2_max']<1
+          assert old['spinning_star_axisymmetric_dynamic_stability']==new['spinning_star_axisymmetric_dynamic_stability']=='NOT_PROVEN'
+          assert new['full_photon_EOS_Bayes']==old['full_photon_EOS_Bayes']=='NOT_RUN'
+          assert abs(new['fundamental_radial_f_Hz']-old['fundamental_radial_f_Hz'])<5
+          assert abs(new['acausal_branch_max_mass_numeric_only']['pc_MeVfm3']-
+                     old['acausal_branch_max_mass_numeric_only']['pc_MeVfm3'])<2
+          print('F95_PUBLISHER_STATIC_GR_RADIAL_PHYSICS_REPRODUCED_NO_ROTATING_STABILITY_CLAIM')
+          PY
+          cp research/j0740/f95/F95_real_APR_static_radial_eigenmodes_20261121.json results/F95/
+      - name: SHA-256 proof of all F95 public outputs
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          base=Path('results/F95');base.mkdir(parents=True,exist_ok=True)
+          m={p.name:{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size} for p in sorted(base.iterdir()) if p.is_file()}
+          (base/'F95_CI_SHA256_manifest.json').write_text(json.dumps(m,indent=2)+'\n')
+          PY
+      - name: Archive real original-source radial eigenmode reproducibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F95-ORIGINAL-APR-STATIC-GR-RADIAL-REAL-SOURCE-EIGENMODES
+          path: results/F95/
+          if-no-files-found: warn
