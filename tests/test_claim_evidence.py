@@ -235,6 +235,36 @@ class ClaimQuoteAuditTests(unittest.TestCase):
         self.assertEqual(saved["stages"][0]["source_claim_audit"], result)
 
 
+    def test_unavailable_skeptical_pass_can_be_retried(self):
+        self.add_excerpt()
+        proposal = [{
+            "claim": "A bounded claim", "doi": DOI, "quote": QUOTE,
+            "comparison": "supports", "rationale": "proposal",
+        }]
+        first_model = QuoteModel(proposal)
+
+        def unavailable(*_args):
+            raise RuntimeError("temporary provider outage")
+
+        first_model.verify = unavailable
+        first = audit_claim_quotes(
+            self.manager, self.mission_id, client=first_model, model="stub")
+        self.assertFalse(first[0]["machine_assessment"]["available"])
+
+        retry_model = QuoteModel(proposal)
+        retried = audit_claim_quotes(
+            self.manager, self.mission_id, client=retry_model, model="stub")
+        self.assertTrue(retried[0]["machine_assessment"]["available"])
+        self.assertEqual(retried[0]["machine_assessment"]["verdict"], "supported")
+        self.assertFalse(retried[0]["claim_verified"])
+        self.assertEqual(len(retry_model.calls), 2)
+
+        # A completed skeptical pass remains idempotent.
+        again = audit_claim_quotes(
+            self.manager, self.mission_id, client=retry_model, model="stub")
+        self.assertEqual(again, retried)
+        self.assertEqual(len(retry_model.calls), 2)
+
     def test_missing_skeptical_assessment_is_not_reported_as_a_verdict(self):
         self.add_excerpt()
         model = QuoteModel([{
