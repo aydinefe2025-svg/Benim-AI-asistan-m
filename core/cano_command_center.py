@@ -457,13 +457,13 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                     # CollaborativeMission now persists the blocked status
                     # itself after a failed model call. A second blind write
                     # here could hide a PostgreSQL CAS/backup failure.
-                    if manager.last_failure_checkpoint_verified is not True:
+                    if getattr(manager, 'last_failure_checkpoint_verified', None) is not True:
                         st.error("Engellenen görev durumu PostgreSQL'de doğrulanamadı; "
                                  "yeniden denemeden önce yedeği kontrol edin.")
                     st.warning("Groq kotası doldu. Kısmi aşamalar yerel SQLite'da korundu; "
                                "kota yenilendiğinde kaldığınız yerden sürdürün.")
                 except (RuntimeError, ValueError, OSError, sqlite3.Error):
-                    if manager.last_failure_checkpoint_verified is not True:
+                    if getattr(manager, 'last_failure_checkpoint_verified', None) is not True:
                         st.error("Engellenen görev durumu PostgreSQL'de doğrulanamadı; "
                                  "yeniden denemeden önce yedeği kontrol edin.")
                     st.error("Görev tamamlanamadı; yerel kayıt ve kısmi aşamalar korundu.")
