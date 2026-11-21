@@ -68,7 +68,7 @@ class NativeFrozenEvidenceGates(unittest.TestCase):
  def test_python_source_compiles_with_no_photon_load(self):
   for name in ('f91_independent_real_raw_15p26_verifier.py','f91_v2_native_xpsi_fresh_runner.py',
                'f91_v1_original_source_real_native_runner.py'):
-   source=(R/name).read_text(encoding='utf8')
+   source=(R/name).read_text(encoding='utf-8-sig')
    compile(source,name,'exec')
  def test_no_full_MR_photon_Bayes_claim(self):
   self.assertEqual(self.ind['claim_eos_full_bayes'],'NOT_RUN')
