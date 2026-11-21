@@ -120,6 +120,26 @@ def analyze_new_cell(z:ZipFile,stem:str)->list[dict]:
     return profiles
 
 
+def require_distinct_publisher_source_identities(source_identities:list[tuple[str,str]]) -> bool:
+    """Fail closed if three source archives reuse a publisher lab/internal serial.
+
+    This checks source-record uniqueness only, NOT independently witnessed
+    instrument custody or statistically independent observations.
+    """
+    if not isinstance(source_identities,list) or len(source_identities)!=len(ORIGINALS):
+        raise ValueError('SOURCE_REVIEW_REQUIRED: incomplete original source identity cohort')
+    normalized=[]
+    for item in source_identities:
+        if (not isinstance(item,tuple) or len(item)!=2 or
+            any(not isinstance(part,str) or not part.strip() for part in item)):
+            raise ValueError('SOURCE_REVIEW_REQUIRED: invalid publisher lab/internal serial')
+        normalized.append(tuple(part.strip().casefold() for part in item))
+    if len(set(normalized))!=len(normalized):
+        # Never print or publish internal source serial numbers.
+        raise ValueError('SOURCE_REVIEW_REQUIRED: duplicate publisher lab/internal serial across original archives')
+    return True
+
+
 def pinned_metadata(meta:dict):
     examined=inspect_metadata(meta)
     selected=examined['chosen_cohort']
@@ -157,6 +177,7 @@ def run(save_originals:Path|None=None, offline_originals:Path|None=None):
     if save_originals is not None and (not save_originals.is_dir() or list(save_originals.iterdir())):
         raise ValueError('SOURCE_REVIEW_REQUIRED: save directory must exist and be empty')
     cells=[]
+    cross_archive_source_ids=[]
     for fid,name,size,digest in ORIGINALS:
         if offline_originals is None:
             raw=fetch_bounded('https://ndownloader.figshare.com/files/'+str(fid),MAX_ORIGINAL_BYTES)
@@ -171,18 +192,26 @@ def run(save_originals:Path|None=None, offline_originals:Path|None=None):
             raise ValueError('SOURCE_REVIEW_REQUIRED: publisher hash not matched')
         with ZipFile(io.BytesIO(raw)) as z:
             profiles=analyze_new_cell(z,name[:-4])
+            target=f'{name[:-4]}_01_ET_T23.csv'
+            matching=[x for x in z.namelist() if PurePosixPath(x).name==target]
+            if len(matching)!=1:
+                raise ValueError('SOURCE_REVIEW_REQUIRED: ambiguous original source serial witness')
+            source_identity=parse_sidecar(z,matching[0],23)
+            cross_archive_source_ids.append((source_identity['lab'],source_identity['serial']))
         if save_originals is not None:
             (save_originals/name).write_bytes(raw)
         cells.append({'publisher_file_id':fid,'publisher_filename':name,'archive_size_bytes':size,
                       'archive_sha256':validated['original_zip_sha256'],
                       'publisher_md5_matched':True,'zip_crc_checked':True,
                       'source_profiles':profiles})
+    require_distinct_publisher_source_identities(cross_archive_source_ids)
     allp=[p for c in cells for p in c['source_profiles']]
     return {'schema':'cano.battery.figshare25975315.original-k04-three-cell-etat-channel-audit.v1',
             'publisher_article_id':25975315,'publisher_doi':source_doi,
             'publisher_metadata_sha256':meta_sha,
             'publisher_api_queried_this_run':offline_originals is None,
             'cohort':'TP_k04','source_archives':cells,'original_archives_verified':3,
+            'publisher_lab_internal_serials_distinct_across_archives':True,
             'source_cells':3,'source_temperature_pairs':len(allp),
             'source_csv_files_processed':len(allp)*2,
             'original_timestamp_voltage_current_rows_processed':sum(p['original_csv_rows'] for p in allp),
