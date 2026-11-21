@@ -86,104 +86,6 @@ if isinstance(runtime_result, dict):
     if runtime_result["unscored"]:
         st.warning(f"{runtime_result['unscored']} vaka yanıtlanmadı; hata olarak sayıldı.")
 
-base = os.environ.get("AGENT_COLONY_DB_PATH", "data/agent_colony.sqlite3")
-colony = AgentColony(_session_database_path(st, base), max_agents=12)
-manager = CollaborativeMission(colony)
-with colony._db() as db:
-    candidates = db.execute(
-        "SELECT id,task,stages FROM colony_missions WHERE status=? "
-        "ORDER BY created_at DESC LIMIT 12",
-        ("review_pending",)).fetchall()
-missions = [mission for mission in candidates
-            if has_readable_source_excerpt(mission["stages"])]
-restore_notice = st.session_state.pop("_cano_evidence_restore_notice", None)
-if restore_notice:
-    st.warning(restore_notice)
-if not missions:
-    # Each new Streamlit session gets an isolated SQLite database. Restore only
-    # the signed-in owner's backup, and only into an empty local colony.
-    with colony._db() as db:
-        local_agent_count = db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0]
-    restore_attempt_key = "_cano_evidence_restore_attempted_owner"
-    restore_attempted = st.session_state.get(restore_attempt_key) == owner
-    if owner and not local_agent_count and not restore_attempted:
-        st.session_state[restore_attempt_key] = owner
-        try:
-            if st.session_state.get("_cano_backup_owner_key") not in (None, owner):
-                raise PermissionError("Session belongs to a different owner")
-            store = ColonySnapshotStore(cano_database_url(os.environ))
-            store.verify_schema()
-            restore_result = restore_owner_backup(
-                colony, store, owner, approved=True,
-                archive_incomplete_missions=True)
-            restored = restore_result["agent_count"]
-            skipped = restore_result["archived_incomplete_missions"]
-            bind_restored_owner_baseline(store, owner, st.session_state)
-        except ValueError:
-            st.warning("Eski CANO yedeğinde gerekli alanlar eksik; mevcut kayıtlar ve kalıcı yedek korundu.")
-        except KeyError:
-            st.warning("Yedek kaydının beklenen alanı eksik; mevcut kayıtlar ve kalıcı yedek korundu.")
-        except LookupError:
-            st.info("Bu hesap için eşleşen CANO yedeği bulunamadı. Yeni görevler ana CANO ekranından oluşturulabilir.")
-        except PermissionError:
-            st.warning("Kalıcı yedek erişim izni doğrulanamadı; hiçbir kayıt değiştirilmedi.")
-        except RuntimeError:
-            st.warning("Geri yükleme güvenli biçimde durdu; mevcut kayıtlar ve kalıcı yedek korundu.")
-        except OSError:
-            st.warning("Yerel oturum depolaması kullanılamadı; kalıcı yedek değiştirilmedi.")
-        except Exception:
-            st.error("Kalıcı yedek servisi kullanılamıyor; hiçbir kayıt değiştirilmedi.")
-        else:
-            st.success(f"{restored} CANO rol kaydı güvenli biçimde geri yüklendi.")
-            if skipped:
-                st.session_state["_cano_evidence_restore_notice"] = (
-                    f"{skipped} eksik eski görev kaydı mevcut görev tablosuna alınamadı. "
-                    "Özgün yedek, sürüm geçmişine arşivlendi ve korundu.")
-            st.rerun()
-    elif owner and not local_agent_count and restore_attempted:
-        st.info("Bu oturumda kaynak denetimi görevi yok. Hesabın yedeği otomatik kontrol edildi.")
-        if st.button("Hesabıma ait CANO yedeğini yeniden dene", key="cano_evidence_restore_retry"):
-            st.session_state.pop(restore_attempt_key, None)
-            st.rerun()
-    else:
-        st.info("Bu oturumda okunabilir kaynak metni olan inceleme bekleyen görev yok. Önce ana CANO ekranında kaynaklı araştırma görevini ve kaynak okuma işlemini tamamlayın. Mevcut kayıtların üzerine yedek yüklenmez.")
-    st.stop()
-mission_ids = [m["id"] for m in missions]
-labels = {m["id"]: m["task"][:70] for m in missions}
-mid = st.selectbox("Kaynağı okunmuş görev", mission_ids, format_func=lambda key: labels[key])
-record = manager.get(mid)
-documents = record["stages"][0].get("source_documents", [])
-for source in documents:
-    st.caption(str(source.get("status", "metadata_only")) + " · " + str(source.get("doi", "")))
-    if source.get("excerpt"):
-        st.text(source["excerpt"][:900])
-if documents and st.button("Görevdeki DOI kaynaklarını yeniden oku"):
-    try:
-        if owner:
-            store = ColonySnapshotStore(cano_database_url(os.environ))
-            store.verify_schema()
-            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony))
-        manager.inspect_source_documents(mid, refresh_missing=True)
-        if owner:
-            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony),
-                                  archive_prior=False)
-        st.rerun()
-    except (ValueError, PermissionError, RuntimeError, OSError, sqlite3.Error):
-        st.warning("Kaynaklar yenilenemedi; önceki okunabilir alıntılar korundu.")
-if documents and key and st.button("İddiaları çıkar ve ayrı kuşkucu AI geçişi çalıştır (en fazla 2 çağrı)"):
-    try:
-        if owner:
-            store = ColonySnapshotStore(cano_database_url(os.environ))
-            store.verify_schema()
-            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony))
-        audit_claim_quotes(manager, mid, client=Client(), model="configured-provider")
-        if owner:
-            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony),
-                                  archive_prior=False)
-        st.rerun()
-    except (ValueError, RuntimeError, TeamRateLimitError) as err:
-        st.warning("Alıntı denetimi tamamlanamadı; önceki kayıtlar korunuyor.")
-
 st.divider()
 st.subheader("Bağımsız CANO testi ve kör insan karşılaştırması")
 from core.claim_review_benchmark import (
@@ -370,6 +272,104 @@ if isinstance(v4_saved_labels, dict) and set(v4_saved_labels) == {
                 st.warning(
                     f"{v4_model_result['unscored']} yanıtsız model kararı hata sayıldı."
                 )
+
+base = os.environ.get("AGENT_COLONY_DB_PATH", "data/agent_colony.sqlite3")
+colony = AgentColony(_session_database_path(st, base), max_agents=12)
+manager = CollaborativeMission(colony)
+with colony._db() as db:
+    candidates = db.execute(
+        "SELECT id,task,stages FROM colony_missions WHERE status=? "
+        "ORDER BY created_at DESC LIMIT 12",
+        ("review_pending",)).fetchall()
+missions = [mission for mission in candidates
+            if has_readable_source_excerpt(mission["stages"])]
+restore_notice = st.session_state.pop("_cano_evidence_restore_notice", None)
+if restore_notice:
+    st.warning(restore_notice)
+if not missions:
+    # Each new Streamlit session gets an isolated SQLite database. Restore only
+    # the signed-in owner's backup, and only into an empty local colony.
+    with colony._db() as db:
+        local_agent_count = db.execute("SELECT COUNT(*) FROM colony_agents").fetchone()[0]
+    restore_attempt_key = "_cano_evidence_restore_attempted_owner"
+    restore_attempted = st.session_state.get(restore_attempt_key) == owner
+    if owner and not local_agent_count and not restore_attempted:
+        st.session_state[restore_attempt_key] = owner
+        try:
+            if st.session_state.get("_cano_backup_owner_key") not in (None, owner):
+                raise PermissionError("Session belongs to a different owner")
+            store = ColonySnapshotStore(cano_database_url(os.environ))
+            store.verify_schema()
+            restore_result = restore_owner_backup(
+                colony, store, owner, approved=True,
+                archive_incomplete_missions=True)
+            restored = restore_result["agent_count"]
+            skipped = restore_result["archived_incomplete_missions"]
+            bind_restored_owner_baseline(store, owner, st.session_state)
+        except ValueError:
+            st.warning("Eski CANO yedeğinde gerekli alanlar eksik; mevcut kayıtlar ve kalıcı yedek korundu.")
+        except KeyError:
+            st.warning("Yedek kaydının beklenen alanı eksik; mevcut kayıtlar ve kalıcı yedek korundu.")
+        except LookupError:
+            st.info("Bu hesap için eşleşen CANO yedeği bulunamadı. Yeni görevler ana CANO ekranından oluşturulabilir.")
+        except PermissionError:
+            st.warning("Kalıcı yedek erişim izni doğrulanamadı; hiçbir kayıt değiştirilmedi.")
+        except RuntimeError:
+            st.warning("Geri yükleme güvenli biçimde durdu; mevcut kayıtlar ve kalıcı yedek korundu.")
+        except OSError:
+            st.warning("Yerel oturum depolaması kullanılamadı; kalıcı yedek değiştirilmedi.")
+        except Exception:
+            st.error("Kalıcı yedek servisi kullanılamıyor; hiçbir kayıt değiştirilmedi.")
+        else:
+            st.success(f"{restored} CANO rol kaydı güvenli biçimde geri yüklendi.")
+            if skipped:
+                st.session_state["_cano_evidence_restore_notice"] = (
+                    f"{skipped} eksik eski görev kaydı mevcut görev tablosuna alınamadı. "
+                    "Özgün yedek, sürüm geçmişine arşivlendi ve korundu.")
+            st.rerun()
+    elif owner and not local_agent_count and restore_attempted:
+        st.info("Bu oturumda kaynak denetimi görevi yok. Hesabın yedeği otomatik kontrol edildi.")
+        if st.button("Hesabıma ait CANO yedeğini yeniden dene", key="cano_evidence_restore_retry"):
+            st.session_state.pop(restore_attempt_key, None)
+            st.rerun()
+    else:
+        st.info("Bu oturumda okunabilir kaynak metni olan inceleme bekleyen görev yok. Önce ana CANO ekranında kaynaklı araştırma görevini ve kaynak okuma işlemini tamamlayın. Mevcut kayıtların üzerine yedek yüklenmez.")
+    st.stop()
+mission_ids = [m["id"] for m in missions]
+labels = {m["id"]: m["task"][:70] for m in missions}
+mid = st.selectbox("Kaynağı okunmuş görev", mission_ids, format_func=lambda key: labels[key])
+record = manager.get(mid)
+documents = record["stages"][0].get("source_documents", [])
+for source in documents:
+    st.caption(str(source.get("status", "metadata_only")) + " · " + str(source.get("doi", "")))
+    if source.get("excerpt"):
+        st.text(source["excerpt"][:900])
+if documents and st.button("Görevdeki DOI kaynaklarını yeniden oku"):
+    try:
+        if owner:
+            store = ColonySnapshotStore(cano_database_url(os.environ))
+            store.verify_schema()
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony))
+        manager.inspect_source_documents(mid, refresh_missing=True)
+        if owner:
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony),
+                                  archive_prior=False)
+        st.rerun()
+    except (ValueError, PermissionError, RuntimeError, OSError, sqlite3.Error):
+        st.warning("Kaynaklar yenilenemedi; önceki okunabilir alıntılar korundu.")
+if documents and key and st.button("İddiaları çıkar ve ayrı kuşkucu AI geçişi çalıştır (en fazla 2 çağrı)"):
+    try:
+        if owner:
+            store = ColonySnapshotStore(cano_database_url(os.environ))
+            store.verify_schema()
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony))
+        audit_claim_quotes(manager, mid, client=Client(), model="configured-provider")
+        if owner:
+            save_owner_checkpoint(store, owner, st.session_state, _snapshot(colony),
+                                  archive_prior=False)
+        st.rerun()
+    except (ValueError, RuntimeError, TeamRateLimitError) as err:
+        st.warning("Alıntı denetimi tamamlanamadı; önceki kayıtlar korunuyor.")
 
 if not key:
     st.warning("Model bağlantısı yok; yeni iddia denetimi çalıştırılmadı.")

@@ -47,6 +47,16 @@ class EvidencePageSmokeTests(unittest.TestCase):
         self.assertNotIn("store.initialize()", source)
 
 
+    def test_blind_human_benchmarks_render_without_review_pending_mission(self):
+        path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
+        source = path.read_text(encoding="utf-8")
+        human_section = source.index('st.subheader("Bağımsız CANO testi ve kör insan karşılaştırması")')
+        no_missions_gate = source.index("if not missions:")
+        stop = source.index("st.stop()", no_missions_gate)
+        self.assertLess(human_section, no_missions_gate)
+        self.assertLess(source.index('st.form("cano_blind_human_labels_v3")'), stop)
+        self.assertLess(source.index('st.form("cano_blind_human_labels_v4")'), stop)
+
     def test_fixed_runtime_benchmark_is_not_gated_by_blind_human_form(self):
         path = Path(__file__).resolve().parents[1] / "pages" / "01_CANO_Kaynak_Denetimi.py"
         source = path.read_text(encoding="utf-8")
