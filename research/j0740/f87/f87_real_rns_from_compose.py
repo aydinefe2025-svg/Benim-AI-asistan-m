@@ -66,6 +66,7 @@ def write_table(root,out):
     # RNS schema: rho_mass-equivalent, pressure, H=c^2 int(dP/(e+P))+1, n_B.
     rows=np.column_stack((eo*MEV_FM3_TO_ERG_CM3/C**2,po*MEV_FM3_TO_ERG_CM3,1+C**2*ho,no*1e39))
     if not np.all(np.isfinite(rows)) or np.any(rows<=0) or not np.all(np.diff(rows,axis=0)>0): raise ValueError("RNS_TABLE_INVALID")
+    out.parent.mkdir(parents=True,exist_ok=True)
     out.write_text("196\n"+"".join(" ".join(f"{v:.15e}" for v in row)+"\n" for row in rows))
     info.update({"rns_table_sha256":digest(out.read_bytes()),"rns_table_points":196,"source_preserved":True,
       "rns_columns":["energy_density_g_cm3","pressure_dyn_cm2","enthalpy_cm2_s2","baryon_density_cm3"],
