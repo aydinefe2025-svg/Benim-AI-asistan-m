@@ -1,0 +1,1911 @@
+{
+  "F88_input_receipt_SHA256": "771d7b494821a43485a8e1248185e768efe9b26e10c0ac8d07b9c1c0f206bc36",
+  "F89_5x2_native_reference_SHA256": "f880db902d4ef26dc268030fcfaba83c74f5a499bf92b4c8be57f7888657d00f",
+  "XPSI_native_photon_calls_in_this_run": 0,
+  "causal_sampled_coverage_status": "TWO_GRIDS_FULL_SOURCE_CAUSAL_SAMPLE_SCAN",
+  "central_rho_common_reference_g_cm3": 1742409723942500.0,
+  "continuous_global_fixed_J_turning_proof": "NOT_PROVEN_BY_DISCRETE_SAMPLES",
+  "cross_grid_common_density_common_J_comparison": [
+    {
+      "M_difference_Msun": 0.00025540587400008086,
+      "R_eq_difference_m": 0.37526746000082767,
+      "point": 0,
+      "relative_J_error_between_grids": 8.313790507141761e-07
+    },
+    {
+      "M_difference_Msun": 0.0003490645149999416,
+      "R_eq_difference_m": 0.8516538300007426,
+      "point": 1,
+      "relative_J_error_between_grids": -3.992115482631675e-07
+    },
+    {
+      "M_difference_Msun": 0.00040537106400018175,
+      "R_eq_difference_m": 0.8792304200007095,
+      "point": 2,
+      "relative_J_error_between_grids": -3.153476583195314e-07
+    },
+    {
+      "M_difference_Msun": 0.00044637418799986506,
+      "R_eq_difference_m": 0.8919216399991825,
+      "point": 3,
+      "relative_J_error_between_grids": 2.0526283170951842e-06
+    },
+    {
+      "M_difference_Msun": 0.0007993768290002201,
+      "R_eq_difference_m": 1.4847236799990782,
+      "point": 4,
+      "relative_J_error_between_grids": -1.8545869813202387e-06
+    },
+    {
+      "M_difference_Msun": 0.0005067886410001776,
+      "R_eq_difference_m": 0.8576767199990343,
+      "point": 5,
+      "relative_J_error_between_grids": -1.3081478883458786e-06
+    },
+    {
+      "M_difference_Msun": 0.0004984660430000787,
+      "R_eq_difference_m": 0.7698993699989387,
+      "point": 6,
+      "relative_J_error_between_grids": 1.3032986716510209e-06
+    },
+    {
+      "M_difference_Msun": 0.0004952318289999091,
+      "R_eq_difference_m": 0.7258455599998825,
+      "point": 7,
+      "relative_J_error_between_grids": 1.3230009561215894e-06
+    },
+    {
+      "M_difference_Msun": 0.0004932254360001664,
+      "R_eq_difference_m": 0.6969615799992113,
+      "point": 8,
+      "relative_J_error_between_grids": 1.4706718176604738e-06
+    }
+  ],
+  "density_grid_g_cm3": [
+    1533320557069400.0,
+    1585592848787675.0,
+    1637865140505950.0,
+    1690137432224225.0,
+    1742409723942500.0,
+    1785969967041062.2,
+    1803394064280487.2,
+    1812106112900200.0,
+    1820860880772815.2
+  ],
+  "first_source_acausal_nodes": 24,
+  "first_source_acausal_rho_g_cm3": 1830010935450065.8,
+  "fixed_same_common_J_cgs": 4.8245626795750385e+48,
+  "fractional_central_rho_grid": [
+    -0.12,
+    -0.09,
+    -0.06,
+    -0.03,
+    0.0,
+    0.025,
+    0.035,
+    0.04,
+    0.04502451734073554
+  ],
+  "original_C_compiler_binary_SHA256": {
+    "151x301": "d1f8f3000ccf5006292895a3565a4a807fea316fed2e48e0693076ba4788da7f",
+    "201x401": "e1dc995ddb1bb781e5f500bf1223cc92d38f99dc631bece3dac2fcde4805a69f"
+  },
+  "original_seven_EOS_LAL_source_physical_certification": "NOT_RUN",
+  "real_source_rns_eos_SHA256": "7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580",
+  "rotating_axisymmetric_dyn_eigenmode": "NOT_RUN",
+  "sampled_causal_derivative_signs": {
+    "151x301": {
+      "all_sampled_intervals_positive": true,
+      "any_sampled_negative_slope": false,
+      "interval_M_rho_slopes": [
+        0.9488565483201666,
+        0.8616311167045458,
+        0.7484260864705959,
+        0.6678976368240783,
+        0.5823195304075165,
+        0.591089558814408,
+        0.5385571359821905,
+        0.5275255478560434
+      ],
+      "minimum_measured_slope": 0.5275255478560434,
+      "number_of_fully_tested_source_real_C_stars": 9
+    },
+    "201x401": {
+      "all_sampled_intervals_positive": true,
+      "any_sampled_negative_slope": false,
+      "interval_M_rho_slopes": [
+        0.9457345936202146,
+        0.8597542317378614,
+        0.7470593156705994,
+        0.6561308821242297,
+        0.5940230579276693,
+        0.5919218186144382,
+        0.5392039787822029,
+        0.5279248684004046
+      ],
+      "minimum_measured_slope": 0.5279248684004046,
+      "number_of_fully_tested_source_real_C_stars": 9
+    }
+  },
+  "schema": "J0740_F96_REAL_ORIGINAL_APR_SOURCE_CAUSAL_RANGE_COMMON_J_DUAL_RNS_C_V1",
+  "seventh_EOS_full_native_photon_Bayes": "NOT_RUN",
+  "source_EOS_global_causality": "NOT_CERTIFIED_HIGH_DENSITY_SUPERLUMINAL_SOURCE_NODES_PRESERVED",
+  "source_original_Zenodo_SHA256": "8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12",
+  "status": "TWO_GRID_ACTUAL_RNS_COMPLETE_CAUSAL_RANGE_DISCRETE_ONLY",
+  "two_grid_native_results": {
+    "151x301": {
+      "completed_actual_C_stars": [
+        {
+          "J_measured_cgs": 4.82456748349e+48,
+          "J_relative_error": 9.957202924404385e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 1.976597233061,
+          "R_eq_km": 11.03134929666,
+          "actual_native_C_calls_recorded": 13,
+          "direct_C_evaluations": 13,
+          "evaluations": [
+            {
+              "J_cgs": 4.378074520545e+48,
+              "M_msun": 1.97429035077,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 331.4898477668,
+              "requested_frequency_hz": 331.414494
+            },
+            {
+              "J_cgs": 4.786988838947e+48,
+              "M_msun": 1.976409634,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 361.4690739549,
+              "requested_frequency_hz": 361.414494
+            },
+            {
+              "J_cgs": 4.105769657323e+48,
+              "M_msun": 1.973043030613,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 311.3489154094,
+              "requested_frequency_hz": 311.414494
+            },
+            {
+              "J_cgs": 5.06130607944e+48,
+              "M_msun": 1.977871525847,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 381.4195507329,
+              "requested_frequency_hz": 381.414494
+            },
+            {
+              "J_cgs": 4.105769657323e+48,
+              "M_msun": 1.973043030613,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 311.3489154094,
+              "requested_frequency_hz": 311.414494
+            },
+            {
+              "J_cgs": 5.06130607944e+48,
+              "M_msun": 1.977871525847,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 381.4195507329,
+              "requested_frequency_hz": 381.414494
+            },
+            {
+              "J_cgs": 4.823225335784e+48,
+              "M_msun": 1.976590476754,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.1182253492,
+              "requested_frequency_hz": 364.07131627598216
+            },
+            {
+              "J_cgs": 4.824541674783e+48,
+              "M_msun": 1.976597087748,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2144092018,
+              "requested_frequency_hz": 364.16873612896956
+            },
+            {
+              "J_cgs": 4.824576083904e+48,
+              "M_msun": 1.976597231858,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2169397444,
+              "requested_frequency_hz": 364.1702905174788
+            },
+            {
+              "J_cgs": 4.824550277901e+48,
+              "M_msun": 1.976597136231,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2150348482,
+              "requested_frequency_hz": 364.16968499387616
+            },
+            {
+              "J_cgs": 4.82456748349e+48,
+              "M_msun": 1.976597233061,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2162861122,
+              "requested_frequency_hz": 364.1699759923056
+            },
+            {
+              "J_cgs": 4.824550277901e+48,
+              "M_msun": 1.976597136231,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2150348482,
+              "requested_frequency_hz": 364.16987597409707
+            },
+            {
+              "J_cgs": 4.82456748349e+48,
+              "M_msun": 1.976597233061,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2162861122,
+              "requested_frequency_hz": 364.1699759923056
+            }
+          ],
+          "f_commanded_hz": 364.1699759923056,
+          "f_measured_hz": 364.2162861122,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1533320557069000.0,
+          "requested_rho_g_cm3": 1533320557069400.0,
+          "source_point_index": 0
+        },
+        {
+          "J_measured_cgs": 4.824562916052e+48,
+          "J_relative_error": 4.901521166722489e-08,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.005062929511,
+          "R_eq_km": 10.9745673165,
+          "actual_native_C_calls_recorded": 17,
+          "direct_C_evaluations": 17,
+          "evaluations": [
+            {
+              "J_cgs": 4.696931940091e+48,
+              "M_msun": 2.004788435906,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 349.1039326117,
+              "requested_frequency_hz": 349.1699759923056
+            },
+            {
+              "J_cgs": 5.115411528629e+48,
+              "M_msun": 2.006861645687,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 379.1395708081,
+              "requested_frequency_hz": 379.1699759923056
+            },
+            {
+              "J_cgs": 4.696931940091e+48,
+              "M_msun": 2.004788435906,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 349.1039326117,
+              "requested_frequency_hz": 349.1699759923056
+            },
+            {
+              "J_cgs": 5.115411528629e+48,
+              "M_msun": 2.006861645687,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 379.1395708081,
+              "requested_frequency_hz": 379.1699759923056
+            },
+            {
+              "J_cgs": 4.822869893063e+48,
+              "M_msun": 2.005054121777,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.3735108101,
+              "requested_frequency_hz": 358.3195791973218
+            },
+            {
+              "J_cgs": 4.824562940229e+48,
+              "M_msun": 2.005062935801,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4951107611,
+              "requested_frequency_hz": 358.4418513292751
+            },
+            {
+              "J_cgs": 4.824562940229e+48,
+              "M_msun": 2.005062935801,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4951107611,
+              "requested_frequency_hz": 358.441751311353
+            },
+            {
+              "J_cgs": 4.823716429101e+48,
+              "M_msun": 2.005058527654,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4343124069,
+              "requested_frequency_hz": 358.3806652543374
+            },
+            {
+              "J_cgs": 4.824562939982e+48,
+              "M_msun": 2.005062935748,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4951107516,
+              "requested_frequency_hz": 358.44165129343094
+            },
+            {
+              "J_cgs": 4.824139689362e+48,
+              "M_msun": 2.0050607316,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4647120008,
+              "requested_frequency_hz": 358.41115827388415
+            },
+            {
+              "J_cgs": 4.824562916052e+48,
+              "M_msun": 2.005062929511,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4951124679,
+              "requested_frequency_hz": 358.44155127550886
+            },
+            {
+              "J_cgs": 4.824544532886e+48,
+              "M_msun": 2.005062838692,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.493789245,
+              "requested_frequency_hz": 358.44056349317424
+            },
+            {
+              "J_cgs": 4.824562916052e+48,
+              "M_msun": 2.005062929511,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4951124679,
+              "requested_frequency_hz": 358.4414512575868
+            },
+            {
+              "J_cgs": 4.824553739141e+48,
+              "M_msun": 2.00506288787,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4944499244,
+              "requested_frequency_hz": 358.44100737538054
+            },
+            {
+              "J_cgs": 4.824562916052e+48,
+              "M_msun": 2.005062929511,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4951124679,
+              "requested_frequency_hz": 358.4413512396647
+            },
+            {
+              "J_cgs": 4.824553739141e+48,
+              "M_msun": 2.00506288787,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4944499244,
+              "requested_frequency_hz": 358.4411793075226
+            },
+            {
+              "J_cgs": 4.824562916052e+48,
+              "M_msun": 2.005062929511,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4951124679,
+              "requested_frequency_hz": 358.4413512396647
+            }
+          ],
+          "f_commanded_hz": 358.4413512396647,
+          "f_measured_hz": 358.4951124679,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1585592848788000.0,
+          "requested_rho_g_cm3": 1585592848787675.0,
+          "source_point_index": 1
+        },
+        {
+          "J_measured_cgs": 4.824565776957e+48,
+          "J_relative_error": 6.420026368303411e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.030911863012,
+          "R_eq_km": 10.91962823189,
+          "actual_native_C_calls_recorded": 12,
+          "direct_C_evaluations": 12,
+          "evaluations": [
+            {
+              "J_cgs": 4.684503278897e+48,
+              "M_msun": 2.030118536576,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 343.5216388906,
+              "requested_frequency_hz": 343.4413512396647
+            },
+            {
+              "J_cgs": 5.106073957989e+48,
+              "M_msun": 2.03215773137,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 373.5057293569,
+              "requested_frequency_hz": 373.4413512396647
+            },
+            {
+              "J_cgs": 4.684503278897e+48,
+              "M_msun": 2.030118536576,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 343.5216388906,
+              "requested_frequency_hz": 343.4413512396647
+            },
+            {
+              "J_cgs": 5.106073957989e+48,
+              "M_msun": 2.03215773137,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 373.5057293569,
+              "requested_frequency_hz": 373.4413512396647
+            },
+            {
+              "J_cgs": 4.822794357701e+48,
+              "M_msun": 2.030904295646,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.3476675629,
+              "requested_frequency_hz": 353.4083205492741
+            },
+            {
+              "J_cgs": 4.824575667589e+48,
+              "M_msun": 2.030911911621,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.4748099942,
+              "requested_frequency_hz": 353.5349721764003
+            },
+            {
+              "J_cgs": 4.824575666161e+48,
+              "M_msun": 2.030911911296,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.4748099879,
+              "requested_frequency_hz": 353.5340487250051
+            },
+            {
+              "J_cgs": 4.823675225452e+48,
+              "M_msun": 2.0309080553,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.4105444373,
+              "requested_frequency_hz": 353.4711846371396
+            },
+            {
+              "J_cgs": 4.824555886376e+48,
+              "M_msun": 2.030911814418,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.4734050185,
+              "requested_frequency_hz": 353.5331420691056
+            },
+            {
+              "J_cgs": 4.824565776957e+48,
+              "M_msun": 2.030911863012,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.4741075042,
+              "requested_frequency_hz": 353.5334534523681
+            },
+            {
+              "J_cgs": 4.824555886376e+48,
+              "M_msun": 2.030911814418,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.4734050185,
+              "requested_frequency_hz": 353.53335343469143
+            },
+            {
+              "J_cgs": 4.824565776957e+48,
+              "M_msun": 2.030911863012,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.4741075042,
+              "requested_frequency_hz": 353.5334534523681
+            }
+          ],
+          "f_commanded_hz": 353.5334534523681,
+          "f_measured_hz": 353.4741075042,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1637865140506000.0,
+          "requested_rho_g_cm3": 1637865140505950.0,
+          "source_point_index": 2
+        },
+        {
+          "J_measured_cgs": 4.824564800379e+48,
+          "J_relative_error": 4.3958470485883083e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.053364645606,
+          "R_eq_km": 10.86459681767,
+          "actual_native_C_calls_recorded": 9,
+          "direct_C_evaluations": 9,
+          "evaluations": [
+            {
+              "J_cgs": 4.667377314379e+48,
+              "M_msun": 2.05238703485,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 338.6659372775,
+              "requested_frequency_hz": 338.5334534523681
+            },
+            {
+              "J_cgs": 5.092546095826e+48,
+              "M_msun": 2.054342993924,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 368.5919799978,
+              "requested_frequency_hz": 368.5334534523681
+            },
+            {
+              "J_cgs": 4.667377314379e+48,
+              "M_msun": 2.05238703485,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 338.6659372775,
+              "requested_frequency_hz": 338.5334534523681
+            },
+            {
+              "J_cgs": 5.092546095826e+48,
+              "M_msun": 2.054342993924,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 368.5919799978,
+              "requested_frequency_hz": 368.5334534523681
+            },
+            {
+              "J_cgs": 4.826831461197e+48,
+              "M_msun": 2.053374320072,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.7175535775,
+              "requested_frequency_hz": 349.6244863824728
+            },
+            {
+              "J_cgs": 4.824605895739e+48,
+              "M_msun": 2.053364837359,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.5602233628,
+              "requested_frequency_hz": 349.46667843465497
+            },
+            {
+              "J_cgs": 4.824564800379e+48,
+              "M_msun": 2.053364645606,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.557330281,
+              "requested_frequency_hz": 349.4636149526962
+            },
+            {
+              "J_cgs": 4.824554643982e+48,
+              "M_msun": 2.053364629324,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.5565926487,
+              "requested_frequency_hz": 349.4634568588224
+            },
+            {
+              "J_cgs": 4.824564800379e+48,
+              "M_msun": 2.053364645606,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.557330281,
+              "requested_frequency_hz": 349.4636149526962
+            }
+          ],
+          "f_commanded_hz": 349.4636149526962,
+          "f_measured_hz": 349.557330281,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1690137432224000.0,
+          "requested_rho_g_cm3": 1690137432224225.0,
+          "source_point_index": 3
+        },
+        {
+          "J_measured_cgs": 4.824557433027e+48,
+          "J_relative_error": 1.087466033111717e-06,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.073401574711,
+          "R_eq_km": 10.81096566122,
+          "actual_native_C_calls_recorded": 9,
+          "direct_C_evaluations": 9,
+          "evaluations": [
+            {
+              "J_cgs": 4.655082400713e+48,
+              "M_msun": 2.072732267704,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 334.4109043899,
+              "requested_frequency_hz": 334.4636149526962
+            },
+            {
+              "J_cgs": 5.083519983113e+48,
+              "M_msun": 2.074644377656,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 364.4110475121,
+              "requested_frequency_hz": 364.4636149526962
+            },
+            {
+              "J_cgs": 4.655082400713e+48,
+              "M_msun": 2.072732267704,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 334.4109043899,
+              "requested_frequency_hz": 334.4636149526962
+            },
+            {
+              "J_cgs": 5.083519983113e+48,
+              "M_msun": 2.074644377656,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 364.4110475121,
+              "requested_frequency_hz": 364.4636149526962
+            },
+            {
+              "J_cgs": 4.826425726074e+48,
+              "M_msun": 2.073409061118,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 346.4566710873,
+              "requested_frequency_hz": 346.3309407306533
+            },
+            {
+              "J_cgs": 4.824568188399e+48,
+              "M_msun": 2.073401622157,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 346.3262741112,
+              "requested_frequency_hz": 346.2019051834788
+            },
+            {
+              "J_cgs": 4.824557433027e+48,
+              "M_msun": 2.073401574711,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 346.3255223825,
+              "requested_frequency_hz": 346.2015225204409
+            },
+            {
+              "J_cgs": 4.824568188399e+48,
+              "M_msun": 2.073401622157,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 346.3262741112,
+              "requested_frequency_hz": 346.2017091862309
+            },
+            {
+              "J_cgs": 4.824557433027e+48,
+              "M_msun": 2.073401574711,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 346.3255223825,
+              "requested_frequency_hz": 346.2015225204409
+            }
+          ],
+          "f_commanded_hz": 346.2015225204409,
+          "f_measured_hz": 346.3255223825,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1742409723943000.0,
+          "requested_rho_g_cm3": 1742409723942500.0,
+          "source_point_index": 4
+        },
+        {
+          "J_measured_cgs": 4.824559058417e+48,
+          "J_relative_error": 7.505671040242134e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.087959562971,
+          "R_eq_km": 10.76642855241,
+          "actual_native_C_calls_recorded": 10,
+          "direct_C_evaluations": 10,
+          "evaluations": [
+            {
+              "J_cgs": 4.639154213018e+48,
+              "M_msun": 2.087612015318,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 331.1481641971,
+              "requested_frequency_hz": 331.2015225204409
+            },
+            {
+              "J_cgs": 5.06962052305e+48,
+              "M_msun": 2.089487192473,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 361.1490876304,
+              "requested_frequency_hz": 361.2015225204409
+            },
+            {
+              "J_cgs": 4.639154213018e+48,
+              "M_msun": 2.087612015318,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 331.1481641971,
+              "requested_frequency_hz": 331.2015225204409
+            },
+            {
+              "J_cgs": 5.06962052305e+48,
+              "M_msun": 2.089487192473,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 361.1490876304,
+              "requested_frequency_hz": 361.2015225204409
+            },
+            {
+              "J_cgs": 4.823046950412e+48,
+              "M_msun": 2.087953138037,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.2834461814,
+              "requested_frequency_hz": 344.12298435632226
+            },
+            {
+              "J_cgs": 4.824548544455e+48,
+              "M_msun": 2.087959686913,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.3877059546,
+              "requested_frequency_hz": 344.22883433083365
+            },
+            {
+              "J_cgs": 4.82457016804e+48,
+              "M_msun": 2.087959608428,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.3893417148,
+              "requested_frequency_hz": 344.2298306326377
+            },
+            {
+              "J_cgs": 4.824559058417e+48,
+              "M_msun": 2.087959562971,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.3885686004,
+              "requested_frequency_hz": 344.2294856033028
+            },
+            {
+              "J_cgs": 4.824570168038e+48,
+              "M_msun": 2.087959608427,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.3893417144,
+              "requested_frequency_hz": 344.2295980648822
+            },
+            {
+              "J_cgs": 4.824559058417e+48,
+              "M_msun": 2.087959562971,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.3885686004,
+              "requested_frequency_hz": 344.2294856033028
+            }
+          ],
+          "f_commanded_hz": 344.2294856033028,
+          "f_measured_hz": 344.3885686004,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1785969967041000.0,
+          "requested_rho_g_cm3": 1785969967041062.2,
+          "source_point_index": 5
+        },
+        {
+          "J_measured_cgs": 4.824565029689e+48,
+          "J_relative_error": 4.871144014817474e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.093870458559,
+          "R_eq_km": 10.74973827425,
+          "actual_native_C_calls_recorded": 11,
+          "direct_C_evaluations": 11,
+          "evaluations": [
+            {
+              "J_cgs": 4.621690439825e+48,
+              "M_msun": 2.093113074156,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 329.176188538,
+              "requested_frequency_hz": 329.2294856033028
+            },
+            {
+              "J_cgs": 5.054436704936e+48,
+              "M_msun": 2.094767267041,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 359.3443189454,
+              "requested_frequency_hz": 359.2294856033028
+            },
+            {
+              "J_cgs": 4.621690439825e+48,
+              "M_msun": 2.093113074156,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 329.176188538,
+              "requested_frequency_hz": 329.2294856033028
+            },
+            {
+              "J_cgs": 5.054436704936e+48,
+              "M_msun": 2.094767267041,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 359.3443189454,
+              "requested_frequency_hz": 359.2294856033028
+            },
+            {
+              "J_cgs": 4.823103825625e+48,
+              "M_msun": 2.093865010434,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.2442827126,
+              "requested_frequency_hz": 343.2935404159771
+            },
+            {
+              "J_cgs": 4.824553895415e+48,
+              "M_msun": 2.093870444877,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.3454573299,
+              "requested_frequency_hz": 343.3947651334723
+            },
+            {
+              "J_cgs": 4.824565029689e+48,
+              "M_msun": 2.093870458559,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.3462556696,
+              "requested_frequency_hz": 343.3953782762431
+            },
+            {
+              "J_cgs": 4.824565029689e+48,
+              "M_msun": 2.093870458559,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.3462556696,
+              "requested_frequency_hz": 343.3952488600471
+            },
+            {
+              "J_cgs": 4.824553895415e+48,
+              "M_msun": 2.093870444877,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.3454573299,
+              "requested_frequency_hz": 343.39500699675966
+            },
+            {
+              "J_cgs": 4.824565029689e+48,
+              "M_msun": 2.093870458559,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.3462556696,
+              "requested_frequency_hz": 343.39514884287735
+            },
+            {
+              "J_cgs": 4.824565029689e+48,
+              "M_msun": 2.093870458559,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.3462556696,
+              "requested_frequency_hz": 343.39514884287735
+            }
+          ],
+          "f_commanded_hz": 343.39514884287735,
+          "f_measured_hz": 343.3462556696,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1803394064280000.0,
+          "requested_rho_g_cm3": 1803394064280487.2,
+          "source_point_index": 6
+        },
+        {
+          "J_measured_cgs": 4.824571301954e+48,
+          "J_relative_error": 1.787183530277403e-06,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.096563244239,
+          "R_eq_km": 10.741101188,
+          "actual_native_C_calls_recorded": 11,
+          "direct_C_evaluations": 11,
+          "evaluations": [
+            {
+              "J_cgs": 4.612701251882e+48,
+              "M_msun": 2.095695143535,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 328.3561598416,
+              "requested_frequency_hz": 328.39514884287735
+            },
+            {
+              "J_cgs": 5.047938143919e+48,
+              "M_msun": 2.097427161124,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 358.5172005925,
+              "requested_frequency_hz": 358.39514884287735
+            },
+            {
+              "J_cgs": 4.612701251882e+48,
+              "M_msun": 2.095695143535,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 328.3561598416,
+              "requested_frequency_hz": 328.39514884287735
+            },
+            {
+              "J_cgs": 5.047938143919e+48,
+              "M_msun": 2.097427161124,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 358.5172005925,
+              "requested_frequency_hz": 358.39514884287735
+            },
+            {
+              "J_cgs": 4.82409636543e+48,
+              "M_msun": 2.096561472243,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 342.9495642108,
+              "requested_frequency_hz": 342.9983291960971
+            },
+            {
+              "J_cgs": 4.824537449798e+48,
+              "M_msun": 2.096563136802,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 342.9802973969,
+              "requested_frequency_hz": 343.0304750831617
+            },
+            {
+              "J_cgs": 4.824582627381e+48,
+              "M_msun": 2.096563291221,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 342.983457547,
+              "requested_frequency_hz": 343.0323135941213
+            },
+            {
+              "J_cgs": 4.824571301954e+48,
+              "M_msun": 2.096563244239,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 342.9826716908,
+              "requested_frequency_hz": 343.03150181408694
+            },
+            {
+              "J_cgs": 4.824548775097e+48,
+              "M_msun": 2.096563183738,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 342.9810832473,
+              "requested_frequency_hz": 343.03104119920414
+            },
+            {
+              "J_cgs": 4.824548775097e+48,
+              "M_msun": 2.096563183738,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 342.9810832473,
+              "requested_frequency_hz": 343.03132550915126
+            },
+            {
+              "J_cgs": 4.824571301954e+48,
+              "M_msun": 2.096563244239,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 342.9826716908,
+              "requested_frequency_hz": 343.03150181408694
+            }
+          ],
+          "f_commanded_hz": 343.03150181408694,
+          "f_measured_hz": 342.9826716908,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1812106112900000.0,
+          "requested_rho_g_cm3": 1812106112900200.0,
+          "source_point_index": 7
+        },
+        {
+          "J_measured_cgs": 4.824572925943e+48,
+          "J_relative_error": 2.1237920704297863e-06,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.099213805502,
+          "R_eq_km": 10.73245098414,
+          "actual_native_C_calls_recorded": 11,
+          "direct_C_evaluations": 11,
+          "evaluations": [
+            {
+              "J_cgs": 4.612299889883e+48,
+              "M_msun": 2.098348421991,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 327.9924729848,
+              "requested_frequency_hz": 328.03150181408694
+            },
+            {
+              "J_cgs": 5.04799944183e+48,
+              "M_msun": 2.100071439391,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 358.158710248,
+              "requested_frequency_hz": 358.03150181408694
+            },
+            {
+              "J_cgs": 4.612299889883e+48,
+              "M_msun": 2.098348421991,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 327.9924729848,
+              "requested_frequency_hz": 328.03150181408694
+            },
+            {
+              "J_cgs": 5.04799944183e+48,
+              "M_msun": 2.100071439391,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 358.158710248,
+              "requested_frequency_hz": 358.03150181408694
+            },
+            {
+              "J_cgs": 4.824095079273e+48,
+              "M_msun": 2.099212036058,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.5981668087,
+              "requested_frequency_hz": 342.64681106172134
+            },
+            {
+              "J_cgs": 4.824550260646e+48,
+              "M_msun": 2.099213745177,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.6298556779,
+              "requested_frequency_hz": 342.67901127695563
+            },
+            {
+              "J_cgs": 4.824572925944e+48,
+              "M_msun": 2.099213805502,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.6314527306,
+              "requested_frequency_hz": 342.67988975791263
+            },
+            {
+              "J_cgs": 4.824572925943e+48,
+              "M_msun": 2.099213805502,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.6314527306,
+              "requested_frequency_hz": 342.67949262040264
+            },
+            {
+              "J_cgs": 4.824572925943e+48,
+              "M_msun": 2.099213805502,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.6314527306,
+              "requested_frequency_hz": 342.67925194867917
+            },
+            {
+              "J_cgs": 4.824550260646e+48,
+              "M_msun": 2.099213745177,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.6298556779,
+              "requested_frequency_hz": 342.6791316128174
+            },
+            {
+              "J_cgs": 4.824572925943e+48,
+              "M_msun": 2.099213805502,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.6314527306,
+              "requested_frequency_hz": 342.67925194867917
+            }
+          ],
+          "f_commanded_hz": 342.67925194867917,
+          "f_measured_hz": 342.6314527306,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1820860880773000.0,
+          "requested_rho_g_cm3": 1820860880772815.2,
+          "source_point_index": 8
+        }
+      ],
+      "errors": [],
+      "native_C_calls_logged_in_trace": 103,
+      "trace_SHA256": "b686b6de5e3751ca05903b0d37c2a4ab95b2194585fc9ac7d39e3e8555ff131d"
+    },
+    "201x401": {
+      "completed_actual_C_stars": [
+        {
+          "J_measured_cgs": 4.824563472449e+48,
+          "J_relative_error": 1.6434110494678578e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 1.976341827187,
+          "R_eq_km": 11.0309740292,
+          "actual_native_C_calls_recorded": 13,
+          "direct_C_evaluations": 13,
+          "evaluations": [
+            {
+              "J_cgs": 4.377483407239e+48,
+              "M_msun": 1.974035279503,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 331.4743911347,
+              "requested_frequency_hz": 331.3957439999999
+            },
+            {
+              "J_cgs": 4.786309433487e+48,
+              "M_msun": 1.976151682425,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 361.4499901075,
+              "requested_frequency_hz": 361.3957439999999
+            },
+            {
+              "J_cgs": 4.105196959571e+48,
+              "M_msun": 1.972790992964,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 311.3311838792,
+              "requested_frequency_hz": 311.3957439999999
+            },
+            {
+              "J_cgs": 5.060813415808e+48,
+              "M_msun": 1.977618717599,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 381.4103144259,
+              "requested_frequency_hz": 381.3957439999999
+            },
+            {
+              "J_cgs": 4.105196959571e+48,
+              "M_msun": 1.972790992964,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 311.3311838792,
+              "requested_frequency_hz": 311.3957439999999
+            },
+            {
+              "J_cgs": 5.060813415808e+48,
+              "M_msun": 1.977618717599,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 381.4103144259,
+              "requested_frequency_hz": 381.3957439999999
+            },
+            {
+              "J_cgs": 4.823054580013e+48,
+              "M_msun": 1.976334311584,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.1369003194,
+              "requested_frequency_hz": 364.0901069650032
+            },
+            {
+              "J_cgs": 4.82455490178e+48,
+              "M_msun": 1.976341779555,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2465727997,
+              "requested_frequency_hz": 364.19987627618787
+            },
+            {
+              "J_cgs": 4.824563472449e+48,
+              "M_msun": 1.976341827187,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2471963654,
+              "requested_frequency_hz": 364.2004453108551
+            },
+            {
+              "J_cgs": 4.824563472449e+48,
+              "M_msun": 1.976341827187,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2471963654,
+              "requested_frequency_hz": 364.20034529264507
+            },
+            {
+              "J_cgs": 4.82455490178e+48,
+              "M_msun": 1.976341779555,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2465727997,
+              "requested_frequency_hz": 364.20011078441644
+            },
+            {
+              "J_cgs": 4.82455490178e+48,
+              "M_msun": 1.976341779555,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2465727997,
+              "requested_frequency_hz": 364.2002452744351
+            },
+            {
+              "J_cgs": 4.824563472449e+48,
+              "M_msun": 1.976341827187,
+              "central_rho_g_cm3": 1533320557069000.0,
+              "measured_frequency_hz": 364.2471963654,
+              "requested_frequency_hz": 364.20034529264507
+            }
+          ],
+          "f_commanded_hz": 364.20034529264507,
+          "f_measured_hz": 364.2471963654,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1533320557069000.0,
+          "requested_rho_g_cm3": 1533320557069400.0,
+          "source_point_index": 0
+        },
+        {
+          "J_measured_cgs": 4.824564842074e+48,
+          "J_relative_error": 4.48226938898344e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.004713864996,
+          "R_eq_km": 10.97371566267,
+          "actual_native_C_calls_recorded": 11,
+          "direct_C_evaluations": 11,
+          "evaluations": [
+            {
+              "J_cgs": 4.695914062957e+48,
+              "M_msun": 2.004441781693,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 349.1306504201,
+              "requested_frequency_hz": 349.20034529264507
+            },
+            {
+              "J_cgs": 5.114462990137e+48,
+              "M_msun": 2.006534159062,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 379.1626902051,
+              "requested_frequency_hz": 379.20034529264507
+            },
+            {
+              "J_cgs": 4.695914062957e+48,
+              "M_msun": 2.004441781693,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 349.1306504201,
+              "requested_frequency_hz": 349.20034529264507
+            },
+            {
+              "J_cgs": 5.114462990137e+48,
+              "M_msun": 2.006534159062,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 379.1626902051,
+              "requested_frequency_hz": 379.20034529264507
+            },
+            {
+              "J_cgs": 4.82274745358e+48,
+              "M_msun": 2.004704447482,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.4788707602,
+              "requested_frequency_hz": 358.4213903077273
+            },
+            {
+              "J_cgs": 4.824574329986e+48,
+              "M_msun": 2.004714020557,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.6100502633,
+              "requested_frequency_hz": 358.5525397241718
+            },
+            {
+              "J_cgs": 4.82455608709e+48,
+              "M_msun": 2.004713931062,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.6087368679,
+              "requested_frequency_hz": 358.5517033541832
+            },
+            {
+              "J_cgs": 4.824565201718e+48,
+              "M_msun": 2.004713973944,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.6093942865,
+              "requested_frequency_hz": 358.55200559548507
+            },
+            {
+              "J_cgs": 4.824564842074e+48,
+              "M_msun": 2.004713864996,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.6094517746,
+              "requested_frequency_hz": 358.5519055775575
+            },
+            {
+              "J_cgs": 4.82455608709e+48,
+              "M_msun": 2.004713931062,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.6087368679,
+              "requested_frequency_hz": 358.5518044658703
+            },
+            {
+              "J_cgs": 4.824564842074e+48,
+              "M_msun": 2.004713864996,
+              "central_rho_g_cm3": 1585592848788000.0,
+              "measured_frequency_hz": 358.6094517746,
+              "requested_frequency_hz": 358.5519055775575
+            }
+          ],
+          "f_commanded_hz": 358.5519055775575,
+          "f_measured_hz": 358.6094517746,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1585592848788000.0,
+          "requested_rho_g_cm3": 1585592848787675.0,
+          "source_point_index": 1
+        },
+        {
+          "J_measured_cgs": 4.824567298373e+48,
+          "J_relative_error": 9.573505970195129e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.030506491948,
+          "R_eq_km": 10.91874900147,
+          "actual_native_C_calls_recorded": 9,
+          "direct_C_evaluations": 9,
+          "evaluations": [
+            {
+              "J_cgs": 4.683991892862e+48,
+              "M_msun": 2.029702648783,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 343.6395236282,
+              "requested_frequency_hz": 343.5519055775575
+            },
+            {
+              "J_cgs": 5.10563296612e+48,
+              "M_msun": 2.031751633808,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 373.6344484182,
+              "requested_frequency_hz": 373.5519055775575
+            },
+            {
+              "J_cgs": 4.683991892862e+48,
+              "M_msun": 2.029702648783,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 343.6395236282,
+              "requested_frequency_hz": 343.5519055775575
+            },
+            {
+              "J_cgs": 5.10563296612e+48,
+              "M_msun": 2.031751633808,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 373.6344484182,
+              "requested_frequency_hz": 373.5519055775575
+            },
+            {
+              "J_cgs": 4.822643426955e+48,
+              "M_msun": 2.030498252116,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.4883584027,
+              "requested_frequency_hz": 353.5535962781471
+            },
+            {
+              "J_cgs": 4.824567298373e+48,
+              "M_msun": 2.030506491948,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.6257592847,
+              "requested_frequency_hz": 353.6911034777296
+            },
+            {
+              "J_cgs": 4.824557461463e+48,
+              "M_msun": 2.030506495105,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.6250314186,
+              "requested_frequency_hz": 353.6907733527705
+            },
+            {
+              "J_cgs": 4.824557461463e+48,
+              "M_msun": 2.030506495105,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.6250314186,
+              "requested_frequency_hz": 353.69094847168725
+            },
+            {
+              "J_cgs": 4.824567298373e+48,
+              "M_msun": 2.030506491948,
+              "central_rho_g_cm3": 1637865140506000.0,
+              "measured_frequency_hz": 353.6257592847,
+              "requested_frequency_hz": 353.6911034777296
+            }
+          ],
+          "f_commanded_hz": 353.6911034777296,
+          "f_measured_hz": 353.6257592847,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1637865140506000.0,
+          "requested_rho_g_cm3": 1637865140505950.0,
+          "source_point_index": 2
+        },
+        {
+          "J_measured_cgs": 4.824554897361e+48,
+          "J_relative_error": 1.6130403013292494e-06,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.052918271418,
+          "R_eq_km": 10.86370489603,
+          "actual_native_C_calls_recorded": 12,
+          "direct_C_evaluations": 12,
+          "evaluations": [
+            {
+              "J_cgs": 4.667229274604e+48,
+              "M_msun": 2.051929308026,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 338.8307641096,
+              "requested_frequency_hz": 338.6911034777296
+            },
+            {
+              "J_cgs": 5.09334799343e+48,
+              "M_msun": 2.054240680606,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 368.6409393727,
+              "requested_frequency_hz": 368.6911034777296
+            },
+            {
+              "J_cgs": 4.667229274604e+48,
+              "M_msun": 2.051929308026,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 338.8307641096,
+              "requested_frequency_hz": 338.6911034777296
+            },
+            {
+              "J_cgs": 5.09334799343e+48,
+              "M_msun": 2.054240680606,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 368.6409393727,
+              "requested_frequency_hz": 368.6911034777296
+            },
+            {
+              "J_cgs": 4.826496021303e+48,
+              "M_msun": 2.052926567683,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.864634793,
+              "requested_frequency_hz": 349.7678338361969
+            },
+            {
+              "J_cgs": 4.824606064589e+48,
+              "M_msun": 2.052918510525,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.7309765527,
+              "requested_frequency_hz": 349.6333732193057
+            },
+            {
+              "J_cgs": 4.82455489734e+48,
+              "M_msun": 2.052918271414,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.7273733878,
+              "requested_frequency_hz": 349.6302874515097
+            },
+            {
+              "J_cgs": 4.824554897361e+48,
+              "M_msun": 2.052918271418,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.7273733903,
+              "requested_frequency_hz": 349.63075677848605
+            },
+            {
+              "J_cgs": 4.824585597964e+48,
+              "M_msun": 2.052918414929,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.7295352973,
+              "requested_frequency_hz": 349.6320649988959
+            },
+            {
+              "J_cgs": 4.824575364426e+48,
+              "M_msun": 2.052918367088,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.7288146605,
+              "requested_frequency_hz": 349.6310883957914
+            },
+            {
+              "J_cgs": 4.824575364426e+48,
+              "M_msun": 2.052918367088,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.7288146605,
+              "requested_frequency_hz": 349.6308828696891
+            },
+            {
+              "J_cgs": 4.824554897361e+48,
+              "M_msun": 2.052918271418,
+              "central_rho_g_cm3": 1690137432224000.0,
+              "measured_frequency_hz": 349.7273733903,
+              "requested_frequency_hz": 349.63075677848605
+            }
+          ],
+          "f_commanded_hz": 349.63075677848605,
+          "f_measured_hz": 349.7273733903,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1690137432224000.0,
+          "requested_rho_g_cm3": 1690137432224225.0,
+          "source_point_index": 3
+        },
+        {
+          "J_measured_cgs": 4.824566380605e+48,
+          "J_relative_error": 7.671223709593278e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.072602197882,
+          "R_eq_km": 10.80948093754,
+          "actual_native_C_calls_recorded": 9,
+          "direct_C_evaluations": 9,
+          "evaluations": [
+            {
+              "J_cgs": 4.654923346797e+48,
+              "M_msun": 2.072248027701,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 334.5750058843,
+              "requested_frequency_hz": 334.63075677848605
+            },
+            {
+              "J_cgs": 5.083304105708e+48,
+              "M_msun": 2.074178447055,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 364.5773840192,
+              "requested_frequency_hz": 364.63075677848605
+            },
+            {
+              "J_cgs": 4.654923346797e+48,
+              "M_msun": 2.072248027701,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 334.5750058843,
+              "requested_frequency_hz": 334.63075677848605
+            },
+            {
+              "J_cgs": 5.083304105708e+48,
+              "M_msun": 2.074178447055,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 364.5773840192,
+              "requested_frequency_hz": 364.63075677848605
+            },
+            {
+              "J_cgs": 4.823182805338e+48,
+              "M_msun": 2.072596044108,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 346.649476311,
+              "requested_frequency_hz": 346.510795453142
+            },
+            {
+              "J_cgs": 4.824566380605e+48,
+              "M_msun": 2.072602197882,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 346.7461739522,
+              "requested_frequency_hz": 346.6077053039127
+            },
+            {
+              "J_cgs": 4.824555663201e+48,
+              "M_msun": 2.072602151812,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 346.7454242046,
+              "requested_frequency_hz": 346.6074460724348
+            },
+            {
+              "J_cgs": 4.824566380605e+48,
+              "M_msun": 2.072602197882,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 346.7461739522,
+              "requested_frequency_hz": 346.6076052865823
+            },
+            {
+              "J_cgs": 4.824566380605e+48,
+              "M_msun": 2.072602197882,
+              "central_rho_g_cm3": 1742409723943000.0,
+              "measured_frequency_hz": 346.7461739522,
+              "requested_frequency_hz": 346.6076052865823
+            }
+          ],
+          "f_commanded_hz": 346.6076052865823,
+          "f_measured_hz": 346.7461739522,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1742409723943000.0,
+          "requested_rho_g_cm3": 1742409723942500.0,
+          "source_point_index": 4
+        },
+        {
+          "J_measured_cgs": 4.824565369662e+48,
+          "J_relative_error": 5.5758151362717e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.08745277433,
+          "R_eq_km": 10.76557087569,
+          "actual_native_C_calls_recorded": 16,
+          "direct_C_evaluations": 16,
+          "evaluations": [
+            {
+              "J_cgs": 4.642451329353e+48,
+              "M_msun": 2.087117291251,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 331.5558481445,
+              "requested_frequency_hz": 331.6076052865823
+            },
+            {
+              "J_cgs": 5.072793145468e+48,
+              "M_msun": 2.089013281057,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 361.5541724167,
+              "requested_frequency_hz": 361.6076052865823
+            },
+            {
+              "J_cgs": 4.642451329353e+48,
+              "M_msun": 2.087117291251,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 331.5558481445,
+              "requested_frequency_hz": 331.6076052865823
+            },
+            {
+              "J_cgs": 5.072793145468e+48,
+              "M_msun": 2.089013281057,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 361.5541724167,
+              "requested_frequency_hz": 361.6076052865823
+            },
+            {
+              "J_cgs": 4.823056838656e+48,
+              "M_msun": 2.087446331709,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.4725344335,
+              "requested_frequency_hz": 344.3029565215206
+            },
+            {
+              "J_cgs": 4.824565370221e+48,
+              "M_msun": 2.087452774444,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.5774569788,
+              "requested_frequency_hz": 344.40816874973905
+            },
+            {
+              "J_cgs": 4.824565495086e+48,
+              "M_msun": 2.087452807728,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.5774417201,
+              "requested_frequency_hz": 344.40798109118185
+            },
+            {
+              "J_cgs": 4.823800158998e+48,
+              "M_msun": 2.087449538531,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.5242108744,
+              "requested_frequency_hz": 344.35546880635127
+            },
+            {
+              "J_cgs": 4.8245758591e+48,
+              "M_msun": 2.087452651414,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.5783185382,
+              "requested_frequency_hz": 344.40778790949884
+            },
+            {
+              "J_cgs": 4.824188249795e+48,
+              "M_msun": 2.087451162509,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.5512278934,
+              "requested_frequency_hz": 344.381628357925
+            },
+            {
+              "J_cgs": 4.824543310009e+48,
+              "M_msun": 2.087452712456,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.5758989404,
+              "requested_frequency_hz": 344.4068984301739
+            },
+            {
+              "J_cgs": 4.824565369662e+48,
+              "M_msun": 2.08745277433,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.5774569557,
+              "requested_frequency_hz": 344.40742774844347
+            },
+            {
+              "J_cgs": 4.824565369662e+48,
+              "M_msun": 2.08745277433,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.5774569557,
+              "requested_frequency_hz": 344.4073277312231
+            },
+            {
+              "J_cgs": 4.82454331001e+48,
+              "M_msun": 2.087452712457,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.5758989406,
+              "requested_frequency_hz": 344.40711308069854
+            },
+            {
+              "J_cgs": 4.82454331001e+48,
+              "M_msun": 2.087452712457,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.5758989406,
+              "requested_frequency_hz": 344.4072277140028
+            },
+            {
+              "J_cgs": 4.824565369662e+48,
+              "M_msun": 2.08745277433,
+              "central_rho_g_cm3": 1785969967041000.0,
+              "measured_frequency_hz": 344.5774569557,
+              "requested_frequency_hz": 344.4073277312231
+            }
+          ],
+          "f_commanded_hz": 344.4073277312231,
+          "f_measured_hz": 344.5774569557,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1785969967041000.0,
+          "requested_rho_g_cm3": 1785969967041062.2,
+          "source_point_index": 5
+        },
+        {
+          "J_measured_cgs": 4.824558741848e+48,
+          "J_relative_error": 8.161832066866381e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.093371992516,
+          "R_eq_km": 10.74896837488,
+          "actual_native_C_calls_recorded": 9,
+          "direct_C_evaluations": 9,
+          "evaluations": [
+            {
+              "J_cgs": 4.619797487992e+48,
+              "M_msun": 2.092521877685,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 329.3692421929,
+              "requested_frequency_hz": 329.4073277312231
+            },
+            {
+              "J_cgs": 5.054454804041e+48,
+              "M_msun": 2.094274203601,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 359.5275611689,
+              "requested_frequency_hz": 359.4073277312231
+            },
+            {
+              "J_cgs": 4.619797487992e+48,
+              "M_msun": 2.092521877685,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 329.3692421929,
+              "requested_frequency_hz": 329.4073277312231
+            },
+            {
+              "J_cgs": 5.054454804041e+48,
+              "M_msun": 2.094274203601,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 359.5275611689,
+              "requested_frequency_hz": 359.4073277312231
+            },
+            {
+              "J_cgs": 4.824154733633e+48,
+              "M_msun": 2.093370451239,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.4923286824,
+              "requested_frequency_hz": 343.54019866350177
+            },
+            {
+              "J_cgs": 4.824558741848e+48,
+              "M_msun": 2.093371992516,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.5205278064,
+              "requested_frequency_hz": 343.5683612794395
+            },
+            {
+              "J_cgs": 4.82456998061e+48,
+              "M_msun": 2.09337203985,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.5213088073,
+              "requested_frequency_hz": 343.56863576496335
+            },
+            {
+              "J_cgs": 4.824558741848e+48,
+              "M_msun": 2.093371992516,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.5205278064,
+              "requested_frequency_hz": 343.5684612966179
+            },
+            {
+              "J_cgs": 4.824558741848e+48,
+              "M_msun": 2.093371992516,
+              "central_rho_g_cm3": 1803394064280000.0,
+              "measured_frequency_hz": 343.5205278064,
+              "requested_frequency_hz": 343.5684612966179
+            }
+          ],
+          "f_commanded_hz": 343.5684612966179,
+          "f_measured_hz": 343.5205278064,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1803394064280000.0,
+          "requested_rho_g_cm3": 1803394064280487.2,
+          "source_point_index": 6
+        },
+        {
+          "J_measured_cgs": 4.82456491905e+48,
+          "J_relative_error": 4.6418196020248104e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.09606801241,
+          "R_eq_km": 10.74037534244,
+          "actual_native_C_calls_recorded": 12,
+          "direct_C_evaluations": 12,
+          "evaluations": [
+            {
+              "J_cgs": 4.612885444751e+48,
+              "M_msun": 2.09519660122,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 328.5309144673,
+              "requested_frequency_hz": 328.5684612966179
+            },
+            {
+              "J_cgs": 5.048026493786e+48,
+              "M_msun": 2.096938606117,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 358.6970941923,
+              "requested_frequency_hz": 358.5684612966179
+            },
+            {
+              "J_cgs": 4.612885444751e+48,
+              "M_msun": 2.09519660122,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 328.5309144673,
+              "requested_frequency_hz": 328.5684612966179
+            },
+            {
+              "J_cgs": 5.048026493786e+48,
+              "M_msun": 2.096938606117,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 358.6970941923,
+              "requested_frequency_hz": 358.5684612966179
+            },
+            {
+              "J_cgs": 4.824054906622e+48,
+              "M_msun": 2.096066074813,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 343.1143740906,
+              "requested_frequency_hz": 343.1621592683539
+            },
+            {
+              "J_cgs": 4.82456491905e+48,
+              "M_msun": 2.09606801241,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 343.1499196197,
+              "requested_frequency_hz": 343.1971713622496
+            },
+            {
+              "J_cgs": 4.82456491905e+48,
+              "M_msun": 2.09606801241,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 343.1499196197,
+              "requested_frequency_hz": 343.19701762343203
+            },
+            {
+              "J_cgs": 4.824315657102e+48,
+              "M_msun": 2.096067084361,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 343.1325326616,
+              "requested_frequency_hz": 343.17958844589293
+            },
+            {
+              "J_cgs": 4.82456491905e+48,
+              "M_msun": 2.09606801241,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 343.1499196197,
+              "requested_frequency_hz": 343.19686103231567
+            },
+            {
+              "J_cgs": 4.824440168891e+48,
+              "M_msun": 2.096067515254,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 343.1412429662,
+              "requested_frequency_hz": 343.18822473910427
+            },
+            {
+              "J_cgs": 4.824553688325e+48,
+              "M_msun": 2.096067997359,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 343.1491156608,
+              "requested_frequency_hz": 343.1967059963417
+            },
+            {
+              "J_cgs": 4.82456491905e+48,
+              "M_msun": 2.09606801241,
+              "central_rho_g_cm3": 1812106112900000.0,
+              "measured_frequency_hz": 343.1499196197,
+              "requested_frequency_hz": 343.19686103231567
+            }
+          ],
+          "f_commanded_hz": 343.19686103231567,
+          "f_measured_hz": 343.1499196197,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1812106112900000.0,
+          "requested_rho_g_cm3": 1812106112900200.0,
+          "source_point_index": 7
+        },
+        {
+          "J_measured_cgs": 4.82456583059e+48,
+          "J_relative_error": 6.53119291982307e-07,
+          "J_target_cgs": 4.8245626795750385e+48,
+          "M_msun": 2.098720580066,
+          "R_eq_km": 10.73175402256,
+          "actual_native_C_calls_recorded": 11,
+          "direct_C_evaluations": 11,
+          "evaluations": [
+            {
+              "J_cgs": 4.612468282536e+48,
+              "M_msun": 2.09785122852,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 328.1591223519,
+              "requested_frequency_hz": 328.19686103231567
+            },
+            {
+              "J_cgs": 5.048069373979e+48,
+              "M_msun": 2.099585035108,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 358.3310043058,
+              "requested_frequency_hz": 358.19686103231567
+            },
+            {
+              "J_cgs": 4.612468282536e+48,
+              "M_msun": 2.09785122852,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 328.1591223519,
+              "requested_frequency_hz": 328.19686103231567
+            },
+            {
+              "J_cgs": 5.048069373979e+48,
+              "M_msun": 2.099585035108,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 358.3310043058,
+              "requested_frequency_hz": 358.19686103231567
+            },
+            {
+              "J_cgs": 4.824015026144e+48,
+              "M_msun": 2.098717301027,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.7547705608,
+              "requested_frequency_hz": 342.8038765705303
+            },
+            {
+              "J_cgs": 4.824600027847e+48,
+              "M_msun": 2.098720722726,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.7945962277,
+              "requested_frequency_hz": 342.8415988665825
+            },
+            {
+              "J_cgs": 4.82456583059e+48,
+              "M_msun": 2.098720580066,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.7922239639,
+              "requested_frequency_hz": 342.83919056150455
+            },
+            {
+              "J_cgs": 4.82456583059e+48,
+              "M_msun": 2.098720580066,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.7922239639,
+              "requested_frequency_hz": 342.83896992413554
+            },
+            {
+              "J_cgs": 4.824276837348e+48,
+              "M_msun": 2.098718295077,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.773008396,
+              "requested_frequency_hz": 342.8214232473329
+            },
+            {
+              "J_cgs": 4.82455455279e+48,
+              "M_msun": 2.098720565611,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.7914164146,
+              "requested_frequency_hz": 342.83877860533255
+            },
+            {
+              "J_cgs": 4.82456583059e+48,
+              "M_msun": 2.098720580066,
+              "central_rho_g_cm3": 1820860880773000.0,
+              "measured_frequency_hz": 342.7922239639,
+              "requested_frequency_hz": 342.83896992413554
+            }
+          ],
+          "f_commanded_hz": 342.83896992413554,
+          "f_measured_hz": 342.7922239639,
+          "measured_J_matches_common_target": true,
+          "real_solver_checked": true,
+          "reported_rho_g_cm3": 1820860880773000.0,
+          "requested_rho_g_cm3": 1820860880772815.2,
+          "source_point_index": 8
+        }
+      ],
+      "errors": [],
+      "native_C_calls_logged_in_trace": 102,
+      "trace_SHA256": "a81f64dc0a422ca2389e80104f7cc0b569c1418f0a9939a8e39ccfc70d4ba9ba"
+    }
+  },
+  "underlying_f88_low_density_source_extension": "PRESENT_100_ADDITIONAL_LOW_DENSITY_ROWS_EXPLICIT"
+}
