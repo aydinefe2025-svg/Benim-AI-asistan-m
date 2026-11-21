@@ -112,6 +112,7 @@ def _audit_has_only_matched_quotes(stages):
                 and isinstance(item.get("machine_assessment"), dict)
                 and item["machine_assessment"].get("verdict")
                     in {"supported", "contradicted", "insufficient"}
+                and item["machine_assessment"].get("available") is True
                 for item in audit)
     )
 
@@ -271,6 +272,7 @@ def audit_claim_quotes(manager, mission_id, *, client, model):
                         review_unavailable or index in missing_assessments
                     ),
                 }
+            assessment.setdefault("available", True)
             assessment["method"] = "skeptical_model_pass"
             reviewed[index]["machine_assessment"] = assessment
     with manager.colony._db() as db:
