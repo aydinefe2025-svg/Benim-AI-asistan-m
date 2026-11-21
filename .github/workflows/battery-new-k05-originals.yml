@@ -67,6 +67,7 @@ jobs:
           x=json.loads(p.read_text())
           assert x['cohort']=='TP_k05'
           assert x['original_archives_verified']==3
+          assert x['publisher_lab_internal_serials_distinct_across_archives'] is True
           assert x['source_cells']==3 and x['source_temperature_pairs']==9
           assert x['source_csv_files_processed']==18
           assert x['original_timestamp_voltage_current_rows_processed']>500000
