@@ -1,0 +1,148 @@
+{
+  "acceptance_policy": "ALL_FOUR_ORIGINAL_HELDOUT_SEEDS_PASS_REQUIRED",
+  "final_full_MR_photon_Bayes": "NOT_RUN",
+  "fixed_original_thresholds": {
+    "ESS_per_seed_min": 400,
+    "between_seed_logI_range_max": 0.15,
+    "half_to_full_logI_drift_max": 0.1,
+    "max_weight_fraction_max": 0.02,
+    "phase_half_ESS_min": 100,
+    "training_min_ESS": 1
+  },
+  "log_support_correction": 1.3884023843652795,
+  "method": "raw NPZ logq, raw JSONL logL/z, source run_manifest numeric global nuisance support; no new photon calls",
+  "new_photon_likelihood_calls": 0,
+  "original_proposal_sha256": "c3ddc4904e8ff049fa8925a738fe640dc18a63290d691c66a33875ad1f9f1365",
+  "original_raw_files_not_modified": true,
+  "original_source_model_sha256": "049a1ac945b09af595d282d958842cd95475e509d6b7e79b45c72d11096de227",
+  "original_support_factor": 0.24947354926879406,
+  "overall_fixed_original_four_seed_acceptance": "FAIL_UNCHANGED",
+  "pooled_diagnostic_not_per_seed_acceptance": {
+    "ESS": 2068.5143488794747,
+    "logI": -21890.233959330897,
+    "max_weight": 0.006583520801315442,
+    "scientific_limit": "Pooling four fixed-proposal independent seeds is a separate combined diagnostic, DOES NOT reverse 198301 original per-seed failure."
+  },
+  "previous_native_calls": 10817,
+  "schema": "J0740_F90_REAL_NATIVE_XPSI_V3_FOUR_SEED_RAW_IMMUTABLE_REPLAY_V1",
+  "seeds": [
+    {
+      "ESS": 430.72649056386433,
+      "draws": 2048,
+      "finite_native_likelihoods": 1721,
+      "gates": {
+        "ess_ge_400": true,
+        "half_full_logI_drift_le_0p1": true,
+        "max_weight_le_0p02": false,
+        "source_phase_min_ess_ge_100": true
+      },
+      "half_to_full_drift": 0.023660823939280817,
+      "jsonl_sha256": "e35bee49ef3a4a5c9954927714fb457f094472749d3b808625b8a11176351c5d",
+      "max_abs_recomputed_logweight_difference": 3.637978807091713e-12,
+      "max_weight_fraction": 0.026068854248150627,
+      "max_weight_index": 932,
+      "npz_sha256": "2289a061260e20998ee87a36f610d8955735d25f31f2dfbe4031219d2af5e29b",
+      "recomputed_logI": -21890.22383656928,
+      "recomputed_phase_half_ESS_check": [
+        182.38717212348294,
+        282.2741842509024
+      ],
+      "seed": 198301,
+      "source_phase_delta_max": 3.368541001691483e-10,
+      "source_phase_half_ESS": [
+        182.38717212369775,
+        282.27418425123926
+      ],
+      "status": "FAIL"
+    },
+    {
+      "ESS": 590.7031633790205,
+      "draws": 2048,
+      "finite_native_likelihoods": 1718,
+      "gates": {
+        "ess_ge_400": true,
+        "half_full_logI_drift_le_0p1": true,
+        "max_weight_le_0p02": true,
+        "source_phase_min_ess_ge_100": true
+      },
+      "half_to_full_drift": 0.012677782640821533,
+      "jsonl_sha256": "4ce3a2119ba6f26db3a6e92ea88ef6c3b33781df0048cbe92fb437634d1197ef",
+      "max_abs_recomputed_logweight_difference": 3.637978807091713e-12,
+      "max_weight_fraction": 0.012936581128734876,
+      "max_weight_index": 99,
+      "npz_sha256": "6d44416e8009b92a353a85c65509c40db99dac6710285b2f81de17cc793d9609",
+      "recomputed_logI": -21890.24110924594,
+      "recomputed_phase_half_ESS_check": [
+        276.1730542239317,
+        319.21674039732534
+      ],
+      "seed": 198303,
+      "source_phase_delta_max": 1.0730900612543337e-9,
+      "source_phase_half_ESS": [
+        276.1730542228586,
+        319.2167403980387
+      ],
+      "status": "PASS"
+    },
+    {
+      "ESS": 530.0511487920986,
+      "draws": 2048,
+      "finite_native_likelihoods": 1719,
+      "gates": {
+        "ess_ge_400": true,
+        "half_full_logI_drift_le_0p1": true,
+        "max_weight_le_0p02": true,
+        "source_phase_min_ess_ge_100": true
+      },
+      "half_to_full_drift": 0.015380695553176338,
+      "jsonl_sha256": "b5bae53212a52c9cc9a19840d5e9db77a5631b3d62ba25924222ea0d3aeb6541",
+      "max_abs_recomputed_logweight_difference": 7.275957614183426e-12,
+      "max_weight_fraction": 0.01881568447608297,
+      "max_weight_index": 1005,
+      "npz_sha256": "9a83f026eaaf12232a99c34ce250b8911a09a1566f5db177a614a564a0887bad",
+      "recomputed_logI": -21890.239794132114,
+      "recomputed_phase_half_ESS_check": [
+        246.06824375684005,
+        292.40639923053743
+      ],
+      "seed": 198307,
+      "source_phase_delta_max": 8.475353752146475e-10,
+      "source_phase_half_ESS": [
+        246.06824375768758,
+        292.40639923061946
+      ],
+      "status": "PASS"
+    },
+    {
+      "ESS": 548.7892982590491,
+      "draws": 2048,
+      "finite_native_likelihoods": 1725,
+      "gates": {
+        "ess_ge_400": true,
+        "half_full_logI_drift_le_0p1": true,
+        "max_weight_le_0p02": true,
+        "source_phase_min_ess_ge_100": true
+      },
+      "half_to_full_drift": 0.04099592087732162,
+      "jsonl_sha256": "c9737ac540adcd6f8d68e4fa403187202b1cf0dc229a62d25714e1e7289f38b3",
+      "max_abs_recomputed_logweight_difference": 3.637978807091713e-12,
+      "max_weight_fraction": 0.017841777547097884,
+      "max_weight_index": 1953,
+      "npz_sha256": "ae5c1aab03ca5e7975f525701546696ff79ba771cd85039e6f91ee3496f6b4cb",
+      "recomputed_logI": -21890.231195097957,
+      "recomputed_phase_half_ESS_check": [
+        239.9591722792084,
+        333.55221238304773
+      ],
+      "seed": 198311,
+      "source_phase_delta_max": 1.4076704246690497e-9,
+      "source_phase_half_ESS": [
+        239.95917228030592,
+        333.55221238164006
+      ],
+      "status": "PASS"
+    }
+  ],
+  "source_198301_FAIL_unmodified": true,
+  "source_manifest_sha256": "3c8d25ada8c148c961187ce18a78575c2c178f1160f3c69bb13614172a9baf53"
+}
