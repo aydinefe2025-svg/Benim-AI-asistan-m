@@ -1,0 +1,122 @@
+{
+  "actual_F96_native_C_JSON_SHA256": "a794218fd091c02e92e522e599003c0a6375c072f8b43d6607f89409155fce5a",
+  "actual_F96_public_GitHub_artifact_ZIP_SHA256": "8a54498114f0cf71476f393708531c8497d1afd77167deb4a74665c2a4825e27",
+  "actual_new_real_C_star_count": 18,
+  "eos_had_100_analytical_surface_extension_rows": true,
+  "first_source_acausal_rho_g_cm3": 1830010935450065.8,
+  "fixed_common_J_cgs": 4.8245626795750385e+48,
+  "frozen_design_SHA256": "dc18298037eec3de547475b4491ba97c792c372d8217937d79ee00b9be1dd8f1",
+  "full_seven_EOS_native_XPSI_photon_Bayes": "NOT_RUN",
+  "genuine_GitHub_artifact_id": 14721697923,
+  "genuine_Github_Action_run_id": 44940940031,
+  "max_cross_grid_M_difference_Msun": 0.0007993768290002201,
+  "max_cross_grid_R_eq_difference_m": 1.4847236799990782,
+  "max_relative_J_cross_grid_difference": 2.0526283170951842e-06,
+  "min_measured_J_mass_slope_both": 0.5275255478560434,
+  "native_photon_calls_this_experiment": 0,
+  "no_12GB_salmi_archive_redownload": true,
+  "no_observed_negative_sample_intervals_both_grids": true,
+  "not_repeated_existing_F89_old_10_stars": true,
+  "original_publisher_Zenodo328_SHA256": "8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12",
+  "original_real_F88_SHA256": "771d7b494821a43485a8e1248185e768efe9b26e10c0ac8d07b9c1c0f206bc36",
+  "original_real_F89_SHA256": "f880db902d4ef26dc268030fcfaba83c74f5a499bf92b4c8be57f7888657d00f",
+  "per_matched_source_grid_point": [
+    {
+      "J_relative_difference": 8.313790507141761e-07,
+      "M_difference_Msun": 0.00025540587400008086,
+      "R_difference_m": 0.37526746000082767,
+      "rho_g_cm3": 1533320557069000.0
+    },
+    {
+      "J_relative_difference": -3.992115482631675e-07,
+      "M_difference_Msun": 0.0003490645149999416,
+      "R_difference_m": 0.8516538300007426,
+      "rho_g_cm3": 1585592848788000.0
+    },
+    {
+      "J_relative_difference": -3.153476583195314e-07,
+      "M_difference_Msun": 0.00040537106400018175,
+      "R_difference_m": 0.8792304200007095,
+      "rho_g_cm3": 1637865140506000.0
+    },
+    {
+      "J_relative_difference": 2.0526283170951842e-06,
+      "M_difference_Msun": 0.00044637418799986506,
+      "R_difference_m": 0.8919216399991825,
+      "rho_g_cm3": 1690137432224000.0
+    },
+    {
+      "J_relative_difference": -1.8545869813202387e-06,
+      "M_difference_Msun": 0.0007993768290002201,
+      "R_difference_m": 1.4847236799990782,
+      "rho_g_cm3": 1742409723943000.0
+    },
+    {
+      "J_relative_difference": -1.3081478883458786e-06,
+      "M_difference_Msun": 0.0005067886410001776,
+      "R_difference_m": 0.8576767199990343,
+      "rho_g_cm3": 1785969967041000.0
+    },
+    {
+      "J_relative_difference": 1.3032986716510209e-06,
+      "M_difference_Msun": 0.0004984660430000787,
+      "R_difference_m": 0.7698993699989387,
+      "rho_g_cm3": 1803394064280000.0
+    },
+    {
+      "J_relative_difference": 1.3230009561215894e-06,
+      "M_difference_Msun": 0.0004952318289999091,
+      "R_difference_m": 0.7258455599998825,
+      "rho_g_cm3": 1812106112900000.0
+    },
+    {
+      "J_relative_difference": 1.4706718176604738e-06,
+      "M_difference_Msun": 0.0004932254360001664,
+      "R_difference_m": 0.6969615799992113,
+      "rho_g_cm3": 1820860880773000.0
+    }
+  ],
+  "physically_valid_full_CONTINUUM_4d_fixedJ_branch": "NOT_PROVEN_BY_NINE_SAMPLES",
+  "real_C_model_function_calls": 205,
+  "rotating_axisymmetric_DYNAMICAL_mode_eigenproblem": "NOT_RUN",
+  "schema": "J0740_F96_INDEPENDENT_18_REAL_C_STARS_HASH_AND_MATH_AUDIT_V1",
+  "source_model_interpolation_warning": {
+    "F95_causally_admissible_static_of_nine": 7,
+    "F95_logPCHIP_interpolated_first_superluminal_energy_density_g_cm3": 1809979818036265.8,
+    "RNS_causal_knots_vs_PCHIP_model_do_not_imply_same_continuous_causality": true,
+    "RNS_source_native_first_superluminal_energy_density_g_cm3": 1830010935450065.8,
+    "source_model_conditional_physical_interpretation": "F96 RNS stars solved native C source; continuous causality not independently proven. F95 PCHIP is a different interpolation.",
+    "two_static_cases_acausal_under_F95_interpolation": 2
+  },
+  "status": "INDEPENDENTLY_VERIFIED_18_REAL_SOURCE_C_EINSTEIN_STARS_WITH_205_NATIVE_EVALS",
+  "two_independent_meshes_real_native_C": {
+    "151x301": {
+      "C_trace_SHA256": "b686b6de5e3751ca05903b0d37c2a4ab95b2194585fc9ac7d39e3e8555ff131d",
+      "R_eq_at_first_km": 11.03134929666,
+      "R_eq_at_last_km": 10.73245098414,
+      "actual_new_stars": 9,
+      "mass_at_first_rho_Msun": 1.976597233061,
+      "mass_at_last_rho_Msun": 2.099213805502,
+      "max_J_relative_error": 2.1237920704297863e-06,
+      "max_measured_fixedJ_M_rho_slope": 0.9488565483201666,
+      "measured_frequency_at_first_hz": 364.2162861122,
+      "measured_frequency_at_last_hz": 342.6314527306,
+      "min_measured_fixedJ_M_rho_slope": 0.5275255478560434,
+      "real_native_C_evaluations": 103
+    },
+    "201x401": {
+      "C_trace_SHA256": "a81f64dc0a422ca2389e80104f7cc0b569c1418f0a9939a8e39ccfc70d4ba9ba",
+      "R_eq_at_first_km": 11.0309740292,
+      "R_eq_at_last_km": 10.73175402256,
+      "actual_new_stars": 9,
+      "mass_at_first_rho_Msun": 1.976341827187,
+      "mass_at_last_rho_Msun": 2.098720580066,
+      "max_J_relative_error": 1.6130403013292494e-06,
+      "max_measured_fixedJ_M_rho_slope": 0.9457345936202146,
+      "measured_frequency_at_first_hz": 364.2471963654,
+      "measured_frequency_at_last_hz": 342.7922239639,
+      "min_measured_fixedJ_M_rho_slope": 0.5279248684004046,
+      "real_native_C_evaluations": 102
+    }
+  }
+}
