@@ -1,0 +1,64 @@
+{
+  "source_data_sha256": "a3e6d17ba5ab980b4f9535e4c0971bb36822ffb4101ff546e525ab727e470480",
+  "source_label_sha256": "7a736fabc434f4c6b4da17e0d943858809d10051570cc06570cb47f3c192e111",
+  "original_rover_positions": 577,
+  "verified_height_samples": 5193,
+  "unique_binary_row_byte_ranges": 1681,
+  "mean_abs_m": 0.092969,
+  "median_abs_m": 0.040477,
+  "p95_abs_m": 0.236824,
+  "max_abs_m": 3.993746,
+  "median_slope_deg": 6.968824,
+  "p90_slope_deg": 15.418974,
+  "p95_slope_deg": 17.249537,
+  "max_slope_deg": 27.413025,
+  "outliers_abs_height_gt_1m": [
+    {
+      "site": 63,
+      "drive": 1150,
+      "sol": 1347,
+      "delta_m": -2.315555,
+      "slope_deg": 10.259217,
+      "northing_dem_line": 2736,
+      "easting_dem_sample": 4036
+    },
+    {
+      "site": 63,
+      "drive": 2264,
+      "sol": 1348,
+      "delta_m": -3.47408,
+      "slope_deg": 11.514698,
+      "northing_dem_line": 2772,
+      "easting_dem_sample": 3886
+    },
+    {
+      "site": 63,
+      "drive": 3564,
+      "sol": 1349,
+      "delta_m": -3.536822,
+      "slope_deg": 13.277762,
+      "northing_dem_line": 2854,
+      "easting_dem_sample": 3696
+    },
+    {
+      "site": 63,
+      "drive": 4462,
+      "sol": 1351,
+      "delta_m": -3.993746,
+      "slope_deg": 9.972871,
+      "northing_dem_line": 2896,
+      "easting_dem_sample": 3565
+    }
+  ],
+  "slope_gt_15_deg": 65,
+  "check_summary_matches": {
+    "mean": true,
+    "median": true,
+    "p95": true,
+    "max": true,
+    "slope_median": true,
+    "slope_p90": true,
+    "slope_p95": true,
+    "slope_max": true
+  }
+}
