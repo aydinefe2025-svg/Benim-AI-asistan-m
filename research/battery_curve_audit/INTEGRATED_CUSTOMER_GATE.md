@@ -42,3 +42,9 @@ Bounded by 120 curves and 1,000,000 point-pairs per run, max file 30 MB and max 
 ### Validation scope
 
 Synthetic adversarial tests are not customer tests. On the original publisher dataset the known APR1/APR2/APR3 DC1 triplet must produce **REVIEW_REQUIRED**, **not** an accepted train/test split. A plausible 6/2/2 *proposed* grouping may be reported, but must not be called field or paid acceptance. No battery SOH calculation or physical fault diagnosis is performed.
+
+## Mandatory purpose boundary on executable outputs
+
+The default is `--intended-use data-integrity-screen`. Supplying `--intended-use physical-cell-identity`, `--intended-use field-acceptance`, or `--intended-use certified-battery-health` is explicitly rejected (exit 2) **before** the tool opens source data, writes a report or creates any split. Even `PASS_SCREEN_ONLY` cannot authorize these claims. The preflight report, plus any emitted `--accepted-split` artifact, carry machine-readable `use_scope`: `permitted_use=data-integrity-screen`, `physical_cell_identity_independently_verified=false`, `real_field_fpr_fnr_established=false`, and `physical_identity_or_field_release_allowed=false`. Programmatic verification rejects missing, altered, or numerically coerced safety booleans.
+
+This is a tested containment of the **scientific limit**, not a new arbitrary threshold: [original-source longitudinal ET→AT stress, PR #739](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/739) (36 real same-source remeasurements, none a near-copy at 2mV) proved that a copy detector must not become physical-cell identification software without independent field truth. Existing screening, conservative candidate grouping and raw-customer-data protections remain available.
