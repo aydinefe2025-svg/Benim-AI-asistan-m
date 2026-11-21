@@ -1,0 +1,76 @@
+name: J0740 F87 original CompOSE APR full-GR RNS fixed-spin run
+on:
+  pull_request:
+    paths:
+      - "research/j0740/f87/**"
+      - ".github/workflows/j0740-f87-real-rns.yml"
+permissions:
+  contents: read
+jobs:
+  f87-real-eos-rns:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Install fixed numerical dependencies
+        run: python -m pip install numpy==2.3.3 scipy==1.16.3
+      - name: Fetch exact publisher EOS and verify source provenance
+        run: python research/j0740/f87/f87_fetch_source_probe.py results/F87 > results/F87_source_probe.log
+      - name: Reproduce independent static source-native TOV reference
+        run: |
+          python research/j0740/f87/f87_real_tov_from_compose.py results/F87 --out results/F87/F87_REAL_ORIGINAL_APR_TOV.json > results/F87/F87_TOV_execution.log
+      - name: Compile pinned RNS C solver at two spatial resolutions
+        run: |
+          make -C rns-upstream CC='gcc -include stdlib.h' rns
+          cp rns-upstream/rns rns-upstream/rns_151x301
+          rm -f rns-upstream/*.o rns-upstream/rns
+          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+          cp rns-upstream/rns rns-upstream/rns_201x401
+      - name: Solve same original APR EOS at 2.073 solar masses and observed spin
+        run: |
+          python research/j0740/f87/f87_real_rns_from_compose.py --source-dir results/F87 --rns rns-upstream/rns_151x301 --grid 151x301 --out results/RNS_151x301/F87_real_RNS.json
+          python research/j0740/f87/f87_real_rns_from_compose.py --source-dir results/F87 --rns rns-upstream/rns_201x401 --grid 201x401 --out results/RNS_201x401/F87_real_RNS.json
+      - name: Require source, target, spin, static TOV, and mesh-convergence gates
+        run: |
+          python - <<'PY'
+          import json
+          a=json.load(open("results/RNS_151x301/F87_real_RNS.json"))
+          b=json.load(open("results/RNS_201x401/F87_real_RNS.json"))
+          assert a["source"]["source_archive_sha256"] == b["source"]["source_archive_sha256"]
+          assert a["source"]["source_archive_sha256"] == "8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12"
+          assert a["source"]["source_points"] == b["source"]["source_points"] == 1833
+          assert a["source"]["native_cs2_gt1_count"] == b["source"]["native_cs2_gt1_count"] == 24
+          for d in (a,b):
+              assert abs(d["rotating_at_target"]["mass_msun"]-2.073) <= 0.0015
+              assert abs(d["rotating_at_target"]["reported_spin_hz"]-346.536369) <= 0.25
+              assert d["target_star_center_below_first_superluminal_source_node"] is True
+              assert abs(d["static_RNS_minus_independent_TOV_radius_km"]) <= 0.25
+              assert d["EOS_Bayes"] == "NOT_RUN" and d["stability"] == "NOT_ESTABLISHED"
+          assert abs(a["rotating_at_target"]["mass_msun"]-b["rotating_at_target"]["mass_msun"]) <= 0.004
+          assert abs(a["rotating_at_target"]["radius_eq_km"]-b["rotating_at_target"]["radius_eq_km"]) <= 0.15
+          assert abs(a["static_at_target"]["radius_eq_km"]-b["static_at_target"]["radius_eq_km"]) <= 0.15
+          convergence={"status":"PASS","mass_delta_msun":abs(a["rotating_at_target"]["mass_msun"]-b["rotating_at_target"]["mass_msun"]),
+            "rotating_equatorial_radius_delta_km":abs(a["rotating_at_target"]["radius_eq_km"]-b["rotating_at_target"]["radius_eq_km"]),
+            "static_radius_delta_km":abs(a["static_at_target"]["radius_eq_km"]-b["static_at_target"]["radius_eq_km"]),
+            "EOS_Bayes":"NOT_RUN","stability":"NOT_ESTABLISHED",
+            "global_source_causality":"FAIL_ORIGINAL_SOURCE_HAS_24_SUPERLUMINAL_NODES"}
+          json.dump(convergence,open("results/F87_RNS_mesh_convergence.json","w"),indent=2)
+          print(json.dumps(convergence,indent=2))
+          PY
+      - name: Preserve complete source and solver evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: J0740-F87-original-APR-real-RNS-two-grid
+          path: results
+          if-no-files-found: warn
+          retention-days: 30
