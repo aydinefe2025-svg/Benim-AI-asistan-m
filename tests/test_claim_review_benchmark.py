@@ -3,7 +3,7 @@ import unittest
 
 from core.claim_review_benchmark import (
     CASES, HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES, load_expected_labels,
-    run_claim_review_benchmark, score_labels,
+    blind_case_order, run_claim_review_benchmark, score_labels,
 )
 
 
@@ -78,6 +78,27 @@ class ClaimReviewBenchmarkTests(unittest.TestCase):
             load_expected_labels(
                 '{"a":"supported","b":"insufficient"}', cases),
             {"a": "supported", "b": "insufficient"})
+
+    def test_blind_case_order_is_randomized_stable_and_preserves_id_mapping(self):
+        cases = HUMAN_COMPARISON_CASES
+        original_ids = tuple(case["case_id"] for case in cases)
+        seed = "a-session-only-random-seed-with-at-least-32-bytes"
+        ordered = blind_case_order(cases, seed=seed, cohort="v3")
+        repeated = blind_case_order(cases, seed=seed, cohort="v3")
+        self.assertEqual(ordered, repeated)
+        self.assertEqual(set(case["case_id"] for case in ordered), set(original_ids))
+        self.assertNotEqual(tuple(case["case_id"] for case in ordered), original_ids)
+        self.assertEqual(tuple(case["case_id"] for case in cases), original_ids)
+        self.assertTrue(all("expected" not in case for case in ordered))
+
+    def test_blind_case_order_rejects_ambiguous_inputs(self):
+        with self.assertRaises(ValueError):
+            blind_case_order((), seed="s" * 40, cohort="v3")
+        with self.assertRaises(ValueError):
+            blind_case_order(({"case_id": "same"}, {"case_id": "same"}),
+                             seed="s" * 40, cohort="v3")
+        with self.assertRaises(ValueError):
+            blind_case_order(HUMAN_COMPARISON_CASES, seed="short", cohort="v3")
 
     def test_human_scoring_requires_complete_valid_labels_and_reports_classes(self):
         cases = (
