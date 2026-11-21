@@ -836,8 +836,20 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
             st.session_state.pop("_cano_chat_task_pending", None)
             return format_task_result(result)
         except Exception as exc:
+            # A provider's known quota rejection is not a PostgreSQL failure.
+            # The SDK error text/body must never be exposed to the owner.
+            from core.groq_team import TeamRateLimitError
+            error_kind = ("rate_limit" if isinstance(exc, TeamRateLimitError)
+                          else failure_category(exc))
             logging.getLogger(__name__).warning(
-                "CANO chat task failed: category=%s", failure_category(exc))
+                "CANO chat task failed: category=%s", error_kind)
+            if error_kind == "rate_limit":
+                return (
+                    "CANO görevi model sağlayıcısının kota veya istek sınırına takıldı. "
+                    "Başarısız model aşaması otomatik yeniden çağrılmadı. "
+                    "Komuta Merkezi'ndeki kayıtlı aşamaları kontrol edin; "
+                    "kota açılmadan görevi yeniden başlatmayın."
+                )
             return ("CANO görevi tamamlanmadı. Başarısız model aşaması tekrar "
                     "başlatılmadı ve uydurma sonuç gösterilmiyor. Komuta Merkezi'ndeki "
                     "görev geçmişinden engellenen kaydı inceleyip sürdürün; PostgreSQL "
