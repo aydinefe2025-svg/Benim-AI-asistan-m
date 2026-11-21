@@ -1,0 +1,124 @@
+name: J0740 F96 actual two-grid C RNS source-causal common-J physical sequence
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f96/**'
+      - '.github/workflows/j0740-f96-real-source-causal-extended-fixedJ.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  real_original_APR_common_J_both_C_grids:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install already-successful source-run numerical dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Restore original F88 and F89 successful native C evidence without re-running old stars
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F88 results/F89 results/F96
+          gh run download 44818195695 -R "$GITHUB_REPOSITORY" -n J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID -D results/F88
+          gh run download 44830567226 -R "$GITHUB_REPOSITORY" -n J0740-F89-REAL-C-RNS-FIXED-J-LOCAL-SLOPE-EVIDENCE -D results/F89
+          printf '%s  %s\n' 8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12 results/F88/F87_verified_publisher_original.zip | sha256sum -c -
+          printf '%s  %s\n' 771d7b494821a43485a8e1248185e768efe9b26e10c0ac8d07b9c1c0f206bc36 results/F88/F88_REAL_two_grid_C_RNS.json | sha256sum -c -
+          printf '%s  %s\n' f880db902d4ef26dc268030fcfaba83c74f5a499bf92b4c8be57f7888657d00f results/F89/F89_ACTUAL_two_grid_fixed_J_local_screen.json | sha256sum -c -
+          printf '%s  %s\n' 7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580 results/F88/m.rns | sha256sum -c -
+          (cd results/F88 && zip -q ../F88_NATIVE_SOURCE_REFERENCE.zip F88_REAL_two_grid_C_RNS.json m.rns)
+          (cd results/F89 && zip -q ../F89_NATIVE_SOURCE_REFERENCE.zip F89_ACTUAL_two_grid_fixed_J_local_screen.json)
+      - name: Audit nine locks of existing actual two-grid Einstein C observations, no synthetic acceptance
+        env:
+          F96_SOURCE_F88_ZIP: results/F88_NATIVE_SOURCE_REFERENCE.zip
+          F96_SOURCE_F89_ZIP: results/F89_NATIVE_SOURCE_REFERENCE.zip
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f96 -p 'test_f96_real_source_prior_and_math.py' -v 2>&1 | tee results/F96/F96_SOURCE_LOCKED_UNIT_TESTS.log
+      - name: Rebuild exact upstream Einstein C/RNS binaries on two distinct grids, only format output patched
+        run: |
+          set -euo pipefail
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          cp -a rns-upstream rns151
+          cp -a rns-upstream rns201
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0,'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          for name,grid in (('rns151','151x301'),('rns201','201x401')):
+              source=Path(name)/'rns.c'
+              source.write_text(patch_print_only(source.read_text()))
+              build=Path(name)/'makefile'
+              old='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+              s=build.read_text()
+              assert s.splitlines().count(old)==1
+              if grid=='201x401':build.write_text(s.replace(old,'HIGHSIZE=-DMDIV=201 -DSDIV=401',1))
+          PY
+          make -C rns151 CC='gcc -include stdlib.h' rns
+          make -C rns201 CC='gcc -include stdlib.h' rns
+          sha256sum rns151/rns rns201/rns | tee results/F96/F96_NATIVE_C_BOTH_GRID_BINARY_HASHES.txt
+      - name: Compute actual real Einstein C stars at same fixed physical J and density across both grids
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f96/f96_source_causal_fixedJ_global_extension.py \
+            --f88 results/F88/F88_REAL_two_grid_C_RNS.json \
+            --f89 results/F89/F89_ACTUAL_two_grid_fixed_J_local_screen.json \
+            --eos results/F88/m.rns \
+            --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
+            --rns201 "$GITHUB_WORKSPACE/rns201/rns" \
+            --out results/F96/F96_REAL_two_grid_source_causal_fixedJ_extension.json \
+            2>&1 | tee results/F96/F96_ACTUAL_EINSTEIN_C_TRACE.log
+      - name: Independently certify only actual C output, source causal upper bound and honest limitations
+        run: |
+          python - <<'PY'
+          import json,math
+          from pathlib import Path
+          p=json.loads(Path('research/j0740/f96/F96_source_locked_real_dual_grid_preflight_20261121.json').read_text())
+          r=json.loads(Path('results/F96/F96_REAL_two_grid_source_causal_fixedJ_extension.json').read_text())
+          assert r['source_original_Zenodo_SHA256']==p['original_328_APR_publisher_sha256']
+          assert math.isclose(r['fixed_same_common_J_cgs'],p['canonical_identical_target_J_both_grids_cgs'],rel_tol=1e-13)
+          assert len(r['density_grid_g_cm3'])==len(p['same_absolute_density_both_grids_g_cm3'])==9
+          assert r['first_source_acausal_rho_g_cm3']==p['first_source_acausal_limit_g_cm3']
+          assert r['rotating_axisymmetric_dyn_eigenmode']=='NOT_RUN'
+          assert r['continuous_global_fixed_J_turning_proof']=='NOT_PROVEN_BY_DISCRETE_SAMPLES'
+          assert r['seventh_EOS_full_native_photon_Bayes']=='NOT_RUN'
+          for grid,rec in r['two_grid_native_results'].items():
+              s=rec['completed_actual_C_stars']
+              assert len(s)+len(rec['errors'])==9
+              assert len(s)>=6,'INSUFFICIENT_NATIVE_C_ROOTS_'+grid
+              assert all(star['real_solver_checked'] and star['J_relative_error']<=3e-5 for star in s)
+              assert rec['native_C_calls_logged_in_trace']>=len(s)
+              assert all(star['reported_rho_g_cm3']<r['first_source_acausal_rho_g_cm3'] for star in s)
+          print('F96_REAL_SOURCE_PINNED_COMMON_J_RNS_GRID_SOLVED',r['status'],r['sampled_causal_derivative_signs'])
+          PY
+      - name: Retain exact original real native C traces, including errors, plus SHA256 manifest
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json,hashlib
+          p=Path('results/F96');p.mkdir(parents=True,exist_ok=True)
+          m={x.name:{'sha256':hashlib.sha256(x.read_bytes()).hexdigest(),'bytes':x.stat().st_size} for x in sorted(p.iterdir()) if x.is_file()}
+          (p/'F96_SOURCE_C_EVIDENCE_SHA256_MANIFEST.json').write_text(json.dumps(m,indent=2)+'\n')
+          PY
+      - name: Preserve actual source native C numerical evidence as verifiable ZIP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F96-REAL-C-COMMON-J-CAUSAL-SOURCE-TWO-GRID-EVIDENCE
+          path: results/F96/
+          if-no-files-found: warn
