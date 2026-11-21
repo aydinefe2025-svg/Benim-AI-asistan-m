@@ -1,0 +1,124 @@
+{
+  "accepted_original_thresholds": false,
+  "between_seed_logI_spread": 0.17763770517194644,
+  "claim_eos_full_bayes": "NOT_RUN",
+  "frozen_design_sha256": "50477db36217448177ef489980b395d6a92f37ec2409f2187b3420a0267bff82",
+  "frozen_seed_order": [
+    211301,
+    211303,
+    211307,
+    211311
+  ],
+  "method": "512 Sobol proposal samples per seed and raw source-native JSONL reconstructed with exact q and support prior, without XPSI calls",
+  "num_new_photon_calls_in_this_independent_replay": 0,
+  "original_acceptance_thresholds": {
+    "ess_min": 100,
+    "half_256_to_512_logI_drift_max": 0.1,
+    "logI_range_max": 0.2,
+    "maxW_max": 0.05,
+    "phase_ess_min": 30
+  },
+  "original_source_model_SHA256": "fbf6d7969072d96aeed1f883cd0b5fae726754355fea6c5593c2e329a4fe1fbb",
+  "pending_seeds": [],
+  "point": [
+    2.073,
+    15.26
+  ],
+  "schema": "J0740_F91_SOURCE_LOCKED_INDEPENDENT_REAL_NATIVE_15p26_REPLAY_V1",
+  "seeds": [
+    {
+      "ESS": 149.3692093449368,
+      "drift_256_512": 0.023772537264449056,
+      "jsonl_sha256": "8c25ea9d1768e23d58583135af4c08eeafcc3141c8f53781d36182e126968020",
+      "logI": -21891.401904436254,
+      "max_abs_recomputed_weight_diff": 3.637978807091713e-12,
+      "max_source_QMC_z_abs_diff": 0.0,
+      "max_weight": 0.027881117052497593,
+      "npz_sha256": "93df1701f81d37e438807b3061d10110a8796ffa1d2e74610edb710a749fe0e7",
+      "original_photon_calls": 470,
+      "per_seed_gate": {
+        "ESS_ge_100": true,
+        "drift_le_0p1": true,
+        "maxW_le_0p05": true,
+        "phase_ESS_min_ge_30": true
+      },
+      "phase_ESS": [
+        87.47581469012138,
+        62.97384360012207
+      ],
+      "seed": 211301,
+      "source_summary_sha256": "a4054459a38fe27cb8aa638c72c25e24ec737e96292786576e0effe8ab78c2c8"
+    },
+    {
+      "ESS": 125.8821046029457,
+      "drift_256_512": 0.012639223714359105,
+      "jsonl_sha256": "b3890302ec0074e53496a848dc418093abfecfaec07639fcad48b3196f234c90",
+      "logI": -21891.337736848913,
+      "max_abs_recomputed_weight_diff": 3.637978807091713e-12,
+      "max_source_QMC_z_abs_diff": 0.0,
+      "max_weight": 0.035314057916537814,
+      "npz_sha256": "d47cab87d0123d40fd52c0941ee002a399b86311a033c81becdffe1d295a686e",
+      "original_photon_calls": 468,
+      "per_seed_gate": {
+        "ESS_ge_100": true,
+        "drift_le_0p1": true,
+        "maxW_le_0p05": true,
+        "phase_ESS_min_ge_30": true
+      },
+      "phase_ESS": [
+        68.67170675317257,
+        57.55098978514442
+      ],
+      "seed": 211303,
+      "source_summary_sha256": "1f16f6cdbf605c9e967c7fddfb07cf6f4ef3764f8fd87d71b6658bd44e8ca5aa"
+    },
+    {
+      "ESS": 79.4959503650083,
+      "drift_256_512": 0.009832969004492043,
+      "jsonl_sha256": "6c4036f8bd8556f8d8ff41c1a51f3e96a1f148e32fbcbb44f967d7a47948122f",
+      "logI": -21891.247985548824,
+      "max_abs_recomputed_weight_diff": 3.637978807091713e-12,
+      "max_source_QMC_z_abs_diff": 0.0,
+      "max_weight": 0.06097045660643441,
+      "npz_sha256": "e3694d4f7c7d47fe9377320cb251a0753de58be84b6957765f8eccd5e4b0deaf",
+      "original_photon_calls": 468,
+      "per_seed_gate": {
+        "ESS_ge_100": false,
+        "drift_le_0p1": true,
+        "maxW_le_0p05": false,
+        "phase_ESS_min_ge_30": true
+      },
+      "phase_ESS": [
+        33.627074062189834,
+        50.84937260831104
+      ],
+      "seed": 211307,
+      "source_summary_sha256": "ca1114363a9151220ce297a2f6b899e40bac73d9abff2650f34ab66de33de3bc"
+    },
+    {
+      "ESS": 97.57554753289558,
+      "drift_256_512": 0.048147323988814605,
+      "jsonl_sha256": "9ae938ee8e17410a1e797908f02615eee43743c3662972ef1bbc54524966ff96",
+      "logI": -21891.425623253996,
+      "max_abs_recomputed_weight_diff": 3.637978807091713e-12,
+      "max_source_QMC_z_abs_diff": 0.0,
+      "max_weight": 0.0646629154779476,
+      "npz_sha256": "12f2fd7d7df24d6d72fe981c404e2f937d8e7938d0f110879fc8286aa1d28001",
+      "original_photon_calls": 471,
+      "per_seed_gate": {
+        "ESS_ge_100": false,
+        "drift_le_0p1": true,
+        "maxW_le_0p05": false,
+        "phase_ESS_min_ge_30": true
+      },
+      "phase_ESS": [
+        85.45117266767663,
+        39.15151528508027
+      ],
+      "seed": 211311,
+      "source_summary_sha256": "519143664c41b0645f88076c3084354ce39a60dce12b425a4775838e055f5719"
+    }
+  ],
+  "source_flow_sha256": "fbf6d7969072d96aeed1f883cd0b5fae726754355fea6c5593c2e329a4fe1fbb",
+  "status": "FAIL_SOURCE_CANDIDATE_NOT_ACCEPTED"
+}
