@@ -24,7 +24,9 @@ jobs:
       - name: Install fixed numerical dependencies
         run: python -m pip install numpy==2.3.3 scipy==1.16.3
       - name: Fetch exact publisher EOS and verify source provenance
-        run: python research/j0740/f87/f87_fetch_source_probe.py results/F87 > results/F87_source_probe.log
+        run: |
+          mkdir -p results/F87
+          python research/j0740/f87/f87_fetch_source_probe.py results/F87 > results/F87_source_probe.log
       - name: Reproduce independent static source-native TOV reference
         run: |
           python research/j0740/f87/f87_real_tov_from_compose.py results/F87 --out results/F87/F87_REAL_ORIGINAL_APR_TOV.json > results/F87/F87_TOV_execution.log
