@@ -1,0 +1,56 @@
+name: J0740 F90 independent native XPSI raw replay receipt and pooled math
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/windows_access/f90/**'
+      - '.github/workflows/j0740-f90-native-raw-replay-receipt.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pinned_four_seed_native_receipt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Audit portable source for Python syntax
+        run: python -m py_compile research/j0740/windows_access/f90/f90_real_native_8192_raw_replay.py
+      - name: Independently recompute pooled metrics and retain historical 198301 FAIL
+        run: |
+          set -euo pipefail
+          mkdir -p results/F90
+          python -m unittest discover -s research/j0740/windows_access/f90 -p 'test_f90_receipt.py' -v 2>&1 | tee results/F90/F90_receipt_regression.log
+          cp research/j0740/windows_access/f90/F90_real_source_8192_replay_20261121.json results/F90/
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('results/F90/F90_real_source_8192_replay_20261121.json')
+          a=json.loads(p.read_text())
+          assert a['source_manifest_sha256']=='3c8d25ada8c148c961187ce18a78575c2c178f1160f3c69bb13614172a9baf53'
+          assert len(a['seeds'])==4 and all(x['max_abs_recomputed_logweight_difference']<1e-10 for x in a['seeds'])
+          assert a['overall_fixed_original_four_seed_acceptance']=='FAIL_UNCHANGED'
+          assert a['new_photon_likelihood_calls']==0
+          print('F90_RECALCULATED_REAL_WINDOWS_RAW_NPZ_JSONL_RECEIPT_CROSSAUDIT_PASS_WITH_198301_FAIL_UNCHANGED')
+          PY
+      - name: Write SHA-256 receipts (report only; original private NPZ/JSONL never leave Windows)
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          d=Path('results/F90');d.mkdir(parents=True,exist_ok=True)
+          x={f.name:{'sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'bytes':f.stat().st_size} for f in sorted(d.iterdir()) if f.is_file()}
+          (d/'F90_SHA256_manifest.json').write_text(json.dumps(x,indent=2)+'\n')
+          PY
+      - name: Archive independently verified real source raw replay receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F90-NATIVE-FOUR-SEED-RAW-REPLAY-RECEIPT
+          path: results/F90/
+          if-no-files-found: warn
