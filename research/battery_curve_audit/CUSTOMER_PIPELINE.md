@@ -62,3 +62,9 @@ GitHub CI also runs the same command against a manifest generated from the 20 Gi
 ### V3 gerilim-ötelemesi inceleme kapısı
 
 Aynı modda, başlangıç/son zamanları benzer ve türev profili eşleşen 2–5 mV sabit voltaj farkları ayrıca `VOLTAGE_OFFSET_AMBIGUOUS_REVIEW_ONLY` adayı olabilir. Rapor sadece kimliksiz `voltage_offset_ambiguous_candidates` sayısını yayımlar. Bu sonuç fiziksel kopya kararı değildir; aynı şekli taşıyan bağımsız hücreleri de incelemeye gönderebilir. Tüm bağlı hücreler bölünmeden tutulur. Bağımsızlık için gerçek kaynak kayıtları ve iki bağımsız teknisyen incelemesi gerekir; saha başarısı ölçülmemiştir.
+
+## Supported use is data-integrity screening, not physical-cell identity
+
+The executable supports `--intended-use data-integrity-screen` (the default). The explicit alternate purposes `physical-cell-identity`, `field-acceptance`, and `certified-battery-health` **fail closed with exit 2 before creating any report or reading customer measurement files**, including under `--report-only`. A clean `SCREEN_ONLY_NO_CROSS_CELL_CANDIDATES` decision **does not** authorize physical-cell identification, a customer safety verdict, an accredited test, or certified false-positive/false-negative rates. Public and private outputs include an immutable, machine-readable `use_scope` with all certification/release flags strictly `false`.
+
+This is supported by the original publisher longitudinal stress experiment [PR #739](https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/739): six publisher-labeled cells, 36 genuine ET→AT same-cell/condition matches, zero passed the 2mV near-copy threshold; this **does not** estimate a field FNR because aging conditions changed. The only currently valid product category is **local data-integrity preflight/review**, not physical battery identity verification. Independent custody and same-condition blinded field truth would be needed for the latter.

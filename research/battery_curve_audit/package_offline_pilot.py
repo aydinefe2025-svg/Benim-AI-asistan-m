@@ -23,6 +23,7 @@ PROGRAMS = [
     "provenance_alias_lab.py",
     "battery_virtual_lab.py",
     "customer_pipeline.py",
+    "battery_purpose_contract.py",
     "customer_preflight.py",
     "numeric_equivalence_guard.py",
     "near_duplicate_guard.py",
@@ -61,6 +62,7 @@ TESTS = [
     "test_battery_provenance_alias_lab.py",
     "test_battery_voltage_offset_review.py",
     "test_battery_customer_pipeline.py",
+    "test_battery_purpose_contract.py",
     "test_battery_customer_output_guard.py",
     "test_battery_decimal_identity.py",
     "test_battery_units_guard.py",
@@ -114,6 +116,7 @@ def tests():
     "test_battery_provenance_alias_lab.py",
     "test_battery_voltage_offset_review.py",
         "test_battery_customer_pipeline.py",
+        "test_battery_purpose_contract.py",
         "test_battery_customer_output_guard.py",
         "test_battery_integrated_gate.py",
         "test_battery_integrated_output_safety.py",
@@ -642,7 +645,7 @@ def build(repo, output, commit):
     entries.update({name:value.encode("ascii") for name,value in LAUNCHERS.items()})
     _samples(entries)
     manifest = {"schema":"cano.battery.offline-pilot-release.v1",
-                "version":"2026-11-20-external-keyed-witness-v10",
+                "version":"2026-11-21-purpose-contract-v11",
                 "source_repo":"aydinefe2025-svg/Benim-AI-asistan-m",
                 "source_commit":commit,
                 "contains_raw_publisher_or_customer_data":False,

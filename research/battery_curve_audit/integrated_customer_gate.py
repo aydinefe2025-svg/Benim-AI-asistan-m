@@ -16,6 +16,7 @@ import sys
 import customer_preflight as customer
 import numeric_equivalence_guard as numeric_guard
 import near_duplicate_guard as near_guard
+import battery_purpose_contract as purpose_contract
 
 SCHEMA = 'cano.battery.integrated-preflight.v1'
 MAX_TRACES = 120
@@ -106,6 +107,7 @@ def screen_numeric_report(numeric, manifest, root):
         'unscreened_trace_count': len(insufficient), 'unscreened_traces': insufficient,
         'split': split,
         'decision': decision,
+        'use_scope': purpose_contract.scope(decision),
         'limitations': [
             'Screen-only acceptance: not proof of physical/statistical independence.',
             'Near comparison: same-mode, 100+ points, 2mV and 0.5% endpoint threshold; flat curves unscreened.',
@@ -126,6 +128,7 @@ def verify_report(manifest, root, report):
     """Re-execute with original source bytes; no trust in self-asserted JSON flags."""
     if not isinstance(report, dict) or report.get('schema') != SCHEMA:
         raise ValueError('REVIEW_REQUIRED: report schema mismatch')
+    purpose_contract.verify_scope(report)
     expected = integrated_check(manifest, root)
     if report != expected:
         raise ValueError('REVIEW_REQUIRED: report/split evidence altered or source mismatch')
@@ -176,12 +179,16 @@ def main(argv=None):
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--root', type=Path)
     parser.add_argument('--report', type=Path, required=True)
+    parser.add_argument('--intended-use', choices=sorted(purpose_contract.PURPOSES),
+                        default=purpose_contract.SCREEN,
+                        help='Only data-integrity-screen is permitted; identity/certification requests fail closed')
     parser.add_argument('--accepted-split', type=Path,
                         help='Only emit accepted train/validation/test split when NO review/block flags')
     parser.add_argument('--verify-report', type=Path, help='re-read local sources and compare prior report')
     args = parser.parse_args(argv)
     output_paths_validated = False
     try:
+        purpose_contract.require_purpose(args.intended_use)
         manifest = json.loads(args.manifest.read_text(encoding='utf-8'))
         root = args.root if args.root else args.manifest.resolve().parent
         validate_output_paths(manifest, root, args.manifest, args.report, args.accepted_split)
@@ -196,7 +203,9 @@ def main(argv=None):
                 # Fail closed without deleting any pre-existing user artifact.
                 print('REVIEW_REQUIRED: no new accepted split; archive any older accepted output before reuse',file=sys.stderr)
                 return 2
-            write_json(args.accepted_split, result['split'])
+            scoped_split = dict(result['split'])
+            scoped_split['use_scope'] = purpose_contract.scope(result['decision'])
+            write_json(args.accepted_split, scoped_split)
         print(result['decision']+': numeric '+str(result['numeric_unique'])+
               '/'+str(result['trace_count'])+'; near candidates '+str(result['near_candidate_count'])+
               '; unscreened '+str(result['unscreened_trace_count']))

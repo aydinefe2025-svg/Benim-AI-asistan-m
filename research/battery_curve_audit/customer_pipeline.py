@@ -22,6 +22,7 @@ import sys
 import customer_preflight as customer
 import numeric_equivalence_guard as numeric
 import near_duplicate_guard as near
+import battery_purpose_contract as purpose_contract
 
 SCHEMA = 'cano.battery.customer-local-pipeline.v1'
 MAX_TRACES = 120
@@ -109,6 +110,7 @@ def audit_offline(manifest, root, *, max_traces=MAX_TRACES, max_pairs=MAX_PAIRS)
     summary = {
         'schema': SCHEMA,
         'decision': decision,
+        'use_scope': purpose_contract.scope(decision),
         'source_files': audited['source_files'],
         'trace_count': audited['trace_count'],
         'sample_pairs': audited['measured_time_voltage_pairs'],
@@ -138,6 +140,7 @@ def audit_offline(manifest, root, *, max_traces=MAX_TRACES, max_pairs=MAX_PAIRS)
     }
     private = None if split is None else {
         'status': 'NOT_CERTIFIED',
+        'use_scope': purpose_contract.scope(decision),
         'sensitivity': 'CUSTOMER_IDENTIFIERS_AND_HASHES',
         'split': split,
         'by_cell': {row['cell']: row['partition'] for row in split['assignments']},
@@ -191,10 +194,14 @@ def main(argv=None):
     ap.add_argument('--root', type=Path, help='Root directory containing local authorized CSVs')
     ap.add_argument('--summary', type=Path, required=True, help='Aggregates only, no identifiers')
     ap.add_argument('--private-split', type=Path, help='Explicit opt-in; customer-sensitive split')
+    ap.add_argument('--intended-use', choices=sorted(purpose_contract.PURPOSES),
+                    default=purpose_contract.SCREEN,
+                    help='Only data-integrity-screen is authorized; all identity/certification uses are blocked')
     ap.add_argument('--report-only', action='store_true',
                     help='Exit 0 on REVIEW_REQUIRED, only to view the report; no model acceptance')
     args = ap.parse_args(argv)
     try:
+        purpose_contract.require_purpose(args.intended_use)
         if args.report_only and args.private_split is not None:
             raise ValueError('REVIEW_REQUIRED: --report-only cannot create private split')
         manifest = json.loads(args.manifest.read_text(encoding='utf-8'))
