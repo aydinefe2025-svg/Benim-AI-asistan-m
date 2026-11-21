@@ -1,17 +1,17 @@
 """F96 source-pinned math/guard tests; real C results only counted by workflow's native runner."""
-import io,zipfile,json,hashlib,math,unittest
+import io,zipfile,json,hashlib,math,unittest,os
 from pathlib import Path
 from f96_source_causal_fixedJ_global_extension import (
  choose_grid,verify_input,audit_result,LOW_FRACTIONS,PUBLISHER_SHA,CAUSAL_MARGIN)
-F88=Path('/mnt/data/J0740_F88_original_C_RNS_archive.zip')
-F89=Path('/mnt/data/F89_native_existing_20261120.zip')
+F88=Path(os.environ.get('F96_SOURCE_F88_ZIP','/mnt/data/J0740_F88_original_C_RNS_archive.zip'))
+F89=Path(os.environ.get('F96_SOURCE_F89_ZIP','/mnt/data/F89_native_existing_20261120.zip'))
 
 class ActualNativeSourceEvidence(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
   # Source package is real F88/F89 GitHub C workflow artifacts downloaded in this turn.
   if not(F88.exists() and F89.exists()):
-   raise unittest.SkipTest('needs original F88 and F89 actual C source artifacts; CI has separate native checks')
+   raise RuntimeError('MISSING_GENUINE_F88_F89_SOURCE_ARTIFACT_NO_TEST_SKIP_ACCEPTED')
   with zipfile.ZipFile(F88) as z:
    cls.f88=json.loads(z.read('F88_REAL_two_grid_C_RNS.json'))
    cls.f88_sha=hashlib.sha256(z.read('F88_REAL_two_grid_C_RNS.json')).hexdigest()
