@@ -1,0 +1,123 @@
+{
+  "schema": "J0740_F95_REAL_SOURCE_APR_APR_UNIFIED_STATIC_GR_RADIAL_STURM_LIOUVILLE_V1",
+  "source": "CompOSE EOS 328 published Zenodo 15045814 / native EOS thermo 1833 rows, archive SHA256 8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12",
+  "source_original_sha256": "8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12",
+  "source_density_count": 1833,
+  "source_acausal_nodes": 24,
+  "source_first_superluminal_P_MeVfm3": 448.88938082526886,
+  "static_target_M_Msun": 2.0729999999998743,
+  "static_target_R_km": 10.722365947232865,
+  "static_target_pc_MeVfm3": 419.19394524506964,
+  "static_target_central_pressure_less_than_first_superluminal": true,
+  "physical_central_PCHIP_cs2_max": 0.9838483293950263,
+  "f95_algorithm_sha256": "8984f9a6592438f73f9b2a71dd50e92151ebfb9c82fb0c5e91eeb5c30bf5eded",
+  "fluid_model": "General-relativistic nonrotating adiabatic barotropic radial mode, gamma=(eps+p)/p*(dP/dE) using F87 published log-PCHIP interpolant",
+  "metric": "TOV ds2=-e^nu dt2 + e^lambda dr2; exact surface match nu(R)=ln(1-2M/R)",
+  "shooting_approximation": "NOT USED; finite-element Sturm-Liouville K zeta = omega2 B zeta, zeta center Dirichlet, free surface natural; 2-point Gauss per element",
+  "angular_momentum_J": "0_STATIC_ONLY",
+  "eigenmodes_meshes": [
+    {
+      "N": 320,
+      "eigen_omega2_kmminus2": [
+        0.002367962175835645,
+        0.02351445661977691,
+        0.05142622979591995,
+        0.0847369252141339
+      ],
+      "signed_frequency_hz": [
+        2321.818220825535,
+        7316.583077782632,
+        10820.14741342265,
+        13889.19851059188
+      ],
+      "node_counts": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "min_radius_grid_km": 0.0001,
+      "max_radius_grid_km": 10.722365947232865
+    },
+    {
+      "N": 640,
+      "eigen_omega2_kmminus2": [
+        0.002367546673788486,
+        0.023513811989356356,
+        0.051443066211339074,
+        0.08484271176371933
+      ],
+      "signed_frequency_hz": [
+        2321.6145092635697,
+        7316.482787896543,
+        10821.918470620154,
+        13897.865523818436
+      ],
+      "node_counts": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "min_radius_grid_km": 0.0001,
+      "max_radius_grid_km": 10.722365947232865
+    },
+    {
+      "N": 960,
+      "eigen_omega2_kmminus2": [
+        0.0023674153345452334,
+        0.02351026553966759,
+        0.051408157117057304,
+        0.0846708320788329
+      ],
+      "signed_frequency_hz": [
+        2321.5501127882867,
+        7315.931016100246,
+        10818.245988472225,
+        13883.780803107067
+      ],
+      "node_counts": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "min_radius_grid_km": 0.0001,
+      "max_radius_grid_km": 10.722365947232865
+    }
+  ],
+  "first_mode_omega2_kmminus2": 0.0023674153345452334,
+  "fundamental_radial_f_Hz": 2321.5501127882867,
+  "fundamental_radial_omega_squared_positive": true,
+  "lowest_eigenmode_nodes": 0,
+  "f0_mesh320_960_rel_difference": 0.00011548664651744349,
+  "fine_TOV_R_diff_m": 0.051798849048267925,
+  "fine_TOV_M_diff_Msun": -2.121994242818712e-10,
+  "fine_TOV_mesh640_f_Hz": 2321.6138142177088,
+  "fine_TOV_frequency_diff_Hz_at_mesh640": -0.0006950458609935595,
+  "acausal_branch_max_mass_numeric_only": {
+    "pc_MeVfm3": 1079.9357224102007,
+    "M_Msun": 2.188531070792966
+  },
+  "acausal_branch_radial_zero_mode_crosscheck_NUMERICAL_ONLY": {
+    "350": {
+      "pc_zero_radial_MeVfm3": 1080.063953477922,
+      "M_Msun": 2.1885310647017695,
+      "omega2_at_1030": 0.00011445391402608923,
+      "omega2_at_1130": -0.00010723392222140705
+    },
+    "650": {
+      "pc_zero_radial_MeVfm3": 1079.9209405079953,
+      "M_Msun": 2.1885310715046624,
+      "omega2_at_1030": 0.00011417442649639036,
+      "omega2_at_1130": -0.000107546123280491
+    }
+  },
+  "important_no_go": "Original APR(APR) source becomes acausal for pc>=448.889 MeV/fm3. Thus the high-density maximum-mass/zero-mode comparison uses acausal tables ONLY for numerical method crosscheck, and is NOT a physically valid EOS maximum mass or stability claim.",
+  "physical_scope": "Positive omega2 supports fundamental RADIAL DYNAMICAL stability at STATIC M2.073 star within first-source-acausal-pressure boundary. Not rotating C/RNS M2.073 at 346.536 Hz, no axisymmetric l>=1 eigenmodes, no global seven-EOS photon-native Bayesian model odds.",
+  "status": "REAL_PUBLISHER_SOURCE_STATIC_GR_RADIAL_OMEGA2_POSITIVE_WITH_MESH_AND_TOV_CONVERGENCE",
+  "photon_likelihood_new_calls": 0,
+  "previous_EOS_323_C_RNS_not_repeated": true,
+  "full_photon_EOS_Bayes": "NOT_RUN",
+  "spinning_star_axisymmetric_dynamic_stability": "NOT_PROVEN"
+}
