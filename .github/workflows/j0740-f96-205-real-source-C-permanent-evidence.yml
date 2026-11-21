@@ -44,6 +44,8 @@ jobs:
             cd results/F89
             zip -q ../F89_NATIVE_SOURCE_REFERENCE.zip F89_ACTUAL_two_grid_fixed_J_local_screen.json
           )
+      - name: Install only the independent source array audit dependency (no Einstein solver rebuild)
+        run: python -m pip install 'numpy==2.3.5'
       - name: Reconstruct 205 true native calls and 18 actual C stars independently from ORIGINAL ZIP and publisher evidence
         env:
           F96_EVIDENCE_ZIP: results/F96/F96_genuine_original_Einstein_C_artifact.zip
