@@ -1,0 +1,573 @@
+{
+  "EOS_Bayes": "NOT_RUN",
+  "acceptance_thresholds": {
+    "ESS_min_each": 100,
+    "between_seed_logI_range_max": 0.2,
+    "half_256_512_logI_drift_max_each": 0.1,
+    "maxW_max_each": 0.05,
+    "phase_ESS_min_each": 30
+  },
+  "completed_draws_current": 0,
+  "current_seed": null,
+  "draws_each": 512,
+  "existing_failed_seed_211307_remains_FAIL": true,
+  "frozen_design_sha256": "82f0393ca7389ae68d1dc5c751d7ff1b24ece790a16a284f22f5155b7ec25a2f",
+  "full_MR_coverage": "NOT_DONE",
+  "new_independent_seeds": [
+    211401,
+    211403,
+    211407,
+    211411
+  ],
+  "new_native_photon_likelihood_calls": 1851,
+  "no_original_likelihood_or_prior_modifications": true,
+  "original_prespecified_gates": {
+    "ESS_min_each": false,
+    "between_seed_logI_range_max": false,
+    "half_256_512_logI_drift_max_each": false,
+    "maxW_max_each": false,
+    "phase_ESS_min_each": false
+  },
+  "runs": [
+    {
+      "diagnostics": {
+        "ESS": 120.05505102598113,
+        "draws": 512,
+        "entropy_ESS": 211.9066943076007,
+        "log_conditional_integral": -21891.411441506185,
+        "max_weight_fraction": 0.047618030308718626,
+        "normalized_weight_quantiles": [
+          0.0009251501206265027,
+          0.004561513138585721,
+          0.01675447826655027,
+          0.047618030308718626
+        ],
+        "phase_partitions": [
+          {
+            "ESS": 57.1558811314556,
+            "draws": 264,
+            "phase_positive": false,
+            "posterior_weight_fraction": 0.5051425205614295
+          },
+          {
+            "ESS": 63.3581674404388,
+            "draws": 248,
+            "phase_positive": true,
+            "posterior_weight_fraction": 0.4948574794370859
+          }
+        ],
+        "top_five_weight_fraction": 0.12869342264754413
+      },
+      "draws": 512,
+      "elapsed_seconds": 390.7350000000001,
+      "finite_native_likelihood_draws": 454,
+      "new_photon_calls": 460,
+      "original_raw_jsonl_sha256": "af288d24fa2d2d30c73b290941b0b305dc154492a911d579165f0dddb77a5005",
+      "prefixes": [
+        {
+          "ESS": 41.6830287650396,
+          "draws": 128,
+          "entropy_ESS": 60.21582991947787,
+          "log_conditional_integral": -21891.524550129372,
+          "max_weight_fraction": 0.07740008271367682,
+          "normalized_weight_quantiles": [
+            0.004202930885085965,
+            0.018777149734225902,
+            0.05613105011508069,
+            0.07740008271367682
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 21.31857673514495,
+              "draws": 64,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.5235207485546457
+            },
+            {
+              "ESS": 20.39005907872516,
+              "draws": 64,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.47647925144568787
+            }
+          ],
+          "top_five_weight_fraction": 0.24494297764910275
+        },
+        {
+          "ESS": 80.71728183196217,
+          "draws": 256,
+          "entropy_ESS": 120.04681805765833,
+          "log_conditional_integral": -21891.491375135687,
+          "max_weight_fraction": 0.03936821995886483,
+          "normalized_weight_quantiles": [
+            0.0021030335095821705,
+            0.008848027454174007,
+            0.03226821272097237,
+            0.03936821995886483
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 44.96981681899739,
+              "draws": 132,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.4993274758399059
+            },
+            {
+              "ESS": 36.623566571837316,
+              "draws": 124,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.5006725241584372
+            }
+          ],
+          "top_five_weight_fraction": 0.16595608255585792
+        },
+        {
+          "ESS": 120.05505102598113,
+          "draws": 512,
+          "entropy_ESS": 211.9066943076007,
+          "log_conditional_integral": -21891.411441506185,
+          "max_weight_fraction": 0.047618030308718626,
+          "normalized_weight_quantiles": [
+            0.0009251501206265027,
+            0.004561513138585721,
+            0.01675447826655027,
+            0.047618030308718626
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 57.1558811314556,
+              "draws": 264,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.5051425205614295
+            },
+            {
+              "ESS": 63.3581674404388,
+              "draws": 248,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.4948574794370859
+            }
+          ],
+          "top_five_weight_fraction": 0.12869342264754413
+        }
+      ],
+      "reason_counts": {
+        "FINITE": 454,
+        "RATE_FLOOR": 6,
+        "SOURCE_SUPPORT": 52
+      },
+      "seed": 211401,
+      "source": {
+        "frozen_design_sha256": "82f0393ca7389ae68d1dc5c751d7ff1b24ece790a16a284f22f5155b7ec25a2f",
+        "source_model_sha256": "be896b89f38736dfa41eb296853ba021c6248dd389dacc88f6ecbfaff755c010",
+        "source_prior_or_likelihood_changed": false
+      },
+      "source_npz_sha256": "de189674c1338cc178c046bdaad1d2e9da4097e602987c83d8d50ed1d257e177"
+    },
+    {
+      "diagnostics": {
+        "ESS": 27.186235546351856,
+        "draws": 512,
+        "entropy_ESS": 137.17524405974544,
+        "log_conditional_integral": -21891.25735056637,
+        "max_weight_fraction": 0.18020665770902958,
+        "normalized_weight_quantiles": [
+          0.0007185310305897162,
+          0.004245275380389434,
+          0.012539894355240073,
+          0.18020665770902958
+        ],
+        "phase_partitions": [
+          {
+            "ESS": 10.579981220512966,
+            "draws": 261,
+            "phase_positive": false,
+            "posterior_weight_fraction": 0.6039891475140139
+          },
+          {
+            "ESS": 68.10068530344236,
+            "draws": 251,
+            "phase_positive": true,
+            "posterior_weight_fraction": 0.3960108524857862
+          }
+        ],
+        "top_five_weight_fraction": 0.2438742168281373
+      },
+      "draws": 512,
+      "elapsed_seconds": 453.5149999999999,
+      "finite_native_likelihood_draws": 458,
+      "new_photon_calls": 464,
+      "original_raw_jsonl_sha256": "b57ababb281965f9e0e6dbdcf58c2d49793abeb8b57324f91585c94e3d4a4cf3",
+      "prefixes": [
+        {
+          "ESS": 37.582524106938784,
+          "draws": 128,
+          "entropy_ESS": 54.80864438868864,
+          "log_conditional_integral": -21891.389690807864,
+          "max_weight_fraction": 0.06737612058503295,
+          "normalized_weight_quantiles": [
+            0.003267716703171847,
+            0.0206737747011943,
+            0.062436373135355376,
+            0.06737612058503295
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 25.35600286648601,
+              "draws": 67,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.5224981346517628
+            },
+            {
+              "ESS": 14.393300708200075,
+              "draws": 61,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.47750186534633504
+            }
+          ],
+          "top_five_weight_fraction": 0.2695545013091854
+        },
+        {
+          "ESS": 9.718866471487742,
+          "draws": 256,
+          "entropy_ESS": 47.3564647985736,
+          "log_conditional_integral": -21891.1097226899,
+          "max_weight_fraction": 0.31094734675268854,
+          "normalized_weight_quantiles": [
+            0.0011889871186050818,
+            0.007739158201404248,
+            0.022938005078688886,
+            0.31094734675268854
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 4.7048341758783385,
+              "draws": 131,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.6853637709012281
+            },
+            {
+              "ESS": 32.41330701928595,
+              "draws": 125,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.3146362290969189
+            }
+          ],
+          "top_five_weight_fraction": 0.3994684146511867
+        },
+        {
+          "ESS": 27.186235546351856,
+          "draws": 512,
+          "entropy_ESS": 137.17524405974544,
+          "log_conditional_integral": -21891.25735056637,
+          "max_weight_fraction": 0.18020665770902958,
+          "normalized_weight_quantiles": [
+            0.0007185310305897162,
+            0.004245275380389434,
+            0.012539894355240073,
+            0.18020665770902958
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 10.579981220512966,
+              "draws": 261,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.6039891475140139
+            },
+            {
+              "ESS": 68.10068530344236,
+              "draws": 251,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.3960108524857862
+            }
+          ],
+          "top_five_weight_fraction": 0.2438742168281373
+        }
+      ],
+      "reason_counts": {
+        "FINITE": 458,
+        "RATE_FLOOR": 6,
+        "SOURCE_SUPPORT": 48
+      },
+      "seed": 211403,
+      "source": {
+        "frozen_design_sha256": "82f0393ca7389ae68d1dc5c751d7ff1b24ece790a16a284f22f5155b7ec25a2f",
+        "source_model_sha256": "be896b89f38736dfa41eb296853ba021c6248dd389dacc88f6ecbfaff755c010",
+        "source_prior_or_likelihood_changed": false
+      },
+      "source_npz_sha256": "1a87a5b19bb9fa128b65d63e3d649d1bda3b4e25d133f480fbf15a71b754b9e2"
+    },
+    {
+      "diagnostics": {
+        "ESS": 159.78045673491158,
+        "draws": 512,
+        "entropy_ESS": 232.04824441045042,
+        "log_conditional_integral": -21891.492419682258,
+        "max_weight_fraction": 0.020499743576036976,
+        "normalized_weight_quantiles": [
+          0.0009646288173795262,
+          0.0052073628313666276,
+          0.013931373177357341,
+          0.020499743576036976
+        ],
+        "phase_partitions": [
+          {
+            "ESS": 86.8587774630751,
+            "draws": 263,
+            "phase_positive": false,
+            "posterior_weight_fraction": 0.5060376357383579
+          },
+          {
+            "ESS": 73.70626316484335,
+            "draws": 249,
+            "phase_positive": true,
+            "posterior_weight_fraction": 0.49396236426432055
+          }
+        ],
+        "top_five_weight_fraction": 0.09195331360216072
+      },
+      "draws": 512,
+      "elapsed_seconds": 401.2810000000004,
+      "finite_native_likelihood_draws": 461,
+      "new_photon_calls": 466,
+      "original_raw_jsonl_sha256": "c3f43a043af08dc50bc5fe9719a0c01065beabf9382df957b391e6f37ee974ca",
+      "prefixes": [
+        {
+          "ESS": 33.367867399880765,
+          "draws": 128,
+          "entropy_ESS": 51.208580696236666,
+          "log_conditional_integral": -21891.37273379948,
+          "max_weight_fraction": 0.07274941435539217,
+          "normalized_weight_quantiles": [
+            0.003393227271441591,
+            0.020088884209182832,
+            0.06740189322934804,
+            0.07274941435539217
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 16.47861670118495,
+              "draws": 64,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.4525385823378892
+            },
+            {
+              "ESS": 17.086230273273443,
+              "draws": 64,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.5474614176607415
+            }
+          ],
+          "top_five_weight_fraction": 0.2990486743296136
+        },
+        {
+          "ESS": 77.71771326919416,
+          "draws": 256,
+          "entropy_ESS": 114.54782980025601,
+          "log_conditional_integral": -21891.451725076724,
+          "max_weight_fraction": 0.03936452195309693,
+          "normalized_weight_quantiles": [
+            0.002262113749963621,
+            0.010848816997976546,
+            0.030574239331027944,
+            0.03936452195309693
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 40.95040144749528,
+              "draws": 131,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.48444460284214996
+            },
+            {
+              "ESS": 37.24695104792644,
+              "draws": 125,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.5155553971565708
+            }
+          ],
+          "top_five_weight_fraction": 0.16181447246001196
+        },
+        {
+          "ESS": 159.78045673491158,
+          "draws": 512,
+          "entropy_ESS": 232.04824441045042,
+          "log_conditional_integral": -21891.492419682258,
+          "max_weight_fraction": 0.020499743576036976,
+          "normalized_weight_quantiles": [
+            0.0009646288173795262,
+            0.0052073628313666276,
+            0.013931373177357341,
+            0.020499743576036976
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 86.8587774630751,
+              "draws": 263,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.5060376357383579
+            },
+            {
+              "ESS": 73.70626316484335,
+              "draws": 249,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.49396236426432055
+            }
+          ],
+          "top_five_weight_fraction": 0.09195331360216072
+        }
+      ],
+      "reason_counts": {
+        "FINITE": 461,
+        "RATE_FLOOR": 5,
+        "SOURCE_SUPPORT": 46
+      },
+      "seed": 211407,
+      "source": {
+        "frozen_design_sha256": "82f0393ca7389ae68d1dc5c751d7ff1b24ece790a16a284f22f5155b7ec25a2f",
+        "source_model_sha256": "be896b89f38736dfa41eb296853ba021c6248dd389dacc88f6ecbfaff755c010",
+        "source_prior_or_likelihood_changed": false
+      },
+      "source_npz_sha256": "2ec1f8f979940d89bb58c59ad56beeae134595c43d595a598b63b038a521a213"
+    },
+    {
+      "diagnostics": {
+        "ESS": 65.3511865514043,
+        "draws": 512,
+        "entropy_ESS": 177.03372079544175,
+        "log_conditional_integral": -21891.357991720375,
+        "max_weight_fraction": 0.08969464108159703,
+        "normalized_weight_quantiles": [
+          0.0008528776958233873,
+          0.004341018930010543,
+          0.01328683330230955,
+          0.08969464108159703
+        ],
+        "phase_partitions": [
+          {
+            "ESS": 95.23718818655493,
+            "draws": 263,
+            "phase_positive": false,
+            "posterior_weight_fraction": 0.43579537064408463
+          },
+          {
+            "ESS": 23.92034531513573,
+            "draws": 249,
+            "phase_positive": true,
+            "posterior_weight_fraction": 0.5642046293555367
+          }
+        ],
+        "top_five_weight_fraction": 0.19935513259870935
+      },
+      "draws": 512,
+      "elapsed_seconds": 402.5470000000005,
+      "finite_native_likelihood_draws": 459,
+      "new_photon_calls": 461,
+      "original_raw_jsonl_sha256": "7c8a7b9af206c3be9e48106928160318da388eec234a45b2aac344ecf991372d",
+      "prefixes": [
+        {
+          "ESS": 24.564939066151524,
+          "draws": 128,
+          "entropy_ESS": 46.72134380022829,
+          "log_conditional_integral": -21891.42548805825,
+          "max_weight_fraction": 0.15195208686909886,
+          "normalized_weight_quantiles": [
+            0.003374340199801283,
+            0.02127917942694262,
+            0.05108835444228699,
+            0.15195208686909886
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 26.7722090613265,
+              "draws": 65,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.48609723101567687
+            },
+            {
+              "ESS": 8.283426995978768,
+              "draws": 63,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.5139027689833006
+            }
+          ],
+          "top_five_weight_fraction": 0.3253383460497101
+        },
+        {
+          "ESS": 25.660106809187866,
+          "draws": 256,
+          "entropy_ESS": 77.28106350335496,
+          "log_conditional_integral": -21891.288065325247,
+          "max_weight_fraction": 0.16727376975731012,
+          "normalized_weight_quantiles": [
+            0.0015917807705263767,
+            0.008978499939717478,
+            0.022075116153933566,
+            0.16727376975731012
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 50.731522088153625,
+              "draws": 133,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.40278584300060055
+            },
+            {
+              "ESS": 9.970205850832285,
+              "draws": 123,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.5972141569996019
+            }
+          ],
+          "top_five_weight_fraction": 0.29906663524804317
+        },
+        {
+          "ESS": 65.3511865514043,
+          "draws": 512,
+          "entropy_ESS": 177.03372079544175,
+          "log_conditional_integral": -21891.357991720375,
+          "max_weight_fraction": 0.08969464108159703,
+          "normalized_weight_quantiles": [
+            0.0008528776958233873,
+            0.004341018930010543,
+            0.01328683330230955,
+            0.08969464108159703
+          ],
+          "phase_partitions": [
+            {
+              "ESS": 95.23718818655493,
+              "draws": 263,
+              "phase_positive": false,
+              "posterior_weight_fraction": 0.43579537064408463
+            },
+            {
+              "ESS": 23.92034531513573,
+              "draws": 249,
+              "phase_positive": true,
+              "posterior_weight_fraction": 0.5642046293555367
+            }
+          ],
+          "top_five_weight_fraction": 0.19935513259870935
+        }
+      ],
+      "reason_counts": {
+        "FINITE": 459,
+        "RATE_FLOOR": 2,
+        "SOURCE_SUPPORT": 51
+      },
+      "seed": 211411,
+      "source": {
+        "frozen_design_sha256": "82f0393ca7389ae68d1dc5c751d7ff1b24ece790a16a284f22f5155b7ec25a2f",
+        "source_model_sha256": "be896b89f38736dfa41eb296853ba021c6248dd389dacc88f6ecbfaff755c010",
+        "source_prior_or_likelihood_changed": false
+      },
+      "source_npz_sha256": "84884fe697a7cfc6cfd88e5df37c27e571983919fb368eeaec2d27598318eca7"
+    }
+  ],
+  "schema": "J0740_F91_V2_FRESH_SOURCE_XPSI_NATIVE_PHOTON_VALIDATION_V1",
+  "source_likelihood_model_sha256": "be896b89f38736dfa41eb296853ba021c6248dd389dacc88f6ecbfaff755c010",
+  "source_nuisance_support": 0.24947354926879406,
+  "status": "FAIL_FRESH_NATIVE_SAMPLER_NOT_ACCEPTED",
+  "target": [
+    2.073,
+    15.26
+  ]
+}
