@@ -106,20 +106,28 @@ def read_phases(z:ZipFile,source_file:str,*,cell:str,stage:str,temp:int)->dict:
             if n>MAX_ROWS or None in row:
                 raise ValueError('SOURCE_REVIEW_REQUIRED: bad CSV row or row cap')
             try:
-                t=float(parse_source_runtime(row['run_time']))
-                v=float(row['c_vol']);amp=float(row['c_cur']);step=int(row['step_type'])
+                step=int(row['step_type'])
+                # The research comparison only uses author-coded steps 21/22.
+                # Do not parse the millions of unrelated rest, preconditioning,
+                # or instrumentation steps as if they were comparable curves.
+                if step in PHASES:
+                    amp=float(row['c_cur'])
+                    phase=step if (step==21 and amp>0 or step==22 and amp<0) else None
+                    if phase is not None:
+                        t=float(parse_source_runtime(row['run_time']))
+                        v=float(row['c_vol'])
+                        if not all(math.isfinite(x) for x in (t,v,amp)):
+                            raise ValueError('nonfinite active phase')
+                else:
+                    phase=None
             except (TypeError,ValueError,OverflowError) as ex:
-                raise ValueError('SOURCE_REVIEW_REQUIRED: non-numeric source timestamp/current/voltage') from ex
-            if not all(math.isfinite(x) for x in (t,v,amp)) or not (1.5<v<5.0):
-                raise ValueError('SOURCE_REVIEW_REQUIRED: invalid measurement/units')
-            if previous is not None and t<previous:
-                raise ValueError('SOURCE_REVIEW_REQUIRED: source clock reversed')
-            previous=t
-            phase = step if (step==21 and amp>0 or step==22 and amp<0) else None
+                raise ValueError('SOURCE_REVIEW_REQUIRED: non-numeric source phase data') from ex
             if phase != active:
                 if phase in PHASES: phase_activations[phase]+=1
                 active=phase
             if phase in PHASES:
+                if not (1.5<v<5.0):
+                    raise ValueError('SOURCE_REVIEW_REQUIRED: implausible active phase voltage')
                 if phase not in start_times:start_times[phase]=t
                 elapsed=t-start_times[phase]
                 if phase in last_times and elapsed<last_times[phase]:
