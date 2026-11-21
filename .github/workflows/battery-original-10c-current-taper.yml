@@ -3,7 +3,9 @@ on:
   pull_request:
     paths:
       - 'research/battery_curve_audit/original_t10_tail_current_audit.py'
+      - 'research/battery_curve_audit/cccv_protocol_split.py'
       - 'tests/test_original_t10_tail_current_audit.py'
+      - 'tests/test_cccv_protocol_split.py'
       - '.github/workflows/battery-original-10c-current-taper.yml'
   workflow_dispatch:
 permissions:
@@ -21,7 +23,7 @@ jobs:
           python-version: '3.12'
       - name: Source and targeted regression guards
         run: |
-          python -m unittest tests.test_original_t10_tail_current_audit tests.test_phase_boundary_thermal_audit -v
+          python -m unittest tests.test_original_t10_tail_current_audit tests.test_phase_boundary_thermal_audit tests.test_cccv_protocol_split -v
       - name: Fetch only four immutable publisher original ZIPs
         run: |
           python - <<'PY'
@@ -41,6 +43,34 @@ jobs:
         run: |
           python -m research.battery_curve_audit.original_t10_tail_current_audit \
             /tmp/cano_original_four_t10_tail /tmp/cano_original_t10_current_taper.json
+      - name: Replay author-published CCCV step 6 against eight original T10 measurements
+        run: |
+          python -m research.battery_curve_audit.cccv_protocol_split \
+            /tmp/cano_original_four_t10_tail /tmp/cano_original_t10_CC_CV_protocol.json
+      - name: Enforce real-source C-over-20 cutoff and explicit CC CV boundary non-identifiability
+        run: |
+          python - <<'PY'
+          import json
+          x=json.load(open('/tmp/cano_original_t10_CC_CV_protocol.json'))
+          assert x['source_cell_count']==4 and x['original_ET_AT_csv_count']==8
+          assert x['total_original_measurement_rows']==2_505_888
+          assert x['source_cells_with_CC_CV_assignment_span_exceeding_total_change']==3
+          assert x['publisher_zip_md5_crc_all_verified'] and x['author_original_source_capacity_reproduced']
+          assert x['nominal_C20_A']==.245
+          assert not x['actual_instrument_program_export_or_calibration_obtained']
+          assert not x['physical_capacity_recovery_proven']
+          assert not x['commercial_release_allowed']
+          for cell in x['observations']:
+              for stage in ('ET','AT'):
+                  p=cell[stage]
+                  assert abs(p['terminal_current_A']-.245)<.01
+                  assert abs(p['terminal_voltage_V']-2.5)<.006
+                  for boundary in p['boundaries'].values():
+                      assert boundary['CV_near_2p5V_fraction']>.95
+                      assert abs(boundary['CC_capacity_mAh']+boundary['CV_capacity_mAh']-p['full_discharge_capacity_mAh'])<2e-6
+              assert cell['CC_CV_phase_allocation_not_source_state_logged']
+          print('ORIGINAL_RPT_CCCV_C20_BOUNDARY_UNCERTAINTY_VALIDATED',x['total_original_measurement_rows'])
+          PY
       - name: Validate exact physical rows and limit scientific interpretation
         run: |
           python - <<'PY'
@@ -70,5 +100,12 @@ jobs:
         with:
           name: battery-four-10C-source-current-taper-aggregate
           path: /tmp/cano_original_t10_current_taper.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Upload CCCV numerical protocol reconstruction with uncertainty, no raw signals
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-four-original-T10-CCCV-boundary-uncertainty
+          path: /tmp/cano_original_t10_CC_CV_protocol.json
           retention-days: 7
           if-no-files-found: error
