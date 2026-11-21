@@ -8,6 +8,8 @@ on:
       - 'tests/test_cccv_protocol_split.py'
       - 'research/battery_curve_audit/original_50soc_dcir.py'
       - 'tests/test_original_50soc_dcir.py'
+      - 'research/battery_curve_audit/author_soc_units_audit.py'
+      - 'tests/test_author_soc_units_audit.py'
       - '.github/workflows/battery-original-10c-current-taper.yml'
   workflow_dispatch:
 permissions:
@@ -23,9 +25,11 @@ jobs:
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
+      - name: Install author OCV interpolation libraries with pinned numerical versions
+        run: python -m pip install --disable-pip-version-check --no-input numpy==2.3.5 pandas==2.2.3 scipy==1.17.0
       - name: Source and targeted regression guards
         run: |
-          python -m unittest tests.test_original_t10_tail_current_audit tests.test_phase_boundary_thermal_audit tests.test_cccv_protocol_split tests.test_original_50soc_dcir -v
+          python -m unittest tests.test_original_t10_tail_current_audit tests.test_phase_boundary_thermal_audit tests.test_cccv_protocol_split tests.test_original_50soc_dcir tests.test_author_soc_units_audit -v
       - name: Fetch only four immutable publisher original ZIPs
         run: |
           python - <<'PY'
@@ -134,6 +138,49 @@ jobs:
                      for z in x['measurements'] for stage in ('ET','AT'))
           print('AUTHOR_50SOC_ORIGINAL_PULSE_24CSV_NOT_PHYSICAL_CLAIM',x['original_rows_read'])
           PY
+      - name: Audit public author notebook SOC percentage x Ah against dimensionally consistent SOC fraction
+        run: |
+          python -m research.battery_curve_audit.author_soc_units_audit \
+            --original-dir /tmp/cano_original_four_t10_tail \
+            --out /tmp/cano_author_soc_units_originals.json
+      - name: Check percent-axis discrepancy without claiming published article measurements wrong
+        run: |
+          python - <<'PY'
+          import json
+          x=json.load(open('/tmp/cano_author_soc_units_originals.json'))
+          assert x['source_archive_md5_and_zip_crc_verified']
+          assert x['source_physical_cells']==4
+          assert x['original_measurement_csv_files']==24
+          assert x['original_measurement_rows']==7_702_133
+          assert x['comparison_count']==12
+          assert x['positive_notebook_axis']==12
+          assert x['positive_dimensionally_consistent_axis']==12
+          assert x['sign_changed_axis_choice']==0
+          assert x['strict_author_example_undefined_measurements']==12
+          assert x['strict_author_example_valid_measurements']==12
+          assert x['stable_pre_pulse_rest_baseline_is_modification_of_author_example']
+          assert not x['author_published_article_result_affected_proven']
+          assert not x['cell_aging_causality_proven']
+          assert not x['instrument_calibration_verified']
+          assert not x['population_FPR_FNR_proven']
+          assert not x['commercial_release_allowed']
+          for p in x['measurements']:
+              for stage in ('ET','AT'):
+                  m=p[stage]
+                  old=m['stable_rest_baseline_public_notebook_100x_axis']
+                  fixed=m['stable_rest_baseline_fixed_SOC_fraction_axis']
+                  assert abs(old['SOC_axis_max_Ah']-100*fixed['SOC_axis_max_Ah'])<.0002
+                  assert abs(fixed['OCV_correction_mV'])>30*abs(old['OCV_correction_mV'])
+                  assert .3 < old['R_mohm']-fixed['R_mohm']<.8
+          print('REAL_AUTHOR_SOC_PERCENT_AXIS_100X_AND_24_RPT_METHOD_AUDITED')
+          PY
+      - name: Store numeric aggregate author notebook method discrepancy only (no waveform/raw ZIP)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-author-notebook-percent-SOC-axis-24-original-CSV-audit
+          path: /tmp/cano_author_soc_units_originals.json
+          retention-days: 7
+          if-no-files-found: error
       - name: Upload source-derived aggregate DCIR and thermal sensitivity only, never raw waveforms
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
