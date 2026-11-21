@@ -1,0 +1,52 @@
+name: J0740 F94 authentic XPSI F91V2 fail and two-stage unbiased conditional importance
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/windows_access/f94/**'
+      - '.github/workflows/j0740-f94-authentic-4096-two-stage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  physical_native_frozen_source_receipts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test original F91V2 physically measured FAIL, independent NPZ/JSONL replay, and 4096 stage math
+        run: |
+          set -euo pipefail
+          mkdir -p results/F94
+          python -m unittest discover -s research/j0740/windows_access/f94 -p 'test_f94_two_stage_source_receipts.py' -v 2>&1 | tee results/F94/F94_source_receipt_tests.log
+          cp research/j0740/windows_access/f94/F94_real_two_stage_importance_4096_20261121.json results/F94/
+          cp research/j0740/windows_access/f94/F94_independent_source_F91_v2_NATIVE_FAIL_replay_20261121.json results/F94/
+          cp research/j0740/windows_access/f94/F94_source_F91_v2_four_seed_NATIVE_FAIL_20261121.json results/F94/
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          base=Path('research/j0740/windows_access/f94')
+          out=Path('results/F94')
+          verified={}
+          for f in sorted(base.iterdir()):
+           if f.is_file():
+            verified[f.name]={'sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'bytes':f.stat().st_size}
+          (out/'F94_public_file_sha256.json').write_text(json.dumps(verified,indent=2)+'\n',encoding='utf8')
+          e=json.loads((base/'F94_real_two_stage_importance_4096_20261121.json').read_bytes())
+          a=json.loads((base/'F94_source_F91_v2_four_seed_NATIVE_FAIL_20261121.json').read_bytes())
+          assert e['full_MR_EOS_Bayes']=='NOT_RUN'
+          assert a['status']=='FAIL_FRESH_NATIVE_SAMPLER_NOT_ACCEPTED'
+          assert e['new_native_photon_calls']==0 and a['new_native_photon_likelihood_calls']==1851
+          print('F94_GENUINE_WINDOWS_SOURCE_FAIL_AND_VALID_ADAPTIVE_TWO_STAGE_MATH_RECEIPT_PASS')
+          PY
+      - name: Archive independently verified F94 numerical evidence (not private raw NPZ/JSONL)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F94-REAL-15p26-XPSI-4096-TWO-STAGE-NO-FAKE-PASS
+          path: results/F94/
+          if-no-files-found: warn
