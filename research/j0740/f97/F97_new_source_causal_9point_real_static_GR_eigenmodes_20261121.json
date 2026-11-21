@@ -1,0 +1,323 @@
+{
+  "F95_eigenmode_source_SHA256": "8984f9a6592438f73f9b2a71dd50e92151ebfb9c82fb0c5e91eeb5c30bf5eded",
+  "F95_interpolated_physically_causal_static_star_count": 7,
+  "F95_interpolated_rejected_static_star_count": 2,
+  "F95_interpolation_first_causality_failure_pressure_MeVfm3": 437.59495115658586,
+  "F95_interpolation_first_causality_failure_rho_g_cm3": 1809979818036265.8,
+  "F96_new_rotating_scan_design_SHA256": "dc18298037eec3de547475b4491ba97c792c372d8217937d79ee00b9be1dd8f1",
+  "all_9_numeric_radial_fundamental_omega2_positive_but_some_acausal": true,
+  "full_seven_EOS_native_photon_Bayes": "NOT_RUN",
+  "native_C_RNS_evaluations_in_this_STATIC_run": 0,
+  "native_first_acausal_source_secant_at_P_MeVfm3": 448.88938082526886,
+  "native_source_XPSI_photons_in_this_run": 0,
+  "new_physical_real_source_static_stars": [
+    {
+      "F95_interpolated_static_model_causal": true,
+      "central_logPchip_dp_de_c2": 0.8550814244773783,
+      "nonrotating_only": true,
+      "source_input_rho_g_cm3": 1533320557069400.0,
+      "source_interpolated_pressure_MeVfm3": 293.15973254962444,
+      "static_R_km": 10.957270893065587,
+      "static_mass_Msun": 1.9616886685310146,
+      "static_radial_modes": [
+        {
+          "elements": 240,
+          "fundamental_radial_Hz": 2723.640435094013,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.0032585011380956395
+        },
+        {
+          "elements": 440,
+          "fundamental_radial_Hz": 2723.242954166453,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.0032575501333083133
+        }
+      ]
+    },
+    {
+      "F95_interpolated_static_model_causal": true,
+      "central_logPchip_dp_de_c2": 0.8874947677664761,
+      "nonrotating_only": true,
+      "source_input_rho_g_cm3": 1585592848787675.0,
+      "source_interpolated_pressure_MeVfm3": 318.72433012400967,
+      "static_R_km": 10.906574057042251,
+      "static_mass_Msun": 1.9910997214943316,
+      "static_radial_modes": [
+        {
+          "elements": 240,
+          "fundamental_radial_Hz": 2637.021920833316,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.0030545399585864665
+        },
+        {
+          "elements": 440,
+          "fundamental_radial_Hz": 2636.698037276833,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.003053789676988356
+        }
+      ]
+    },
+    {
+      "F95_interpolated_static_model_causal": true,
+      "central_logPchip_dp_de_c2": 0.9137682041417461,
+      "nonrotating_only": true,
+      "source_input_rho_g_cm3": 1637865140505950.0,
+      "source_interpolated_pressure_MeVfm3": 345.1260101420262,
+      "static_R_km": 10.855748752864406,
+      "static_mass_Msun": 2.0171999621686023,
+      "static_radial_modes": [
+        {
+          "elements": 240,
+          "fundamental_radial_Hz": 2550.773682394557,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.002857999746087832
+        },
+        {
+          "elements": 440,
+          "fundamental_radial_Hz": 2550.4719408251544,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.002857323616858808
+        }
+      ]
+    },
+    {
+      "F95_interpolated_static_model_causal": true,
+      "central_logPchip_dp_de_c2": 0.9419304270506699,
+      "nonrotating_only": true,
+      "source_input_rho_g_cm3": 1690137432224225.0,
+      "source_interpolated_pressure_MeVfm3": 372.3406796127373,
+      "static_R_km": 10.805215520104827,
+      "static_mass_Msun": 2.0403374405655486,
+      "static_radial_modes": [
+        {
+          "elements": 240,
+          "fundamental_radial_Hz": 2464.699541357792,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.0026683715365568555
+        },
+        {
+          "elements": 440,
+          "fundamental_radial_Hz": 2464.28606731582,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.002667476328194073
+        }
+      ]
+    },
+    {
+      "F95_interpolated_static_model_causal": true,
+      "central_logPchip_dp_de_c2": 0.9665022900164241,
+      "nonrotating_only": true,
+      "source_input_rho_g_cm3": 1742409723942500.0,
+      "source_interpolated_pressure_MeVfm3": 400.32268856211584,
+      "static_R_km": 10.755177731026293,
+      "static_mass_Msun": 2.060811114848508,
+      "static_radial_modes": [
+        {
+          "elements": 240,
+          "fundamental_radial_Hz": 2378.70142080464,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.002485410878081768
+        },
+        {
+          "elements": 440,
+          "fundamental_radial_Hz": 2378.319412544504,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.0024846126515884748
+        }
+      ]
+    },
+    {
+      "F95_interpolated_static_model_causal": true,
+      "central_logPchip_dp_de_c2": 0.9881555238020768,
+      "nonrotating_only": true,
+      "source_input_rho_g_cm3": 1785969967041062.2,
+      "source_interpolated_pressure_MeVfm3": 424.20678952603873,
+      "static_R_km": 10.71377757457634,
+      "static_mass_Msun": 2.076041201396675,
+      "static_radial_modes": [
+        {
+          "elements": 240,
+          "fundamental_radial_Hz": 2307.2416104722975,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.0023383228944491526
+        },
+        {
+          "elements": 440,
+          "fundamental_radial_Hz": 2306.818009917531,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.002337464359353839
+        }
+      ]
+    },
+    {
+      "F95_interpolated_static_model_causal": true,
+      "central_logPchip_dp_de_c2": 0.9966888366357067,
+      "nonrotating_only": true,
+      "source_input_rho_g_cm3": 1803394064280487.2,
+      "source_interpolated_pressure_MeVfm3": 433.90679855407933,
+      "static_R_km": 10.697368233762692,
+      "static_mass_Msun": 2.0817071621300562,
+      "static_radial_modes": [
+        {
+          "elements": 240,
+          "fundamental_radial_Hz": 2278.552038452414,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.0022805323336323627
+        },
+        {
+          "elements": 440,
+          "fundamental_radial_Hz": 2278.2262485204515,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.0022798802341010716
+        }
+      ]
+    },
+    {
+      "F95_interpolated_static_model_causal": false,
+      "central_logPchip_dp_de_c2": 1.0010791898896179,
+      "nonrotating_only": true,
+      "source_input_rho_g_cm3": 1812106112900200.0,
+      "source_interpolated_pressure_MeVfm3": 438.7884646402056,
+      "static_R_km": 10.68926444112595,
+      "static_mass_Msun": 2.0844536581452213,
+      "static_radial_modes": [
+        {
+          "elements": 240,
+          "fundamental_radial_Hz": 2264.3004048638,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.0022520935111978685
+        },
+        {
+          "elements": 440,
+          "fundamental_radial_Hz": 2263.8672349490707,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.002251231924246066
+        }
+      ]
+    },
+    {
+      "F95_interpolated_static_model_causal": false,
+      "central_logPchip_dp_de_c2": 1.0055736820856096,
+      "nonrotating_only": true,
+      "source_input_rho_g_cm3": 1820860880772815.2,
+      "source_interpolated_pressure_MeVfm3": 443.7158238151411,
+      "static_R_km": 10.680987512206633,
+      "static_mass_Msun": 2.0871572885522838,
+      "static_radial_modes": [
+        {
+          "elements": 240,
+          "fundamental_radial_Hz": 2249.9893081144146,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.0022237155836276772
+        },
+        {
+          "elements": 440,
+          "fundamental_radial_Hz": 2249.559372783346,
+          "mode_nodes": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "omega2_kmminus2": 0.0022228658350984323
+        }
+      ]
+    }
+  ],
+  "original_source_first_superluminal_pressure_MeVfm3": 448.88938082526886,
+  "original_source_publisher_SHA256": "8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12",
+  "physical_scope": "Static J=0 GR barotropic adiabatic radial l=0 modes, publisher APR328 original source below first superluminal EOS point; not the 346.536369Hz rotating star, not axisymmetric modes",
+  "physical_scope_warning": "Only models with F95 interpolated static dP/dE<1 on complete star segment may be physically interpreted; beyond P=437.59 MeV fm^-3 F95 log-PCHIP crosses 1 BEFORE first publisher native source row with cs2>1 at P=448.89, so high two modes are numerical only.",
+  "previous_source_secant_cs2": 0.995387797401603,
+  "radial_eigenmode_numerical_solves": 18,
+  "rotating_star_dynamic_axisymmetric_stability": "NOT_RUN",
+  "schema": "J0740_F97_ORIGINAL_APR_SOURCE_CAUSAL_INTERPOLATION_9_DENSITIES_STATIC_GR_TOV_RADIAL_V1",
+  "source_physical_eos_high_density_acausal_exception": "PRESERVED_24_NODES",
+  "source_static_stars": 9,
+  "status": "NINE_GENUINE_PUBLISHER_SOURCE_STATIC_RADIAL_STARS_COMPUTED_NOT_ROTATING_DYNAMICS"
+}
