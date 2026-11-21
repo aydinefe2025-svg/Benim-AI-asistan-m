@@ -51,7 +51,7 @@ def read_source(root):
     if not len(bad): raise ValueError("EXPECTED_SOURCE_CAUSALITY_AUDIT_MISSING")
     i=int(bad[0])
     info={"source_archive_sha256":ARCHIVE_SHA,"source_archive_md5":ARCHIVE_MD5,"publisher_member_sha256":member_hash,
-      "source_points":1833,"firstlaw_mu_max_discrepancy_MeV":float(np.max(np.abs(mu-mu0)),
+      "source_points":1833,"firstlaw_mu_max_discrepancy_MeV":float(np.max(np.abs(mu-mu0))),
       "firstlaw_integral_vs_log_mu_max_abs":herr,"native_cs2_gt1_count":int(len(bad)),
       "native_cs2_max":float(np.max(cs2)),"first_native_acausal_index":i,
       "first_native_acausal_nB_fm3":float(n[i]),"first_native_acausal_energy_density_g_cm3":float(e[i]*MEV_FM3_TO_ERG_CM3/C**2),
