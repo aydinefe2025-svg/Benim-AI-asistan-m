@@ -48,6 +48,12 @@ def require_purpose(purpose: str) -> None:
 
 def verify_scope(report: dict) -> bool:
     """Reject missing, edited, or string-coerced release flags."""
-    if not isinstance(report, dict) or report.get("use_scope") != scope(report.get("decision")):
+    if not isinstance(report, dict):
+        raise ValueError("PURPOSE_REVIEW_REQUIRED: missing or altered intended-use boundary")
+    expected = scope(report.get("decision"))
+    found = report.get("use_scope")
+    if (not isinstance(found, dict) or set(found) != set(expected)
+            or any(type(found[key]) is not type(value) or found[key] != value
+                   for key, value in expected.items())):
         raise ValueError("PURPOSE_REVIEW_REQUIRED: missing or altered intended-use boundary")
     return True
