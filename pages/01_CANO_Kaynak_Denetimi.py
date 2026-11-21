@@ -1,6 +1,7 @@
 """CANO auditable source quote review, accessible via Streamlit Pages."""
 import os
 import json
+import secrets
 import sqlite3
 from pathlib import Path
 import streamlit as st
@@ -12,7 +13,8 @@ from core.claim_evidence import (
     audit_claim_quotes, has_readable_source_excerpt, record_source_claim_review,
 )
 from core.claim_review_benchmark import (
-    CASES as FIXED_BENCHMARK_CASES, run_claim_review_benchmark,
+    CASES as FIXED_BENCHMARK_CASES, blind_case_order,
+    run_claim_review_benchmark,
 )
 from core.evidence_appraisal import record_claim_evidence_appraisal
 from core.groq_team import TeamRateLimitError
@@ -92,6 +94,14 @@ from core.claim_review_benchmark import (
     HUMAN_COMPARISON_CASES, SUPPLEMENTAL_COMPARISON_CASES,
     load_expected_labels, score_labels,
 )
+blind_order_seed_key = "_cano_blind_case_order_seed_v1"
+if blind_order_seed_key not in st.session_state:
+    st.session_state[blind_order_seed_key] = secrets.token_urlsafe(32)
+blind_order_seed = st.session_state[blind_order_seed_key]
+v3_blind_cases = blind_case_order(
+    HUMAN_COMPARISON_CASES, seed=blind_order_seed, cohort="v3")
+v4_blind_cases = blind_case_order(
+    SUPPLEMENTAL_COMPARISON_CASES, seed=blind_order_seed, cohort="v4")
 st.caption(
     "8 yayımlanmış makaleden kaynak bağlantılı 24 vaka; 8 destek, 8 çelişki ve 8 yetersiz kanıt. Bunlar 24 ayrı makale değildir. "
     "Önce iddia ve pasajları, beklenen/model kararları gösterilmeden inceleyin. "
@@ -103,7 +113,7 @@ label_key = "cano_claim_review_human_labels_v3"
 model_key = "cano_claim_review_human_benchmark_v3"
 with st.form("cano_blind_human_labels_v3"):
     human_labels = {}
-    for idx, case in enumerate(HUMAN_COMPARISON_CASES):
+    for idx, case in enumerate(v3_blind_cases):
         st.markdown(f"**Vaka {idx + 1}.** {case['claim']}")
         st.caption(case["excerpt"])
         st.markdown(f"[Kaynağı aç: {case['source_title']}]({case['source_url']})")
@@ -184,7 +194,7 @@ v4_label_key = "cano_claim_review_human_labels_v4"
 v4_model_key = "cano_claim_review_human_benchmark_v4"
 with st.form("cano_blind_human_labels_v4"):
     v4_human_labels = {}
-    for idx, case in enumerate(SUPPLEMENTAL_COMPARISON_CASES):
+    for idx, case in enumerate(v4_blind_cases):
         st.markdown(f"**Ek vaka {idx + 1}.** {case['claim']}")
         st.caption(case["excerpt"])
         st.markdown(f"[Kaynağı aç: {case['source_title']}]({case['source_url']})")
