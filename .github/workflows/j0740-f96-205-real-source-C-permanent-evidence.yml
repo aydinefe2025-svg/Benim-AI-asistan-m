@@ -1,0 +1,81 @@
+name: J0740 F96 permanent 205 true source Einstein C evaluations and independent F96 audit
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/receipts/f96/**'
+      - '.github/workflows/j0740-f96-205-real-source-C-permanent-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  reuse_actual_original_C_artifacts_no_star_rerun:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Independent ten real C physical numerical math/provenance tests, source artifacts committed
+        run: |
+          set -euo pipefail
+          mkdir -p results/F96
+          python -m unittest discover -s research/j0740/receipts/f96 -p 'test_f96_actual_C_18star_saved_evidence.py' -v 2>&1 | tee results/F96/F96_10_PERMANENT_ACTUAL_C_SOURCE_TESTS.log
+      - name: Retrieve previously measured actual F88 F89 and F96 C physical results; no Einstein computation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F88 results/F89 results/F96
+          gh run download 44818195695 -R "$GITHUB_REPOSITORY" -n J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID -D results/F88
+          gh run download 44830567226 -R "$GITHUB_REPOSITORY" -n J0740-F89-REAL-C-RNS-FIXED-J-LOCAL-SLOPE-EVIDENCE -D results/F89
+          curl -fLsS --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+             "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14721697923/zip" \
+             -o results/F96/F96_genuine_original_Einstein_C_artifact.zip
+          printf '%s  %s\n' 8a54498114f0cf71476f393708531c8497d1afd77167deb4a74665c2a4825e27 results/F96/F96_genuine_original_Einstein_C_artifact.zip | sha256sum -c -
+          (
+            cd results/F88
+            zip -q ../F88_NATIVE_SOURCE_REFERENCE.zip F88_REAL_two_grid_C_RNS.json m.rns
+          )
+          (
+            cd results/F89
+            zip -q ../F89_NATIVE_SOURCE_REFERENCE.zip F89_ACTUAL_two_grid_fixed_J_local_screen.json
+          )
+      - name: Install only the independent source array audit dependency (no Einstein solver rebuild)
+        run: python -m pip install 'numpy==2.3.5'
+      - name: Reconstruct 205 true native calls and 18 actual C stars independently from ORIGINAL ZIP and publisher evidence
+        env:
+          F96_EVIDENCE_ZIP: results/F96/F96_genuine_original_Einstein_C_artifact.zip
+          F96_F88_ARCHIVE: results/F88_NATIVE_SOURCE_REFERENCE.zip
+          F96_F89_ARCHIVE: results/F89_NATIVE_SOURCE_REFERENCE.zip
+          F96_FROZEN_DESIGN: research/j0740/receipts/f96/F96_original_source_locked_design_exact_2043bytes.json
+          F96_STATIC_SOURCE: research/j0740/f97/F97_new_source_causal_9point_real_static_GR_eigenmodes_20261121.json
+          F96_AUDIT_OUT: results/F96/F96_independent_actual_Einstein_C_18star_archive_receipt_20261121.json
+        run: |
+          set -euo pipefail
+          python -u research/j0740/receipts/f96/f96_independent_actual_C_18star_archive_audit.py 2>&1 | tee results/F96/F96_RECOMPUTED_205_NATIVE_C_RECEIPT.log
+          printf '%s  %s\n' 7407ab8d6795e4d2da3ea89759a72f20c8cb1b53e438ee8d00e08d84046766ac results/F96/F96_independent_actual_Einstein_C_18star_archive_receipt_20261121.json | sha256sum -c -
+      - name: Record public evidence SHA256 without private photon data
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          p=Path('results/F96')
+          m={f.name:{'bytes':f.stat().st_size,'sha256':hashlib.sha256(f.read_bytes()).hexdigest()} for f in p.iterdir() if f.is_file()}
+          (p/'F96_ARCHIVAL_ALL_PUBLIC_SOURCE_SHA256.json').write_text(json.dumps(m,indent=2)+'\n')
+          PY
+      - name: Archive source hash and independent actual C provenance (NO physical solve rerun)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F96-18-ACTUAL-EINSTEIN-C-STARS-205-CALLS-INDEPENDENT-NO-RERUN
+          path: |
+            results/F96/F96_10_PERMANENT_ACTUAL_C_SOURCE_TESTS.log
+            results/F96/F96_RECOMPUTED_205_NATIVE_C_RECEIPT.log
+            results/F96/F96_independent_actual_Einstein_C_18star_archive_receipt_20261121.json
+            results/F96/F96_ARCHIVAL_ALL_PUBLIC_SOURCE_SHA256.json
+          if-no-files-found: warn
