@@ -1,0 +1,80 @@
+name: Battery four original 10C phase-temperature boundary sensitivity
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/phase_boundary_thermal_audit.py'
+      - 'tests/test_phase_boundary_thermal_audit.py'
+      - '.github/workflows/battery-original-t10-thermal-boundaries.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  four-publisher-originals-thermal-boundaries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - name: Checkout exact PR version
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Run boundary and thermometer focused tests plus existing true-source regressions
+        run: |
+          python -m unittest tests.test_phase_boundary_thermal_audit tests.test_figshare_k01_et_at_capacity tests.test_figshare_k04_original_capacity -v
+      - name: Download four distinct original Figshare archives within strict per-file byte and MD5 pins
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          from research.battery_curve_audit.figshare_three_archive_probe import fetch_bounded
+          from research.battery_curve_audit.phase_boundary_thermal_audit import SOURCES
+          ids={'TP_k01_04':47639005,'TP_k01_05':47627092,'TP_k04_05':47627110,'TP_k04_06':47627104}
+          dst=Path('/tmp/cano_four_10C_originals');dst.mkdir(mode=0o700)
+          for stem,name,size,expected_md5 in SOURCES:
+              content=fetch_bounded(f'https://ndownloader.figshare.com/files/{ids[stem]}',size)
+              assert len(content)==size, f'source count changed: {stem}'
+              assert hashlib.md5(content).hexdigest()==expected_md5, f'publisher MD5 changed: {stem}'
+              (dst/name).write_bytes(content)
+          print('ORIGINAL_SOURCE_FIGSHARE_BYTES_MD5_VERIFIED', len(tuple(dst.iterdir())))
+          PY
+      - name: Independently compute real source 10C thermal, phase-boundary and calibration thresholds
+        run: |
+          python -m research.battery_curve_audit.phase_boundary_thermal_audit \
+            /tmp/cano_four_10C_originals /tmp/cano_four_10C_thermal_boundary_receipt.json
+      - name: Strictly validate real source-derived observations and no false physical or release claim
+        run: |
+          python - <<'PY'
+          import json
+          o=json.load(open('/tmp/cano_four_10C_thermal_boundary_receipt.json'))
+          assert o['four_original_publisher_zip_hash_crc_verified'] is True
+          assert o['author_method_current_sign_step21_22_reproduced'] is True
+          assert o['original_csv_files_processed']==8
+          assert o['original_measurement_rows']==2505888
+          assert len(o['cells'])==4 and len({x['source_cell'] for x in o['cells']})==4
+          assert not o['possible_calibration_error_established']
+          assert not o['independent_boundary_acceptance_established']
+          assert not o['temperature_causality_established']
+          assert not o['population_field_FPR_FNR_established']
+          assert not o['commercial_release_allowed']
+          for cell in o['cells']:
+              assert cell['publisher_md5_crc_verified']
+              assert 0<cell['discharge_at_minus_et_mAh']<20
+              assert cell['discharge_critical_AT_trim_s']['start']>0
+              assert cell['critical_relative_current_shift_mA']>0
+              assert len(cell['symmetric_discharge_edge_trim_sensitivity'])==12
+              assert all(p['positive_sign_retained'] for p in cell['symmetric_discharge_edge_trim_sensitivity'])
+              for phase in ('ET','AT'):
+                  q=cell['original_source'][phase]['phases']['discharge']
+                  assert q['source_rows']>100
+                  assert q['time_weighted_surface_temp_C'] is not None
+                  assert q['interval_dt_max_s']<=120
+          print('SOURCE_ORIGINAL_10C_THERMAL_BOUNDARY_RESEARCH_ONLY_PASS')
+          PY
+      - name: Archive anonymous aggregate receipt only (not raw licensed waveforms)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-four-original-10C-thermal-boundary-receipt
+          path: /tmp/cano_four_10C_thermal_boundary_receipt.json
+          retention-days: 7
+          if-no-files-found: error
