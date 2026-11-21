@@ -165,6 +165,7 @@ class CollaborativeMission:
         calls = 0
         phase, role = "mission_setup", None
         self.last_failure = None
+        self.last_failure_checkpoint_verified = None
         try:
             planner, researcher, reviewer = self._agents()
             record = self.get(mission_id)
@@ -304,6 +305,22 @@ class CollaborativeMission:
             with self.colony._db() as db:
                 db.execute("UPDATE colony_missions SET status='blocked' "
                            "WHERE id=? AND status='running'", (mission_id,))
+            # The preceding successful stages were checkpointed while status
+            # was still 'running'. After a *model* failure, persist the newly
+            # blocked state too, before returning control to the UI. Otherwise
+            # a fresh session restores a stale running mission and cannot
+            # resume safely. This does not call the failed model again.
+            #
+            # A failed owner/PostgreSQL checkpoint must NOT be retried here:
+            # the owner must first inspect the backup. Preserve the original
+            # provider error if the final backup attempt itself fails.
+            if phase == "model_call" and on_checkpoint is not None:
+                try:
+                    on_checkpoint()
+                except Exception:
+                    self.last_failure_checkpoint_verified = False
+                else:
+                    self.last_failure_checkpoint_verified = True
             raise
 
     def pending_lesson(self, mission_id):
