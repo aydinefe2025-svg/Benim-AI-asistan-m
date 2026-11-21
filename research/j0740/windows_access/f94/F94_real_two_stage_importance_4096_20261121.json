@@ -1,0 +1,112 @@
+{
+  "approx_logI_one_standard_error": 0.031897916511442234,
+  "caveats": "4 RQMC replicates per stage, approximate empirical SE; distinct original per-seed ESS/maxW gates failed; NOT convergence proof, NOT seven EOS photon Bayes",
+  "combined_max_normalized_weight_diagnostic": 0.02504725058494537,
+  "correction": "Do NOT treat cross-density balance MIS F93 as unbiased; F94 uses ONLY original q_i denominators, no adaptive retroactive reweight",
+  "estimated_relative_standard_error_RQMC": 0.031897916511442234,
+  "full_MR_EOS_Bayes": "NOT_RUN",
+  "full_combined_weight_ESS_diagnostic_not_prespecified_acceptance": 567.3188628016735,
+  "logI_two_stage_point_estimate": -21891.363451881756,
+  "method": "1/2*mean_2048_Stage1 importance weights q1 + 1/2*mean_2048_Stage2 importance weights q2, where q2 was chosen based on earlier Stage1 but new Stage2 seeds are independent, allowing conditional unbiasedness",
+  "new_native_photon_calls": 0,
+  "normalized_support": 0.24947354926879406,
+  "original_independent_seed_acceptance": {
+    "V1": "FAIL",
+    "V2": "FAIL"
+  },
+  "schema": "J0740_F94_TWO_STAGE_SOURCE_NATIVE_VALID_IMPORTANCE_V1",
+  "source_model": {
+    "V1": "source model fixed, code pinned in F91 receipt",
+    "V2": "be896b89f38736dfa41eb296853ba021c6248dd389dacc88f6ecbfaff755c010"
+  },
+  "source_model_physics_changed_between_stages": false,
+  "stages": [
+    {
+      "draws": 2048,
+      "logI_stage": -21891.35091963125,
+      "max_replicate_logI_minus_min": 0.17763770517194644,
+      "relative_standard_error_from_four_scrambled_QMC_replicates": 0.04039672452378339,
+      "seed_reports": [
+        {
+          "ESS": 149.36920934429327,
+          "finite_draws": 465,
+          "logI": -21891.401904436258,
+          "maxW": 0.027881117052599023,
+          "npz_SHA256": "93df1701f81d37e438807b3061d10110a8796ffa1d2e74610edb710a749fe0e7",
+          "seed": 211301
+        },
+        {
+          "ESS": 125.8821046032559,
+          "finite_draws": 465,
+          "logI": -21891.337736848913,
+          "maxW": 0.03531405791640934,
+          "npz_SHA256": "d47cab87d0123d40fd52c0941ee002a399b86311a033c81becdffe1d295a686e",
+          "seed": 211303
+        },
+        {
+          "ESS": 79.49595036536208,
+          "finite_draws": 467,
+          "logI": -21891.247985548824,
+          "maxW": 0.06097045660643441,
+          "npz_SHA256": "e3694d4f7c7d47fe9377320cb251a0753de58be84b6957765f8eccd5e4b0deaf",
+          "seed": 211307
+        },
+        {
+          "ESS": 97.57554753363115,
+          "finite_draws": 467,
+          "logI": -21891.425623253996,
+          "maxW": 0.06466291547771236,
+          "npz_SHA256": "12f2fd7d7df24d6d72fe981c404e2f937d8e7938d0f110879fc8286aa1d28001",
+          "seed": 211311
+        }
+      ],
+      "stage": "V1"
+    },
+    {
+      "draws": 2048,
+      "logI_stage": -21891.37614318496,
+      "max_replicate_logI_minus_min": 0.2350691158862901,
+      "relative_standard_error_from_four_scrambled_QMC_replicates": 0.049580276318188427,
+      "seed_reports": [
+        {
+          "ESS": 120.05505102637078,
+          "finite_draws": 454,
+          "logI": -21891.411441506185,
+          "maxW": 0.047618030308718626,
+          "npz_SHA256": "de189674c1338cc178c046bdaad1d2e9da4097e602987c83d8d50ed1d257e177",
+          "seed": 211401
+        },
+        {
+          "ESS": 27.186235546402465,
+          "finite_draws": 458,
+          "logI": -21891.25735056637,
+          "maxW": 0.18020665770902958,
+          "npz_SHA256": "1a87a5b19bb9fa128b65d63e3d649d1bda3b4e25d133f480fbf15a71b754b9e2",
+          "seed": 211403
+        },
+        {
+          "ESS": 159.78045673471283,
+          "finite_draws": 461,
+          "logI": -21891.492419682258,
+          "maxW": 0.020499743576036976,
+          "npz_SHA256": "2ec1f8f979940d89bb58c59ad56beeae134595c43d595a598b63b038a521a213",
+          "seed": 211407
+        },
+        {
+          "ESS": 65.35118655163765,
+          "finite_draws": 459,
+          "logI": -21891.357991720375,
+          "maxW": 0.08969464108159703,
+          "npz_SHA256": "84884fe697a7cfc6cfd88e5df37c27e571983919fb368eeaec2d27598318eca7",
+          "seed": 211411
+        }
+      ],
+      "stage": "V2"
+    }
+  ],
+  "target": [
+    2.073,
+    15.26
+  ],
+  "total_real_native_photon_model_draws_reused": 4096
+}
