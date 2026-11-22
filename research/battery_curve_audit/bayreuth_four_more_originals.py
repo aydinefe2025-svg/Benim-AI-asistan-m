@@ -10,6 +10,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import io
+import zipfile
 import urllib.request
 from pathlib import Path
 
@@ -115,7 +117,26 @@ def main() -> None:
     args = ap.parse_args()
     specs, manifest_sha = fetch_manifest()
     originals = {cell: fetch_new_original(cell, specs[cell]) for cell in NEW_ORIGINAL_MD5}
-    result = analyze_four(originals, specs, manifest_sha)
+    # Diagnostic metadata only: inspect published member headers, not actual
+    # signal rows, to identify legitimate alternate instrument text layouts.
+    for cell, blob in originals.items():
+        with zipfile.ZipFile(io.BytesIO(blob)) as z:
+            for stage in ("m0001_checkup.txt", "m0003_checkup.txt"):
+                names = [n for n in z.namelist() if n.lower().endswith(stage)]
+                if len(names) != 1:
+                    raise ValueError("not exactly one original checkup member: " + cell + ":" + stage)
+                with z.open(names[0]) as f:
+                    first = [f.readline()[:240].decode("latin-1", errors="replace").strip()
+                             for _ in range(32)]
+                hits = [(i, s[:160]) for i, s in enumerate(first)
+                        if "time" in s.lower() or "zeit" in s.lower()]
+                print("ORIGINAL_HEADER_DIAGNOSTIC", cell, stage,
+                      "first_nonempty=", next((s[:160] for s in first if s), ""),
+                      "header_candidates=", hits[:5], flush=True)
+    try:
+        result = analyze_four(originals, specs, manifest_sha)
+    except ValueError as exc:
+        raise ValueError("real original source parse failed after MD5/CRC: " + str(exc)) from exc
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, sort_keys=True, indent=2, ensure_ascii=False,
                                       allow_nan=False) + "\n", encoding="utf-8")
