@@ -85,6 +85,29 @@ class TestFourNewPublisherOriginals(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "byte-count"):
             m.analyze_four(blobs, specs, "0" * 64)
 
+    def test_genuine_publisher_whitespace_header_layout_and_numeric_values(self):
+        import io
+        import zipfile
+        header = "~Time[h] DataSet t-Step[h] t-Set[h] Line Command U[V] I[A] Ah[Ah] Ah-Step Wh[Wh] Cyc-Count State"
+        rows = [
+            "0.0 1 0.0 0.0 17 Discharge 4.20 -0.100 0.0 -0.0 0.0 1 1",
+            "0.1 2 0.1 0.1 17 Discharge 3.80 -0.100 0.0 -0.01 0.0 1 1",
+            "0.2 3 0.2 0.2 17 Discharge 3.00 -0.100 0.0 -0.02 0.0 1 1",
+        ]
+        buff = io.BytesIO()
+        with zipfile.ZipFile(buff, "w") as z:
+            z.writestr("F0003/M0001_checkup.txt",
+                       "~Resultfile from Basytec Battery Test System\\n" +
+                       header + "\\n" + "\\n".join(rows) + "\\n")
+        buff.seek(0)
+        with zipfile.ZipFile(buff) as z:
+            x = list(m.core.native_rows(z, "F0003/M0001_checkup.txt"))
+            check = m.core.scan_checkup(z, "F0003/M0001_checkup.txt")
+        self.assertEqual(len(x), 3)
+        self.assertEqual(x[1]["line"], "17")
+        self.assertAlmostEqual(check["candidate_summary_by_command"]["discharge"][0]["integral_trapezoid_Ah"], 0.02)
+        self.assertAlmostEqual(check["candidate_summary_by_command"]["discharge"][0]["source_peak_Ah_Step_abs_Ah"], 0.02)
+
     def test_no_fake_numeric_change_without_homologous_source_step(self):
         from unittest.mock import patch
         blobs = {cell: synthetic_zip(cell) for cell in m.NEW_ORIGINAL_MD5}
