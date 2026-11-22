@@ -69,8 +69,9 @@ class OwnerP0AcceptanceTests(unittest.TestCase):
             "restored_to_new_database": True,
             "plaintext_sha256": "a" * 64,
         })
+        self.mocks = []
         for p in (self.version, self.verify, self.inventory, self.download, self.restore):
-            p.start()
+            self.mocks.append(p.start())
             self.addCleanup(p.stop)
 
     def test_complete_same_ciphertext_and_full_table_parity_passes(self):
@@ -81,14 +82,15 @@ class OwnerP0AcceptanceTests(unittest.TestCase):
         self.assertTrue(report["isolated_restore"])
         self.assertFalse(report["render_pg18_source_backed_up"])
         self.assertFalse(report["live_app_environment_mapping_independently_verified"])
-        self.assertEqual(self.download.start().call_count if False else 1, 1)
+        self.mocks[3].assert_called_once()
+        self.mocks[4].assert_called_once()
         self.assertNotIn("synthetic@", json.dumps(report))
 
     def test_missing_offsite_download_never_restores(self):
         del os.environ["CANO_OFFSITE_DOWNLOAD_URL"]
         with self.assertRaisesRegex(gate.AcceptanceBlocked, "offsite_download_not_configured"):
             gate.accept(receipt=self.receipt)
-        self.restore.start().assert_not_called() if False else None
+        self.mocks[4].assert_not_called()
 
     def test_unsigned_receipt_or_missing_source_preflight_refused(self):
         incomplete = PROOF.copy()
@@ -170,11 +172,11 @@ class OwnerP0AcceptanceTests(unittest.TestCase):
 
         expected = hashlib_sha(b"genuine-ciphertext-fixture")
         with tempfile.TemporaryDirectory() as root:
-            with patch.object(gate, "urlopen", return_value=Response()):
+            with patch.object(gate, "_secure_open", return_value=Response()):
                 n = gate._download_ciphertext(OFFSITE_URL, OFFSITE_HOST,
                     Path(root) / "bytes.canoenc", len(b"genuine-ciphertext-fixture"), expected)
             self.assertEqual(n, len(b"genuine-ciphertext-fixture"))
-            with patch.object(gate, "urlopen", return_value=Response()):
+            with patch.object(gate, "_secure_open", return_value=Response()):
                 with self.assertRaisesRegex(gate.AcceptanceBlocked, "offsite_ciphertext_mismatch"):
                     gate._download_ciphertext(OFFSITE_URL, OFFSITE_HOST,
                         Path(root) / "different.canoenc", len(b"genuine-ciphertext-fixture"), "0"*64)
