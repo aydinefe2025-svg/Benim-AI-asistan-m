@@ -35,7 +35,7 @@ def patch_findmodel(s:str,strict:bool)->str:
 
 def instrument_equil(s:str)->str:
     old=' }   /* end while */'
-    new=(old+'\\n   fprintf(stderr,"F127_SPIN_FINAL_DIFFERENCE %.17e ITERATIONS %d ACCURACY %.17e ACHECK %d\\\\n",'
+    new=(old+'\n   fprintf(stderr,"F127_SPIN_FINAL_DIFFERENCE %.17e ITERATIONS %d ACCURACY %.17e ACHECK %d\\n",'
          'dif,n_of_it,accuracy,a_check);')
     return replace_exact(s,old,new,'SPIN_END_RESIDUAL_PROBE')
 
