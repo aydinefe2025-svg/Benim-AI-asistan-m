@@ -32,7 +32,7 @@ def preflight(f124:bytes,eos:bytes):
     if sha(journal)!=result.get('raw_journal_sha256'):raise ValueError('F124_RAW_C_JOURNAL_CHANGED')
     rows=[json.loads(s) for s in journal.decode().splitlines() if s.strip()]
     roots=result.get('fixed_J_solutions',[])
-    if result.get('status')!='F124_LOWER_HALF_BISECTION_COMPLETE' or result.get('EOS_sha256')!=EOS_SHA or result.get('mesh')!='3001x6001' or result.get('native_C_call_count')!=1 or len(rows)!=len(roots)!=1:
+    if result.get('status')!='F124_LOWER_HALF_BISECTION_COMPLETE' or result.get('EOS_sha256')!=EOS_SHA or result.get('mesh')!='3001x6001' or result.get('native_C_call_count')!=1 or len(rows)!=1 or len(roots)!=1:
         raise ValueError('F124_NOT_SOURCE_PINNED')
     root=roots[0];raw=rows[0]
     if (root.get('rho_g_cm3')!=RHO or root.get('selected_r_ratio')!=HIGH_ROOT_RATIO or
