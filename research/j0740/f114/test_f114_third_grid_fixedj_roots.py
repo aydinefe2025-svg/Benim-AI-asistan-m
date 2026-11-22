@@ -30,7 +30,7 @@ class F114Preflight(unittest.TestCase):
     def test_two_grid_comparison_is_not_continuum_acceptance(self):
         source = Path(f114.__file__).read_text()
         self.assertIn('"diagnostic_only": True', source)
-        self.assertIn("not continuum convergence", source)
+        self.assertIn("still not continuum convergence", source)
         self.assertIn("cannot establish branch identity", source)
 
 if __name__ == "__main__":
