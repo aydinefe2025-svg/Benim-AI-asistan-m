@@ -87,7 +87,19 @@ def _app_search(boundary, path: Path):
 
 
 def _probe_public(get):
-    response = get(_PUBLIC, timeout=20)
+    # Free-tier hosting can require a cold start after inactivity. Retry
+    # exactly once only on a recognizable timeout; a 4xx/5xx or connection
+    # error must remain a failure, never become a false health PASS.
+    try:
+        response = get(_PUBLIC, timeout=20)
+    except Exception as exc:
+        if (not isinstance(exc, TimeoutError)
+                and type(exc).__name__ not in {
+                    "Timeout", "ConnectTimeout", "ReadTimeout",
+                    "ReadTimeoutError",
+                }):
+            raise
+        response = get(_PUBLIC, timeout=60)
     status = getattr(response, "status_code", None)
     if status != 200:
         return False, f"root_http_{status}" if isinstance(status, int) else "root_http_unknown"
