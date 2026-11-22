@@ -1,0 +1,80 @@
+name: Battery Bayreuth four more original independent physical cells
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/bayreuth_four_more_originals.py'
+      - 'tests/test_bayreuth_four_more_originals.py'
+      - '.github/workflows/battery-bayreuth-four-more-original-cells.yml'
+      - 'research/battery_curve_audit/bayreuth_additional_three_originals.py'
+      - 'research/battery_curve_audit/bayreuth_two_cell_independent_integral.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  four-new-publisher-originals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Exact PR head checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Source-provenance and no-fabricated-measurement tests
+        run: python -m unittest tests.test_bayreuth_additional_three_originals tests.test_bayreuth_four_more_originals -v
+      - name: Download four additional original source ZIPs, match official MD5-size-CRC and integrate real native I time
+        run: |
+          python -m research.battery_curve_audit.bayreuth_four_more_originals /tmp/cano_bayreuth_4_more_real_cells.json
+      - name: Preserve numeric evidence without republishing raw source signal data
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: bayreuth-F0003-F0031-F0136-F0150-four-new-original-source-evidence
+          path: /tmp/cano_bayreuth_4_more_real_cells.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Recheck physical IDs source hashes matched-stimulation and noncausal claims
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('/tmp/cano_bayreuth_4_more_real_cells.json')
+          d=json.loads(p.read_text(encoding='utf-8'))
+          expected={
+            'F0003':'4f3c7587d697b2b863b36a13a7ab8f25',
+            'F0031':'85a2f4c569988219a771faae19624068',
+            'F0136':'152d6ef9484c9546ad1a44a9aecb3408',
+            'F0150':'e0f7fd8ab3a915deb584e1f486557a2e',
+          }
+          assert d['source_doi']=='10.5281/zenodo.15755725'
+          assert d['new_independent_source_cell_count']==4
+          assert d['distinct_original_cell_sources_after_past_and_this_audit']==9
+          assert len(d['previous_verified_independent_source_ids'])==5
+          assert set(d['four_new_independent_source_ids'])==set(expected)
+          assert not set(d['four_new_independent_source_ids']) & set(d['previous_verified_independent_source_ids'])
+          assert d['new_checkup_numeric_rows']>=10000
+          assert len(d['official_manifest_sha256'])==64
+          for k in ('not_a_random_sample_of_24_aging_conditions','not_an_impact_resistance_measurement',
+                    'not_a_calibrated_absolute_capacity_loss','does_not_generalize_to_all_48_cells',
+                    'current_meter_not_independent_of_native_Ah_step',
+                    'original_test_program_and_sensor_calibration_unverified','no_stroebl_physical_replication'):
+              assert d[k] is True, k
+          for cell, md5 in expected.items():
+              x=d['cells'][cell]
+              assert x['original_id']==cell and x['source_official_md5']==md5 and x['zip_crc_pass']
+              assert x['source_bytes']>1_000_000 and len(x['source_sha256'])==64
+              assert all(s['rows_parsed']>500 for s in x['original_checkups'].values())
+              for phase in ('charge','discharge'):
+                  q=x['paired_measurement'][phase]
+                  if q.get('comparable_homologous_source_step'):
+                      assert q['not_a_certified_capacity_loss']
+                      assert q['original_test_program_not_available']
+                      assert abs(q['source_step_delta_mAh'])<1000
+                      assert abs(q['independently_integrated_trapezoid_delta_mAh'])<1000
+                  else:
+                      assert q.get('comparable') is False
+                      assert 'source_step_delta_mAh' not in q
+          assert d['matched_cell_counts']['discharge']>=1, 'Require actual new matched discharge evidence'
+          print('FOUR_NEW_PUBLISHER_ORIGINALS_VERIFIED',d['new_checkup_numeric_rows'],
+                d['matched_cell_counts'])
+          PY

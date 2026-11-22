@@ -76,27 +76,41 @@ def validate_zip(data: bytes, cell: str) -> None:
 
 
 def native_rows(arc: zipfile.ZipFile, member: str):
-    """Stream original BaSyTec TXT row by row, never infer columns from positions."""
+    """Stream original BaSyTec TXT with a validated comma or whitespace header.
+
+    Some genuinely published Fxxxx original checkups use space-separated
+    columns, not the comma-separated form seen in F0001. We require the
+    complete, literal native column schema and never guess field positions.
+    """
     with arc.open(member) as fp:
-        reader = csv.reader(io.TextIOWrapper(fp, encoding="latin-1", errors="replace", newline=""))
         col = None
-        for line in reader:
+        mode = None
+        stream = io.TextIOWrapper(fp, encoding="latin-1", errors="replace", newline="")
+        for raw_line in stream:
+            line = raw_line.strip()
             if not line:
                 continue
             if col is None:
-                if line[0].lstrip("~").strip() == "Time[h]":
-                    hdr = [v.lstrip("~").strip() for v in line]
-                    if not all(v in hdr for v in REQUIRED_COLUMNS):
-                        raise ValueError("missing required native data columns")
-                    col = {c: hdr.index(c) for c in REQUIRED_COLUMNS}
+                if not line.lstrip("~").startswith("Time[h]"):
+                    continue
+                mode = "comma" if "," in line else "whitespace"
+                header = ([v.strip().lstrip("~") for v in next(csv.reader([line]))]
+                          if mode == "comma" else line.lstrip("~").split())
+                if not all(x in header for x in REQUIRED_COLUMNS):
+                    raise ValueError("missing required native data columns")
+                if len(header) != len(set(header)):
+                    raise ValueError("duplicate source column name")
+                col = {c: header.index(c) for c in REQUIRED_COLUMNS}
                 continue
-            if len(line) <= max(col.values()):
+            row = next(csv.reader([line])) if mode == "comma" else line.split()
+            if len(row) <= max(col.values()):
                 continue
             try:
-                time_h = float(line[col["Time[h]"]]); step_h = float(line[col["t-Step[h]"]])
-                vol = float(line[col["U[V]"]]); cur = float(line[col["I[A]"]]); step_ah = float(line[col["Ah-Step"]])
-                line_id = line[col["Line"]].strip(); cycle = line[col["Cyc-Count"]].strip()
-                command = line[col["Command"]].strip().lower()
+                time_h = float(row[col["Time[h]"]]); step_h = float(row[col["t-Step[h]"]])
+                vol = float(row[col["U[V]"]]); cur = float(row[col["I[A]"]])
+                step_ah = float(row[col["Ah-Step"]])
+                line_id = row[col["Line"]].strip(); cycle = row[col["Cyc-Count"]].strip()
+                command = row[col["Command"]].strip().lower()
                 if not all(map(math.isfinite, (time_h, step_h, vol, cur, step_ah))):
                     continue
                 if time_h < 0 or step_h < 0 or abs(cur) > 20 or not (0 <= vol <= 6):
@@ -107,7 +121,6 @@ def native_rows(arc: zipfile.ZipFile, member: str):
                    "ah": step_ah, "line": line_id, "cycle": cycle, "cmd": command}
         if col is None:
             raise ValueError("native header missing")
-
 
 def close_segment(seg: dict) -> dict:
     """No extrapolation before the first observation or after the last."""
