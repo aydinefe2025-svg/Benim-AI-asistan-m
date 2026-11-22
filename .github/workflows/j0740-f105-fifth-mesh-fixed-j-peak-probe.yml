@@ -3,6 +3,7 @@ on:
   pull_request:
     branches:
       - science/j0740-apr4-firstlaw-gr-pilot-20261117
+      - science/j0740-f105-fifth-mesh-fixed-j-peak-20261122-v2
     paths:
       - 'research/j0740/f105/**'
       - '.github/workflows/j0740-f105-fifth-mesh-fixed-j-peak-probe.yml'
