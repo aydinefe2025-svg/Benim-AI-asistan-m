@@ -89,12 +89,55 @@ def read_f125(path: Path):
         raise ValueError("F124_ROOT_NOT_PRESENT_IN_RAW_JOURNAL")
     if best["J_relative_error"] > DIAGNOSTIC_ROOT_TOLERANCE:
         raise ValueError("F124_ROOT_PRECISION_NOT_ACCEPTED")
-    with tempfile.NamedTemporaryFile(suffix=".zip") as nested:
-        nested.write(f123_bytes)
-        nested.flush()
-        f123_result, f122_result, f121_result, f120_result, f120_rows = f123.read_f123(Path(nested.name))
-    if f123_result.get("status") != "F123_LOWER_HALF_BISECTION_COMPLETE":
-        raise ValueError("NESTED_F124_BASELINE_NOT_ACCEPTED")
+    with tempfile.NamedTemporaryFile(suffix=".zip") as nested_f123:
+        nested_f123.write(f123_bytes)
+        nested_f123.flush()
+        with zipfile.ZipFile(nested_f123.name) as archive:
+            if archive.testzip() is not None:
+                raise ValueError("NESTED_F123_ARTIFACT_ZIP_CRC_FAILURE")
+            f123_result = json.loads(archive.read("F123/F123_LOWER_HALF_BISECTION.json"))
+            f123_journal = archive.read("F123/F123_LOWER_HALF_BISECTION.jsonl")
+            f122_bytes = archive.read("F122/F122_artifact.zip")
+    F122_ZIP_SHA = "73a0d50b394264312a467fd40b9f0d96f66a7786f54a1103c2fd458327fb3c0f"
+    if sha(f122_bytes) != F122_ZIP_SHA:
+        raise ValueError("NESTED_F123_F122_SHA256_MISMATCH")
+    if sha(f123_journal) != f123_result.get("raw_journal_sha256"):
+        raise ValueError("NESTED_F123_RAW_JOURNAL_SHA256_MISMATCH")
+    f123_rows = [json.loads(line) for line in f123_journal.decode("utf-8").splitlines() if line.strip()]
+    if (f123_result.get("status") != "F123_LOWER_HALF_BISECTION_COMPLETE"
+            or f123_result.get("diagnostic_only") is not True
+            or f123_result.get("mesh") != GRID
+            or f123_result.get("EOS_sha256") != EOS_SHA
+            or f123_result.get("target_J_cgs") != f106.TARGET_J
+            or f123_result.get("J_relative_tolerance") != f106.J_REL_TOL
+            or f123_result.get("diagnostic_root_tolerance") != DIAGNOSTIC_ROOT_TOLERANCE
+            or f123_result.get("pinned_RNS_upstream_commit") != RNS_COMMIT
+            or f123_result.get("input_F122_artifact_sha256") != F122_ZIP_SHA
+            or f123_result.get("native_C_call_count") != 6
+            or len(f123_rows) != 6
+            or len(f123_result.get("fixed_J_solutions", [])) != 1
+            or f123_result.get("native_C_errors")):
+        raise ValueError("NESTED_F123_BASELINE_NOT_ACCEPTED")
+    if any(row.get("mesh") != GRID or row.get("real_native_RNS_C") is not True
+           or row.get("error") for row in f123_rows):
+        raise ValueError("NESTED_F123_RAW_ROW_INVALID")
+    f123_root = f123_result["fixed_J_solutions"][0]
+    if int(f123_root.get("rho_g_cm3", -1)) != 2622286781250000:
+        raise ValueError("NESTED_F123_MIDPOINT_DENSITY_MISMATCH")
+    f123_best = min(f123_rows, key=lambda row: row["J_relative_error"])
+    if any(f123_root.get(a) != f123_best.get(b) for a, b in (
+            ("M_msun", "M_msun"), ("R_eq_km", "R_eq_km"),
+            ("J_relative_error", "J_relative_error"),
+            ("selected_r_ratio", "r_ratio_C_input"))):
+        raise ValueError("NESTED_F123_ROOT_NOT_PRESENT_IN_RAW_JOURNAL")
+    if f123_best["J_relative_error"] > DIAGNOSTIC_ROOT_TOLERANCE:
+        raise ValueError("NESTED_F123_ROOT_PRECISION_NOT_ACCEPTED")
+    with tempfile.NamedTemporaryFile(suffix=".zip") as nested_f122:
+        nested_f122.write(f122_bytes)
+        nested_f122.flush()
+        f122_result, f121_result, f120_result, f120_rows = f123.read_f122(Path(nested_f122.name))
+    if f122_result.get("status") != "F122_LOWER_HALF_BISECTION_COMPLETE":
+        raise ValueError("NESTED_F122_BASELINE_NOT_ACCEPTED")
     return result, f120_result
 
 def main() -> None:
