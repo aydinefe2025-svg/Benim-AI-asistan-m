@@ -11,7 +11,7 @@ import sqlite3
 from hashlib import sha256
 
 from core.agent_colony import AgentColony
-from core.collaborative_mission import CollaborativeMission
+from core.collaborative_mission import CollaborativeMission, synthesis_needs_repair
 from core.cano_mobile_resume import (select_mobile_resume_items,
                                      select_mobile_completed_mission)
 from core.colony_postgres import ColonySnapshotStore
@@ -580,6 +580,43 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
         except (KeyError, ValueError, sqlite3.Error):
             inspected = None
         if inspected and inspected["status"] == "review_pending" and inspected["stages"]:
+            if synthesis_needs_repair(inspected):
+                st.warning(
+                    "Nihai sentez kısa ve cümle ortasında kesilmiş görünüyor. "
+                    "4/4 kayıt bulunması sonucun yeterli olduğu anlamına gelmez. "
+                    "İlk üç aşama korunacak; yeni görev başlatılmayacak.")
+                if owner_key is None or backup_store is None or answer is None:
+                    st.info("Güvenli onarım için doğrulanmış hesap, PostgreSQL ve model bağlantısı gerekir.")
+                else:
+                    st.caption(
+                        "Bu işlem yalnızca sizin açıkça başlatmanızla seçili "
+                        "sağlayıcıya TEK yeni metin isteği gönderir. "
+                        "Sağlayıcının kotası veya ücretlendirmesi geçerli olabilir. "
+                        "Eksik yanıt ya da veritabanı hatasında eski sonuç korunur.")
+                    if st.button("🔧 Kesilmiş 4. aşamayı güvenle yeniden oluştur",
+                                 key="cano_repair_synthesis_" + latest_id):
+                        try:
+                            _checkpoint(archive_prior=False)
+                        except Exception:
+                            st.error("PostgreSQL ön denetimi geçmedi; model çağrısı başlatılmadı.")
+                            return
+                        try:
+                            manager.repair_truncated_synthesis(
+                                latest_id, client=_AnswerAdapter(answer),
+                                model="configured-provider",
+                                on_checkpoint=_checkpoint)
+                        except Exception:
+                            st.error(
+                                "Son aşama onarılamadı. Sağlayıcı veya güvenli "
+                                "kayıt hatası olabilir. Önceki sonuç ve "
+                                "ilk üç aşama korunacak; tekrar denemeden "
+                                "önce hesabın son yedeğini kontrol edin.")
+                            return
+                        st.success("Son aşama yenilendi; eski kesik metin ve "
+                                   "ilk üç aşama korundu. Nihai metin hâlâ "
+                                   "bağımsız inceleme bekliyor.")
+                        st.rerun()
+                        return
             planner_stage = inspected["stages"][0]
             pending_lesson = manager.pending_lesson(latest_id)
             if pending_lesson:
