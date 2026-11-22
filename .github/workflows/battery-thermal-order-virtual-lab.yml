@@ -1,0 +1,29 @@
+name: Battery thermal and test-order virtual laboratory
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/thermal_order_sim.py'
+      - 'research/battery_curve_audit/fixtures/k01_k04_k05_nine_source_27_pairs_pinned.json'
+      - 'tests/test_thermal_order_sim.py'
+      - '.github/workflows/battery-thermal-order-virtual-lab.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  model-only-not-physical-proof:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+      - name: 18 pure Python fail-closed tests
+        run: python -m unittest discover -s tests -p 'test_thermal_order_sim.py' -v
+      - name: Recompute thermal and order sensitivity using pinned publisher-derived fixture
+        run: python research/battery_curve_audit/thermal_order_sim.py --source research/battery_curve_audit/fixtures/k01_k04_k05_nine_source_27_pairs_pinned.json --out thermal_order_result.json
+      - name: Verify exact cross-platform output SHA256 (not physical evidence)
+        run: python -c "from pathlib import Path; import hashlib; h=hashlib.sha256(Path('thermal_order_result.json').read_bytes()).hexdigest(); assert h=='83945f3e9bbcf71b7d6009519b6866fc524782494e6ba2bc4974b6b351506a5d',h"
