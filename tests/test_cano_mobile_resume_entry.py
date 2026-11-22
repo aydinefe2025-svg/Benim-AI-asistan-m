@@ -22,6 +22,24 @@ class MobileResumeEntryTests(unittest.TestCase):
         self.assertLess(resume.lineno, new_form.lineno,
                         "Existing blocked mission must be directly reachable before starting a new one.")
 
+    def test_mobile_filter_only_chooses_existing_blocked_owner_task(self):
+        from core.cano_mobile_resume import select_mobile_resume_items
+
+        target = "ae92f634-aec5-48ef-88ad-9e921b3a6e88"
+        other = "00000000-0000-4000-8000-000000000001"
+        items = [
+            {"id": target, "status": "blocked"},
+            {"id": other, "status": "blocked"},
+            {"id": "00000000-0000-4000-8000-000000000002",
+             "status": "review_pending"},
+        ]
+        self.assertEqual([items[0]], select_mobile_resume_items(items, target))
+        self.assertEqual(items[:2], select_mobile_resume_items(items))
+        self.assertEqual([], select_mobile_resume_items(items, "not-a-uuid"))
+        self.assertEqual([], select_mobile_resume_items(items, other + "x"))
+        self.assertEqual([], select_mobile_resume_items(items, [target]))
+        self.assertEqual([], select_mobile_resume_items(items, "00000000-0000-4000-8000-999999999999"))
+
     def test_mobile_uuid_query_is_used_to_select_only_that_mission(self):
         source = PAGE.read_text(encoding="utf-8")
         self.assertIn('query_params', source)
