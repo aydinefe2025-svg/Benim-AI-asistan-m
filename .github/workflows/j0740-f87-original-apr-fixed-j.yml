@@ -1,0 +1,100 @@
+name: J0740 F87 original APR constant-J sequence
+on:
+  pull_request:
+    paths:
+      - "research/j0740/f87/f87_original_constant_j.py"
+      - ".github/workflows/j0740-f87-original-apr-fixed-j.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: j0740-f87-original-apr-fixed-j
+  cancel-in-progress: false
+jobs:
+  original-apr-fixed-j:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Install pinned scientific dependencies
+        run: python -m pip install numpy==2.3.3 scipy==1.16.3
+      - name: Fetch and verify Salmi 2024 publisher EOS
+        run: |
+          mkdir -p results/F87
+          python research/j0740/f87/f87_fetch_source_probe.py results/F87 > results/F87/source_probe.log
+          python research/j0740/f87/f87_real_tov_from_compose.py results/F87 --out results/F87/F87_REAL_ORIGINAL_APR_TOV.json > results/F87/tov.log
+      - name: Patch only diagnostic output and compile fine mesh
+        run: |
+          python research/j0740/f87/f87_original_constant_j.py --mode patch --source rns-upstream/rns.c --out results/patch_201x401.json
+          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=201 -DSDIV=401' rns
+          cp rns-upstream/rns rns-upstream/rns_201x401
+      - name: Solve 16-point original EOS constant-J sequence at 201x401
+        run: |
+          python research/j0740/f87/f87_original_constant_j.py --mode run --source-dir results/F87 --binary rns-upstream/rns_201x401 --grid 201x401 --patch-report results/patch_201x401.json --out results/F87_fixed_J_201x401.json
+      - name: Rebuild at independent 151x301 spatial mesh
+        run: |
+          rm -f rns-upstream/*.o rns-upstream/rns
+          git -C rns-upstream checkout -- rns.c
+          python research/j0740/f87/f87_original_constant_j.py --mode patch --source rns-upstream/rns.c --out results/patch_151x301.json
+          make -C rns-upstream CC='gcc -include stdlib.h' HIGHSIZE='-DMDIV=151 -DSDIV=301' rns
+          cp rns-upstream/rns rns-upstream/rns_151x301
+      - name: Solve 16-point original EOS constant-J sequence at 151x301
+        run: |
+          F87_TARGET_J_CGS=$(python -c 'import json; print(json.load(open("results/F87_fixed_J_201x401.json"))["target_J_cgs"])')
+          python research/j0740/f87/f87_original_constant_j.py --mode run --source-dir results/F87 --binary rns-upstream/rns_151x301 --grid 151x301 --patch-report results/patch_151x301.json --target-j "$F87_TARGET_J_CGS" --out results/F87_fixed_J_151x301.json
+      - name: Require complete sequences and mesh convergence
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path("results/F87_fixed_J_151x301.json").read_text())
+          b=json.loads(Path("results/F87_fixed_J_201x401.json").read_text())
+          assert a["status"].startswith("PASS") and b["status"].startswith("PASS")
+          assert a["successful_points"] == b["successful_points"] == 16
+          assert a["publisher_source_metadata"]["source_archive_sha256"] == b["publisher_source_metadata"]["source_archive_sha256"] == "8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12"
+          assert a["rns_table_sha256"] == b["rns_table_sha256"]
+          assert a["sampled_mass_strictly_increasing"] and b["sampled_mass_strictly_increasing"]
+          assert abs(a["target_J_cgs"]-b["target_J_cgs"]) <= 1e-8*max(a["target_J_cgs"],b["target_J_cgs"])
+          assert b["sampled_upper_density_fraction_of_first_acausal_knot"] > 0.999
+          for rho in (1.743223916826e15,1.8290e15):
+            x=min(a["sequence"],key=lambda r:abs(r["central_energy_density_g_cm3"]-rho))
+            y=min(b["sequence"],key=lambda r:abs(r["central_energy_density_g_cm3"]-rho))
+            assert x["status"] == y["status"] == "PASS_FIXED_J"
+            assert abs(x["mass_msun"]-y["mass_msun"]) <= 0.004
+            assert abs(x["radius_eq_km"]-y["radius_eq_km"]) <= 0.15
+          summary={"status":"PASS_TWO_GRID_FIXED_J_SEQUENCE",
+            "points_per_grid":16,
+            "max_anchor_J_relative_residual":max(abs(a["fixed_spin_reference_anchor"]["ang_mom_cgs"]/a["target_J_cgs"]-1),abs(b["fixed_spin_reference_anchor"]["ang_mom_cgs"]/b["target_J_cgs"]-1)),
+            "at_target_density_delta_mass_msun":abs(min(a["sequence"],key=lambda r:abs(r["central_energy_density_g_cm3"]-1.743223916826e15))["mass_msun"]-min(b["sequence"],key=lambda r:abs(r["central_energy_density_g_cm3"]-1.743223916826e15))["mass_msun"]),
+            "at_first_acausal_edge_delta_mass_msun":abs(a["sequence"][-1]["mass_msun"]-b["sequence"][-1]["mass_msun"]),
+            "sampled_mass_turning_point":"NOT_FOUND_AT_16_SAMPLED_POINTS_BEFORE_FIRST_SOURCE_ACAUSAL_KNOT",
+            "full_rotating_dynamical_stability":"NOT_ESTABLISHED",
+            "EOS_Bayes":"NOT_RUN"}
+          Path("results/two_grid_summary.json").write_text(json.dumps(summary,indent=2)+"\n")
+          print(json.dumps(summary,indent=2))
+          PY
+      - name: Preserve all source-native sequence evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: J0740-F87-original-APR-constant-J-two-grid
+          path: |
+            results/F87_fixed_J_151x301.json
+            results/F87_fixed_J_201x401.json
+            results/patch_151x301.json
+            results/patch_201x401.json
+            results/two_grid_summary.json
+            results/F87/eosF87_compose_apr_unified
+            results/eosF87_compose_apr_unified
+            results/F87/source_probe.log
+          if-no-files-found: warn
+          retention-days: 30
