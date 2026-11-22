@@ -37,7 +37,7 @@ jobs:
           printf '%s  %s\n' 1491d406b68886522c514c7a08e40ef6e673cf8d48e86c6666c390a96eb11f30 results/F103/F103_artifact.zip | sha256sum -c -
           python -m zipfile -e results/F103/F103_artifact.zip results/F103
           curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14751873260/zip" -o results/F104/F104_artifact.zip
-          printf '%s  %s\\n' b36198ac43fbd786cb1a7bc0022a7c69e35f30160242d0e2d28bbc0f662fcf02 results/F104/F104_artifact.zip | sha256sum -c -
+          printf '%s  %s\n' b36198ac43fbd786cb1a7bc0022a7c69e35f30160242d0e2d28bbc0f662fcf02 results/F104/F104_artifact.zip | sha256sum -c -
           python -m zipfile -e results/F104/F104_artifact.zip results/F104
           gh run download 44818195695 -R "$GITHUB_REPOSITORY" -n J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID -D results/F88
           printf '%s  %s\n' 8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12 results/F88/F87_verified_publisher_original.zip | sha256sum -c -
