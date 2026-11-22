@@ -1,0 +1,136 @@
+name: J0740 F98 genuine Einstein C RNS 18-star candidate EOS interpolation repair, two meshes
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f98/**'
+      - '.github/workflows/j0740-f98-real-10node-source-RNS-C-two-grid.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  true_original_source_C_Lagrange_numerical_repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fixed scientific dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Restore actual F88 original physical EOS 328 and existing 18 real F96 C models (do not re-run old)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F88 results/F98 research/j0740/f98
+          gh run download 44818195695 -R "$GITHUB_REPOSITORY" -n J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID -D results/F88
+          printf '%s  %s\n' 8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12 results/F88/F87_verified_publisher_original.zip | sha256sum -c -
+          printf '%s  %s\n' 7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580 results/F88/m.rns | sha256sum -c -
+          cp results/F88/m.rns research/j0740/f98/F88_m_original.rns
+          cp research/j0740/receipts/f96/F96_REAL_two_grid_source_causal_fixedJ_extension.json research/j0740/f98/F96_real_18_source_C_models.json
+          printf '%s  %s\n' a794218fd091c02e92e522e599003c0a6375c072f8b43d6607f89409155fce5a research/j0740/f98/F96_real_18_source_C_models.json | sha256sum -c -
+      - name: Reconstruct exact 4pt upstream C negative cs2 and repaired 1943-node EOS from source 1933
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -u research/j0740/f98/f98_rns_source_interpolation_repair.py \
+            --original-rns research/j0740/f98/F88_m_original.rns \
+            --f96 research/j0740/f98/F96_real_18_source_C_models.json \
+            --out-eos research/j0740/f98/m_rns_1943_candidate.rns \
+            --out-json results/F98/F98_C_GENUINE_OLD_VS_10NODE_CAUSALITY.json \
+            2>&1 | tee results/F98/F98_REAL_NATIVE_INTERPOLATION_TRACE.log
+          printf '%s  %s\n' d62d490dd106f7995cb96563bcb438de8c934375cca4fb04d9010b6300a8cff9 research/j0740/f98/m_rns_1943_candidate.rns | sha256sum -c -
+          cp research/j0740/f98/F98_true_C_RNS_fourpoint_EOS_causality_20261122.json results/F98/F98_COMMITTED_REFERENCE.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('results/F98/F98_COMMITTED_REFERENCE.json').read_text())
+          b=json.loads(Path('results/F98/F98_C_GENUINE_OLD_VS_10NODE_CAUSALITY.json').read_text())
+          assert a['original_numerical_EOS']==b['original_numerical_EOS']
+          assert a['derived_new_distinct_interpolation_candidate']==b['derived_new_distinct_interpolation_candidate']
+          assert a['physics_implications']==b['physics_implications']
+          print('F98_SOURCE_NATIVE_LAGRANGE_EXACT_CAUSALITY_PROVENANCE_PASS')
+          PY
+      - name: Ten source-locked physical interpolation source tests (not substitute for native C run)
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -m unittest discover -s research/j0740/f98 -p 'test_f98_true_source_lagrange_and_candidate.py' -v 2>&1 | tee results/F98/F98_TEN_ACTUAL_ORIGINAL_C_INTERPOLATION_TESTS.log
+      - name: Compile identical source Einstein C twice with distinct spatial grids; no equations changed
+        run: |
+          set -euo pipefail
+          test "$(git -C rns-upstream rev-parse HEAD)" = 97e85d325a33e37f702306414533f6cd77812477
+          cp -a rns-upstream rns151
+          cp -a rns-upstream rns201
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          for folder,grid in (('rns151','151x301'),('rns201','201x401')):
+           p=Path(folder)/'rns.c';p.write_text(patch_print_only(p.read_text()))
+           mf=Path(folder)/'makefile';t=mf.read_text()
+           assert t.splitlines().count('HIGHSIZE=-DMDIV=151 -DSDIV=301')==1
+           if grid=='201x401':mf.write_text(t.replace('HIGHSIZE=-DMDIV=151 -DSDIV=301','HIGHSIZE=-DMDIV=201 -DSDIV=401',1))
+          PY
+          make -C rns151 CC='gcc -include stdlib.h' rns
+          make -C rns201 CC='gcc -include stdlib.h' rns
+          sha256sum rns151/rns rns201/rns | tee results/F98/F98_NATIVE_UPSTREAM_EINSTEIN_C_BINARIES_SHA256.txt
+      - name: ACTUALLY SOLVE 9 x 2 rotating C Einstein stars at frozen original J and central densities using distinct 1943-node EOS
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -u research/j0740/f98/f98_real_C_candidate_rotating_reexecution.py \
+            --oldf96 research/j0740/f98/F96_real_18_source_C_models.json \
+            --original-eos research/j0740/f98/F88_m_original.rns \
+            --candidate-eos research/j0740/f98/m_rns_1943_candidate.rns \
+            --f88 results/F88/F88_REAL_two_grid_C_RNS.json \
+            --f98 results/F98/F98_C_GENUINE_OLD_VS_10NODE_CAUSALITY.json \
+            --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
+            --rns201 "$GITHUB_WORKSPACE/rns201/rns" \
+            --out results/F98/F98_REAL_1943_NODE_18_TRUE_C_STARS.json \
+            2>&1 | tee results/F98/F98_ACTUAL_NEW_DISTINCT_EINSTEIN_C_MODEL_LOG.log
+      - name: Reject any fake 18 C stars or unproven dynamical-stability claim and quantify repair impact
+        run: |
+          python - <<'PY'
+          import json,math
+          from pathlib import Path
+          x=json.loads(Path('results/F98/F98_REAL_1943_NODE_18_TRUE_C_STARS.json').read_text())
+          assert x['status']=='18_REAL_C_EINSTEIN_STARS_1943_NUMERICALLY_SOLVED_NOT_DYNAMIC_STABILITY'
+          assert x['native_C_star_count_all_grids']==18
+          assert x['new_1943_node_candidate_EOS_sha256']=='d62d490dd106f7995cb96563bcb438de8c934375cca4fb04d9010b6300a8cff9'
+          assert x['rotating_eigenmode_dynamic_stability']=='NOT_RUN'
+          assert x['full_seven_original_EOS_native_XPSI_Bayes']=='NOT_RUN'
+          assert x['thermodynamic_first_law_exactness'].startswith('NOT_PROVEN')
+          assert len(x['paired_two_original_source_Einstein_C_meshes'])==9
+          for g,a in x['native_C_star_results'].items():
+           assert not a['errors'] and len(a['stars'])==9
+           assert a['actual_native_C_calls_logged']>=9
+           assert all(s['real_solver_checked'] and s['J_relative_error']<=3e-5 for s in a['stars'])
+           assert len(a['paired_original_1933_EOS_deltas'])==9
+          print('F98_REAL_TWO_GRID_DISTINCT_1943_EINSTEIN_C_ACCEPTED_NUMERICALLY_NOT_STABILITY_CERTIFIED',x['native_C_calls_all_grids'])
+          PY
+      - name: Persist real C traces original source SHA and complete failure detail even if stars fail
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json,hashlib
+          d=Path('results/F98');d.mkdir(parents=True,exist_ok=True)
+          m={f.name:{'bytes':f.stat().st_size,'sha256':hashlib.sha256(f.read_bytes()).hexdigest()} for f in sorted(d.iterdir()) if f.is_file()}
+          (d/'F98_COMPLETE_REAL_EINSTEIN_C_SHA256_RECEIPT.json').write_text(json.dumps(m,indent=2)+'\n')
+          PY
+      - name: Archive source-corrected real C physical calculations and complete traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F98-GENUINE-SOURCE-REPAIR-1943-18-EINSTEIN-C-TWO-MESH
+          path: results/F98/
+          if-no-files-found: warn
