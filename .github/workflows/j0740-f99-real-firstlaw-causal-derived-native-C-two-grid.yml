@@ -83,13 +83,17 @@ jobs:
           make -C rns151 CC='gcc -include stdlib.h' rns
           make -C rns201 CC='gcc -include stdlib.h' rns
           sha256sum rns151/rns rns201/rns | tee results/F99/F99_NATIVE_TWO_GRIDS_GR_EINSTEIN_C_SOURCE_SHA256.txt
+      - name: Copy SHA-pinned derived EOS to short root path required by original RNS C char80 fixed buffer
+        run: |
+          cp research/j0740/f99/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
       - name: ACTUAL 9×2 native Einstein C star equilibria at exactly old density and same J but distinct physically derived EOS
         run: |
           set -euo pipefail
           OPENBLAS_NUM_THREADS=1 python -u research/j0740/f99/f99_real_two_grid_cold_causal_C_rns.py \
             --oldf96 research/j0740/f99/F96_old_source_18_C_real_models.json \
             --original-eos research/j0740/f99/F88_m_original.rns \
-            --derived-eos research/j0740/f99/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns \
+            --derived-eos m99.rns \
             --physics-receipt research/j0740/f99/F99_1933_exact_source_no_go_and_1981_model_receipt_20261122.json \
             --f88 results/F88/F88_REAL_two_grid_C_RNS.json \
             --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
