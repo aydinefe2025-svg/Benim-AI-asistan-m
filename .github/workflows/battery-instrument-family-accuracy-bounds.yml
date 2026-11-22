@@ -1,0 +1,58 @@
+name: Battery historical family datasheet bounds (research only)
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/instrument_family_accuracy_envelope.py'
+      - 'research/battery_curve_audit/verified_source_derived_minimal_ledger.json'
+      - 'research/battery_curve_audit/instrument_family_assumptions.json'
+      - 'tests/test_instrument_family_accuracy_envelope.py'
+      - '.github/workflows/battery-instrument-family-accuracy-bounds.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-original-receipts-with-conditional-datasheet-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12 standard library
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Validate numerical physics and reject fabricated calibration
+        run: python -m unittest tests.test_instrument_family_accuracy_envelope -v
+      - name: Recompute original-verified receipt model without redownloading raw publisher datasets
+        run: |
+          python -m research.battery_curve_audit.instrument_family_accuracy_envelope \
+            research/battery_curve_audit/verified_source_derived_minimal_ledger.json \
+            research/battery_curve_audit/instrument_family_assumptions.json \
+            /tmp/cano_legacy_family_accuracy_envelope.json
+      - name: Enforce scientific claim and previous original-source evidence boundaries
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          p='/tmp/cano_legacy_family_accuracy_envelope.json'
+          x=json.load(open(p))
+          assert x['source_cell_count']==4 and x['condition_pair_count']==12
+          assert x['cells_exceeding_current_only_catalog_scenario']==2
+          assert x['dcir_condition_pairs_below_voltage_only_hypothetical_scenario']==12
+          assert x['decision']=='RESEARCH_ONLY_EXTERNAL_CALIBRATION_AND_REPEATED_LAB_DATA_REQUIRED'
+          assert all(x[k] is False for k in (
+              'source_2021_2022_instrument_calibration_obtained',
+              'uncertainty_95pct_confidence_interval_established',
+              'physical_aging_causality_established',
+              'commercial_production_release_allowed'))
+          assert {y['sha256'] for y in x['input_original_source_evidence_refs']}=={
+              'bf53056fcf6138729397315164c86d7419765d99677607e413531bfd20363f87',
+              '0188c483077d10af351ee6df773a083ce09f1767a396456da95becf7c9db4eaa'}
+          print('CONDITIONAL_HISTORICAL_FAMILY_SCENARIO_NOT_CALIBRATION_PROOF',hashlib.sha256(open(p,'rb').read()).hexdigest())
+          PY
+      - name: Archive numeric-only scenario receipt (not fake calibration)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-20261122-publisher-original-receipt-family-datasheet-uncertainty
+          path: /tmp/cano_legacy_family_accuracy_envelope.json
+          retention-days: 7
+          if-no-files-found: error
