@@ -1,0 +1,131 @@
+name: J0740 F101 rescue ONLY four original C fixed-J root failures using double precision SetSpin
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f101/**'
+      - '.github/workflows/j0740-f101-surgical-four-source-C-Ridder-precision-recovery.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  four_genuine_C_roots_only_retain_all_previous_source_evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pinned pure numerical dependencies for prior original source experiment
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Restore exact F88 publisher source and ORIGINAL F100 24 source stars and all 399 unchanged real C calls
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F88 results/F100 results/F101
+          gh run download 44818195695 -R "$GITHUB_REPOSITORY" -n J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID -D results/F88
+          gh run download 45008924540 -R "$GITHUB_REPOSITORY" -n J0740-F100-F99-DERIVED-COLD-GR-STATIC-MASSMAX-RADIAL-ZERO-REAL-ROTATING-C-28-STARS -D results/F100
+          printf '%s  %s\n' 8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12 results/F88/F87_verified_publisher_original.zip | sha256sum -c -
+          printf '%s  %s\n' 7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580 results/F88/m.rns | sha256sum -c -
+          printf '%s  %s\n' 2f60a33262319a50af39d03641eb0a52375037450964d0f3206ae8687712506f results/F100/F100_REAL_NEW_28_TWO_GRID_EINSTEIN_C_STARS.json | sha256sum -c -
+          printf '%s  %s\n' 80ffb20501c18bedfecb8d881824f70c4a49e37adc1c17c8b091eb69e4540126 results/F100/F100_NEW_REAL_EINSTEIN_C_CALLS_151x301.jsonl | sha256sum -c -
+          printf '%s  %s\n' f493db9f274b55bf8dbcba75ec7926aaf00221b82cc03d808c20424b69f786d2 results/F100/F100_NEW_REAL_EINSTEIN_C_CALLS_201x401.jsonl | sha256sum -c -
+          python - <<'PY'
+          import json
+          r=json.load(open('results/F100/F100_REAL_NEW_28_TWO_GRID_EINSTEIN_C_STARS.json'))
+          assert r['native_real_C_stars']==24 and r['new_native_C_calls']==399
+          assert {g:tuple(e['source_point_index'] for e in v['real_C_errors']) for g,v in r['two_grid_results'].items()} == {'151x301':(12,),'201x401':(6,11,12)}
+          print('F101_ORIGINAL_24_REAL_STARS_399_NATIVE_CALLS_AND_FOUR_FAIL_RECEIPTS_IMMUTABLE_PASS')
+          PY
+      - name: Generate exactly byte-identical F99 physically derived cold EOS, NOT a new EOS
+        run: |
+          set -euo pipefail
+          python research/j0740/f99/f99_physical_firstlaw_source_no_go_derived_eos.py \
+             --source results/F88/m.rns --out m101.rns --report results/F101/F101_REUSED_F99_COLD_SOURCE_P_E_N_H_FIRSTLAW.json
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m101.rns | sha256sum -c -
+      - name: Run ten fail-closed real-source evidence tests before C repair
+        env:
+          F101_ORIGINAL_F100_REPORT: results/F100/F100_REAL_NEW_28_TWO_GRID_EINSTEIN_C_STARS.json
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f101 -p 'test_f101_real_source_precision_recovery.py' -v 2>&1 | tee results/F101/F101_REAL_SOURCE_TEN_TESTS.log
+      - name: Compile upstream two independent Einstein C grids with ONLY SetSpin float-to-double numerical fix and print formatting
+        run: |
+          set -euo pipefail
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          cp -a rns-upstream rns151
+          cp -a rns-upstream rns201
+          python research/j0740/f101/f101_patch_C_Ridder_Spin_precision_only.py \
+            rns151/findmodel.c rns201/findmodel.c | tee results/F101/F101_ONLY_PATCH_TWO_FLOAT_TO_DOUBLE_SCALAR_SHA_SOURCE.json
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          for name,grid in (('rns151','151x301'),('rns201','201x401')):
+           s=Path(name)/'rns.c';s.write_text(patch_print_only(s.read_text()))
+           make=Path(name)/'makefile';txt=make.read_text()
+           old='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+           assert txt.splitlines().count(old)==1
+           if grid=='201x401':make.write_text(txt.replace(old,'HIGHSIZE=-DMDIV=201 -DSDIV=401',1))
+          PY
+          make -C rns151 CC='gcc -include stdlib.h' rns
+          make -C rns201 CC='gcc -include stdlib.h' rns
+          sha256sum rns151/rns rns201/rns | tee results/F101/F101_REAL_DOUBLE_RIDDER_TWO_C_BINARY_SHA256.txt
+      - name: Solve ONLY old four C J-mismatched stars against identical source EOS, rho, J acceptance; preserve old 24
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f101/f101_rescue_only_failed_C_precision.py \
+            --original results/F100/F100_REAL_NEW_28_TWO_GRID_EINSTEIN_C_STARS.json \
+            --eos m101.rns \
+            --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
+            --rns201 "$GITHUB_WORKSPACE/rns201/rns" \
+            --out results/F101/F101_F100_28_COMBINED_ORIGINAL_AND_PRECISION_RECOVERED_TRUE_C_STARS.json \
+            2>&1 | tee results/F101/F101_ONLY_FOUR_DIRECT_EINSTEIN_C_ROOTS_SOURCE_LOG.log
+      - name: Independent strict original 24 immutable + four real C rescued equals 28 checked, never dynamic mode
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('results/F101/F101_F100_28_COMBINED_ORIGINAL_AND_PRECISION_RECOVERED_TRUE_C_STARS.json')
+          r=json.loads(p.read_text())
+          assert r['status']=='28_TWO_C_MESH_SAMPLED_SAME_J_MASS_TURN_PHYSICS_NUMERIC_PASS_NOT_DYNAMIC_MODES'
+          assert r['total_source_C_stars']==28 and r['original_C_work']=={'stars':24,'calls':399}
+          assert r['discrete_same_J_turning_point']=='YES_BOTH_NATIVE_C_MESHES_FINITE_DIFFERENCE_SIGNCHANGE'
+          assert r['rotating_2D_GR_axisymmetric_dynamic_mode_eigenfrequencies']=='NOT_RUN'
+          assert r['full_source_seven_EOS_XPSI_MR_Bayesian_evidence']=='NOT_RUN'
+          assert {g:tuple(e['source_point_index'] for e in v) for g,v in r['original_F100_four_J_mismatch_failures_UNALTERED'].items()}=={'151x301':(12,),'201x401':(6,11,12)}
+          for k,v in r['old_and_new_28_real_C_stars'].items():
+           assert len(v['stars'])==14 and v['sampled_positive_then_negative_slope']
+           assert all(s['J_relative_error']<=3e-5 for s in v['stars'])
+           print('F101_SOURCE_OLD_AND_NEW',k,v['n_old_original_C'],v['n_new_patched_precision_C'],'peak_M',v['sample_max_mass_Msun'],'peak_rho',v['sample_peak_central_rho_g_cm3'])
+          print('F101_FULL_28_ALL_NATIVE_C_TWO_GRID_REAL_FIXED_J_NUMERICALLY_ACCEPTED_24_OLD_4_NEW')
+          PY
+      - name: Exact sha256 for all public original source and new native Einstein C traces even when some roots fail
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          d=Path('results/F101');d.mkdir(parents=True,exist_ok=True)
+          o={p.name:{'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size} for p in sorted(d.iterdir()) if p.is_file()}
+          (d/'F101_ORIGINAL_24_PLUS_NEW_4_REAL_SOURCE_EINSTEIN_C_SHA256_MANIFEST.json').write_text(json.dumps(o,indent=2)+'\n')
+          PY
+      - name: Retain only true C math results or original failure reports without any repetition
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F101-ONLY-FOUR-GENUINE-EINSTEIN-C-DOUBLE-RIDDER-PRECISION-RECOVERY
+          path: results/F101/
+          if-no-files-found: warn
