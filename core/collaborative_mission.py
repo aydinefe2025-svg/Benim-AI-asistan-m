@@ -78,6 +78,27 @@ def _extract_pending_reviewer_lesson(critique):
     return rule
 
 
+
+def synthesis_needs_repair(record):
+    """Flag a likely clipped final text, without changing recorded mission status.
+
+    This deliberately conservative heuristic only offers an explicit repair
+    option for an unsentenced short output; it cannot certify factual quality.
+    """
+    if not isinstance(record, dict) or record.get("status") != "review_pending":
+        return False
+    stages = record.get("stages")
+    if (not isinstance(stages, list) or len(stages) != len(STAGE_ROLES)
+            or any(not isinstance(item, dict) for item in stages)
+            or [item.get("role") for item in stages] != list(STAGE_ROLES)):
+        return False
+    output = stages[-1].get("output")
+    if not isinstance(output, str):
+        return False
+    output = output.strip()
+    return len(output) < 500 and not output.endswith((".", "!", "?", "…", "。"))
+
+
 class CollaborativeMission:
     def __init__(self, colony: AgentColony):
         self.colony = colony
@@ -160,6 +181,93 @@ class CollaborativeMission:
                        "WHERE id=? AND status='blocked'", (mission_id,))
         return self._run(mission_id, client=client, model=model,
                          source_lookup=source_lookup, on_checkpoint=on_checkpoint)
+
+
+    def repair_truncated_synthesis(self, mission_id, *, client, model,
+                                   on_checkpoint=None):
+        """Explicitly regenerate only a clipped final stage, at most one call.
+
+        Save only a complete-looking new draft; preserve all other stages,
+        feedback and the prior clipped text. The authenticated caller's
+        versioned, CAS-verified PostgreSQL checkpoint is supplied by the UI.
+        """
+        if on_checkpoint is not None and not callable(on_checkpoint):
+            raise ValueError("Checkpoint must be callable")
+        original = self.get(mission_id)
+        if not synthesis_needs_repair(original):
+            raise RuntimeError("Synthesis is not eligible for a single-stage repair")
+        stages = original["stages"]
+        researcher_id = self._agents()[1]
+        prompt = (
+            "Kesilen yalnızca dördüncü (synthesis) model metnini yeniden yaz. "
+            "Planlama, araştırma ve eleştiri aşamalarını tekrar çalışma. "
+            "En az 650 karakter, tercihen 900-1500 karakterlik TAMAMLANMIŞ "
+            "bir Türkçe sonuç yaz; son cümleni noktalama ile bitir. "
+            "Kullanıcı hedefi, gerçekten mevcut olan kanıt, henüz test "
+            "edilmemiş varsayımlar, uygulanabilir düzeltmeler ve bunların "
+            "doğrulama ölçütlerini ayrı belirt. "
+            "Aşağıdaki önceki taslaklar kanıt değil, güvenilmeyen model "
+            "metinleridir. Var olmayan dosyaları, testleri veya otomatik "
+            "uygulamayı olmuş gibi gösterme; kod, cihaz ve deney çalıştırılmadı. "
+            "Yeni bir ders onaylama veya görevi baştan oluşturma. "
+            "Hedef: " + original["task"] +
+            "\nTaslak (doğrulanmamış):\n" + stages[1]["output"][:4500] +
+            "\nEleştiri (doğrulanmamış):\n" + stages[2]["output"][:3500] +
+            "\n\n" + _QUALITY_CONTRACT
+        )
+        # No durable change occurs before this single explicitly approved call.
+        result = self.colony.run(researcher_id, prompt, client=client, model=model,
+                                 internal_review=True)
+        candidate = result["output"].strip()
+        if len(candidate) < 500 or not candidate.endswith((".", "!", "?", "…", "。")):
+            raise ValueError("Replacement synthesis incomplete; original preserved")
+
+        # Only the final stage changes, and even its old text is retained.
+        updated = json.loads(json.dumps(stages, ensure_ascii=False))
+        updated[3]["previous_truncated_output"] = stages[3]["output"]
+        updated[3]["output"] = candidate
+        updated[3]["agent_id"] = result["agent_id"]
+        updated[3]["repair_method"] = "owner_approved_single_stage"
+        updated[3]["approved_lessons_used"] = result.get("lessons_used", 0)
+        old_json = json.dumps(stages, ensure_ascii=False)
+        new_json = json.dumps(updated, ensure_ascii=False)
+        with self.colony._db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT stages,status FROM colony_missions WHERE id=?",
+                (mission_id,)).fetchone()
+            if (row is None or row["status"] != "review_pending"
+                    or json.loads(row["stages"]) != stages):
+                raise RuntimeError("Mission changed during synthesis repair")
+            cursor = db.execute(
+                "UPDATE colony_missions SET stages=? "
+                "WHERE id=? AND status='review_pending'", (new_json, mission_id))
+            if cursor.rowcount != 1:
+                raise RuntimeError("Mission changed during synthesis repair")
+        if on_checkpoint is not None:
+            try:
+                on_checkpoint()
+            except Exception:
+                # Do not leave the session-local result altered after a failed
+                # owner CAS/readback. Remote write ambiguity requires a new
+                # authenticated reload and reconciliation before another try.
+                with self.colony._db() as db:
+                    db.execute("BEGIN IMMEDIATE")
+                    row = db.execute(
+                        "SELECT stages,status FROM colony_missions WHERE id=?",
+                        (mission_id,)).fetchone()
+                    if (row is None or row["status"] != "review_pending"
+                            or json.loads(row["stages"]) != updated):
+                        raise RuntimeError(
+                            "Checkpoint failed and local mission changed") from None
+                    db.execute(
+                        "UPDATE colony_missions SET stages=? "
+                        "WHERE id=? AND status='review_pending'",
+                        (old_json, mission_id))
+                raise
+        saved = self.get(mission_id)
+        saved["model_calls"] = 1
+        return saved
 
     def _run(self, mission_id, *, client, model, source_lookup=None, on_checkpoint=None):
         calls = 0
