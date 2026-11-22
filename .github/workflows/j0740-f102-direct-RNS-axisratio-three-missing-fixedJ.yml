@@ -1,0 +1,133 @@
+name: J0740 F102 ONLY 3 missing true C fixed-J roots through original direct RNS axis ratio
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f102/**'
+      - '.github/workflows/j0740-f102-direct-RNS-axisratio-three-missing-fixedJ.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  direct_compiled_3_missing_only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Real source numerical dependencies pinned
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Reuse SHA-locked 24 F100 + 1 F101 actual native C star and original publisher APR; no old stars rerun
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F88 results/F102
+          for item in '14749023237 f100.zip a769506f87b10c63b03768a7b4011aa02aede6bcddd0ae94c99735f6edcc444a' '14749203967 f101.zip fff0b8b3bec5744ccd88e9825b96cf6984c82fad5a01efb801cde9c881c76eb6'; do
+            read -r id file sha <<< "$item"
+            curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" -o "results/F102/$file"
+            echo "$sha  results/F102/$file" | sha256sum -c -
+          done
+          gh run download 44818195695 -R "$GITHUB_REPOSITORY" -n J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID -D results/F88
+          printf '%s  %s\n' 8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12 results/F88/F87_verified_publisher_original.zip | sha256sum -c -
+          printf '%s  %s\n' 7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580 results/F88/m.rns | sha256sum -c -
+      - name: Nine independent immutable ORIGINAL 24+1 real-C source and fixed-J checks
+        env:
+          F102_F100_ZIP: results/F102/f100.zip
+          F102_F101_ZIP: results/F102/f101.zip
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f102 -p 'test_f102_source_direct_ratio_recovery.py' -v 2>&1 | tee results/F102/F102_NINE_REAL_SOURCE_IMMUTABLE_TESTS.log
+      - name: Regenerate byte-identical F99 firstlaw physically DISTINCT model from original publisher EOS (not old stars)
+        run: |
+          set -euo pipefail
+          python research/j0740/f99/f99_physical_firstlaw_source_no_go_derived_eos.py \
+            --source results/F88/m.rns --out m99.rns --report results/F102/F102_REUSE_F99_COLD_SOURCE_P_E_N_H_FIRSTLAW.json | tee results/F102/F102_REDERIVE_PINNED_EOS_SOURCE_LOG.txt
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
+      - name: Compile EXACT native upstream C Einstein RNS on distinct 151x301 and 201x401 meshes; original direct -r, no SetSpin patch
+        run: |
+          set -euo pipefail
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          cp -a rns-upstream rns151
+          cp -a rns-upstream rns201
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0,'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          for folder,grid in [('rns151','151x301'),('rns201','201x401')]:
+           p=Path(folder)/'rns.c'
+           p.write_text(patch_print_only(p.read_text()))
+           mf=Path(folder)/'makefile'
+           t=mf.read_text()
+           old='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+           assert t.splitlines().count(old)==1
+           if grid=='201x401':mf.write_text(t.replace(old,'HIGHSIZE=-DMDIV=201 -DSDIV=401',1))
+           # NEVER edit any Einstein field equations or the internal SetSpin routine.
+           src=(Path(folder)/'findmodel.c').read_bytes()
+           assert b'float ans, fh,fl,fm,fnew,sroot,xh,xl,xm,xnew,xacc=1e-5;' in src
+          PY
+          make -C rns151 CC='gcc -include stdlib.h' rns
+          make -C rns201 CC='gcc -include stdlib.h' rns
+          sha256sum rns151/rns rns201/rns | tee results/F102/F102_TWO_NATIVE_C_SOLVER_BINARIES_SHA256.txt
+      - name: DIRECT TRUE RNS C -r axis ratio physical J root for ONLY original 3 unresolved stars
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -u research/j0740/f102/f102_direct_axis_ratio_recovery.py \
+            --f100 results/F102/f100.zip \
+            --f101 results/F102/f101.zip \
+            --eos m99.rns \
+            --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
+            --rns201 "$GITHUB_WORKSPACE/rns201/rns" \
+            --out results/F102/F102_ORIGINAL_24_PLUS_F101_1_PLUS_F102_3_REAL_C_STARS.json \
+            2>&1 | tee results/F102/F102_ONLY_THREE_ORIGINAL_NATIVE_C_RATIO_ROOTS.log
+      - name: Independently validate all twenty-eight actual Einstein C samples and sign changes in both distinct mesh C solutions
+        run: |
+          python - <<'PY'
+          import json,math
+          from pathlib import Path
+          p=Path('results/F102/F102_ORIGINAL_24_PLUS_F101_1_PLUS_F102_3_REAL_C_STARS.json')
+          r=json.loads(p.read_text())
+          assert r['status']=='28_OF_28_ACTUAL_C_STARS_ACROSS_TWO_MESHES_SOURCE_FIXED_J_DISCRETE_TURN_ONLY'
+          assert r['same_F99_derived_cold_EOS_sha256']=='c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331'
+          assert r['original_24_native_C_calls_not_rerun']==399 and r['F101_new_C_calls_already_performed_NOT_RERUN']==70
+          assert r['rotating_dynamical_eigenfrequencies']=='NOT_RUN'
+          assert r['seven_original_EOS_full_native_XPSI_photon_Bayes']=='NOT_RUN'
+          for g,v in r['both_native_C_grids'].items():
+           assert len(v['stars'])==14 and len(set(z['source_point_index'] for z in v['stars']))==14
+           assert all(x['real_solver_checked'] and x['J_relative_error']<=3e-5 for x in v['stars'])
+           assert v['measured_slope']['positive_dM_intervals']>0 and v['measured_slope']['negative_dM_intervals']>0
+          print('F102_28_ACTUAL_SOURCE_C_SAME_J_MASS_TURN_DISCRETE_TWO_MESH_ONLY_VERIFIED')
+          PY
+      - name: Freeze physical C source receipt, failures and all three-new-root native logs even when science gate fails
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('results/F102');root.mkdir(parents=True,exist_ok=True)
+          m={p.name:{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+             for p in sorted(root.iterdir()) if p.is_file() and not p.name.endswith('.zip')}
+          (root/'F102_PHYSICAL_C_ALL_SOURCE_SHA256_RECEIPT.json').write_text(json.dumps(m,indent=2)+'\n')
+          PY
+      - name: Persist only F102 unique true native C results, source SHA and failures, no duplicated 12.9GB photon data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F102-ONLY-3-DIRECT-NATIVE-RNS-C-AXISRATIO-REAL-ROOTS
+          path: |
+            results/F102/F102_*.json
+            results/F102/F102_*.log
+            results/F102/F102_*.txt
+            results/F102/F102_DIRECT_TRUE_C_R_RATIO_ONLY_*.jsonl
+          if-no-files-found: warn
