@@ -135,15 +135,29 @@ def evaluate(data, source_sha256):
     }
 
 
+def canonical_source_bytes(raw):
+    """Accept exactly the pinned LF fixture, or Git's lossless CRLF checkout of it."""
+    digest=hashlib.sha256(raw).hexdigest()
+    if digest == EXPECTED_SHA256:
+        return raw
+    if b'\r\n' in raw:
+        canon=raw.replace(b'\r\n',b'\n')
+        # Reject mixed EOL or unrelated bytes; only Git line-ending translation allowed.
+        if canon.replace(b'\n',b'\r\n') == raw and hashlib.sha256(canon).hexdigest() == EXPECTED_SHA256:
+            return canon
+    raise ValueError(f'SOURCE_SHA256_MISMATCH expected={EXPECTED_SHA256} actual={digest}')
+
+
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--source',required=True,type=Path)
     parser.add_argument('--output',required=True,type=Path)
     args=parser.parse_args()
-    raw=args.source.read_bytes()
+    try:
+        raw=canonical_source_bytes(args.source.read_bytes())
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     digest=hashlib.sha256(raw).hexdigest()
-    if digest != EXPECTED_SHA256:
-        raise SystemExit(f'SOURCE_SHA256_MISMATCH expected={EXPECTED_SHA256} actual={digest}')
     result=evaluate(json.loads(raw), digest)
     args.output.write_text(json.dumps(result, ensure_ascii=False,sort_keys=True,indent=2)+'\n',encoding='utf-8')
     print(f"PASS 9 sources; 27 paired rows; 4 clustered discordances; any-temp P={result['conditional_uniform_null']['any_temperature_probability_exact']}")
