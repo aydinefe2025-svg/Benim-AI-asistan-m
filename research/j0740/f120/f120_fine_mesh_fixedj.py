@@ -97,6 +97,14 @@ def main() -> None:
         raise FileNotFoundError("PINNED_NATIVE_RNS_BINARY_MISSING")
     bsol = {int(row["rho_g_cm3"]): row for row in baseline["fixed_J_solutions"]}
     low, high = bsol[RHO_POINTS[0]], bsol[RHO_POINTS[-1]]
+    def baseline_reference(rho: int) -> dict:
+        if rho in bsol:
+            return bsol[rho]
+        fraction = (rho-low["rho_g_cm3"]) / (high["rho_g_cm3"]-low["rho_g_cm3"])
+        return {
+            "M_msun": low["M_msun"] + fraction*(high["M_msun"]-low["M_msun"]),
+            "R_eq_km": low["R_eq_km"] + fraction*(high["R_eq_km"]-low["R_eq_km"]),
+        }
     def center_ratio(rho: int) -> float:
         return low["selected_r_ratio"] + (rho-low["rho_g_cm3"]) * (
             high["selected_r_ratio"]-low["selected_r_ratio"]) / (
@@ -143,7 +151,7 @@ def main() -> None:
                 accepted = min(cache.values(), key=lambda row: row["J_relative_error"])
                 if accepted["J_relative_error"] > f106.J_REL_TOL:
                     raise RuntimeError("F120_FINE_MESH_J_TOLERANCE_FAIL")
-                reference = bsol[rho]
+                reference = baseline_reference(rho)
                 solutions.append({
                     "rho_g_cm3": rho, "selected_r_ratio": accepted["r_ratio_C_input"],
                     "M_msun": accepted["M_msun"], "R_eq_km": accepted["R_eq_km"],
