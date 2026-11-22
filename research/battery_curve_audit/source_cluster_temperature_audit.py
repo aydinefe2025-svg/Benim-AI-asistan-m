@@ -159,7 +159,7 @@ def main():
         raise SystemExit(str(exc)) from exc
     digest=hashlib.sha256(raw).hexdigest()
     result=evaluate(json.loads(raw), digest)
-    args.output.write_text(json.dumps(result, ensure_ascii=False,sort_keys=True,indent=2)+'\n',encoding='utf-8')
+    args.output.write_bytes((json.dumps(result, ensure_ascii=False,sort_keys=True,indent=2)+'\n').encode('utf-8'))
     print(f"PASS 9 sources; 27 paired rows; 4 clustered discordances; any-temp P={result['conditional_uniform_null']['any_temperature_probability_exact']}")
 
 if __name__=='__main__': main()
