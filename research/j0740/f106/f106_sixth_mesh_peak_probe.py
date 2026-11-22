@@ -182,7 +182,7 @@ def main():
     previous={g:v["measured_slope"] for g,v in base["both_native_C_grids"].items()}
     previous["251x501"]=prior_peak
     previous["301x601"]=prior4["local_sampled_peak"]
-    out={"schema":"J0740_F106_NATIVE_C_RNS_401x801_LOCAL_FIXED_J_PEAK_PROBE_V1",
+    out={"schema":"J0740_F106_NATIVE_C_RNS_501x1001_LOCAL_FIXED_J_PEAK_PROBE_V1",
       "status":status,"mesh":GRID,"EOS_sha256":EOS_SHA,"target_J_cgs":TARGET_J,
       "J_relative_tolerance":J_REL_TOL,"F103_artifact_sha256":F103_ZIP_SHA,"F104_artifact_sha256":F104_ZIP_SHA,"F104_prior_validated":True,"F105_failed_artifact_sha256":F105_ZIP_SHA,"F105_failure_receipt_validated":True,
       "F102_old_28_stars_reused_without_rerun":True,"F103_7_stars_reused_without_rerun":True,
