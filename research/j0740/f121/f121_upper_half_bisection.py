@@ -27,7 +27,7 @@ GRID = "3001x6001"
 LOW_RHO = 2622286750000000
 HIGH_RHO = 2622287000000000
 MID_RHO = 2622286875000000
-RATIO_BRACKET_HALF_WIDTH = 1.0e-4
+RATIO_BRACKET_HALF_WIDTH = 2.5e-5
 
 def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -134,12 +134,14 @@ def main() -> None:
                 print("F121_NATIVE_C_FIXEDJ_TRIAL", json.dumps(row, sort_keys=True), flush=True)
             return cache[key]["J_signed_relative_error"]
         try:
-            lo, hi = sorted(bracket)
-            f_lo, f_hi = evaluate(lo), evaluate(hi)
-            if abs(f_lo) > f106.J_REL_TOL and abs(f_hi) > f106.J_REL_TOL:
-                if f_lo*f_hi >= 0:
-                    raise RuntimeError("F121_FIXEDJ_BRACKET_NOT_FOUND")
-                brentq(evaluate, lo, hi, xtol=1e-10, rtol=5e-13, maxiter=70)
+            f_center = evaluate(center)
+            if abs(f_center) > f106.J_REL_TOL:
+                lo, hi = sorted(bracket)
+                f_lo, f_hi = evaluate(lo), evaluate(hi)
+                if abs(f_lo) > f106.J_REL_TOL and abs(f_hi) > f106.J_REL_TOL:
+                    if f_lo*f_hi >= 0:
+                        raise RuntimeError("F121_FIXEDJ_BRACKET_NOT_FOUND")
+                    brentq(evaluate, lo, hi, xtol=1e-10, rtol=5e-13, maxiter=70)
             best = min(cache.values(), key=lambda row: row["J_relative_error"])
             if best["J_relative_error"] > f106.J_REL_TOL:
                 raise RuntimeError("F121_FIXEDJ_TOLERANCE_FAIL")
