@@ -26,6 +26,13 @@ jobs:
       - name: Acquire TWO genuine source cells and independently integrate signed current over measured time
         run: |
           python -m research.battery_curve_audit.bayreuth_two_cell_independent_integral /tmp/cano_bayreuth_2cell_source_coulometry.json
+      - name: Upload numeric evidence only, not two raw publisher ZIPs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: bayreuth-2025-two-original-cells-F0001-F0002-native-current-time-coulometry
+          path: /tmp/cano_bayreuth_2cell_source_coulometry.json
+          retention-days: 7
+          if-no-files-found: error
       - name: Bound claims and check original actual current-time observations
         run: |
           python - <<'PY'
@@ -53,10 +60,3 @@ jobs:
                   assert abs(c['independently_integrated_trapezoid_delta_mAh'])<1000
           print('TWO_REAL_BAYREUTH_CELLS_ORIGINAL_MD5_CRC_AND_NUMERIC_CURRENT_TIME_INTEGRATION_PASS',x['original_total_checkup_numeric_rows'])
           PY
-      - name: Upload numeric evidence only, not two raw publisher ZIPs
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: bayreuth-2025-two-original-cells-F0001-F0002-native-current-time-coulometry
-          path: /tmp/cano_bayreuth_2cell_source_coulometry.json
-          retention-days: 7
-          if-no-files-found: error
