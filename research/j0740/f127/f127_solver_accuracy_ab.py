@@ -35,8 +35,8 @@ def patch_findmodel(s:str,strict:bool)->str:
 
 def instrument_equil(s:str)->str:
     old=' }   /* end while */'
-    new=('   fprintf(stderr,"F127_SPIN_FINAL_DIFFERENCE %.17e ITERATIONS %d ACCURACY %.17e ACHECK %d\\n",'
-         'dif,n_of_it,accuracy,a_check);\n'+old)
+    new=(old+'\\n   fprintf(stderr,"F127_SPIN_FINAL_DIFFERENCE %.17e ITERATIONS %d ACCURACY %.17e ACHECK %d\\\\n",'
+         'dif,n_of_it,accuracy,a_check);')
     return replace_exact(s,old,new,'SPIN_END_RESIDUAL_PROBE')
 
 def patch_rns_print(s:str)->str:
@@ -78,16 +78,30 @@ def parse_native(stdout:str,stderr:str)->dict:
     rho15,mass,radius,spin,J=stars[0]
     if abs(rho15*1e15/TARGET_RHO-1)>1e-9:raise ValueError('NATIVE_DENSITY_MISMATCH')
     diagnostics=[line for line in stderr.splitlines() if 'F127_SPIN_FINAL_DIFFERENCE' in line]
-    if len(diagnostics)!=1:raise ValueError('SOURCE_INSTRUMENTATION_MISSING')
-    ds=diagnostics[0].split();
-    if len(ds)!=8 or ds[0]!='F127_SPIN_FINAL_DIFFERENCE' or ds[2]!='ITERATIONS' or ds[4]!='ACCURACY' or ds[6]!='ACHECK':
-        raise ValueError('MALFORMED_SOURCE_DIAGNOSTIC')
-    dif=float(ds[1]);iters=int(ds[3]);accuracy=float(ds[5]);ac=int(ds[7])
-    if not all(map(math.isfinite,[dif,accuracy])) or dif<0 or iters<2:raise ValueError('INVALID_SOLVER_DIAGNOSTIC')
-    if ac!=0 or dif>accuracy:raise ValueError('RNS_INNER_SPIN_DIVERGED_OR_NOT_CONVERGED')
+    if not diagnostics:raise ValueError('SOURCE_INSTRUMENTATION_MISSING')
+    spin_calls=[]
+    for line in diagnostics:
+        ds=line.split()
+        if len(ds)!=8 or ds[0]!='F127_SPIN_FINAL_DIFFERENCE' or ds[2]!='ITERATIONS' or ds[4]!='ACCURACY' or ds[6]!='ACHECK':
+            raise ValueError('MALFORMED_SOURCE_DIAGNOSTIC')
+        try:
+            rec={'last_radius_relative_change':float(ds[1]),'iterations':int(ds[3]),
+                 'accuracy_requested':float(ds[5]),'a_check':int(ds[7])}
+        except Exception as exc:
+            raise ValueError('MALFORMED_SOURCE_DIAGNOSTIC_VALUES') from exc
+        if (not all(map(math.isfinite,[rec['last_radius_relative_change'],rec['accuracy_requested']]))
+                or rec['last_radius_relative_change']<0 or rec['accuracy_requested']<=0
+                or rec['iterations']<2):
+            raise ValueError('INVALID_SOLVER_DIAGNOSTIC')
+        if rec['a_check']!=0 or rec['last_radius_relative_change']>rec['accuracy_requested']:
+            raise ValueError('RNS_INNER_SPIN_DIVERGED_OR_NOT_CONVERGED')
+        spin_calls.append(rec)
+    final=spin_calls[-1]
     return {'M_msun':mass,'R_eq_km':radius,'f_hz':spin,'J_cgs':J,'J_relative_error':abs(J/TARGET_J-1),
-            'spin_last_radius_relative_change':dif,'spin_iterations':iters,'spin_accuracy_requested':accuracy,
-            'a_check':ac,'rho_g_cm3':TARGET_RHO,'input_ratio':TARGET_RATIO}
+            'spin_last_radius_relative_change':final['last_radius_relative_change'],
+            'spin_iterations':final['iterations'],'spin_accuracy_requested':final['accuracy_requested'],
+            'spin_call_count':len(spin_calls),'spin_call_diagnostics':spin_calls,
+            'a_check':final['a_check'],'rho_g_cm3':TARGET_RHO,'input_ratio':TARGET_RATIO}
 
 def run(a):
     root=check_f124(a.f124.read_bytes(),a.eos.read_bytes());out=a.out;out.parent.mkdir(parents=True,exist_ok=True)
