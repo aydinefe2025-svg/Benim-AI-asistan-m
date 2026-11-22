@@ -13,6 +13,8 @@ from unittest.mock import patch
 
 from scripts import cano_p0_offsite_acceptance as gate
 
+_REAL_DOWNLOAD = gate._download_ciphertext
+
 
 SOURCE = "postgresql://user:synthetic@c-7.eu-central-1.aws.neon.tech/assistant_pg"
 TARGET = "postgresql://user:synthetic@localhost/cano_restore_disposable"
@@ -173,12 +175,12 @@ class OwnerP0AcceptanceTests(unittest.TestCase):
         expected = hashlib_sha(b"genuine-ciphertext-fixture")
         with tempfile.TemporaryDirectory() as root:
             with patch.object(gate, "_secure_open", return_value=Response()):
-                n = gate._download_ciphertext(OFFSITE_URL, OFFSITE_HOST,
+                n = _REAL_DOWNLOAD(OFFSITE_URL, OFFSITE_HOST,
                     Path(root) / "bytes.canoenc", len(b"genuine-ciphertext-fixture"), expected)
             self.assertEqual(n, len(b"genuine-ciphertext-fixture"))
             with patch.object(gate, "_secure_open", return_value=Response()):
                 with self.assertRaisesRegex(gate.AcceptanceBlocked, "offsite_ciphertext_mismatch"):
-                    gate._download_ciphertext(OFFSITE_URL, OFFSITE_HOST,
+                    _REAL_DOWNLOAD(OFFSITE_URL, OFFSITE_HOST,
                         Path(root) / "different.canoenc", len(b"genuine-ciphertext-fixture"), "0"*64)
 
 
