@@ -32,12 +32,12 @@ jobs:
           F125_ARTIFACT_ZIP: results/F125/F125_artifact.zip
         run: |
           set -euo pipefail
-          mkdir -p results/F124 results/F125
+          mkdir -p results/F125 results/F126
           curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14775736016/zip" -o "$F125_ARTIFACT_ZIP"
           printf '%s  %s\n' c975a6cac8f841e2f4640990042d26a6bed263f90083a7b3d254f426866d82f5 "$F125_ARTIFACT_ZIP" | sha256sum -c -
       - name: Validate F125 baseline and F126 midpoint
         env:
-          F125_ARTIFACT_ZIP: results/F126/F125_artifact.zip
+          F125_ARTIFACT_ZIP: results/F125/F125_artifact.zip
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -75,20 +75,20 @@ jobs:
           sha256sum rns3001/rns | tee results/F126/F126_FINE_MESH_NATIVE_C_BINARY_SHA256.txt
       - name: Solve only the F126 upper-half midpoint
         env:
-          F125_ARTIFACT_ZIP: results/F126/F125_artifact.zip
+          F125_ARTIFACT_ZIP: results/F125/F125_artifact.zip
         run: |
           set -euo pipefail
           OPENBLAS_NUM_THREADS=1 python -u research/j0740/f126/f126_upper_half_bisection.py \
-            --f124 results/F126/F125_artifact.zip \
+            --f125 results/F125/F125_artifact.zip \
             --eos m99.rns --rns "$GITHUB_WORKSPACE/rns3001/rns" \
             --out results/F126/F126_UPPER_HALF_BISECTION.json \
             2>&1 | tee results/F126/F126_UPPER_HALF_BISECTION.log
-      - name: Preserve F124 baseline and every F125 trial
+      - name: Preserve F125 baseline and every F126 trial
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: J0740-F126-upper-half-fixed-J-bisection
           path: |
-            results/F126/F125_artifact.zip
+            results/F125/F125_artifact.zip
             results/F126/
           if-no-files-found: warn
