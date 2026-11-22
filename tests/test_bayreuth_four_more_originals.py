@@ -97,8 +97,8 @@ class TestFourNewPublisherOriginals(unittest.TestCase):
         buff = io.BytesIO()
         with zipfile.ZipFile(buff, "w") as z:
             z.writestr("F0003/M0001_checkup.txt",
-                       "~Resultfile from Basytec Battery Test System\\n" +
-                       header + "\\n" + "\\n".join(rows) + "\\n")
+                       "~Resultfile from Basytec Battery Test System\n" +
+                       header + "\n" + "\n".join(rows) + "\n")
         buff.seek(0)
         with zipfile.ZipFile(buff) as z:
             x = list(m.core.native_rows(z, "F0003/M0001_checkup.txt"))
