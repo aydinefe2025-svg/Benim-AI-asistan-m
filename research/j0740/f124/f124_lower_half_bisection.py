@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
 import sys
 import tempfile
 import zipfile
@@ -28,9 +29,22 @@ HIGH_RHO = 2622286781250000
 MID_RHO = 2622286765625000
 DIAGNOSTIC_ROOT_TOLERANCE = 1.0e-9
 RATIO_BRACKET_HALF_WIDTH = 1.0e-6
+RNS_TIMEOUT_SECONDS = 600
 
 def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+def call_rns_bounded(binary: Path, eos: Path, rho: float, ratio: float) -> dict:
+    sys.path.insert(0, str(REPO_ROOT / "research/j0740/f81"))
+    from f81_exact_mass_spin import parse_rns
+    command = [str(binary.resolve()), "-f", str(eos), "-e", f"{rho:.14e}", "-r", f"{ratio:.12f}"]
+    process = subprocess.run(command, capture_output=True, text=True, timeout=RNS_TIMEOUT_SECONDS)
+    if process.returncode != 0:
+        raise RuntimeError("RNS_NATIVE_C_FAILED " + process.stdout[-240:] + process.stderr[-240:])
+    star = parse_rns(process.stdout)
+    if abs(star["rho_c_g_cm3"]/rho-1.0) > 1.0e-9:
+        raise ValueError("NATIVE_C_CENTRAL_DENSITY_MISMATCH")
+    return star
 
 def read_f123(path: Path):
     raw = path.read_bytes()
@@ -108,12 +122,13 @@ def main() -> None:
         raise FileExistsError("NEVER_OVERWRITE_F124_RAW_FIXEDJ_JOURNAL")
     cache: dict[str, dict] = {}
     errors = []
+    rejected_trials = []
     with journal.open("x", encoding="utf-8") as stream:
         def evaluate(ratio: float) -> float:
             ratio_input = float(f"{ratio:.12f}")
             key = f"{ratio_input:.12f}"
             if key not in cache:
-                star = f106.call_rns(args.rns, args.eos, MID_RHO, ratio_input)
+                star = call_rns_bounded(args.rns, args.eos, MID_RHO, ratio_input)
                 signed = star["J_cgs"]/f106.TARGET_J-1.0
                 row = {
                     "index": len(cache), "rho_g_cm3": MID_RHO,
@@ -130,23 +145,49 @@ def main() -> None:
                 stream.flush()
                 print("F124_NATIVE_C_FIXEDJ_TRIAL", json.dumps(row, sort_keys=True), flush=True)
             return cache[key]["J_signed_relative_error"]
-        try:
-            f_center = evaluate(center)
-            if abs(f_center) > DIAGNOSTIC_ROOT_TOLERANCE:
-                lo, hi = sorted(bracket)
-                f_lo, f_hi = evaluate(lo), evaluate(hi)
-                if abs(f_lo) > DIAGNOSTIC_ROOT_TOLERANCE and abs(f_hi) > DIAGNOSTIC_ROOT_TOLERANCE:
-                    if f_lo*f_hi >= 0:
-                        raise RuntimeError("F124_FIXEDJ_BRACKET_NOT_FOUND")
-                    root_ratio = brentq(evaluate, lo, hi, xtol=1e-12, rtol=5e-14, maxiter=70)
-                    evaluate(root_ratio)
-            best = min(cache.values(), key=lambda row: row["J_relative_error"])
-            if best["J_relative_error"] > DIAGNOSTIC_ROOT_TOLERANCE:
-                raise RuntimeError("F124_FIXEDJ_DIAGNOSTIC_PRECISION_FAIL")
-        except Exception as exc:
-            errors.append({"rho_g_cm3": MID_RHO, "error": repr(exc),
-                           "native_C_evaluations": len(cache),
-                           "local_ratio_bracket": list(bracket)})
+        seed_candidates = [high["selected_r_ratio"], low["selected_r_ratio"], center]
+        for seed_ratio in seed_candidates:
+            try:
+                evaluate(seed_ratio)
+            except Exception as exc:
+                rejected_trials.append({"r_ratio_C_input": seed_ratio, "error": repr(exc)})
+                print("F124_NATIVE_C_SEED_REJECTED", json.dumps(rejected_trials[-1], sort_keys=True), flush=True)
+            if cache and min(row["J_relative_error"] for row in cache.values()) <= DIAGNOSTIC_ROOT_TOLERANCE:
+                break
+
+        def sign_brackets():
+            ordered = sorted(cache.values(), key=lambda row: row["r_ratio_C_input"])
+            return [(a, b) for a, b in zip(ordered, ordered[1:])
+                    if a["J_signed_relative_error"]*b["J_signed_relative_error"] < 0.0]
+
+        if not cache or min(row["J_relative_error"] for row in cache.values()) > DIAGNOSTIC_ROOT_TOLERANCE:
+            if not sign_brackets():
+                for bound in sorted(bracket):
+                    key = f"{float(f'{bound:.12f}'):.12f}"
+                    if key not in cache:
+                        try:
+                            evaluate(bound)
+                        except Exception as exc:
+                            rejected_trials.append({"r_ratio_C_input": bound, "error": repr(exc)})
+                            print("F124_NATIVE_C_BOUND_REJECTED", json.dumps(rejected_trials[-1], sort_keys=True), flush=True)
+                    if sign_brackets():
+                        break
+            pairs = sign_brackets()
+            if pairs:
+                lo_row, hi_row = pairs[0]
+                root_ratio = brentq(evaluate, lo_row["r_ratio_C_input"], hi_row["r_ratio_C_input"],
+                                    xtol=1e-12, rtol=5e-14, maxiter=70)
+                evaluate(root_ratio)
+            elif cache:
+                errors.append({"rho_g_cm3": MID_RHO, "error": "F124_FIXEDJ_BRACKET_NOT_FOUND",
+                               "native_C_evaluations": len(cache),
+                               "local_ratio_bracket": list(bracket)})
+        if cache and min(row["J_relative_error"] for row in cache.values()) > DIAGNOSTIC_ROOT_TOLERANCE:
+            if not errors:
+                errors.append({"rho_g_cm3": MID_RHO, "error": "F124_FIXEDJ_DIAGNOSTIC_PRECISION_FAIL",
+                               "native_C_evaluations": len(cache),
+                               "local_ratio_bracket": list(bracket)})
+        if errors:
             print("F124_FIXEDJ_POINT_FAIL_RETAINED", json.dumps(errors[-1], sort_keys=True), flush=True)
 
     solutions = []
@@ -184,7 +225,10 @@ def main() -> None:
         "input_F123_status": f123_result["status"],
         "input_F122_artifact_sha256": F122_ZIP_SHA,
         "density_points_g_cm3": [LOW_RHO, MID_RHO, HIGH_RHO],
-        "native_C_call_count": len(cache), "trial_rows": list(cache.values()),
+        "native_C_call_count": len(cache),
+        "native_C_attempt_count": len(cache)+len(rejected_trials),
+        "native_C_rejected_trials": rejected_trials,
+        "trial_rows": list(cache.values()),
         "fixed_J_solutions": solutions, "mass_steps": mass_steps,
         "native_C_errors": errors, "raw_journal_sha256": sha(journal.read_bytes()),
         "interpretation": (
