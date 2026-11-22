@@ -58,18 +58,13 @@ jobs:
         run: |
           set -euo pipefail
           cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
-          printf '%s  %s\\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
           python - <<'PY'
           import hashlib, json
           from pathlib import Path
           p=Path('m99.rns')
-          report={
-            'status':'EXACT_PINNED_F99_DERIVED_EOS_RESTORED',
-            'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),
-            'source_publisher_m_rns_sha256':'7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580',
-            'reproduction_note':'Exact derived bytes are committed and checksum-verified; they are not re-derived with host-dependent NumPy exp during F104.'
-          }
-          Path('results/F104/F104_REUSE_F99_EOS.json').write_text(json.dumps(report,indent=2)+'\\n')
+          report={'status':'EXACT_PINNED_F99_DERIVED_EOS_RESTORED','sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'source_publisher_m_rns_sha256':'7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580','reproduction_note':'Exact derived bytes are committed and checksum-verified; they are not re-derived with host-dependent NumPy exp during F104.'}
+          Path('results/F104/F104_REUSE_F99_EOS.json').write_text(json.dumps(report,indent=2)+'\n')
           PY
       - name: Compile pinned original Einstein RNS C on distinct 301x601 mesh
         run: |
