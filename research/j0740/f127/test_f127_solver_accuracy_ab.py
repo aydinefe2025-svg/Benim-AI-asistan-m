@@ -29,9 +29,11 @@ class SourcePatchTests(unittest.TestCase):
   self.assertLess(p.index('/* end while */'),p.index('F127_SPIN_FINAL_DIFFERENCE'))
  def test_native_diagnostic_parser(self):
   stdout='e_c mass radius spin J\n2.622286765625e+00 2.184227160747 10.14016291537 345.4072767354 4.824562679575e+48\n'
-  stderr=('F127_SPIN_FINAL_DIFFERENCE 9.00000000000000000e-05 ITERATIONS 5 ACCURACY 1.00000000000000000e-04 ACHECK 0\\n'\n         'F127_SPIN_FINAL_DIFFERENCE 5.00000000000000000e-08 ITERATIONS 7 ACCURACY 1.00000000000000000e-07 ACHECK 0')
+  stderr=('F127_SPIN_FINAL_DIFFERENCE 9.00000000000000000e-05 ITERATIONS 5 ACCURACY 1.00000000000000000e-04 ACHECK 0\n'
+         'F127_SPIN_FINAL_DIFFERENCE 5.00000000000000000e-08 ITERATIONS 7 ACCURACY 1.00000000000000000e-07 ACHECK 0')
   r=parse_native(stdout,stderr)
-  self.assertEqual(r['spin_iterations'],7);self.assertEqual(r['a_check'],0)\n  self.assertEqual(r['spin_call_count'],2);self.assertEqual(len(r['spin_call_diagnostics']),2)
+  self.assertEqual(r['spin_iterations'],7);self.assertEqual(r['a_check'],0)
+  self.assertEqual(r['spin_call_count'],2);self.assertEqual(len(r['spin_call_diagnostics']),2)
   self.assertLess(r['spin_last_radius_relative_change'],r['spin_accuracy_requested'])
  def test_nonconverged_rns_rejected(self):
   stdout='2.622286765625e+00 2.184227160747 10.14016291537 345.4072767354 4.824562679575e+48'
