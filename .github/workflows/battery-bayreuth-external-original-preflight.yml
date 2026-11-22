@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'research/battery_curve_audit/bayreuth_two_cell_independent_integral.py'
+      - 'research/battery_curve_audit/bayreuth_additional_three_originals.py'
+      - 'tests/test_bayreuth_additional_three_originals.py'
       - 'tests/test_bayreuth_two_cell_independent_integral.py'
       - 'research/battery_curve_audit/bayreuth_external_archive_preflight.py'
       - 'tests/test_bayreuth_external_archive_preflight.py'
@@ -61,3 +63,58 @@ jobs:
                   assert abs(c['independently_integrated_trapezoid_delta_mAh'])<1000
           print('TWO_REAL_BAYREUTH_CELLS_ORIGINAL_MD5_CRC_AND_NUMERIC_CURRENT_TIME_INTEGRATION_PASS',x['original_total_checkup_numeric_rows'])
           PY
+
+  three-new-publisher-cells:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - name: Check out exact PR source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Source and fail-closed validation tests without scientific pip dependencies
+        run: python -m unittest tests.test_bayreuth_additional_three_originals -v
+      - name: Acquire three NEW independent verified original physical cell ZIPs and extract I-time outcomes
+        run: |
+          python -m research.battery_curve_audit.bayreuth_additional_three_originals /tmp/cano_bayreuth_additional_three_actual_source.json
+      - name: Preserve source numerical evidence regardless of subsequent acceptance gate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: bayreuth-three-new-real-F0007-F0022-F0138-original-source-checkups
+          path: /tmp/cano_bayreuth_additional_three_actual_source.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Verify original byte IDs, scope, and independently recomputed numerical outputs
+        run: |
+          python - <<'PYVERIFY'
+          import json
+          d=json.load(open('/tmp/cano_bayreuth_additional_three_actual_source.json',encoding='utf-8'))
+          pins={'F0007':'e3357a887d4816c391a08e8f980c9d5d',
+                'F0022':'1dbda5a8194f7d8cbfac99a5510d93a4',
+                'F0138':'275e64c8061dec28295c88ed0d495995'}
+          assert d['source_doi']=='10.5281/zenodo.15755725'
+          assert d['new_independent_source_cell_count']==3
+          assert set(d['new_cell_ids'])==set(pins)
+          assert d['distinct_source_cell_count_across_previous_and_this_audit']==5
+          assert d['original_new_checkup_numeric_rows']>=100000
+          assert d['instrument_calibration_not_verified'] and d['not_full_48_cell_population']
+          assert not d['same_cells_as_Stroebl'] and not d['quantifies_aging_causality']
+          for cell,md5 in pins.items():
+              q=d['cells'][cell]
+              assert q['source_official_md5']==md5 and q['zip_crc_pass']
+              assert all(z['rows_parsed']>500 for z in q['original_checkups'].values())
+              for phase in ('discharge','charge'):
+                  c=q['paired_measurement'][phase]
+                  if c.get('comparable_homologous_source_step'):
+                      assert c['not_a_certified_capacity_loss']
+                      assert abs(c['source_step_delta_mAh'])<1000
+                      assert abs(c['independently_integrated_trapezoid_delta_mAh'])<1000
+                      assert c['original_test_program_not_available']
+                  else:
+                      assert c['comparable'] is False
+                      assert 'source_step_delta_mAh' not in c
+          assert d['new_comparable_discharge_cell_count']>=1, 'At least one new cell must genuinely pass matched-stimulation gate'
+          print('THREE_NEW_VERIFIED_PUBLISHER_CELLS_CHECKUP_AUDIT_PASS',d['original_new_checkup_numeric_rows'],d['new_comparable_discharge_cell_count'])
+          PYVERIFY
