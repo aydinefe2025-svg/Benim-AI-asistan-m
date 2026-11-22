@@ -1,0 +1,81 @@
+name: J0740 F127 pinned source RNS convergence A/B
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f127/**'
+      - '.github/workflows/j0740-f127-rns-ab-convergence.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  native_rns_ab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Retrieve and pin genuine F124 native RNS C baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F124 results/F127
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14774015248/zip" -o results/F124/F124_artifact.zip
+          printf '%s  %s\n' d82d43d5b72d9d2f7e7ee90f4163bf308905ec2dfca9d5c709885976e42fb196 results/F124/F124_artifact.zip | sha256sum -c -
+          cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+      - name: Source pin and fail-closed Python A/B tests
+        env:
+          F124_ARTIFACT_ZIP: results/F124/F124_artifact.zip
+          F99_EOS_PATH: m99.rns
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f127 -p 'test_*.py' -v
+      - name: Build A and B from same exact upstream with only checked source changes
+        run: |
+          set -euo pipefail
+          cp -a rns-upstream rnsAB0
+          cp -a rns-upstream rnsABtight
+          python - <<'PY'
+          from pathlib import Path
+          from research.j0740.f127.f127_solver_accuracy_ab import patch_findmodel,instrument_equil,patch_rns_print,patch_mesh
+          for folder,strict in [('rnsAB0',False),('rnsABtight',True)]:
+              base=Path(folder)
+              for file,patch in [('findmodel.c',lambda s:patch_findmodel(s,strict)),
+                                 ('equil.c',instrument_equil),('rns.c',patch_rns_print),
+                                 ('makefile',patch_mesh)]:
+                  p=base/file
+                  p.write_text(patch(p.read_text()))
+          PY
+          make -C rnsAB0 CC='gcc -include stdlib.h' rns
+          make -C rnsABtight CC='gcc -include stdlib.h' rns
+          sha256sum rnsAB0/rns rnsABtight/rns | tee results/F127/F127_PINNED_NATIVE_AB_BINARY_SHA256.txt
+      - name: Execute identical RNS inputs for initialized vs tighter iteration
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f127/f127_solver_accuracy_ab.py \
+            --f124 results/F124/F124_artifact.zip --eos m99.rns \
+            --baseline "$GITHUB_WORKSPACE/rnsAB0/rns" \
+            --tight "$GITHUB_WORKSPACE/rnsABtight/rns" \
+            --out results/F127/F127_SOURCE_AB_COMPARISON.json \
+            2>&1 | tee results/F127/F127_SOURCE_AB_COMPARISON.log
+      - name: Retain all original and new A/B evidence whether or not solver converges
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F127-pinned-RNS-C-accuracy-AB
+          path: |
+            results/F124/F124_artifact.zip
+            results/F127/
+          if-no-files-found: warn
