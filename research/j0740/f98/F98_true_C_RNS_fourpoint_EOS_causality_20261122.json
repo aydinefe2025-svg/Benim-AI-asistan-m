@@ -1,0 +1,276 @@
+{
+  "core_density_sequence_9_rho_g_cm3": [
+    1533320557069400.0,
+    1585592848787675.0,
+    1637865140505950.0,
+    1690137432224225.0,
+    1742409723942500.0,
+    1785969967041062.2,
+    1803394064280487.2,
+    1812106112900200.0,
+    1820860880772815.2
+  ],
+  "derived_new_distinct_interpolation_candidate": {
+    "fields_interpolated_linearly_in_rho": [
+      "epsilon_over_c2",
+      "pressure",
+      "enthalpy",
+      "number_density"
+    ],
+    "fitted_physical_models_in_this_source_audit": 0,
+    "insertions_after_original_zero_based_indices": {
+      "1830": 5,
+      "1908": 5
+    },
+    "new_intermediate_rows": 10,
+    "nine_candidate_cubic_core_audits": [
+      {
+        "index": 0,
+        "max_cs2": 0.8551094971686031,
+        "max_cs2_rho": 1533320557069401.5,
+        "min_cs2": 2.6542924736048094e-13,
+        "min_cs2_rho": 1.6586793456285616e-05,
+        "negative_intervals": [],
+        "passes_local_positive_causal_interpolated_P_e": true,
+        "rho_c": 1533320557069400.0,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 1,
+        "max_cs2": 0.8873348289728009,
+        "max_cs2_rho": 1585592848787675.8,
+        "min_cs2": 2.6542924736048094e-13,
+        "min_cs2_rho": 1.6586793456285616e-05,
+        "negative_intervals": [],
+        "passes_local_positive_causal_interpolated_P_e": true,
+        "rho_c": 1585592848787675.0,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 2,
+        "max_cs2": 0.9138954586521126,
+        "max_cs2_rho": 1637865140505951.8,
+        "min_cs2": 2.6542924736048094e-13,
+        "min_cs2_rho": 1.6586793456285616e-05,
+        "negative_intervals": [],
+        "passes_local_positive_causal_interpolated_P_e": true,
+        "rho_c": 1637865140505950.0,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 3,
+        "max_cs2": 0.9418329539213164,
+        "max_cs2_rho": 1690137432224226.0,
+        "min_cs2": 2.6542924736048094e-13,
+        "min_cs2_rho": 1.6586793456285616e-05,
+        "negative_intervals": [],
+        "passes_local_positive_causal_interpolated_P_e": true,
+        "rho_c": 1690137432224225.0,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 4,
+        "max_cs2": 0.9655398870207421,
+        "max_cs2_rho": 1742409723942499.8,
+        "min_cs2": 2.6542924736048094e-13,
+        "min_cs2_rho": 1.6586793456285616e-05,
+        "negative_intervals": [],
+        "passes_local_positive_causal_interpolated_P_e": true,
+        "rho_c": 1742409723942500.0,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 5,
+        "max_cs2": 0.9959395502835482,
+        "max_cs2_rho": 1780762278350206.0,
+        "min_cs2": 2.6542924736048094e-13,
+        "min_cs2_rho": 1.6586793456285616e-05,
+        "negative_intervals": [],
+        "passes_local_positive_causal_interpolated_P_e": true,
+        "rho_c": 1785969967041062.2,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 6,
+        "max_cs2": 0.9959395502835482,
+        "max_cs2_rho": 1780762278350206.0,
+        "min_cs2": 2.6542924736048094e-13,
+        "min_cs2_rho": 1.6586793456285616e-05,
+        "negative_intervals": [],
+        "passes_local_positive_causal_interpolated_P_e": true,
+        "rho_c": 1803394064280487.2,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 7,
+        "max_cs2": 0.9959395502835482,
+        "max_cs2_rho": 1780762278350206.0,
+        "min_cs2": 2.6542924736048094e-13,
+        "min_cs2_rho": 1.6586793456285616e-05,
+        "negative_intervals": [],
+        "passes_local_positive_causal_interpolated_P_e": true,
+        "rho_c": 1812106112900200.0,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 8,
+        "max_cs2": 0.9959395502835482,
+        "max_cs2_rho": 1780762278350206.0,
+        "min_cs2": 2.6542924736048094e-13,
+        "min_cs2_rho": 1.6586793456285616e-05,
+        "negative_intervals": [],
+        "passes_local_positive_causal_interpolated_P_e": true,
+        "rho_c": 1820860880772815.2,
+        "superluminal_intervals": []
+      }
+    ],
+    "nodes": 1943,
+    "numerical_EOS_file_sha256": "d62d490dd106f7995cb96563bcb438de8c934375cca4fb04d9010b6300a8cff9",
+    "numerical_sound_speed_check_all_nine_centers": "PASS_NONNEGATIVE_AND_SUBLUMINAL_UP_TO_NINE_CENTERS",
+    "source_knot_rows_unchanged": 1933
+  },
+  "old_true_18_native_C_stars_json_sha256": "a794218fd091c02e92e522e599003c0a6375c072f8b43d6607f89409155fce5a",
+  "original_numerical_EOS": {
+    "negative_sound_speed_squares_in_all_stars": 18,
+    "nine_original_cubic_core_audits": [
+      {
+        "index": 0,
+        "max_cs2": 0.8551094971686031,
+        "max_cs2_rho": 1533320557069401.5,
+        "min_cs2": -0.0004400867659354485,
+        "min_cs2_rho": 152369674912831.53,
+        "negative_intervals": [
+          1830
+        ],
+        "passes_local_positive_causal_interpolated_P_e": false,
+        "rho_c": 1533320557069400.0,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 1,
+        "max_cs2": 0.8873348289728009,
+        "max_cs2_rho": 1585592848787675.8,
+        "min_cs2": -0.0004400867659354485,
+        "min_cs2_rho": 152369674912831.53,
+        "negative_intervals": [
+          1830
+        ],
+        "passes_local_positive_causal_interpolated_P_e": false,
+        "rho_c": 1585592848787675.0,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 2,
+        "max_cs2": 0.9138954586521126,
+        "max_cs2_rho": 1637865140505951.8,
+        "min_cs2": -0.0004400867659354485,
+        "min_cs2_rho": 152369674912831.53,
+        "negative_intervals": [
+          1830
+        ],
+        "passes_local_positive_causal_interpolated_P_e": false,
+        "rho_c": 1637865140505950.0,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 3,
+        "max_cs2": 0.9418329539213164,
+        "max_cs2_rho": 1690137432224226.0,
+        "min_cs2": -0.0004400867659354485,
+        "min_cs2_rho": 152369674912831.53,
+        "negative_intervals": [
+          1830
+        ],
+        "passes_local_positive_causal_interpolated_P_e": false,
+        "rho_c": 1690137432224225.0,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 4,
+        "max_cs2": 0.966697151570013,
+        "max_cs2_rho": 1742409723942499.8,
+        "min_cs2": -0.0004400867659354485,
+        "min_cs2_rho": 152369674912831.53,
+        "negative_intervals": [
+          1830
+        ],
+        "passes_local_positive_causal_interpolated_P_e": false,
+        "rho_c": 1742409723942500.0,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 5,
+        "max_cs2": 0.9881999882003437,
+        "max_cs2_rho": 1785969967041061.5,
+        "min_cs2": -0.0004400867659354485,
+        "min_cs2_rho": 152369674912831.53,
+        "negative_intervals": [
+          1830
+        ],
+        "passes_local_positive_causal_interpolated_P_e": false,
+        "rho_c": 1785969967041062.2,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 6,
+        "max_cs2": 0.996828087030256,
+        "max_cs2_rho": 1803394064280489.0,
+        "min_cs2": -0.0004400867659354485,
+        "min_cs2_rho": 152369674912831.53,
+        "negative_intervals": [
+          1830
+        ],
+        "passes_local_positive_causal_interpolated_P_e": false,
+        "rho_c": 1803394064280487.2,
+        "superluminal_intervals": []
+      },
+      {
+        "index": 7,
+        "max_cs2": 1.0011528335262836,
+        "max_cs2_rho": 1812106112900201.0,
+        "min_cs2": -0.0004400867659354485,
+        "min_cs2_rho": 152369674912831.53,
+        "negative_intervals": [
+          1830
+        ],
+        "passes_local_positive_causal_interpolated_P_e": false,
+        "rho_c": 1812106112900200.0,
+        "superluminal_intervals": [
+          1908
+        ]
+      },
+      {
+        "index": 8,
+        "max_cs2": 1.0055068015233353,
+        "max_cs2_rho": 1820860880772814.2,
+        "min_cs2": -0.0004400867659354485,
+        "min_cs2_rho": 152369674912831.53,
+        "negative_intervals": [
+          1830
+        ],
+        "passes_local_positive_causal_interpolated_P_e": false,
+        "rho_c": 1820860880772815.2,
+        "superluminal_intervals": [
+          1908
+        ]
+      }
+    ],
+    "nodes": 1933,
+    "stars_numerical_equilibrium": 18,
+    "stars_thermodynamically_causal_all_interior": 0,
+    "superluminal_central_or_interior_stars": 4
+  },
+  "original_physical_eos_zip_sha256": "8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12",
+  "original_source_rns_sha256": "7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580",
+  "physics_implications": {
+    "axisymmetric_rotating_dynamic_modes": "NOT_RUN",
+    "candidate_continuous_first_law_and_chemical_potential": "NOT_PROVEN; LINEARLY INSERTED BETWEEN ORIGINAL KNOTS, MODEL IS DISTINCT",
+    "candidate_true_native_Einstein_rotating_C_stars": "NOT_RUN_UNTIL_GITHUB_CI",
+    "global_original_publisher_EOS_causality": "FAIL_24_HIGH_DENSITY_NODES_AND_BROKEN_INTERPOLATION",
+    "original_F96_18_star_physical_sound_speed_certification": "FAIL_ALL_18_NEGATIVE_CUBIC_SLOPE_IN_CRUST",
+    "original_F96_real_C_computation": "VALID_AS_NUMERICAL_EQUILIBRIUM_EVALUATIONS",
+    "seven_EOS_full_source_native_photon_Bayes": "NOT_RUN"
+  },
+  "schema": "J0740_F98_ACTUAL_SOURCE_C_FOURPOINT_LOG_LAGRANGE_EOS_CAUSALITY_NO_GO_AND_10_NODE_REPAIR_CANDIDATE",
+  "upstream_rns_C_interpolation": "4pt log10(P)-versus-log10(E) Lagrange; zero-based support [i-1,i,i+1,i+2] in inner intervals; source code equil_util.c interp and equil.c p_at_e"
+}
