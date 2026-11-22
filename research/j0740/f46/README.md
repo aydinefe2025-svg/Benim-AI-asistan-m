@@ -1,0 +1,7 @@
+# F46 — Seven independently computed fixed-spin RNS M–R mass curves (conditional hypothesis test)
+
+Each of seven **new** F42 barotrope candidates is tracked separately. F44's exact C/GR 2.073 M_sun at 346.536369 Hz is a pinned reference point. Direct RNS 201×401 spatial mesh calls jointly solve central energy density and axis ratio for 21 additional common masses spanning [1.95,2.10] M_sun, plus five exploratory masses outside the comparison window. Failures are recorded and never interpolated. The source EPSILON(P) is the F42 mathematically modified cold-gas/causal-lift candidate, *not* the original nuclear EOS. For the same mass each candidate uses exactly the same radio mass-prior measure when subsequent likelihood integrals are calculated.
+
+**Not** a global stability certificate, a microphysically validated crust/baryon normalization, an X-PSI photon refit, an EOS prior, or a seven-model posterior. Even 7/7 common-window curves, if successful, are only numerical rotating GR solutions for nonunique hypotheses. Only observed masses inside actual solved support may enter follow-up F47 KDE likelihood integrals. No model may be assigned a fictitious zero or extrapolated likelihood outside established stable support.
+
+RNS C and F42/F44 input artifacts pinned by upstream commit and SHA-256. Each EOS is a separate Actions matrix job so long C/GR sweeps do not block unrelated EOS. CI treats incomplete common window as **failed/partial** and uploads partial JSON regardless of step outcome.
