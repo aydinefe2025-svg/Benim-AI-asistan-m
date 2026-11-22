@@ -61,7 +61,16 @@ jobs:
           assert sum(len(v['stars']) for v in base['both_native_C_grids'].values()) == 28
           print('F105_F103_SEVEN_NATIVE_C_AND_F102_28_NATIVE_C_LOCKED')
           PY
+      - name: Inspect retained F105 index-1 journal without rerunning C
+        if: contains(github.event.pull_request.title, '[F105-diagnostic]')
+        run: |
+          set -euo pipefail
+          mkdir -p results/F105_DIAGNOSTIC
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14752851236/zip" -o results/F105_DIAGNOSTIC/F105_failed_artifact.zip
+          printf '%s  %s\\n' c6d2de2ad7ade68a87e2efd9ff79300faf55d8745a4e2b62abb22ce3216b5de0 results/F105_DIAGNOSTIC/F105_failed_artifact.zip | sha256sum -c -
+          python research/j0740/f105/inspect_failed_f105_point.py --artifact results/F105_DIAGNOSTIC/F105_failed_artifact.zip
       - name: Restore exact pinned F99 EOS bytes after verified original-source input
+        if: ${{ !contains(github.event.pull_request.title, '[F105-diagnostic]') }}
         run: |
           set -euo pipefail
           cp research/j0740/f105/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
@@ -74,6 +83,7 @@ jobs:
           Path('results/F105/F105_REUSE_F99_EOS.json').write_text(json.dumps(report,indent=2)+'\n')
           PY
       - name: Compile pinned original Einstein RNS C on distinct 401x801 mesh
+        if: ${{ !contains(github.event.pull_request.title, '[F105-diagnostic]') }}
         run: |
           set -euo pipefail
           test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
@@ -96,6 +106,7 @@ jobs:
           make -C rns401 CC='gcc -include stdlib.h' rns
           sha256sum rns401/rns | tee results/F105/F105_NATIVE_C_BINARY_SHA256.txt
       - name: Run only the seven preselected F103 local densities on 401x801 native C
+        if: ${{ !contains(github.event.pull_request.title, '[F105-diagnostic]') }}
         run: |
           set -euo pipefail
           OPENBLAS_NUM_THREADS=1 python -u research/j0740/f105/f105_fifth_mesh_peak_probe.py             --f103 results/F103/F103_artifact.zip --f104 results/F104/F104_artifact.zip --eos m99.rns             --rns "$GITHUB_WORKSPACE/rns401/rns"             --out results/F105/F105_401x801_LOCAL_PEAK.json             2>&1 | tee results/F105/F105_NATIVE_C_ROOTS.log
@@ -106,6 +117,7 @@ jobs:
           name: J0740-F105-401x801-fifth-mesh-native-fixedJ-local-peak
           path: |
             results/F105/
+            results/F105_DIAGNOSTIC/
             results/F103/F103_artifact.zip
             results/F104/F104_artifact.zip
             results/F104/F104/F104_301x601_LOCAL_PEAK.json
