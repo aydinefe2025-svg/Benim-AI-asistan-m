@@ -12,7 +12,8 @@ from hashlib import sha256
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
-from core.cano_mobile_resume import select_mobile_resume_items
+from core.cano_mobile_resume import (select_mobile_resume_items,
+                                     select_mobile_completed_mission)
 from core.colony_postgres import ColonySnapshotStore
 from core.storage_config import database_provider_label
 from core.browser_colony import (
@@ -402,19 +403,27 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             st.error("Ekip veya kalıcı yedek doğrulanamadı; yerel veri silinmedi.")
             return
 
-    if status["blocked"]:
+    # The mobile link is a selector, never an authentication bypass.
+    # Resolve only against the OIDC owner's restored registry.
+    params = getattr(st, "query_params", {})
+    requested_resume = params.get("resume_mission") if hasattr(params, "get") else None
+    mobile_completed_id = select_mobile_completed_mission(manager.get, requested_resume)
+    if mobile_completed_id:
+        st.success("📱 Seçilen görev 4/4 aşamayla kaydedildi; artık engellenmiş değil. "
+                   "Aşağıda inceleme bekleyen nihai metni görebilirsiniz. "
+                   "Bu sonuç kodun uygulandığı veya bağımsız olarak doğrulandığı anlamına gelmez.")
+
+    if status["blocked"] and not mobile_completed_id:
         st.warning(f"{status['blocked']} yarım kalmış görev kayıtlı. "
                    "Kayıtlı aşamalar korunuyor; aşağıdan kaldığınız yerden sürdürebilirsiniz.")
         # A phone link selects one existing task, never grants authority.
         # Owner-bound PostgreSQL recovery above must succeed before this point.
-        params = getattr(st, "query_params", {})
-        requested_resume = params.get("resume_mission") if hasattr(params, "get") else None
         if requested_resume:
             st.caption("📱 Mobil devam: yalnızca seçtiğiniz kayıtlı görevi gösteriyoruz.")
         available = select_mobile_resume_items(
             manager.interrupted(limit=10), requested_resume)
-        if requested_resume and not available:
-            st.warning("Bu hesapta belirtilen kimlikle engellenmiş görev bulunamadı.")
+        if requested_resume and not available and not mobile_completed_id:
+            st.warning("Bu hesaptaki kayıtlı yarım görevler arasında belirtilen kimlik bulunamadı.")
         for item in available:
             saved = manager.get(item["id"])
             completed = len(saved["stages"])
@@ -527,7 +536,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
 
     # Refresh after a button-triggered task so results are visible on this run.
     status = read_cano_status(colony)
-    latest_id = st.session_state.get("cano_cockpit_latest_mission")
+    latest_id = mobile_completed_id or st.session_state.get("cano_cockpit_latest_mission")
     if not latest_id and status["history"]:
         latest_id = status["history"][0]["id"]
     if latest_id:
