@@ -12,6 +12,8 @@ import hashlib
 import io
 import json
 import itertools
+import csv
+import math
 import urllib.request
 import zipfile
 from pathlib import PurePosixPath, Path
@@ -22,6 +24,57 @@ EXPECTED_MD5 = "8181a89aee2e525ca52b60491ee3209b"
 MIN_SOURCE_BYTES = 100_000
 MAX_SOURCE_BYTES = 28_000_000
 MAX_MEMBERS = 500
+
+
+def describe_original_checkup_measurements(archive: zipfile.ZipFile, member: str) -> dict:
+    """Read publisher's genuine BaSyTec CSV-shaped TXT; descriptive steps only.
+
+    We deliberately DO NOT call the max discharge step a certified measured
+    capacity: matching source testplan and SOC state is still unresolved.
+    """
+    n = 0
+    cmd_counts: dict[str, int] = {}
+    max_discharge = None
+    max_charge = None
+    with archive.open(member, 'r') as raw:
+        reader = csv.reader(io.TextIOWrapper(raw, encoding='latin-1', errors='replace', newline=''))
+        header = None
+        cols = {}
+        for row in reader:
+            if not row:
+                continue
+            if header is None:
+                if row[0].lstrip('~').strip() == 'Time[h]' and 'Ah-Step' in row:
+                    header = [x.lstrip('~').strip() for x in row]
+                    cols = {k: header.index(k) for k in ('Time[h]','Command','U[V]','I[A]','Ah-Step','Line')}
+                continue
+            if len(row) <= max(cols.values()):
+                continue
+            try:
+                time_h, vol, cur, ah_step = [float(row[cols[k]]) for k in ('Time[h]', 'U[V]', 'I[A]', 'Ah-Step')]
+                if not all(math.isfinite(v) for v in (time_h, vol, cur, ah_step)):
+                    continue
+                command = row[cols['Command']].strip().lower()
+                line = row[cols['Line']].strip()
+            except (ValueError, IndexError):
+                continue
+            n += 1
+            cmd_counts[command] = cmd_counts.get(command, 0) + 1
+            state = {'source_column': 'Ah-Step', 'source_command': command,
+                     'abs_Ah_Step_Ah': abs(ah_step), 'signed_Ah_Step_Ah': ah_step,
+                     'time_h_at_peak': time_h, 'voltage_V_at_peak': vol,
+                     'current_A_at_peak': cur, 'original_plan_line': line}
+            if command == 'discharge' and ah_step < 0:
+                if max_discharge is None or abs(ah_step) > max_discharge['abs_Ah_Step_Ah']:
+                    max_discharge = state
+            elif command == 'charge' and ah_step > 0:
+                if max_charge is None or ah_step > max_charge['abs_Ah_Step_Ah']:
+                    max_charge = state
+    return {'member_name': member, 'parsed_genuine_numeric_rows': n,
+            'commands_by_numeric_row': cmd_counts,
+            'peak_discharge_step_throughput': max_discharge,
+            'peak_charge_step_throughput': max_charge,
+            'is_author_verified_reference_capacity': False}
 
 
 def validate_archive(raw: bytes) -> dict:
@@ -71,6 +124,24 @@ def validate_archive(raw: bytes) -> dict:
                     "commas": sum(x.count(",") for x in sample)
                 }
             }
+        # Distinct real measured BOL and EOL source checkups, not 48 independent
+        # original ZIPs and not a retrospective model fit.
+        checkup_stats = {}
+        for token in ("m0001_checkup", "m0003_checkup"):
+            matches = [i for i in entries if not i.is_dir() and token in i.filename.lower() and i.filename.lower().endswith('.txt')]
+            if matches:
+                checkup_stats[token] = describe_original_checkup_measurements(archive, matches[0].filename)
+        comparison = {'comparable_peak_step_discharge_Ah': False}
+        if len(checkup_stats) == 2:
+            a = checkup_stats['m0001_checkup'].get('peak_discharge_step_throughput')
+            b = checkup_stats['m0003_checkup'].get('peak_discharge_step_throughput')
+            if a and b and a['abs_Ah_Step_Ah'] > 0:
+                comparison = {'comparable_peak_step_discharge_Ah': True,
+                              'delta_EoL_minus_BoL_Ah': b['abs_Ah_Step_Ah']-a['abs_Ah_Step_Ah'],
+                              'delta_EoL_minus_BoL_percent_of_BoL':
+                                  100*(b['abs_Ah_Step_Ah']/a['abs_Ah_Step_Ah']-1),
+                              'not_certified_RPT_capacity_fade': True,
+                              'full_native_program_step_semantics_not_verified': True}
         names = [x["name"].lower() for x in content]
         # The publisher describes M0001 and M0003 checkups. If the archive
         # layout differs, record it explicitly, not invent measurements.
@@ -85,6 +156,8 @@ def validate_archive(raw: bytes) -> dict:
                 "zip_file_count": len(content), "file_type_counts": types,
                 "publisher_description_cues_found": cues, "member_manifest": content,
                 "native_text_header_samples": header_samples,
+                "original_BoL_EoL_checkup_measurement_profiles": checkup_stats,
+                "descriptive_peak_discharge_step_comparison": comparison,
                 "cells_with_downloaded_original_zip": 1,
                 "cells_reported_in_dataset_by_publishers": 48,
                 "actual_DCIR_or_capacity_recalculated": False,
