@@ -187,38 +187,97 @@ def scan_checkup(arc: zipfile.ZipFile, member: str) -> dict:
             "analysis_only_source_not_reused_from_Stroebl": True}
 
 
-def select_matched_source_step(bol: dict, eol: dict, command: str):
-    """Choose only matching *actual* plan line and near-identical endpoints.
+def infer_stage_line_offset(bol: dict, eol: dict) -> dict:
+    """Infer *observed* plan-line offset from multiple matched source steps.
 
-    A different line means a possibly different test. Never silently match by
-    global max capacity or pretend the original .pln file was obtained.
+    Never assume that a particular numeric line retains the same meaning
+    between different original checkups. An offset is accepted only when a
+    CONSISTENT group contains at least two charge and two discharge pairs.
+    Each pair additionally matches instrument voltage endpoints, step duration
+    and source throughput, so this is test-data homology, not a verified .pln.
     """
-    left = {x["plan_line"]: x for x in bol["candidate_summary_by_command"][command]}
-    right = {x["plan_line"]: x for x in eol["candidate_summary_by_command"][command]}
-    possible = []
-    for line in left.keys() & right.keys():
-        a, b = left[line], right[line]
-        if a["row_count"] < 3 or b["row_count"] < 3:
-            continue
-        if min(a["source_peak_Ah_Step_abs_Ah"], b["source_peak_Ah_Step_abs_Ah"]) < 0.03:
-            continue
-        if abs(a["last_measured_voltage_V"] - b["last_measured_voltage_V"]) > .02:
-            continue
-        if command == "discharge":
-            if not (2.4 <= a["last_measured_voltage_V"] <= 3.5):
+    groups = {}
+    for command in ("charge", "discharge"):
+        for a in bol["candidate_summary_by_command"][command]:
+            for b in eol["candidate_summary_by_command"][command]:
+                if min(a["row_count"],b["row_count"]) < 3:
+                    continue
+                x,y=a["source_peak_Ah_Step_abs_Ah"],b["source_peak_Ah_Step_abs_Ah"]
+                if not (0.03 <= min(x,y) and max(x,y)/min(x,y) < 1.25):
+                    continue
+                if abs(a["last_measured_voltage_V"]-b["last_measured_voltage_V"]) > .02:
+                    continue
+                if abs(a["start_measured_voltage_V"]-b["start_measured_voltage_V"]) > .25:
+                    continue
+                t1,t2=a["time_h_span"],b["time_h_span"]
+                if min(t1,t2)<=0 or max(t1,t2)/min(t1,t2)>1.20:
+                    continue
+                try:
+                    off=int(a["plan_line"])-int(b["plan_line"])
+                except ValueError:
+                    continue
+                groups.setdefault(off,{"charge":[],"discharge":[]})[command].append((a,b))
+    valid=[]
+    for offset,pairs in groups.items():
+        unique=[]; seen_a=set(); seen_b=set()
+        # Disallow multiple matches with the same line. Deterministic highest
+        # shared observed Ah throughput is used only within a fixed offset.
+        flat=[(cmd,a,b) for cmd in ("charge","discharge") for a,b in pairs[cmd]]
+        flat.sort(key=lambda v:-min(v[1]["source_peak_Ah_Step_abs_Ah"],v[2]["source_peak_Ah_Step_abs_Ah"]))
+        for cmd,a,b in flat:
+            keya=(cmd,a["plan_line"]);keyb=(cmd,b["plan_line"])
+            if keya in seen_a or keyb in seen_b:
                 continue
-        else:
-            if not (3.8 <= a["last_measured_voltage_V"] <= 4.35):
+            seen_a.add(keya);seen_b.add(keyb);unique.append((cmd,a,b))
+        counts={cmd:sum(1 for x in unique if x[0]==cmd) for cmd in ("charge","discharge")}
+        if counts["charge"]>=2 and counts["discharge"]>=2:
+            valid.append((len(unique),-abs(offset),offset,unique,counts))
+    if not valid:
+        return {"offset_inferred":False,"reason":"insufficient multi-step charge/discharge waveform agreement; do not assign homologous control steps"}
+    _,_,offset,matched,counts=max(valid,key=lambda z:(z[0],z[1]))
+    return {"offset_inferred":True,"beginning_minus_ending_plan_line_offset":offset,
+            "matched_charge_line_pairs":counts["charge"],"matched_discharge_line_pairs":counts["discharge"],
+            "matched_source_control_steps":[{"command":cmd,"beginning_line":a["plan_line"],"ending_line":b["plan_line"],
+              "beginning_ah":a["source_peak_Ah_Step_abs_Ah"],"ending_ah":b["source_peak_Ah_Step_abs_Ah"],
+              "beginning_duration_h":a["time_h_span"],"ending_duration_h":b["time_h_span"],
+              "ending_voltage_difference_V":b["last_measured_voltage_V"]-a["last_measured_voltage_V"]}
+              for cmd,a,b in matched],
+            "source_testplan_project_file_was_not_available":True,
+            "not_author_verified_protocol_equivalence":True}
+
+
+def select_matched_source_step(bol: dict, eol: dict, command: str, offset: int):
+    """Choose the source-derived homologous short-duration checkup step."""
+    left={x["plan_line"]:x for x in bol["candidate_summary_by_command"][command]}
+    right={x["plan_line"]:x for x in eol["candidate_summary_by_command"][command]}
+    possible=[]
+    for la,a in left.items():
+        for lb,b in right.items():
+            try:
+                if int(la)-int(lb)!=offset:
+                    continue
+            except ValueError:
                 continue
-        # Greatest shared single-step measured throughput, not highest unpaired
-        # peak across different source control commands.
-        possible.append((min(a["source_peak_Ah_Step_abs_Ah"],b["source_peak_Ah_Step_abs_Ah"]),line,a,b))
+            if min(a["row_count"],b["row_count"])<3:
+                continue
+            if min(a["source_peak_Ah_Step_abs_Ah"],b["source_peak_Ah_Step_abs_Ah"])<.03:
+                continue
+            if abs(a["last_measured_voltage_V"]-b["last_measured_voltage_V"])>.02:
+                continue
+            if abs(a["start_measured_voltage_V"]-b["start_measured_voltage_V"])>.25:
+                continue
+            if max(a["time_h_span"],b["time_h_span"])/max(.00001,min(a["time_h_span"],b["time_h_span"]))>1.20:
+                continue
+            if command=="discharge" and not (2.4<=a["last_measured_voltage_V"]<=3.5):
+                continue
+            if command=="charge" and not (3.8<=a["last_measured_voltage_V"]<=4.35):
+                continue
+            possible.append((a,b))
     if not possible:
         return None
-    prior = "17" if command == "discharge" else "15"
-    same_prior = [x for x in possible if x[1] == prior]
-    selected = max(same_prior or possible, key=lambda x: x[0])
-    return selected[2],selected[3]
+    # Prefer a short (~2-hour) checkup rather than ~19-hour slow pulse test.
+    short=[(a,b) for a,b in possible if max(a["time_h_span"],b["time_h_span"])<5]
+    return max(short or possible,key=lambda p:min(p[0]["source_peak_Ah_Step_abs_Ah"],p[1]["source_peak_Ah_Step_abs_Ah"]))
 
 
 def analyze(originals: dict[str, bytes]) -> dict:
@@ -233,23 +292,25 @@ def analyze(originals: dict[str, bytes]) -> dict:
                 if len(members) != 1:
                     raise ValueError("expected one original checkup: " + token)
                 pair[label] = scan_checkup(arc, members[0])
+        alignment=infer_stage_line_offset(pair["beginning"],pair["ending"])
         comparisons = {}
         for typ in ("discharge", "charge"):
-            found = select_matched_source_step(pair["beginning"],pair["ending"],typ)
+            found = select_matched_source_step(pair["beginning"],pair["ending"],typ,
+                                               alignment["beginning_minus_ending_plan_line_offset"]) if alignment["offset_inferred"] else None
             if found is None:
-                comparisons[typ] = {"comparable": False, "reason": "no source-identical test plan line with matched voltage endpoint and >=30mAh in both checkups"}
+                comparisons[typ] = {"comparable": False, "reason": "not enough real source matched control steps to infer a safe program-line offset"}
                 continue
             a,b = found
-            # Always preserve whichever source cell's *own* plan line matched.
             pair["beginning"]["selected_step_profiles"][typ] = a
             pair["ending"]["selected_step_profiles"][typ] = b
-            if a["plan_line"] != b["plan_line"]:
-                raise AssertionError("must not compare different protocol lines")
             native_delta = b["source_peak_Ah_Step_abs_Ah"] - a["source_peak_Ah_Step_abs_Ah"]
             integrated_delta = b["integral_trapezoid_Ah"] - a["integral_trapezoid_Ah"]
             comparisons[typ] = {
-                "comparable_same_command_line": True,
-                "plan_line": a["plan_line"],
+                "comparable_homologous_source_step": True,
+                "beginning_plan_line": a["plan_line"],
+                "ending_plan_line": b["plan_line"],
+                "inferred_beginning_minus_ending_line_offset": alignment["beginning_minus_ending_plan_line_offset"],
+                "multi_step_source_homology_not_original_pln_verified": True,
                 "source_line_paired_with_own_original_end_voltage": True,
                 "original_program_pln_file_unavailable": True,
                 "source_step_delta_mAh": 1000*native_delta,
@@ -265,6 +326,7 @@ def analyze(originals: dict[str, bytes]) -> dict:
             "zip_crc_pass": True,
             "checkup_profiles": pair,
             "paired_measurement": comparisons,
+            "stage_line_offset_alignment": alignment,
         }
     return {
         "source_doi": RECORD_DOI,
