@@ -1,0 +1,62 @@
+{
+  "derived_model": {
+    "added_derived_interpolation_nodes": 48,
+    "calculated_thermodynamic_continuous_representation": "piecewise linear P(eps); n(eps) and H(eps) analytically integrated within every source interval",
+    "derived_nodes": 1981,
+    "important_limit": "upstream C RNS four-point cubic log interpolates epsilon(P), P(epsilon), H(P) and n(epsilon) separately; this does NOT guarantee continuous thermodynamic identity of C-evaluated interpolation; must audit separately",
+    "max_abs_node_firstlaw_log_n_recurrence_residual": 7.098488463697095e-15,
+    "max_abs_node_integrated_H_recurrence_residual": 7.28583859910259e-17,
+    "max_affine_cs2": 0.995387797401695,
+    "min_affine_cs2": 2.887039316786861e-13,
+    "original_source_h_n_preserved": false,
+    "original_source_high_density_pressure_above_node_1909_preserved": false,
+    "output_SHA256": "c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331",
+    "publisher_original_zip_SHA256": "8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12",
+    "source_1933_original_rows_unchanged_in_derived_model": false,
+    "source_RNS_original_1933_SHA256": "7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580",
+    "source_original_P_eps_preserved_up_to_index_1909": true,
+    "status": "DISTINCT_DERIVED_CAUSAL_COLD_AFFINE_THERMODYNAMIC_EOS_NOT_ORIGINAL_SOURCE"
+  },
+  "original_source_no_go": {
+    "claim": "NO smooth causal cold-barotropic EOS can match all four EXACT n,P,epsilon endpoints across these intervals; not a claim source measurement physically impossible within source rounding",
+    "exact_endpoints_no_go_intervals": [
+      {
+        "firstlaw_causal_max_log_n_ratio": 0.05408394152937043,
+        "firstlaw_causal_min_log_n_ratio": 0.054049598489103096,
+        "observed_log_n_ratio": 0.05408682989514328,
+        "rho_left": 152479399090130.3,
+        "rho_right": 161002805631465.72,
+        "secant_cs2": 0.011887022458657576,
+        "signed_log_ratio_excess": 2.888365772849011e-06,
+        "source_interval_0based": 1831
+      },
+      {
+        "firstlaw_causal_max_log_n_ratio": 0.02353815585678772,
+        "firstlaw_causal_min_log_n_ratio": 0.023520250210009905,
+        "observed_log_n_ratio": 0.023539960850323165,
+        "rho_left": 1713147090167200.0,
+        "rho_right": 1770912546930235.0,
+        "secant_cs2": 0.9665427910607208,
+        "signed_log_ratio_excess": 1.80499353544597e-06,
+        "source_interval_0based": 1907
+      },
+      {
+        "firstlaw_causal_max_log_n_ratio": 0.02298941388968038,
+        "firstlaw_causal_min_log_n_ratio": 0.02298698736315784,
+        "observed_log_n_ratio": 0.02298015697362189,
+        "rho_left": 1770912546930235.0,
+        "rho_right": 1830010935450065.8,
+        "secant_cs2": 0.9953877974016064,
+        "signed_log_ratio_excess": -6.830389535951442e-06,
+        "source_interval_0based": 1908
+      }
+    ],
+    "source_exact_finite_precision_nodes_immutable": true,
+    "source_intervals_below_original_acausal_first_node": 1910,
+    "source_secant_causal_intervals": 1909
+  },
+  "rotating_C_equilibrium": "NOT_RUN_FOR_DERIVED_F99",
+  "rotating_axisymmetric_dynamical_eigenmodes": "NOT_RUN",
+  "schema": "J0740_F99_SOURCE_NODES_EXACT_FIRSTLAW_CAUSAL_NO_GO_DISTINCT_DERIVED_AFFINE_EOS_V1",
+  "source_native_seven_EOS_Bayes": "NOT_RUN"
+}
