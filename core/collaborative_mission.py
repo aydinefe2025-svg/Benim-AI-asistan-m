@@ -211,9 +211,9 @@ class CollaborativeMission:
             "uygulamayı olmuş gibi gösterme; kod, cihaz ve deney çalıştırılmadı. "
             "Yeni bir ders onaylama veya görevi baştan oluşturma. "
             "Hedef: " + original["task"] +
-            "\\nTaslak (doğrulanmamış):\\n" + stages[1]["output"][:4500] +
-            "\\nEleştiri (doğrulanmamış):\\n" + stages[2]["output"][:3500] +
-            "\\n\\n" + _QUALITY_CONTRACT
+            "\nTaslak (doğrulanmamış):\n" + stages[1]["output"][:4500] +
+            "\nEleştiri (doğrulanmamış):\n" + stages[2]["output"][:3500] +
+            "\n\n" + _QUALITY_CONTRACT
         )
         # No durable change occurs before this single explicitly approved call.
         result = self.colony.run(researcher_id, prompt, client=client, model=model,
