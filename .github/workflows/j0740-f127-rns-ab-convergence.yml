@@ -1,0 +1,121 @@
+name: J0740 F127 pinned source RNS convergence A/B
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f127/**'
+      - '.github/workflows/j0740-f127-rns-ab-convergence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  replay_immutable_native_C_results:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download actual F127 native C evidence and verify every pinned SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F124 results/F127_replay
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14776630826/zip" -o results/F127_replay/F127_original_real_C.zip
+          printf '%s  %s\n' dfc2d9161e7db0536d16bf9f1298b41b812da8c0b3ac5cda355d6911eaf48cb9 results/F127_replay/F127_original_real_C.zip | sha256sum -c -
+          unzip -p results/F127_replay/F127_original_real_C.zip F124/F124_artifact.zip > results/F124/F124_artifact.zip
+          printf '%s  %s\n' d82d43d5b72d9d2f7e7ee90f4163bf308905ec2dfca9d5c709885976e42fb196 results/F124/F124_artifact.zip | sha256sum -c -
+          cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
+      - name: Run ALL F127 source and evidence replay tests without new native C solves
+        env:
+          F127_ARTIFACT_ZIP: results/F127_replay/F127_original_real_C.zip
+          F124_ARTIFACT_ZIP: results/F124/F124_artifact.zip
+          F99_EOS_PATH: m99.rns
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f127 -p 'test_*.py' -v
+      - name: Recover both ACTUAL C stars from original iteration trace; fail closed
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f127/f127_replay_from_real_artifact.py \
+            --f127 results/F127_replay/F127_original_real_C.zip \
+            --eos m99.rns \
+            --out results/F127_replay/F127_RECOVERED_REAL_C_AB_RECEIPT.json
+          sha256sum results/F127_replay/F127_RECOVERED_REAL_C_AB_RECEIPT.json | tee results/F127_replay/RECOVERED_RESULT_SHA256.txt
+      - name: Preserve authentic original C evidence and fast replay receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F127-verified-original-C-AB-replay
+          path: |
+            results/F127_replay/
+          if-no-files-found: warn
+
+  native_rns_ab_opt_in_original_experiment:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Retrieve pinned F124 RNS C source, derived F99 EOS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F124 results/F127
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14774015248/zip" -o results/F124/F124_artifact.zip
+          printf '%s  %s\n' d82d43d5b72d9d2f7e7ee90f4163bf308905ec2dfca9d5c709885976e42fb196 results/F124/F124_artifact.zip | sha256sum -c -
+          cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+      - name: Compile source-guarded A and B at same 3001x6001 mesh
+        run: |
+          set -euo pipefail
+          cp -a rns-upstream rnsAB0
+          cp -a rns-upstream rnsABtight
+          python - <<'PY'
+          from pathlib import Path
+          from research.j0740.f127.f127_solver_accuracy_ab import patch_findmodel,instrument_equil,patch_rns_print,patch_mesh
+          for folder,strict in [('rnsAB0',False),('rnsABtight',True)]:
+              base=Path(folder)
+              for file,patch in [('findmodel.c',lambda s:patch_findmodel(s,strict)),
+                                 ('equil.c',instrument_equil),('rns.c',patch_rns_print),('makefile',patch_mesh)]:
+                  p=base/file
+                  p.write_text(patch(p.read_text()))
+          PY
+          make -C rnsAB0 CC='gcc -include stdlib.h' rns
+          make -C rnsABtight CC='gcc -include stdlib.h' rns
+          sha256sum rnsAB0/rns rnsABtight/rns | tee results/F127/F127_PINNED_NATIVE_AB_BINARY_SHA256.txt
+      - name: Optional additional C A/B run (no automatic PR rerun)
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f127/f127_solver_accuracy_ab.py \
+            --f124 results/F124/F124_artifact.zip --eos m99.rns \
+            --baseline "$GITHUB_WORKSPACE/rnsAB0/rns" \
+            --tight "$GITHUB_WORKSPACE/rnsABtight/rns" \
+            --out results/F127/F127_SOURCE_AB_COMPARISON.json \
+            2>&1 | tee results/F127/F127_SOURCE_AB_COMPARISON.log
+      - name: Preserve all new C evidence including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F127-new-native-C-AB-optional
+          path: |
+            results/F124/F124_artifact.zip
+            results/F127/
+          if-no-files-found: warn
