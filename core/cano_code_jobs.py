@@ -41,7 +41,7 @@ def parse_code_request(message):
     goal = goal.strip()
     if not 8 <= len(goal) <= 1200 or "\x00" in goal:
         raise ValueError("Development goal must be 8–1200 characters")
-    if re.search(r"(?:gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{16,}|postgres(?:ql)?://|-----BEGIN [A-Z ]+PRIVATE KEY)", goal, re.I):
+    if re.search(r"(?:gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9_-]{16,}|postgres(?:ql)?://|-----BEGIN [A-Z ]+PRIVATE KEY)", goal, re.I):
         raise ValueError("Do not submit credentials in CANO development requests")
     return goal
 
