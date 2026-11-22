@@ -69,13 +69,42 @@ class TestGenuineSourceCoulometry(unittest.TestCase):
     def test_two_original_cells_and_delta_no_causal_claims(self):
         a=synth_zip("F0001");b=synth_zip("F0002",discharge_ah=-0.09,discharge_line="27",charge_line="25")
         with patch.dict(m.SOURCE_FILES,{"F0001":{"md5":hashlib.md5(a).hexdigest(),"size":len(a)},"F0002":{"md5":hashlib.md5(b).hexdigest(),"size":len(b)}}):
-            x=m.analyze({"F0001":a,"F0002":b})
+            with patch.object(m, 'infer_stage_line_offset', return_value={'offset_inferred': True, 'beginning_minus_ending_plan_line_offset':0}):
+                x=m.analyze({"F0001":a,"F0002":b})
         self.assertEqual(x["distinct_original_source_cells"],2)
         self.assertTrue(x["not_an_instrument_calibration"])
         self.assertTrue(x["not_48_cells_processed"])
         self.assertAlmostEqual(x["comparison"]["F0002"]["paired_measurement"]["discharge"]["source_step_delta_mAh"],0)
-        self.assertEqual(x["comparison"]["F0002"]["paired_measurement"]["discharge"]["plan_line"],"27")
-        self.assertEqual(x["comparison"]["F0002"]["paired_measurement"]["charge"]["plan_line"],"25")
+        self.assertEqual(x["comparison"]["F0002"]["paired_measurement"]["discharge"]["beginning_plan_line"],"27")
+        self.assertEqual(x["comparison"]["F0002"]["paired_measurement"]["charge"]["beginning_plan_line"],"25")
+
+    def test_actual_source_line_offsets_require_multiple_physical_step_controls(self):
+        def p(line,ah,start,end,hrs):
+            return {"plan_line":str(line),"source_peak_Ah_Step_abs_Ah":ah,
+                    "row_count":3000,"start_measured_voltage_V":start,
+                    "last_measured_voltage_V":end,"time_h_span":hrs}
+        begin={"candidate_summary_by_command":{
+            "charge":[p(21,.1175,3.12,4.2,2.37),p(33,.1171,3.03,4.20,18.9)],
+            "discharge":[p(23,.11755,4.19,3.0,2.18),p(35,.1170,4.19,3.0,18.87)]}}
+        end={"candidate_summary_by_command":{
+            "charge":[p(15,.1145,3.03,4.2,2.32),p(27,.1127,3.03,4.20,18.17)],
+            "discharge":[p(17,.1131,4.195,3.0,2.11),p(29,.1128,4.19,3.0,18.2)]}}
+        d=m.infer_stage_line_offset(begin,end)
+        self.assertTrue(d["offset_inferred"])
+        self.assertEqual(d["beginning_minus_ending_plan_line_offset"],6)
+        self.assertEqual(d["matched_discharge_line_pairs"],2)
+        self.assertEqual(d["matched_charge_line_pairs"],2)
+        a,b=m.select_matched_source_step(begin,end,'discharge',6)
+        self.assertEqual((a['plan_line'],b['plan_line']),('23','17'))
+
+    def test_reject_single_matching_step_as_proven_program(self):
+        p={"plan_line":"23","source_peak_Ah_Step_abs_Ah":.12,"row_count":100,
+           "start_measured_voltage_V":4.19,"last_measured_voltage_V":3.0,"time_h_span":2.2}
+        q={"plan_line":"17","source_peak_Ah_Step_abs_Ah":.11,"row_count":90,
+           "start_measured_voltage_V":4.2,"last_measured_voltage_V":3.0,"time_h_span":2.1}
+        x=m.infer_stage_line_offset({"candidate_summary_by_command":{"charge":[],"discharge":[p]}},
+                                    {"candidate_summary_by_command":{"charge":[],"discharge":[q]}})
+        self.assertFalse(x["offset_inferred"])
 
     def test_nonfinite_rows_not_used(self):
         dat=synth_zip()
