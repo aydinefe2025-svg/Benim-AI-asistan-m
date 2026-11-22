@@ -27,7 +27,8 @@ GRID = "3001x6001"
 LOW_RHO = 2622286750000000
 HIGH_RHO = 2622287000000000
 MID_RHO = 2622286875000000
-RATIO_BRACKET_HALF_WIDTH = 2.5e-5
+RATIO_BRACKET_HALF_WIDTH = 1.0e-6
+DIAGNOSTIC_ROOT_TOLERANCE = 1.0e-9
 
 def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -135,16 +136,17 @@ def main() -> None:
             return cache[key]["J_signed_relative_error"]
         try:
             f_center = evaluate(center)
-            if abs(f_center) > f106.J_REL_TOL:
+            if abs(f_center) > DIAGNOSTIC_ROOT_TOLERANCE:
                 lo, hi = sorted(bracket)
                 f_lo, f_hi = evaluate(lo), evaluate(hi)
-                if abs(f_lo) > f106.J_REL_TOL and abs(f_hi) > f106.J_REL_TOL:
+                if abs(f_lo) > DIAGNOSTIC_ROOT_TOLERANCE and abs(f_hi) > DIAGNOSTIC_ROOT_TOLERANCE:
                     if f_lo*f_hi >= 0:
                         raise RuntimeError("F121_FIXEDJ_BRACKET_NOT_FOUND")
-                    brentq(evaluate, lo, hi, xtol=1e-10, rtol=5e-13, maxiter=70)
+                    root = brentq(evaluate, lo, hi, xtol=1e-12, rtol=5e-14, maxiter=70)
+                    evaluate(root)
             best = min(cache.values(), key=lambda row: row["J_relative_error"])
-            if best["J_relative_error"] > f106.J_REL_TOL:
-                raise RuntimeError("F121_FIXEDJ_TOLERANCE_FAIL")
+            if best["J_relative_error"] > DIAGNOSTIC_ROOT_TOLERANCE:
+                raise RuntimeError("F121_FIXEDJ_DIAGNOSTIC_PRECISION_FAIL")
         except Exception as exc:
             errors.append({"rho_g_cm3": MID_RHO, "error": repr(exc),
                            "native_C_evaluations": len(cache),
@@ -180,6 +182,7 @@ def main() -> None:
         "status": status, "diagnostic_only": True, "mesh": GRID,
         "EOS_sha256": EOS_SHA, "target_J_cgs": f106.TARGET_J,
         "J_relative_tolerance": f106.J_REL_TOL,
+        "diagnostic_root_tolerance": DIAGNOSTIC_ROOT_TOLERANCE,
         "pinned_RNS_upstream_commit": RNS_COMMIT,
         "input_F120_artifact_sha256": F120_ZIP_SHA,
         "input_F120_status": baseline["status"],
