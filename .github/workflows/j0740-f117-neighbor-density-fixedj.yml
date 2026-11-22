@@ -1,0 +1,94 @@
+name: J0740 F117 neighbor-density fixed-J roots
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f117/**'
+      - '.github/workflows/j0740-f117-neighbor-density-fixedj.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  neighbor_density_fixed_j_roots:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned numerical dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Retrieve and checksum F116 baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F116 results/F117
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14761065068/zip" -o results/F116/F116_artifact.zip
+          printf '%s  %s\n' 2947996a32d1db249830faa6014f7a75ebfd913c1edde98acaad074742d91f7d results/F116/F116_artifact.zip | sha256sum -c -
+      - name: Validate F116 baseline and two-density local bracket
+        env:
+          F116_ARTIFACT_ZIP: results/F116/F116_artifact.zip
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f117 -p 'test_f117_*.py' -v
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from research.j0740.f117.f117_neighbor_density_fixedj_roots import read_f116, RHO_TICKS_1E10
+          result, rows = read_f116(Path(os.environ['F116_ARTIFACT_ZIP']))
+          assert len(rows) == 10 and len(result['fixed_J_solutions']) == 2
+          assert len(RHO_TICKS_1E10) == 2
+          print('F116_BASELINE_AND_NEIGHBOR_DENSITY_TWO_DENSITIES_PASS')
+          PY
+      - name: Restore exact pinned F99 EOS and compile RNS C on 2501x5001
+        run: |
+          set -euo pipefail
+          cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          cp -a rns-upstream rns2501
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, 'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          p = Path('rns2501/rns.c')
+          p.write_text(patch_print_only(p.read_text()))
+          mf = Path('rns2501/makefile')
+          t = mf.read_text()
+          old = 'HIGHSIZE=-DMDIV=151 -DSDIV=301'
+          assert t.splitlines().count(old) == 1
+          mf.write_text(t.replace(old, 'HIGHSIZE=-DMDIV=2501 -DSDIV=5001', 1))
+          src = Path('rns2501/findmodel.c').read_bytes()
+          assert b'float ans, fh,fl,fm,fnew,sroot,xh,xl,xm,xnew,xacc=1e-5;' in src
+          PY
+          make -C rns2501 CC='gcc -include stdlib.h' rns
+          sha256sum rns2501/rns | tee results/F117/F117_NEIGHBOR_DENSITY_NATIVE_C_BINARY_SHA256.txt
+      - name: Solve fixed-J roots with local brackets on neighbor-density grid
+        env:
+          F116_ARTIFACT_ZIP: results/F116/F116_artifact.zip
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -u research/j0740/f117/f117_neighbor_density_fixedj_roots.py \
+            --f116 results/F116/F116_artifact.zip \
+            --eos m99.rns --rns "$GITHUB_WORKSPACE/rns2501/rns" \
+            --out results/F117/F117_NEIGHBOR_DENSITY_FIXEDJ_ROOTS.json \
+            2>&1 | tee results/F117/F117_NEIGHBOR_DENSITY_FIXEDJ_ROOTS.log
+      - name: Preserve baseline and every neighbor-density trial
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F117-neighbor-density-fixed-J-roots
+          path: |
+            results/F116/F116_artifact.zip
+            results/F117/
+          if-no-files-found: warn
