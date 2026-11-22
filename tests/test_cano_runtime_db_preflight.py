@@ -6,6 +6,47 @@ from core.cano_runtime_db_preflight import (
 
 
 class TaskPreflightTests(unittest.TestCase):
+    def test_lab_preflight_is_read_only_and_returns_no_owner_key(self):
+        from core import cano_runtime_db_preflight as m
+        self.assertTrue(callable(getattr(m, "preflight_organism_lab", None)))
+        seen = []
+        class LabStore:
+            def __init__(self, owner_key, database_url):
+                seen.append((owner_key, database_url))
+            def verify_schema(self):
+                seen.append("verified")
+                return "cano_snapshot_app"
+        report = m.preflight_organism_lab(
+            "postgresql://SECRET_TOKEN", store_factory=LabStore
+        )
+        self.assertEqual(report, {"ok": True, "reason": "verified"})
+        self.assertEqual(seen[-1], "verified")
+        self.assertEqual(seen[0][0], "oidc_" + "0" * 64)
+        self.assertNotIn("SECRET_TOKEN", repr(report))
+        self.assertNotIn("oidc_", repr(report))
+
+    def test_lab_preflight_classifies_rls_denial_without_secrets(self):
+        from core import cano_runtime_db_preflight as m
+        from core.organism_lab_persistence import OrganismLabRlsPolicyError
+        self.assertTrue(callable(getattr(m, "preflight_organism_lab", None)))
+        class InvalidRole:
+            def __init__(self, owner_key, database_url):
+                pass
+            def verify_schema(self):
+                raise OrganismLabRlsPolicyError("PASSWORD=PRIVATE")
+        report = m.preflight_organism_lab(
+            "postgresql://PRIVATE", store_factory=InvalidRole
+        )
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["error_type"], "OrganismLabRlsPolicyError")
+        self.assertNotIn("PRIVATE", repr(report))
+
+    def test_app_invokes_lab_startup_preflight_under_existing_one_shot_gate(self):
+        from pathlib import Path
+        app = (Path(__file__).resolve().parents[1] / "app.py").read_text("utf-8")
+        self.assertIn("preflight_organism_lab(", app)
+        self.assertIn("CANO_ORGANISM_LAB_PREFLIGHT", app)
+
     def test_good_read_only_schema(self):
         called = []
         class Store:
