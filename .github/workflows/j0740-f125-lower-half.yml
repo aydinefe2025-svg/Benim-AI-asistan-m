@@ -46,7 +46,7 @@ jobs:
           from research.j0740.f125.f125_lower_half_bisection import read_f125, MID_RHO
           result, _ = read_f125(Path(os.environ["F124_ARTIFACT_ZIP"]))
           assert result["status"] == "F124_LOWER_HALF_BISECTION_COMPLETE"
-          assert MID_RHO == 2622286765625000
+          assert MID_RHO == 2622286757812500
           print("F124_BASELINE_AND_F125_MIDPOINT_PASS")
           PY
       - name: Restore pinned F99 EOS and compile RNS C on 3001x6001
@@ -83,7 +83,7 @@ jobs:
             --eos m99.rns --rns "$GITHUB_WORKSPACE/rns3001/rns" \
             --out results/F125/F125_LOWER_HALF_BISECTION.json \
             2>&1 | tee results/F125/F125_LOWER_HALF_BISECTION.log
-      - name: Preserve F123 baseline and every F125 trial
+      - name: Preserve F124 baseline and every F125 trial
         if: always()
         uses: actions/upload-artifact@v4
         with:
