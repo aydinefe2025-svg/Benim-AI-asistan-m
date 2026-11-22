@@ -121,6 +121,13 @@ class OwnerP0AcceptanceTests(unittest.TestCase):
             with self.assertRaisesRegex(gate.AcceptanceBlocked, "isolated_target_not_pg18"):
                 gate.accept(receipt=self.receipt)
 
+    def test_remote_database_reads_require_tls_and_local_disposable_is_allowed(self):
+        with patch("psycopg.connect") as connect:
+            gate._connect_database(SOURCE)
+            self.assertEqual(connect.call_args.kwargs["sslmode"], "require")
+            gate._connect_database(TARGET)
+            self.assertEqual(connect.call_args.kwargs["sslmode"], "prefer")
+
     def test_source_record_count_below_119_refused(self):
         tiny = {k: (1, v[1]) for k, v in INVENTORY.items()}
         with patch.object(gate, "_inventory", return_value=tiny):
