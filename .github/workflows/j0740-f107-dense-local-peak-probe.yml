@@ -1,0 +1,136 @@
+name: J0740 F107 dense local fixed-J native C probe
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f107/**'
+      - '.github/workflows/j0740-f107-dense-local-peak-probe.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  dense_local_native_c_probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned numerical dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Retrieve checksum-pinned F103-F106 evidence and original APR provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F88 results/F103 results/F104 results/F105 results/F106 results/F107
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14751094327/zip" -o results/F103/F103_artifact.zip
+          printf '%s  %s\n' 1491d406b68886522c514c7a08e40ef6e673cf8d48e86c6666c390a96eb11f30 results/F103/F103_artifact.zip | sha256sum -c -
+          python -m zipfile -e results/F103/F103_artifact.zip results/F103
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14751873260/zip" -o results/F104/F104_artifact.zip
+          printf '%s  %s\n' b36198ac43fbd786cb1a7bc0022a7c69e35f30160242d0e2d28bbc0f662fcf02 results/F104/F104_artifact.zip | sha256sum -c -
+          python -m zipfile -e results/F104/F104_artifact.zip results/F104
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14752851236/zip" -o results/F105/F105_failed_artifact.zip
+          printf '%s  %s\n' c6d2de2ad7ade68a87e2efd9ff79300faf55d8745a4e2b62abb22ce3216b5de0 results/F105/F105_failed_artifact.zip | sha256sum -c -
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14753272431/zip" -o results/F106/F106_artifact.zip
+          printf '%s  %s\n' c114b73fda17a4822cb656b624fc41babee85785e476a5e09edf38ae5680a407 results/F106/F106_artifact.zip | sha256sum -c -
+          python -m zipfile -e results/F106/F106_artifact.zip results/F106
+          gh run download 44818195695 -R "$GITHUB_REPOSITORY" -n J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID -D results/F88
+          printf '%s  %s\n' 8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12 results/F88/F87_verified_publisher_original.zip | sha256sum -c -
+          printf '%s  %s\n' 7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580 results/F88/m.rns | sha256sum -c -
+      - name: Validate prior artifacts, raw C journal, and no-duplicate density plan
+        env:
+          F103_ARTIFACT_ZIP: results/F103/F103_artifact.zip
+          F104_ARTIFACT_ZIP: results/F104/F104_artifact.zip
+          F105_ARTIFACT_ZIP: results/F105/F105_failed_artifact.zip
+          F106_ARTIFACT_ZIP: results/F106/F106_artifact.zip
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f107 -p 'test_f107_*.py' -v
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from research.j0740.f106 import f106_sixth_mesh_peak_probe as f106
+          from research.j0740.f107.f107_dense_local_peak_probe import read_f106
+          prior3, base = f106.read_baseline(Path(os.environ['F103_ARTIFACT_ZIP']))
+          prior4 = f106.read_f104(Path(os.environ['F104_ARTIFACT_ZIP']))
+          prior5 = f106.read_f105_failed(Path(os.environ['F105_ARTIFACT_ZIP']))
+          prior6 = read_f106(Path(os.environ['F106_ARTIFACT_ZIP']))
+          assert len(prior3['new_native_C_stars']) == 7
+          assert len(prior4['new_native_C_stars']) == 7
+          assert prior5['status'] == 'FAIL_CLOSED'
+          assert len(prior6['new_native_C_stars']) == 7
+          assert sum(len(v['stars']) for v in base['both_native_C_grids'].values()) == 28
+          print('F103_F104_F105_FAILURE_AND_F106_70_C_JOURNAL_LOCKED')
+          PY
+      - name: Restore exact pinned F99-derived EOS bytes
+        run: |
+          set -euo pipefail
+          cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          p = Path('m99.rns')
+          report = {'status': 'EXACT_PINNED_F99_DERIVED_EOS_RESTORED', 'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'source_publisher_m_rns_sha256': '7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580'}
+          Path('results/F107/F107_REUSE_F99_EOS.json').write_text(json.dumps(report, indent=2) + '\n')
+          PY
+      - name: Compile pinned upstream Einstein RNS C on 501x1001 mesh
+        run: |
+          set -euo pipefail
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          cp -a rns-upstream rns501
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, 'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          p = Path('rns501/rns.c')
+          p.write_text(patch_print_only(p.read_text()))
+          mf = Path('rns501/makefile')
+          t = mf.read_text()
+          old = 'HIGHSIZE=-DMDIV=151 -DSDIV=301'
+          assert t.splitlines().count(old) == 1
+          mf.write_text(t.replace(old, 'HIGHSIZE=-DMDIV=501 -DSDIV=1001', 1))
+          src = Path('rns501/findmodel.c').read_bytes()
+          assert b'float ans, fh,fl,fm,fnew,sroot,xh,xl,xm,xnew,xacc=1e-5;' in src
+          PY
+          make -C rns501 CC='gcc -include stdlib.h' rns
+          sha256sum rns501/rns | tee results/F107/F107_NATIVE_C_BINARY_SHA256.txt
+      - name: Run only 14 new dense local densities on native C
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -u research/j0740/f107/f107_dense_local_peak_probe.py \
+            --f103 results/F103/F103_artifact.zip \
+            --f104 results/F104/F104_artifact.zip \
+            --f105 results/F105/F105_failed_artifact.zip \
+            --f106 results/F106/F106_artifact.zip \
+            --eos m99.rns --rns "$GITHUB_WORKSPACE/rns501/rns" \
+            --out results/F107/F107_DENSE_LOCAL_501x1001.json \
+            2>&1 | tee results/F107/F107_NATIVE_C_ROOTS.log
+      - name: Preserve F107 result, raw C trace, and immutable baselines
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F107-dense-local-501x1001-native-fixedJ
+          path: |
+            results/F107/
+            results/F103/F103_artifact.zip
+            results/F104/F104_artifact.zip
+            results/F105/F105_failed_artifact.zip
+            results/F106/F106_artifact.zip
+            results/F103/F103/F103_251x501_LOCAL_PEAK.json
+            results/F103/F103/F103_251x501_LOCAL_PEAK.jsonl
+            results/F104/F104/F104_301x601_LOCAL_PEAK.json
+            results/F104/F104/F104_301x601_LOCAL_PEAK.jsonl
+            results/F106/F106/F106_501x1001_LOCAL_PEAK.json
+            results/F106/F106/F106_501x1001_LOCAL_PEAK.jsonl
+          if-no-files-found: warn
