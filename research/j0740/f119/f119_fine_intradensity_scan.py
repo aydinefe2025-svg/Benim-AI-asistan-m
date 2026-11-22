@@ -72,7 +72,7 @@ def read_f118(path: Path):
     with tempfile.NamedTemporaryFile(suffix=".zip") as nested:
         nested.write(f117_bytes)
         nested.flush()
-        _, f116_result = f118.read_f117(Path(nested.name))
+        _, _, f116_result = f118.read_f117(Path(nested.name))
     solutions = sorted(result["fixed_J_solutions"], key=lambda row: row["rho_g_cm3"])
     if [round(x["rho_g_cm3"]/1e9) for x in solutions] != [2622282, 2622285, 2622288]:
         raise ValueError("F118_BASELINE_DENSITY_TRIPLE_MISMATCH")
