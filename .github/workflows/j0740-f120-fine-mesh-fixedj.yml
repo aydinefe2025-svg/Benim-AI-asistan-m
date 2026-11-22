@@ -1,0 +1,94 @@
+name: J0740 F120 finer-mesh fixed-J diagnostic
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f120/**'
+      - '.github/workflows/j0740-f120-fine-mesh-fixedj.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  finer_mesh_fixed_j:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned numerical dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Retrieve and checksum F119 baseline
+        env:
+          GH_TOKEN: \${{ github.token }}
+          F119_ARTIFACT_ZIP: results/F119/F119_artifact.zip
+        run: |
+          set -euo pipefail
+          mkdir -p results/F119 results/F120
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14765508248/zip" -o "$F119_ARTIFACT_ZIP"
+          printf '%s  %s\n' e81516e53df76329e5abdb7141757a4d1a92d02c13e38d2eaa5afa395e91993c "$F119_ARTIFACT_ZIP" | sha256sum -c -
+      - name: Validate F119 raw baseline and three density points
+        env:
+          F119_ARTIFACT_ZIP: results/F119/F119_artifact.zip
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from research.j0740.f120.f120_fine_mesh_fixedj import read_f119, RHO_POINTS
+          result, rows = read_f119(Path(os.environ["F119_ARTIFACT_ZIP"]))
+          assert len(rows) == 25 and len(result["fixed_J_solutions"]) == 5
+          assert tuple(RHO_POINTS) == (2622286500000000, 2622286750000000, 2622287000000000)
+          print("F119_BASELINE_AND_THREE_FINE_MESH_POINTS_PASS")
+          PY
+      - name: Restore exact pinned F99 EOS and compile native RNS C on 3001x6001
+        run: |
+          set -euo pipefail
+          cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          cp -a rns-upstream rns3001
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, "research/j0740/f81")
+          from f81_exact_mass_spin import patch_print_only
+          p = Path("rns3001/rns.c")
+          p.write_text(patch_print_only(p.read_text()))
+          mf = Path("rns3001/makefile")
+          t = mf.read_text()
+          old = "HIGHSIZE=-DMDIV=151 -DSDIV=301"
+          assert t.splitlines().count(old) == 1
+          mf.write_text(t.replace(old, "HIGHSIZE=-DMDIV=3001 -DSDIV=6001", 1))
+          src = Path("rns3001/findmodel.c").read_bytes()
+          assert b"float ans, fh,fl,fm,fnew,sroot,xh,xl,xm,xnew,xacc=1e-5;" in src
+          PY
+          make -C rns3001 CC='gcc -include stdlib.h' rns
+          sha256sum rns3001/rns | tee results/F120/F120_FINE_MESH_NATIVE_C_BINARY_SHA256.txt
+      - name: Solve three fixed-J points on the finer mesh
+        env:
+          F119_ARTIFACT_ZIP: results/F119/F119_artifact.zip
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -u research/j0740/f120/f120_fine_mesh_fixedj.py \
+            --f119 results/F119/F119_artifact.zip \
+            --eos m99.rns --rns "$GITHUB_WORKSPACE/rns3001/rns" \
+            --out results/F120/F120_FINE_MESH_FIXEDJ.json \
+            2>&1 | tee results/F120/F120_FINE_MESH_FIXEDJ.log
+      - name: Preserve F119 baseline and every finer-mesh trial
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F120-finer-mesh-fixed-J-diagnostic
+          path: |
+            results/F119/F119_artifact.zip
+            results/F120/
+          if-no-files-found: warn
