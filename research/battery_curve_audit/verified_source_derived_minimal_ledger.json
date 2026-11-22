@@ -1,0 +1,148 @@
+{
+  "device_family_scenarios_not_serial_specific_certificates": true,
+  "goal_key": "battery-20261122-preexisting-original-data-published-instrument-accuracy-envelope",
+  "original_data_source": "https://doi.org/10.6084/m9.figshare.25975315",
+  "original_sensor_calibration_certificates_obtained": false,
+  "physically_independent_source_cell_count": 4,
+  "pulse_condition_pairs": [
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.280593,
+      "discharge_pulse_current_AT_A": -4.901795,
+      "discharge_pulse_current_ET_A": -4.899622,
+      "source_cell": "TP_k01_04",
+      "temp_setpoint_C": 10
+    },
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.190977,
+      "discharge_pulse_current_AT_A": -4.901795,
+      "discharge_pulse_current_ET_A": -4.901795,
+      "source_cell": "TP_k01_04",
+      "temp_setpoint_C": 23
+    },
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.155582,
+      "discharge_pulse_current_AT_A": -4.899622,
+      "discharge_pulse_current_ET_A": -4.901795,
+      "source_cell": "TP_k01_04",
+      "temp_setpoint_C": 45
+    },
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.134868,
+      "discharge_pulse_current_AT_A": -4.902148,
+      "discharge_pulse_current_ET_A": -4.899967,
+      "source_cell": "TP_k01_05",
+      "temp_setpoint_C": 10
+    },
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.173129,
+      "discharge_pulse_current_AT_A": -4.902148,
+      "discharge_pulse_current_ET_A": -4.899967,
+      "source_cell": "TP_k01_05",
+      "temp_setpoint_C": 23
+    },
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.154389,
+      "discharge_pulse_current_AT_A": -4.902148,
+      "discharge_pulse_current_ET_A": -4.899967,
+      "source_cell": "TP_k01_05",
+      "temp_setpoint_C": 45
+    },
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.442124,
+      "discharge_pulse_current_AT_A": -4.900007,
+      "discharge_pulse_current_ET_A": -4.899511,
+      "source_cell": "TP_k04_05",
+      "temp_setpoint_C": 10
+    },
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.294441,
+      "discharge_pulse_current_AT_A": -4.900012,
+      "discharge_pulse_current_ET_A": -4.899516,
+      "source_cell": "TP_k04_05",
+      "temp_setpoint_C": 23
+    },
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.285928,
+      "discharge_pulse_current_AT_A": -4.900007,
+      "discharge_pulse_current_ET_A": -4.899511,
+      "source_cell": "TP_k04_05",
+      "temp_setpoint_C": 45
+    },
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.583196,
+      "discharge_pulse_current_AT_A": -4.900008,
+      "discharge_pulse_current_ET_A": -4.899505,
+      "source_cell": "TP_k04_06",
+      "temp_setpoint_C": 10
+    },
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.281673,
+      "discharge_pulse_current_AT_A": -4.900008,
+      "discharge_pulse_current_ET_A": -4.899505,
+      "source_cell": "TP_k04_06",
+      "temp_setpoint_C": 23
+    },
+    {
+      "corrected_DCiR_AT_minus_ET_mOhm": 0.181347,
+      "discharge_pulse_current_AT_A": -4.900008,
+      "discharge_pulse_current_ET_A": -4.89951,
+      "source_cell": "TP_k04_06",
+      "temp_setpoint_C": 45
+    }
+  ],
+  "schema": "battery.instrument-family-conditional-measurement-envelope.input.v1",
+  "source_3_temperature_pulse_CSV_count": 24,
+  "source_T10_phase_CSV_count": 8,
+  "source_cells": [
+    {
+      "discharge_delta_mAh": 4.722248,
+      "duration_AT_s": 3933.314,
+      "duration_ET_s": 3980.459,
+      "family": "XCTS_legacy_50A_single_channel",
+      "source_ET_AT_instrument_channel_chamber_stable": true,
+      "source_cell": "TP_k01_04",
+      "source_original_zip_sha256": "5605f1452700e298242aa7570230597f2f8513e3a6229ca5025aa9bf543651da"
+    },
+    {
+      "discharge_delta_mAh": 3.422486,
+      "duration_AT_s": 3905.097,
+      "duration_ET_s": 3966.916,
+      "family": "XCTS_legacy_50A_single_channel",
+      "source_ET_AT_instrument_channel_chamber_stable": true,
+      "source_cell": "TP_k01_05",
+      "source_original_zip_sha256": "d38599b1af228b1ea96c0e2ea242709dad8bfd507542ae0df08243e2ed6dae4e"
+    },
+    {
+      "discharge_delta_mAh": 11.352585,
+      "duration_AT_s": 3938.3476,
+      "duration_ET_s": 3981.0444,
+      "family": "CTS_legacy_two_channels",
+      "source_ET_AT_instrument_channel_chamber_stable": true,
+      "source_cell": "TP_k04_05",
+      "source_original_zip_sha256": "520a780364f0e2b5eb7c615d4e91020f2a8689497e4319a056c5bbfc36b9d5c6"
+    },
+    {
+      "discharge_delta_mAh": 9.29959,
+      "duration_AT_s": 4010.8122,
+      "duration_ET_s": 4042.3068,
+      "family": "CTS_legacy_two_channels",
+      "source_ET_AT_instrument_channel_chamber_stable": true,
+      "source_cell": "TP_k04_06",
+      "source_original_zip_sha256": "0e356b05719950ed71e4f91e7070c60353ee1cdf01859ed333241fd0e41ca1c5"
+    }
+  ],
+  "source_evidence_refs": [
+    {
+      "filename": "CANO_BATARYA_10C_KAYNAK_CIHAZ_SICAKLIK_SEGMENT_ESIK_20261121.json",
+      "paper_source_CI": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44885021038",
+      "sha256": "bf53056fcf6138729397315164c86d7419765d99677607e413531bfd20363f87",
+      "source_original_csv_rows": 2505888
+    },
+    {
+      "filename": "CANO_AUTHOR_4CELL_24CSV_SOC_BIRIM_DENETIM_20261121.json",
+      "paper_source_CI": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44916669302",
+      "sha256": "0188c483077d10af351ee6df773a083ce09f1767a396456da95becf7c9db4eaa",
+      "source_original_csv_rows": 7702133
+    }
+  ]
+}

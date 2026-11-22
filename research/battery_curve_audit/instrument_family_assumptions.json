@@ -1,0 +1,46 @@
+{
+  "schema": "battery.instrument-family-conditional-measurement-envelope.assumptions.v1",
+  "not_a_calibration_certificate": true,
+  "sources": [
+    {
+      "source_id": "basytec_family_catalog_2015",
+      "source_url": "https://www.alvatek.co.uk/wp-content/uploads/2015/09/BaSyTec-Overview-2015_02-Alvatek.pdf",
+      "document_vintage": "2015-02",
+      "title": "BaSyTec product family comparison (2015)",
+      "limitation": "Model family published precision; exact historic device and selected measurement range not authenticated"
+    },
+    {
+      "source_id": "basytec_2015_cts_product",
+      "source_url": "https://www.alvatek.co.uk/wp-content/uploads/2020/07/CTS-2015_01.pdf",
+      "document_vintage": "2015-01",
+      "title": "BaSyTec CTS/CTS-Lab family specifications",
+      "limitation": "Different models/parallel channels/accuracy ranges must be confirmed by original tester"
+    },
+    {
+      "source_id": "basytec_official_2024_calibration_guidance",
+      "source_url": "https://basytec.de/applications/2024_02_%20BaSyTec%20Accuracy.pdf",
+      "document_vintage": "2024-02-16",
+      "title": "BaSyTec Accuracy and Calibration of BaSyTec products",
+      "limitation": "Manufacturer explicitly notes system-chain accuracy and need for DUT calibration; later than original 2021-2022 measurements"
+    }
+  ],
+  "family_current_accuracy_scenarios": {
+    "XCTS_legacy_50A_single_channel": {
+      "assumed_abs_current_mA_each_channel": 50.0,
+      "parallel_channels": 1,
+      "reference": "basytec_family_catalog_2015",
+      "interpretation": "One illustrative legacy 50A-family range: 50mA precision (some ranges 100mA). This is NOT an attested calibration tolerance"
+    },
+    "CTS_legacy_two_channels": {
+      "assumed_abs_current_mA_each_channel": 1.0,
+      "parallel_channels": 2,
+      "reference": "basytec_2015_cts_product",
+      "interpretation": "Conservative 5A CTS-family upper current-range scenario of 1mA per channel, summed over two parallel source labels; actual unit/range accuracy must be independently verified"
+    }
+  },
+  "uniform_voltage_error_scenario": {
+    "single_voltage_reading_max_abs_mV": 1.0,
+    "reference": "basytec_family_catalog_2015",
+    "interpretation": "Hypothetical ±1mV per measurement, across two voltages per ET and two per AT; not a CI or certificate and does not bound OCV model or current/thermal errors"
+  }
+}
