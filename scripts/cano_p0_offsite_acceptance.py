@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 import tempfile
 from urllib.parse import unquote, urlsplit
-from urllib.request import urlopen
+from urllib.request import build_opener, HTTPRedirectHandler
 
 from scripts.cano_encrypted_backup import (
     BackupError, restore_to_empty_database, verify_encrypted_backup,
@@ -35,7 +35,7 @@ TABLES = tuple(sorted(
     [(RECOVERY_SCHEMA, name) for name in RECOVERY_TABLES] +
     [("public", name) for name in PUBLIC_TABLES]
 ))
-ALLOWED_SUFFIXES = (".amazonaws.com", ".notion.com", ".notion.so", ".storage.googleapis.com")
+ALLOWED_SUFFIXES = (".amazonaws.com", ".notion.com", ".notion.so", ".storage.googleapis.com", "storage.googleapis.com")
 EARLIEST_BACKUP = datetime(2026, 11, 22, tzinfo=timezone.utc)
 
 
@@ -61,19 +61,30 @@ def _safe_download_url(raw: str, pinned_host: str) -> str:
         url = urlsplit(raw)
         host = (url.hostname or "").lower().rstrip(".")
         pin = pinned_host.lower().rstrip(".")
-        if (url.scheme != "https" or not host or host != pin
-                or url.username or url.password or url.fragment or url.port not in (None, 443)
-                or not any(host.endswith(suffix) for suffix in ALLOWED_SUFFIXES)):
-            raise ValueError("unsafe")
-        ipaddress.ip_address(host)
-        raise ValueError("IP host")
-    except ValueError as error:
-        if str(error) == "IP host":
-            raise AcceptanceBlocked("offsite_host_not_allowed") from None
-        # ipaddress.ip_address raises for ordinary DNS names, which is expected.
-        if "does not appear to be an IPv4 or IPv6 address" not in str(error):
-            raise AcceptanceBlocked("offsite_host_not_allowed") from None
+        allowed = (host == "storage.googleapis.com"
+                   or any(host.endswith(suffix) for suffix in ALLOWED_SUFFIXES))
+        if (url.scheme != "https" or not allowed or not host or host != pin
+                or url.username or url.password or url.fragment
+                or url.port not in (None, 443)):
+            raise AcceptanceBlocked("offsite_host_not_allowed")
+        try:
+            ipaddress.ip_address(host)
+        except ValueError:
+            pass  # Public DNS name, not a raw IP address.
+        else:
+            raise AcceptanceBlocked("offsite_host_not_allowed")
+    except (TypeError, ValueError):
+        raise AcceptanceBlocked("offsite_host_not_allowed") from None
     return host
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, msg, headers, newurl):
+        return None  # Signed one-file URL must be direct; no cross-host relay.
+
+
+def _secure_open(url: str):
+    return build_opener(_NoRedirect).open(url, timeout=60)
 
 
 def _download_ciphertext(raw_url: str, pinned_host: str, destination: Path,
@@ -82,7 +93,7 @@ def _download_ciphertext(raw_url: str, pinned_host: str, destination: Path,
     digest = hashlib.sha256()
     total = 0
     try:
-        with urlopen(raw_url, timeout=60) as response:
+        with _secure_open(raw_url) as response:
             if (getattr(response, "status", None) != 200
                     or _safe_download_url(response.geturl(), host) != host):
                 raise AcceptanceBlocked("offsite_response_unverified")
@@ -211,7 +222,7 @@ def accept(*, receipt: Path, min_rows: int = 119) -> dict:
         "status": "PASS",
         "scope": "owner-local validated offsite GET and isolated PG18 restore",
         "source_database": SOURCE_DB,
-        "source_project": SOURCE_PROJECT,
+        "expected_source_project": SOURCE_PROJECT,
         "source_pg_major": _server_major(src),
         "target_pg_major": 18,
         "table_count": len(TABLES),
