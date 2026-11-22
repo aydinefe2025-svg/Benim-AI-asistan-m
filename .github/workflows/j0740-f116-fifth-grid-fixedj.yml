@@ -45,7 +45,7 @@ jobs:
           from pathlib import Path
           from research.j0740.f116.f116_fifth_grid_fixedj_roots import read_f115, RHO_TICKS_1E10
           result, rows = read_f115(Path(os.environ['F115_ARTIFACT_ZIP']))
-          assert len(rows) == 14 and len(result['fixed_J_solutions']) == 2
+          assert len(rows) == 10 and len(result['fixed_J_solutions']) == 2
           assert len(RHO_TICKS_1E10) == 2
           print('F115_BASELINE_AND_FIFTH_GRID_TWO_DENSITIES_PASS')
           PY
