@@ -64,7 +64,7 @@ jobs:
       - name: Restore exact pinned F99 EOS bytes after verified original-source input
         run: |
           set -euo pipefail
-          cp research/j0740/f105/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
+          cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
           printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
           python - <<'PY'
           import hashlib, json
