@@ -89,8 +89,8 @@ jobs:
           t=mf.read_text()
           old='HIGHSIZE=-DMDIV=401 -DSDIV=801'
           assert t.splitlines().count(old)==1
-          mf.write_text(t.replace(old,'HIGHSIZE=-DMDIV=301 -DSDIV=601',1))
-          src=Path('rns301/findmodel.c').read_bytes()
+          mf.write_text(t.replace(old,'HIGHSIZE=-DMDIV=401 -DSDIV=801',1))
+          src=Path('rns401/findmodel.c').read_bytes()
           assert b'float ans, fh,fl,fm,fnew,sroot,xh,xl,xm,xnew,xacc=1e-5;' in src
           PY
           make -C rns401 CC='gcc -include stdlib.h' rns
