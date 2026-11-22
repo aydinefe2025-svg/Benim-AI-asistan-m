@@ -1,0 +1,134 @@
+name: J0740 F99 original-source causal-firstlaw no-go and derived 1981 EOS 18 real native Einstein C stars
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f99/**'
+      - '.github/workflows/j0740-f99-real-firstlaw-causal-derived-native-C-two-grid.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  native_source_real_cold_firstlaw_GR_models:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Source numerical dependencies pinned
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Reuse exact physical ORIGINAL F88 publisher and F96 18-star source, no original rerun
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F88 results/F99 research/j0740/f99
+          gh run download 44818195695 -R "$GITHUB_REPOSITORY" -n J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID -D results/F88
+          printf '%s  %s\n' 8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12 results/F88/F87_verified_publisher_original.zip | sha256sum -c -
+          printf '%s  %s\n' 7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580 results/F88/m.rns | sha256sum -c -
+          printf '%s  %s\n' 771d7b494821a43485a8e1248185e768efe9b26e10c0ac8d07b9c1c0f206bc36 results/F88/F88_REAL_two_grid_C_RNS.json | sha256sum -c -
+          cp results/F88/m.rns research/j0740/f99/F88_m_original.rns
+          cp research/j0740/receipts/f96/F96_REAL_two_grid_source_causal_fixedJ_extension.json research/j0740/f99/F96_old_source_18_C_real_models.json
+          printf '%s  %s\n' a794218fd091c02e92e522e599003c0a6375c072f8b43d6607f89409155fce5a research/j0740/f99/F96_old_source_18_C_real_models.json | sha256sum -c -
+      - name: Derive physically DISTINCT 1981-row cold EOS and prove original 1933 exactly locked knot no-go
+        run: |
+          set -euo pipefail
+          cp research/j0740/f99/F99_1933_exact_source_no_go_and_1981_model_receipt_20261122.json results/F99/F99_COMMITTED_FREEZE_REFERENCE.json
+          OPENBLAS_NUM_THREADS=1 python research/j0740/f99/f99_physical_firstlaw_source_no_go_derived_eos.py \
+            --source research/j0740/f99/F88_m_original.rns \
+            --out research/j0740/f99/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns \
+            --report research/j0740/f99/F99_1933_exact_source_no_go_and_1981_model_receipt_20261122.json \
+            | tee results/F99/F99_SCIENCE_SOURCE_FIRSTLAW_SOLVER_OUTPUT.log
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 research/j0740/f99/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns | sha256sum -c -
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('results/F99/F99_COMMITTED_FREEZE_REFERENCE.json').read_text())
+          y=json.loads(Path('research/j0740/f99/F99_1933_exact_source_no_go_and_1981_model_receipt_20261122.json').read_text())
+          assert x == y, 'original scientific source no-go or derived EOS changed'
+          assert len(y['original_source_no_go']['exact_endpoints_no_go_intervals'])==3
+          assert y['derived_model']['derived_nodes']==1981
+          PY
+      - name: Original-source immutable 10 genuine physics tests including analytic first law and RNS true fourpoint interpolation
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -m unittest discover -s research/j0740/f99 -p 'test_f99_real_no_go_and_derived_cold_eos.py' -v 2>&1 | tee results/F99/F99_TEN_REAL_SOURCE_FIRSTLAW_TESTS.log
+      - name: Compile exact upstream GR Einstein C solver twice, only stdout print formatting changed
+        run: |
+          set -euo pipefail
+          test "$(git -C rns-upstream rev-parse HEAD)" = 97e85d325a33e37f702306414533f6cd77812477
+          cp -a rns-upstream rns151
+          cp -a rns-upstream rns201
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          for folder,grid in (('rns151','151x301'),('rns201','201x401')):
+           p=Path(folder)/'rns.c';p.write_text(patch_print_only(p.read_text()))
+           mf=Path(folder)/'makefile';t=mf.read_text()
+           assert t.splitlines().count('HIGHSIZE=-DMDIV=151 -DSDIV=301')==1
+           if grid=='201x401':mf.write_text(t.replace('HIGHSIZE=-DMDIV=151 -DSDIV=301','HIGHSIZE=-DMDIV=201 -DSDIV=401',1))
+          PY
+          make -C rns151 CC='gcc -include stdlib.h' rns
+          make -C rns201 CC='gcc -include stdlib.h' rns
+          sha256sum rns151/rns rns201/rns | tee results/F99/F99_NATIVE_TWO_GRIDS_GR_EINSTEIN_C_SOURCE_SHA256.txt
+      - name: ACTUAL 9×2 native Einstein C star equilibria at exactly old density and same J but distinct physically derived EOS
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -u research/j0740/f99/f99_real_two_grid_cold_causal_C_rns.py \
+            --oldf96 research/j0740/f99/F96_old_source_18_C_real_models.json \
+            --original-eos research/j0740/f99/F88_m_original.rns \
+            --derived-eos research/j0740/f99/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns \
+            --physics-receipt research/j0740/f99/F99_1933_exact_source_no_go_and_1981_model_receipt_20261122.json \
+            --f88 results/F88/F88_REAL_two_grid_C_RNS.json \
+            --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
+            --rns201 "$GITHUB_WORKSPACE/rns201/rns" \
+            --out results/F99/F99_NEW_REAL_1981_EOS_18_NATIVE_EINSTEIN_C_STARS.json \
+            2>&1 | tee results/F99/F99_TRUE_NATIVE_EINSTEIN_C_18STAR_PHYSICS.log
+      - name: Independent reject any fake stars or false source-firstlaw / rotating dynamic claim
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('results/F99/F99_NEW_REAL_1981_EOS_18_NATIVE_EINSTEIN_C_STARS.json').read_text())
+          assert r['status']=='18_ACTUAL_REAL_C_MODELS_ON_DISTINCT_DERIVED_1981_MODEL_NOT_ORIGINAL'
+          assert r['number_of_real_C_stars']==18
+          assert r['rotating_axisymmetric_mode_stability']=='NOT_RUN'
+          assert r['seven_EOS_full_photon_Bayes']=='NOT_RUN'
+          assert r['native_C_interpolated_firstlaw_exact'].startswith('NOT_CERTIFIED')
+          assert len(r['grids'])==2
+          assert r['source_true_C_4pt_causal_preflight_all_nine']
+          for g in r['grids'].values():
+           assert len(g['stars'])==9 and not g['errors']
+           assert len(g['original_1933_source_native_deltas'])==9
+           assert all(s['real_solver_checked'] and s['J_relative_error']<=3e-5 for s in g['stars'])
+          print('F99_18_NATIVE_REAL_C_EINSTEIN_STARS_FROM_DISTINCT_AFFINE_COLD_EOS_VERIFIED_NOT_DYNAMIC')
+          PY
+      - name: Save genuine Einstein C evaluation traces even if root or science check fails
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          d=Path('results/F99');d.mkdir(parents=True,exist_ok=True)
+          m={f.name:{'bytes':f.stat().st_size,'sha256':hashlib.sha256(f.read_bytes()).hexdigest()} for f in sorted(d.iterdir()) if f.is_file()}
+          (d/'F99_ORIGINAL_SOURCE_AND_NATIVE_C_EVIDENCE_SHA256.json').write_text(json.dumps(m,indent=2)+'\n')
+          PY
+      - name: Archive real 18 C stars and analytic cold-law proof, no private photon data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F99-ORIGINAL-SOURCE-NOGO-DISTINCT-1981-COLD-EOS-REAL-18-C-STARS
+          path: results/F99/
+          if-no-files-found: warn
