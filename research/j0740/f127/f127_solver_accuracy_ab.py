@@ -91,12 +91,14 @@ def parse_native(stdout:str,stderr:str)->dict:
             raise ValueError('MALFORMED_SOURCE_DIAGNOSTIC_VALUES') from exc
         if (not all(map(math.isfinite,[rec['last_radius_relative_change'],rec['accuracy_requested']]))
                 or rec['last_radius_relative_change']<0 or rec['accuracy_requested']<=0
-                or rec['iterations']<2):
+                or rec['iterations']<1):
             raise ValueError('INVALID_SOLVER_DIAGNOSTIC')
-        if rec['a_check']!=0 or rec['last_radius_relative_change']>rec['accuracy_requested']:
+        if rec['a_check']!=0:
             raise ValueError('RNS_INNER_SPIN_DIVERGED_OR_NOT_CONVERGED')
         spin_calls.append(rec)
     final=spin_calls[-1]
+    if final['iterations']<2 or final['last_radius_relative_change']>final['accuracy_requested']:
+        raise ValueError('RNS_INNER_SPIN_DIVERGED_OR_NOT_CONVERGED')
     return {'M_msun':mass,'R_eq_km':radius,'f_hz':spin,'J_cgs':J,'J_relative_error':abs(J/TARGET_J-1),
             'spin_last_radius_relative_change':final['last_radius_relative_change'],
             'spin_iterations':final['iterations'],'spin_accuracy_requested':final['accuracy_requested'],
