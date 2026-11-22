@@ -49,6 +49,27 @@ jobs:
             --original-seven research/j0740/original_spin_recovery/witness \
             --out results/F107/F107_REAL_PUBLISHER_GAMMA_7_ORIGINAL_C_ROTATING_EOS_POSTERIOR_CONDITIONAL.json \
             2>&1 | tee results/F107/F107_PUBLISHER_GAMMA_TRUE_DATA_TRACE.log
+      - name: RECOMPUTE independent exact direct 100k-sample Gaussian conditional kernel for 7 genuine source rotating C stars
+        run: |
+          set -euo pipefail
+          mkdir -p research/j0740/f107/native
+          cp publisher-jester/jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz research/j0740/f107/native/
+          cp results/F107/F107_REAL_PUBLISHER_GAMMA_7_ORIGINAL_C_ROTATING_EOS_POSTERIOR_CONDITIONAL.json research/j0740/f107/native/
+          cp research/j0740/f107/F107_INDEPENDENT_RAW_100K_GAMMA_SEVEN_SOURCE_C_POINT_AUDIT.json results/F107/F107_FROZEN_INDEPENDENT_RECEIPT.json
+          OPENBLAS_NUM_THREADS=1 python research/j0740/f107/f107_independent_raw_gamma_7_eos_pointwise_check.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          old=json.loads(Path('results/F107/F107_FROZEN_INDEPENDENT_RECEIPT.json').read_text())
+          now=json.loads(Path('research/j0740/f107/F107_INDEPENDENT_RAW_100K_GAMMA_SEVEN_SOURCE_C_POINT_AUDIT.json').read_text())
+          assert now['passed'] and len(now['model_comparisons'])==7
+          assert now['max_relative_7_source_discrepancy']<.001
+          assert old['gamma_native_source_sha256']==now['gamma_native_source_sha256']
+          assert old['F107_source_original_gamma_seven_C_JSON_SHA256']==now['F107_source_original_gamma_seven_C_JSON_SHA256']
+          assert abs(old['max_relative_7_source_discrepancy']-now['max_relative_7_source_discrepancy'])<1e-7
+          print('F107_INDEPENDENT_DIRECT_GAMMA_100K_SEVEN_REAL_C_MODELS_RECOMPUTED_PASS')
+          PY
+          cp research/j0740/f107/F107_INDEPENDENT_RAW_100K_GAMMA_SEVEN_SOURCE_C_POINT_AUDIT.json results/F107/
       - name: Independently check exactly 7 hashes, 3 smoothing variants and prohibit false native-photon Bayes claims
         run: |
           set -euo pipefail
