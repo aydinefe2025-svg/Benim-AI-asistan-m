@@ -87,7 +87,7 @@ jobs:
           p.write_text(patch_print_only(p.read_text()))
           mf=Path('rns401/makefile')
           t=mf.read_text()
-          old='HIGHSIZE=-DMDIV=401 -DSDIV=801'
+          old='HIGHSIZE=-DMDIV=151 -DSDIV=301'
           assert t.splitlines().count(old)==1
           mf.write_text(t.replace(old,'HIGHSIZE=-DMDIV=401 -DSDIV=801',1))
           src=Path('rns401/findmodel.c').read_bytes()
