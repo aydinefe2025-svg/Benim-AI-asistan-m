@@ -35,7 +35,7 @@ jobs:
           mkdir -p results/F124 results/F125
           curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14774015248/zip" -o "$F124_ARTIFACT_ZIP"
           printf '%s  %s\n' d82d43d5b72d9d2f7e7ee90f4163bf308905ec2dfca9d5c709885976e42fb196 "$F124_ARTIFACT_ZIP" | sha256sum -c -
-      - name: Validate F124 baseline and new midpoint
+      - name: Validate F124 baseline and F125 midpoint
         env:
           F124_ARTIFACT_ZIP: results/F124/F124_artifact.zip
         run: |
