@@ -15,6 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO_ROOT))
 from research.j0740.f106 import f106_sixth_mesh_peak_probe as f106
 from research.j0740.f120 import f120_fine_mesh_fixedj as f120
+from research.j0740.f121 import f121_upper_half_bisection as f121
 
 F121_ZIP_SHA = "f601f6b3d449e7ef07a14e83fdfcaf3f1b027148c418cff252a670803af217e4"
 F120_ZIP_SHA = "e92b83d2e3297e09a3db81526bece5e86f05ab14628a534901e04ce8884531a2"
@@ -80,7 +81,7 @@ def read_f121(path: Path):
     with tempfile.NamedTemporaryFile(suffix=".zip") as nested:
         nested.write(f120_bytes)
         nested.flush()
-        f120_result, f120_rows = f120.read_f120(Path(nested.name))
+        f120_result, f120_rows = f121.read_f120(Path(nested.name))
     with zipfile.ZipFile(io.BytesIO(f120_bytes)) as archive:
         f119_bytes = archive.read("F119/F119_artifact.zip")
     if sha(f119_bytes) != f120.F119_ZIP_SHA:
