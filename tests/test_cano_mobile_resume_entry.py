@@ -16,7 +16,6 @@ class MobileResumeEntryTests(unittest.TestCase):
         resume = next(n for n in function.body if isinstance(n, ast.If)
                       and isinstance(n.test, ast.Subscript)
                       and ast.unparse(n.test) == "status['blocked']")
-        )
         new_form = next(n for n in ast.walk(function) if isinstance(n, ast.With)
                         and any("cano_cockpit_mission_form" in ast.unparse(i)
                                 for i in n.items))
