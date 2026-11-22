@@ -117,11 +117,19 @@ def _download_ciphertext(raw_url: str, pinned_host: str, destination: Path,
     return total
 
 
+def _connect_database(dsn: str):
+    import psycopg
+    host, _, _ = _identity(dsn)
+    # A remote source or restore target must never silently downgrade to
+    # an unencrypted PostgreSQL connection (libpq default is sslmode=prefer).
+    mode = "prefer" if host in ("localhost", "127.0.0.1", "::1") else "require"
+    return psycopg.connect(dsn, connect_timeout=15, sslmode=mode)
+
+
 def _inventory(dsn: str) -> dict:
     # Read-only, repeatable snapshot; PostgreSQL never sends private row content.
-    import psycopg
     result = {}
-    with psycopg.connect(dsn, connect_timeout=15) as connection:
+    with _connect_database(dsn) as connection:
         connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         connection.execute("SET LOCAL TIME ZONE 'UTC'")
         rows = connection.execute("""
@@ -144,8 +152,7 @@ def _inventory(dsn: str) -> dict:
 
 
 def _server_major(dsn: str) -> int:
-    import psycopg
-    with psycopg.connect(dsn, connect_timeout=15) as conn:
+    with _connect_database(dsn) as conn:
         return int(conn.execute("SHOW server_version_num").fetchone()[0]) // 10000
 
 
