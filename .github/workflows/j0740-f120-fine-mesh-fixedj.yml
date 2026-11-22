@@ -28,7 +28,7 @@ jobs:
         run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
       - name: Retrieve and checksum F119 baseline
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
           F119_ARTIFACT_ZIP: results/F119/F119_artifact.zip
         run: |
           set -euo pipefail
