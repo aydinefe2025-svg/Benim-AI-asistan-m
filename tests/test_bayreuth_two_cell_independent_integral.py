@@ -7,7 +7,7 @@ import zipfile
 from research.battery_curve_audit import bayreuth_two_cell_independent_integral as m
 
 
-def synth_zip(cell="F0001", discharge_ah=-0.1, charge_ah=0.11):
+def synth_zip(cell="F0001", discharge_ah=-0.1, charge_ah=0.11, discharge_line="17", charge_line="15"):
     hdr = "~Time[h],DataSet,t-Step[h],t-Set[h],Line,Command,U[V],I[A],Ah[Ah],Ah-Step,Wh[Wh],Cyc-Count,State\n"
     rows=["0,1,0,0,17,Discharge,3.6,-0.1,0,0,0,1,1",
           f"0.5,2,0.5,0.5,17,Discharge,3.4,-0.1,0,{discharge_ah/2},0,1,1",
@@ -15,6 +15,7 @@ def synth_zip(cell="F0001", discharge_ah=-0.1, charge_ah=0.11):
           "1.1,4,0,0,15,Charge,3.0,0.11,0,0,0,1,1",
           f"1.6,5,0.5,0.5,15,Charge,3.6,0.11,0,{charge_ah/2},0,1,1",
           f"2.1,6,1,1,15,Charge,4.2,0.11,0,{charge_ah},0,1,1"]
+    rows=[r.replace(",17,Discharge,", f",{discharge_line},Discharge,").replace(",15,Charge,", f",{charge_line},Charge,") for r in rows]
     buf=io.BytesIO()
     with zipfile.ZipFile(buf,'w',zipfile.ZIP_DEFLATED) as z:
         for name in ("M0001_checkup.txt","M0003_checkup.txt"):
@@ -66,13 +67,15 @@ class TestGenuineSourceCoulometry(unittest.TestCase):
                 m.validate_zip(data,"F0001")
 
     def test_two_original_cells_and_delta_no_causal_claims(self):
-        a=synth_zip("F0001");b=synth_zip("F0002",discharge_ah=-0.09)
+        a=synth_zip("F0001");b=synth_zip("F0002",discharge_ah=-0.09,discharge_line="27",charge_line="25")
         with patch.dict(m.SOURCE_FILES,{"F0001":{"md5":hashlib.md5(a).hexdigest(),"size":len(a)},"F0002":{"md5":hashlib.md5(b).hexdigest(),"size":len(b)}}):
             x=m.analyze({"F0001":a,"F0002":b})
         self.assertEqual(x["distinct_original_source_cells"],2)
         self.assertTrue(x["not_an_instrument_calibration"])
         self.assertTrue(x["not_48_cells_processed"])
         self.assertAlmostEqual(x["comparison"]["F0002"]["paired_measurement"]["discharge"]["source_step_delta_mAh"],0)
+        self.assertEqual(x["comparison"]["F0002"]["paired_measurement"]["discharge"]["plan_line"],"27")
+        self.assertEqual(x["comparison"]["F0002"]["paired_measurement"]["charge"]["plan_line"],"25")
 
     def test_nonfinite_rows_not_used(self):
         dat=synth_zip()
