@@ -48,6 +48,27 @@ class PublisherSourceGate(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'path traversal'):
                 source.validate_archive(payload)
 
+    def test_measurement_profile_recovers_real_basytec_column_units(self):
+        lines=("~Resultfile from Basytec Battery Test System\n"
+            "~Time[h],DataSet,t-Step[h],t-Set[h],Line,Command,U[V],I[A],Ah[Ah],Ah-Step,Wh[Wh],Cyc-Count,State\n"
+            "0.1,2,0.1,0.1,6,Discharge,3.4,-0.12,0,-0.10,0,1,1\n"
+            "0.2,3,0.2,0.2,6,Discharge,3.0,-0.12,0,-0.12,0,1,1\n"
+            "0.3,4,0.3,0.3,9,Charge,4.2,0.12,0,0.11,0,1,1\n").encode()
+        payload=mkzip(body=lines)
+        with zipfile.ZipFile(io.BytesIO(payload)) as z:
+            q=source.describe_original_checkup_measurements(z, z.namelist()[0])
+        self.assertEqual(q['parsed_genuine_numeric_rows'],3)
+        self.assertEqual(q['peak_discharge_step_throughput']['abs_Ah_Step_Ah'],0.12)
+        self.assertEqual(q['peak_charge_step_throughput']['abs_Ah_Step_Ah'],0.11)
+        self.assertFalse(q['is_author_verified_reference_capacity'])
+
+    def test_bad_or_missing_numeric_rows_do_not_claim_capacity(self):
+        payload=mkzip(body=b'wrong columns\n1,2,3\n')
+        with zipfile.ZipFile(io.BytesIO(payload)) as z:
+            q=source.describe_original_checkup_measurements(z, z.namelist()[0])
+        self.assertEqual(q['parsed_genuine_numeric_rows'],0)
+        self.assertIsNone(q['peak_discharge_step_throughput'])
+
     def test_no_independent_measurement_claim(self):
         payload=mkzip()
         with patch.object(source, 'EXPECTED_MD5',hashlib.md5(payload).hexdigest()),patch.object(source,'MIN_SOURCE_BYTES',1):
