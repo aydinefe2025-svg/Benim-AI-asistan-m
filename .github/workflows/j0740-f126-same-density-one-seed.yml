@@ -45,6 +45,8 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest discover -s research/j0740/f126 -p 'test_*.py' -v
+      - name: Install pinned numerical dependencies needed by F81 output patch
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
       - name: Build exact RNS C on identical 3001x6001 mesh
         run: |
           set -euo pipefail
