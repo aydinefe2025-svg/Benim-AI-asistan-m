@@ -1,0 +1,29 @@
+name: Battery nine-source T10 conditional label sensitivity
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/source_cluster_temperature_audit.py'
+      - 'research/battery_curve_audit/fixtures/k01_k04_k05_nine_source_27_pairs_pinned.json'
+      - 'tests/test_source_cluster_temperature_audit.py'
+      - '.github/workflows/battery-source-cluster-conditional-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-conditional-diagnostic-not-physical-proof:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+      - name: 15 fail-closed regression tests
+        run: python -m unittest discover -s tests -p 'test_source_cluster_temperature_audit.py' -v
+      - name: Recompute exact conditional diagnostic from existing pinned fixture
+        run: python research/battery_curve_audit/source_cluster_temperature_audit.py --source research/battery_curve_audit/fixtures/k01_k04_k05_nine_source_27_pairs_pinned.json --output conditional_result.json
+      - name: Verify deterministic result digest (not laboratory calibration)
+        run: python -c "import hashlib; from pathlib import Path; d=hashlib.sha256(Path('conditional_result.json').read_bytes()).hexdigest(); assert d == 'bbd059b1a2d0ec36a5f20413bf2df12382156bc55739909dda74eba88b47adf3', d"
