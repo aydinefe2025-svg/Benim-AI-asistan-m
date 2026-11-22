@@ -122,11 +122,18 @@ class OwnerP0AcceptanceTests(unittest.TestCase):
                 gate.accept(receipt=self.receipt)
 
     def test_remote_database_reads_require_tls_and_local_disposable_is_allowed(self):
-        with patch("psycopg.connect") as connect:
+        # Core CI deliberately installs only cryptography, not optional psycopg.
+        # This verifies connector options without adding a production dependency.
+        import sys
+        from types import ModuleType
+        from unittest.mock import Mock
+        fake = ModuleType("psycopg")
+        fake.connect = Mock()
+        with patch.dict(sys.modules, {"psycopg": fake}):
             gate._connect_database(SOURCE)
-            self.assertEqual(connect.call_args.kwargs["sslmode"], "require")
+            self.assertEqual(fake.connect.call_args.kwargs["sslmode"], "require")
             gate._connect_database(TARGET)
-            self.assertEqual(connect.call_args.kwargs["sslmode"], "prefer")
+            self.assertEqual(fake.connect.call_args.kwargs["sslmode"], "prefer")
 
     def test_source_record_count_below_119_refused(self):
         tiny = {k: (1, v[1]) for k, v in INVENTORY.items()}
