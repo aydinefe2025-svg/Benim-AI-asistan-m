@@ -194,6 +194,41 @@ class ContinuousVerificationTests(unittest.TestCase):
         self.assertNotIn("secret-host", encoded)
         self.assertEqual(3, len(report["failures"]))
 
+    def test_one_timeout_during_free_render_cold_start_gets_one_bounded_retry(self):
+        class DelayedColdStart(FakeNetwork):
+            def __init__(self):
+                super().__init__()
+                self.first_root_timed_out = False
+
+            def __call__(self, url, **kwargs):
+                if (url == "https://benim-ai-asistan-streamlit.onrender.com/"
+                        and not self.first_root_timed_out):
+                    self.first_root_timed_out = True
+                    self.calls.append((url, kwargs))
+                    raise TimeoutError("synthetic cold start; do not log exception")
+                return super().__call__(url, **kwargs)
+
+        network = DelayedColdStart()
+        report = run_checks(network, app_path=APP)
+        self.assertEqual("ok", report["verdict"], report)
+        roots = [
+            kwargs for url, kwargs in network.calls
+            if url == "https://benim-ai-asistan-streamlit.onrender.com/"
+        ]
+        self.assertEqual([20, 60], [call["timeout"] for call in roots])
+        self.assertEqual(1, sum(
+            url.endswith("/_stcore/health") for url, _ in network.calls
+        ))
+
+    def test_non_timeout_public_connection_error_is_not_retried(self):
+        network = FakeNetwork(error_text="synthetic connection rejected")
+        report = run_checks(network, app_path=APP)
+        self.assertEqual("failed", report["verdict"])
+        self.assertEqual(1, sum(
+            url == "https://benim-ai-asistan-streamlit.onrender.com/"
+            for url, _ in network.calls
+        ))
+
     def test_report_does_not_mark_auth_or_git_operations_completed(self):
         report = run_checks(FakeNetwork(), app_path=APP)
         self.assertNotIn("deployed", report)
