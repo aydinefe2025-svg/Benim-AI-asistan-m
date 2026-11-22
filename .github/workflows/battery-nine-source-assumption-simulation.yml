@@ -1,0 +1,62 @@
+name: Battery nine-source observational versus hypothetical channel bounds
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/channel_identifiability_sim.py'
+      - 'research/battery_curve_audit/fixtures/k01_k04_k05_nine_source_27_pairs_pinned.json'
+      - 'tests/test_channel_identifiability_sim.py'
+      - '.github/workflows/battery-nine-source-assumption-simulation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pure-math-counterfactual-not-physical-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout exact tested commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Guard original-source-derived immutable fixture bytes
+        run: |
+          echo '424e1cf66146d3cd3477297f6c315c0ef18d794c0b7dffc05d374964131eb5da  research/battery_curve_audit/fixtures/k01_k04_k05_nine_source_27_pairs_pinned.json' | sha256sum --check -
+      - name: Test provenance, 9 cell grain and all 20 inverse-model guards
+        run: python -m unittest tests.test_channel_identifiability_sim -v
+      - name: Calculate non-calibrated hypothetical offset scenarios
+        run: |
+          python -m research.battery_curve_audit.channel_identifiability_sim \
+            --source research/battery_curve_audit/fixtures/k01_k04_k05_nine_source_27_pairs_pinned.json \
+            --out /tmp/cano_battery_hypothetical_offset_simulation.json
+      - name: Require explicit distinction from observed data and instrument certification
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          o=json.loads(Path('/tmp/cano_battery_hypothetical_offset_simulation.json').read_text())
+          assert o['schema']=='cano.simulation.battery-nine-source-two-channel-identifiability.v1'
+          assert o['source_labeled_physical_cell_records']==9
+          assert o['source_temperature_observations']==27
+          assert o['observed_opposite_or_zero_direction_pairs']==4
+          assert o['evidence_partition']['original_csv_files_according_to_prior_receipt']==54
+          assert o['evidence_partition']['original_rows_according_to_prior_receipt']==17280862
+          assert o['evidence_partition']['original_source_record_sha256']=='424e1cf66146d3cd3477297f6c315c0ef18d794c0b7dffc05d374964131eb5da'
+          assert not o['evidence_partition']['real_waveforms_reintegrated_this_run']
+          assert not o['evidence_partition']['independent_physical_test_performed']
+          assert o['minimum_bound_pp_required_to_fit_all_27_under_model']==.6932
+          d={float(s['hypothetical_channel_offset_cap_pp']):s for s in o['hypothetical_scenarios']}
+          assert d[.5]['by_temperature_feasible_of_9']=={'10':4,'23':9,'45':9}
+          assert d[.75]['by_temperature_feasible_of_9']=={'10':9,'23':9,'45':9}
+          for k in ('physical_aging_causality_established','temperature_causality_established','instrument_uncertainty_measured','field_FPR_FNR_established','production_release_allowed'):
+              assert o[k] is False
+          print('ASSUMPTION_SIMULATION_NO_PHYSICAL_EVIDENCE_CLAIM',o['minimum_bound_pp_required_to_fit_all_27_under_model'])
+          PY
+      - name: Preserve synthetic counterfactual only (no raw measurements)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: battery-nine-source-hypothetical-offsets-not-calibration
+          path: /tmp/cano_battery_hypothetical_offset_simulation.json
+          retention-days: 7
+          if-no-files-found: error
