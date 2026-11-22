@@ -140,7 +140,7 @@ def scan_checkup(arc: zipfile.ZipFile, member: str) -> dict:
     current = None; total_rows = 0; segments = []; resets = 0
     for x in native_rows(arc, member):
         total_rows += 1
-        if x["cmd"] not in ("discharge", "charge") or x["line"] not in ("15", "17"):
+        if x["cmd"] not in ("discharge", "charge"):
             if current is not None:
                 segments.append(close_segment(current)); current = None
             continue
@@ -162,15 +162,63 @@ def scan_checkup(arc: zipfile.ZipFile, member: str) -> dict:
             current["rows"].append(x)
     if current is not None:
         segments.append(close_segment(current))
+    # Genuine source authors vary .pln protocol line numbers between source
+    # cells: never require F0002 to use F0001's Line 17/15. Inventory actual
+    # source line identifiers and pair by same line AND terminal voltage.
+    by_type = {"discharge": {}, "charge": {}}
+    for item in segments:
+        if item["row_count"] < 3 or item["source_peak_Ah_Step_abs_Ah"] <= 0:
+            continue
+        which = by_type[item["command"]]
+        line_id = item["plan_line"]
+        if line_id not in which or item["source_peak_Ah_Step_abs_Ah"] > which[line_id]["source_peak_Ah_Step_abs_Ah"]:
+            which[line_id] = item
+    candidates = {kind: sorted(vals.values(), key=lambda q:-q["source_peak_Ah_Step_abs_Ah"])[:30]
+                  for kind, vals in by_type.items()}
     selected = {}
     for typ, line in [("discharge", "17"), ("charge", "15")]:
-        candidates = [s for s in segments if s["command"] == typ and s["plan_line"] == line and s["row_count"] >= 3]
-        if candidates:
-            selected[typ] = max(candidates, key=lambda z:z["source_peak_Ah_Step_abs_Ah"])
+        if line in by_type[typ]:
+            selected[typ] = by_type[typ][line]
     return {"original_member": member, "rows_parsed": total_rows,
-            "segments_scanned_at_lines_15_17": len(segments), "restarts_detected": resets,
+            "segments_scanned_charge_or_discharge": len(segments), "restarts_detected": resets,
+            "all_plan_lines_with_selected_candidate_count": {k: len(v) for k,v in by_type.items()},
+            "candidate_summary_by_command": candidates,
             "selected_step_profiles": selected,
             "analysis_only_source_not_reused_from_Stroebl": True}
+
+
+def select_matched_source_step(bol: dict, eol: dict, command: str):
+    """Choose only matching *actual* plan line and near-identical endpoints.
+
+    A different line means a possibly different test. Never silently match by
+    global max capacity or pretend the original .pln file was obtained.
+    """
+    left = {x["plan_line"]: x for x in bol["candidate_summary_by_command"][command]}
+    right = {x["plan_line"]: x for x in eol["candidate_summary_by_command"][command]}
+    possible = []
+    for line in left.keys() & right.keys():
+        a, b = left[line], right[line]
+        if a["row_count"] < 3 or b["row_count"] < 3:
+            continue
+        if min(a["source_peak_Ah_Step_abs_Ah"], b["source_peak_Ah_Step_abs_Ah"]) < 0.03:
+            continue
+        if abs(a["last_measured_voltage_V"] - b["last_measured_voltage_V"]) > .02:
+            continue
+        if command == "discharge":
+            if not (2.4 <= a["last_measured_voltage_V"] <= 3.5):
+                continue
+        else:
+            if not (3.8 <= a["last_measured_voltage_V"] <= 4.35):
+                continue
+        # Greatest shared single-step measured throughput, not highest unpaired
+        # peak across different source control commands.
+        possible.append((min(a["source_peak_Ah_Step_abs_Ah"],b["source_peak_Ah_Step_abs_Ah"]),line,a,b))
+    if not possible:
+        return None
+    prior = "17" if command == "discharge" else "15"
+    same_prior = [x for x in possible if x[1] == prior]
+    selected = max(same_prior or possible, key=lambda x: x[0])
+    return selected[2],selected[3]
 
 
 def analyze(originals: dict[str, bytes]) -> dict:
@@ -187,11 +235,14 @@ def analyze(originals: dict[str, bytes]) -> dict:
                 pair[label] = scan_checkup(arc, members[0])
         comparisons = {}
         for typ in ("discharge", "charge"):
-            a = pair["beginning"]["selected_step_profiles"].get(typ)
-            b = pair["ending"]["selected_step_profiles"].get(typ)
-            if a is None or b is None:
-                comparisons[typ] = {"comparable": False, "reason": "no identical step selection in both stages"}
+            found = select_matched_source_step(pair["beginning"],pair["ending"],typ)
+            if found is None:
+                comparisons[typ] = {"comparable": False, "reason": "no source-identical test plan line with matched voltage endpoint and >=30mAh in both checkups"}
                 continue
+            a,b = found
+            # Always preserve whichever source cell's *own* plan line matched.
+            pair["beginning"]["selected_step_profiles"][typ] = a
+            pair["ending"]["selected_step_profiles"][typ] = b
             if a["plan_line"] != b["plan_line"]:
                 raise AssertionError("must not compare different protocol lines")
             native_delta = b["source_peak_Ah_Step_abs_Ah"] - a["source_peak_Ah_Step_abs_Ah"]
@@ -199,6 +250,8 @@ def analyze(originals: dict[str, bytes]) -> dict:
             comparisons[typ] = {
                 "comparable_same_command_line": True,
                 "plan_line": a["plan_line"],
+                "source_line_paired_with_own_original_end_voltage": True,
+                "original_program_pln_file_unavailable": True,
                 "source_step_delta_mAh": 1000*native_delta,
                 "source_step_delta_percent": 100*native_delta/a["source_peak_Ah_Step_abs_Ah"],
                 "independently_integrated_trapezoid_delta_mAh": 1000*integrated_delta,
