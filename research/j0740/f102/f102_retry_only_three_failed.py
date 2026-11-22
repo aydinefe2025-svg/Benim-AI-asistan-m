@@ -12,8 +12,11 @@ def main(a):
  if sha(a.original)!=F100_SHA or sha(a.eos)!=F99_SHA:raise ValueError('F100_OR_F99_SOURCE_HASH_MISMATCH')
  old=json.loads(Path(a.original).read_text())
  if old['native_real_C_stars']!=24 or old['new_native_C_calls']!=399 or old['status']!='REAL_C_PARTIAL_NOT_PHYSICS_ACCEPTED':raise ValueError('F100_SOURCE_RECEIPT_DRIFT')
- for g,idx in FAILS.items():
-  assert tuple(x['source_point_index'] for x in old['two_grid_results'][g]['real_C_errors'] if x['error']=="RuntimeError('MEASURED_C_J_MISMATCH')")==idx
+ original_failures={'151x301':(12,), '201x401':(6,11,12)}
+ for g,idx in original_failures.items():
+  actual=tuple(x['source_point_index'] for x in old['two_grid_results'][g]['real_C_errors'] if x['error']=="RuntimeError('MEASURED_C_J_MISMATCH')")
+  if actual!=idx:raise ValueError('F100_ORIGINAL_FAILURE_RECEIPT_DRIFT '+g)
+ if FAILS['201x401']!=(11,12):raise ValueError('ONLY_TWO_UNRESOLVED_201_POINTS_MAY_BE_RETRIED')
  log201=[json.loads(x) for x in Path(a.f101_201_log).read_text().splitlines()]
  recovered=[x for x in log201 if x['source_point_index']==6 and x.get('actual_native_C') is True]
  target=float(old['target_same_J_cgs']);rho6=float(old['predeclared_central_densities_g_cm3'][6])
