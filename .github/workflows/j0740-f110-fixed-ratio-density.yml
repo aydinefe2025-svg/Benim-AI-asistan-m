@@ -1,0 +1,101 @@
+name: J0740 F110 fixed-ratio density native-C diagnostic
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f110/**'
+      - '.github/workflows/j0740-f110-fixed-ratio-density.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  fixed_ratio_density_native_c:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned numerical dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Retrieve F108 and F109 accepted artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F108 results/F109 results/F110
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14756746923/zip" -o results/F108/F108_artifact.zip
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14757501579/zip" -o results/F109/F109_artifact.zip
+          printf '%s  %s\n' 281f2521f68f40f94da250a385bafb4d84ace2b6ebed8b466c0937d8f72d3eb5 results/F108/F108_artifact.zip | sha256sum -c -
+          printf '%s  %s\n' b515752355e222288dbc09b394260f69f522d8e2306ba2d77f11823339ea3750 results/F109/F109_artifact.zip | sha256sum -c -
+      - name: Validate immutable baselines and the 18-call non-repeat plan
+        env:
+          F108_ARTIFACT_ZIP: results/F108/F108_artifact.zip
+          F109_ARTIFACT_ZIP: results/F109/F109_artifact.zip
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f110 -p 'test_f110_*.py' -v
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from research.j0740.f110.f110_fixed_ratio_density_scan import load_baselines, INTERIOR_RHO_TICKS_1E11
+          a, b, ratios, endpoints = load_baselines(Path(os.environ['F108_ARTIFACT_ZIP']), Path(os.environ['F109_ARTIFACT_ZIP']))
+          assert len(INTERIOR_RHO_TICKS_1E11) == 9
+          assert len(endpoints['A']) == len(endpoints['B']) == 2
+          assert 2 * len(INTERIOR_RHO_TICKS_1E11) == 18
+          print('F108_F109_BASELINES_AND_18_NONREPEAT_CALLS_PASS')
+          PY
+      - name: Restore exact pinned F99 EOS and compile pinned RNS C
+        run: |
+          set -euo pipefail
+          cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          cp -a rns-upstream rns501
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, 'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          p = Path('rns501/rns.c')
+          p.write_text(patch_print_only(p.read_text()))
+          mf = Path('rns501/makefile')
+          t = mf.read_text()
+          old = 'HIGHSIZE=-DMDIV=151 -DSDIV=301'
+          assert t.splitlines().count(old) == 1
+          mf.write_text(t.replace(old, 'HIGHSIZE=-DMDIV=501 -DSDIV=1001', 1))
+          src = Path('rns501/findmodel.c').read_bytes()
+          assert b'float ans, fh,fl,fm,fnew,sroot,xh,xl,xm,xnew,xacc=1e-5;' in src
+          PY
+          make -C rns501 CC='gcc -include stdlib.h' rns
+          sha256sum rns501/rns | tee results/F110/F110_NATIVE_C_BINARY_SHA256.txt
+      - name: Run only 18 interior fixed-ratio native-C calls
+        env:
+          F108_ARTIFACT_ZIP: results/F108/F108_artifact.zip
+          F109_ARTIFACT_ZIP: results/F109/F109_artifact.zip
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -u research/j0740/f110/f110_fixed_ratio_density_scan.py \
+            --f108 results/F108/F108_artifact.zip \
+            --f109 results/F109/F109_artifact.zip \
+            --eos m99.rns --rns "$GITHUB_WORKSPACE/rns501/rns" \
+            --out results/F110/F110_FIXED_RATIO_DENSITY_SCAN.json \
+            2>&1 | tee results/F110/F110_NATIVE_C_DENSITY_SCAN.log
+      - name: Preserve baselines and raw density-scan evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F110-fixed-ratio-density-native-C-diagnostic
+          path: |
+            results/F108/F108_artifact.zip
+            results/F109/F109_artifact.zip
+            results/F110/
+          if-no-files-found: warn
