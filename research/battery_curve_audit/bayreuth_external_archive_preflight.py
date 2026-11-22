@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import io
 import json
+import itertools
 import urllib.request
 import zipfile
 from pathlib import PurePosixPath, Path
@@ -50,6 +51,26 @@ def validate_archive(raw: bytes) -> dict:
                             "packed_bytes": item.compress_size, "crc32": f"{item.CRC:08x}"})
         if not content:
             raise ValueError("Unexpected empty publisher ZIP")
+        # Public source TXT is often instrument-native rather than CSV. Record
+        # bounded first-lines provenance without exporting actual signal traces.
+        header_samples = {}
+        for token in ("m0001_checkup", "m0002_aging", "m0003_checkup"):
+            matches = [i for i in entries if not i.is_dir() and token in i.filename.lower() and i.filename.lower().endswith(".txt")]
+            if not matches:
+                continue
+            with archive.open(matches[0]) as f:
+                sample = [line.decode("latin-1", errors="replace").strip()[:190]
+                          for line in itertools.islice(f, 45)]
+            header_samples[token] = {
+                "source_name": matches[0].filename,
+                "first_45_lines": [x for x in sample if x],
+                "header_excerpt_only_no_full_signal": True,
+                "first_45_line_separator_counts": {
+                    "tabs": sum(x.count("\t") for x in sample),
+                    "semicolons": sum(x.count(";") for x in sample),
+                    "commas": sum(x.count(",") for x in sample)
+                }
+            }
         names = [x["name"].lower() for x in content]
         # The publisher describes M0001 and M0003 checkups. If the archive
         # layout differs, record it explicitly, not invent measurements.
@@ -63,6 +84,7 @@ def validate_archive(raw: bytes) -> dict:
                 "source_byte_count": len(raw), "zip_crc_all_pass": True,
                 "zip_file_count": len(content), "file_type_counts": types,
                 "publisher_description_cues_found": cues, "member_manifest": content,
+                "native_text_header_samples": header_samples,
                 "cells_with_downloaded_original_zip": 1,
                 "cells_reported_in_dataset_by_publishers": 48,
                 "actual_DCIR_or_capacity_recalculated": False,
