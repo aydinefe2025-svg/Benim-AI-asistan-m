@@ -36,6 +36,14 @@ jobs:
           assert x['zip_file_count']>=1
           assert x['cells_with_downloaded_original_zip']==1
           assert x['cells_reported_in_dataset_by_publishers']==48
+          # Confirm raw numeric rows from two DIFFERENT original reference checkups.
+          original=x['original_BoL_EoL_checkup_measurement_profiles']
+          assert set(original)=={'m0001_checkup','m0003_checkup'}
+          for q in original.values():
+              assert q['parsed_genuine_numeric_rows']>500
+              assert q['peak_discharge_step_throughput']['abs_Ah_Step_Ah']>.01
+              assert not q['is_author_verified_reference_capacity']
+          assert x['descriptive_peak_discharge_step_comparison']['comparable_peak_step_discharge_Ah']
           assert x['actual_DCIR_or_capacity_recalculated'] is False
           assert x['independent_lab_validation_of_original_Stroebl_4_cells'] is False
           assert x['physical_calibration_certificate_verified'] is False
