@@ -1,0 +1,345 @@
+{
+  "both_charge_and_discharge_reduction_pairs": 23,
+  "cohorts": [
+    "TP_k01",
+    "TP_k04",
+    "TP_k05"
+  ],
+  "field_FPR_FNR_established": false,
+  "instrument_calibration_validated": false,
+  "k01_k04_previous_receipt_sha256": "721bb1185f147d7e04f93597c7427fc5f0f25b03e93f7b59dbc1d96c335a3bff",
+  "k05_original_ci_offline_sha256": "b1beac002dd312497459b8e4491ecd2f93e1c8034ca3c04a86184c6dc1fc733a",
+  "mean_capacity_reduction_pairs": 27,
+  "mixed_or_zero_channel_sign_pairs": 4,
+  "original_csv_files_processed": 54,
+  "original_measurement_rows_examined": 17280862,
+  "original_source_proofs_sha256": "a2767fd0f2e9fb70ee147ff9aaa23ea6d088a17f8bbc106566af77dc74ec67d2",
+  "physical_custody_authenticated": false,
+  "production_release_allowed": false,
+  "publisher_lab_serial_unique_across_all_nine": true,
+  "schema": "cano.battery.figshare25975315.k01-k04-k05-nine-distinct-publisher-source-records-channel-sign.v1",
+  "source_doi": "10.6084/m9.figshare.25975315",
+  "source_file_records": 9,
+  "source_results": [
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -1.6468,
+      "cohort": "TP_k01",
+      "discharge_change_percent": -0.4781,
+      "mean_change_percent": -1.063,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": false,
+      "source_file_id": 47627089,
+      "temperature_C": 10
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.5879,
+      "cohort": "TP_k01",
+      "discharge_change_percent": -0.4353,
+      "mean_change_percent": -0.5115,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": false,
+      "source_file_id": 47627089,
+      "temperature_C": 23
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.7083,
+      "cohort": "TP_k01",
+      "discharge_change_percent": -0.4485,
+      "mean_change_percent": -0.5785,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": false,
+      "source_file_id": 47627089,
+      "temperature_C": 45
+    },
+    {
+      "both_channels_decline": false,
+      "charge_change_percent": -1.3146,
+      "cohort": "TP_k01",
+      "discharge_change_percent": 0.0718,
+      "mean_change_percent": -0.622,
+      "mixed_or_zero_channel_sign": true,
+      "source_et_at_chronology_verified": false,
+      "source_file_id": 47627092,
+      "temperature_C": 10
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.2299,
+      "cohort": "TP_k01",
+      "discharge_change_percent": -0.1987,
+      "mean_change_percent": -0.2143,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": false,
+      "source_file_id": 47627092,
+      "temperature_C": 23
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.5181,
+      "cohort": "TP_k01",
+      "discharge_change_percent": -0.3481,
+      "mean_change_percent": -0.433,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": false,
+      "source_file_id": 47627092,
+      "temperature_C": 45
+    },
+    {
+      "both_channels_decline": false,
+      "charge_change_percent": -1.2628,
+      "cohort": "TP_k01",
+      "discharge_change_percent": 0.0999,
+      "mean_change_percent": -0.5844,
+      "mixed_or_zero_channel_sign": true,
+      "source_et_at_chronology_verified": false,
+      "source_file_id": 47639005,
+      "temperature_C": 10
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.4504,
+      "cohort": "TP_k01",
+      "discharge_change_percent": -0.3256,
+      "mean_change_percent": -0.3879,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": false,
+      "source_file_id": 47639005,
+      "temperature_C": 23
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.6012,
+      "cohort": "TP_k01",
+      "discharge_change_percent": -0.4691,
+      "mean_change_percent": -0.5352,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": false,
+      "source_file_id": 47639005,
+      "temperature_C": 45
+    },
+    {
+      "both_channels_decline": false,
+      "charge_change_percent": -0.708,
+      "cohort": "TP_k04",
+      "discharge_change_percent": 0.196,
+      "mean_change_percent": -0.2577,
+      "mixed_or_zero_channel_sign": true,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627104,
+      "temperature_C": 10
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.6773,
+      "cohort": "TP_k04",
+      "discharge_change_percent": -0.7367,
+      "mean_change_percent": -0.707,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627104,
+      "temperature_C": 23
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.6423,
+      "cohort": "TP_k04",
+      "discharge_change_percent": -0.6467,
+      "mean_change_percent": -0.6445,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627104,
+      "temperature_C": 45
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -1.2935,
+      "cohort": "TP_k04",
+      "discharge_change_percent": -0.7016,
+      "mean_change_percent": -0.9981,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627107,
+      "temperature_C": 10
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.8139,
+      "cohort": "TP_k04",
+      "discharge_change_percent": -0.8173,
+      "mean_change_percent": -0.8156,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627107,
+      "temperature_C": 23
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.6112,
+      "cohort": "TP_k04",
+      "discharge_change_percent": -0.5776,
+      "mean_change_percent": -0.5944,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627107,
+      "temperature_C": 45
+    },
+    {
+      "both_channels_decline": false,
+      "charge_change_percent": -0.5764,
+      "cohort": "TP_k04",
+      "discharge_change_percent": 0.2428,
+      "mean_change_percent": -0.1686,
+      "mixed_or_zero_channel_sign": true,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627110,
+      "temperature_C": 10
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.6064,
+      "cohort": "TP_k04",
+      "discharge_change_percent": -0.5756,
+      "mean_change_percent": -0.591,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627110,
+      "temperature_C": 23
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -0.5413,
+      "cohort": "TP_k04",
+      "discharge_change_percent": -0.5307,
+      "mean_change_percent": -0.536,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627110,
+      "temperature_C": 45
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -2.9226,
+      "cohort": "TP_k05",
+      "discharge_change_percent": -2.0158,
+      "mean_change_percent": -2.4706,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627449,
+      "temperature_C": 10
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -1.8249,
+      "cohort": "TP_k05",
+      "discharge_change_percent": -1.8079,
+      "mean_change_percent": -1.8164,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627449,
+      "temperature_C": 23
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -1.8729,
+      "cohort": "TP_k05",
+      "discharge_change_percent": -1.8106,
+      "mean_change_percent": -1.8418,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627449,
+      "temperature_C": 45
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -2.5518,
+      "cohort": "TP_k05",
+      "discharge_change_percent": -1.5479,
+      "mean_change_percent": -2.0514,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627452,
+      "temperature_C": 10
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -1.4882,
+      "cohort": "TP_k05",
+      "discharge_change_percent": -1.5791,
+      "mean_change_percent": -1.5337,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627452,
+      "temperature_C": 23
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -1.5821,
+      "cohort": "TP_k05",
+      "discharge_change_percent": -1.5268,
+      "mean_change_percent": -1.5544,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627452,
+      "temperature_C": 45
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -2.3461,
+      "cohort": "TP_k05",
+      "discharge_change_percent": -1.226,
+      "mean_change_percent": -1.7881,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627461,
+      "temperature_C": 10
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -1.5736,
+      "cohort": "TP_k05",
+      "discharge_change_percent": -1.5367,
+      "mean_change_percent": -1.5551,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627461,
+      "temperature_C": 23
+    },
+    {
+      "both_channels_decline": true,
+      "charge_change_percent": -1.657,
+      "cohort": "TP_k05",
+      "discharge_change_percent": -1.6093,
+      "mean_change_percent": -1.6332,
+      "mixed_or_zero_channel_sign": false,
+      "source_et_at_chronology_verified": true,
+      "source_file_id": 47627461,
+      "temperature_C": 45
+    }
+  ],
+  "source_temperature_pairs": 27,
+  "storage_only_causal_degradation_established": false,
+  "temperature_causality_established": false,
+  "temperature_summary": {
+    "10": {
+      "both_channels_decline": 5,
+      "mean_decline": 9,
+      "mixed_sign": 4,
+      "source_records": 9
+    },
+    "23": {
+      "both_channels_decline": 9,
+      "mean_decline": 9,
+      "mixed_sign": 0,
+      "source_records": 9
+    },
+    "45": {
+      "both_channels_decline": 9,
+      "mean_decline": 9,
+      "mixed_sign": 0,
+      "source_records": 9
+    }
+  }
+}
