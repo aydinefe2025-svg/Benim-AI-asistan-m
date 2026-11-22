@@ -12,6 +12,7 @@ from hashlib import sha256
 
 from core.agent_colony import AgentColony
 from core.collaborative_mission import CollaborativeMission
+from core.cano_mobile_resume import select_mobile_resume_items
 from core.colony_postgres import ColonySnapshotStore
 from core.storage_config import database_provider_label
 from core.browser_colony import (
@@ -401,6 +402,52 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             st.error("Ekip veya kalıcı yedek doğrulanamadı; yerel veri silinmedi.")
             return
 
+    if status["blocked"]:
+        st.warning(f"{status['blocked']} yarım kalmış görev kayıtlı. "
+                   "Kayıtlı aşamalar korunuyor; aşağıdan kaldığınız yerden sürdürebilirsiniz.")
+        # A phone link selects one existing task, never grants authority.
+        # Owner-bound PostgreSQL recovery above must succeed before this point.
+        params = getattr(st, "query_params", {})
+        requested_resume = params.get("resume_mission") if hasattr(params, "get") else None
+        if requested_resume:
+            st.caption("📱 Mobil devam: yalnızca seçtiğiniz kayıtlı görevi gösteriyoruz.")
+        available = select_mobile_resume_items(
+            manager.interrupted(limit=10), requested_resume)
+        if requested_resume and not available:
+            st.warning("Bu hesapta belirtilen kimlikle engellenmiş görev bulunamadı.")
+        for item in available:
+            saved = manager.get(item["id"])
+            completed = len(saved["stages"])
+            st.caption(f"{item['task'][:160]} — {completed}/4 aşama kayıtlı")
+            if st.button("↻ Görevi kaldığı yerden sürdür: " + item["id"][:8],
+                         key="cano_resume_partial_" + item["id"]):
+                try:
+                    _checkpoint()
+                except Exception:
+                    st.error("Kalıcı CANO yedek kontrolü geçmedi; görev sürdürülmedi. "
+                             "Bu denemede sağlayıcı çağrısı yapılmadı; kayıtlı aşamalar korundu.")
+                    return
+                checkpoint_count = [0]
+                def _resume_checkpoint():
+                    _checkpoint(archive_prior=(checkpoint_count[0] == 0))
+                    checkpoint_count[0] += 1
+                try:
+                    result = manager.resume(
+                        item["id"], client=_AnswerAdapter(answer),
+                        model="configured-provider",
+                        on_checkpoint=_resume_checkpoint if backup_store is not None else None)
+                    _checkpoint(archive_prior=False)
+                    st.session_state["cano_cockpit_latest_mission"] = result["id"]
+                    st.success("Kayıtlı aşamalar korundu; görev kaldığı yerden tamamlandı.")
+                    st.rerun()
+                    return
+                except Exception as exc:
+                    # Provider/PostgreSQL adapters can raise their own exception
+                    # classes; keep every resume failure inside the safe UI path.
+                    from core.colony_panel import mission_failure_message
+                    st.error(mission_failure_message(
+                        exc, getattr(manager, "last_failure", None)))
+
     if not status["ready"]:
         st.info("Ekip görevi için kurucu araştırmacı ve kanıt inceleyici gerekiyor. "
                 "Yukarıdaki hazırlama düğmesini kullanın.")
@@ -477,44 +524,6 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                     st.session_state["cano_cockpit_latest_mission"] = result["id"]
                     st.rerun()
                     return
-
-    if status["blocked"]:
-        st.warning(f"{status['blocked']} yarım kalmış görev kayıtlı. "
-                   "Kayıtlı aşamalar korunuyor; aşağıdan kaldığınız yerden sürdürebilirsiniz.")
-        for item in manager.interrupted(limit=10):
-            if item["status"] != "blocked":
-                continue
-            saved = manager.get(item["id"])
-            completed = len(saved["stages"])
-            st.caption(f"{item['task'][:160]} — {completed}/4 aşama kayıtlı")
-            if st.button("↻ Görevi kaldığı yerden sürdür: " + item["id"][:8],
-                         key="cano_resume_partial_" + item["id"]):
-                try:
-                    _checkpoint()
-                except Exception:
-                    st.error("Kalıcı CANO yedek kontrolü geçmedi; görev sürdürülmedi. "
-                             "Bu denemede sağlayıcı çağrısı yapılmadı; kayıtlı aşamalar korundu.")
-                    return
-                checkpoint_count = [0]
-                def _resume_checkpoint():
-                    _checkpoint(archive_prior=(checkpoint_count[0] == 0))
-                    checkpoint_count[0] += 1
-                try:
-                    result = manager.resume(
-                        item["id"], client=_AnswerAdapter(answer),
-                        model="configured-provider",
-                        on_checkpoint=_resume_checkpoint if backup_store is not None else None)
-                    _checkpoint(archive_prior=False)
-                    st.session_state["cano_cockpit_latest_mission"] = result["id"]
-                    st.success("Kayıtlı aşamalar korundu; görev kaldığı yerden tamamlandı.")
-                    st.rerun()
-                    return
-                except Exception as exc:
-                    # Provider/PostgreSQL adapters can raise their own exception
-                    # classes; keep every resume failure inside the safe UI path.
-                    from core.colony_panel import mission_failure_message
-                    st.error(mission_failure_message(
-                        exc, getattr(manager, "last_failure", None)))
 
     # Refresh after a button-triggered task so results are visible on this run.
     status = read_cano_status(colony)
