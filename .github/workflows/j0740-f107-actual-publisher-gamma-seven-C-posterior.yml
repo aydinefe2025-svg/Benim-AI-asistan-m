@@ -1,0 +1,116 @@
+name: J0740 F107 REAL Salmi 2024 gamma posterior vs original seven RNS C EOS curves (no native photon false claim)
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f107/**'
+      - '.github/workflows/j0740-f107-actual-publisher-gamma-seven-C-posterior.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual_publisher_gamma_posterior_original_7_real_C:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Fetch original pinned 7 source Einstein C RNS mass-line witnesses
+        uses: actions/checkout@v4
+      - name: Fetch public latest JESTER Salmi-2024 gamma posterior data (NOT old STU file)
+        uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: main
+          path: publisher-jester
+          persist-credentials: false
+          sparse-checkout: |
+            jesterTOV/inference/data/NICER
+      - name: Install numerical integrations without expensive extra packages
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Pin original published GAMMA data Git blob and 7 authentic 346.536Hz compiled C source witness hashes
+        run: |
+          set -euo pipefail
+          mkdir -p results/F107
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          g=Path('publisher-jester/jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz')
+          assert g.is_file(),'LATEST_GAMMA_PUBLISHED_POSTERIOR_MISSING'
+          raw=g.read_bytes()
+          s=hashlib.sha1(f'blob {len(raw)}\0'.encode()+raw).hexdigest()
+          assert s=='8a5adb339699ea1065aa858bdab406de11b22f72',('PUBLISHED_JESTER_REAL_GAMMA_VERSION_DRIFT',s)
+          print('F107_GAMMA_PUBLISHER_GITBLOB_SHA_LOCK',s,'size',len(raw))
+          PY
+      - name: Calculate REAL 7 original C EOS vs actual Salmi2024 gamma source posterior, condition on mass to avoid radio double-counting
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -u research/j0740/f107/f107_real_gamma_seven_eos_conditional_observation.py \
+            --gamma publisher-jester/jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz \
+            --original-seven research/j0740/original_spin_recovery/witness \
+            --out results/F107/F107_REAL_PUBLISHER_GAMMA_7_ORIGINAL_C_ROTATING_EOS_POSTERIOR_CONDITIONAL.json \
+            2>&1 | tee results/F107/F107_PUBLISHER_GAMMA_TRUE_DATA_TRACE.log
+      - name: RECOMPUTE independent exact direct 100k-sample Gaussian conditional kernel for 7 genuine source rotating C stars
+        run: |
+          set -euo pipefail
+          mkdir -p research/j0740/f107/native
+          cp publisher-jester/jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz research/j0740/f107/native/
+          cp results/F107/F107_REAL_PUBLISHER_GAMMA_7_ORIGINAL_C_ROTATING_EOS_POSTERIOR_CONDITIONAL.json research/j0740/f107/native/
+          cp research/j0740/f107/F107_INDEPENDENT_RAW_100K_GAMMA_SEVEN_SOURCE_C_POINT_AUDIT.json results/F107/F107_FROZEN_INDEPENDENT_RECEIPT.json
+          OPENBLAS_NUM_THREADS=1 python research/j0740/f107/f107_independent_raw_gamma_7_eos_pointwise_check.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          old=json.loads(Path('results/F107/F107_FROZEN_INDEPENDENT_RECEIPT.json').read_text())
+          now=json.loads(Path('research/j0740/f107/F107_INDEPENDENT_RAW_100K_GAMMA_SEVEN_SOURCE_C_POINT_AUDIT.json').read_text())
+          assert now['passed'] and len(now['model_comparisons'])==7
+          assert now['max_relative_7_source_discrepancy']<.001
+          assert old['gamma_native_source_sha256']==now['gamma_native_source_sha256']
+          assert old['F107_source_original_gamma_seven_C_JSON_SHA256']==now['F107_source_original_gamma_seven_C_JSON_SHA256']
+          assert abs(old['max_relative_7_source_discrepancy']-now['max_relative_7_source_discrepancy'])<1e-7
+          print('F107_INDEPENDENT_DIRECT_GAMMA_100K_SEVEN_REAL_C_MODELS_RECOMPUTED_PASS')
+          PY
+          cp research/j0740/f107/F107_INDEPENDENT_RAW_100K_GAMMA_SEVEN_SOURCE_C_POINT_AUDIT.json results/F107/
+      - name: Independently check exactly 7 hashes, 3 smoothing variants and prohibit false native-photon Bayes claims
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          p=Path('results/F107/F107_REAL_PUBLISHER_GAMMA_7_ORIGINAL_C_ROTATING_EOS_POSTERIOR_CONDITIONAL.json')
+          a=json.loads(p.read_text())
+          assert a['source_gamma_JESTER']['git_blob_sha1']=='8a5adb339699ea1065aa858bdab406de11b22f72'
+          assert a['source_gamma_JESTER']['n_equal_weight_samples']>=5000
+          assert a['source_native_XPSI_photon_calls']==0
+          assert a['this_is_full_seven_EOS_photon_Bayes'] is False
+          assert a['validated_gamma_native_photon_Bayes']=='NOT_RUN'
+          assert a['seven_EOS_full_native_photon_Bayes']=='NOT_RUN'
+          assert len(a['bandwidth_sensitivity'])==3
+          assert len(a['original_matter_models'])==7
+          for x in a['bandwidth_sensitivity'].values():
+           assert len(x['ranking_PURE_POSTERIOR_COMPATIBILITY_NOT_BAYES'])==7
+           assert len(x['scores'])==7
+           for e in x['scores'].values():
+            assert e['original_C_mass_support_radio_probability']>0
+            assert e['conditional_gamma_posterior_radio_mass_average_per_km']>=0
+          print('F107_REAL_GAMMA_2026_PUBLISHER_SOURCE_REPLAY_7_C_EOS_PRIOR_SAFE_SCORES_PASS',hashlib.sha256(p.read_bytes()).hexdigest())
+          PY
+      - name: Preserve REAL publisher gamma NPZ sample bytes and all seven-source conditional gamma evidence
+        if: always()
+        run: |
+          mkdir -p results/F107
+          if test -f publisher-jester/jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz; then
+            cp publisher-jester/jesterTOV/inference/data/NICER/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz results/F107/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz
+          fi
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          p=Path('results/F107'); a={x.name:{'sha256':hashlib.sha256(x.read_bytes()).hexdigest(),'bytes':x.stat().st_size} for x in sorted(p.iterdir()) if x.is_file()}
+          (p/'F107_GAMMA_SOURCE_PROVENANCE_SHA256_MANIFEST.json').write_text(json.dumps(a,indent=2)+'\n')
+          PY
+      - name: Archive actual public NICER gamma samples and source-pinned original seven C EOS scores
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F107-REAL-SALMI2024-GAMMA-POSTERIOR-7-ORIGINAL-C-EOS-PRIOR-SAFE-COMPATIBILITY
+          path: results/F107/
+          if-no-files-found: warn

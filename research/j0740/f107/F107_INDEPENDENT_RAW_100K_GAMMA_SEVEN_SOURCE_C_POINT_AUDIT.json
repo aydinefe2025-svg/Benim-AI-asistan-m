@@ -1,0 +1,56 @@
+{
+  "F107_source_original_gamma_seven_C_JSON_SHA256": "a18fbe1ce383a5155f0cb6dc151a88055fca5b49f6fb28403eef605494785087",
+  "direct_gaussian_2d_conditional_kernel_not_source_F107_binned_method": true,
+  "gamma_native_source_sha256": "ad64ac47ea8b1c01034b72fb8b06160fba2e844974de41c7bf187cde12e1f698",
+  "max_relative_7_source_discrepancy": 0.0008057330258324678,
+  "model_comparisons": {
+    "APR4_EPP": {
+      "actual_C_rotating_radius_km": 10.753385986960346,
+      "gridded_source_interpolated_conditional_per_km": 0.06021501731865168,
+      "independent_direct_100k_kernel_per_km": 0.0601807132512845,
+      "relative_discrepancy": 0.000569692892150916
+    },
+    "ENG": {
+      "actual_C_rotating_radius_km": 11.588887356254077,
+      "gridded_source_interpolated_conditional_per_km": 0.30371578945556926,
+      "independent_direct_100k_kernel_per_km": 0.30371408366286423,
+      "relative_discrepancy": 5.616411014023954e-06
+    },
+    "MPA1": {
+      "actual_C_rotating_radius_km": 12.53335091446559,
+      "gridded_source_interpolated_conditional_per_km": 0.36618100418252997,
+      "independent_direct_100k_kernel_per_km": 0.3662390556639138,
+      "relative_discrepancy": 0.00015850707478095165
+    },
+    "MS1": {
+      "actual_C_rotating_radius_km": 15.258345956043714,
+      "gridded_source_interpolated_conditional_per_km": 0.0456064899068594,
+      "independent_direct_100k_kernel_per_km": 0.04558807151553957,
+      "relative_discrepancy": 0.0004038546127414142
+    },
+    "MS1B": {
+      "actual_C_rotating_radius_km": 14.985468736264876,
+      "gridded_source_interpolated_conditional_per_km": 0.05884774760057399,
+      "independent_direct_100k_kernel_per_km": 0.058800332026836356,
+      "relative_discrepancy": 0.0008057330258324678
+    },
+    "WFF1": {
+      "actual_C_rotating_radius_km": 9.975726186581245,
+      "gridded_source_interpolated_conditional_per_km": 0.0017470780937724557,
+      "independent_direct_100k_kernel_per_km": 0.0017463160891405202,
+      "relative_discrepancy": 0.0004361594565530494
+    },
+    "WFF2": {
+      "actual_C_rotating_radius_km": 10.62414637893328,
+      "gridded_source_interpolated_conditional_per_km": 0.038997533399219055,
+      "independent_direct_100k_kernel_per_km": 0.0389670625645616,
+      "relative_discrepancy": 0.0007813528703346704
+    }
+  },
+  "n_real_source_gamma": 100000,
+  "original_source_seven_EOS_physical_cert": "NOT_CERTIFIED",
+  "passed": true,
+  "reference_M_msun": 2.073,
+  "schema": "J0740_F107_GENUINE_PUBLISHED_GAMMA_RAW_100K_INDEPENDENT_POINTWISE_7_ORIGINAL_RNS_C_RADIUS_CHECK",
+  "source_native_photon_Bayes": "NOT_RUN"
+}
