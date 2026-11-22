@@ -54,8 +54,9 @@ jobs:
                   assert p['rows_parsed']>500
               for phase in ('discharge','charge'):
                   c=q['paired_measurement'][phase]
-                  assert c.get('comparable_same_command_line'), (name,phase,c)
+                  assert c.get('comparable_homologous_source_step'), (name,phase,c)
                   assert c['not_a_certified_capacity_loss']
+                  assert c['multi_step_source_homology_not_original_pln_verified']
                   assert abs(c['source_step_delta_mAh'])<1000
                   assert abs(c['independently_integrated_trapezoid_delta_mAh'])<1000
           print('TWO_REAL_BAYREUTH_CELLS_ORIGINAL_MD5_CRC_AND_NUMERIC_CURRENT_TIME_INTEGRATION_PASS',x['original_total_checkup_numeric_rows'])
