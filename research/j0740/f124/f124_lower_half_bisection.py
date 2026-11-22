@@ -182,6 +182,10 @@ def main() -> None:
                 errors.append({"rho_g_cm3": MID_RHO, "error": "F124_FIXEDJ_BRACKET_NOT_FOUND",
                                "native_C_evaluations": len(cache),
                                "local_ratio_bracket": list(bracket)})
+            elif not cache:
+                errors.append({"rho_g_cm3": MID_RHO, "error": "F124_NO_NATIVE_C_EVALUATION_COMPLETED",
+                               "native_C_evaluations": 0,
+                               "local_ratio_bracket": list(bracket)})
         if cache and min(row["J_relative_error"] for row in cache.values()) > DIAGNOSTIC_ROOT_TOLERANCE:
             if not errors:
                 errors.append({"rho_g_cm3": MID_RHO, "error": "F124_FIXEDJ_DIAGNOSTIC_PRECISION_FAIL",
