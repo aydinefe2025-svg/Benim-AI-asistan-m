@@ -6,12 +6,22 @@ import sys
 import unittest
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'research'/'battery_curve_audit'))
-from source_cluster_temperature_audit import evaluate, validate
+from source_cluster_temperature_audit import evaluate, validate, canonical_source_bytes, EXPECTED_SHA256
 
 SOURCE=ROOT/'research'/'battery_curve_audit'/'fixtures'/'k01_k04_k05_nine_source_27_pairs_pinned.json'
 
 class SourceClusteredAuditTests(unittest.TestCase):
     def setUp(self): self.data=json.loads(SOURCE.read_text(encoding='utf-8'))
+    def test_canonical_pinned_lf_bytes(self):
+        raw=SOURCE.read_bytes().replace(b'\r\n',b'\n')
+        self.assertEqual(canonical_source_bytes(raw),raw)
+    def test_windows_crlf_checkout_normalized(self):
+        raw=SOURCE.read_bytes().replace(b'\r\n',b'\n')
+        self.assertEqual(canonical_source_bytes(raw.replace(b'\n',b'\r\n')),raw)
+    def test_corrupted_crlf_checkout_rejected(self):
+        raw=SOURCE.read_bytes().replace(b'\r\n',b'\n')
+        with self.assertRaises(ValueError):
+            canonical_source_bytes(raw.replace(b'\n',b'\r\n')+b'changed')
     def test_real_source_summary_clusters(self):
         by_id,events=validate(self.data)
         self.assertEqual((len(by_id),len(events)),(9,4))
