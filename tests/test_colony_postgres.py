@@ -143,7 +143,9 @@ class ColonySnapshotTests(unittest.TestCase):
             def execute(self, sql, params=None):
                 params = params or ()
                 normalized = " ".join(sql.split()).upper()
-                if normalized.startswith("SELECT PG_ADVISORY_XACT_LOCK"):
+                if normalized.startswith("SELECT SET_CONFIG("):
+                    self.result = (params[0],)
+                elif normalized.startswith("SELECT PG_ADVISORY_XACT_LOCK"):
                     self.result = None
                 elif normalized.startswith("SELECT PAYLOAD FROM PRIVATE_COLONY_SNAPSHOTS"):
                     row = self.state["snapshots"].get(params[0])
@@ -190,7 +192,9 @@ class ColonySnapshotTests(unittest.TestCase):
             def execute(self, sql, params=None):
                 params = params or ()
                 normalized = " ".join(sql.split()).upper()
-                if normalized.startswith("SELECT PG_ADVISORY_XACT_LOCK"):
+                if normalized.startswith("SELECT SET_CONFIG("):
+                    self.result = (params[0],)
+                elif normalized.startswith("SELECT PG_ADVISORY_XACT_LOCK"):
                     self.result = None
                 elif normalized.startswith("SELECT PAYLOAD FROM PRIVATE_COLONY_SNAPSHOTS"):
                     row = self.state["snapshots"].get(params[0])
