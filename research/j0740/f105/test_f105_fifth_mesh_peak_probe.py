@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parent
-SPEC=importlib.util.spec_from_file_location("f105",ROOT/"f105_fourth_mesh_peak_probe.py")
+SPEC=importlib.util.spec_from_file_location("f105",ROOT/"f105_fifth_mesh_peak_probe.py")
 F=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(F)
 
 class F105Preflight(unittest.TestCase):
@@ -28,7 +28,7 @@ class F105Preflight(unittest.TestCase):
         self.assertEqual(len(previous["new_native_C_stars"]),7)
         self.assertEqual(previous["new_native_C_call_count"],71)
     def test_native_route_and_scope(self):
-        source=(ROOT/"f105_fourth_mesh_peak_probe.py").read_text()
+        source=(ROOT/"f105_fifth_mesh_peak_probe.py").read_text()
         self.assertIn('"-r"',source)
         self.assertNotIn('"-s"',source)
         self.assertIn("do not prove a continuum turning point",source.lower())
