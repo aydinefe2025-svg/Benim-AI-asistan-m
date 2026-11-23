@@ -45,7 +45,7 @@ def source_gate(source):
             "first_superluminal_source_e_geom": float(e[bad[0]])}
 
 
-def run(source, binary, out):
+def run(source, binary, out, target_j=None):
     gate = source_gate(source)
     table, _ = from_jester_npz(source, points=196)
     out = Path(out);out.parent.mkdir(parents=True,exist_ok=True)
@@ -56,14 +56,18 @@ def run(source, binary, out):
             and abs(reference["radius_eq_km"]-10.76)<.12
             and abs(reference["spin_hz"]-SPIN_HZ)<.25):
         raise ValueError("F135_ORIGINAL_APR4_C_ANCHOR_MISMATCH")
-    J = reference["J_cgs"]
+    J = float(target_j) if target_j is not None else reference["J_cgs"]
     if not 1e44 < J < 1e52:
         raise ValueError("F135_BAD_ANCHOR_J")
+    if abs(J/reference["J_cgs"]-1)>.02:
+        raise ValueError("F135_EXTERNAL_J_NOT_NEAR_THIS_STAR")
     result = {"schema":"J0740_F135_ORIGINAL_APR4_LOCAL_FIXED_J_V1",
               "source_sha256":SOURCE_SHA,"source_commit":SOURCE_COMMIT,
               "rns_commit":RNS_COMMIT,"table_sha256":digest(table_path),
               "binary_sha256":digest(binary),"source_gate":gate,
-              "anchor":reference,"target_J_cgs":J,"stars":[],
+              "anchor":reference,"target_J_cgs":J,
+              "target_J_origin":"EXTERNAL_COARSE_MESH" if target_j is not None else "DIRECT_THIS_MESH_ANCHOR",
+              "stars":[],
               "status":"IN_PROGRESS", "eos_physical_global_acceptance":"NOT_ESTABLISHED",
               "turning_point":"NOT_TESTED_ABOVE_CAUSAL_DOMAIN",
               "xpsi_photon_bayes":"NOT_RUN"}
@@ -91,7 +95,8 @@ def run(source, binary, out):
 def main():
     p=argparse.ArgumentParser();p.add_argument("--source",required=True,type=Path)
     p.add_argument("--rns",required=True,type=Path);p.add_argument("--out",required=True,type=Path)
-    a=p.parse_args();r=run(a.source,a.rns,a.out)
+    p.add_argument("--target-j",type=float)
+    a=p.parse_args();r=run(a.source,a.rns,a.out,a.target_j)
     return 0 if r["all_six_successful"] else 2
 
 
