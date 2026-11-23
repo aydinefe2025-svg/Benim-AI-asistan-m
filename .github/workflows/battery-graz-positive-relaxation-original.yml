@@ -1,0 +1,70 @@
+name: Graz 50-original-EIS positive relaxation causal-family holdout
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_eis_positive_relaxation.py'
+      - 'tests/test_graz_eis_positive_relaxation.py'
+      - '.github/workflows/battery-graz-positive-relaxation-original.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-source-positive-relaxation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Pin positive constrained relaxation solver
+        run: python -m pip install --disable-pip-version-check 'numpy==2.3.5' 'scipy==1.17.0'
+      - name: Adversarial synthetic ground truth and fail-closed physical claims
+        run: python -m unittest tests.test_graz_eis_positive_relaxation -v
+      - name: Fit exact original ten 2026 Graz publisher EIS workbooks with 50 genuinely measured spectra
+        run: python -m research.battery_curve_audit.graz_eis_positive_relaxation /tmp/50_original_source_positive_relaxations.json /tmp/50_original_source_positive_relaxations.csv
+      - name: Enforce original source hash, honest quality gates and out-of-sample frequency disjointness
+        run: |
+          python - <<'PY'
+          import json,math
+          x=json.load(open('/tmp/50_original_source_positive_relaxations.json'))
+          assert x['publisher_source_doi']=='10.5281/zenodo.18213931'
+          assert x['original_workbooks']==10 and x['original_spectra']==50
+          assert x['original_source_triplets']==5050
+          assert x['odd_even_blind_prediction_count_each_objective']==5050
+          assert x['source_documented_geometry_groups']=={'30mm':5,'180mm':5}
+          assert x['source_md5_crc_verified'] is True
+          assert x['all_nonnegative_model_coefficients'] is True
+          assert x['relaxation_kernel_count']==24
+          assert x['fixed_smoothness_regularization']==0.0003
+          assert x['relative_fitting_is_posthoc_exploratory_sensitivity'] is True
+          assert len(x['fifty_original_source_results'])==50
+          assert sum(t['original_frequency_points'] for t in x['fifty_original_source_results'])==5050
+          assert len({t['original_specimen_id'] for t in x['fifty_original_source_results']})==10
+          for t in x['fifty_original_source_results']:
+              assert len(t['original_workbook_sha256'])==64
+              for key in ('passive_relaxation_absolute_odd_even_rmse_pct',
+                          'passive_relaxation_relative_odd_even_rmse_pct',
+                          'passive_relaxation_relative_middle_band_rmse_pct'):
+                  assert math.isfinite(t[key]) and t[key]>=0
+              assert t['physical_release_allowed'] is False
+          for key in ('not_full_kk_measurement_validation','independent_lab_calibration_verified',
+                      'measured_capacity_Ah','physical_damage_causality_verified',
+                      'field_safety_certification','production_release_allowed'):
+              assert x[key] is (key=='not_full_kk_measurement_validation')
+          print('ORIGINAL_GRAZ_NONNEGATIVE_RELAXATION_SOURCE_VERIFICATION_PASS')
+          print('REAL_SOURCE_REPRODUCED_MEDIAN_METRICS',x['global_median_metrics'])
+          print('PREDECLARED_PASS_AND_EXPLORATORY_SENSITIVITY_COUNTS',
+                x['acceptance_5pct_original_absolute_count'],
+                x['exploratory_5pct_relative_count'],
+                x['exploratory_5pct_relative_contiguous_band_count'])
+          PY
+      - name: Store only redacted source-derived actual measurement evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-original-eis-positive-relaxations-50-actual-spectra
+          path: |
+            /tmp/50_original_source_positive_relaxations.json
+            /tmp/50_original_source_positive_relaxations.csv
+          retention-days: 14
+          if-no-files-found: error
