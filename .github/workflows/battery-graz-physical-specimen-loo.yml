@@ -1,0 +1,58 @@
+name: Graz original physical specimen leave-one-out EIS stage transfer
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_eis_physical_stage_transfer.py'
+      - 'tests/test_graz_eis_physical_stage_transfer.py'
+      - '.github/workflows/battery-graz-physical-specimen-loo.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-original-cell-loo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Install bounded numeric runtime
+        run: python -m pip install --disable-pip-version-check 'numpy==2.3.5'
+      - name: Test source provenance and true whole-cell holdout
+        run: python -m unittest tests.test_graz_eis_physical_stage_transfer -v
+      - name: Verify original ten publisher EIS workbooks and physical specimen holdouts
+        run: python -m research.battery_curve_audit.graz_eis_physical_stage_transfer /tmp/graz_physical_stage_transfer.json /tmp/graz_physical_stage_predictions.csv /tmp/graz_original_5050_triplets.csv
+      - name: Fail closed on provenance, leakage, missing source and physical certification
+        run: |
+          python - <<'PY'
+          import json,csv
+          r=json.load(open('/tmp/graz_physical_stage_transfer.json'))
+          assert r['original_source_workbooks']==10 and r['original_physical_specimens']==10
+          assert r['original_source_eis_triplets']==5050
+          assert r['heldout_predictions_per_mode']==40
+          assert r['source_original_md5_crc_sha256_verified']
+          assert r['source_30mm_cells']==r['source_180mm_cells']==5
+          assert len(r['per_stage_source_shift_metrics'])==40
+          assert len(r['heldout_specimen_predictions'])==80
+          assert all(x['no_test_specimen_training'] and x['source_specimen'] not in x['training_specimen_ids'] for x in r['heldout_specimen_predictions'])
+          assert not r['independent_repeat_measurement_noise_established']
+          assert not r['independent_instrument_calibration_verified']
+          assert not r['mechanical_damage_causality_proven']
+          assert not r['actual_capacity_Ah_measured']
+          assert not r['field_deployment_safety_certified']
+          assert not r['production_release_allowed']
+          assert sum(1 for _ in csv.DictReader(open('/tmp/graz_original_5050_triplets.csv')))==5050
+          assert sum(1 for _ in csv.DictReader(open('/tmp/graz_physical_stage_predictions.csv')))==80
+          print('ORIGINAL_SOURCE_TEN_PHYSICAL_CELL_LOO_PROVENANCE_AND_SAFETY_PASS')
+          PY
+      - name: Save publisher-original source-derived real evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-physical-ten-cell-loo-real-original-5050-triples
+          path: |
+            /tmp/graz_physical_stage_transfer.json
+            /tmp/graz_physical_stage_predictions.csv
+            /tmp/graz_original_5050_triplets.csv
+          retention-days: 14
+          if-no-files-found: error
