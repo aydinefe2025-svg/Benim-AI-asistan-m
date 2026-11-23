@@ -57,6 +57,20 @@ class F132Tests(unittest.TestCase):
             self.assertEqual(result["native_cs2_superluminal_count"],0)
             self.assertEqual(result["source_npz_sha256"],sha(f))
             self.assertEqual(len(rows),180)
+    def test_negative_source_cs2_is_preserved_and_counted_not_silenced(self):
+        with TemporaryDirectory() as td:
+            f=Path(td)/"WFF2.npz"
+            data=self.data()
+            data["cs2"][0]=-0.25
+            data["cs2"][1]=0.0
+            data["dloge_dlogp"][2]=-2.0
+            np.savez(f,**data)
+            result,rows=measure_one("WFF2",f,FakeLal(),FakeNative())
+            self.assertEqual(result["jester_cs2_nonpositive_count"],2)
+            self.assertEqual(result["jester_dloge_nonpositive_count"],1)
+            self.assertEqual(rows[0]["cs2_jester"],-0.25)
+            self.assertEqual(result["native_valid_points"],180)
+
     def test_nonfinite_native_and_API_missing_fail_closed(self):
         class BrokenNative(FakeNative):
             def SimNeutronStarEOSRestMassDensityOfPseudoEnthalpyGeometrized(self,h,eos):
