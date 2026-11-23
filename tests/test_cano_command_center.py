@@ -724,6 +724,101 @@ class CommandCenterTests(unittest.TestCase):
             self.assertIn("model bağlantısı", " ".join(st.messages).casefold())
 
 
+    def test_owner_backup_preflight_shows_five_verified_sections(self):
+        """Authenticated owner sees verified section status, not a false download receipt."""
+        from core.colony_postgres import ColonySnapshotStore
+        from core.cano_backup_bundle import verify_complete_portable_bundle
+
+        class EmptyQueue:
+            def list(self):
+                return []
+
+        st = FakeStreamlit()
+        owner = "owner-backup-preflight-test"
+        research = b'{"schema":"research-task-export-v1","tasks":[]}'
+        with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
+              patch.object(ColonySnapshotStore, "__init__", return_value=None),
+              patch.object(ColonySnapshotStore, "verify_schema"),
+              patch.object(ColonySnapshotStore, "load", return_value=None),
+              patch("core.cano_command_center.OrganismLabStore") as lab,
+              patch("core.cano_command_center.render_encrypted_download") as download):
+            lab.return_value.export_for_backup.return_value = []
+            render_cano_command_center(
+                st, owner_key=owner, database_url="postgresql://synthetic",
+                memories=[], research_tasks=research,
+                authorized_queue_store=EmptyQueue())
+            download.assert_called_once()
+            files = verify_complete_portable_bundle(
+                download.call_args.kwargs["plaintext"])
+            self.assertEqual(len(files), 6)
+        display = " ".join(st.messages)
+        self.assertIn("5/5", display)
+        self.assertIn("ön kontrol", display.casefold())
+        self.assertIn("indiril", display.casefold())
+        self.assertNotIn("başarıyla indirildi", display.casefold())
+
+    def test_owner_backup_preflight_refuses_malformed_research_and_clears_old_session(self):
+        """A checksum-valid yet incomplete export is not offered as a full recovery."""
+        from hashlib import sha256
+        from core.colony_postgres import ColonySnapshotStore
+
+        class EmptyQueue:
+            def list(self):
+                return []
+
+        st = FakeStreamlit()
+        owner = "owner-backup-preflight-test"
+        prefix = "_cano_secure_export_" + sha256(owner.encode("utf-8")).hexdigest()[:16]
+        st.session_state.update({
+            prefix + "_encrypted": b"previous encrypted bundle",
+            prefix + "_source_digest": "previous-records",
+            prefix + "_passphrase": "should-clear",
+            prefix + "_confirm": "should-clear",
+        })
+        with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
+              patch.object(ColonySnapshotStore, "__init__", return_value=None),
+              patch.object(ColonySnapshotStore, "verify_schema"),
+              patch.object(ColonySnapshotStore, "load", return_value=None),
+              patch("core.cano_command_center.OrganismLabStore") as lab,
+              patch("core.cano_command_center.render_encrypted_download") as download):
+            lab.return_value.export_for_backup.return_value = []
+            render_cano_command_center(
+                st, owner_key=owner, database_url="postgresql://synthetic",
+                memories=[], research_tasks=b"{}",
+                authorized_queue_store=EmptyQueue())
+            download.assert_not_called()
+        self.assertIsNone(st.session_state.get(prefix + "_encrypted"))
+        self.assertNotIn(prefix + "_source_digest", st.session_state)
+        self.assertEqual(st.session_state.get(prefix + "_passphrase"), "")
+        self.assertEqual(st.session_state.get(prefix + "_confirm"), "")
+        display = " ".join(st.messages).casefold()
+        self.assertIn("tam yedek", display)
+        self.assertNotIn("5/5", display)
+
+    def test_owner_backup_preflight_clears_stale_when_source_unavailable(self):
+        """Absent source also invalidates a prepared owner ciphertext."""
+        from hashlib import sha256
+        from core.colony_postgres import ColonySnapshotStore
+
+        st = FakeStreamlit()
+        owner = "owner-backup-preflight-test"
+        prefix = "_cano_secure_export_" + sha256(owner.encode("utf-8")).hexdigest()[:16]
+        st.session_state[prefix + "_encrypted"] = b"old ciphertext"
+        st.session_state[prefix + "_source_digest"] = "old"
+        with (patch.dict("os.environ", {"AGENT_COLONY_DB_PATH": self.db_base}),
+              patch.object(ColonySnapshotStore, "__init__", return_value=None),
+              patch.object(ColonySnapshotStore, "verify_schema"),
+              patch.object(ColonySnapshotStore, "load", return_value=None),
+              patch("core.cano_command_center.render_encrypted_download") as download):
+            render_cano_command_center(
+                st, owner_key=owner, database_url="postgresql://synthetic",
+                memories=None, research_tasks=None,
+                authorized_queue_store=None)
+            download.assert_not_called()
+        self.assertIsNone(st.session_state.get(prefix + "_encrypted"))
+        self.assertNotIn(prefix + "_source_digest", st.session_state)
+
+
     def test_authenticated_cockpit_saves_team_and_completed_mission_to_postgres(self):
         """Provider success is not durable until owner-scoped readback succeeds."""
         st = FakeStreamlit(clicks={"cano_prepare_team"})
