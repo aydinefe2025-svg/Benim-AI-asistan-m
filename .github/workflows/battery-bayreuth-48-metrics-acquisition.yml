@@ -1,0 +1,62 @@
+name: Battery Bayreuth publisher 48-cell degradation metrics acquisition
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/battery-bayreuth-48-metrics-acquisition.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  official-publisher-xlsx:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Exact checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Retrieve exact official 48-cell workbook and fail closed on identity or archive corruption
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib,urllib.request,zipfile,io
+          record='15755725'
+          url=f'https://zenodo.org/api/records/{record}'
+          request=lambda u: urllib.request.Request(u,headers={'User-Agent':'CANO-48cell-publisher-metrics-audit/1.0'})
+          with urllib.request.urlopen(request(url),timeout=65) as resp:
+              m=json.load(resp)
+          assert str(m['id'])==record and m['doi']=='10.5281/zenodo.15755725'
+          name='extracted_degradation_metrics.xlsx'
+          files=[f for f in m['files'] if f['key']==name]
+          assert len(files)==1,files
+          f=files[0]
+          assert f['checksum']=='md5:5fd14eb21e5090749eb6c369721a4c13'
+          assert 10000 < f['size'] < 500000
+          with urllib.request.urlopen(request(f'https://zenodo.org/api/records/{record}/files/{name}/content'),timeout=65) as resp:
+              b=resp.read(500001)
+          assert len(b)==f['size'] and hashlib.md5(b).hexdigest()==f['checksum'].split(':',1)[1]
+          with zipfile.ZipFile(io.BytesIO(b)) as z:
+              assert z.testzip() is None
+              names=z.namelist()
+              assert '[Content_Types].xml' in names and 'xl/workbook.xml' in names
+              assert all('..' not in x.split('/') for x in names)
+              assert sum(z.getinfo(x).file_size for x in names)<10000000
+          out=pathlib.Path('/tmp/cano_bayreuth_original_metrics')
+          out.mkdir(parents=True,exist_ok=True)
+          (out/name).write_bytes(b)
+          receipt={'source_record':record,'source_doi':m['doi'],'source_filename':name,
+                   'source_url':url,'byte_length':len(b),'official_md5':f['checksum'],
+                   'downloaded_sha256':hashlib.sha256(b).hexdigest(),'zip_crc_pass':True,
+                   'not_a_mechanical_impact_dataset':True,
+                   'population_metadata_not_same_as_nine_raw_reintegrated_cells':True}
+          (out/'publisher_origin_receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          print('OFFICIAL_PUBLISHER_METRICS_MD5_AND_ZIP_PASS',len(b),receipt['downloaded_sha256'])
+          PY
+      - name: Preserve original workbook and receipt as inspectable source evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: bayreuth-48cell-official-extracted-metrics-original-publisher
+          path: /tmp/cano_bayreuth_original_metrics/
+          retention-days: 7
+          if-no-files-found: error
