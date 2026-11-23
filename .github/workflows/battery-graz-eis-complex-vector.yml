@@ -30,7 +30,8 @@ jobs:
           assert x['original_workbook_count']==10 and x['original_spectral_triplets']==5050
           assert len(x['per_cell_95pct'])==10
           assert x['publisher_documented_diameter_groups']=={'30mm':5,'180mm':5}
-          assert all(q['95pct_median_complex_vector_pct'] + 1.e-7 >= q['95pct_median_absolute_magnitude_pct'] for q in x['per_cell_95pct']) is False or x['mathematical_reverse_triangle_all_frequencies_pass'] is True
+          assert all(q['95pct_median_complex_vector_pct']+1e-7>=q['95pct_median_absolute_magnitude_pct'] for q in x['per_cell_95pct'])
+          assert x['mathematical_reverse_triangle_all_frequencies_pass']
           for k in ('absolute_eis_calibration_verified','capacity_Ah_measured','individual_force_calibration_verified','production_release_allowed','damage_causality_proven'):
             assert x[k] is False
           print('TEN_REAL_EIS_COMPLEX_VECTOR_SPECTRA_PASS',x['total_frequency_contrasts'])
