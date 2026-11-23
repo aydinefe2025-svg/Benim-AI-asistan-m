@@ -1,17 +1,21 @@
 import datetime as dt
 import unittest
-from zoneinfo import ZoneInfo
+
 from research.battery_curve_audit import graz_five_sp_start_window_screen as m
 
 
 def synthetic_sp(local_string: str):
     local=dt.datetime.strptime(local_string,"%d_%m_%Y_%H_%M_%S")
-    ep=local.replace(tzinfo=ZoneInfo("Europe/Vienna")).timestamp()
+    ep=(local-dt.timedelta(hours=2)).replace(tzinfo=dt.timezone.utc).timestamp()
     return {"source_member":"study/Fresh cell 03/SP_test_"+local_string+"_logfile.txt",
             "first_100_line_metadata_matches":[f"Start time : {ep}"]}
 
 
 class TestSourceStartScreen(unittest.TestCase):
+    def test_source_era_summer_and_winter_offsets(self):
+        self.assertEqual(m.graz_local_from_unix(1730107830.543352).isoformat(), "2024-10-28T10:30:30.543352")
+        self.assertEqual(m.graz_local_from_unix(1756973807.604604).isoformat(), "2025-09-04T10:16:47.604604")
+
     def test_start_inside_and_outside_from_original_headers(self):
         cell={"electric_log":{"first_valid_timestamp":"2025-09-04T10:00:00",
                               "last_valid_timestamp":"2025-09-07T03:34:30"},
