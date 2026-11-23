@@ -47,7 +47,7 @@ class GrazOriginalTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             inventory(fakezip([("bad.txt",b"0"*1_000_000)]))
     def test_binary_header(self):
-        self.assertFalse(preview(b"\x00\xfe")["text"])
+        self.assertEqual(preview(b"\x00\xfe")["first_bytes_hex"],"00fe")
     def test_plain_header(self):
         self.assertTrue(preview(b"a,b\n1,2")["text"])
 if __name__=="__main__":unittest.main()
