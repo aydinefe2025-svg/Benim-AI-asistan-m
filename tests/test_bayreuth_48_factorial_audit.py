@@ -23,7 +23,7 @@ class TestSourceData(unittest.TestCase):
     def test_windows_checkout_crlf_preserves_pinned_source(self):
         with tempfile.TemporaryDirectory() as td:
             p=Path(td)/"windows-checkout.csv"
-            p.write_bytes(CSV.read_bytes().replace(b"\n", b"\r\n"))
+            p.write_bytes(CSV.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
             rows=audit.load_source_csv(p)
             self.assertEqual(len(rows),48)
             self.assertAlmostEqual(
