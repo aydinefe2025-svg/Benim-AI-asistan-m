@@ -74,10 +74,13 @@ class GrazGeometryTests(unittest.TestCase):
 
     def test_windows_checkout_crlf_normalizes_to_exact_pinned_original(self):
         original=FIXTURE.read_bytes()
-        win=original.replace(b'\n',b'\r\n')
-        self.assertNotEqual(original,win)
+        canonical=original.replace(b'\r\n',b'\n')
+        win=canonical.replace(b'\n',b'\r\n')
+        self.assertNotEqual(canonical,win)
+        self.assertEqual(mod.read_ledger(canonical),self.doc)
         self.assertEqual(mod.read_ledger(win),self.doc)
     def test_windows_checkout_with_one_source_number_changed_still_rejected(self):
-        changed=FIXTURE.read_bytes().replace(b'EIS_C02.xlsx',b'EIS_C00.xlsx').replace(b'\n',b'\r\n')
+        canonical=FIXTURE.read_bytes().replace(b'\r\n',b'\n')
+        changed=canonical.replace(b'EIS_C02.xlsx',b'EIS_C00.xlsx').replace(b'\n',b'\r\n')
         with self.assertRaises(ValueError):mod.read_ledger(changed)
 if __name__=='__main__':unittest.main()
