@@ -27,7 +27,6 @@ THRESHOLD_PCT = 5.0
 
 def validate_spectrum(spectrum):
     """Return source frequencies and measured complex Z without interpolation."""
-    import numpy as np
     if not isinstance(spectrum, (tuple, list)) or len(spectrum) < 12:
         raise ValueError('SOURCE_REVIEW_REQUIRED: insufficient original points')
     entries=[]
