@@ -69,7 +69,7 @@ jobs:
           import hashlib,json
           p=Path('rns-upstream/makefile');s=p.read_text()
           old='HIGHSIZE=-DMDIV=151 -DSDIV=301';new='HIGHSIZE=-DMDIV=201 -DSDIV=401'
-          if s.splitlines().count(old)!=1 or new in s:raise ValueError('F135_FINE_GRID_MAKEFILE_DRIFT')
+          if s.splitlines().count(old)!=1 or s.splitlines().count(new)!=0:raise ValueError('F135_FINE_GRID_MAKEFILE_DRIFT')
           p.write_text(s.replace(old,new))
           (Path('results/F135')/'fine_grid_patch.json').write_text(json.dumps({'original_makefile_sha256':hashlib.sha256(s.encode()).hexdigest(),'fine_makefile_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'old':old,'new':new,'physics_source_modified':False},indent=2)+'\n')
           PY
