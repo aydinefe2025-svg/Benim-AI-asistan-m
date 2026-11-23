@@ -1,0 +1,67 @@
+name: Graz V4 third independent trigger and real derived claim-scope audit
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_third_reference_gate.py'
+      - 'research/battery_curve_audit/graz_third_reference_stress.py'
+      - 'research/battery_curve_audit/graz_claim_scope_audit.py'
+      - 'tests/test_graz_third_reference_gate.py'
+      - 'tests/test_graz_third_reference_stress.py'
+      - 'tests/test_graz_claim_scope_audit.py'
+      - 'real_source_refs/GRAZ_FIVE_ORIGINAL_SP_ELECTRICAL_ALIGNMENT_20261123.json'
+      - 'real_source_refs/GRAZ_5_HUCRE_ELEKTRIK_KAYIT_KIMLIGI_DENETIMI_20261123.json'
+      - '.github/workflows/battery-graz-third-reference-v4.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  third-root-original-source-scope:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Refuse untrusted source and forged clock on both OSes
+        run: python -m unittest -v tests.test_graz_third_reference_gate tests.test_graz_third_reference_stress tests.test_graz_claim_scope_audit
+      - name: Match only pinned previous publisher-derived CI provenance; no new physical data
+        run: >-
+          python -m research.battery_curve_audit.graz_claim_scope_audit
+          real_source_refs/GRAZ_FIVE_ORIGINAL_SP_ELECTRICAL_ALIGNMENT_20261123.json
+          real_source_refs/GRAZ_5_HUCRE_ELEKTRIK_KAYIT_KIMLIGI_DENETIMI_20261123.json
+          graz_v4_real_claims_${{ matrix.os }}.json
+      - name: Run bounded 12-seed adversarial synthetic V4 cross-platform
+        run: python -m research.battery_curve_audit.graz_third_reference_stress graz_v4_synthetic_${{ matrix.os }}.json --seeds 12
+      - name: Explicit physical claim safety gates
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+          osname='${{ matrix.os }}'
+          real=json.loads(Path('graz_v4_real_claims_'+osname+'.json').read_text(encoding='utf8'))
+          s=json.loads(Path('graz_v4_synthetic_'+osname+'.json').read_text(encoding='utf8'))
+          assert real['original_derived_evidence_integrity_pass'] is True
+          assert real['physical_production_release_allowed'] is False
+          assert all(v['verified'] is False for v in real['scientific_claims'].values())
+          assert s['total_synthetic_samples']==14*12*5*240
+          assert s['simulation_only'] and s['physical_production_release_allowed'] is False
+          by={x['scenario']:x for x in s['scenarios']}
+          assert by['two_clock_roots_correlated_compromise']['wrong_time_accepted']==0
+          assert by['two_clock_roots_correlated_compromise']['accepted']==0
+          assert by['all_three_reference_domains_compromised']['wrong_time_accepted']>0
+          assert by['all_three_reference_domains_compromised']['physical_release_allowed'] is False
+          print('SYNTHETIC_TWO_ROOT_COMPROMISE_BLOCKED_BUT_THREE_ROOT_IS_UNSOLVABLE_WITHOUT_HARDWARE')
+      - name: Save derived bounded evidence only, never raw original waveforms or test keys
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-v4-synthetic-third-reference-${{ matrix.os }}
+          path: |
+            graz_v4_real_claims_${{ matrix.os }}.json
+            graz_v4_synthetic_${{ matrix.os }}.json
+          if-no-files-found: error
+          retention-days: 14
