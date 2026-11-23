@@ -80,6 +80,25 @@ class PowerAudit(unittest.TestCase):
         self.assertEqual(w['deviating_relative_gt_5pct_binned_by_abs_vi']['1_and_above'],150)
         self.assertEqual(w['deviating_relative_gt_5pct_with_abs_P_minus_VI_gt_0.1'],150)
 
+    def test_deviation_rows_have_exact_replayable_provenance_not_raw_readings(self):
+        rows = [f'2024-10-28_10-11-12-{i:06d},COM4,3.7,2,5.0\n' for i in range(150)]
+        with self._source_zip(rows) as z:
+            d=p.audit_electrical_member(z,z.infolist()[0],cell='02')
+        q=d['numerical_discrepancy_review_queue_rows']
+        self.assertEqual(len(q),150)
+        self.assertEqual(q[0]['original_source_line_number'],2)
+        self.assertEqual(q[-1]['original_source_line_number'],151)
+        self.assertEqual(q[0]['original_timestamp_token'],'2024-10-28_10-11-12-000000')
+        self.assertEqual(len(q[0]['original_raw_row_sha256']),64)
+        self.assertNotIn('current',q[0])
+        self.assertNotIn('power',q[0])
+        self.assertTrue(d['quarantine_is_for_joint_V_I_P_numeric_use_only'])
+
+    def test_consistent_numeric_rows_are_not_quarantined(self):
+        with self._source_zip(self._rows()) as z:
+            d=p.audit_electrical_member(z,z.infolist()[0],cell='02')
+        self.assertEqual(d['numeric_discrepancy_review_queue_count'],0)
+
     def test_no_negative_current_is_recorded_without_phase_inference(self):
         rows = [f'2024-10-28_10-11-12-{i:06d},COM3,3.7,-2,-7.4\n' for i in range(150)]
         with self._source_zip(rows) as z:
