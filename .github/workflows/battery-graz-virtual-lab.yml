@@ -1,0 +1,40 @@
+name: Graz virtual lab fail-closed synthetic stress tests
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_virtual_lab.py'
+      - 'tests/test_graz_virtual_lab.py'
+      - '.github/workflows/battery-graz-virtual-lab.yml'
+  workflow_dispatch:
+jobs:
+  simulation:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Source-identity, units, provenance and adverse-condition tests
+        run: python -m unittest tests.test_graz_virtual_lab -v
+      - name: Deterministic virtual lab and real/scenario separation
+        run: python -m research.battery_curve_audit.graz_virtual_lab virtual_lab_report.json --seeds 12
+      - name: Do not certify physical production from simulation
+        shell: python
+        run: |
+          import json
+          d=json.load(open('virtual_lab_report.json',encoding='utf-8'))
+          assert d['simulation_only'] and not d['real_source_raw_data_included']
+          assert not d['release_gates']['physical_production_release_allowed']
+          assert len(d['scenarios'])==10 and len(d['virtual_parameter_grid'])==30
+          assert next(x for x in d['scenarios'] if x['scenario']=='clock_falsely_attested_3s')['wrong_accepted']>0
+          assert d['real_publisher_observations_reference_only']['time_matched_sp_rows']==64380
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-synthetic-stress-${{ matrix.os }}
+          path: virtual_lab_report.json
+          retention-days: 7
+          if-no-files-found: error
