@@ -154,7 +154,17 @@ def compare_source_stages(tables,filename):
         if len(triplets)!=101 or [x[0] for x in triplets]!=reference:
             raise ValueError('SOURCE_REVIEW_REQUIRED: frequency grids differ within original workbook')
         r=cross_validate(triplets)
-        stages.append({'source_deformation_level':level,**r})
+        from research.battery_curve_audit import graz_eis_rlc_frequency_holdout as with_inductor
+        rich=with_inductor.cross_validate_rlc(triplets)
+        stages.append({
+            'source_deformation_level':level,**r,
+            'rlc_heldout_relative_complex_rmse_pct':rich['heldout_relative_complex_rmse_pct'],
+            'rlc_heldout_median_point_relative_complex_error_pct':rich['heldout_median_point_relative_complex_error_pct'],
+            'rlc_heldout_max_point_relative_complex_error_pct':rich['heldout_max_point_relative_complex_error_pct'],
+            'rlc_effective_inductance_fold_estimates_h':[q['series_inductance_h'] for q in rich['folds']],
+            'inductance_term_not_lab_calibrated':True,
+            'rlc_beats_simple_rc_by_rmse_pp':round(r['heldout_relative_complex_rmse_pct']-rich['heldout_relative_complex_rmse_pct'],8),
+        })
     return {'source_filename':filename,'stages':stages}
 
 def _download_originals():
@@ -207,6 +217,11 @@ def run():
                 'heldout_relative_complex_rmse_pct':stage['heldout_relative_complex_rmse_pct'],
                 'heldout_median_point_relative_complex_error_pct':stage['heldout_median_point_relative_complex_error_pct'],
                 'heldout_max_point_relative_complex_error_pct':stage['heldout_max_point_relative_complex_error_pct'],
+                'rlc_heldout_relative_complex_rmse_pct':stage['rlc_heldout_relative_complex_rmse_pct'],
+                'rlc_heldout_median_point_relative_complex_error_pct':stage['rlc_heldout_median_point_relative_complex_error_pct'],
+                'rlc_heldout_max_point_relative_complex_error_pct':stage['rlc_heldout_max_point_relative_complex_error_pct'],
+                'rlc_beats_simple_rc_by_rmse_pp':stage['rlc_beats_simple_rc_by_rmse_pp'],
+                'rlc_effective_inductance_fold_estimates_h':stage['rlc_effective_inductance_fold_estimates_h'],
                 'positive_phase_frequency_count':stage['positive_phase_frequency_count'],
                 'real_impedance_negative_frequency_count':stage['real_impedance_negative_frequency_count'],
                 'observed_frequency_count':stage['observed_frequency_count'],
@@ -224,7 +239,12 @@ def run():
         for stage in LEVELS:
             obs=[r['heldout_relative_complex_rmse_pct'] for r in observed if r['source_deformation_level']==stage]
             if len(obs)!=5:raise ValueError('SOURCE_REVIEW_REQUIRED: original specimen/stage missing')
-            med.append({'stage':stage,'five_original_cells':5,'median_heldout_relative_complex_rmse_pct':round(statistics.median(obs),8),
+            rlc_obs=[r['rlc_heldout_relative_complex_rmse_pct'] for r in observed if r['source_deformation_level']==stage]
+            med.append({'stage':stage,'five_original_cells':5,
+                'median_heldout_rc_plus_l_complex_rmse_pct':round(statistics.median(rlc_obs),8),
+                'rlc_model_better_heldout_count':sum(new<old for old,new in zip(obs,rlc_obs)),
+                'rlc_model_below_5pct_count':sum(x<5 for x in rlc_obs),
+                'median_heldout_relative_complex_rmse_pct':round(statistics.median(obs),8),
                 'individual_complex_rmse_below_5pct_count':sum(x<5.0 for x in obs)})
         groups[str(diameter)+'mm']={'spectra':len(observed),'stage_summary':med,
             'source_cell_level_validation_only':True}
@@ -243,6 +263,9 @@ def run():
         'capacity_Ah_or_post_impact_risk_measured':False,
         'one_rc_model_is_not_kk_validation':True,
         'one_rc_model_is_not_mechanistic_certification':True,
+        'rlc_inductor_effective_not_independently_calibrated':True,
+        'positive_phase_spectral_points_source_observed_only':True,
+        'rc_plus_l_not_full_eis_kk_consistency_test':True,
         'production_release_allowed':False,
         'decision':'ORIGINAL_EIS_FREQUENCY_HOLDOUT_SIMPLE_RC_FALSIFIABILITY_ONLY'
     }
@@ -258,7 +281,8 @@ def main(argv=None):
         with target.open('x',encoding='utf-8') as dest:
             json.dump(data,dest,indent=2,sort_keys=True);dest.write('\n')
         fields=['source_cell','source_documented_impactor_mm','source_deformation_level',
-                'heldout_relative_complex_rmse_pct','heldout_median_point_relative_complex_error_pct',
+                'heldout_relative_complex_rmse_pct','rlc_heldout_relative_complex_rmse_pct',
+                'rlc_beats_simple_rc_by_rmse_pp','heldout_median_point_relative_complex_error_pct',
                 'heldout_max_point_relative_complex_error_pct','positive_phase_frequency_count',
                 'real_impedance_negative_frequency_count','source_sha256']
         with csv_target.open('x',newline='',encoding='utf-8') as dest:
