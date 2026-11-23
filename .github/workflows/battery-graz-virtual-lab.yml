@@ -1,4 +1,4 @@
-name: Graz virtual lab fail-closed synthetic stress tests
+name: Graz five-source-cell virtual lab Monte Carlo
 on:
   pull_request:
     paths:
@@ -31,10 +31,11 @@ jobs:
           assert not d['release_gates']['physical_production_release_allowed']
           assert len(d['scenarios'])==10 and len(d['virtual_parameter_grid'])==30
           assert next(x for x in d['scenarios'] if x['scenario']=='clock_falsely_attested_3s')['wrong_accepted']>0
-          assert d['real_publisher_observations_reference_only']['time_matched_sp_rows']==64380
+          assert d['real_publisher_observations_reference_only']['five_source_matches_within_one_second']==204673
+          assert d['physical_cells_per_scenario']==5
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: graz-synthetic-stress-${{ matrix.os }}
+          name: graz-five-synthetic-stress-${{ matrix.os }}
           path: virtual_lab_report.json
           retention-days: 7
           if-no-files-found: error
