@@ -118,6 +118,35 @@ class EncryptedBackupUiTests(unittest.TestCase):
         self.assertIsNone(st.session_state["backup_encrypted"])
 
 
+    def test_invalid_source_clears_previous_ciphertext_and_password_fields(self):
+        password = "correct-horse-staple-cano-backup"
+        for broken_source in (b"", b"x" * (20 * 1024 * 1024 + 1)):
+            with self.subTest(source_bytes=len(broken_source)):
+                st = FakeSt(passphrase=password, confirm=password, submit=True)
+                render_encrypted_download(st, label="Download",
+                                          filename="cano.canoenc",
+                                          plaintext=b"original records", storage_key="backup")
+                self.assertIsNotNone(st.session_state["backup_encrypted"])
+                self.assertIsNotNone(st.download)
+                self.assertTrue(st.session_state["backup_source_digest"])
+
+                # An export failure must never retain a previously prepared
+                # ciphertext or sensitive form values in Streamlit session state.
+                st.session_state["backup_passphrase"] = "stale-secret"
+                st.session_state["backup_confirm"] = "stale-secret"
+                st.download = None
+                render_encrypted_download(st, label="Download",
+                                          filename="cano.canoenc",
+                                          plaintext=broken_source, storage_key="backup")
+
+                self.assertIsNone(st.download)
+                self.assertIsNone(st.session_state.get("backup_encrypted"))
+                self.assertFalse(st.session_state.get("backup_source_digest"))
+                self.assertEqual(st.session_state.get("backup_passphrase"), "")
+                self.assertEqual(st.session_state.get("backup_confirm"), "")
+                self.assertTrue(st.errors)
+
+
     def test_mismatched_password_never_offers_download(self):
         st = FakeSt(passphrase="correct-horse-staple-cano-backup",
                     confirm="different-passphrase-cano", submit=True)
