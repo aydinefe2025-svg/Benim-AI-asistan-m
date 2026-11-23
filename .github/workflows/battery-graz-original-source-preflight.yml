@@ -1,0 +1,56 @@
+name: Graz five-cell real original archive preflight
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_source_preflight.py'
+      - 'tests/test_graz_source_preflight.py'
+      - 'research/battery_curve_audit/graz_source_time_gate.py'
+      - 'tests/test_graz_source_time_gate.py'
+      - '.github/workflows/battery-graz-original-source-preflight.yml'
+  workflow_dispatch:
+
+jobs:
+  source-authentication:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Negative-source and non-conflation tests
+        run: python -m unittest tests.test_graz_source_preflight tests.test_graz_source_time_gate -v
+      - name: Download original from Zenodo; verify MD5 CRC and inventory for cells 02 and 03
+        run: python -m research.battery_curve_audit.graz_source_preflight /tmp/graz_original_cell02_03_inventory.json
+      - name: Match actual original SP epoch start to each separate electrical log time window
+        run: python -m research.battery_curve_audit.graz_source_time_gate /tmp/graz_original_cell02_03_inventory.json /tmp/graz_source_time_window_gate.json
+      - name: Preserve actual source manifest (not the raw ZIP)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-original-source-phase-inventory
+          path: |
+            /tmp/graz_original_cell02_03_inventory.json
+            /tmp/graz_source_time_window_gate.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Confirm real original source is verified; prohibit fictitious phase matches
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/graz_original_cell02_03_inventory.json'))
+          assert r['source_doi']=='10.5281/zenodo.22079387'
+          assert r['publisher_zip_md5_verified'] and r['zip_crc_verified']
+          assert r['archive_member_count']>0
+          assert r['cells']['02']['publisher_preload_kN']==1.5
+          assert r['cells']['03']['publisher_preload_kN']==3
+          assert r['measured_cell_to_cell_mismatch_rate'] is None
+          assert not r['experiment_phase_join_verified']
+          t=json.load(open('/tmp/graz_source_time_window_gate.json'))
+          assert t['all_cartesian_log_sp_pairs']==12
+          assert t['source_label_wrong_cell_pairs']==6
+          assert t['same_cell_sp_starts_outside_log']==2
+          assert t['same_cell_sp_starts_inside_log_candidates']==4
+          assert not t['experiment_phase_alignment_certified']
+          print('SOURCE_TIME_START_GATE_PASS: 4 eligible, 2 same-cell wrong-stage, 6 cross-cell wrong-ID candidates')
+          PY
