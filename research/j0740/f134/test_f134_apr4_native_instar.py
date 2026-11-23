@@ -30,6 +30,12 @@ class HiddenBad(FakeLAL):
         return 0.5 if 1.8e-10 < p < 1.9e-10 else 2.0
 
 
+class LegacySpelling:
+    SimNeutronStarEOSByName = FakeLAL.SimNeutronStarEOSByName
+    SimNeutronStarEOSEnergyDensityOfPressureGeometerized = FakeLAL.SimNeutronStarEOSEnergyDensityOfPressureGeometrized
+    SimNeutronStarEOSEnergyDensityDerivOfPressureGeometerized = FakeLAL.SimNeutronStarEOSEnergyDensityDerivOfPressureGeometrized
+
+
 class Tests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -56,6 +62,11 @@ class Tests(unittest.TestCase):
     def test_tampered_source_rejected(self):
         with self.assertRaisesRegex(ValueError,"SHA_MISMATCH"):
             f.audit(self.path,FakeLAL)
+
+    def test_lal_legacy_api_spelling(self):
+        with patch.object(f,"SOURCE_SHA",self.sha):
+            result,_=f.audit(self.path,LegacySpelling)
+        self.assertEqual(result["native_noncausal_sample_count"],0)
 
 
 if __name__ == "__main__":
