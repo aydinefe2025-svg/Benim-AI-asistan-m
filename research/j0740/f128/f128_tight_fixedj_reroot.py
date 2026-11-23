@@ -121,8 +121,8 @@ def run_point(binary: Path, eos: Path, label: str, rho: int, seed: float,
                 row.update({"status": "FAIL_CLOSED", "error": repr(exc),
                             "stdout_sha256": sha(stdout.encode()), "stderr_sha256": sha(stderr.encode())})
             prefix = outdir / f"{label}_{rho}_{key}"
-            prefix.with_suffix(".stdout.txt").write_text(stdout, encoding="utf-8")
-            prefix.with_suffix(".stderr.txt").write_text(stderr, encoding="utf-8")
+            Path(str(prefix) + ".stdout.txt").write_text(stdout, encoding="utf-8")
+            Path(str(prefix) + ".stderr.txt").write_text(stderr, encoding="utf-8")
             calls[key] = row
             with (outdir / f"{label}_{rho}_calls.jsonl").open("a", encoding="utf-8") as f:
                 f.write(json.dumps(row, sort_keys=True, allow_nan=False) + "\n")
@@ -208,7 +208,7 @@ def main() -> None:
         }
     accepted = len(results) == 4 and all(x["root"]["J_relative_error"] <= ROOT_TOL for x in results)
     receipt = {
-        "schema": "J0740_F128_TIGHT_TOLERANCE_FIXED_J_REROOt_TWO_DENSITIES_TWO_MESHES_V1",
+        "schema": "J0740_F128_TIGHT_TOLERANCE_FIXED_J_REROOT_TWO_DENSITIES_TWO_MESHES_V1",
         "status": "FOUR_TIGHT_FIXED_J_ROOTS_COMPLETE_DIAGNOSTIC_ONLY" if accepted else "FAIL_CLOSED",
         "EOS_sha256": EOS_SHA, "RNS_upstream_commit": RNS_COMMIT,
         "F124_artifact_sha256": F124_SHA, "F125_artifact_sha256": F125_SHA,
