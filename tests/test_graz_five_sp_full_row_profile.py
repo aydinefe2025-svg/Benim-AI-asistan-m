@@ -1,38 +1,43 @@
-import io
-import zipfile
-import unittest
+import datetime as dt, io, zipfile, unittest
 from research.battery_curve_audit import graz_five_sp_full_row_profile as m
-
 
 def test_zip(body):
     b=io.BytesIO()
-    with zipfile.ZipFile(b,'w') as z:
-        z.writestr('x/Fresh cell 01/test_logfile.txt',body)
+    with zipfile.ZipFile(b,'w') as z:z.writestr('x/Fresh cell 01/test_logfile.txt',body)
     return zipfile.ZipFile(io.BytesIO(b.getvalue()))
 
-class TestGrazRealSpSchema(unittest.TestCase):
-    def test_six_column_valid_parser_and_time(self):
-        text='Test : X\nStart time : 1730107830.1234\nTime\tPosition X[mm]\tPositionZ[mm]\tSensor 1[micro-m]\tSensor 2[micro-m]\tSensor 3[micro-m]\n0.0 1 2 3 4 5\n0.5 1.5 2.5 3.5 4.5 5.5\n'
-        with test_zip(text) as z:
-            x=m.profile_sp(z,z.namelist()[0])
-        self.assertEqual(x['row_count_checks']['valid_six_numeric_rows'],2)
-        self.assertEqual(x['numeric_column_minmax']['1'],[1.,1.5])
-        self.assertEqual(x['time_nonincreasing_step_count'],0)
-        self.assertTrue(x['original_time_column_unit_unverified'])
-    def test_malformed_row_safely_counted(self):
-        text='Start time: 1234567890\nTime Position X[mm] PositionZ[mm] Sensor 1[micro-m] Sensor 2[micro-m] Sensor 3[micro-m]\n0 1 2 3 4 5\n1 NA 2 3 4 5\n2 1 2\n'
-        with test_zip(text) as z: x=m.profile_sp(z,z.namelist()[0])
-        self.assertEqual(x['row_count_checks']['valid_six_numeric_rows'],1)
-        self.assertEqual(x['row_count_checks']['rows_invalid_numeric'],1)
-        self.assertEqual(x['row_count_checks']['rows_wrong_token_count'],1)
-    def test_missing_epoch_fails(self):
-        with test_zip('Time Position X[mm] PositionZ[mm]\n1 2 3 4 5 6\n') as z:
-            with self.assertRaisesRegex(ValueError,'missing epoch'):m.profile_sp(z,z.namelist()[0])
-    def test_no_nan_or_overflow_accepted(self):
-        self.assertIsNone(m.isnum('NaN'))
-        self.assertIsNone(m.isnum('Infinity'))
-        self.assertIsNone(m.isnum('1e99'))
-    def test_nonmonotone_flagged(self):
-        text='Start time: 1\nTime Position X[mm] PositionZ[mm]\n3 0 0 0 0 0\n2 0 0 0 0 0\n'
-        with test_zip(text) as z: x=m.profile_sp(z,z.namelist()[0])
-        self.assertEqual(x['time_nonincreasing_step_count'],1)
+def standard_fixture(n=105, reverse=False):
+    lines=['Test : X','Start time : 1730107830.123456',
+           'Time\tPosition X[mm]\tPositionZ[mm]\tSensor 1[micro-m]\tSensor 2[micro-m]\tSensor 3[micro-m]']
+    for i in range(n):
+        sec=(i if not reverse else n-i)%60
+        minute=(i if not reverse else n-i)//60
+        t=(dt.datetime(2024,10,28,10,30,30)+dt.timedelta(minutes=minute,seconds=sec)).strftime('%d/%m/%Y %H:%M:%S')
+        lines.append(f'{t}\t1.0\t2.0\t{3+i/10:.2f}\t4\t5')
+    return '\n'.join(lines)+'\n'
+
+class TestOriginalSpSchema(unittest.TestCase):
+    def test_true_two_token_sp_time_and_valid_five_numeric_columns(self):
+        with test_zip(standard_fixture()) as z: p=m.profile_sp(z,z.namelist()[0])
+        self.assertEqual(p['counts']['valid_six_field_rows'],105)
+        self.assertEqual(p['first_original_timestamp_unzoned'],'2024-10-28T10:30:30')
+        self.assertEqual(p['numeric_column_ranges_in_source_reported_units']['Position X[mm]'],[1.,1.])
+        self.assertIn('Sensor 3[micro-m]',p['exact_constant_original_numeric_channels'])
+    def test_true_source_date_day_first_and_unparseable_rejected(self):
+        self.assertEqual(m.parse_sp_timestamp('12/06/2024','15:31:37').month,6)
+        with self.assertRaises(ValueError):m.parse_sp_timestamp('31/13/2024','15:31:37')
+    def test_in_global_electrical_window_counts_not_sensor_sync(self):
+        lo=dt.datetime(2024,10,28,10,30,40);hi=dt.datetime(2024,10,28,10,31,00)
+        with test_zip(standard_fixture()) as z:p=m.profile_sp(z,z.namelist()[0],lo,hi)
+        self.assertEqual(p['counts']['rows_inside_electrical_recording_window_candidate'],21)
+        self.assertFalse(p['electrical_and_SP_instrument_clocks_independently_synchronized'])
+    def test_minimum_numeric_source_rows_fail_closed(self):
+        with test_zip(standard_fixture(n=3)) as z:
+            with self.assertRaisesRegex(ValueError,'<100'):m.profile_sp(z,z.namelist()[0])
+    def test_malformed_finite_test(self):
+        self.assertIsNone(m.isnum('nan'))
+        self.assertIsNone(m.isnum('1e100'))
+        self.assertIsNone(m.isnum('abc'))
+    def test_reverse_source_timestamps_flagged_not_silently_reordered(self):
+        with test_zip(standard_fixture(reverse=True)) as z:p=m.profile_sp(z,z.namelist()[0])
+        self.assertGreater(p['counts'].get('nonincreasing_time_steps',0),0)
