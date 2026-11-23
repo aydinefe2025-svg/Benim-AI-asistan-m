@@ -1,0 +1,469 @@
+{
+  "cells": [
+    {
+      "filename": "EIS_C02.xlsx",
+      "sha256": "174b3c112320c9a695fb4b6b6d24509458bd680db87564f464acf0dbdc35032e",
+      "stages": [
+        {
+          "freq_1035_2Hz": 0.0,
+          "freq_10_033Hz": 0.0,
+          "level": "0% deformation",
+          "phase_10_033Hz_deg": 0.0,
+          "spectral_median_pct": 0.0,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.238294,
+          "freq_10_033Hz": -0.316342,
+          "level": "25% deformation",
+          "phase_10_033Hz_deg": 0.07,
+          "spectral_median_pct": -0.008549,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.2234,
+          "freq_10_033Hz": -0.86476,
+          "level": "50% deformation",
+          "phase_10_033Hz_deg": 0.22,
+          "spectral_median_pct": -0.042542,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.272549,
+          "freq_10_033Hz": -1.146567,
+          "level": "75% deformation",
+          "phase_10_033Hz_deg": 0.28,
+          "spectral_median_pct": 0.020523,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": -0.220422,
+          "freq_10_033Hz": -1.65078,
+          "level": "95% deformation",
+          "phase_10_033Hz_deg": 0.39,
+          "spectral_median_pct": -0.597156,
+          "spectrum_rows": 101
+        }
+      ]
+    },
+    {
+      "filename": "EIS_C03.xlsx",
+      "sha256": "4edf9292b81b811d1825a93d1e5fd0451189f682206890bc9390920f180ce200",
+      "stages": [
+        {
+          "freq_1035_2Hz": 0.0,
+          "freq_10_033Hz": 0.0,
+          "level": "0% deformation",
+          "phase_10_033Hz_deg": 0.0,
+          "spectral_median_pct": 0.0,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.041426,
+          "freq_10_033Hz": -0.878702,
+          "level": "25% deformation",
+          "phase_10_033Hz_deg": 0.16,
+          "spectral_median_pct": -0.170002,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.02868,
+          "freq_10_033Hz": -1.088858,
+          "level": "50% deformation",
+          "phase_10_033Hz_deg": 0.22,
+          "spectral_median_pct": -0.21385,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.313884,
+          "freq_10_033Hz": -1.107193,
+          "level": "75% deformation",
+          "phase_10_033Hz_deg": 0.23,
+          "spectral_median_pct": -0.015779,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.395144,
+          "freq_10_033Hz": -1.078984,
+          "level": "95% deformation",
+          "phase_10_033Hz_deg": 0.24,
+          "spectral_median_pct": 0.059588,
+          "spectrum_rows": 101
+        }
+      ]
+    },
+    {
+      "filename": "EIS_C04.xlsx",
+      "sha256": "ee7f0100a7c4c04409746e15aea29ad289b80bcfba9129617e2752c6542afa4f",
+      "stages": [
+        {
+          "freq_1035_2Hz": 0.0,
+          "freq_10_033Hz": 0.0,
+          "level": "0% deformation",
+          "phase_10_033Hz_deg": 0.0,
+          "spectral_median_pct": 0.0,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.010534,
+          "freq_10_033Hz": -0.877871,
+          "level": "25% deformation",
+          "phase_10_033Hz_deg": 0.16,
+          "spectral_median_pct": -0.20562,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.040631,
+          "freq_10_033Hz": -1.153171,
+          "level": "50% deformation",
+          "phase_10_033Hz_deg": 0.24,
+          "spectral_median_pct": -0.186171,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.219711,
+          "freq_10_033Hz": -1.27818,
+          "level": "75% deformation",
+          "phase_10_033Hz_deg": 0.29,
+          "spectral_median_pct": -0.083234,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.353644,
+          "freq_10_033Hz": -1.428471,
+          "level": "95% deformation",
+          "phase_10_033Hz_deg": 0.32,
+          "spectral_median_pct": 0.022412,
+          "spectrum_rows": 101
+        }
+      ]
+    },
+    {
+      "filename": "EIS_C05.xlsx",
+      "sha256": "a85e7a263438ad5fa7ac6abff79a530ff4012a2dab2f0bca57585b258f9e5b75",
+      "stages": [
+        {
+          "freq_1035_2Hz": 0.0,
+          "freq_10_033Hz": 0.0,
+          "level": "0% deformation",
+          "phase_10_033Hz_deg": 0.0,
+          "spectral_median_pct": 0.0,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.04522,
+          "freq_10_033Hz": -0.681881,
+          "level": "25% deformation",
+          "phase_10_033Hz_deg": 0.14,
+          "spectral_median_pct": -0.0472,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.536803,
+          "freq_10_033Hz": -0.669357,
+          "level": "50% deformation",
+          "phase_10_033Hz_deg": 0.17,
+          "spectral_median_pct": 0.13026,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.570353,
+          "freq_10_033Hz": -0.627609,
+          "level": "75% deformation",
+          "phase_10_033Hz_deg": 0.18,
+          "spectral_median_pct": 0.228997,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.761444,
+          "freq_10_033Hz": -0.670749,
+          "level": "95% deformation",
+          "phase_10_033Hz_deg": 0.22,
+          "spectral_median_pct": 0.363356,
+          "spectrum_rows": 101
+        }
+      ]
+    },
+    {
+      "filename": "EIS_C06.xlsx",
+      "sha256": "1a9c619e84e42a6b045afbf143968279d591f8e8cfb5d28904f885ef448e35ed",
+      "stages": [
+        {
+          "freq_1035_2Hz": 0.0,
+          "freq_10_033Hz": 0.0,
+          "level": "0% deformation",
+          "phase_10_033Hz_deg": 0.0,
+          "spectral_median_pct": 0.0,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.101296,
+          "freq_10_033Hz": 0.002839,
+          "level": "25% deformation",
+          "phase_10_033Hz_deg": 0.0,
+          "spectral_median_pct": 0.038024,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.192743,
+          "freq_10_033Hz": -0.57357,
+          "level": "50% deformation",
+          "phase_10_033Hz_deg": 0.13,
+          "spectral_median_pct": 0.036029,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.21244,
+          "freq_10_033Hz": -0.846158,
+          "level": "75% deformation",
+          "phase_10_033Hz_deg": 0.21,
+          "spectral_median_pct": 0.083766,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.374231,
+          "freq_10_033Hz": -1.154239,
+          "level": "95% deformation",
+          "phase_10_033Hz_deg": 0.28,
+          "spectral_median_pct": 0.163416,
+          "spectrum_rows": 101
+        }
+      ]
+    },
+    {
+      "filename": "EIS_C09.xlsx",
+      "sha256": "acb16d377b93bf3712fd1815d34b8749f020d60db44651ee4c5e09db1da80bfb",
+      "stages": [
+        {
+          "freq_1035_2Hz": 0.0,
+          "freq_10_033Hz": 0.0,
+          "level": "0% deformation",
+          "phase_10_033Hz_deg": 0.0,
+          "spectral_median_pct": 0.0,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.04236,
+          "freq_10_033Hz": 1.26908,
+          "level": "25% deformation",
+          "phase_10_033Hz_deg": -0.21,
+          "spectral_median_pct": 0.353103,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.20854,
+          "freq_10_033Hz": 1.566836,
+          "level": "50% deformation",
+          "phase_10_033Hz_deg": -0.22,
+          "spectral_median_pct": 0.595841,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.547418,
+          "freq_10_033Hz": 2.18114,
+          "level": "75% deformation",
+          "phase_10_033Hz_deg": -0.2,
+          "spectral_median_pct": 1.218274,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 1.619446,
+          "freq_10_033Hz": 2.67692,
+          "level": "95% deformation",
+          "phase_10_033Hz_deg": -0.11,
+          "spectral_median_pct": 2.439872,
+          "spectrum_rows": 101
+        }
+      ]
+    },
+    {
+      "filename": "EIS_C10.xlsx",
+      "sha256": "73f9b7fc1b9e087d1cb49901a1137d3abac325914fc88fb3b4b284aead682288",
+      "stages": [
+        {
+          "freq_1035_2Hz": 0.0,
+          "freq_10_033Hz": 0.0,
+          "level": "0% deformation",
+          "phase_10_033Hz_deg": 0.0,
+          "spectral_median_pct": 0.0,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.069305,
+          "freq_10_033Hz": 0.5551,
+          "level": "25% deformation",
+          "phase_10_033Hz_deg": -0.07,
+          "spectral_median_pct": 0.176241,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.233701,
+          "freq_10_033Hz": 0.84011,
+          "level": "50% deformation",
+          "phase_10_033Hz_deg": -0.05,
+          "spectral_median_pct": 0.496091,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.498026,
+          "freq_10_033Hz": 1.387749,
+          "level": "75% deformation",
+          "phase_10_033Hz_deg": -0.04,
+          "spectral_median_pct": 1.053576,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.880006,
+          "freq_10_033Hz": 1.272849,
+          "level": "95% deformation",
+          "phase_10_033Hz_deg": 0.02,
+          "spectral_median_pct": 1.11636,
+          "spectrum_rows": 101
+        }
+      ]
+    },
+    {
+      "filename": "EIS_C11.xlsx",
+      "sha256": "bc2817e38704bef7cb1759a0ec6885b73044b757066ca0ea74461c16e67c73ca",
+      "stages": [
+        {
+          "freq_1035_2Hz": 0.0,
+          "freq_10_033Hz": 0.0,
+          "level": "0% deformation",
+          "phase_10_033Hz_deg": 0.0,
+          "spectral_median_pct": 0.0,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.567324,
+          "freq_10_033Hz": 1.266347,
+          "level": "25% deformation",
+          "phase_10_033Hz_deg": -0.21,
+          "spectral_median_pct": 1.232452,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.599246,
+          "freq_10_033Hz": 1.436476,
+          "level": "50% deformation",
+          "phase_10_033Hz_deg": -0.18,
+          "spectral_median_pct": 1.304228,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.843006,
+          "freq_10_033Hz": 1.852181,
+          "level": "75% deformation",
+          "phase_10_033Hz_deg": -0.15,
+          "spectral_median_pct": 1.529267,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.838654,
+          "freq_10_033Hz": 2.034144,
+          "level": "95% deformation",
+          "phase_10_033Hz_deg": -0.11,
+          "spectral_median_pct": 1.793178,
+          "spectrum_rows": 101
+        }
+      ]
+    },
+    {
+      "filename": "EIS_C12.xlsx",
+      "sha256": "7e1e84e75d77a5d09b38c12ba45a1d00b942e43524cc85d65441973dcdef193b",
+      "stages": [
+        {
+          "freq_1035_2Hz": 0.0,
+          "freq_10_033Hz": 0.0,
+          "level": "0% deformation",
+          "phase_10_033Hz_deg": 0.0,
+          "spectral_median_pct": 0.0,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.137195,
+          "freq_10_033Hz": 0.696879,
+          "level": "25% deformation",
+          "phase_10_033Hz_deg": -0.1,
+          "spectral_median_pct": 0.275243,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.363864,
+          "freq_10_033Hz": 1.041651,
+          "level": "50% deformation",
+          "phase_10_033Hz_deg": -0.09,
+          "spectral_median_pct": 0.540512,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.62185,
+          "freq_10_033Hz": 1.671044,
+          "level": "75% deformation",
+          "phase_10_033Hz_deg": -0.08,
+          "spectral_median_pct": 1.147088,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 1.95055,
+          "freq_10_033Hz": 2.35912,
+          "level": "95% deformation",
+          "phase_10_033Hz_deg": 0.01,
+          "spectral_median_pct": 2.267228,
+          "spectrum_rows": 101
+        }
+      ]
+    },
+    {
+      "filename": "EIS_C13.xlsx",
+      "sha256": "3f3d0f306e3c933c05ccc37c3c801ab63f97ad3bd05be1cc2dd3ae300b02b77e",
+      "stages": [
+        {
+          "freq_1035_2Hz": 0.0,
+          "freq_10_033Hz": 0.0,
+          "level": "0% deformation",
+          "phase_10_033Hz_deg": 0.0,
+          "spectral_median_pct": 0.0,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.155786,
+          "freq_10_033Hz": 0.146564,
+          "level": "25% deformation",
+          "phase_10_033Hz_deg": 0.02,
+          "spectral_median_pct": 0.112572,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.265413,
+          "freq_10_033Hz": -0.259628,
+          "level": "50% deformation",
+          "phase_10_033Hz_deg": 0.15,
+          "spectral_median_pct": 0.05078,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 0.388022,
+          "freq_10_033Hz": -0.089334,
+          "level": "75% deformation",
+          "phase_10_033Hz_deg": 0.26,
+          "spectral_median_pct": 0.297628,
+          "spectrum_rows": 101
+        },
+        {
+          "freq_1035_2Hz": 1.416496,
+          "freq_10_033Hz": -0.10748,
+          "level": "95% deformation",
+          "phase_10_033Hz_deg": 0.44,
+          "spectral_median_pct": 0.651516,
+          "spectrum_rows": 101
+        }
+      ]
+    }
+  ],
+  "schema": "cano.graz.eis.geometry.source-derived-verified-v1",
+  "source": "github-pr-829-real-zenodo-18213931-original-10-workbooks",
+  "source_artifact_sha256": "44f70afbdf1b0e0e8bb7af0599ff46c60e9b1514baaa4cf5e5f83faa5d04ad43",
+  "source_doi": "10.5281/zenodo.18213931",
+  "source_json_sha256": "c91db82290a0dd788172ac612e2449b37318f18c7889523968f9f45dc641a3b5"
+}
