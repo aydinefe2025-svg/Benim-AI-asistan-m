@@ -66,6 +66,7 @@ def inspect_tsuru_timeseries(z):
     totals = collections.Counter()
     review_sheets = 0
     sample = {}
+    per_sheet = {}
     for sheet in wb.findall(NS + "sheets/" + NS + "sheet"):
         label = sheet.get("name")
         target = links[sheet.get(R + "id")]
@@ -74,6 +75,7 @@ def inspect_tsuru_timeseries(z):
         sheet_rows = ET.fromstring(z.read(path)).findall(NS + "sheetData/" + NS + "row")
         flight = not label.startswith(("Test1", "Test2"))
         n = 0
+        sheet_complete = 0
         first_prefix = 0
         last_time = None
         for xml_row in sheet_rows[1:]:
@@ -92,6 +94,7 @@ def inspect_tsuru_timeseries(z):
             n += 1
             complete = all(a in values for a in fields)
             totals["complete_numeric_rows"] += int(complete)
+            sheet_complete += int(complete)
             if flight:
                 totals["flight_rows"] += 1
                 if first_prefix == n - 1 and complete and (n == 1 or (last_time is not None and values["A"] > last_time)):
@@ -101,6 +104,7 @@ def inspect_tsuru_timeseries(z):
                 if label == "August 26" and not complete:
                     sample["aug26_incomplete_rows"] = sample.get("aug26_incomplete_rows", 0) + 1
             last_time = values.get("A")
+        per_sheet[label] = {"raw_rows":n, "complete":sheet_complete, "prefix":first_prefix}
         if flight:
             totals["flight_prefix_rows"] += first_prefix
             totals["flight_review_suffix_rows"] += n - first_prefix
@@ -112,6 +116,7 @@ def inspect_tsuru_timeseries(z):
             totals["test_rows"] += n
     expected = {"complete_numeric_rows":25653, "flight_rows":24911, "flight_prefix_rows":23266, "flight_review_suffix_rows":1645, "test_rows":1112}
     observed = dict(totals)
+    print("TSURU_DEEP_QC_DIAGNOSTIC=" + json.dumps({"totals": observed, "review_sheets": review_sheets, "sample": sample, "per_sheet": per_sheet}, sort_keys=True))
     for key, value in expected.items():
         assert observed.get(key) == value, "TSURU original numeric QC mismatch " + key + ": " + repr(observed.get(key))
     assert review_sheets == 14
