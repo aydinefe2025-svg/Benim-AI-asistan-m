@@ -4,6 +4,8 @@ on:
     paths:
       - research/tsuru_agv_real_source_ci.py
       - research/birds_eps_constellation_qc.py
+      - research/agv_temp_stratified_qc.py
+      - research/test_agv_temp_stratified_qc.py
       - .github/workflows/tsuru-agv-real-source-replay.yml
   workflow_dispatch:
 
@@ -27,6 +29,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python research/birds_eps_constellation_qc.py
+      - name: Test matched-temperature algorithm with synthetic controls
+        run: python -m unittest discover -s research -p 'test_agv_temp_stratified_qc.py' -v
+      - name: Verify AGV source again and audit temperature-matched year contrasts
+        run: python research/agv_temp_stratified_qc.py
       - name: Retain independently inspectable source replay receipt
         if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -35,5 +41,6 @@ jobs:
           path: |
             TSURU_AGV_REAL_SOURCE_CI_RECEIPT.json
             BIRDS_FOUR_EPS_CI_RECEIPT.json
+            AGV_TEMP_MATCHED_REAL_SOURCE_RECEIPT.json
           if-no-files-found: error
           retention-days: 30
