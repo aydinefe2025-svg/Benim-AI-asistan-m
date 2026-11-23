@@ -32,14 +32,27 @@ jobs:
           assert d['source_zip_crc_all_members_pass']
           for cell in ('01','02','03','04','05'):
               assert len(d['cells'][cell]['SP'])==3
-          assert d['sp_valid_numeric_rows']>100, 'true SP measurement numeric parser not yet validated'
-          for field in ('real_electrical_sp_signal_overlap_unverified',
-                        'source_time_unit_not_independently_proven',
-                        'individual_force_calibration_not_proven',
-                        'absolute_capacity_not_calculated', 'impact_not_applied',
-                        'physical_causal_preload_inference_not_supported'):
-              assert d[field] is True
-          print('GRAZ_SP_REAL_NUMERIC_ROWS_REQUIRING_UNITS_CAUTION',d['sp_valid_numeric_rows'])
+          assert d['sp_valid_numeric_rows']==234021, 'publisher original row count changed'
+          assert d['sp_rows_inside_electrical_global_time_windows_candidate']==204673
+          for cell, group in d['cells'].items():
+              for f in group['SP']:
+                  assert f['counts']['valid_six_field_rows']>=10000
+                  assert f['counts']['post_header_lines']==f['counts']['valid_six_field_rows']
+                  assert f['counts'].get('nonincreasing_time_steps',0)==0
+                  assert 'Sensor 3[micro-m]' in f['exact_constant_original_numeric_channels']
+                  assert not f['electrical_and_SP_instrument_clocks_independently_synchronized']
+          assert sum(f['counts'].get('rows_inside_electrical_recording_window_candidate',0)
+                     for f in d['cells']['03']['SP'])==17525
+          for field in ('timezone_and_interinstrument_clock_sync_unverified',
+                        'source_sensor_absolute_calibration_unverified',
+                        'capacity_and_SOH_not_recomputed',
+                        'dynamic_impact_not_applied',
+                        'causal_preload_effect_not_identified',
+                        'dataset_separate_from_graz_4_cell_18315429'):
+              assert d[field] is True, field
+          print('GRAZ_SP_15_GENUINE_SOURCE_ROW_SCHEMAS_VERIFIED',
+                d['sp_valid_numeric_rows'],
+                d['sp_rows_inside_electrical_global_time_windows_candidate'])
           PY
       - name: Publish audited summary, never redistribute publisher raw source
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
