@@ -44,6 +44,11 @@ jobs:
           assert d['original_zip_sha256']=='5627a1606b8e378de0e4e4ced99222509bcbbcb725d26da6e7a5fad34aa42fc7'
           assert d['official_publisher_md5_verified'] is True and d['original_archive_crc_verified'] is True
           assert d['real_electrical_rows']==1091337
+          assert d['numeric_review_queue_total_rows']==1900
+          assert d['source_numeric_full_scan_eligible_vi_rows']==382481
+          assert d['all_numeric_discrepancy_rows_have_source_line_and_sha256'] is True
+          assert sum(d['cells'][c]['per_device_full_original_nonzero_vi_consistency']['COM4']['deviating_with_near_zero_numeric_power'] for c in d['cells'])==1900
+          assert all(d['cells'][c]['per_device_full_original_nonzero_vi_consistency']['COM3']['numerically_near_ratio_1_5pct_rows']==d['cells'][c]['per_device_full_original_nonzero_vi_consistency']['COM3']['eligible_nonzero_vi_rows'] for c in d['cells'])
           assert set(d['cells'])=={'01','02','03','04','05'}
           assert all(d['cells'][cell]['genuine_original_row_count']>=100 for cell in d['cells'])
           assert all(d['cells'][cell]['calibrated_current_unit_A'] is False for cell in d['cells'])
