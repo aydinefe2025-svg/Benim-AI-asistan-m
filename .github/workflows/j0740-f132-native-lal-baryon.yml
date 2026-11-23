@@ -1,0 +1,64 @@
+name: J0740 F132 original seven EOS source-native LAL rest-mass vs approximate n
+on:
+  pull_request:
+    branches: [science/j0740-apr4-firstlaw-gr-pilot-20261117]
+    paths:
+      - 'research/j0740/f132/**'
+      - '.github/workflows/j0740-f132-native-lal-baryon.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  seven_native_lal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned official native LAL simulation and NumPy
+        run: |
+          set -euo pipefail
+          python -m pip install 'numpy==2.3.5' 'lalsuite==7.26.16'
+          python - <<'PY'
+          import lal, lalsimulation as lalsim
+          for key in ['SimNeutronStarEOSByName','SimNeutronStarEOSRestMassDensityOfPseudoEnthalpyGeometrized']:
+              if not hasattr(lalsim,key):
+                  raise RuntimeError('REQUIRED_LAL_REST_MASS_API_MISSING:'+key)
+          print('F132_NATIVE_LAL_API_AVAILABLE', getattr(lal,'__version__','unknown'))
+          PY
+      - name: Verify unmodified original upstream JESTER source commit and seven files
+        run: |
+          set -euo pipefail
+          test "$(git -C jester-upstream rev-parse HEAD)" = 'e6768650ce992abfd1153a6833857572fe5cd230'
+          for name in APR4_EPP ENG MPA1 MS1 MS1B WFF1 WFF2; do
+            test -s "jester-upstream/jesterTOV/tabulated_eos/lalsuite/$name.npz"
+            sha256sum "jester-upstream/jesterTOV/tabulated_eos/lalsuite/$name.npz"
+          done | tee J0740_F132_UPSTREAM_SEVEN_SOURCE_SHA256.txt
+      - name: Fail-closed independent API and source-data regression tests
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f132 -p 'test_f132*.py' -v
+      - name: Run genuine LAL native EOS thermo vs unmodified JESTER source for all seven EOS
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f132/f132_native_rest_mass_density.py \
+            --jester-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --out-dir results/F132/ 2>&1 | tee J0740_F132_REAL_LAL_EXECUTION_LOG.txt
+      - name: Archive every native result and source SHA even if a model fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F132-original-seven-native-LAL-restmass-vs-approx
+          path: |
+            results/F132/
+            J0740_F132_UPSTREAM_SEVEN_SOURCE_SHA256.txt
+            J0740_F132_REAL_LAL_EXECUTION_LOG.txt
+          if-no-files-found: warn
