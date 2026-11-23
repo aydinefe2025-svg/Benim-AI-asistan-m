@@ -4,6 +4,8 @@ on:
     paths:
       - research/tsuru_agv_real_source_ci.py
       - research/birds_eps_constellation_qc.py
+      - research/birds_published_panel_rules.py
+      - research/test_birds_published_panel_rules.py
       - research/agv_temp_stratified_qc.py
       - research/test_agv_temp_stratified_qc.py
       - research/agv_day_cluster_common_support.py
@@ -45,6 +47,12 @@ jobs:
         run: python -m unittest discover -s research -p 'test_agv_month_pair_block_sensitivity.py' -v
       - name: Audit original AGV with paired-month block sensitivity and retain numerical receipt
         run: python research/agv_month_pair_block_sensitivity.py
+      - name: Test published panel alert boundaries with controlled synthetic rows
+        run: python -m unittest discover -s research -p 'test_birds_published_panel_rules.py' -v
+      - name: Reproduce literature screen on all four original BIRDS EPS sources
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python research/birds_published_panel_rules.py
       - name: Retain independently inspectable source replay receipt
         if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -53,6 +61,7 @@ jobs:
           path: |
             TSURU_AGV_REAL_SOURCE_CI_RECEIPT.json
             BIRDS_FOUR_EPS_CI_RECEIPT.json
+            BIRDS_FOUR_PUBLISHED_PANEL_RULES_SCREEN_RECEIPT.json
             AGV_TEMP_MATCHED_REAL_SOURCE_RECEIPT.json
             AGV_DAY_CLUSTER_COMMON_SUPPORT_RECEIPT.json
             AGV_PAIRED_MONTH_BLOCK_SENSITIVITY_RECEIPT.json
@@ -87,6 +96,12 @@ jobs:
         run: python -m unittest discover -s research -p 'test_agv_month_pair_block_sensitivity.py' -v
       - name: Replay original AGV paired-month block sensitivity on Windows
         run: python research/agv_month_pair_block_sensitivity.py
+      - name: Test published panel alert boundaries with controlled synthetic rows
+        run: python -m unittest discover -s research -p 'test_birds_published_panel_rules.py' -v
+      - name: Reproduce literature screen on all four original BIRDS EPS sources
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python research/birds_published_panel_rules.py
       - name: Retain Windows source replay proof
         if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -95,6 +110,7 @@ jobs:
           path: |
             TSURU_AGV_REAL_SOURCE_CI_RECEIPT.json
             BIRDS_FOUR_EPS_CI_RECEIPT.json
+            BIRDS_FOUR_PUBLISHED_PANEL_RULES_SCREEN_RECEIPT.json
             AGV_TEMP_MATCHED_REAL_SOURCE_RECEIPT.json
             AGV_DAY_CLUSTER_COMMON_SUPPORT_RECEIPT.json
             AGV_PAIRED_MONTH_BLOCK_SENSITIVITY_RECEIPT.json
