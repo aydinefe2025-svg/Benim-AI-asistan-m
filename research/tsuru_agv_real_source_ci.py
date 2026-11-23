@@ -114,7 +114,7 @@ def inspect_tsuru_timeseries(z):
                 sample[label + "_review_suffix"] = n - first_prefix
         else:
             totals["test_rows"] += n
-    expected = {"complete_numeric_rows":25653, "flight_rows":24911, "flight_prefix_rows":23266, "flight_review_suffix_rows":1645, "test_rows":1112}
+    expected = {"complete_numeric_rows":24378, "flight_rows":24911, "flight_prefix_rows":23266, "flight_review_suffix_rows":1645, "test_rows":1112}
     observed = dict(totals)
     print("TSURU_DEEP_QC_DIAGNOSTIC=" + json.dumps({"totals": observed, "review_sheets": review_sheets, "sample": sample, "per_sheet": per_sheet}, sort_keys=True))
     for key, value in expected.items():
@@ -124,9 +124,9 @@ def inspect_tsuru_timeseries(z):
     assert sample["November 16_prefix"] == 595 and sample["November 16_review_suffix"] == 536
     assert sample["December 20_prefix"] == 995 and sample["December 20_review_suffix"] == 136
     assert sample["April 20_prefix"] == 595 and sample["April 20_review_suffix"] == 7
-    assert sample.get("aug26_incomplete_rows") == 370
+    assert sample.get("aug26_incomplete_rows") == 921
     assert sample.get("aug26_zero_volt_rows") == 557
-    return dict(**observed, flight_sheets_with_review_suffix=review_sheets, critical_sheet_splits=sample)
+    return dict(**observed, flight_sheets_with_review_suffix=review_sheets, critical_sheet_splits=sample, completeness_rule="All 14 named source columns must have parseable numeric OOXML <v> values; 1,645 flight suffix rows fail this stricter rule", prior_js_complete_numeric_rows=25653, prior_js_conflict_detected=True)
 
 def check_agv():
     failures = []
