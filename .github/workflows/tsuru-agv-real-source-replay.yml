@@ -4,6 +4,8 @@ on:
     paths:
       - research/tsuru_agv_real_source_ci.py
       - research/birds_eps_constellation_qc.py
+      - research/birds_manuscript_population_guard.py
+      - research/test_birds_manuscript_population_guard.py
       - research/birds_published_panel_rules.py
       - research/test_birds_published_panel_rules.py
       - research/agv_temp_stratified_qc.py
@@ -35,6 +37,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python research/birds_eps_constellation_qc.py
+      - name: Confirm 2022 paper's 8439 manually labelled samples do not match current original source population
+        run: |
+          python -m unittest discover -s research -p 'test_birds_manuscript_population_guard.py' -v
+          python research/birds_manuscript_population_guard.py
       - name: Test matched-temperature algorithm with synthetic controls
         run: python -m unittest discover -s research -p 'test_agv_temp_stratified_qc.py' -v
       - name: Verify AGV source again and audit temperature-matched year contrasts
@@ -61,6 +67,7 @@ jobs:
           path: |
             TSURU_AGV_REAL_SOURCE_CI_RECEIPT.json
             BIRDS_FOUR_EPS_CI_RECEIPT.json
+            BIRDS_2022_PAPER_POPULATION_CONCORDANCE_RECEIPT.json
             BIRDS_FOUR_PUBLISHED_PANEL_RULES_SCREEN_RECEIPT.json
             AGV_TEMP_MATCHED_REAL_SOURCE_RECEIPT.json
             AGV_DAY_CLUSTER_COMMON_SUPPORT_RECEIPT.json
@@ -84,6 +91,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python research/birds_eps_constellation_qc.py
+      - name: Confirm 2022 paper's 8439 manually labelled samples do not match current original source population
+        run: |
+          python -m unittest discover -s research -p 'test_birds_manuscript_population_guard.py' -v
+          python research/birds_manuscript_population_guard.py
       - name: Run temperature sensitivity regression controls on Windows
         run: python -m unittest discover -s research -p 'test_agv_temp_stratified_qc.py' -v
       - name: Reproduce AGV temperature-stratified original-source contrast on Windows
@@ -110,6 +121,7 @@ jobs:
           path: |
             TSURU_AGV_REAL_SOURCE_CI_RECEIPT.json
             BIRDS_FOUR_EPS_CI_RECEIPT.json
+            BIRDS_2022_PAPER_POPULATION_CONCORDANCE_RECEIPT.json
             BIRDS_FOUR_PUBLISHED_PANEL_RULES_SCREEN_RECEIPT.json
             AGV_TEMP_MATCHED_REAL_SOURCE_RECEIPT.json
             AGV_DAY_CLUSTER_COMMON_SUPPORT_RECEIPT.json
