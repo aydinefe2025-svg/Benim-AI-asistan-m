@@ -89,9 +89,14 @@ def verify_original_readme(metadata:dict, raw:bytes)->dict:
 
 
 def read_ledger(blob:bytes)->dict:
-    if not isinstance(blob,bytes) or hashlib.sha256(blob).hexdigest()!=LEDGER_SHA:
+    if not isinstance(blob,bytes):
+        raise ValueError('SOURCE_REVIEW_REQUIRED: untrusted ledger type')
+    # Windows Git checkouts can replace LF with CRLF; allow ONLY that reversible
+    # line-ending conversion, then still enforce the immutable original digest.
+    canonical=blob if hashlib.sha256(blob).hexdigest()==LEDGER_SHA else blob.replace(b'\r\n',b'\n')
+    if hashlib.sha256(canonical).hexdigest()!=LEDGER_SHA:
         raise ValueError('SOURCE_REVIEW_REQUIRED: prior source-derived ledger SHA changed')
-    try: doc=json.loads(blob)
+    try: doc=json.loads(canonical)
     except (ValueError,UnicodeDecodeError) as e:raise ValueError('SOURCE_REVIEW_REQUIRED: invalid ledger') from e
     if doc.get('source_artifact_sha256')!=PARENT_ARTIFACT_SHA or doc.get('source_doi')!=DOI:
         raise ValueError('SOURCE_REVIEW_REQUIRED: ledger source detached')
