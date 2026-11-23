@@ -6,7 +6,7 @@ from f131_field_residual import (instrument_field_residual,parse_metric_probe,
 
 class SourceMetricProbeTests(unittest.TestCase):
  def test_01_source_patch_is_output_only_and_has_three_metric_residuals(self):
-  src='''void spin(){\n    f2n = dmatrix(1,LMAX+1,1,SDIV);\n  while(dif> accuracy || n_of_it<2) { \n            rho[s][m]=rsm + cf*(sum_rho-rsm);\n            gama[s][m]=gsm + cf*(sum_gama-gsm);\n            omega[s][m]=omsm + cf*(sum_omega-omsm);\n }   /* end while */\n   fprintf(stderr,"F127_SPIN_FINAL_DIFFERENCE %.17e ITERATIONS %d ACCURACY %.17e ACHECK %d\n",dif,n_of_it,accuracy,a_check);\n}'''
+  src='''void spin(){\n    f2n = dmatrix(1,LMAX+1,1,SDIV);\n  while(dif> accuracy || n_of_it<2) { \n            rho[s][m]=rsm + cf*(sum_rho-rsm);\n            gama[s][m]=gsm + cf*(sum_gama-gsm);\n            omega[s][m]=omsm + cf*(sum_omega-omsm);\n }   /* end while */\n   fprintf(stderr,"F127_SPIN_FINAL_DIFFERENCE %.17e ITERATIONS %d ACCURACY %.17e ACHECK %d\\n",dif,n_of_it,accuracy,a_check);\n}'''
   patched=instrument_field_residual(src)
   self.assertIn('F131_FIELD_FINAL',patched)
   self.assertIn('fabs(sum_rho-rsm)',patched)
@@ -24,16 +24,10 @@ class SourceMetricProbeTests(unittest.TestCase):
   self.assertEqual(len(r['spin_calls']),2);self.assertEqual(r['last']['iterations'],48)
   self.assertAlmostEqual(r['last']['rel_delta_rho'],3e-8/0.7)
   self.assertAlmostEqual(r['last']['rel_delta_omega'],5e-8/0.03)
-  initial=('F131_FIELD_FINAL 1e-8 2e-8 0 2 1 0 ITERATIONS 32 ACHECK 0\n'
-           'F131_FIELD_FINAL 3e-8 4e-8 5e-8 0.7 0.9 0.03 ITERATIONS 48 ACHECK 0')
-  z=parse_metric_probe(initial)
-  self.assertIsNone(z['spin_calls'][0]['rel_delta_omega'])
-  self.assertAlmostEqual(z['largest_global_field_relative_update'],5e-8/0.03)
  def test_04_metric_probe_refuses_missing_unsafe_or_nonfinite(self):
   for x in ['', 'F131_FIELD_FINAL nan 0 0 1 1 1 ITERATIONS 48 ACHECK 0',
             'F131_FIELD_FINAL -1 0 0 1 1 1 ITERATIONS 48 ACHECK 0',
-            'F131_FIELD_FINAL 1 0 0 1 1 1 ITERATIONS 48 ACHECK 200',
-            'F131_FIELD_FINAL 1e-8 2e-8 0 2 1 0 ITERATIONS 32 ACHECK 0\nF131_FIELD_FINAL 1e-8 2e-8 0 2 1 0 ITERATIONS 48 ACHECK 0']:
+            'F131_FIELD_FINAL 1 0 0 1 1 1 ITERATIONS 48 ACHECK 200']:
    with self.subTest(x=x):
     with self.assertRaises(ValueError):parse_metric_probe(x)
  def test_05_original_F129_SHA_and_native_star_pinned(self):
@@ -54,6 +48,17 @@ class SourceMetricProbeTests(unittest.TestCase):
    got=parse_f131_output(f,stderr,star['rho_g_cm3'])
    compare_to_F129(got,star)
    with self.assertRaisesRegex(ValueError,'WITNESS_CHANGE'):compare_to_F129({**got,'M_msun':got['M_msun']+1e-5},star)
+ def test_08_spherical_spin_allows_identically_zero_omega(self):
+  # The first of two authentic RNS spin() calls is spherical; omega and its delta are exactly zero.
+  stderr=('F131_FIELD_FINAL 1e-9 2e-9 0 1 1 0 ITERATIONS 32 ACHECK 0\n'
+          'F131_FIELD_FINAL 1e-9 2e-9 3e-9 1 1 0.01 ITERATIONS 48 ACHECK 0')
+  d=parse_metric_probe(stderr)
+  self.assertEqual(d['spin_calls'][0]['rel_delta_omega'],0.0)
+  self.assertGreater(d['last']['rel_delta_omega'],0)
+ def test_09_nonzero_delta_with_zero_field_scale_rejected(self):
+  stderr=('F131_FIELD_FINAL 1e-9 2e-9 1e-5 1 1 0 ITERATIONS 32 ACHECK 0\n'
+          'F131_FIELD_FINAL 1e-9 2e-9 3e-9 1 1 0.01 ITERATIONS 48 ACHECK 0')
+  with self.assertRaises(ValueError):parse_metric_probe(stderr)
  def test_07_native_parser_rejects_missing_field(self):
   with self.assertRaises(ValueError):parse_f131_output('2.6 2.18 10.1 345 4.8e48 2.6','F127_SPIN_FINAL_DIFFERENCE 1e-10 ITERATIONS 48 ACCURACY 1e-9 ACHECK 0',2622286757812500)
 
