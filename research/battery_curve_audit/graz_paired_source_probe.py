@@ -58,7 +58,7 @@ def preview(raw):
     else:
         text=raw.decode("utf-8-sig",errors="replace")
         coding="utf-8-sig"
-    lines=text.splitlines()[:8]
+    lines=text.splitlines()[:80]
     clean=["".join(ch if (ch.isprintable() or ch=="\t") else "?" for ch in line)[:180]
            for line in lines]
     return {"text":True,"encoding_attempt":coding,"first_bytes_hex":raw[:64].hex(),
@@ -89,7 +89,7 @@ def inventory(raw):
             ext=PurePosixPath(item.filename).suffix.lower() or "<none>"
             if sample_count[ext]>=3 or len(examples)>=40:continue
             with zipf.open(item) as f:
-                data=f.read(1500)
+                data=f.read(16000)
             examples.append({"name":item.filename,"bytes":item.file_size,
                              "suffix":ext,"header":preview(data)})
             sample_count[ext]+=1
