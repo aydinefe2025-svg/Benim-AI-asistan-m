@@ -1,0 +1,78 @@
+name: J0740 F128 loose-inner two-density fixed-J native RNS C pilot
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f128/**'
+      - '.github/workflows/j0740-f128-loose-fixedj-control.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  loose_inner_two_density:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install reproducible numerical root solver
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Restore genuine F806 and exact F99 source bytes; refuse hash drift
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F806 results/F128
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14775866851/zip" \
+            -o results/F806/F806_real_C_artifact.zip
+          printf '%s  %s\n' 0570e05e0493847aefa5c9efc045ec9e0c1c7f5d5487ff6869a6d2f957aa99ad results/F806/F806_real_C_artifact.zip | sha256sum -c -
+          cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns m99.rns
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m99.rns | sha256sum -c -
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+      - name: Build independent real RNS C solver at 601x1201 with loose inner stop 1e-4
+        run: |
+          set -euo pipefail
+          cp -a rns-upstream rns601loose
+          python - <<'PY'
+          from pathlib import Path
+          from research.j0740.f127.f127_solver_accuracy_ab import patch_findmodel, instrument_equil, patch_rns_print
+          from research.j0740.f128.f128_loose_fixedj_control import patch_small_mesh
+          d=Path('rns601loose')
+          for fname,transform in [
+            ('findmodel.c',lambda s:patch_findmodel(s,False)),
+            ('equil.c',instrument_equil),
+            ('rns.c',patch_rns_print),
+            ('makefile',patch_small_mesh),
+          ]:
+            p=d/fname
+            p.write_text(transform(p.read_text()))
+          PY
+          make -C rns601loose CC='gcc -include stdlib.h' rns
+          sha256sum rns601loose/rns | tee results/F128/F128_PINNED_NATIVE_C_BINARY_SHA256.txt
+      - name: Solve BOTH neighboring densities at identical J using loose-inner real native C
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f128/f128_loose_fixedj_control.py \
+            --f806 results/F806/F806_real_C_artifact.zip \
+            --eos m99.rns --binary rns601loose/rns \
+            --out results/F128/F128_LOOSE_INNER_SAME_J_CONTROL.json \
+            2>&1 | tee results/F128/F128_NATIVE_C_JOURNAL_SUMMARY.log
+      - name: Preserve ALL real raw C calls, failed roots, pinned source and acceptance status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F128-loose-inner-native-C-pilot
+          path: |
+            results/F806/F806_real_C_artifact.zip
+            results/F128/
+          if-no-files-found: warn
