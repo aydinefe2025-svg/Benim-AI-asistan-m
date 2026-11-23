@@ -3,6 +3,7 @@ import io
 import json
 import pathlib
 import os
+import tempfile
 import unittest
 import zipfile
 
@@ -46,11 +47,10 @@ class NativeBaryonMassTests(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertEqual(result['low']['rho_g_cm3'], 2622286757812500)
         self.assertEqual(result['high']['rho_g_cm3'], 2622286761718750)
-        altered = pathlib.Path('/mnt/data/j0740_f129/bad.zip')
-        altered.write_bytes(src.read_bytes() + b'attack')
-        try:
+        with tempfile.TemporaryDirectory() as tmp:
+            altered = pathlib.Path(tmp)/'bad.zip'
+            altered.write_bytes(src.read_bytes() + b'attack')
             with self.assertRaises(ValueError):load_ultra_reference(altered)
-        finally:altered.unlink()
 
     def test_06_pair_compare_rejects_mismatch_and_computes_delta(self):
         a={'M_msun':2.185057237229,'M_baryonic_msun':2.51, 'J_relative_error':1e-11}
