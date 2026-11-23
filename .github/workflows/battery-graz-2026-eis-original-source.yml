@@ -1,0 +1,49 @@
+name: Battery Graz original 10 EIS spreadsheets source audit
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_eis_2026_source_audit.py'
+      - 'tests/test_graz_eis_2026_source_audit.py'
+      - '.github/workflows/battery-graz-2026-eis-original-source.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-publisher-eis-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Reject fake, nonfinite, duplicate, and malformed OOXML
+        run: python -m unittest tests.test_graz_eis_2026_source_audit -v
+      - name: Fetch exactly ten publisher original EIS XLSX, check MD5 and ZIP CRC, inspect actual sheets
+        run: python -m research.battery_curve_audit.graz_eis_2026_source_audit /tmp/cano_graz_original_eis_10_source_layout.json
+      - name: Enforce ten genuine source IDs with numerical workbook data and no false certification
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('/tmp/cano_graz_original_eis_10_source_layout.json')
+          d=json.loads(p.read_text())
+          assert d['record_id']==18213931
+          assert d['source_workbook_count']==10
+          assert d['all_publisher_md5_and_zip_crc_verified'] is True
+          assert d['sum_source_numeric_cells']>100
+          assert len({x['publisher_filename'] for x in d['source_spreadsheet_details']})==10
+          assert all(x['sheet_count']>=1 and x['numeric_source_cell_count']>1 for x in d['source_spreadsheet_details'])
+          for key in ('same_specimen_repeated_eis_levels_authenticated','absolute_eis_calibration_verified','original_physical_pre_post_capacity_measured','EIS_is_capacity','field_FPR_FNR_established','production_release_allowed'):
+              assert d[key] is False
+          print('GRAZ_ORIGINAL_10_EIS_WORKBOOKS_VERIFIED_REAL_SHEETS', d['sum_source_numeric_cells'])
+          PY
+      - name: Save redacted real publisher EIS workbook structure only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-2026-ten-original-eis-source-layout
+          path: /tmp/cano_graz_original_eis_10_source_layout.json
+          retention-days: 7
+          if-no-files-found: error
