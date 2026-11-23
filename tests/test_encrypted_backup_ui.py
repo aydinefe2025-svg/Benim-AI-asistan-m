@@ -85,6 +85,39 @@ class EncryptedBackupUiTests(unittest.TestCase):
         self.assertEqual(st.download["data"], prepared)
 
 
+    def test_portable_download_invalidates_on_changed_owner_records(self):
+        from core.cano_backup_bundle import create_portable_bundle
+
+        old = {part: [] for part in ("agents", "feedback", "reviews", "missions")}
+        changed = {**old, "agents": [{"id": "agent-2", "role": "researcher"}]}
+        inputs = dict(memories=[], research_tasks=b"{}", authorized_queue=[],
+                      organism_records=[])
+        first = create_portable_bundle(colony=old, **inputs)
+        second = create_portable_bundle(colony=changed, **inputs)
+        password = "correct-horse-staple-cano-backup"
+        st = FakeSt(passphrase=password, confirm=password, submit=True)
+        render_encrypted_download(st, label="Download", filename="cano.canoenc",
+                                  plaintext=first, storage_key="backup")
+        self.assertIsNotNone(st.download)
+        st.download = None
+        render_encrypted_download(st, label="Download", filename="cano.canoenc",
+                                  plaintext=second, storage_key="backup")
+        self.assertIsNone(st.download, "Changed owner data must invalidate ciphertext")
+        self.assertIsNone(st.session_state["backup_encrypted"])
+
+    def test_non_portable_payload_keeps_byte_exact_invalidation(self):
+        password = "correct-horse-staple-cano-backup"
+        st = FakeSt(passphrase=password, confirm=password, submit=True)
+        render_encrypted_download(st, label="Download", filename="other.canoenc",
+                                  plaintext=b"original source", storage_key="backup")
+        self.assertIsNotNone(st.download)
+        st.download = None
+        render_encrypted_download(st, label="Download", filename="other.canoenc",
+                                  plaintext=b"modified source", storage_key="backup")
+        self.assertIsNone(st.download)
+        self.assertIsNone(st.session_state["backup_encrypted"])
+
+
     def test_mismatched_password_never_offers_download(self):
         st = FakeSt(passphrase="correct-horse-staple-cano-backup",
                     confirm="different-passphrase-cano", submit=True)
