@@ -80,7 +80,7 @@ def audit() -> dict:
     assert s17["mechanical_protocol"] != s25["mechanical_protocol"]
     assert s20["mechanical_protocol"] != s25["mechanical_protocol"]
     assert s26["mechanical_protocol"] != s25["mechanical_protocol"]
-    assert s25["physical_cell_format"] == s26["physical_cell_format"] == "pouch"
+    assert s25["physical_cell_format"] == "pouch" and s26["physical_cell_format"] == "commercial_pouch"
     assert s25["mechanical_protocol"] != s26["mechanical_protocol"]
     assert s17["impact_energy_joules"] is None
     assert s17["capacity_loss_percent_interval"] == [2.0,3.0]
