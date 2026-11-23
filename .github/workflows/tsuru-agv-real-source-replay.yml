@@ -6,6 +6,8 @@ on:
       - research/birds_eps_constellation_qc.py
       - research/agv_temp_stratified_qc.py
       - research/test_agv_temp_stratified_qc.py
+      - research/agv_day_cluster_common_support.py
+      - research/test_agv_day_cluster_common_support.py
       - .github/workflows/tsuru-agv-real-source-replay.yml
   workflow_dispatch:
 
@@ -33,6 +35,10 @@ jobs:
         run: python -m unittest discover -s research -p 'test_agv_temp_stratified_qc.py' -v
       - name: Verify AGV source again and audit temperature-matched year contrasts
         run: python research/agv_temp_stratified_qc.py
+      - name: Test day clusters and exact source-row common support with synthetic controls
+        run: python -m unittest discover -s research -p 'test_agv_day_cluster_common_support.py' -v
+      - name: Reproduce AGV common-support and day-cluster audit from publisher CSV
+        run: python research/agv_day_cluster_common_support.py
       - name: Retain independently inspectable source replay receipt
         if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -42,5 +48,6 @@ jobs:
             TSURU_AGV_REAL_SOURCE_CI_RECEIPT.json
             BIRDS_FOUR_EPS_CI_RECEIPT.json
             AGV_TEMP_MATCHED_REAL_SOURCE_RECEIPT.json
+            AGV_DAY_CLUSTER_COMMON_SUPPORT_RECEIPT.json
           if-no-files-found: error
           retention-days: 30
