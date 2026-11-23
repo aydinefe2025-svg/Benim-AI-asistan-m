@@ -30,9 +30,11 @@ from core.doi_priority import prioritize_requested_dois
 from core.task_panel import _session_database_path
 from core.research_status import label_unverified_claim_headings
 from core.claim_evidence import audit_claim_quotes, record_source_claim_review
-from core.cano_backup_bundle import create_portable_bundle, export_authorized_queue
+from core.cano_backup_bundle import (create_portable_bundle, export_authorized_queue,
+                                     verify_complete_portable_bundle)
 from core.organism_lab_persistence import OrganismLabStore
-from core.encrypted_backup_ui import render_encrypted_download
+from core.encrypted_backup_ui import (render_encrypted_download,
+                                      _discard_stale_prepared_backup)
 
 
 class _AnswerAdapter:
@@ -776,6 +778,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             st.session_state["_cano_secure_export_owner"] = secure_key
             if (memories is None or research_tasks is None
                     or authorized_queue_store is None or not database_url):
+                _discard_stale_prepared_backup(st, secure_key)
                 st.error("Şifreli tam yedek hazır değil: hesap hafızası, araştırma görevi "
                          "onaylı kuyruk veya laboratuvar veritabanına erişim yok. "
                          "Eksik paketi indirmedim.")
@@ -790,16 +793,28 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                         authorized_queue=jobs,
                         organism_records=lab_records,
                     )
+                    # File checksums alone do not establish a recoverable
+                    # owner account. Refuse the encrypted download form unless
+                    # every source passes the strict complete-owner verifier.
+                    verify_complete_portable_bundle(portable)
                 except Exception:
-                    st.error("Şifreli CANO paketi oluşturulamadı; veri değiştirilmedi.")
+                    _discard_stale_prepared_backup(st, secure_key)
+                    st.error("Şifreli tam yedek ön kontrolü başarısız: hesap "
+                             "verileri eksik veya doğrulanamadı. "
+                             "Önceki hazırlık temizlendi; veri değiştirilmedi.")
                 else:
+                    st.success("🛡️ Tam hesap yedeği ön kontrolü: 5/5 kaynak "
+                               "ve bileşen bütünlüğü doğrulandı.")
+                    st.caption("Bu ön kontrol, şifreli dosyanın indirildiği veya "
+                               "başka ortamda geri açıldığı anlamına gelmez. "
+                               "İndirme ve kurtarma ayrıca doğrulanmalıdır.")
                     render_encrypted_download(
                         st, label="💾 Şifreli CANO hesap yedeğini indir",
                         filename="cano-hesap-yedegi.canoenc",
                         plaintext=portable, storage_key=secure_key)
                     st.caption("Paket: ajanlar, ekip görevleri, dersler, hafıza, "
-                               "araştırma görev/taslakları ve onaylı kuyruk kayıtları. "
-                               "Her bölümün kullanılabilirlik durumu manifestte yer alır.")
+                               "araştırma görev/taslakları, onaylı kuyruk "
+                               "ve laboratuvar kayıtları.")
         elif status["agents"]:
             payload = json.dumps(snapshot, ensure_ascii=False, indent=2)
             st.download_button(
