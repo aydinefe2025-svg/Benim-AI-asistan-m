@@ -183,6 +183,37 @@ class CanoBackupBundleTests(unittest.TestCase):
                     source, destination, password, require_complete=True)
             self.assertFalse(destination.exists())
 
+    def test_complete_preflight_rejects_invalid_research_receipt_with_valid_outer_hash(self):
+        """A rebuilt outer ZIP manifest must not mask corrupt research provenance."""
+        from core.archive_integrity import archive_digest
+        from core.cano_backup_bundle import verify_complete_portable_bundle
+
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        research = {
+            "schema": "research-task-export-v1",
+            "exported_at": "2026-11-23T20:00:00+00:00",
+            "warning": "unverified draft",
+            "tasks": [{"id": "original-task"}],
+        }
+        research["integrity"] = {"algorithm": "sha256", "digest": archive_digest(research)}
+        common = dict(
+            colony=colony, memories=[], authorized_queue=[], organism_records=[],
+        )
+        good = create_portable_bundle(
+            research_tasks=json.dumps(research).encode("utf-8"), **common,
+        )
+        self.assertEqual(len(verify_complete_portable_bundle(good)), 6)
+
+        # The current archive writer authenticates these bytes in its outer
+        # manifest, but the research payload's own signed-off digest is stale.
+        research["tasks"][0]["id"] = "changed-after-receipt"
+        tampered = create_portable_bundle(
+            research_tasks=json.dumps(research).encode("utf-8"), **common,
+        )
+        self.assertEqual(len(verify_portable_bundle(tampered)), 6)
+        with self.assertRaisesRegex(ValueError, "research|integrity"):
+            verify_complete_portable_bundle(tampered)
+
     def test_strict_owner_restore_accepts_verified_complete_account(self):
         """A valid v2 archive remains recoverable in the complete-owner mode."""
         colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
