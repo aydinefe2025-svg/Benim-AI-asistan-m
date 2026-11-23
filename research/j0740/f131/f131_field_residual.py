@@ -71,18 +71,26 @@ def parse_metric_probe(stderr:str)->dict:
         try:
             vals=[float(v) for v in xs[1:7]];n=int(xs[8]);check=int(xs[10])
         except Exception as e:raise ValueError('BAD_F131_FIELD_VALUES') from e
-        if not all(math.isfinite(x) and x>=0 for x in vals) or n<2 or check!=0 or any(x<=0 for x in vals[3:]):
+        if not all(math.isfinite(x) and x>=0 for x in vals) or n<2 or check!=0:
             raise ValueError('BAD_F131_FIELD_VALUES')
-        row={'delta_rho':vals[0],'delta_gama':vals[1],'delta_omega':vals[2],
-             'scale_rho':vals[3],'scale_gama':vals[4],'scale_omega':vals[5],
-             'rel_delta_rho':vals[0]/vals[3],'rel_delta_gama':vals[1]/vals[4],
-             'rel_delta_omega':vals[2]/vals[5],
+        deltas=vals[:3];scales=vals[3:]
+        if any(scale==0 and delta!=0 for delta,scale in zip(deltas,scales)):
+            raise ValueError('BAD_F131_FIELD_VALUES')
+        relative=[delta/scale if scale>0 else None for delta,scale in zip(deltas,scales)]
+        row={'delta_rho':deltas[0],'delta_gama':deltas[1],'delta_omega':deltas[2],
+             'scale_rho':scales[0],'scale_gama':scales[1],'scale_omega':scales[2],
+             'rel_delta_rho':relative[0],'rel_delta_gama':relative[1],
+             'rel_delta_omega':relative[2],
              'iterations':n,'a_check':check}
         rows.append(row)
     if not rows:raise ValueError('F131_METRIC_PROBE_MISSING')
     if len(rows)!=2:raise ValueError('F131_EXPECTED_TWO_SPIN_CALLS')
-    return {'spin_calls':rows,'last':rows[-1],
-            'largest_global_field_relative_update':max(rows[-1]['rel_delta_rho'],rows[-1]['rel_delta_gama'],rows[-1]['rel_delta_omega'])}
+    last=rows[-1]
+    relatives=(last['rel_delta_rho'],last['rel_delta_gama'],last['rel_delta_omega'])
+    if any(value is None for value in relatives):
+        raise ValueError('BAD_F131_FINAL_FIELD_SCALE')
+    return {'spin_calls':rows,'last':last,
+            'largest_global_field_relative_update':max(relatives)}
 
 def pin_f129_reference(artifact:bytes)->dict:
     if sha(artifact)!=F129_SHA:raise ValueError('F129_ARTIFACT_SHA_INVALID')
