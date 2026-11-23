@@ -2,8 +2,30 @@
 from __future__ import annotations
 
 from hashlib import sha256
+import json
 
 from core.backup_encryption import prepare_encrypted_download
+from core.cano_backup_bundle import verify_portable_bundle
+
+
+
+def _stable_source_digest(plaintext: bytes) -> str:
+    """Invalidate prepared downloads only when verified backup content changes.
+
+    The portable archive's creation timestamp and ZIP entry timestamps change
+    on every Streamlit rerun even when owner records are unchanged. Hash its
+    verified manifest without the non-data creation timestamp instead.
+    Non-portable payloads retain the original byte-exact identity behavior.
+    """
+    try:
+        files = verify_portable_bundle(plaintext)
+    except ValueError:
+        return sha256(plaintext).hexdigest()
+    manifest = json.loads(files["manifest.json"].decode("utf-8"))
+    manifest.pop("created_at", None)
+    stable = json.dumps(manifest, ensure_ascii=False, sort_keys=True,
+                        separators=(",", ":"), allow_nan=False).encode("utf-8")
+    return sha256(stable).hexdigest()
 
 
 def render_encrypted_download(st, *, label: str, filename: str,
@@ -14,7 +36,7 @@ def render_encrypted_download(st, *, label: str, filename: str,
     if len(plaintext) > 20 * 1024 * 1024:
         st.error("Yedek paketi 20 MiB sınırını aşıyor.")
         return
-    digest = sha256(plaintext).hexdigest()
+    digest = _stable_source_digest(plaintext)
     encrypted_key = storage_key + "_encrypted"
     if st.session_state.get(storage_key + "_source_digest") != digest:
         st.session_state[encrypted_key] = None
