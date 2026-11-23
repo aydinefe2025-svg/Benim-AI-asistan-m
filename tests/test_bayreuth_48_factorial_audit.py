@@ -20,6 +20,16 @@ class TestSourceData(unittest.TestCase):
     def test_pin(self): self.assertEqual(len(self.source),48)
     def test_unique_cells(self):self.assertEqual(len(set(r['cell_id'] for r in self.source)),48)
     def test_balanced(self):self.assertEqual(len({(r['temp_c'],r['c_rate']) for r in self.source}),24)
+    def test_windows_checkout_crlf_preserves_pinned_source(self):
+        with tempfile.TemporaryDirectory() as td:
+            p=Path(td)/"windows-checkout.csv"
+            p.write_bytes(CSV.read_bytes().replace(b"\n", b"\r\n"))
+            rows=audit.load_source_csv(p)
+            self.assertEqual(len(rows),48)
+            self.assertAlmostEqual(
+                audit.factorial_audit(rows)["anova_fixed_effects_descriptive"]["interaction"]["F_exploratory"],
+                15.062523122940407, places=9
+            )
     def test_checksum_failure(self):
         with tempfile.TemporaryDirectory() as td:
             p=Path(td)/"alter.csv";p.write_bytes(CSV.read_bytes()+b"\n")
