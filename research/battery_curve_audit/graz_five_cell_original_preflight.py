@@ -76,6 +76,8 @@ def get_bytes(url: str, cap: int) -> bytes:
 def audit_archive(blob: bytes) -> dict:
     if not blob or len(blob) > MAX_ZIP_BYTES:
         raise ValueError("archive byte size invalid")
+    if not zipfile.is_zipfile(io.BytesIO(blob)):
+        raise ValueError("not a valid ZIP archive")
     members = []
     sum_uncompressed = 0
     seen = set()
