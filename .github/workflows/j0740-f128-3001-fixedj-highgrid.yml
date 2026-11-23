@@ -1,0 +1,84 @@
+name: J0740 F128 bounded 3001x6001 fixed-J retry
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f128_highgrid/**'
+      - '.github/workflows/j0740-f128-3001-fixedj-highgrid.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  native_highgrid_retry:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numerical root finder
+        run: python -m pip install --disable-pip-version-check scipy
+      - name: Fetch pinned reference archives, coarse roots, and EOS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F128_HIGHGRID
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14774015248/zip" -o results/F128_HIGHGRID/F124.zip
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14775736016/zip" -o results/F128_HIGHGRID/F125.zip
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14808314605/zip" -o results/F128_HIGHGRID/601x1201.zip
+          printf '%s  %s\n' d82d43d5b72d9d2f7e7ee90f4163bf308905ec2dfca9d5c709885976e42fb196 results/F128_HIGHGRID/F124.zip | sha256sum -c -
+          printf '%s  %s\n' c975a6cac8f841e2f4640990042d26a6bed263f90083a7b3d254f426866d82f5 results/F128_HIGHGRID/F125.zip | sha256sum -c -
+          printf '%s  %s\n' e099c2f07353fcdbc02dd42d94e0b6310ac96e9522d5b4917050f4ce79f56f95 results/F128_HIGHGRID/601x1201.zip | sha256sum -c -
+          cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns results/F128_HIGHGRID/m99.rns
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 results/F128_HIGHGRID/m99.rns | sha256sum -c -
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+      - name: Build initialized 1e-7 native C binary on 3001x6001 mesh
+        run: |
+          set -euo pipefail
+          cp -a rns-upstream rnsF128_3001
+          python - <<'PY'
+          from pathlib import Path
+          from research.j0740.f127.f127_solver_accuracy_ab import patch_findmodel, instrument_equil, patch_rns_print
+          root=Path('rnsF128_3001')
+          for filename, patch in [('findmodel.c', lambda s: patch_findmodel(s, True)),
+                                  ('equil.c', instrument_equil), ('rns.c', patch_rns_print)]:
+              p=root/filename
+              p.write_text(patch(p.read_text()))
+          p=root/'makefile'
+          text=p.read_text()
+          old='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+          new='HIGHSIZE=-DMDIV=3001 -DSDIV=6001'
+          if text.count(old) != 1:
+              raise RuntimeError('RNS_3001_MESH_PATCH_NOT_UNIQUE')
+          p.write_text(text.replace(old,new))
+          PY
+          make -C rnsF128_3001 CC='gcc -include stdlib.h' rns
+          sha256sum rnsF128_3001/rns | tee results/F128_HIGHGRID/F128_NATIVE_BINARY_SHA256.txt
+      - name: Retry fixed-J roots with the validated 601x1201 seeds
+        run: |
+          set -euo pipefail
+          python -m py_compile research/j0740/f128_highgrid/f128_3001_retry.py
+          python -u research/j0740/f128_highgrid/f128_3001_retry.py \
+            --f124 results/F128_HIGHGRID/F124.zip --f125 results/F128_HIGHGRID/F125.zip \
+            --coarse results/F128_HIGHGRID/601x1201.zip --eos results/F128_HIGHGRID/m99.rns \
+            --rns3001 "$GITHUB_WORKSPACE/rnsF128_3001/rns" \
+            --out results/F128_HIGHGRID/F128_3001_FIXEDJ_RETRY_RECEIPT.json \
+            2>&1 | tee results/F128_HIGHGRID/F128_3001_FIXEDJ_RETRY.log
+          sha256sum results/F128_HIGHGRID/F128_3001_FIXEDJ_RETRY_RECEIPT.json | tee results/F128_HIGHGRID/F128_RECEIPT_SHA256.txt
+      - name: Preserve complete native C evidence including failed calls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F128-3001x6001-bounded-fixedJ-retry
+          path: results/F128_HIGHGRID/
+          if-no-files-found: warn
