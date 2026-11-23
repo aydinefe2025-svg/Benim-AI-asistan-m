@@ -556,11 +556,19 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             for stage in latest["stages"]:
                 with st.expander(names.get(stage["role"], stage["role"]),
                                  expanded=(stage["role"] == "synthesis")):
-                    legacy_notice = stage_execution_notice(stage)
-                    if legacy_notice:
-                        st.warning(legacy_notice)
-                    st.caption("Bu aşama model metnidir; kod, cihaz veya fiziksel deney "
-                               "çalıştırılmadı. Gerçek kaynak okuma kayıtları ayrıca gösterilir.")
+                    if stage.get("repair_method") == "owner_supplied_local_offline":
+                        st.info("Bu bölüm CANO'nun dördüncü model çağrısı değildir; "
+                                "bilgisayarda hazırlanan ve hesap sahibi adına açıkça "
+                                "eklenen harici bir taslaktır. Kod uygulanmadı, "
+                                "bağımsız doğrulama yapılmadı.")
+                        with st.expander("Önceki 204 karakterlik kesik metin (korundu)"):
+                            st.text(stage.get("previous_truncated_output", ""))
+                    else:
+                        legacy_notice = stage_execution_notice(stage)
+                        if legacy_notice:
+                            st.warning(legacy_notice)
+                        st.caption("Bu aşama model metnidir; kod, cihaz veya fiziksel deney "
+                                   "çalıştırılmadı. Gerçek kaynak okuma kayıtları ayrıca gösterilir.")
                     st.markdown(label_unverified_claim_headings(stage["output"]))
                     lessons_used = stage.get("approved_lessons_used")
                     if type(lessons_used) is int and lessons_used >= 0:
@@ -585,6 +593,36 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                     "Nihai sentez kısa ve cümle ortasında kesilmiş görünüyor. "
                     "4/4 kayıt bulunması sonucun yeterli olduğu anlamına gelmez. "
                     "İlk üç aşama korunacak; yeni görev başlatılmayacak.")
+                # Offline route is intentionally separate from the billable model
+                # button; only the authenticated owner may checkpoint its text.
+                if owner_key is not None and backup_store is not None:
+                    with st.expander("📋 Yerel metinle son aşamayı tamamla (0 model çağrısı)",
+                                     expanded=True):
+                        st.caption(
+                            "Bu metin dışarıdan hazırlanır. Modelin kendi çıktısı "
+                            "olarak gösterilmez; eski kesik yanıt, ilk üç aşama "
+                            "ve görev kimliği korunur. Sadece bu hesabın "
+                            "PostgreSQL yedeğine doğrulanarak eklenir.")
+                        offline_text = st.text_area(
+                            "Kaynaklı yerel nihai sentez (en az 500 karakter)",
+                            max_chars=4000, height=250,
+                            key="cano_offline_synthesis_" + latest_id)
+                        if st.button("📥 Yerel sentezi kaydet — 0 bulut model çağrısı",
+                                     key="cano_save_offline_synthesis_" + latest_id):
+                            try:
+                                _checkpoint(archive_prior=False)
+                                manager.replace_truncated_synthesis_with_owner_text(
+                                    latest_id, offline_text,
+                                    on_checkpoint=_checkpoint)
+                            except (ValueError, RuntimeError, sqlite3.Error):
+                                st.error("Yerel taslak geçersiz veya PostgreSQL geri "
+                                         "okuması başarısız; kayıt korunuyor.")
+                                return
+                            st.success("Yerel harici sentez ayrı köken etiketiyle "
+                                       "kaydedildi. Eski kesik yanıt ve önceki "
+                                       "aşamalar korundu; inceleme hâlâ gerekli.")
+                            st.rerun()
+                            return
                 if owner_key is None or backup_store is None or answer is None:
                     st.info("Güvenli onarım için doğrulanmış hesap, PostgreSQL ve model bağlantısı gerekir.")
                 else:
