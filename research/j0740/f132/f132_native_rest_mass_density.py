@@ -50,7 +50,7 @@ def require_source_data(data: dict) -> dict:
     sizes = {len(a) for a in out.values()}
     if len(sizes) != 1 or np.any(np.diff(out["p"]) <= 0):
         raise ValueError("JESTER_SOURCE_INVALID_GRID")
-    for x in ("p", "e", "h", "n", "cs2", "dloge_dlogp"):
+    for x in ("p", "e", "h", "n"):
         if np.any(out[x] <= 0):
             raise ValueError(f"JESTER_SOURCE_NONPOSITIVE:{x}")
     return out
@@ -117,6 +117,8 @@ def measure_one(eos_name: str, path: Path, lal, lalsim):
               "source_e_relative_difference": summary_stats(e_rel),
               "source_h_relative_difference": summary_stats(h_rel),
               "native_cs2": summary_stats(raw_cs2),
+              "jester_cs2_nonpositive_count":int(np.sum(arrays["cs2"]<=0)),
+              "jester_dloge_nonpositive_count":int(np.sum(arrays["dloge_dlogp"]<=0)),
               "native_cs2_superluminal_count": int(np.sum(raw_cs2>1.0)),
               "native_cs2_nonpositive_count": int(np.sum(raw_cs2<=0.0)),
               "log_mu_minus_h_median_centered_absolute_error":summary_stats(mu_resid),
