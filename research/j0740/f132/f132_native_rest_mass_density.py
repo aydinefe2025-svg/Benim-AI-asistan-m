@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import importlib.metadata
 import json
 import math
 from pathlib import Path
@@ -140,7 +141,8 @@ def main(argv=None):
     out.mkdir(parents=True,exist_ok=True)
     all_results={"schema":"J0740_F132_7_NATIVE_LAL_ORIGINAL_EOS_REST_MASS_DENSITY_V1",
                  "jester_source_commit":JESTER_COMMIT,
-                 "lalsuite_version":str(getattr(lal,"__version__","unknown")),
+                 "lalsuite_distribution_version":importlib.metadata.version("lalsuite"),
+                 "lal_module_version":str(getattr(lal,"__version__","unknown")),
                  "scientific_status":"SOURCE_NATIVE_NUMERICAL_DIAGNOSTIC_NOT_EOS_BAYES",
                  "model_results":{}, "failed_models":{}}
     ledger={}
