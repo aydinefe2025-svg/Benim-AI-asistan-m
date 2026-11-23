@@ -1,0 +1,63 @@
+name: J0740 F142 native original-vs-derived high-density source acausality
+on:
+  pull_request:
+    branches: [science/j0740-apr4-firstlaw-gr-pilot-20261117]
+    paths:
+      - 'research/j0740/f142/**'
+      - '.github/workflows/j0740-f142-causality-origins.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  native_source_vs_interpolant:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          persist-credentials: false
+      - name: Reuse F140 original six EOS real C candidates (no regeneration)
+        uses: actions/download-artifact@v4
+        with:
+          name: J0740-F140-derived-six-cold-bridge-native-gates
+          run-id: 45259419081
+          github-token: ${{ github.token }}
+          path: f140-verified-source
+      - name: Reuse F141 real twelve C static TOV evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: J0740-F141-six-REAL-C-static-TOV-and-causality
+          run-id: 45260071899
+          github-token: ${{ github.token }}
+          path: f141-verified-source
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install exactly pinned native LAL
+        run: python -m pip install 'numpy==2.3.5' 'lalsuite==7.26.16'
+      - name: Test source secant and original-vs-LAL causality distinctions
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f142 -p 'test_f142*.py' -v
+      - name: Actually evaluate original source vs derived C derivatives
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f142/f142_native_causality_origin.py \
+            --f140 f140-verified-source/results/F140 \
+            --f141 f141-verified-source/results/F141 \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --out results/F142 2>&1 | tee F142_REAL_LAL_SOURCE_COMPARE_LOG.txt
+      - name: Preserve all original-vs-derived numerical evidence on failure and success
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F142-three-high-density-original-vs-interpolant-C-evidence
+          path: |
+            results/F142/
+            F142_REAL_LAL_SOURCE_COMPARE_LOG.txt
+          if-no-files-found: warn
