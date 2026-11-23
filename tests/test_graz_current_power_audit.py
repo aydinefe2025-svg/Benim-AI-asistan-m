@@ -51,6 +51,24 @@ class PowerAudit(unittest.TestCase):
         self.assertEqual(d['numeric_consistency_sample_only']['fraction_numerically_near_ratio_1_within_5pct'],1.)
         self.assertFalse(d['calibrated_current_unit_A'])
 
+    def test_full_scan_device_channels_are_not_mixed(self):
+        rows = [f'2024-10-28_10-11-12-{i:06d},COM3,3.7,2,7.4\n' for i in range(100)]
+        rows += [f'2024-10-28_10-11-13-{i:06d},COM4,3.7,2,0.0074\n' for i in range(100)]
+        with self._source_zip(rows) as z:
+            d = p.audit_electrical_member(z, z.infolist()[0], cell='02')
+        a = d['per_device_full_original_nonzero_vi_consistency']
+        self.assertEqual(a['COM3']['full_scan_fraction_numerically_near_ratio_1_5pct'], 1.)
+        self.assertEqual(a['COM4']['full_scan_fraction_numerically_near_ratio_1_5pct'], 0.)
+        self.assertFalse(a['COM3']['independent_unit_calibration_verified'])
+        self.assertEqual(d['nonzero_numeric_vi_rows_total'], 200)
+
+    def test_no_negative_current_is_recorded_without_phase_inference(self):
+        rows = [f'2024-10-28_10-11-12-{i:06d},COM3,3.7,-2,-7.4\n' for i in range(150)]
+        with self._source_zip(rows) as z:
+            d = p.audit_electrical_member(z, z.infolist()[0], cell='02')
+        self.assertEqual(d['negative_current_rows'], 150)
+        self.assertFalse(d['independently_verified_charge_discharge_steps'])
+
     def test_header_mutation_rejected(self):
         with self._source_zip(self._rows(),header='Time,Device,Voltage,Ampere,Power') as z:
             with self.assertRaisesRegex(ValueError,'header'):p.audit_electrical_member(z,z.infolist()[0],cell='02')
