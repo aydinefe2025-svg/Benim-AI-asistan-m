@@ -51,10 +51,18 @@ def check_member(z):
     return name
 
 def preview(raw):
+    """Keep only short source header and format bytes; this is NOT a trace export."""
     if b"\0" in raw[:256]:
-        return {"text":False,"hex":raw[:16].hex()}
-    lines=raw.decode("utf-8-sig",errors="replace").splitlines()
-    return {"text":True,"first_lines":[re.sub(r"[^\\t\\x20-\\x7e\\u00a0-\\uffff]","?",v)[:180] for v in lines[:8]]}
+        text=raw.decode("utf-16",errors="replace")
+        coding="utf-16"
+    else:
+        text=raw.decode("utf-8-sig",errors="replace")
+        coding="utf-8-sig"
+    lines=text.splitlines()[:8]
+    clean=["".join(ch if (ch.isprintable() or ch=="\t") else "?" for ch in line)[:180]
+           for line in lines]
+    return {"text":True,"encoding_attempt":coding,"first_bytes_hex":raw[:64].hex(),
+            "first_lines":clean}
 
 def inventory(raw):
     names=[]; types=Counter(); seen=set(); examples=[]; sample_count=Counter(); total=0
