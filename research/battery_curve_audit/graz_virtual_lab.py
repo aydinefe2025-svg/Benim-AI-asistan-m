@@ -1,4 +1,4 @@
-"""CANO Graz virtual laboratory: deterministic, *synthetic* stress tests.
+"""CANO Graz virtual laboratory v2: all five source IDs, *synthetic* stress tests.
 
 The attached 2026 real-source manifest is a boundary/benchmark only. These are
 NOT real battery capacities, measured impact events, calibrated sensor traces,
@@ -20,6 +20,12 @@ REAL_SOURCE_SHA256 = "5627a1606b8e378de0e4e4ced99222509bcbbcb725d26da6e7a5fad34a
 REAL_SOURCE_SUMMARY = {
     "cell_02_original_electric_rows": 207383,
     "cell_03_original_electric_rows": 210541,
+    "five_original_electrical_rows": 1091337,
+    "five_original_sp_rows": 234021,
+    "five_source_matches_within_half_second": 182225,
+    "five_source_matches_within_one_second": 204673,
+    "five_source_unmatched_sp_rows": 29348,
+    "five_original_sp_files": 15,
     "original_sp_rows": 93728,
     "time_matched_sp_rows": 64380,
     "out_of_window_sp_rows": 29348,
@@ -91,7 +97,7 @@ def generate_synthetic(cell: str, seed: int, *, preload_kN: float, temp_C: float
     if not(0 <= electric_drop < 1 and 0 <= sensor_noise_um <= 10 and 300 <= duration_s <= 20000):
         raise ValueError("invalid virtual injection scope")
     rng = random.Random(seed)
-    base = 1000000.0 if cell=="02" else 2000000.0
+    base = 1_000_000.0 + int(cell) * 1_000_000.0
     electrical=[]; n=int(duration_s/1.12)
     for k in range(n):
         t=k*1.12
@@ -235,7 +241,7 @@ def simulate(seed_start:int=20261123, seeds:int=12) -> dict:
     for (name,offset,drop,noise,phasevalid,cellvalid,stuck,clockatt,phaseatt) in scenarios:
         totals={k:0 for k in ("sp","accepted","true_correct","wrong_accepted","rejected_clock","rejected_stage","rejected_cell","rejected_time","ambiguous","stuck_detected")}
         for seed in range(seed_start,seed_start+seeds):
-            for cell in ("02","03"):
+            for cell in PRELOADS_KN:
                 el,sp=generate_synthetic(cell,seed+int(cell)*100000,
                     preload_kN=PRELOADS_KN[cell],clock_offset_s=offset,electric_drop=drop,
                     sensor_noise_um=noise,stage_id_valid=phasevalid,cell_id_valid=cellvalid,
@@ -266,16 +272,16 @@ def simulate(seed_start:int=20261123, seeds:int=12) -> dict:
         "real_fea_mesh_convergence_verified":False,
         "physical_production_release_allowed":False,
     }
-    result={"study":"Graz two-cell virtual lab stress test", "source_doi":RECORD_DOI,
+    result={"study":"Graz five-cell virtual lab stress test", "source_doi":RECORD_DOI,
        "real_source_archive_sha256":REAL_SOURCE_SHA256,
        "real_publisher_observations_reference_only":REAL_SOURCE_SUMMARY,
        "real_source_raw_data_included":False,
        "simulation_only":True,"sim_seed_start":seed_start,"seeds_per_scenario":seeds,
-       "physical_cells_per_scenario":2,"scenarios":reports,"virtual_parameter_grid":virtual_grid,
+       "physical_cells_per_scenario":len(PRELOADS_KN),"scenarios":reports,"virtual_parameter_grid":virtual_grid,
        "virtual_model_assumptions":MODEL_ASSUMPTIONS,"release_gates":fail_safes,
        "note":"Synthetic virtual sensors; precision/recall cannot be carried over to physical field FPR/FNR."}
     assert len(virtual_grid)==30
-    assert all(s["sp"]==seeds*2*240 for s in reports)
+    assert all(s["sp"]==seeds*len(PRELOADS_KN)*240 for s in reports)
     assert any(s["scenario"]=="clock_falsely_attested_3s" and s["wrong_accepted"]>0 for s in reports)
     assert all(s["accepted"]==0 for s in reports if s["scenario"] in
              ("clock_unattested_3s","missing_phase_provenance","spoofed_cell_identity","spoofed_stage_identity"))
