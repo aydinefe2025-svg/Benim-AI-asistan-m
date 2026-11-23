@@ -1,0 +1,67 @@
+name: J0740 F139 original seven EOS native LAL shared-crust seam scan
+on:
+  pull_request:
+    branches: [science/j0740-apr4-firstlaw-gr-pilot-20261117]
+    paths:
+      - 'research/j0740/f139/**'
+      - '.github/workflows/j0740-f139-native-shared-crust-seam.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original_seven_native_seam:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official pinned native LAL and NumPy
+        run: |
+          set -euo pipefail
+          python -m pip install 'numpy==2.3.5' 'lalsuite==7.26.16'
+          python - <<'PY'
+          import lalsimulation as sim
+          for name in ('SimNeutronStarEOSByName', 'SimNeutronStarEOSEnergyDensityDerivOfPressureGeometerized', 'SimNeutronStarEOSEnergyDensityOfPressureGeometerized'):
+              if not hasattr(sim,name):raise RuntimeError('PINNED_NATIVE_LAL_MISSING:'+name)
+          print('F139_LAL_NATIVE_API_PRESENT')
+          PY
+      - name: Check original seven EOS names and SHA-pinned upstream commit
+        run: |
+          set -euo pipefail
+          test "$(git -C jester-upstream rev-parse HEAD)" = 'e6768650ce992abfd1153a6833857572fe5cd230'
+          python - <<'PY'
+          from pathlib import Path
+          from research.j0740.f139.f139_shared_crust_seam import SOURCE_SHAS, source_gate
+          d=Path('jester-upstream/jesterTOV/tabulated_eos/lalsuite')
+          for n in SOURCE_SHAS:
+              a=source_gate(d/(n+'.npz'),n)
+              print('F139_ORIGINAL_SHA_GATE',n,len(a[0]))
+          PY
+      - name: Source seam and native API negative-control regression tests
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f139 -p 'test_f139*.py' -v
+      - name: Probe all seven actual LAL C-backed EOS pressure intervals near shared crust anomaly
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f139/f139_shared_crust_seam.py \
+            --source-dir jester-upstream/jesterTOV/tabulated_eos/lalsuite \
+            --out-dir results/F139/ --per-interval 65 \
+            --star-ref research/j0740/f139/F139_F79_REFERENCE_STAR_CENTRES.json 2>&1 | tee F139_REAL_NATIVE_LAL_JOURNAL.txt
+      - name: Preserve every real native LAL result and source SHA on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F139-original-seven-shared-crust-seam-real-LAL
+          path: |
+            results/F139/
+            F139_REAL_NATIVE_LAL_JOURNAL.txt
+          if-no-files-found: warn
