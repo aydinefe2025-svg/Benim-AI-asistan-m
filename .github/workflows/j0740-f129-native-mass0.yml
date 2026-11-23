@@ -1,0 +1,91 @@
+name: J0740 F129 native RNS baryonic mass at ultratight matched J
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f129/**'
+      - '.github/workflows/j0740-f129-native-mass0.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  native_baryonic_mass:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned numerical dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Restore immutable genuine RNS ultra-tight stars; verify source hashes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F129
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14809246981/zip" \
+            -o results/F129/F128_ULTRATIGHT_SOURCE.zip
+          printf '%s  %s\n' 0302770626ff730657208226e2923a5ed655e8ae39e1235580f67e9180cf9f77 results/F129/F128_ULTRATIGHT_SOURCE.zip | sha256sum -c -
+          cp research/j0740/f104/F99_DERIVED_1981_node_causal_cold_affine_EOS.rns results/F129/m99.rns
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 results/F129/m99.rns | sha256sum -c -
+          test "$(git -C rns-upstream rev-parse HEAD)" = 97e85d325a33e37f702306414533f6cd77812477
+      - name: Source-locked regression and negative tests
+        env:
+          F129_ULTRA_ZIP: results/F129/F128_ULTRATIGHT_SOURCE.zip
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f129 -p 'test_f129*.py' -v
+      - name: Instrument only RNS output for existing baryon mass field
+        run: |
+          set -euo pipefail
+          cp -a rns-upstream rnsF129
+          python - <<'PY'
+          from pathlib import Path
+          from research.j0740.f127.f127_solver_accuracy_ab import patch_findmodel,instrument_equil
+          from research.j0740.f128.f128_strict_fixedj_pilot import patch_small_mesh
+          from research.j0740.f129.f129_native_baryon_mass import patch_native_mass0
+          d=Path('rnsF129')
+          transforms = {
+            'findmodel.c': lambda src: patch_findmodel(src,True),
+            'equil.c': instrument_equil,
+            'makefile': patch_small_mesh,
+            'rns.c': patch_native_mass0,
+          }
+          for filename,fn in transforms.items():
+              p=d/filename
+              src=fn(p.read_text())
+              if filename=='findmodel.c':
+                  old='  double accuracy=1e-7;'
+                  if src.count(old)!=1:raise ValueError('PINNED_ACCURACY_1E9_PATCH_SOURCE_DRIFT')
+                  src=src.replace(old,'  double accuracy=1e-9;',1)
+              p.write_text(src)
+          PY
+          make -C rnsF129 CC='gcc -include stdlib.h' rns
+          sha256sum rnsF129/rns | tee results/F129/native_binary_sha256.txt
+      - name: Reproduce two genuine 601x1201 C stars and measure baryonic mass
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f129/f129_native_baryon_mass.py \
+            --ultra-zip results/F129/F128_ULTRATIGHT_SOURCE.zip \
+            --eos results/F129/m99.rns --binary rnsF129/rns \
+            --out results/F129/F129_REAL_NATIVE_BARYON_MASS.json \
+            2>&1 | tee results/F129/F129_NATIVE_C_LOG.txt
+      - name: Preserve all actual raw outputs and failures, never replace sources
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F129-RNS-native-baryonic-mass-two-stars
+          path: |
+            results/F129/
+          if-no-files-found: warn
