@@ -35,7 +35,7 @@ def check_tsuru():
     assert b.get("sha") == GIT_SHA and b.get("encoding") == "base64"
     raw = base64.b64decode(b["content"])
     assert len(raw) == 6059029
-    blob = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\\0" + raw).hexdigest()
+    blob = hashlib.sha1(b"blob " + str(len(raw)).encode() + bytes([0]) + raw).hexdigest()
     assert blob == GIT_SHA, "TSURU original Git blob SHA mismatch"
     with zipfile.ZipFile(io.BytesIO(raw)) as z:
         members = z.namelist()
