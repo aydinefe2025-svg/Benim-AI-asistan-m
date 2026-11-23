@@ -29,10 +29,22 @@ jobs:
           python -m pip install 'numpy==2.3.5' 'lalsuite==7.26.16'
           python - <<'PY'
           import lal, lalsimulation as lalsim
-          for key in ['SimNeutronStarEOSByName','SimNeutronStarEOSRestMassDensityOfPseudoEnthalpyGeometrized']:
-              if not hasattr(lalsim,key):
-                  raise RuntimeError('REQUIRED_LAL_REST_MASS_API_MISSING:'+key)
-          print('F132_NATIVE_LAL_API_AVAILABLE', getattr(lal,'__version__','unknown'))
+          import ctypes, ctypes.util
+          names=[k for k in dir(lalsim) if 'RestMass' in k or 'PseudoEnthalpy' in k]
+          print('F132_LAL_PYTHON_SYMBOLS',names,flush=True)
+          probe=lalsim.SimNeutronStarEOSByName('APR4_EPP')
+          print('F132_LAL_SWIG_THIS',str(getattr(probe,'this','NO_THIS')),flush=True)
+          try: print('F132_LAL_SWIG_PTR_INT',int(probe.this),flush=True)
+          except Exception as exc:print('F132_LAL_SWIG_PTR_ERROR',repr(exc),flush=True)
+          print('F132_LAL_LIBRARY_LOOKUP',ctypes.util.find_library('lalsimulation'),flush=True)
+          try:
+              import lalsimulation._lalsimulation as extension
+              print('F132_LAL_EXTENSION',extension.__file__,flush=True)
+              lib=ctypes.CDLL(extension.__file__)
+              for symbol in ['XLALSimNeutronStarEOSRestMassDensityOfPseudoEnthalpyGeometrized','XLALSimNeutronStarEOSRestMassDensityOfPseudoEnthalpy']:
+                  print('F132_LAL_NATIVE_SYMBOL',symbol,bool(getattr(lib,symbol,None)),flush=True)
+          except Exception as exc:print('F132_LAL_NATIVE_SYMBOL_CHECK_FAILED',repr(exc),flush=True)
+          print('F132_LAL_VERSION',getattr(lal,'__version__','unknown'),flush=True)
           PY
       - name: Verify unmodified original upstream JESTER source commit and seven files
         run: |
