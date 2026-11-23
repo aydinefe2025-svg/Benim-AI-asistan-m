@@ -122,6 +122,18 @@ def run_density(binary: Path, eos: Path, label: str, rho: int, seed: float,
                             "call_rows": list(calls.values())}
             except Exception as exc:
                 err = repr(exc)
+                # A J-valid native call may already exist even when brentq's
+                # x-interval convergence cap is exhausted. Accept only a raw
+                # REAL_C_COMPLETE row that independently meets ROOT_TOL.
+                good = [v for v in calls.values()
+                        if v.get("status") == "REAL_C_COMPLETE"
+                        and v.get("J_relative_error", 1.0) <= ROOT_TOL]
+                if good:
+                    best = min(good, key=lambda r: r["J_relative_error"])
+                    return {"label": label, "rho_g_cm3": rho,
+                            "reference_ratio_601x1201": seed, "root": best,
+                            "native_C_evaluations": len(calls),
+                            "bracket_found": True, "call_rows": list(calls.values())}
             break
     return {"label": label, "rho_g_cm3": rho, "reference_ratio_601x1201": seed,
             "status": "FAIL_CLOSED", "error": err or "FIXED_J_ROOT_NOT_FOUND_WITHIN_CALL_CAP",
