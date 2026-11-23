@@ -18,7 +18,6 @@ def summarise_member(z: zipfile.ZipFile, member: zipfile.ZipInfo, kind: str) -> 
     rows = 0
     first_numeric = None
     last_numeric = None
-    numeric_pieces = []
     sample_shape = {}
     prefix = []
     for raw in z.open(member):
@@ -45,7 +44,7 @@ def summarise_member(z: zipfile.ZipFile, member: zipfile.ZipInfo, kind: str) -> 
         else:
             # SP numeric times may use comma-decimal, tab separation; never guess units.
             cols = [x.strip() for x in re.split(r'\t+', line.strip()) if x.strip()]
-            numeric=(len(cols)>1 and bool(re.fullmatch(r'[+-]?\d+(?:[.,]\d+)?(?:[Ee][+-]?\d+)?',cols[0])))
+            numeric=(len(cols)==6 and bool(re.fullmatch(r'\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}',cols[0])))
             if numeric:
                 rows += 1
                 if first_numeric is None: first_numeric=cols
