@@ -86,8 +86,8 @@ def measure_one(eos_name: str, path: Path, lal, lalsim):
             ee = float(f_e(float(p), eos))
             de = float(f_de(float(p), eos))
             rr = float(f_rho(hh, eos))
-            if not all(math.isfinite(a) and a > 0 for a in (hh, ee, de, rr)):
-                raise ValueError("NONPOSITIVE_NATIVE_OUTPUT")
+            if not all(math.isfinite(a) and a > 0 for a in (hh, ee, rr)) or not math.isfinite(de):
+                raise ValueError("INVALID_NATIVE_P_E_H_RHO_OR_DERIVATIVE")
             n_native = rr / geom_m
             if n_native <= 0:
                 raise ValueError("BAD_NATIVE_NUMBER_DENSITY")
@@ -95,7 +95,7 @@ def measure_one(eos_name: str, path: Path, lal, lalsim):
                          "e_lal": ee, "h_jester": float(arrays["h"][i]), "h_lal": hh,
                          "n_jester_approx": float(arrays["n"][i]), "n_lal_rest": n_native,
                          "n_lal_geom_rest_density": rr,
-                         "cs2_jester": float(arrays["cs2"][i]), "cs2_lal": 1.0 / de,
+                         "cs2_jester": float(arrays["cs2"][i]), "cs2_lal": (1.0 / de if de != 0 else None),
                          "native_de_dp": de})
         except Exception as exc:
             failed.append({"index": i, "pressure": float(p), "error": f"{type(exc).__name__}:{str(exc)[:200]}"})
@@ -108,7 +108,9 @@ def measure_one(eos_name: str, path: Path, lal, lalsim):
     mu_resid = np.abs(log_mu_minus_h-np.median(log_mu_minus_h))
     e_rel=np.array([abs(r["e_jester"]/r["e_lal"]-1) for r in rows]);
     h_rel=np.array([abs(r["h_jester"]/r["h_lal"]-1) for r in rows]);
-    raw_cs2=np.array([r["cs2_lal"] for r in rows]);
+    raw_cs2=np.array([r["cs2_lal"] for r in rows if r["cs2_lal"] is not None]);
+    if not len(raw_cs2):
+        raise RuntimeError("NATIVE_EOS_NO_FINITE_SOUND_SPEED_VALUES")
     result = {"eos": eos_name, "source_npz_sha256": sha(path), "source_points": len(arrays["p"]),
               "native_valid_points": len(rows), "native_failed_points": len(failed),
               "native_failures_first10": failed[:10],
@@ -119,6 +121,7 @@ def measure_one(eos_name: str, path: Path, lal, lalsim):
               "native_cs2": summary_stats(raw_cs2),
               "jester_cs2_nonpositive_count":int(np.sum(arrays["cs2"]<=0)),
               "jester_dloge_nonpositive_count":int(np.sum(arrays["dloge_dlogp"]<=0)),
+              "native_zero_dedp_singular_count": int(sum(r["native_de_dp"]==0 for r in rows)),
               "native_cs2_superluminal_count": int(np.sum(raw_cs2>1.0)),
               "native_cs2_nonpositive_count": int(np.sum(raw_cs2<=0.0)),
               "log_mu_minus_h_median_centered_absolute_error":summary_stats(mu_resid),
