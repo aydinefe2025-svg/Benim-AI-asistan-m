@@ -7,6 +7,7 @@ No claim of factual verification, independent model training or autonomous work.
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 import re
 import sqlite3
 import uuid
@@ -267,6 +268,77 @@ class CollaborativeMission:
                 raise
         saved = self.get(mission_id)
         saved["model_calls"] = 1
+        return saved
+
+
+    def replace_truncated_synthesis_with_owner_text(
+            self, mission_id, draft, *, on_checkpoint):
+        """Attach an explicitly owner-supplied offline replacement with provenance.
+
+        No provider is called. The authenticated UI must provide an owner-bound
+        PostgreSQL CAS checkpoint; the previous synthesis and first three
+        stages remain inspectable and unchanged.
+        """
+        if not callable(on_checkpoint):
+            raise ValueError("Verified owner PostgreSQL checkpoint is required")
+        if not isinstance(draft, str):
+            raise ValueError("Replacement synthesis must be text")
+        text = draft.strip()
+        if (not 500 <= len(text) <= 4000
+                or not text.endswith((".", "!", "?", "…", "。"))):
+            raise ValueError("Replacement synthesis incomplete or too long")
+        original = self.get(mission_id)
+        if not synthesis_needs_repair(original):
+            raise RuntimeError("Synthesis is not eligible for owner offline repair")
+        stages = original["stages"]
+        updated = json.loads(json.dumps(stages, ensure_ascii=False))
+        last = updated[3]
+        if "previous_truncated_output" in last:
+            raise RuntimeError("Synthesis is not eligible for another repair")
+        last["previous_truncated_output"] = last["output"]
+        last["output"] = text
+        last["previous_execution_mode"] = last.get("execution_mode", "unknown")
+        last["execution_mode"] = "owner_supplied_external_text"
+        last["repair_method"] = "owner_supplied_local_offline"
+        last["external_source"] = "offline_local_assisted_draft"
+        last["external_text_sha256"] = sha256(text.encode("utf-8")).hexdigest()
+        last["independently_verified"] = False
+        old_json = json.dumps(stages, ensure_ascii=False)
+        new_json = json.dumps(updated, ensure_ascii=False)
+        with self.colony._db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT stages,status FROM colony_missions WHERE id=?",
+                (mission_id,)).fetchone()
+            if (row is None or row["status"] != "review_pending"
+                    or json.loads(row["stages"]) != stages):
+                raise RuntimeError("Mission changed during owner offline repair")
+            cursor = db.execute(
+                "UPDATE colony_missions SET stages=? "
+                "WHERE id=? AND status='review_pending'", (new_json, mission_id))
+            if cursor.rowcount != 1:
+                raise RuntimeError("Mission changed during owner offline repair")
+        try:
+            on_checkpoint()
+        except Exception:
+            # A failed/ambiguous remote checkpoint never justifies new work.
+            # Roll back only this precise local state, never other stages.
+            with self.colony._db() as db:
+                db.execute("BEGIN IMMEDIATE")
+                row = db.execute(
+                    "SELECT stages,status FROM colony_missions WHERE id=?",
+                    (mission_id,)).fetchone()
+                if (row is None or row["status"] != "review_pending"
+                        or json.loads(row["stages"]) != updated):
+                    raise RuntimeError(
+                        "Owner checkpoint failed; local state changed meanwhile") from None
+                db.execute(
+                    "UPDATE colony_missions SET stages=? "
+                    "WHERE id=? AND status='review_pending'",
+                    (old_json, mission_id))
+            raise
+        saved = self.get(mission_id)
+        saved["model_calls"] = 0
         return saved
 
     def _run(self, mission_id, *, client, model, source_lookup=None, on_checkpoint=None):
