@@ -28,12 +28,23 @@ def _stable_source_digest(plaintext: bytes) -> str:
     return sha256(stable).hexdigest()
 
 
+
+def _discard_stale_prepared_backup(st, storage_key: str) -> None:
+    """Fail closed when the current backup cannot be exported."""
+    st.session_state[storage_key + "_encrypted"] = None
+    st.session_state.pop(storage_key + "_source_digest", None)
+    st.session_state[storage_key + "_passphrase"] = ""
+    st.session_state[storage_key + "_confirm"] = ""
+
+
 def render_encrypted_download(st, *, label: str, filename: str,
                               plaintext: bytes, storage_key: str) -> None:
     if not isinstance(plaintext, bytes) or not plaintext:
+        _discard_stale_prepared_backup(st, storage_key)
         st.warning("Yedek paketi oluşturulamadı; hiçbir dosya indirilmedi.")
         return
     if len(plaintext) > 20 * 1024 * 1024:
+        _discard_stale_prepared_backup(st, storage_key)
         st.error("Yedek paketi 20 MiB sınırını aşıyor.")
         return
     digest = _stable_source_digest(plaintext)
