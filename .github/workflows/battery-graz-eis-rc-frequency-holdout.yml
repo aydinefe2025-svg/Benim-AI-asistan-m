@@ -3,7 +3,9 @@ on:
   pull_request:
     paths:
       - 'research/battery_curve_audit/graz_eis_rc_frequency_holdout.py'
+      - 'research/battery_curve_audit/graz_eis_rlc_frequency_holdout.py'
       - 'tests/test_graz_eis_rc_frequency_holdout.py'
+      - 'tests/test_graz_eis_rlc_frequency_holdout.py'
       - '.github/workflows/battery-graz-eis-rc-frequency-holdout.yml'
   workflow_dispatch:
 permissions:
@@ -18,7 +20,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Red-green mathematical model and adversarial validation
-        run: python -m unittest tests.test_graz_eis_rc_frequency_holdout -v
+        run: python -m unittest tests.test_graz_eis_rc_frequency_holdout tests.test_graz_eis_rlc_frequency_holdout -v
       - name: Run independent odd-even-frequency holdout against all ten publisher-original 2026 Graz EIS files
         run: python -m research.battery_curve_audit.graz_eis_rc_frequency_holdout /tmp/graz_real_10cell_rc_frequency_holdout.json /tmp/graz_real_10cell_rc_frequency_holdout.csv
       - name: Enforce 50 real spectra, no leaked tests, and no physical certification
@@ -35,6 +37,10 @@ jobs:
           assert set(r['publisher_documented_impactor_group_sizes'])=={'30mm','180mm'}
           assert all(z['observed_frequency_count']==101 for z in r['spectra'])
           assert all(z['fold_test_counts']==[50,51] for z in r['spectra'])
+          assert all('rlc_heldout_relative_complex_rmse_pct' in z for z in r['spectra'])
+          assert sum(len(g['stage_summary']) for g in r['source_documented_geometry_summaries'].values())==10
+          assert all(g['spectra']==25 for g in r['source_documented_geometry_summaries'].values())
+          assert r['rlc_inductor_effective_not_independently_calibrated'] is True
           assert r['independent_lab_calibration_verified'] is False
           assert r['physical_damage_causality_established'] is False
           assert r['production_release_allowed'] is False
