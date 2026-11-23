@@ -196,7 +196,6 @@ def main() -> None:
             rho = TARGET_RHO[label]
             results.append(run_point(binary, a.eos, f"{grid_label}_{label}", rho,
                                      float(roots[label]["selected_r_ratio"]), target_J, a.out.parent))
-    by_label = {(x["label"].split("_")[-1], x["label"].split("_")[0]): x for x in results}
     comparisons = {}
     for point in results:
         name = point["label"]
@@ -214,7 +213,7 @@ def main() -> None:
         "F124_artifact_sha256": F124_SHA, "F125_artifact_sha256": F125_SHA,
         "target_J_cgs": target_J, "inner_spin_radius_step_accuracy": TIGHT_ACCURACY,
         "fixed_J_root_relative_tolerance": ROOT_TOL,
-        "density_points_g_cm3": TARGET_RHO, "results": results,
+        "density_points_g_cm3": list(TARGET_RHO.values()), "results": results,
         "comparison_to_previous_1e-4_results": comparisons,
         "claim_limit": "The inner radius-iterate stop is tightened and J is re-rooted on two meshes at two fixed densities. This is not a GRV2/GRV3 virial residual, full Einstein-equation certification, dynamical stability analysis, or original-seven-EOS NICER/XMM photon Bayes result."
     }
