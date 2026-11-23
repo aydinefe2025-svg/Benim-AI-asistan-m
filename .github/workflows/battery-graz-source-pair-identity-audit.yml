@@ -1,0 +1,58 @@
+name: Graz original source paired-record identity audit
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_source_pair_identity_audit.py'
+      - 'tests/test_graz_source_pair_identity_audit.py'
+      - '.github/workflows/battery-graz-source-pair-identity-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paired-event-source-identity-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Verify fixture shows same matched count can hide entirely different paired electrical events
+        run: python -m unittest tests.test_graz_source_pair_identity_audit -v
+      - name: Re-download official five-cell original, verify MD5 and ZIP CRC, compare original electrical row identities before and after counterfactual clock shift
+        run: python -m research.battery_curve_audit.graz_source_pair_identity_audit /tmp/graz_pair_identity_real_source_audit.json
+      - name: Fail closed if previous evidence or row-identity accounting disagrees
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/graz_pair_identity_real_source_audit.json',encoding='utf-8'))
+          assert d['publisher_original_doi']=='10.5281/zenodo.22079387'
+          assert d['original_source_md5']=='b9ed863766e30afbd0e309951c855d08'
+          assert d['original_zip_sha256']=='5627a1606b8e378de0e4e4ced99222509bcbbcb725d26da6e7a5fad34aa42fc7'
+          assert d['full_publisher_zip_crc_and_size_pass']
+          assert d['physical_cell_folders']==5
+          assert d['original_electrical_records']==1091337
+          assert d['original_SP_records']==234021
+          assert set(d['cells'])=={'01','02','03','04','05'}
+          summary=d['row_identity_accounting_by_shift']
+          assert summary['3.0']['0_offset_matched_SP_rows']==204673
+          assert summary['3.0']['shifted_matched_SP_rows']==204666
+          assert summary['-3.0']['shifted_matched_SP_rows']==204671
+          for v in summary.values():
+              assert v['matched_in_both_DIFFERENT_electrical_source_record_index']>0
+              assert (v['matched_in_both_same_electrical_source_record_index']+
+                      v['matched_in_both_DIFFERENT_electrical_source_record_index']+
+                      v['lost_matched_SP_rows_under_shift']==v['0_offset_matched_SP_rows'])
+              assert (v['matched_in_both_same_electrical_source_record_index']+
+                      v['matched_in_both_DIFFERENT_electrical_source_record_index']+
+                      v['gained_matched_SP_rows_under_shift']==v['shifted_matched_SP_rows'])
+          assert all(v is False for v in d['conclusion_limits'].values())
+          print('AUTHENTIC_GRAZ_SOURCE_RECORD_IDENTITY_AUDIT_PASS',summary)
+          PY
+      - name: Preserve audit counts, not copyrighted original raw streams
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-source-real-5cell-paired-event-identity-proof
+          path: /tmp/graz_pair_identity_real_source_audit.json
+          if-no-files-found: error
+          retention-days: 14
