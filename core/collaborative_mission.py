@@ -80,6 +80,19 @@ def _extract_pending_reviewer_lesson(critique):
 
 
 
+def _looks_like_incomplete_final_synthesis(output):
+    """Conservative guard for 120–499 character output ending mid-sentence.
+
+    Historical very short canned tests and valid punctuation-ended summaries
+    remain allowed. This is not a semantic quality certificate.
+    """
+    if not isinstance(output, str):
+        return False
+    text = output.strip()
+    return (120 <= len(text) < 500 and
+            not text.endswith((".", "!", "?", "…", "。")))
+
+
 def synthesis_needs_repair(record):
     """Flag a likely clipped final text, without changing recorded mission status.
 
@@ -416,6 +429,14 @@ class CollaborativeMission:
                 result = self.colony.run(agent_id, prompt, client=client, model=model,
                                          internal_review=(index > 0))
                 calls += 1
+                # Reject the exact class of truncated final model text observed
+                # in production before a fourth stage is saved or checkpointed.
+                # _run's failure handler preserves the previous three stages
+                # and owner checkpoint; resuming retries this role only.
+                if index == 3 and _looks_like_incomplete_final_synthesis(result["output"]):
+                    exc = RuntimeError("incomplete final synthesis; previous stages preserved")
+                    exc.failure_kind = "response"
+                    raise exc
                 stage = {"role": STAGE_ROLES[index], "agent_id": agent_id,
                          "output": result["output"], "execution_mode": "model_text_only",
                          "approved_lessons_used": result.get("lessons_used", 0)}
