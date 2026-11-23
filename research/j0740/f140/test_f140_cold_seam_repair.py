@@ -25,7 +25,7 @@ class TestF140(unittest.TestCase):
   self.assertTrue(np.array_equal(pp[-(len(p)-hi-1):],p[hi+1:]))
  def test_reject_bad_source(self):
   with self.assertRaises(ValueError):choose_native_seam([1,2],[1])
- def test_lal_SI_round_trip_units(self):
+ def test_lal_geometrized_round_trip_units(self):
   with tempfile.TemporaryDirectory() as d:
    f=Path(d)/'eos.txt'
    write_lal_two_col(np.array([1e-10,2e-10]),np.array([1e-8,2e-8]),f)
