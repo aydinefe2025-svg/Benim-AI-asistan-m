@@ -11,13 +11,26 @@ import datetime as dt
 import json
 import pathlib
 import re
-from zoneinfo import ZoneInfo
+import calendar
 
 ORIGINAL_DOI = "10.5281/zenodo.22079387"
 GOAL_KEY = "graz-20261123-electrical-sp-start-screen-five-real-cells"
 FILENAME_RE = re.compile(r"(\d{2}_\d{2}_\d{4}_\d{2}_\d{2}_\d{2})_logfile[.]txt$", re.IGNORECASE)
 HEADER_RE = re.compile(r"Start\s+time\s*:\s*([0-9]+(?:[.][0-9]+)?)", re.IGNORECASE)
-GRAZ_LOCAL_ZONE = ZoneInfo("Europe/Vienna")
+# Fixed 2024-2025 source-era Central European summer-time convention,
+# independent of optional tzdata package on Windows Python runners.
+def _last_sunday(year: int, month: int) -> int:
+    last = dt.datetime(year, month, calendar.monthrange(year, month)[1])
+    return (last - dt.timedelta(days=(last.weekday() + 1) % 7)).day
+
+
+def graz_local_from_unix(epoch: float) -> dt.datetime:
+    utc = dt.datetime.fromtimestamp(epoch, dt.timezone.utc).replace(tzinfo=None)
+    year = utc.year
+    summer_start_utc = dt.datetime(year, 3, _last_sunday(year, 3), 1)
+    summer_end_utc = dt.datetime(year, 10, _last_sunday(year, 10), 1)
+    hours = 2 if summer_start_utc <= utc < summer_end_utc else 1
+    return utc + dt.timedelta(hours=hours)
 
 
 def analyze_cell(cell: str, observed: dict) -> list[dict]:
@@ -37,8 +50,7 @@ def analyze_cell(cell: str, observed: dict) -> list[dict]:
         epochs = [float(m.group(1)) for m in matches if m]
         if len(epochs) != 1:
             raise ValueError("expected one genuine SP Unix start header")
-        embedded_local = dt.datetime.fromtimestamp(
-            epochs[0], dt.timezone.utc).astimezone(GRAZ_LOCAL_ZONE).replace(tzinfo=None)
+        embedded_local = graz_local_from_unix(epochs[0])
         header_vs_filename_seconds = (embedded_local - name_local).total_seconds()
         if abs(header_vs_filename_seconds) > 90:
             raise ValueError("SP Unix start versus instrument filename disagreement")
