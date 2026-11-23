@@ -3,15 +3,31 @@
 Outputs start-time candidate matches only; never claims proven sensor synchronization.
 """
 from __future__ import annotations
-import argparse, datetime as dt, json, re
-from zoneinfo import ZoneInfo
+import argparse, calendar, datetime as dt, json, re
 from pathlib import Path
 
-VIENNA = ZoneInfo('Europe/Vienna')
+# Pure-stdlib EU/CET rule for the 2024-2025 original measurements. Windows
+# GitHub-hosted Python has no system IANA tzdb and this project uses no pip deps.
+# Fail closed on DST ambiguous/nonexistent local times, never guess a fold.
+def _last_sunday(year: int, month: int) -> int:
+    day = calendar.monthrange(year, month)[1]
+    return day - (dt.date(year, month, day).weekday() + 1) % 7
+
+def vienna_epoch(local: dt.datetime) -> float:
+    if local.tzinfo is not None or not (1996 <= local.year <= 2030):
+        raise ValueError('unsupported local Vienna date')
+    spring = dt.datetime(local.year, 3, _last_sunday(local.year, 3), 2)
+    autumn = dt.datetime(local.year, 10, _last_sunday(local.year, 10), 3)
+    hour = dt.timedelta(hours=1)
+    if spring <= local < spring + hour or autumn - hour <= local < autumn:
+        raise ValueError('nonexistent or ambiguous Vienna DST hour')
+    utc_offset_h = 2 if spring + hour <= local < autumn - hour else 1
+    return local.replace(tzinfo=dt.timezone(dt.timedelta(hours=utc_offset_h))).timestamp()
+
 SP_PATTERN = re.compile(r'_(\d{2})_(\d{2})_(\d{4})_(\d{2})_(\d{2})_(\d{2})_logfile\.txt$',re.I)
 
 def parse_log_token(s: str) -> float:
-    return dt.datetime.strptime(s,'%Y-%m-%d_%H-%M-%S-%f').replace(tzinfo=VIENNA).timestamp()
+    return vienna_epoch(dt.datetime.strptime(s,'%Y-%m-%d_%H-%M-%S-%f'))
 
 def parse_sp(item: dict) -> tuple[float,float]:
     values = [x['text'] for x in item.get('metadata_line_clues',[]) if x['text'].strip().startswith('Start time')]
@@ -22,7 +38,7 @@ def parse_sp(item: dict) -> tuple[float,float]:
     if not match:
         raise ValueError('SP start file date missing/ambiguous')
     dd,mm,yyyy,hh,mi,ss=map(int,match.groups())
-    filename_local=dt.datetime(yyyy,mm,dd,hh,mi,ss,tzinfo=VIENNA).timestamp()
+    filename_local=vienna_epoch(dt.datetime(yyyy,mm,dd,hh,mi,ss))
     if abs(filename_local-start)>1.5:
         raise ValueError('SP embedded epoch not consistent with publisher file date / Vienna timezone')
     return start,abs(filename_local-start)
