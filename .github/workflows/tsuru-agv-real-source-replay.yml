@@ -1,0 +1,32 @@
+name: TSURU AGV original-source replay (real bytes)
+on:
+  pull_request:
+    paths:
+      - research/tsuru_agv_real_source_ci.py
+      - .github/workflows/tsuru-agv-real-source-replay.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-original-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify source identities and replay real TSURU and AGV
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python research/tsuru_agv_real_source_ci.py
+      - name: Retain independently inspectable source replay receipt
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsuru-agv-real-source-python-receipt
+          path: TSURU_AGV_REAL_SOURCE_CI_RECEIPT.json
+          if-no-files-found: error
+          retention-days: 30
