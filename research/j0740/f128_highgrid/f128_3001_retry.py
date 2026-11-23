@@ -4,6 +4,8 @@ from __future__ import annotations
 import argparse, hashlib, io, json, math, subprocess, zipfile
 from pathlib import Path
 from scipy.optimize import brentq
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from research.j0740.f128.f128_tight_fixedj_reroot import (
     TARGET_RHO, F124_SHA, F125_SHA, EOS_SHA, RNS_COMMIT, TIGHT_ACCURACY,
     ROOT_TOL, read_reference, parse_real_star, sha,
