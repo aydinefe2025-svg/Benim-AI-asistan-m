@@ -71,6 +71,17 @@ class F132Tests(unittest.TestCase):
             self.assertEqual(rows[0]["cs2_jester"],-0.25)
             self.assertEqual(result["native_valid_points"],180)
 
+    def test_one_negative_native_derivative_is_recorded_not_discarded(self):
+        class OneNegativeNative(FakeNative):
+            def SimNeutronStarEOSEnergyDensityDerivOfPressureGeometrized(self,p,eos):
+                return -10.0 if abs(p-1.0)<1e-12 else 10.0
+        with TemporaryDirectory() as td:
+            f=Path(td)/"ENG.npz";np.savez(f,**self.data())
+            result,rows=measure_one("ENG",f,FakeLal(),OneNegativeNative())
+            self.assertEqual(result["native_failed_points"],0)
+            self.assertEqual(result["native_cs2_nonpositive_count"],1)
+            self.assertEqual(rows[0]["cs2_lal"],-0.1)
+
     def test_nonfinite_native_and_API_missing_fail_closed(self):
         class BrokenNative(FakeNative):
             def SimNeutronStarEOSRestMassDensityOfPseudoEnthalpyGeometrized(self,h,eos):
