@@ -1,0 +1,57 @@
+{
+  "method": "nearest authenticated original ~346.536 Hz RNS C star to 2.073 Msun, not interpolated nor newly computed",
+  "models": {
+    "APR4_EPP": {
+      "central_density_g_cm3": 1760672226505791.2,
+      "mass_msun": 2.075269119,
+      "n_original_C_stars": 48,
+      "original_C_star_index": 24,
+      "original_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88"
+    },
+    "ENG": {
+      "central_density_g_cm3": 1475653780735324.0,
+      "mass_msun": 2.068899912,
+      "n_original_C_stars": 48,
+      "original_C_star_index": 24,
+      "original_npz_sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953"
+    },
+    "MPA1": {
+      "central_density_g_cm3": 1010445010220987.4,
+      "mass_msun": 2.066033929,
+      "n_original_C_stars": 48,
+      "original_C_star_index": 24,
+      "original_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22"
+    },
+    "MS1": {
+      "central_density_g_cm3": 608284677936456.1,
+      "mass_msun": 2.053556481,
+      "n_original_C_stars": 48,
+      "original_C_star_index": 24,
+      "original_npz_sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad"
+    },
+    "MS1B": {
+      "central_density_g_cm3": 614445320588413.0,
+      "mass_msun": 2.067133653,
+      "n_original_C_stars": 48,
+      "original_C_star_index": 24,
+      "original_npz_sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c"
+    },
+    "WFF1": {
+      "central_density_g_cm3": 2106904004377714.2,
+      "mass_msun": 2.077582383,
+      "n_original_C_stars": 41,
+      "original_C_star_index": 26,
+      "original_npz_sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3"
+    },
+    "WFF2": {
+      "central_density_g_cm3": 1756711598394552.5,
+      "mass_msun": 2.071207779,
+      "n_original_C_stars": 42,
+      "original_C_star_index": 24,
+      "original_npz_sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae"
+    }
+  },
+  "schema": "F139_NEAREST_ORIGINAL_C_STAR_CENTRAL_DENSITIES_FROM_F79_V1",
+  "source_jester_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+  "upstream_source_sha256": "e13f2684e21a6788aa864f71d26a7fd71d441fcdc6dbdf66a676405619a64790"
+}
