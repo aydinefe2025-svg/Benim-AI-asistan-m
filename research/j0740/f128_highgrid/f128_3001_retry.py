@@ -15,7 +15,9 @@ COARSE_SHA = "e099c2f07353fcdbc02dd42d94e0b6310ac96e9522d5b4917050f4ce79f56f95"
 COARSE_ARTIFACT_ID = "14808314605"
 CALL_TIMEOUT = 1200
 MAX_CALLS_PER_DENSITY = 5
-OFFSETS = (0.0, -1.0e-5, 1.0e-5, -3.0e-5, 3.0e-5)
+# Prior native calls stayed positive through seed +3e-5; linear interpolation
+# places the crossing near +4.57e-5. Probe there first, then widen safely.
+OFFSETS = (0.0, 4.57e-5, 5.5e-5, 1.0e-4, -1.0e-4)
 
 def coarse_seeds(path: Path) -> tuple[dict[str, float], float]:
     raw = path.read_bytes()
