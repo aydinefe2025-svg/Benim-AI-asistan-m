@@ -156,7 +156,7 @@ def main():
     for name, pin in SOURCES.items():
         response=json.loads(get(SRC+pin["sha1"], github=True))
         assert response["sha"]==pin["sha1"] and response["encoding"]=="base64"
-        raw=base64.b64decode(response["content"],validate=True)
+        raw=base64.b64decode("".join(response["content"].split()),validate=True)
         satellites[name]=workbook_profile(raw,pin)
         print("EPS_SOURCE_VERIFIED="+json.dumps({"satellite":name,"bytes":len(raw),
                 "sheets":satellites[name]["sheet_count"],
