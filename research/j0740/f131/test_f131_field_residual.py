@@ -48,12 +48,12 @@ class SourceMetricProbeTests(unittest.TestCase):
    got=parse_f131_output(f,stderr,star['rho_g_cm3'])
    compare_to_F129(got,star)
    with self.assertRaisesRegex(ValueError,'WITNESS_CHANGE'):compare_to_F129({**got,'M_msun':got['M_msun']+1e-5},star)
- def test_08_spherical_spin_allows_identically_zero_omega(self):
+ def test_08_spherical_spin_relative_omega_is_undefined(self):
   # The first of two authentic RNS spin() calls is spherical; omega and its delta are exactly zero.
   stderr=('F131_FIELD_FINAL 1e-9 2e-9 0 1 1 0 ITERATIONS 32 ACHECK 0\n'
           'F131_FIELD_FINAL 1e-9 2e-9 3e-9 1 1 0.01 ITERATIONS 48 ACHECK 0')
   d=parse_metric_probe(stderr)
-  self.assertEqual(d['spin_calls'][0]['rel_delta_omega'],0.0)
+  self.assertIsNone(d['spin_calls'][0]['rel_delta_omega'])
   self.assertGreater(d['last']['rel_delta_omega'],0)
  def test_09_nonzero_delta_with_zero_field_scale_rejected(self):
   stderr=('F131_FIELD_FINAL 1e-9 2e-9 1e-5 1 1 0 ITERATIONS 32 ACHECK 0\n'
