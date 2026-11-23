@@ -105,6 +105,7 @@ def audit_electrical_member(archive: zipfile.ZipFile, member: zipfile.ZipInfo, *
                     'deviating_relative_gt_5pct_with_abs_P_minus_VI_le_0.01': 0,
                     'deviating_relative_gt_5pct_with_abs_P_minus_VI_gt_0.1': 0,
                     'deviating_with_near_zero_numeric_power': 0,
+                    'deviating_with_exact_zero_numeric_power': 0,
                     'deviating_ratio_buckets': {'ratio_lt_0p5': 0, 'ratio_0p5_to_0p95': 0,
                                                 'ratio_1p05_to_1p5': 0, 'ratio_ge_1p5': 0}}
             dd = per_device[cols[1]]
@@ -130,6 +131,7 @@ def audit_electrical_member(archive: zipfile.ZipFile, member: zipfile.ZipInfo, *
                                     'ratio_1p05_to_1p5' if ratio < 1.5 else 'ratio_ge_1p5')
                     dd['deviating_ratio_buckets'][ratio_bucket] += 1
                     if abs(p) < .01: dd['deviating_with_near_zero_numeric_power'] += 1
+                    if p == 0: dd['deviating_with_exact_zero_numeric_power'] += 1
                     if len(quarantined) >= 25_000:
                         raise ValueError('too many original source discrepancy rows to record safely')
                     quarantined.append({'source_archive_member': member.filename,
@@ -207,6 +209,12 @@ def inspect_original(blob: bytes, size: int) -> dict:
         'original_archive_crc_verified': certificate['zip_crc_verified'],
         'real_physical_cells': list(CELLS),
         'real_electrical_rows': count,
+        'source_numeric_full_scan_eligible_vi_rows': sum(x['nonzero_numeric_vi_rows_total'] for x in results.values()),
+        'numeric_review_queue_total_rows': sum(x['numeric_discrepancy_review_queue_count'] for x in results.values()),
+        'numeric_review_queue_scope': 'unverified original Power-Voltage-Current numerical disagreement; not proven battery failure or current calibration',
+        'all_numeric_discrepancy_rows_have_source_line_and_sha256': all(
+            len(x['numerical_discrepancy_review_queue_rows']) == x['numeric_discrepancy_review_queue_count']
+            for x in results.values()),
         'cells': results,
         'this_is_a_purely_numeric_same_row_relation': True,
         'power_and_current_units_independently_certified': False,
