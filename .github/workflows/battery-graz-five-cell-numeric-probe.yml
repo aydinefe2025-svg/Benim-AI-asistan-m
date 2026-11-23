@@ -4,6 +4,8 @@ on:
     paths:
       - 'research/battery_curve_audit/graz_five_cell_numeric_probe.py'
       - 'tests/test_graz_five_cell_numeric_probe.py'
+      - 'research/battery_curve_audit/graz_five_sp_start_window_screen.py'
+      - 'tests/test_graz_five_sp_start_window_screen.py'
       - '.github/workflows/battery-graz-five-cell-numeric-probe.yml'
       - 'research/battery_curve_audit/graz_five_cell_original_preflight.py'
   workflow_dispatch:
@@ -19,7 +21,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Fail-closed timestamp and SP header fixture tests
-        run: python -m unittest tests.test_graz_five_cell_numeric_probe -v
+        run: python -m unittest tests.test_graz_five_cell_numeric_probe tests.test_graz_five_sp_start_window_screen -v
       - name: Original publisher ZIP five-cell raw current-time fields and SP metadata
         run: python -m research.battery_curve_audit.graz_five_cell_numeric_probe /tmp/graz_five_real_cell_numeric_log_probe.json
       - name: Preserve no invented physical inference
@@ -43,10 +45,24 @@ jobs:
               assert e['current_header_has_no_declared_unit'] and e['not_absolute_Ah_capacity']
           print("FIVE_ORIGINAL_NUMERIC_LOGS_READ_WITHOUT_CLAIMING_AH_OR_PHYSICAL_VALIDATION")
           PY
+      - name: Source SP start time to electrical log window screen
+        run: |
+          python -m research.battery_curve_audit.graz_five_sp_start_window_screen /tmp/graz_five_real_cell_numeric_log_probe.json /tmp/graz_five_sp_start_screen.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/graz_five_sp_start_screen.json'))
+          assert d['sp_starts_inside_electrical_window_candidate_count']==13
+          assert d['sp_starts_outside_electrical_window_count']==2
+          assert d['outside_electrical_window_sp_cells']==['03','03']
+          assert d['unverified_actual_signal_row_time_overlap']
+          assert d['unverified_interinstrument_clock_synchronization']
+          PY
       - name: Original numeric channel summary artifact without raw logs
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: graz-5-publisher-original-electrical-timeseries-and-sp-metadata-probe
-          path: /tmp/graz_five_real_cell_numeric_log_probe.json
+          path: |
+            /tmp/graz_five_real_cell_numeric_log_probe.json
+            /tmp/graz_five_sp_start_screen.json
           if-no-files-found: error
           retention-days: 7
