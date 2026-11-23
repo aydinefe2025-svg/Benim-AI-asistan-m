@@ -1,0 +1,58 @@
+name: Graz 2026 all five authentic cell nearest-time sensitivity
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_five_all_cell_signal_sensitivity.py'
+      - 'tests/test_graz_five_all_cell_signal_sensitivity.py'
+      - '.github/workflows/battery-graz-five-all-cell-nearest-time.yml'
+      - 'research/battery_curve_audit/graz_signal_alignment.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authentic-15-sp-measured-time-alignment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Unit tests including no false cross-cell physical claims
+        run: python -m unittest tests.test_graz_five_all_cell_signal_sensitivity -v
+      - name: Download original Graz five-cell source ZIP, audit official MD5/CRC, align 234021 genuine SP samples to 1091337 original electrical samples
+        run: python -m research.battery_curve_audit.graz_five_all_cell_signal_sensitivity /tmp/graz_all_5cells_15sp_sample_match.json
+      - name: Strict provenance and physical-safety claim gates
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/graz_all_5cells_15sp_sample_match.json',encoding='utf-8'))
+          assert d['source_doi']=='10.5281/zenodo.22079387'
+          assert d['official_source_md5']=='b9ed863766e30afbd0e309951c855d08'
+          assert d['original_archive_crc_pass']
+          assert d['same_physical_source_folders']==5
+          assert d['original_electrical_rows']==1091337
+          assert d['original_sp_sensor_rows']==234021
+          assert d['sp_file_count']==15
+          assert d['previous_source_02_03_2p5_second_regression_rows']==64380
+          t=d['per_tolerance_sp_rows_with_nearest_electrical_timestamp']
+          assert 0<=t['0.5']<=t['1.0']<=t['2.5']<=204673
+          assert d['remaining_unmatched_2p5_s']>=29348
+          assert set(d['cells'])==set(['01','02','03','04','05'])
+          g=d['guardrails']
+          assert g['cross_source_cell_ids_never_joined'] is True
+          for k in ('independent_instrument_clock_calibration_verified','electrical_charge_discharge_protocol_phase_verified',
+                    'sensor_absolute_force_calibration_verified','calibrated_battery_capacity_or_soh_reconstructed',
+                    'causal_load_effect_proven','dynamic_impact_measured','separate_four_cell_graz_archive_join_verified'):
+              assert g[k] is False,k
+          assert g['measured_field_false_match_rate'] is None
+          print('FIVE_CELL_ACTUAL_NEAREST_MEASUREMENT_TIMESTAMPS_WITH_SAFE_SCOPE',
+                t,'still unmatched',d['remaining_unmatched_2p5_s'])
+          PY
+      - name: Save only audit JSON with source time counts and aggregate; no raw signal content
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-2026-all-five-physical-cell-sp-source-timestamp-sensitivity
+          path: /tmp/graz_all_5cells_15sp_sample_match.json
+          if-no-files-found: error
+          retention-days: 14
