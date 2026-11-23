@@ -99,6 +99,15 @@ class PowerAudit(unittest.TestCase):
             d=p.audit_electrical_member(z,z.infolist()[0],cell='02')
         self.assertEqual(d['numeric_discrepancy_review_queue_count'],0)
 
+    def test_exact_zero_power_with_positive_vi_is_separately_counted(self):
+        rows = [f'2024-10-28_10-11-12-{i:06d},COM4,3.7,2,0.0\n' for i in range(150)]
+        with self._source_zip(rows) as z:
+            d=p.audit_electrical_member(z,z.infolist()[0],cell='02')
+        v=d['per_device_full_original_nonzero_vi_consistency']['COM4']
+        self.assertEqual(v['deviating_with_exact_zero_numeric_power'],150)
+        self.assertEqual(v['deviating_with_near_zero_numeric_power'],150)
+        self.assertEqual(len(d['numerical_discrepancy_review_queue_rows']),150)
+
     def test_no_negative_current_is_recorded_without_phase_inference(self):
         rows = [f'2024-10-28_10-11-12-{i:06d},COM3,3.7,-2,-7.4\n' for i in range(150)]
         with self._source_zip(rows) as z:
