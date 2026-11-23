@@ -4,6 +4,7 @@ on:
     paths:
       - 'research/battery_curve_audit/graz_eis_group_geometry_audit.py'
       - 'research/battery_curve_audit/verified_eis_10_cells_829_derived_ledger.json'
+      - 'research/battery_curve_audit/publisher_verified_zenodo_original_ReadME.txt'
       - 'tests/test_graz_eis_group_geometry_audit.py'
       - '.github/workflows/battery-graz-eis-geometry-readme.yml'
   workflow_dispatch:
@@ -32,6 +33,12 @@ jobs:
           d=json.loads(Path('/tmp/cano_graz_eis_geometry_readme_verified.json').read_text())
           assert d['source_readme']['publisher_md5_verified'] is True
           assert d['source_readme']['readme_text'].strip()
+          assert d['source_readme']['original_publisher_readme_mapping_verified'] is True
+          assert d['source_readme']['publisher_documented_groups'][0]['indenter_diameter_mm']==30
+          assert d['source_readme']['publisher_documented_groups'][1]['indenter_diameter_mm']==180
+          assert d['geometry_comparison_valid_as_publisher_documented_groups'] is True
+          assert d['independent_physical_custody_witness_verified'] is False
+          assert d['mechanical_safety_certification'] is False
           s=d['source_derived_strata']
           assert s['source_cells_analysed']==10 and len(s['results'])==12
           assert all(r['possible_label_partitions']==252 for r in s['results'])
@@ -39,7 +46,8 @@ jobs:
               assert s[k] is False
           print('GRAZ_REAL_README_VERIFIED_MD5',d['source_readme']['md5'])
           print('GRAZ_EXPLORE_LABEL_CONTRASTS_DONE',len(s['results']))
-          print('ORIGINAL_SPECIMEN_DIAMETER_ASSOCIATION_UNVERIFIED')
+          print('ORIGINAL_PUBLISHER_SPECIMEN_DIAMETER_MAPPING_VERIFIED')
+          print('INDEPENDENT_PHYSICAL_CUSTODY_NOT_VERIFIED')
           PY
       - name: Upload small original README interpretation and source-derived summary only
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
