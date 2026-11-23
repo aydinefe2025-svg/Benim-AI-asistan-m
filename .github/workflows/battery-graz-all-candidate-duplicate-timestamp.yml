@@ -1,0 +1,52 @@
+name: Graz original 5-cell all-candidate timestamp identity audit
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_all_timestamp_candidate_audit.py'
+      - 'tests/test_graz_all_timestamp_candidate_audit.py'
+      - '.github/workflows/battery-graz-all-candidate-duplicate-timestamp.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-all-original-timestamp-candidates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Adversarial equal-time device collisions and source-line ambiguity tests
+        run: python -m unittest -v tests.test_graz_all_timestamp_candidate_audit
+      - name: Download official Graz original archive and audit all same-time device readings and SP joins
+        run: python -m research.battery_curve_audit.graz_all_timestamp_candidate_audit /tmp/graz_all_source_timestamp_candidate_audit.json
+      - name: Acceptance counts, source integrity and no false physical calibration claim
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/graz_all_source_timestamp_candidate_audit.json'))
+          assert d['source_doi']=='10.5281/zenodo.22079387'
+          assert d['publisher_md5']=='b9ed863766e30afbd0e309951c855d08'
+          assert d['original_sha256']=='5627a1606b8e378de0e4e4ced99222509bcbbcb725d26da6e7a5fad34aa42fc7'
+          assert d['original_publisher_crc_and_size_verified']
+          assert d['real_electrical_source_rows']==1091337
+          assert d['real_sp_source_rows']==234021
+          assert set(d['all_cells'])=={'01','02','03','04','05'}
+          assert d['all_sp_join_counts']['original_algorithm_matches']==204673
+          assert all(d['not_proven'].values())
+          assert sum(x['same_time_electrical_source_audit']['duplicate_original_timestamp_groups']
+                     for x in d['all_cells'].values())==d['original_duplicate_time_groups']
+          assert sum(x['same_time_electrical_source_audit']['time_groups_with_conflicting_device_or_values']
+                     for x in d['all_cells'].values())==d['original_conflicting_same_time_groups']
+          assert d['all_sp_join_counts']['complete_algorithm_matches']>=0
+          print('AUTHENTIC_GRAZ_ALL_TIMESTAMPS_SOURCE_AMBIGUITY_AUDIT_PASS',
+                d['all_sp_join_counts'])
+          PY
+      - name: Save bounded audit provenance, summary, no raw instrument records
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-source-five-cell-multidevice-timestamp-ambiguity
+          path: /tmp/graz_all_source_timestamp_candidate_audit.json
+          if-no-files-found: error
+          retention-days: 14
