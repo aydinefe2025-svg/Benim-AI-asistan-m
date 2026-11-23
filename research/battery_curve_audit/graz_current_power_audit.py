@@ -99,7 +99,10 @@ def audit_electrical_member(archive: zipfile.ZipFile, member: zipfile.ZipInfo, *
             if cols[1] not in per_device:
                 if len(per_device) >= 16:
                     raise ValueError('too many independent source electrical device labels')
-                per_device[cols[1]] = {'eligible_nonzero_vi_rows': 0, 'numerically_near_ratio_1_5pct_rows': 0, 'nonnegative_current_rows': 0, 'negative_current_rows': 0}
+                per_device[cols[1]] = {'eligible_nonzero_vi_rows': 0, 'numerically_near_ratio_1_5pct_rows': 0, 'nonnegative_current_rows': 0, 'negative_current_rows': 0,
+                    'deviating_relative_gt_5pct_binned_by_abs_vi': {'0.01_to_0.1': 0, '0.1_to_1': 0, '1_and_above': 0},
+                    'deviating_relative_gt_5pct_with_abs_P_minus_VI_le_0.01': 0,
+                    'deviating_relative_gt_5pct_with_abs_P_minus_VI_gt_0.1': 0}
             dd = per_device[cols[1]]
             if i < 0: dd['negative_current_rows'] += 1
             else: dd['nonnegative_current_rows'] += 1
@@ -113,6 +116,15 @@ def audit_electrical_member(archive: zipfile.ZipFile, member: zipfile.ZipInfo, *
                 dd['eligible_nonzero_vi_rows'] += 1
                 if abs(p / (v * i) - 1.) <= .05:
                     dd['numerically_near_ratio_1_5pct_rows'] += 1
+                else:
+                    vi_abs = abs(v * i)
+                    interval = '0.01_to_0.1' if vi_abs < .1 else ('0.1_to_1' if vi_abs < 1 else '1_and_above')
+                    dd['deviating_relative_gt_5pct_binned_by_abs_vi'][interval] += 1
+                    absolute_residual = abs(p - v*i)
+                    if absolute_residual <= .01:
+                        dd['deviating_relative_gt_5pct_with_abs_P_minus_VI_le_0.01'] += 1
+                    if absolute_residual > .1:
+                        dd['deviating_relative_gt_5pct_with_abs_P_minus_VI_gt_0.1'] += 1
             if len(sample) < MAX_PER_CELL_SAMPLES:
                 sample.append((v, i, p))
             else:
