@@ -17,6 +17,15 @@ CENTER_PRESSURE = 5.300787070483e-10  # pinned independent APR4 2.073-Msun vicin
 JESTER_COMMIT = "e6768650ce992abfd1153a6833857572fe5cd230"
 
 
+def native_api(lalsim, name):
+    method = getattr(lalsim, name, None)
+    if method is None:
+        method = getattr(lalsim, name.replace("Geometrized", "Geometerized"), None)
+    if method is None:
+        raise RuntimeError(f"LAL_NATIVE_API_MISSING:{name}")
+    return method
+
+
 def audit(path, lalsim, points_per_interval=17):
     if hashlib.sha256(path.read_bytes()).hexdigest() != SOURCE_SHA:
         raise ValueError("APR4_UPSTREAM_SOURCE_SHA_MISMATCH")
@@ -28,10 +37,8 @@ def audit(path, lalsim, points_per_interval=17):
     if not (p[0] < CENTER_PRESSURE < p[-1]) or points_per_interval < 3:
         raise ValueError("INVALID_CENTER_OR_SAMPLING")
     eos = lalsim.SimNeutronStarEOSByName("APR4_EPP")
-    derivative = getattr(lalsim, "SimNeutronStarEOSEnergyDensityDerivOfPressureGeometrized", None)
-    energy = getattr(lalsim, "SimNeutronStarEOSEnergyDensityOfPressureGeometrized", None)
-    if derivative is None or energy is None:
-        raise RuntimeError("LAL_NATIVE_API_MISSING")
+    derivative = native_api(lalsim, "SimNeutronStarEOSEnergyDensityDerivOfPressureGeometrized")
+    energy = native_api(lalsim, "SimNeutronStarEOSEnergyDensityOfPressureGeometrized")
     edges = np.concatenate((p[p < CENTER_PRESSURE], [CENTER_PRESSURE]))
     rows = []
     for interval, (left, right) in enumerate(zip(edges[:-1], edges[1:])):
