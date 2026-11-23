@@ -1,0 +1,47 @@
+name: J0740 F134 APR4 original native LAL in-star interpolation
+on:
+  pull_request:
+    branches: [science/j0740-apr4-firstlaw-gr-pilot-20261117]
+    paths:
+      - 'research/j0740/f134/**'
+      - '.github/workflows/j0740-f134-native-apr4-instar.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native_apr4:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned native LAL
+        run: python -m pip install 'numpy==2.3.5' 'lalsuite==7.26.16'
+      - name: Pin the actual unmodified source
+        run: |
+          set -euo pipefail
+          test "$(git -C jester-upstream rev-parse HEAD)" = e6768650ce992abfd1153a6833857572fe5cd230
+          echo '639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88  jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz' | sha256sum -c
+      - name: Negative-control tests
+        run: python -m unittest discover -s research/j0740/f134 -p 'test_f134*.py' -v
+      - name: Query true source-native LAL between every in-star APR4 knot
+        run: |
+          python -u research/j0740/f134/f134_apr4_native_instar.py \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
+            --out-dir results/F134 \
+            --points-per-interval 33
+      - name: Archive genuine native measurements even on a noncausal finding
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F134-original-native-APR4-instar
+          path: results/F134/
+          if-no-files-found: warn
