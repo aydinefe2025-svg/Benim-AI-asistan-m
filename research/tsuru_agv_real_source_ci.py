@@ -48,10 +48,80 @@ def check_tsuru():
         assert len(files) == 42
         source_rows = sum(max(len(ET.fromstring(z.read(name)).findall(NS + "sheetData/" + NS + "row")) - 1, 0) for name in files)
         assert source_rows == 26023, f"TSURU rows changed: {source_rows}"
-    return {"bytes": len(raw), "git_blob_sha1": blob, "sha256": hashlib.sha256(raw).hexdigest(),
+    timeseries = inspect_tsuru_timeseries(z)
+    return {"bytes": len(raw), "numeric_time_qc": timeseries, "git_blob_sha1": blob, "sha256": hashlib.sha256(raw).hexdigest(),
             "zip_members_full_crc_pass": len(members), "sheets": len(labels),
             "rows_excluding_headers": source_rows, "two_test_sheets_explicit": True}
 
+
+
+def inspect_tsuru_timeseries(z):
+    """Full original numeric QC; conservative prefixes, no spacecraft-fault inference."""
+    import posixpath
+    import re
+    R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+    fields = ("A", "AG", "AI", "AK", "M", "O", "Q", "S", "U", "W", "Y", "AA", "AC", "AE")
+    wb = ET.fromstring(z.read("xl/workbook.xml"))
+    links = {e.get("Id"): e.get("Target") for e in ET.fromstring(z.read("xl/_rels/workbook.xml.rels"))}
+    totals = collections.Counter()
+    review_sheets = 0
+    sample = {}
+    for sheet in wb.findall(NS + "sheets/" + NS + "sheet"):
+        label = sheet.get("name")
+        target = links[sheet.get(R + "id")]
+        path = target.lstrip("/") if target.startswith("/") else posixpath.normpath(posixpath.join("xl", target))
+        assert path.startswith("xl/worksheets/"), path
+        sheet_rows = ET.fromstring(z.read(path)).findall(NS + "sheetData/" + NS + "row")
+        flight = not label.startswith(("Test1", "Test2"))
+        n = 0
+        first_prefix = 0
+        last_time = None
+        for xml_row in sheet_rows[1:]:
+            values = {}
+            for c in xml_row.findall(NS + "c"):
+                m = re.match(r"([A-Z]+)\d+$", c.get("r", ""))
+                if not m or m.group(1) not in fields or c.get("t") in ("s", "str", "inlineStr"):
+                    continue
+                v = c.find(NS + "v")
+                if v is None or v.text is None:
+                    continue
+                try:
+                    values[m.group(1)] = float(v.text)
+                except ValueError:
+                    pass
+            n += 1
+            complete = all(a in values for a in fields)
+            totals["complete_numeric_rows"] += int(complete)
+            if flight:
+                totals["flight_rows"] += 1
+                if first_prefix == n - 1 and complete and (n == 1 or (last_time is not None and values["A"] > last_time)):
+                    first_prefix += 1
+                if label == "August 26" and values.get("AG") == 0:
+                    sample["aug26_zero_volt_rows"] = sample.get("aug26_zero_volt_rows", 0) + 1
+                if label == "August 26" and not complete:
+                    sample["aug26_incomplete_rows"] = sample.get("aug26_incomplete_rows", 0) + 1
+            last_time = values.get("A")
+        if flight:
+            totals["flight_prefix_rows"] += first_prefix
+            totals["flight_review_suffix_rows"] += n - first_prefix
+            review_sheets += int(n != first_prefix)
+            if label in ("August 26", "November 16", "December 20", "April 20"):
+                sample[label + "_prefix"] = first_prefix
+                sample[label + "_review_suffix"] = n - first_prefix
+        else:
+            totals["test_rows"] += n
+    expected = {"complete_numeric_rows":25653, "flight_rows":24911, "flight_prefix_rows":23266, "flight_review_suffix_rows":1645, "test_rows":1112}
+    observed = dict(totals)
+    for key, value in expected.items():
+        assert observed.get(key) == value, "TSURU original numeric QC mismatch " + key + ": " + repr(observed.get(key))
+    assert review_sheets == 14
+    assert sample["August 26_prefix"] == 595 and sample["August 26_review_suffix"] == 921
+    assert sample["November 16_prefix"] == 595 and sample["November 16_review_suffix"] == 536
+    assert sample["December 20_prefix"] == 995 and sample["December 20_review_suffix"] == 136
+    assert sample["April 20_prefix"] == 595 and sample["April 20_review_suffix"] == 7
+    assert sample.get("aug26_incomplete_rows") == 370
+    assert sample.get("aug26_zero_volt_rows") == 557
+    return dict(**observed, flight_sheets_with_review_suffix=review_sheets, critical_sheet_splits=sample)
 
 def check_agv():
     failures = []
