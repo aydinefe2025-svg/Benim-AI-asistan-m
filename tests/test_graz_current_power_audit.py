@@ -62,6 +62,24 @@ class PowerAudit(unittest.TestCase):
         self.assertFalse(a['COM3']['independent_unit_calibration_verified'])
         self.assertEqual(d['nonzero_numeric_vi_rows_total'], 200)
 
+    def test_relative_outlier_due_to_roundoff_is_reported_not_erased(self):
+        rows = [f'2024-10-28_10-11-12-{i:06d},COM4,3.7,0.01,0.04\n' for i in range(150)]
+        with self._source_zip(rows) as z:
+            d = p.audit_electrical_member(z, z.infolist()[0], cell='02')
+        w=d['per_device_full_original_nonzero_vi_consistency']['COM4']
+        self.assertEqual(w['numerically_near_ratio_1_5pct_rows'],0)
+        self.assertEqual(w['deviating_relative_gt_5pct_binned_by_abs_vi']['0.01_to_0.1'],150)
+        self.assertEqual(w['deviating_relative_gt_5pct_with_abs_P_minus_VI_le_0.01'],150)
+        self.assertEqual(w['deviating_relative_gt_5pct_with_abs_P_minus_VI_gt_0.1'],0)
+
+    def test_large_relative_and_absolute_disagreement_flagged(self):
+        rows = [f'2024-10-28_10-11-12-{i:06d},COM4,3.7,2,5.0\n' for i in range(150)]
+        with self._source_zip(rows) as z:
+            d = p.audit_electrical_member(z, z.infolist()[0], cell='02')
+        w=d['per_device_full_original_nonzero_vi_consistency']['COM4']
+        self.assertEqual(w['deviating_relative_gt_5pct_binned_by_abs_vi']['1_and_above'],150)
+        self.assertEqual(w['deviating_relative_gt_5pct_with_abs_P_minus_VI_gt_0.1'],150)
+
     def test_no_negative_current_is_recorded_without_phase_inference(self):
         rows = [f'2024-10-28_10-11-12-{i:06d},COM3,3.7,-2,-7.4\n' for i in range(150)]
         with self._source_zip(rows) as z:
