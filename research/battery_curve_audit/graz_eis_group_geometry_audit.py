@@ -37,6 +37,35 @@ def get_bytes(url: str, limit: int)->bytes:
     return blob
 
 
+def parse_readme_published_impactor_mapping(source_text: str)->dict:
+    """Accept only explicit original publisher Cxx ranges and diameters, never EIS signs.
+
+    This verifies *source-documented specimen labels*, NOT independent human
+    chain-of-custody or external mechanical geometry calibration.
+    """
+    if not isinstance(source_text,str):
+        raise ValueError('SOURCE_REVIEW_REQUIRED: invalid original README text')
+    lines=[ln.strip() for ln in source_text.splitlines() if ln.strip()]
+    accepted={
+        'Cell 02-06: hemispherical impactor d= 30 mm':('C02','C03','C04','C05','C06',30),
+        'Cell 09-13: hemispherical impactor d= 180 mm':('C09','C10','C11','C12','C13',180),
+    }
+    # A source document that contradicts the expected mappings, includes
+    # duplicate diameter lines, or changes specimen identities cannot pass.
+    geometry_lines=[ln for ln in lines if 'hemispherical impactor' in ln.lower()]
+    if len(geometry_lines)!=2 or set(geometry_lines)!=set(accepted):
+        raise ValueError('SOURCE_REVIEW_REQUIRED: missing/contradictory individual source diameter mapping')
+    return {
+        'publisher_documented_groups':[
+            {'original_specimen_ids':list(v[:5]),'indenter_diameter_mm':v[5]}
+            for v in accepted.values()
+        ],
+        'original_publisher_readme_mapping_verified':True,
+        'independent_physical_custody_witness_verified':False,
+        'independent_mechanical_diameter_calibration_verified':False,
+    }
+
+
 def verify_original_readme(metadata:dict, raw:bytes)->dict:
     if not isinstance(metadata,dict) or type(metadata.get('id')) is not int or metadata['id']!=RECORD:
         raise ValueError('SOURCE_REVIEW_REQUIRED: wrong Zenodo record')
@@ -51,13 +80,12 @@ def verify_original_readme(metadata:dict, raw:bytes)->dict:
     except UnicodeDecodeError as ex:raise ValueError('SOURCE_REVIEW_REQUIRED: invalid README encoding') from ex
     if any(ord(ch)<32 and ch not in '\n\r\t' for ch in source_text):
         raise ValueError('SOURCE_REVIEW_REQUIRED: control characters in README')
-    # No signal-derived or sequence-derived geometry assignments are trusted.
-    # Expose exact small source text for human-reviewed, publisher-grounded follow-up.
+    # This is the **actual original publisher source text** after MD5 verification.
+    # Its explicit 02-06 and 09-13 mapping, not the sign of EIS, authorizes labels.
+    documented=parse_readme_published_impactor_mapping(source_text)
     return {'record':RECORD,'source_readme_filename':README_NAME,'publisher_md5_verified':True,
             'md5':README_MD5,'sha256':hashlib.sha256(raw).hexdigest(),'readme_text':source_text,
-            'individual_specimen_impactor_mapping_verified':False,
-            'mapping_review_required':True,
-            'not_equivalent_to_calibration':True}
+            **documented, 'not_equivalent_to_calibration':True}
 
 
 def read_ledger(blob:bytes)->dict:
@@ -134,10 +162,20 @@ def real_readme()->dict:
 
 def run(ledger_path:Path, output_path:Path)->dict:
     ledger=read_ledger(ledger_path.read_bytes())
-    record={'source_readme':real_readme(), 'source_derived_strata':analyse_ledger(ledger)}
-    # Explicitly prohibit geometry inference from observed electrical sign.
-    assert record['source_readme']['individual_specimen_impactor_mapping_verified'] is False
-    assert record['source_derived_strata']['physical_diameter_assignment_verified'] is False
+    readme=real_readme()
+    source_strata=analyse_ledger(ledger)
+    if not readme['original_publisher_readme_mapping_verified']:
+        raise ValueError('SOURCE_REVIEW_REQUIRED: published specimen mapping missing')
+    record={'source_readme':readme, 'source_derived_strata':source_strata,
+        'geometry_comparison_valid_as_publisher_documented_groups':True,
+        '30mm_original_specimens':list(x[:-5] for x in IDS_A),
+        '180mm_original_specimens':list(x[:-5] for x in IDS_B),
+        'independent_physical_custody_witness_verified':False,
+        'mechanical_safety_certification':False,'physical_causality_established':False,
+        'production_release_allowed':False}
+    # Earlier ledger cannot authenticate geometry in isolation.
+    assert source_strata['physical_diameter_assignment_verified'] is False
+    assert readme['independent_physical_custody_witness_verified'] is False
     output_path.write_text(json.dumps(record,ensure_ascii=False,sort_keys=True,indent=2)+'\n',encoding='utf-8')
     return record
 
@@ -150,7 +188,8 @@ def main(argv=None):
         if out.exists() or not out.parent.is_dir():raise ValueError('SOURCE_REVIEW_REQUIRED: output exists/parent absent')
         doc=run(src,out)
         print('GRAZ_ZENODO_README_MD5_PASS',doc['source_readme']['readme_text'])
-        print('GRAZ_GEOMETRY_ASSIGNMENT_VERIFIED',doc['source_derived_strata']['physical_diameter_assignment_verified'])
+        print('GRAZ_ORIGINAL_PUBLISHER_DOCUMENTED_GEOMETRY_MAPPING',doc['source_readme']['publisher_documented_groups'])
+        print('GRAZ_INDEPENDENT_PHYSICAL_CUSTODY_WITNESS',doc['independent_physical_custody_witness_verified'])
         for r in doc['source_derived_strata']['results']:
             if r['stage']=='95% deformation':print('GRAZ_95_SOURCE_STRATA',r)
         return 0
