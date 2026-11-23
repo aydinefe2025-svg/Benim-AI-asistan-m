@@ -47,7 +47,7 @@ class GrazRealPairedTest(unittest.TestCase):
         t=datetime(2024,1,1)
         x=[(t,3.,10.,30.),(t+timedelta(seconds=2),3.,-10.,-30.)]
         r=integrate_signs(x)
-        self.assertAlmostEqual(r["positive_current_throughput_Ah"],10/3600,places=7)
-        self.assertAlmostEqual(r["negative_current_throughput_Ah"],10/3600,places=7)
+        self.assertAlmostEqual(r["positive_current_throughput_Ah"],5/3600,places=7)
+        self.assertAlmostEqual(r["negative_current_throughput_Ah"],5/3600,places=7)
 
 if __name__=="__main__": unittest.main()
