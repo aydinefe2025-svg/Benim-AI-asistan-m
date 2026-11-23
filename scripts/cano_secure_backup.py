@@ -12,10 +12,11 @@ import os
 from pathlib import Path
 
 from core.backup_encryption import decrypt_backup
-from core.cano_backup_bundle import verify_portable_bundle
+from core.cano_backup_bundle import (verify_portable_bundle, verify_complete_portable_bundle)
 
 
-def restore_to_new_directory(source: Path, destination: Path, passphrase: str) -> list[str]:
+def restore_to_new_directory(source: Path, destination: Path, passphrase: str,
+                             *, require_complete: bool = False) -> list[str]:
     source, destination = Path(source), Path(destination)
     if source.is_symlink() or not source.is_file():
         raise ValueError("Encrypted backup file is unavailable")
@@ -23,7 +24,8 @@ def restore_to_new_directory(source: Path, destination: Path, passphrase: str) -
         raise ValueError("Destination must be a new directory")
     encrypted = source.read_bytes()
     bundle = decrypt_backup(encrypted, passphrase)
-    files = verify_portable_bundle(bundle)
+    files = (verify_complete_portable_bundle(bundle) if require_complete
+             else verify_portable_bundle(bundle))
     destination.mkdir(mode=0o700, parents=False, exist_ok=False)
     try:
         for name, data in files.items():
@@ -56,15 +58,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Decrypt and check a private CANO backup")
     parser.add_argument("encrypted_file", type=Path)
     parser.add_argument("new_private_directory", type=Path)
+    parser.add_argument("--require-complete", action="store_true",
+                        help="Reject legacy, missing or malformed owner account sections")
     args = parser.parse_args()
     try:
         passphrase = getpass.getpass("CANO yedek parolası: ")
         names = restore_to_new_directory(
-            args.encrypted_file, args.new_private_directory, passphrase)
+            args.encrypted_file, args.new_private_directory, passphrase,
+            require_complete=args.require_complete)
     except (OSError, ValueError):
         print("ERROR: CANO backup could not be authenticated or extracted.")
         return 1
-    print("PASS: authenticated archive and component checksums verified.")
+    if args.require_complete:
+        print("PASS: authenticated complete owner archive and five sections verified.")
+    else:
+        print("PASS: authenticated archive and component checksums verified "
+              "(full owner completeness not assessed).")
     print("Extracted files: " + ", ".join(names))
     print("The extracted JSON contains private data; keep the destination protected.")
     return 0
