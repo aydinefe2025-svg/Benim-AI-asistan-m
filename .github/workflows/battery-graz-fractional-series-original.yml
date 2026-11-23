@@ -1,0 +1,60 @@
+name: Graz original 50 EIS fractional inductive source physics repair
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_eis_fractional_inductive_repair.py'
+      - 'tests/test_graz_eis_fractional_inductive_repair.py'
+      - '.github/workflows/battery-graz-fractional-series-original.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-source-fractional-physics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Pin positive fractional source model solver
+        run: python -m pip install --disable-pip-version-check 'numpy==2.3.5' 'scipy==1.17.0'
+      - name: Source physics synthetic regression and nine-cell parameter-selection leakage tests
+        run: python -m unittest tests.test_graz_eis_fractional_inductive_repair -v
+      - name: Replay ten original publisher MD5 pinned workbooks for all fifty real spectra
+        run: python -m research.battery_curve_audit.graz_eis_fractional_inductive_repair /tmp/graz_fractional_source_original.json /tmp/graz_fractional_source_original.csv
+      - name: Verify real source, 50 full frequency holdouts, physical limitations
+        run: |
+          python - <<'PY'
+          import json,csv,math
+          d=json.load(open('/tmp/graz_fractional_source_original.json'))
+          assert d['source_original_workbooks']==10 and d['source_original_spectra']==50
+          assert d['original_frequency_magnitude_phase_triplets']==5050
+          assert d['original_source_md5_crc_sha256_verified']
+          assert len(d['fifty_original_source_spectra'])==50
+          assert d['original_100khz_real_increase_count']==50
+          assert d['nested_test_cell_excluded_from_alpha_choice']
+          assert d['source_test_cell_frequency_train_test_disjoint']
+          assert d['selection_is_exploratory_after_observing_source_family']
+          assert d['all_nonnegative_coefficients_enforced']
+          assert d['positive_rc_relaxation_count']==24
+          assert d['fixed_smoothness_regularization']==0.0003
+          assert d['ideal_L_parity_pass_count']==0
+          assert d['nested_fractional_parity_pass_count']==50
+          assert 0<=d['nested_fractional_middle_band_pass_count']<=50
+          assert all(r['source_test_cell_excluded_from_alpha_selection'] and r['test_cell_frequencies_used_to_fit_amplitudes'] for r in d['fifty_original_source_spectra'])
+          assert not d['actual_battery_capacity_Ah_measured']
+          assert not d['field_safety_certified'] and not d['production_release_allowed']
+          assert d['not_independent_confirmation_of_model_family']
+          assert len(list(csv.DictReader(open('/tmp/graz_fractional_source_original.csv'))))==50
+          print('ORIGINAL_50_FRACTIONAL_PHYSICS_REAL_SOURCE_VALIDATION_PASS')
+          PY
+      - name: Preserve original-source-derived numerical evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-original-50-fractional-physics-nested-cell-parameter-proof
+          path: |
+            /tmp/graz_fractional_source_original.json
+            /tmp/graz_fractional_source_original.csv
+          retention-days: 14
+          if-no-files-found: error
