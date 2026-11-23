@@ -1,0 +1,50 @@
+name: Battery original Graz EIS README/geometry evidence audit
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_eis_group_geometry_audit.py'
+      - 'research/battery_curve_audit/verified_eis_10_cells_829_derived_ledger.json'
+      - 'tests/test_graz_eis_group_geometry_audit.py'
+      - '.github/workflows/battery-graz-eis-geometry-readme.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  genuine-original-publisher-readme:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout tested head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Source-pin and adversarial checks
+        run: python -m unittest tests.test_graz_eis_group_geometry_audit -v
+      - name: Retrieve public Zenodo original ReadME, verify publisher MD5, evaluate genuine 10-source archived observables
+        run: python -m research.battery_curve_audit.graz_eis_group_geometry_audit research/battery_curve_audit/verified_eis_10_cells_829_derived_ledger.json /tmp/cano_graz_eis_geometry_readme_verified.json
+      - name: Enforce real published README and scientific boundary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('/tmp/cano_graz_eis_geometry_readme_verified.json').read_text())
+          assert d['source_readme']['publisher_md5_verified'] is True
+          assert d['source_readme']['readme_text'].strip()
+          s=d['source_derived_strata']
+          assert s['source_cells_analysed']==10 and len(s['results'])==12
+          assert all(r['possible_label_partitions']==252 for r in s['results'])
+          for k in ('physical_diameter_assignment_verified','physical_causation_established','capacity_change_measured','real_instrument_calibration_verified','production_release_allowed'):
+              assert s[k] is False
+          print('GRAZ_REAL_README_VERIFIED_MD5',d['source_readme']['md5'])
+          print('GRAZ_EXPLORE_LABEL_CONTRASTS_DONE',len(s['results']))
+          print('ORIGINAL_SPECIMEN_DIAMETER_ASSOCIATION_UNVERIFIED')
+          PY
+      - name: Upload small original README interpretation and source-derived summary only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-original-zenodo-readme-eis-source-strata
+          path: /tmp/cano_graz_eis_geometry_readme_verified.json
+          retention-days: 7
+          if-no-files-found: error
