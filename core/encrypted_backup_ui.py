@@ -4,6 +4,7 @@ from __future__ import annotations
 from hashlib import sha256
 import json
 
+from core.archive_integrity import check_archive_integrity
 from core.backup_encryption import prepare_encrypted_download
 from core.cano_backup_bundle import verify_portable_bundle
 
@@ -23,6 +24,37 @@ def _stable_source_digest(plaintext: bytes) -> str:
         return sha256(plaintext).hexdigest()
     manifest = json.loads(files["manifest.json"].decode("utf-8"))
     manifest.pop("created_at", None)
+    # The real research export is regenerated on each Streamlit rerun, changing
+    # exported_at and the nested checksum despite unchanged task records.
+    # Normalize only a recognized export whose nested SHA-256 is valid.
+    try:
+        research = json.loads(files["research-tasks.json"].decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError):
+        research = None
+    if (isinstance(research, dict)
+            and set(research) == {
+                "schema", "exported_at", "warning", "tasks", "integrity"}
+            and research.get("schema") == "research-task-export-v1"
+            and isinstance(research.get("exported_at"), str)
+            and isinstance(research.get("warning"), str)
+            and isinstance(research.get("tasks"), list)
+            and isinstance(research.get("integrity"), dict)):
+        try:
+            check_archive_integrity(research)
+        except ValueError:
+            pass  # Bad nested checksum: keep ordinary byte-exact invalidation.
+        else:
+            semantic_content = {
+                key: value for key, value in research.items()
+                if key not in ("exported_at", "integrity")
+            }
+            semantic = json.dumps(
+                semantic_content, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":"), allow_nan=False).encode("utf-8")
+            manifest["components"]["research-tasks.json"] = {
+                "sha256": sha256(semantic).hexdigest(),
+                "size_bytes": len(semantic),
+            }
     stable = json.dumps(manifest, ensure_ascii=False, sort_keys=True,
                         separators=(",", ":"), allow_nan=False).encode("utf-8")
     return sha256(stable).hexdigest()
