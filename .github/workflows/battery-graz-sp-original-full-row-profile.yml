@@ -1,0 +1,63 @@
+name: Battery Graz original five cell SP row numeric profiling
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_five_sp_full_row_profile.py'
+      - 'tests/test_graz_five_sp_full_row_profile.py'
+      - '.github/workflows/battery-graz-sp-original-full-row-profile.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-verified-sp-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Fail-closed synthetic SP data tests
+        run: python -m unittest tests.test_graz_five_sp_full_row_profile -v
+      - name: Read all 15 original publisher SP numeric data files after official MD5 and ZIP CRC
+        run: python -m research.battery_curve_audit.graz_five_sp_full_row_profile /tmp/graz_real_sp_rows.json
+      - name: Evidence existence and scope guard
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/graz_real_sp_rows.json',encoding='utf-8'))
+          assert d['source_doi']=='10.5281/zenodo.22079387'
+          assert d['source_md5']=='b9ed863766e30afbd0e309951c855d08'
+          assert d['sp_file_count']==15 and d['num_physical_source_folders']==5
+          assert d['source_zip_crc_all_members_pass']
+          for cell in ('01','02','03','04','05'):
+              assert len(d['cells'][cell]['SP'])==3
+          assert d['sp_valid_numeric_rows']==234021, 'publisher original row count changed'
+          assert d['sp_rows_inside_electrical_global_time_windows_candidate']==204673
+          for cell, group in d['cells'].items():
+              for f in group['SP']:
+                  assert f['counts']['valid_six_field_rows']>=10000
+                  assert f['counts']['post_header_lines']==f['counts']['valid_six_field_rows']
+                  assert f['counts'].get('nonincreasing_time_steps',0)==0
+                  assert 'Sensor 3[micro-m]' in f['exact_constant_original_numeric_channels']
+                  assert not f['electrical_and_SP_instrument_clocks_independently_synchronized']
+          assert sum(f['counts'].get('rows_inside_electrical_recording_window_candidate',0)
+                     for f in d['cells']['03']['SP'])==17525
+          for field in ('timezone_and_interinstrument_clock_sync_unverified',
+                        'source_sensor_absolute_calibration_unverified',
+                        'capacity_and_SOH_not_recomputed',
+                        'dynamic_impact_not_applied',
+                        'causal_preload_effect_not_identified',
+                        'dataset_separate_from_graz_4_cell_18315429'):
+              assert d[field] is True, field
+          print('GRAZ_SP_15_GENUINE_SOURCE_ROW_SCHEMAS_VERIFIED',
+                d['sp_valid_numeric_rows'],
+                d['sp_rows_inside_electrical_global_time_windows_candidate'])
+          PY
+      - name: Publish audited summary, never redistribute publisher raw source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-five-real-sp-all-15-source-row-profile
+          path: /tmp/graz_real_sp_rows.json
+          if-no-files-found: error
+          retention-days: 7
