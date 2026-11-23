@@ -51,6 +51,10 @@ jobs:
           assert not d['physical_safety_certification']
           assert all(c['sp_files']>=1 for c in d['physical_cells'])
           assert d['paired_cells']>=1, 'No actual same-cell + same-clock signal overlap'
+          assert d['fully_covered_cells']==4, 'Unexpected full-time-coverage count'
+          assert d['partially_covered_cells']==1, 'Must retain clipped source 03 evidence'
+          assert d['observed_same_clock_pairs']==204673
+          assert d['observed_sp_rows']==234021
           print('REAL_SAME_SPECIMEN_CLOCK_PAIRS',d['paired_cells'])
           PY
       - name: Publish only schema manifest (never raw traces)
