@@ -58,6 +58,40 @@ def tables_from_original(raw:bytes)->dict:
                 raise ValueError('SOURCE_REVIEW_REQUIRED: different frequency grid across same original specimen')
         return result
 
+def _validated_polar_point(point):
+    if not isinstance(point,(tuple,list)) or len(point)!=3:
+        raise ValueError('SOURCE_REVIEW_REQUIRED: expected frequency/magnitude/phase')
+    frequency,magnitude,phase=point
+    if any(type(x) not in (int,float) or not math.isfinite(x) for x in point):
+        raise ValueError('SOURCE_REVIEW_REQUIRED: nonfinite EIS polar value')
+    if frequency<=0 or magnitude<=0 or abs(phase)>360:
+        raise ValueError('SOURCE_REVIEW_REQUIRED: invalid polar measurement')
+    return float(frequency),float(magnitude),float(phase)
+
+def cartesian_nyquist(point):
+    """Re(Z) and -Im(Z) in ohms from original |Z| and phase in degrees."""
+    _,magnitude,phase=_validated_polar_point(point)
+    angle=math.radians(phase)
+    return magnitude*math.cos(angle), -magnitude*math.sin(angle)
+
+def _same_frequency_pair(baseline,observed):
+    f0,m0,_=_validated_polar_point(baseline)
+    f1,m1,_=_validated_polar_point(observed)
+    if f0!=f1:
+        raise ValueError('SOURCE_REVIEW_REQUIRED: different original frequency')
+    return m0,m1
+
+def abs_magnitude_shift_pct(baseline,observed):
+    m0,m1=_same_frequency_pair(baseline,observed)
+    return abs(100*(m1/m0-1))
+
+def complex_shift_pct(baseline,observed):
+    """100*|Znew-Zreference|/|Zreference|; phase wrapping is handled trigonometrically."""
+    m0,_=_same_frequency_pair(baseline,observed)
+    re0,minus_im0=cartesian_nyquist(baseline)
+    re1,minus_im1=cartesian_nyquist(observed)
+    return 100*math.hypot(re1-re0,minus_im1-minus_im0)/m0
+
 def analyze_same_source(raw:bytes,name:str,pin:str)->dict:
     provenance=audit.inspect_original_workbook(raw,name,pin)
     levels=tables_from_original(raw)

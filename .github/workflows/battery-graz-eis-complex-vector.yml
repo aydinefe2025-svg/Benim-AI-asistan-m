@@ -1,0 +1,45 @@
+name: Graz EIS complex-plane vector audit
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_eis_2026_same_cell_delta.py'
+      - 'research/battery_curve_audit/graz_eis_complex_vector_audit.py'
+      - 'tests/test_graz_eis_complex_vector_audit.py'
+      - '.github/workflows/battery-graz-eis-complex-vector.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-ten-cell-complex:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Complex phase vs magnitude adversarial regression
+        run: python -m unittest tests.test_graz_eis_complex_vector_audit -v
+      - name: Retrieve 10 authentic publisher EIS source files and compute complex vectors
+        run: python -m research.battery_curve_audit.graz_eis_complex_vector_audit /tmp/graz_eis_original_complex_10.json
+      - name: Fail closed on unmeasured capacity, uncalibrated safety, and invalid source count
+        run: |
+          python - <<'PY'
+          import json
+          x=json.load(open('/tmp/graz_eis_original_complex_10.json'))
+          assert x['original_workbook_count']==10 and x['original_spectral_triplets']==5050
+          assert len(x['per_cell_95pct'])==10
+          assert x['publisher_documented_diameter_groups']=={'30mm':5,'180mm':5}
+          assert all(q['95pct_median_complex_vector_pct']+1e-7>=q['95pct_median_absolute_magnitude_pct'] for q in x['per_cell_95pct'])
+          assert x['mathematical_reverse_triangle_all_frequencies_pass']
+          for k in ('absolute_eis_calibration_verified','capacity_Ah_measured','individual_force_calibration_verified','production_release_allowed','damage_causality_proven'):
+            assert x[k] is False
+          print('TEN_REAL_EIS_COMPLEX_VECTOR_SPECTRA_PASS',x['total_frequency_contrasts'])
+          PY
+      - name: Keep only bounded derived JSON, not raw original xlsx
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-eis-original-complex-plane-10-cell-proof
+          path: /tmp/graz_eis_original_complex_10.json
+          retention-days: 7
+          if-no-files-found: error
