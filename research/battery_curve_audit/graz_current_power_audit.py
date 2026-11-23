@@ -77,6 +77,7 @@ def audit_electrical_member(archive: zipfile.ZipFile, member: zipfile.ZipInfo, *
     zero_current_nonzero_power = 0
     negatives = Counter()
     per_device = {}
+    quarantined = []
     first_token = last_token = None
     with archive.open(member) as raw:
         header = raw.readline().decode('utf-8-sig', errors='strict').strip()
@@ -102,7 +103,10 @@ def audit_electrical_member(archive: zipfile.ZipFile, member: zipfile.ZipInfo, *
                 per_device[cols[1]] = {'eligible_nonzero_vi_rows': 0, 'numerically_near_ratio_1_5pct_rows': 0, 'nonnegative_current_rows': 0, 'negative_current_rows': 0,
                     'deviating_relative_gt_5pct_binned_by_abs_vi': {'0.01_to_0.1': 0, '0.1_to_1': 0, '1_and_above': 0},
                     'deviating_relative_gt_5pct_with_abs_P_minus_VI_le_0.01': 0,
-                    'deviating_relative_gt_5pct_with_abs_P_minus_VI_gt_0.1': 0}
+                    'deviating_relative_gt_5pct_with_abs_P_minus_VI_gt_0.1': 0,
+                    'deviating_with_near_zero_numeric_power': 0,
+                    'deviating_ratio_buckets': {'ratio_lt_0p5': 0, 'ratio_0p5_to_0p95': 0,
+                                                'ratio_1p05_to_1p5': 0, 'ratio_ge_1p5': 0}}
             dd = per_device[cols[1]]
             if i < 0: dd['negative_current_rows'] += 1
             else: dd['nonnegative_current_rows'] += 1
@@ -120,6 +124,19 @@ def audit_electrical_member(archive: zipfile.ZipFile, member: zipfile.ZipInfo, *
                     vi_abs = abs(v * i)
                     interval = '0.01_to_0.1' if vi_abs < .1 else ('0.1_to_1' if vi_abs < 1 else '1_and_above')
                     dd['deviating_relative_gt_5pct_binned_by_abs_vi'][interval] += 1
+                    ratio = p / (v * i)
+                    ratio_bucket = ('ratio_lt_0p5' if ratio < .5 else
+                                    'ratio_0p5_to_0p95' if ratio < .95 else
+                                    'ratio_1p05_to_1p5' if ratio < 1.5 else 'ratio_ge_1p5')
+                    dd['deviating_ratio_buckets'][ratio_bucket] += 1
+                    if abs(p) < .01: dd['deviating_with_near_zero_numeric_power'] += 1
+                    if len(quarantined) >= 25_000:
+                        raise ValueError('too many original source discrepancy rows to record safely')
+                    quarantined.append({'source_archive_member': member.filename,
+                        'original_source_line_number': line_num, 'device_label': cols[1],
+                        'original_timestamp_token': cols[0],
+                        'original_raw_row_sha256': hashlib.sha256(raw_line).hexdigest(),
+                        'reason': 'unverified_numeric_P_over_VI_differs_more_than_5pct'})
                     absolute_residual = abs(p - v*i)
                     if absolute_residual <= .01:
                         dd['deviating_relative_gt_5pct_with_abs_P_minus_VI_le_0.01'] += 1
@@ -147,6 +164,9 @@ def audit_electrical_member(archive: zipfile.ZipFile, member: zipfile.ZipInfo, *
         'publisher_nominal_static_preload_kN': source.CELL_PRELOAD_KN[cell],
         'genuine_original_row_count': total,
         'source_device_labels': dict(sorted(devices.items())),
+        'numerical_discrepancy_review_queue_rows': quarantined,
+        'numeric_discrepancy_review_queue_count': len(quarantined),
+        'quarantine_is_for_joint_V_I_P_numeric_use_only': True,
         'per_device_full_original_nonzero_vi_consistency': per_device_summary,
         'first_timestamp_token': first_token,
         'last_timestamp_token': last_token,
