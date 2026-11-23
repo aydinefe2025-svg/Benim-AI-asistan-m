@@ -1,0 +1,51 @@
+name: Graz genuine data counterfactual clock offset identifiability
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_original_counterfactual_clock.py'
+      - 'tests/test_graz_original_counterfactual_clock.py'
+      - '.github/workflows/battery-graz-original-clock-counterfactual.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authentic-graz-source-clock-challenge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Offline monotonic and false clock fixture checks
+        run: python -m unittest tests.test_graz_original_counterfactual_clock -v
+      - name: Re-download and cryptographically verify genuine Graz source then stress real timestamp indexes with deliberately shifted SP times
+        run: python -m research.battery_curve_audit.graz_original_counterfactual_clock /tmp/graz_original_clock_offset_counterfactual.json
+      - name: Provenance, baseline and no fake physical calibration guard
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/graz_original_clock_offset_counterfactual.json'))
+          assert d['original_source_doi']=='10.5281/zenodo.22079387'
+          assert d['publisher_pinned_md5']=='b9ed863766e30afbd0e309951c855d08'
+          assert d['source_zip_sha256']=='5627a1606b8e378de0e4e4ced99222509bcbbcb725d26da6e7a5fad34aa42fc7'
+          assert d['official_zip_crc_and_byte_count_verified']
+          assert d['original_electrical_source_rows']==1091337
+          assert d['original_sp_sensor_source_rows']==234021
+          counts=d['match_counts_by_tolerance_and_counterfactual_offset']
+          assert counts['0.5']['0.0']==182225
+          assert counts['1.0']['0.0']==204673
+          assert d['offsets_s_tested_are_deliberately_counterfactual']==[-3,-2,-1,0,1,2,3]
+          assert set(d['cells'])=={'01','02','03','04','05'}
+          assert d['source_zero_shift_baseline_reconfirmed']
+          assert all(v is False for v in d['scope_and_safety'].values())
+          assert d['physical_source_cells']==5
+          print('SOURCE_5CELL_CLOCK_IDENTIFIABILITY_CHALLENGE_PASS',counts)
+          PY
+      - name: Preserve compact counts only, no raw original signals
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-2026-real-source-counterfactual-clock-offset-identifiability
+          path: /tmp/graz_original_clock_offset_counterfactual.json
+          if-no-files-found: error
+          retention-days: 14
