@@ -4,6 +4,8 @@ on:
     paths:
       - 'research/battery_curve_audit/graz_paired_source_probe.py'
       - 'tests/test_graz_paired_source_probe.py'
+      - 'tests/test_graz_paired_numeric_audit.py'
+      - 'research/battery_curve_audit/graz_paired_numeric_audit.py'
       - '.github/workflows/battery-graz-original-paired-source.yml'
   workflow_dispatch:
 permissions:
@@ -33,10 +35,30 @@ jobs:
           assert not d['mechanical_loading_is_dynamic_impact']
           print('REAL_PUBLISHER_ZIP_CRC_PASS_SCHEMA_ONLY')
           PY
+      - name: Test timestamp pairing and sign-safe electrical integration
+        run: python -m unittest tests.test_graz_paired_numeric_audit -v
+      - name: Pair original electrical log with original SP sensor signals by cell and timestamp
+        run: python -m research.battery_curve_audit.graz_paired_numeric_audit --out graz_paired_numeric_evidence.json
+      - name: Enforce physical limits of the real numeric evidence
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('graz_paired_numeric_evidence.json',encoding='utf-8'))
+          assert d['raw_source_integrity_and_crc_verified']
+          assert len(d['physical_cells'])==5
+          assert d['static_mechanical_preload_not_impact']
+          assert d['signed_current_throughput_not_capacity_fade']
+          assert not d['physical_safety_certification']
+          assert all(c['sp_files']>=1 for c in d['physical_cells'])
+          assert d['paired_cells']>=1, 'No actual same-cell + same-clock signal overlap'
+          print('REAL_SAME_SPECIMEN_CLOCK_PAIRS',d['paired_cells'])
+          PY
       - name: Publish only schema manifest (never raw traces)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: cano-graz-original-schema-manifest
-          path: graz_original_schema_probe.json
+          path: |
+            graz_original_schema_probe.json
+            graz_paired_numeric_evidence.json
           retention-days: 7
           if-no-files-found: error
