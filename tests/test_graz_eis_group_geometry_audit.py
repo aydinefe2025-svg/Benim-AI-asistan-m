@@ -50,4 +50,25 @@ class GrazGeometryTests(unittest.TestCase):
         report=mod.analyse_ledger(self.doc)
         self.assertTrue(all(x['permutation_exchangeability_not_verified'] for x in report['results']))
         self.assertFalse(report['physical_diameter_assignment_verified'])
+
+    def test_verified_original_readme_hard_pinned_mapping(self):
+        p=pathlib.Path(__file__).resolve().parents[1]/'research/battery_curve_audit/publisher_verified_zenodo_original_ReadME.txt'
+        raw=p.read_bytes()
+        self.assertEqual(hashlib.md5(raw).hexdigest(),mod.README_MD5)
+        md={'id':mod.RECORD,'files':[{'key':'ReadME.txt','checksum':'md5:'+mod.README_MD5}]+[{'key':str(i)} for i in range(10)]}
+        v=mod.verify_original_readme(md,raw)
+        self.assertTrue(v['original_publisher_readme_mapping_verified'])
+        self.assertEqual(v['publisher_documented_groups'][0]['original_specimen_ids'],['C02','C03','C04','C05','C06'])
+        self.assertEqual(v['publisher_documented_groups'][0]['indenter_diameter_mm'],30)
+        self.assertEqual(v['publisher_documented_groups'][1]['indenter_diameter_mm'],180)
+        self.assertIs(v['independent_physical_custody_witness_verified'],False)
+    def test_false_180_on_02_mapping_rejected_even_if_text_looks_near(self):
+        p=pathlib.Path(__file__).resolve().parents[1]/'research/battery_curve_audit/publisher_verified_zenodo_original_ReadME.txt'
+        source=p.read_text()
+        with self.assertRaises(ValueError):mod.parse_readme_published_impactor_mapping(source.replace('30 mm','180 mm'))
+    def test_duplicate_geometry_lines_rejected(self):
+        p=pathlib.Path(__file__).resolve().parents[1]/'research/battery_curve_audit/publisher_verified_zenodo_original_ReadME.txt'
+        with self.assertRaises(ValueError):mod.parse_readme_published_impactor_mapping(p.read_text()+'\nCell 09-13: hemispherical impactor d= 180 mm')
+    def test_geometry_assignment_requires_actual_source_text(self):
+        with self.assertRaises(ValueError):mod.parse_readme_published_impactor_mapping('C02-C06 look negative at 10Hz therefore 30mm')
 if __name__=='__main__':unittest.main()
