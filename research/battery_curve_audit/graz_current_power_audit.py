@@ -76,6 +76,7 @@ def audit_electrical_member(archive: zipfile.ZipFile, member: zipfile.ZipInfo, *
     nonzero_numeric_pairs = 0
     zero_current_nonzero_power = 0
     negatives = Counter()
+    per_device = {}
     first_token = last_token = None
     with archive.open(member) as raw:
         header = raw.readline().decode('utf-8-sig', errors='strict').strip()
@@ -95,12 +96,23 @@ def audit_electrical_member(archive: zipfile.ZipFile, member: zipfile.ZipInfo, *
                 raise ValueError('original measurement exceeds constrained numeric range')
             total += 1
             devices[cols[1]] += 1
+            if cols[1] not in per_device:
+                if len(per_device) >= 16:
+                    raise ValueError('too many independent source electrical device labels')
+                per_device[cols[1]] = {'eligible_nonzero_vi_rows': 0, 'numerically_near_ratio_1_5pct_rows': 0, 'nonnegative_current_rows': 0, 'negative_current_rows': 0}
+            dd = per_device[cols[1]]
+            if i < 0: dd['negative_current_rows'] += 1
+            else: dd['nonnegative_current_rows'] += 1
             first_token = cols[0] if first_token is None else first_token
             last_token = cols[0]
             if i < 0: negatives['negative_current'] += 1
             if p < 0: negatives['negative_power'] += 1
             if abs(i) < 1e-9 and abs(p) > 1e-3: zero_current_nonzero_power += 1
-            if abs(v*i) >= .01: nonzero_numeric_pairs += 1
+            if abs(v*i) >= .01:
+                nonzero_numeric_pairs += 1
+                dd['eligible_nonzero_vi_rows'] += 1
+                if abs(p / (v * i) - 1.) <= .05:
+                    dd['numerically_near_ratio_1_5pct_rows'] += 1
             if len(sample) < MAX_PER_CELL_SAMPLES:
                 sample.append((v, i, p))
             else:
@@ -112,11 +124,18 @@ def audit_electrical_member(archive: zipfile.ZipFile, member: zipfile.ZipInfo, *
     if total < 100:
         raise ValueError('original source electrical log too short')
     result = numeric_scale_audit(sample)
+    per_device_summary = {name: {**d,
+        'full_scan_fraction_numerically_near_ratio_1_5pct':
+            round(d['numerically_near_ratio_1_5pct_rows'] / d['eligible_nonzero_vi_rows'], 6)
+            if d['eligible_nonzero_vi_rows'] else None,
+        'independent_unit_calibration_verified': False}
+        for name, d in sorted(per_device.items())}
     return {
         'physical_cell': cell,
         'publisher_nominal_static_preload_kN': source.CELL_PRELOAD_KN[cell],
         'genuine_original_row_count': total,
         'source_device_labels': dict(sorted(devices.items())),
+        'per_device_full_original_nonzero_vi_consistency': per_device_summary,
         'first_timestamp_token': first_token,
         'last_timestamp_token': last_token,
         'nonzero_numeric_vi_rows_total': nonzero_numeric_pairs,
