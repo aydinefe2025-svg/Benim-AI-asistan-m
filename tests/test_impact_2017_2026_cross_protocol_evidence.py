@@ -41,7 +41,8 @@ class PrimaryEvidenceHeterogeneityTests(unittest.TestCase):
         self.assertFalse(self.a["individual_cell_damage_capacity_function_identifiable"])
 
     def test_same_energy_unit_not_enough_to_merge_cohorts(self):
-        self.assertIn("pouch",m.SOURCES[2]["physical_cell_format"])\n        self.assertIn("pouch",m.SOURCES[3]["physical_cell_format"])
+        self.assertIn("pouch",m.SOURCES[2]["physical_cell_format"])
+        self.assertIn("pouch",m.SOURCES[3]["physical_cell_format"])
         self.assertNotEqual(m.SOURCES[2]["mechanical_protocol"],m.SOURCES[3]["mechanical_protocol"])
         self.assertTrue(self.a["nominally_same_7j_does_not_make_experiments_exchangeable"])
 
