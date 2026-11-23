@@ -1,0 +1,93 @@
+name: J0740 F137 original APR4 direct ratio spin root
+on:
+  pull_request:
+    branches: [science/j0740-apr4-firstlaw-gr-pilot-20261117]
+    paths:
+      - 'research/j0740/f137/**'
+      - '.github/workflows/j0740-f137-apr4-direct-spin-root.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  direct_ratio_spin_root:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Verify source and patch C printing only
+        run: |
+          set -euo pipefail
+          echo '639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88  jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz' | sha256sum -c -
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0,'research/j0740/f63')
+          from f63_original_mpa1_fixed_J import patch_output_only
+          p=Path('rns-upstream/rns.c');p.write_text(patch_output_only(p.read_text()))
+          PY
+      - name: Compile original RNS C on coarse grid
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Root target spin by direct axis-ratio calls and replay same J
+        run: |
+          python -u research/j0740/f137/f137_apr4_direct_spin_root.py \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
+            --rns rns-upstream/rns --out results/F137/coarse/F137_DIRECT_ROOT.json
+      - name: Recompile fine 201x401 grid
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('rns-upstream/makefile');s=p.read_text()
+          old='HIGHSIZE=-DMDIV=151 -DSDIV=301';new='HIGHSIZE=-DMDIV=201 -DSDIV=401'
+          if s.splitlines().count(old)!=1 or s.splitlines().count(new)!=0:raise ValueError('GRID_SIGNATURE_DRIFT')
+          p.write_text(s.replace(old,new))
+          PY
+          make -B -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Independently root target spin on fine grid and compare
+        run: |
+          python -u research/j0740/f137/f137_apr4_direct_spin_root.py \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
+            --rns rns-upstream/rns --out results/F137/fine/F137_DIRECT_ROOT.json
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          p=Path('results/F137');a=json.loads((p/'coarse/F137_DIRECT_ROOT.json').read_text());b=json.loads((p/'fine/F137_DIRECT_ROOT.json').read_text())
+          assert a['table_sha256']==b['table_sha256']
+          d={'schema':'J0740_F137_TWO_GRID_DIRECT_SPIN_V1','delta_mass_msun':b['anchor']['mass_msun']-a['anchor']['mass_msun'],'delta_J_relative':b['anchor']['J_cgs']/a['anchor']['J_cgs']-1,'coarse_frequency_residual_hz':a['frequency_residual_hz'],'fine_frequency_residual_hz':b['frequency_residual_hz'],'coarse_replay_mass_diff_msun':a['mass_replay_difference_msun'],'fine_replay_mass_diff_msun':b['mass_replay_difference_msun'],'scope':'LOCAL_NUMERIC_CONSISTENCY_ONLY'}
+          assert abs(d['delta_mass_msun'])<.01
+          (p/'F137_TWO_GRID_COMPARISON.json').write_text(json.dumps(d,indent=2)+'\n')
+          print(d)
+          PY
+      - name: Save checksums even on failure
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          d=Path('results/F137');d.mkdir(parents=True,exist_ok=True)
+          paths=[*d.rglob('*.json'),*d.rglob('*.rns'),Path('rns-upstream/rns.c'),Path('rns-upstream/findmodel.c')]
+          (d/'F137_SHA256.json').write_text(json.dumps({str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths if p.is_file()},indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F137-original-APR4-direct-spin-root-real-C
+          path: results/F137/
+          if-no-files-found: warn
