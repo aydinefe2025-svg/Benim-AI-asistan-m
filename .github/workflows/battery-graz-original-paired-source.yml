@@ -1,0 +1,42 @@
+name: Battery Graz real original mechanical-electrical schema audit
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_paired_source_probe.py'
+      - 'tests/test_graz_paired_source_probe.py'
+      - '.github/workflows/battery-graz-original-paired-source.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  publisher-original:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Reject bad provenance, malicious ZIP and false physical claims
+        run: python -m unittest tests.test_graz_paired_source_probe -v
+      - name: Verify full publisher ZIP, get real LOG and SP schema
+        run: python -m research.battery_curve_audit.graz_paired_source_probe --out graz_original_schema_probe.json
+      - name: Scientifically fail closed on unproven same-cell or impact claims
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('graz_original_schema_probe.json',encoding='utf-8'))
+          assert d['source_verified'] and d['source']['md5']=='b9ed863766e30afbd0e309951c855d08'
+          assert d['inventory']['all_zip_crc_pass'] and d['inventory']['file_count']>1
+          assert not d['same_cell_mechanical_electrical_join_verified']
+          assert not d['capacity_or_causal_effect_verified']
+          assert not d['mechanical_loading_is_dynamic_impact']
+          print('REAL_PUBLISHER_ZIP_CRC_PASS_SCHEMA_ONLY')
+          PY
+      - name: Publish only schema manifest (never raw traces)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cano-graz-original-schema-manifest
+          path: graz_original_schema_probe.json
+          retention-days: 7
+          if-no-files-found: error
