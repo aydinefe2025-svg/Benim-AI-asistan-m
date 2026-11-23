@@ -73,13 +73,13 @@ def parse_metric_probe(stderr:str)->dict:
         except Exception as e:raise ValueError('BAD_F131_FIELD_VALUES') from e
         if not all(math.isfinite(x) and x>=0 for x in vals) or n<2 or check!=0:
             raise ValueError('BAD_F131_FIELD_VALUES')
-        # The actual first spin call is spherical, where omega=0 throughout;
-        # a zero raw difference divided by a zero field scale means exactly zero.
-        # A nonzero residual with zero scale remains invalid (fail closed).
+        # The spherical seed has omega=0 and delta_omega=0, so its relative
+        # residual is undefined (0/0); preserve that as null. Nonzero residuals
+        # with zero scale remain invalid, and the final rotating call must scale all fields.
         for delta,scale in zip(vals[:3],vals[3:]):
             if scale==0.0 and delta!=0.0:
                 raise ValueError('ZERO_FIELD_SCALE_WITH_NONZERO_GREEN_RESIDUAL')
-        rel=[delta/scale if scale else 0.0 for delta,scale in zip(vals[:3],vals[3:])]
+        rel=[delta/scale if scale>0 else None for delta,scale in zip(vals[:3],vals[3:])]
         row={'delta_rho':vals[0],'delta_gama':vals[1],'delta_omega':vals[2],
              'scale_rho':vals[3],'scale_gama':vals[4],'scale_omega':vals[5],
              'rel_delta_rho':rel[0],'rel_delta_gama':rel[1],
