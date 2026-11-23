@@ -11,6 +11,7 @@ permissions:
   actions: read
 jobs:
   genuine_metric_fixed_point:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -87,4 +88,51 @@ jobs:
         with:
           name: J0740-F131-actual-Green-field-fixedpoint-native-C
           path: results/F131/
+          if-no-files-found: warn
+
+  replay_original_real_C_without_rerunning_stars:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch immutable F129 and failed-parser F131 genuine C artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F131_replay
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14829422492/zip" \
+            -o results/F131_replay/F129_original_native_C.zip
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14844861236/zip" \
+            -o results/F131_replay/F131_original_failed_C.zip
+          printf '%s  %s\n' 6a2f8cfef88242e0354c843408b3055dda3c545ff7abad44df669af670ce69b1 results/F131_replay/F129_original_native_C.zip | sha256sum -c -
+          printf '%s  %s\n' 17adc3695a1fb5a26f98e1cae9db9b06658feebcf5b6326fc69ce4b88f3c4412 results/F131_replay/F131_original_failed_C.zip | sha256sum -c -
+      - name: Source- and raw-C-pin regression with real spherical zero-omega recovery
+        env:
+          F131_ORIGINAL_F129_ZIP: results/F131_replay/F129_original_native_C.zip
+          F131_ORIGINAL_FAILED_C_ARTIFACT: results/F131_replay/F131_original_failed_C.zip
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f131 -p 'test*.py' -v
+          python -m py_compile research/j0740/f131/f131_field_residual.py research/j0740/f131/replay_f131_original_C.py
+      - name: Recover both genuine RNS C Green-potential field residuals, without C calls
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f131/replay_f131_original_C.py \
+            --original results/F131_replay/F131_original_failed_C.zip \
+            --out results/F131_replay/F131_REAL_NATIVE_C_RECOVERED_RECEIPT.json \
+            | tee results/F131_replay/F131_REPLAY.log
+          sha256sum results/F131_replay/F131_REAL_NATIVE_C_RECOVERED_RECEIPT.json | tee results/F131_replay/F131_REPLAY_SHA256.txt
+      - name: Preserve both original native-C artifacts and independently parsed receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F131-SHA-verified-original-real-C-Green-residuals
+          path: results/F131_replay/
           if-no-files-found: warn
