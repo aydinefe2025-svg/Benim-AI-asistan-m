@@ -48,7 +48,7 @@ def check_tsuru():
         assert len(files) == 42
         source_rows = sum(max(len(ET.fromstring(z.read(name)).findall(NS + "sheetData/" + NS + "row")) - 1, 0) for name in files)
         assert source_rows == 26023, f"TSURU rows changed: {source_rows}"
-    timeseries = inspect_tsuru_timeseries(z)
+        timeseries = inspect_tsuru_timeseries(z)
     return {"bytes": len(raw), "numeric_time_qc": timeseries, "git_blob_sha1": blob, "sha256": hashlib.sha256(raw).hexdigest(),
             "zip_members_full_crc_pass": len(members), "sheets": len(labels),
             "rows_excluding_headers": source_rows, "two_test_sheets_explicit": True}
