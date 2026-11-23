@@ -135,7 +135,7 @@ def run_point(binary: Path, eos: Path, label: str, rho: int, seed: float,
 
     samples = []
     # Start with the previous fixed-J seed and a broad, symmetric local bracket.
-    for offset in (0.0, -1.0e-4, 1.0e-4, -3.0e-4, 3.0e-4):
+    for offset in (0.0, -1.0e-4, 1.0e-4, -3.0e-4, 3.0e-4, -5.0e-4, 5.0e-4, -1.0e-3, 1.0e-3, -2.0e-3, 2.0e-3):
         x = seed + offset
         try:
             evaluate(x)
