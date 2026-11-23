@@ -46,7 +46,7 @@ class TestMonthBlocks(unittest.TestCase):
         self.assertEqual(v["paired_month_bootstrap_95pct_exploratory_interval"],[None,None])
 
     def test_no_support_does_not_generate_effect(self):
-        groups,_=support_by_pack(rows_by_month({1:5,2:10},days=2,min_events=12,min_days=3)
+        groups,_=support_by_pack(rows_by_month({1:5,2:10},days=2),min_events=12,min_days=3)
         v=evaluate(groups["FB-T"],n_draw=30)
         self.assertIsNone(v["estimate_pct"])
         self.assertEqual(v["independent_calendar_month_pair_count"],0)
