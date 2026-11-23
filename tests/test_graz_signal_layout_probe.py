@@ -13,7 +13,7 @@ class ProbeTests(unittest.TestCase):
     def test_sp_tabular_candidate_rows(self):
         b=io.BytesIO()
         with zipfile.ZipFile(b,'w') as z:
-            z.writestr('Fresh cell 03/SP_foo.txt','Start time : 100\n\tTime\t\tPosition X[mm]\tSensor 1[micro-m]\n0\t0\t1\n1,0\t0\t2\n')
+            z.writestr('Fresh cell 03/SP_foo.txt','Start time : 100\n\tTime\t\tPosition X[mm]\tPositionZ[mm]\tSensor 1[micro-m]\tSensor 2[micro-m]\tSensor 3[micro-m]\n28/10/2024 10:30:30\t1.0\t1.0\t1.0\t2.0\t3.0\n28/10/2024 10:30:35\t1.0\t1.0\t4.0\t5.0\t6.0\n')
         with zipfile.ZipFile(io.BytesIO(b.getvalue())) as z:
             a=p.summarise_member(z,z.infolist()[0],'sp')
         self.assertEqual(a['parsed_candidate_rows'],2)
