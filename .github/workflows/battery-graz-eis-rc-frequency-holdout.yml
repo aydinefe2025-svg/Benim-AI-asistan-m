@@ -1,0 +1,56 @@
+name: Graz ten-original-EIS single-RC heldout simulation
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_eis_rc_frequency_holdout.py'
+      - 'research/battery_curve_audit/graz_eis_rlc_frequency_holdout.py'
+      - 'tests/test_graz_eis_rc_frequency_holdout.py'
+      - 'tests/test_graz_eis_rlc_frequency_holdout.py'
+      - '.github/workflows/battery-graz-eis-rc-frequency-holdout.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authentic-source-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Red-green mathematical model and adversarial validation
+        run: python -m unittest tests.test_graz_eis_rc_frequency_holdout tests.test_graz_eis_rlc_frequency_holdout -v
+      - name: Run independent odd-even-frequency holdout against all ten publisher-original 2026 Graz EIS files
+        run: python -m research.battery_curve_audit.graz_eis_rc_frequency_holdout /tmp/graz_real_10cell_rc_frequency_holdout.json /tmp/graz_real_10cell_rc_frequency_holdout.csv
+      - name: Enforce 50 real spectra, no leaked tests, and no physical certification
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/graz_real_10cell_rc_frequency_holdout.json'))
+          assert r['original_workbooks']==10
+          assert r['physical_source_specimens']==10
+          assert r['original_spectra']==50
+          assert r['original_frequency_phase_magnitude_triples']==5050
+          assert r['total_heldout_predictions_across_folds']==5050
+          assert len(r['spectra'])==50
+          assert set(r['publisher_documented_impactor_group_sizes'])=={'30mm','180mm'}
+          assert all(z['observed_frequency_count']==101 for z in r['spectra'])
+          assert all(z['fold_test_counts']==[50,51] for z in r['spectra'])
+          assert all('rlc_heldout_relative_complex_rmse_pct' in z for z in r['spectra'])
+          assert sum(len(g['stage_summary']) for g in r['source_documented_geometry_summaries'].values())==10
+          assert all(g['spectra']==25 for g in r['source_documented_geometry_summaries'].values())
+          assert r['rlc_inductor_effective_not_independently_calibrated'] is True
+          assert r['independent_lab_calibration_verified'] is False
+          assert r['physical_damage_causality_established'] is False
+          assert r['production_release_allowed'] is False
+          print('ORIGINAL_SOURCE_EIS_RC_HOLDOUT_50_SPECTRA_5050_PREDICTIONS_PASS')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-authentic-ten-cell-rc-frequency-holdout-proof
+          path: |
+            /tmp/graz_real_10cell_rc_frequency_holdout.json
+            /tmp/graz_real_10cell_rc_frequency_holdout.csv
+          retention-days: 7
+          if-no-files-found: error
