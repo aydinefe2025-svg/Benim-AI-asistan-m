@@ -73,24 +73,25 @@ def parse_metric_probe(stderr:str)->dict:
         except Exception as e:raise ValueError('BAD_F131_FIELD_VALUES') from e
         if not all(math.isfinite(x) and x>=0 for x in vals) or n<2 or check!=0:
             raise ValueError('BAD_F131_FIELD_VALUES')
-        deltas=vals[:3];scales=vals[3:]
-        if any(scale==0 and delta!=0 for delta,scale in zip(deltas,scales)):
-            raise ValueError('BAD_F131_FIELD_VALUES')
-        relative=[delta/scale if scale>0 else None for delta,scale in zip(deltas,scales)]
-        row={'delta_rho':deltas[0],'delta_gama':deltas[1],'delta_omega':deltas[2],
-             'scale_rho':scales[0],'scale_gama':scales[1],'scale_omega':scales[2],
-             'rel_delta_rho':relative[0],'rel_delta_gama':relative[1],
-             'rel_delta_omega':relative[2],
+        # The actual first spin call is spherical, where omega=0 throughout;
+        # a zero raw difference divided by a zero field scale means exactly zero.
+        # A nonzero residual with zero scale remains invalid (fail closed).
+        for delta,scale in zip(vals[:3],vals[3:]):
+            if scale==0.0 and delta!=0.0:
+                raise ValueError('ZERO_FIELD_SCALE_WITH_NONZERO_GREEN_RESIDUAL')
+        rel=[delta/scale if scale else 0.0 for delta,scale in zip(vals[:3],vals[3:])]
+        row={'delta_rho':vals[0],'delta_gama':vals[1],'delta_omega':vals[2],
+             'scale_rho':vals[3],'scale_gama':vals[4],'scale_omega':vals[5],
+             'rel_delta_rho':rel[0],'rel_delta_gama':rel[1],
+             'rel_delta_omega':rel[2],
              'iterations':n,'a_check':check}
         rows.append(row)
     if not rows:raise ValueError('F131_METRIC_PROBE_MISSING')
     if len(rows)!=2:raise ValueError('F131_EXPECTED_TWO_SPIN_CALLS')
-    last=rows[-1]
-    relatives=(last['rel_delta_rho'],last['rel_delta_gama'],last['rel_delta_omega'])
-    if any(value is None for value in relatives):
-        raise ValueError('BAD_F131_FINAL_FIELD_SCALE')
-    return {'spin_calls':rows,'last':last,
-            'largest_global_field_relative_update':max(relatives)}
+    if any(rows[-1]['scale_'+key]<=0 for key in ('rho','gama','omega')):
+        raise ValueError('ROTATING_SPIN_FIELD_HAS_ZERO_SCALE')
+    return {'spin_calls':rows,'last':rows[-1],
+            'largest_global_field_relative_update':max(rows[-1]['rel_delta_rho'],rows[-1]['rel_delta_gama'],rows[-1]['rel_delta_omega'])}
 
 def pin_f129_reference(artifact:bytes)->dict:
     if sha(artifact)!=F129_SHA:raise ValueError('F129_ARTIFACT_SHA_INVALID')
