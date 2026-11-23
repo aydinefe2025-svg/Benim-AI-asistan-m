@@ -1,0 +1,687 @@
+{
+  "cells": {
+    "01": {
+      "SP_files": [
+        {
+          "original_sample_rows": 17486,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 01/SP_NEMO NCM75AH_NEMO NCM75AH_12_06_2024_15_31_02_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 17486,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 17484,
+              "distinct_electrical_records_reused_at_zero_shift": 17486,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 2,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 17484,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 17486,
+              "shifted_matched_SP_rows": 17484,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 17486,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 17485,
+              "distinct_electrical_records_reused_at_zero_shift": 17486,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 1,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 17485,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 17486,
+              "shifted_matched_SP_rows": 17485,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1718199097.161286,
+          "source_cell": "01"
+        },
+        {
+          "original_sample_rows": 13217,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 01/SP_NEMO NCM75AH_NEMO NCM75AH_13_06_2024_15_51_49_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 13217,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 13217,
+              "distinct_electrical_records_reused_at_zero_shift": 13217,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 13217,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 13217,
+              "shifted_matched_SP_rows": 13217,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 13217,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 13217,
+              "distinct_electrical_records_reused_at_zero_shift": 13217,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 13217,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 13217,
+              "shifted_matched_SP_rows": 13217,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1718286709.8749578,
+          "source_cell": "01"
+        },
+        {
+          "original_sample_rows": 16113,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 01/SP_NEMO NCM75AH_NEMO NCM75AH_14_06_2024_10_15_26_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 16113,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 16113,
+              "distinct_electrical_records_reused_at_zero_shift": 16113,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 16113,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 16113,
+              "shifted_matched_SP_rows": 16113,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 16113,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 16112,
+              "distinct_electrical_records_reused_at_zero_shift": 16113,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 1,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 16112,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 16113,
+              "shifted_matched_SP_rows": 16112,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1718352926.3652916,
+          "source_cell": "01"
+        }
+      ],
+      "original_SP_source_rows": 46816,
+      "original_electrical_records": 253861,
+      "publisher_nominal_preload_kN": 0
+    },
+    "02": {
+      "SP_files": [
+        {
+          "original_sample_rows": 17520,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 02/SP_NEMO NCM75AH_NEMO NCM75AH_28_10_2024_10_30_30_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 17520,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 17520,
+              "distinct_electrical_records_reused_at_zero_shift": 17520,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 17520,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 17520,
+              "shifted_matched_SP_rows": 17520,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 17520,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 17520,
+              "distinct_electrical_records_reused_at_zero_shift": 17520,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 17520,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 17520,
+              "shifted_matched_SP_rows": 17520,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1730107830.5433524,
+          "source_cell": "02"
+        },
+        {
+          "original_sample_rows": 13211,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 02/SP_NEMO NCM75AH_NEMO NCM75AH_29_10_2024_10_53_43_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 13211,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 13211,
+              "distinct_electrical_records_reused_at_zero_shift": 13211,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 13211,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 13211,
+              "shifted_matched_SP_rows": 13211,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 13211,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 13210,
+              "distinct_electrical_records_reused_at_zero_shift": 13211,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 1,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 13210,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 13211,
+              "shifted_matched_SP_rows": 13210,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1730195623.686149,
+          "source_cell": "02"
+        },
+        {
+          "original_sample_rows": 16124,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 02/SP_NEMO NCM75AH_NEMO NCM75AH_30_10_2024_05_17_18_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 16124,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 16124,
+              "distinct_electrical_records_reused_at_zero_shift": 16124,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 16124,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 16124,
+              "shifted_matched_SP_rows": 16124,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 16124,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 16124,
+              "distinct_electrical_records_reused_at_zero_shift": 16124,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 16124,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 16124,
+              "shifted_matched_SP_rows": 16124,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1730261838.8091946,
+          "source_cell": "02"
+        }
+      ],
+      "original_SP_source_rows": 46855,
+      "original_electrical_records": 207383,
+      "publisher_nominal_preload_kN": 1.5
+    },
+    "03": {
+      "SP_files": [
+        {
+          "original_sample_rows": 17525,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 03/SP_NEMO NCM75AH_NEMO NCM75AH_04_09_2025_10_16_47_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 17525,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 17525,
+              "distinct_electrical_records_reused_at_zero_shift": 17525,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 17525,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 17525,
+              "shifted_matched_SP_rows": 17525,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 17525,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 17524,
+              "distinct_electrical_records_reused_at_zero_shift": 17525,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 1,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 17524,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 17525,
+              "shifted_matched_SP_rows": 17524,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1756973807.6046045,
+          "source_cell": "03"
+        },
+        {
+          "original_sample_rows": 13215,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 03/SP_NEMO NCM75AH_NEMO NCM75AH_09_09_2025_12_50_53_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 0,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 0,
+              "distinct_electrical_records_reused_at_zero_shift": 0,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 0,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 13215,
+              "shifted_matched_SP_rows": 0,
+              "unmatched_in_both": 13215
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 0,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 0,
+              "distinct_electrical_records_reused_at_zero_shift": 0,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 0,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 13215,
+              "shifted_matched_SP_rows": 0,
+              "unmatched_in_both": 13215
+            }
+          },
+          "source_SP_start_epoch": 1757415053.9218247,
+          "source_cell": "03"
+        },
+        {
+          "original_sample_rows": 16133,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 03/SP_NEMO NCM75AH_NEMO NCM75AH_10_09_2025_08_17_34_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 0,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 0,
+              "distinct_electrical_records_reused_at_zero_shift": 0,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 0,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 16133,
+              "shifted_matched_SP_rows": 0,
+              "unmatched_in_both": 16133
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 0,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 0,
+              "distinct_electrical_records_reused_at_zero_shift": 0,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 0,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 16133,
+              "shifted_matched_SP_rows": 0,
+              "unmatched_in_both": 16133
+            }
+          },
+          "source_SP_start_epoch": 1757485054.2714915,
+          "source_cell": "03"
+        }
+      ],
+      "original_SP_source_rows": 46873,
+      "original_electrical_records": 210541,
+      "publisher_nominal_preload_kN": 3
+    },
+    "04": {
+      "SP_files": [
+        {
+          "original_sample_rows": 17358,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 04/SP_NEMO NCM75AH_NEMO NCM75AH_07_11_2024_09_39_13_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 17358,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 17358,
+              "distinct_electrical_records_reused_at_zero_shift": 17358,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 17358,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 17358,
+              "shifted_matched_SP_rows": 17358,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 17358,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 17358,
+              "distinct_electrical_records_reused_at_zero_shift": 17358,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 17358,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 17358,
+              "shifted_matched_SP_rows": 17358,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1730968753.4652843,
+          "source_cell": "04"
+        },
+        {
+          "original_sample_rows": 13188,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 04/SP_NEMO NCM75AH_NEMO NCM75AH_08_11_2024_09_48_43_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 13188,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 13188,
+              "distinct_electrical_records_reused_at_zero_shift": 13188,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 13188,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 13188,
+              "shifted_matched_SP_rows": 13188,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 13188,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 13187,
+              "distinct_electrical_records_reused_at_zero_shift": 13188,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 1,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 13187,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 13188,
+              "shifted_matched_SP_rows": 13187,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1731055723.3287556,
+          "source_cell": "04"
+        },
+        {
+          "original_sample_rows": 16137,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 04/SP_NEMO NCM75AH_NEMO NCM75AH_09_11_2024_04_10_03_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 16137,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 16137,
+              "distinct_electrical_records_reused_at_zero_shift": 16137,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 16137,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 16137,
+              "shifted_matched_SP_rows": 16137,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 16137,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 16136,
+              "distinct_electrical_records_reused_at_zero_shift": 16137,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 1,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 16136,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 16137,
+              "shifted_matched_SP_rows": 16136,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1731121803.0657947,
+          "source_cell": "04"
+        }
+      ],
+      "original_SP_source_rows": 46683,
+      "original_electrical_records": 209558,
+      "publisher_nominal_preload_kN": 5
+    },
+    "05": {
+      "SP_files": [
+        {
+          "original_sample_rows": 17395,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 05/SP_NEMO NCM75AH_NEMO NCM75AH_14_11_2024_09_09_08_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 17395,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 17395,
+              "distinct_electrical_records_reused_at_zero_shift": 17395,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 17395,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 17395,
+              "shifted_matched_SP_rows": 17395,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 17395,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 17394,
+              "distinct_electrical_records_reused_at_zero_shift": 17395,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 1,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 17394,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 17395,
+              "shifted_matched_SP_rows": 17394,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1731571748.5204096,
+          "source_cell": "05"
+        },
+        {
+          "original_sample_rows": 13224,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 05/SP_NEMO NCM75AH_NEMO NCM75AH_15_11_2024_09_21_43_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 13224,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 13224,
+              "distinct_electrical_records_reused_at_zero_shift": 13224,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 13224,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 13224,
+              "shifted_matched_SP_rows": 13224,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 13224,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 13224,
+              "distinct_electrical_records_reused_at_zero_shift": 13224,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 13224,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 13224,
+              "shifted_matched_SP_rows": 13224,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1731658903.280705,
+          "source_cell": "05"
+        },
+        {
+          "original_sample_rows": 16175,
+          "original_sp_filename": "Experimental data for battery compression force prediction under mechanical constraints/Fresh cell 05/SP_NEMO NCM75AH_NEMO NCM75AH_16_11_2024_03_45_57_logfile.txt",
+          "shifts": {
+            "-3.0": {
+              "0_offset_matched_SP_rows": 16175,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": -3.0,
+              "distinct_electrical_records_reused_at_shift": 16175,
+              "distinct_electrical_records_reused_at_zero_shift": 16175,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 16175,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 16175,
+              "shifted_matched_SP_rows": 16175,
+              "unmatched_in_both": 0
+            },
+            "3.0": {
+              "0_offset_matched_SP_rows": 16175,
+              "conflicting_device_ties_shift": 0,
+              "conflicting_device_ties_zero_shift": 0,
+              "counterfactual_SP_clock_offset_seconds": 3.0,
+              "distinct_electrical_records_reused_at_shift": 16175,
+              "distinct_electrical_records_reused_at_zero_shift": 16175,
+              "gained_matched_SP_rows_under_shift": 0,
+              "lost_matched_SP_rows_under_shift": 0,
+              "matched_in_both_DIFFERENT_electrical_source_record_index": 16175,
+              "matched_in_both_same_electrical_source_record_index": 0,
+              "not_a_measured_real_clock_offset_or_field_false_positive_rate": true,
+              "original_SP_rows": 16175,
+              "shifted_matched_SP_rows": 16175,
+              "unmatched_in_both": 0
+            }
+          },
+          "source_SP_start_epoch": 1731725157.671318,
+          "source_cell": "05"
+        }
+      ],
+      "original_SP_source_rows": 46794,
+      "original_electrical_records": 209994,
+      "publisher_nominal_preload_kN": 15
+    }
+  },
+  "conclusion_limits": {
+    "capacity_or_SOH_recomputed": false,
+    "causal_static_preload_effect_or_dynamic_impact_verified": false,
+    "field_false_positive_rate_estimated": false,
+    "original_current_absolute_amperes_verified": false,
+    "physical_sensor_and_force_calibration_verified": false,
+    "same_experiment_controller_step_verified": false,
+    "source_synchronized_external_reference_clock_verified": false
+  },
+  "full_publisher_zip_crc_and_size_pass": true,
+  "goal_key": "graz-20261123-original-electrical-event-identity-under-counterfactual-clock-shift",
+  "nearest_tolerance_seconds": 1.0,
+  "original_SP_records": 234021,
+  "original_electrical_records": 1091337,
+  "original_source_md5": "b9ed863766e30afbd0e309951c855d08",
+  "original_zip_sha256": "5627a1606b8e378de0e4e4ced99222509bcbbcb725d26da6e7a5fad34aa42fc7",
+  "physical_cell_folders": 5,
+  "publisher_original_doi": "10.5281/zenodo.22079387",
+  "row_identity_accounting_by_shift": {
+    "-3.0": {
+      "0_offset_matched_SP_rows": 204673,
+      "conflicting_device_ties_shift": 0,
+      "conflicting_device_ties_zero_shift": 0,
+      "gained_matched_SP_rows_under_shift": 0,
+      "lost_matched_SP_rows_under_shift": 2,
+      "matched_in_both_DIFFERENT_electrical_source_record_index": 204671,
+      "matched_in_both_same_electrical_source_record_index": 0,
+      "original_SP_rows": 234021,
+      "shifted_matched_SP_rows": 204671,
+      "unmatched_in_both": 29348
+    },
+    "3.0": {
+      "0_offset_matched_SP_rows": 204673,
+      "conflicting_device_ties_shift": 0,
+      "conflicting_device_ties_zero_shift": 0,
+      "gained_matched_SP_rows_under_shift": 0,
+      "lost_matched_SP_rows_under_shift": 7,
+      "matched_in_both_DIFFERENT_electrical_source_record_index": 204666,
+      "matched_in_both_same_electrical_source_record_index": 0,
+      "original_SP_rows": 234021,
+      "shifted_matched_SP_rows": 204666,
+      "unmatched_in_both": 29348
+    }
+  },
+  "shifts_counterfactual_not_observed_clock_errors": [
+    -3.0,
+    3.0
+  ]
+}
