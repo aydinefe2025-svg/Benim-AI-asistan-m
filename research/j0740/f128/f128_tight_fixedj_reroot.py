@@ -77,8 +77,8 @@ def parse_real_star(stdout: str, stderr: str, rho: int) -> dict:
         if not all(math.isfinite(row[k]) for k in ("dif", "accuracy")):
             raise ValueError("NONFINITE_FINAL_ITERATION_DIAGNOSTIC")
         rows.append(row)
-    if len(rows) < 4:
-        raise ValueError("MISSING_INITIAL_AND_ROTATING_SPIN_DIAGNOSTICS")
+    if len(rows) != 2:
+        raise ValueError("EXPECTED_ONE_TERMINAL_DIAGNOSTIC_PER_SPIN_CALL")
     final = rows[-1]
     if (final["a_check"] != 0 or final["iterations"] < 2
             or final["accuracy"] != TIGHT_ACCURACY or final["dif"] < 0
