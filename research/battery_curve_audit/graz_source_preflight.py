@@ -76,6 +76,27 @@ def inspect_archive(data: bytes, expected_size: int, md5: str = OFFICIAL_MD5) ->
                 with z.open(m) as f:
                     first = f.read(8192).decode('utf-8-sig',errors='replace')
                 row['first_nonempty_header_preview'] = next((x[:170] for x in first.splitlines() if x.strip()), '')
+                if row['cell_id_from_name_only'] in ('02','03'):
+                    # Targeted schema reconnaissance only: no numeric waveform dumps.
+                    prefix = first.splitlines()[:70]
+                    row['metadata_line_clues'] = [
+                        {'line': i+1, 'text': line[:220]}
+                        for i,line in enumerate(prefix)
+                        if line.strip() and any(c.isalpha() for c in line)
+                        and not (line.count(',') >= 3 and any(c.isdigit() for c in line))
+                    ][:28]
+                    if m.filename.lower().endswith('.log'):
+                        with z.open(m) as f:
+                            nonblank = (line.decode('utf-8-sig',errors='replace').strip()
+                                        for line in f if line.strip())
+                            header = next(nonblank, '')
+                            first_sample = next(nonblank, '')
+                            last_sample = first_sample
+                            for val in nonblank:
+                                last_sample = val
+                        row['electrical_header_columns'] = [q.strip() for q in header.split(',')]
+                        row['first_electrical_time_token'] = first_sample.split(',')[0].strip()
+                        row['last_electrical_time_token'] = last_sample.split(',')[0].strip()
             rows.append(row)
     cells = {}
     for cell,preload in CELL_PRELOAD_KN.items():
