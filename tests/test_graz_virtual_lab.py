@@ -11,6 +11,20 @@ class TestGrazVirtualLab(unittest.TestCase):
         x=m.REAL_SOURCE_SUMMARY
         self.assertEqual(x["time_matched_sp_rows"]+x["out_of_window_sp_rows"],x["original_sp_rows"])
         self.assertEqual(x["cell_02_original_electric_rows"]+x["cell_03_original_electric_rows"],417924)
+    def test_five_real_source_counts_are_reference_not_simulated(self):
+        x=m.REAL_SOURCE_SUMMARY
+        self.assertEqual(x['five_source_matches_within_one_second']+x['five_source_unmatched_sp_rows'],x['five_original_sp_rows'])
+        self.assertEqual(x['five_original_sp_files'],15)
+        self.assertEqual(x['five_original_electrical_rows'],1091337)
+    def test_distinct_synthetic_five_cell_clocks_never_alias(self):
+        streams=[m.generate_synthetic(c,1,preload_kN=m.PRELOADS_KN[c]) for c in m.PRELOADS_KN]
+        self.assertEqual(len(streams),5)
+        clocks=[x[0][0].observed_t for x in streams]
+        self.assertEqual(len(set(clocks)),5)
+        combined_e=[e for e,s in streams for e in e]
+        for c,(e,s) in zip(m.PRELOADS_KN,streams):
+            q=m.match_synthetic(combined_e,s,clock_attested=True,phase_attested=True)
+            self.assertEqual(q['wrong_time_accepted'],0)
     def test_generated_data_deterministic(self):
         self.assertEqual(self.make(),self.make())
         self.assertNotEqual(self.make()[1],m.generate_synthetic("02",1235,preload_kN=1.5)[1])
@@ -102,6 +116,7 @@ class TestGrazVirtualLab(unittest.TestCase):
         self.assertFalse(d["release_gates"]["real_fea_mesh_convergence_verified"])
         self.assertEqual(len(d["scenarios"]),10)
         self.assertEqual(len(d["virtual_parameter_grid"]),30)
+        self.assertEqual(d["physical_cells_per_scenario"],5)
     def test_wrong_cell_data_not_joined_when_time_same(self):
         el,sp=self.make()
         other,_=self.make("03")
