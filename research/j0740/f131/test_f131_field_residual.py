@@ -24,10 +24,16 @@ class SourceMetricProbeTests(unittest.TestCase):
   self.assertEqual(len(r['spin_calls']),2);self.assertEqual(r['last']['iterations'],48)
   self.assertAlmostEqual(r['last']['rel_delta_rho'],3e-8/0.7)
   self.assertAlmostEqual(r['last']['rel_delta_omega'],5e-8/0.03)
+  initial=('F131_FIELD_FINAL 1e-8 2e-8 0 2 1 0 ITERATIONS 32 ACHECK 0\\n'
+           'F131_FIELD_FINAL 3e-8 4e-8 5e-8 0.7 0.9 0.03 ITERATIONS 48 ACHECK 0')
+  z=parse_metric_probe(initial)
+  self.assertIsNone(z['spin_calls'][0]['rel_delta_omega'])
+  self.assertAlmostEqual(z['largest_global_field_relative_update'],5e-8/0.03)
  def test_04_metric_probe_refuses_missing_unsafe_or_nonfinite(self):
   for x in ['', 'F131_FIELD_FINAL nan 0 0 1 1 1 ITERATIONS 48 ACHECK 0',
             'F131_FIELD_FINAL -1 0 0 1 1 1 ITERATIONS 48 ACHECK 0',
-            'F131_FIELD_FINAL 1 0 0 1 1 1 ITERATIONS 48 ACHECK 200']:
+            'F131_FIELD_FINAL 1 0 0 1 1 1 ITERATIONS 48 ACHECK 200',
+            'F131_FIELD_FINAL 1e-8 2e-8 0 2 1 0 ITERATIONS 32 ACHECK 0\\nF131_FIELD_FINAL 1e-8 2e-8 0 2 1 0 ITERATIONS 48 ACHECK 0']:
    with self.subTest(x=x):
     with self.assertRaises(ValueError):parse_metric_probe(x)
  def test_05_original_F129_SHA_and_native_star_pinned(self):
