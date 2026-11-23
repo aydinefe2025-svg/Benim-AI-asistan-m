@@ -118,6 +118,34 @@ class EncryptedBackupUiTests(unittest.TestCase):
         self.assertIsNone(st.session_state["backup_encrypted"])
 
 
+    def test_failed_source_clears_prepared_backup_and_password(self):
+        """A failed backup snapshot must not retain a former encrypted package."""
+        passphrase = "valid-owner-local-encryption-secret"
+        for bad_source in (b"", b"x" * (20 * 1024 * 1024 + 1)):
+            with self.subTest(failed_bytes=len(bad_source)):
+                st = FakeSt(passphrase=passphrase, confirm=passphrase, submit=True)
+                render_encrypted_download(
+                    st, label="Download", filename="cano.canoenc",
+                    plaintext=b"previous owner snapshot", storage_key="backup")
+                self.assertIsNotNone(st.download)
+                self.assertIsNotNone(st.session_state["backup_encrypted"])
+                # A failure can occur after the user has begun entering a new secret.
+                st.session_state["backup_passphrase"] = "should-not-remain"
+                st.session_state["backup_confirm"] = "should-not-remain"
+                st.download = None
+
+                render_encrypted_download(
+                    st, label="Download", filename="cano.canoenc",
+                    plaintext=bad_source, storage_key="backup")
+
+                self.assertIsNone(st.download)
+                self.assertIsNone(st.session_state.get("backup_encrypted"))
+                self.assertNotIn("backup_source_digest", st.session_state)
+                self.assertEqual(st.session_state.get("backup_passphrase"), "")
+                self.assertEqual(st.session_state.get("backup_confirm"), "")
+                self.assertTrue(st.errors)
+
+
     def test_mismatched_password_never_offers_download(self):
         st = FakeSt(passphrase="correct-horse-staple-cano-backup",
                     confirm="different-passphrase-cano", submit=True)
