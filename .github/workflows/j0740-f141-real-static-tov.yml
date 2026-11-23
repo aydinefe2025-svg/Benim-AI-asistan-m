@@ -1,0 +1,57 @@
+name: J0740 F141 six derived EOS actual native C static TOV two tolerance
+on:
+  pull_request:
+    branches: [science/j0740-apr4-firstlaw-gr-pilot-20261117]
+    paths:
+      - 'research/j0740/f141/**'
+      - '.github/workflows/j0740-f141-real-static-tov.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  true_native_c_static_tov:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve completed F140 six-candidate bytes, do not rerun F140
+        uses: actions/download-artifact@v4
+        with:
+          name: J0740-F140-derived-six-cold-bridge-native-gates
+          run-id: 45259419081
+          github-token: ${{ github.token }}
+          path: f140-verified-source
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned native LAL software
+        run: python -m pip install 'numpy==2.3.5' 'lalsuite==7.26.16'
+      - name: Verify all six downloaded F140 SHA against original accepted model output
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from research.j0740.f141.f141_real_static_tov import verify_f140
+          r,ledger=verify_f140('f140-verified-source/results/F140')
+          print('F141_PREVIOUS_F140_SHA_PASSED',len(ledger),'original native run',45259419081)
+          PY
+      - name: Independent unit and adversarial regression
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research/j0740/f141 -p 'test_f141*.py' -v
+      - name: REAL native C static Einstein TOV stars, two integration tolerances
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f141/f141_real_static_tov.py \
+            --F140-root f140-verified-source/results/F140 \
+            --star-ref research/j0740/f139/F139_F79_REFERENCE_STAR_CENTRES.json \
+            --out results/F141 2>&1 | tee F141_REAL_C_TOV_LOG.txt
+      - name: Preserve output and even fail-closed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F141-six-REAL-C-static-TOV-and-causality
+          path: |
+            results/F141/
+            F141_REAL_C_TOV_LOG.txt
+          if-no-files-found: warn
