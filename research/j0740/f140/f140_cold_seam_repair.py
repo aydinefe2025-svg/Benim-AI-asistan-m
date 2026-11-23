@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'f139'))
 from f139_shared_crust_seam import SOURCE_SHAS,JESTER_COMMIT,KNOT,source_gate,native_api
-C=299792458.0;G=6.67430e-11;CONV=C**4/G
+C=299792458.0;G=6.67430e-11;CONV=1.0  # 7.26 LAL two-column file requires geometric m^-2, not SI
 PATCHED=tuple(n for n in SOURCE_SHAS if n!='APR4_EPP')
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def bridge_analytic(p0,p1,e0,e1,n0,points=129):
@@ -42,10 +42,10 @@ def assemble_derived(p,e,lo,hi,bridge):
         raise AssertionError('ORIGINAL_OUTSIDE_SOURCE_PRESSURE_MODIFIED')
     return pp,ee
 def write_lal_two_col(p,e,out):
-    """LAL 2-col EOS FromFile SI pressure Pa; energy density J/m^3."""
+    """LALSuite 7.26 2-col EOS FromFile: both P and epsilon geometrized m^-2."""
     out=Path(out);out.parent.mkdir(parents=True,exist_ok=True)
     with out.open('w',encoding='ascii',newline='\n') as f:
-        for q,v in zip(p,e):f.write(f'{float(q)*CONV:.17e} {float(v)*CONV:.17e}\n')
+        for q,v in zip(p,e):f.write(f'{float(q):.17e} {float(v):.17e}\n')
     return sha(out)
 def make_one(ls,name,source_dir,out_dir):
     p,e,cs=source_gate(Path(source_dir)/(name+'.npz'),name)
