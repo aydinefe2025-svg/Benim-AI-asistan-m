@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""Real original-source replay in GitHub Actions; observational QC, no fault or SoH inference."""
+import base64, collections, csv, datetime, hashlib, io, json, os, statistics, time
+import urllib.request, xml.etree.ElementTree as ET, zipfile
+from pathlib import Path
+
+GIT_SHA = "4bdb9770300050a33e86ff41b6c9a35d13b565e9"
+GIT_URL = "https://api.github.com/repos/BIRDSOpenSource/EPS_dataset/git/blobs/" + GIT_SHA
+AGV_URLS = [
+    "https://zenodo.org/api/records/7748947/files/dataset.csv/content",
+    "https://zenodo.org/records/7748947/files/dataset.csv?download=1",
+]
+MD5_AGV = "2faa82bd0c27763d4b12d4c58510a1f5"
+NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+
+
+def get(url, github=False):
+    headers = {"User-Agent": "CANO-raw-replay-evidence/1.0", "Accept": "application/json" if github else "*/*"}
+    if github and os.environ.get("GITHUB_TOKEN"):
+        headers["Authorization"] = "Bearer " + os.environ["GITHUB_TOKEN"]
+    last = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=75) as r:
+                return r.read()
+        except Exception as exc:
+            last = exc
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+    raise RuntimeError("publisher fetch failed: " + str(last))
+
+
+def check_tsuru():
+    b = json.loads(get(GIT_URL, github=True))
+    assert b.get("sha") == GIT_SHA and b.get("encoding") == "base64"
+    raw = base64.b64decode(b["content"])
+    assert len(raw) == 6059029
+    blob = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\\0" + raw).hexdigest()
+    assert blob == GIT_SHA, "TSURU original Git blob SHA mismatch"
+    with zipfile.ZipFile(io.BytesIO(raw)) as z:
+        members = z.namelist()
+        assert len(members) == 70
+        assert z.testzip() is None, "TSURU full ZIP CRC failed"
+        wb = ET.fromstring(z.read("xl/workbook.xml"))
+        labels = [e.get("name") for e in wb.findall(NS + "sheets/" + NS + "sheet")]
+        assert len(labels) == 42 and {"Test1 w batt", "Test2 wo batt"}.issubset(labels)
+        files = sorted(n for n in members if n.startswith("xl/worksheets/sheet") and n.endswith(".xml"))
+        assert len(files) == 42
+        source_rows = sum(max(len(ET.fromstring(z.read(name)).findall(NS + "sheetData/" + NS + "row")) - 1, 0) for name in files)
+        assert source_rows == 26023, f"TSURU rows changed: {source_rows}"
+    return {"bytes": len(raw), "git_blob_sha1": blob, "sha256": hashlib.sha256(raw).hexdigest(),
+            "zip_members_full_crc_pass": len(members), "sheets": len(labels),
+            "rows_excluding_headers": source_rows, "two_test_sheets_explicit": True}
+
+
+def check_agv():
+    failures = []
+    raw = None
+    for url in AGV_URLS:
+        try:
+            attempt = get(url)
+            if len(attempt) == 2265463 and hashlib.md5(attempt).hexdigest() == MD5_AGV:
+                raw = attempt
+                break
+            failures.append("size or MD5 mismatch at " + url.split("?")[0])
+        except Exception as exc:
+            failures.append(str(exc))
+    assert raw is not None, "AGV original could not be verified: " + "; ".join(failures)
+    reader = csv.DictReader(io.StringIO(raw.decode("ascii")))
+    assert tuple(reader.fieldnames or ()) == ("counter","date","cycletime","totaldischarge","mintemperature","maxtemperature","battery")
+    bypack = collections.defaultdict(list)
+    zero_row_verified = False
+    rows = 0
+    for rows, row in enumerate(reader, 1):
+        pack, date, seconds = row["battery"], row["date"], int(row["cycletime"])
+        assert seconds >= 0
+        bypack[pack].append((date, seconds))
+        if rows + 1 == 32797:
+            zero_row_verified = pack == "FB-0" and date == "2021-05-11" and seconds == 0 and int(row["counter"]) == 18905
+    assert rows == 57880 and len(bypack) == 10 and zero_row_verified
+    thresholds = {}
+    for min_n in (10, 20, 30, 50, 100):
+        measures = {}
+        for pack, events in sorted(bypack.items()):
+            month = collections.defaultdict(list)
+            for date, seconds in events:
+                if date[:4] in ("2020", "2021"):
+                    month[date[:7]].append(seconds)
+            comps = []
+            for m in range(1, 13):
+                a = month.get(f"2020-{m:02d}", [])
+                b = month.get(f"2021-{m:02d}", [])
+                if min(len(a), len(b)) >= min_n and statistics.median(a) > 0:
+                    n = min(len(a), len(b))
+                    comps.append((n, 100 * (statistics.median(b) / statistics.median(a) - 1)))
+            measures[pack] = round(sum(n * v for n, v in comps) / sum(n for n, _ in comps), 6) if comps else None
+        thresholds[str(min_n)] = {
+            "pct_by_battery": measures,
+            "negative_packs": sum(v is not None and v < 0 for v in measures.values()),
+            "positive_packs": sum(v is not None and v > 0 for v in measures.values()),
+            "insufficient_packs": sum(v is None for v in measures.values()),
+        }
+    assert thresholds["20"]["negative_packs"] == 9 and thresholds["20"]["positive_packs"] == 1, thresholds["20"]
+    assert thresholds["20"]["pct_by_battery"]["FB-5"] > 0
+    return {"bytes": len(raw), "md5": MD5_AGV, "sha256": hashlib.sha256(raw).hexdigest(),
+            "rows": rows, "packs": len(bypack), "known_zero_time_row_preserved": zero_row_verified,
+            "calendar_month_threshold_sensitivity": thresholds}
+
+
+def main():
+    tsuru = check_tsuru()
+    agv = check_agv()
+    result = {
+        "status": "BOTH_ORIGINAL_BYTES_REPLAYED_AND_PINNED",
+        "executed_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "tsuru": tsuru, "agv": agv,
+        "science_limit": "No satellite physical fault, AGV state-of-health, capacity fade, or causal aging claim",
+    }
+    Path("TSURU_AGV_REAL_SOURCE_CI_RECEIPT.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    print(json.dumps({"status": result["status"], "TSURU_CRC_members": tsuru["zip_members_full_crc_pass"],
+                      "TSURU_source_rows": tsuru["rows_excluding_headers"],
+                      "AGV_rows": agv["rows"], "matched_negative": agv["calendar_month_threshold_sensitivity"]["20"]["negative_packs"],
+                      "matched_positive": agv["calendar_month_threshold_sensitivity"]["20"]["positive_packs"]}))
+
+
+if __name__ == "__main__":
+    main()
