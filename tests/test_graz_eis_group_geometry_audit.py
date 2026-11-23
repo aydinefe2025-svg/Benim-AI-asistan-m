@@ -71,4 +71,13 @@ class GrazGeometryTests(unittest.TestCase):
         with self.assertRaises(ValueError):mod.parse_readme_published_impactor_mapping(p.read_text()+'\nCell 09-13: hemispherical impactor d= 180 mm')
     def test_geometry_assignment_requires_actual_source_text(self):
         with self.assertRaises(ValueError):mod.parse_readme_published_impactor_mapping('C02-C06 look negative at 10Hz therefore 30mm')
+
+    def test_windows_checkout_crlf_normalizes_to_exact_pinned_original(self):
+        original=FIXTURE.read_bytes()
+        win=original.replace(b'\n',b'\r\n')
+        self.assertNotEqual(original,win)
+        self.assertEqual(mod.read_ledger(win),self.doc)
+    def test_windows_checkout_with_one_source_number_changed_still_rejected(self):
+        changed=FIXTURE.read_bytes().replace(b'EIS_C02.xlsx',b'EIS_C00.xlsx').replace(b'\n',b'\r\n')
+        with self.assertRaises(ValueError):mod.read_ledger(changed)
 if __name__=='__main__':unittest.main()
