@@ -1,0 +1,80 @@
+name: J0740 F135 original APR4 local fixed-J native C
+on:
+  pull_request:
+    branches: [science/j0740-apr4-firstlaw-gr-pilot-20261117]
+    paths:
+      - 'research/j0740/f135/**'
+      - '.github/workflows/j0740-f135-original-apr4-local-fixed-j.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original_apr4_local_fixed_j:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: nuclear-multimessenger-astronomy/jester
+          ref: e6768650ce992abfd1153a6833857572fe5cd230
+          path: jester-upstream
+          sparse-checkout: |
+            jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing pinned numeric dependencies
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.16.3'
+      - name: Verify original EOS and restrict central densities before acausal knot
+        run: |
+          set -euo pipefail
+          test "$(git -C jester-upstream rev-parse HEAD)" = e6768650ce992abfd1153a6833857572fe5cd230
+          echo '639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88  jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz' | sha256sum -c -
+          python - <<'PY'
+          from pathlib import Path
+          from research.j0740.f135.f135_original_apr4_local_fixed_j import source_gate
+          print('F135_SOURCE_GATE',source_gate(Path('jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz')))
+          PY
+      - name: Patch RNS output only to expose C angular momentum
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          sys.path.insert(0,'research/j0740/f63')
+          from f63_original_mpa1_fixed_J import patch_output_only
+          p=Path('rns-upstream/rns.c');original=p.read_bytes()
+          p.write_bytes(patch_output_only(original.decode('utf8')).encode('utf8'))
+          d=Path('results/F135');d.mkdir(parents=True,exist_ok=True)
+          (d/'C_printf_patch.json').write_text(json.dumps({'original_sha256':hashlib.sha256(original).hexdigest(),'patched_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'physics_source_modified':False},indent=2)+'\n')
+          PY
+      - name: Compile pinned native full-GR C RNS
+        run: make -C rns-upstream CC='gcc -include stdlib.h' rns
+      - name: Solve six original APR4 constant-J stars below source acausality
+        run: |
+          python -u research/j0740/f135/f135_original_apr4_local_fixed_j.py \
+            --source jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz \
+            --rns rns-upstream/rns --out results/F135/F135_ORIGINAL_APR4_FIXED_J.json
+      - name: Preserve output identities including failures
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          d=Path('results/F135');d.mkdir(parents=True,exist_ok=True)
+          paths=[*d.glob('*.json'),*d.glob('*.rns'),Path('rns-upstream/rns'),Path('rns-upstream/rns.c'),Path('jester-upstream/jesterTOV/tabulated_eos/lalsuite/APR4_EPP.npz')]
+          (d/'F135_SHA256.json').write_text(json.dumps({str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths if p.is_file()},indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F135-original-APR4-local-fixed-J-real-C
+          path: results/F135/
+          if-no-files-found: warn
