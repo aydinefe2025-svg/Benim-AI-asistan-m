@@ -1,0 +1,75 @@
+name: Graz original 10-cell two-CPE source predictive holdout
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_eis_two_cpe_holdout.py'
+      - 'tests/test_graz_eis_two_cpe_holdout.py'
+      - '.github/workflows/battery-graz-2026-original-two-cpe-holdout.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  publisher-original-fifty-spectra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Pin numerical optimizer and its numpy runtime
+        run: python -m pip install --disable-pip-version-check 'numpy==2.3.5' 'scipy==1.17.0'
+      - name: Synthetic red-green known-ground-truth and fail-closed mathematical tests
+        run: python -m unittest tests.test_graz_eis_two_cpe_holdout -v
+      - name: Fetch ten exact Graz original publisher xlsx and compare three models on blind frequencies
+        run: python -m research.battery_curve_audit.graz_eis_two_cpe_holdout /tmp/graz_2026_original_two_cpe_model_comparison.json /tmp/graz_2026_original_two_cpe_model_comparison.csv
+      - name: Enforce original source count, nonleaking folds and honest physical claim scope
+        run: |
+          python - <<'PY'
+          import json,math
+          from pathlib import Path
+          p=Path('/tmp/graz_2026_original_two_cpe_model_comparison.json')
+          r=json.loads(p.read_text())
+          assert r['original_source_doi']=='10.5281/zenodo.18213931'
+          assert r['original_xlsx_count']==10
+          assert r['original_source_spectra']==50
+          assert r['source_frequency_triples']==5050
+          assert r['blind_odd_even_total_predictions']==5050
+          assert r['original_publisher_md5_and_crc_verified'] is True
+          assert r['source_documented_indenter_groups']=={'30mm':5,'180mm':5}
+          assert len(r['fifty_physical_source_stage_records'])==50
+          assert len(r['ten_group_stage_summaries'])==10
+          assert r['frequency_holdout_no_same_point_training'] is True
+          assert r['contiguous_middle_band_generalization_tested'] is True
+          assert r['five_percent_acceptance_criterion_fixed_before_run'] is True
+          assert r['independent_physical_cell_holdout_not_performed'] is True
+          for c in r['fifty_physical_source_stage_records']:
+              assert c['original_frequency_triplets']==101
+              assert c['fold_a_train_count']==51 and c['fold_a_test_count']==50
+              assert c['fold_b_train_count']==50 and c['fold_b_test_count']==51
+              assert c['two_cpe_source_fit_constraints_passed'] is True
+              assert len(c['publisher_original_xlsx_sha256'])==64
+              for name in ('base_rc_plus_l_heldout_complex_rmse_pct',
+                           'one_cpe_plus_l_heldout_complex_rmse_pct',
+                           'two_cpe_plus_l_heldout_complex_rmse_pct',
+                           'two_cpe_plus_l_heldout_middle_third_rmse_pct'):
+                  assert math.isfinite(c[name]) and c[name]>=0
+              assert c['mechanistic_identifiability_proven'] is False
+              assert c['production_release_allowed'] is False
+          for bad in ('independent_calibration_verified','capacity_Ah_measured',
+                      'causal_damage_mechanism_established','field_safety_certified',
+                      'production_release_allowed'):
+              assert r[bad] is False
+          print('PUBLISHER_SOURCE_TWO_CPE_50_ORIGINAL_SPECTRA_PROOF_PASS')
+          print('SOURCE_BLIND_MODEL_COMPARISON',r['global_spectral_medians'])
+          print('PREDECLARED_5PCT_PASS_COUNTS',r['two_cpe_odd_even_pass_5pct_count'],r['two_cpe_middle_band_pass_5pct_count'])
+          PY
+      - name: Store bounded source-verified result JSON and 50-stage CSV
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-original-publisher-50-two-cpe-blind-frequency-proof
+          path: |
+            /tmp/graz_2026_original_two_cpe_model_comparison.json
+            /tmp/graz_2026_original_two_cpe_model_comparison.csv
+          retention-days: 14
+          if-no-files-found: error
