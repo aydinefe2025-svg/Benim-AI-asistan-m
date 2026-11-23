@@ -24,10 +24,16 @@ RATES = (0.5, 0.75, 1.0, 1.5)
 
 def load_source_csv(path: str | Path, *, enforce_sha: bool = True) -> list[dict]:
     raw = Path(path).read_bytes()
-    digest = hashlib.sha256(raw).hexdigest()
+    # Git's Windows working tree may convert tracked LF text to CRLF.
+    # Accept *only* this reversible checkout-level conversion, while
+    # pinning and parsing the original canonical LF publisher-derived CSV.
+    canonical = raw.replace(b"\r\n", b"\n")
+    if b"\r" in canonical:
+        raise ValueError("Unexpected lone CR line endings in source fixture")
+    digest = hashlib.sha256(canonical).hexdigest()
     if enforce_sha and digest != CSV_SHA256:
         raise ValueError(f"Source fixture SHA256 mismatch: {digest}")
-    text = raw.decode("utf-8-sig")
+    text = canonical.decode("utf-8-sig")
     reader = csv.DictReader(text.splitlines())
     if reader.fieldnames != ["cell_id", "temp_c", "c_rate", "cf_pct"]:
         raise ValueError("Unexpected source columns")
