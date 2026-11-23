@@ -18,7 +18,7 @@ class OriginalCReplayTests(unittest.TestCase):
      self.assertLess(star['inner_last_dif'],1e-9)
      self.assertGreater(q['last']['rel_delta_gama'],star['inner_last_dif'])
      self.assertGreater(q['spin_calls'][0]['delta_gama'],0)
-     self.assertEqual(q['spin_calls'][0]['rel_delta_omega'],0.0)
+     self.assertIsNone(q['spin_calls'][0]['rel_delta_omega'])
  def test_02_pinned_original_sha_rejects_append(self):
     with self.assertRaisesRegex(ValueError,'F131_ORIGINAL_C_SHA_DRIFT'):
       replay_original_real_C(SRC.read_bytes()+b'forgery')
