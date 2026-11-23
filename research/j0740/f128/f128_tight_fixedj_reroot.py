@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""F128: re-root the F124/F125 densities at fixed J with tighter native RNS-C iteration tolerance."""
+"""F128: re-root F124/F125 fixed-J roots on 151x301 and 601x1201 native RNS-C meshes."""
 from __future__ import annotations
 import argparse, hashlib, io, json, math, subprocess, zipfile
 from pathlib import Path
@@ -177,7 +177,7 @@ def main() -> None:
     p.add_argument("--f125", type=Path, required=True)
     p.add_argument("--eos", type=Path, required=True)
     p.add_argument("--rns151", type=Path, required=True)
-    p.add_argument("--rns3001", type=Path, required=True)
+    p.add_argument("--rns601", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
     a = p.parse_args()
     if sha(a.eos.read_bytes()) != EOS_SHA:
@@ -191,7 +191,7 @@ def main() -> None:
         elif target != target_J:
             raise ValueError("REFERENCE_TARGET_J_MISMATCH")
     results = []
-    for grid_label, binary in (("151x301", a.rns151), ("3001x6001", a.rns3001)):
+    for grid_label, binary in (("151x301", a.rns151), ("601x1201", a.rns601)):
         for label in ("F125", "F124"):
             rho = TARGET_RHO[label]
             results.append(run_point(binary, a.eos, f"{grid_label}_{label}", rho,
@@ -207,7 +207,7 @@ def main() -> None:
         }
     accepted = len(results) == 4 and all(x["root"]["J_relative_error"] <= ROOT_TOL for x in results)
     receipt = {
-        "schema": "J0740_F128_TIGHT_TOLERANCE_FIXED_J_REROOT_TWO_DENSITIES_TWO_MESHES_V1",
+        "schema": "J0740_F128_TIGHT_TOLERANCE_FIXED_J_REROOT_151x301_601x1201_V1",
         "status": "FOUR_TIGHT_FIXED_J_ROOTS_COMPLETE_DIAGNOSTIC_ONLY" if accepted else "FAIL_CLOSED",
         "EOS_sha256": EOS_SHA, "RNS_upstream_commit": RNS_COMMIT,
         "F124_artifact_sha256": F124_SHA, "F125_artifact_sha256": F125_SHA,
