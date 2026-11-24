@@ -1,0 +1,57 @@
+name: J0740 F145 original X-PSI 1.2.1 environment smoke
+on:
+  push:
+    branches:
+      - science/j0740-f145-xpsi-legacy-smoke-20261124
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+  workflow_dispatch:
+jobs:
+  xpsi_legacy:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GSL development library
+        run: sudo apt-get update -qq && sudo apt-get install -y libgsl-dev
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: xpsi-legacy
+          init-shell: bash
+          cache-environment: false
+          condarc: |
+            channels:
+              - defaults
+              - conda-forge
+            channel_priority: flexible
+          create-args: >-
+            python=2.7
+            numpy=1.16.5
+            scipy=1.2.1
+            cython=0.28.5
+            matplotlib=2.2.3
+            wrapt=1.11.2
+            setuptools=44.0.0
+      - name: Compile original numerical-atmosphere X-PSI
+        run: |
+          set -eo pipefail
+          mkdir -p f145_evidence
+          python --version 2>&1 | tee f145_evidence/python.txt
+          python -c 'import numpy, scipy, Cython; print(numpy.__version__, scipy.__version__, Cython.__version__)' | tee f145_evidence/deps.txt
+          gsl-config --version | tee f145_evidence/gsl.txt
+          git clone --depth 1 --branch v1.2.1 https://github.com/xpsi-group/xpsi.git "$RUNNER_TEMP/xpsi-v1.2.1"
+          git -C "$RUNNER_TEMP/xpsi-v1.2.1" rev-parse HEAD | tee f145_evidence/source_commit.txt
+          cd "$RUNNER_TEMP/xpsi-v1.2.1"
+          CC=gcc python setup.py install --NumHot > "$GITHUB_WORKSPACE/f145_evidence/build.log" 2>&1 || { tail -120 "$GITHUB_WORKSPACE/f145_evidence/build.log"; exit 1; }
+          cd "$RUNNER_TEMP"
+          python -c 'import xpsi; from xpsi.global_imports import gravradius; print("XPSI_LEGACY_IMPORT_PASS", gravradius(1.0))' | tee "$GITHUB_WORKSPACE/f145_evidence/import.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F145-XPSI-legacy-smoke
+          path: f145_evidence/
+          if-no-files-found: warn
