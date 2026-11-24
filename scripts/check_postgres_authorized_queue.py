@@ -244,6 +244,37 @@ def run():
     assert reopened.get(queued["id"])["draft"] == "Only winner draft"
     assert [event["state"] for event in reopened.events(queued["id"])] == [
         "queued", "running", "review_pending"]
+    # Exercise the new file handoff against real PostgreSQL, with a fresh owner
+    # and synthetic local callback. No live account or model credentials.
+    from pathlib import Path
+    from tempfile import TemporaryDirectory
+    from core.local_task_handoff import claim_ticket, run_ticket, accept_result
+    handoff = PostgresAuthorizedQueue(database_url, owner_key=owner+"-handoff")
+    local_job = handoff.enqueue("local", "One local task", approved=True)
+    private = claim_ticket(handoff, approved=True)
+    assert private["ticket"]["job_id"] == local_job["id"]
+    assert "lease_token" not in private["ticket"] and "owner_key" not in private["ticket"]
+    with TemporaryDirectory() as temp:
+        calls = []
+        def answer(goal):
+            calls.append(goal)
+            return "Synthetic local draft"
+        ledger = Path(temp) / "worker.sqlite3"
+        result = run_ticket(private["ticket"], ledger, answer, approved=True)
+        assert run_ticket(private["ticket"], ledger, answer, approved=True) == result
+        assert calls == ["One local task"]
+        try:
+            accept_result(other, private, result, approved=True)
+            raise AssertionError("Cross-owner handoff accepted")
+        except PermissionError:
+            pass
+        receipt = accept_result(handoff, private, result, approved=True)
+        assert receipt["readback"] and not receipt["verified"]
+        assert accept_result(handoff, private, result, approved=True) == receipt
+    assert handoff.get(local_job["id"])["attempts"] == 1
+    assert [e["state"] for e in handoff.events(local_job["id"])] == [
+        "queued", "running", "review_pending"]
+    print("PostgreSQL local file handoff: owner/lease/one attempt/replay/readback OK")
     print("PostgreSQL CANO queue integration: authorization/idempotency/owners/"
           "claims/single-writer/retry/expiry/readback OK")
 if __name__ == "__main__":
