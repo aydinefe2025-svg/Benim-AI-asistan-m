@@ -15,6 +15,12 @@ class Transitions(unittest.TestCase):
         self.assertEqual(e['after_immediate']['device'],'COM3')
         self.assertEqual(e['after_same_device']['line'],7)
         self.assertEqual(e['after_same_device']['numeric_state'],'small_vi')
+    def test_all_transitions_include_unflagged_controls(self):
+        a=audit_rows([r(2,'COM4',2,8),r(3,'COM4',2,0),r(4,'COM3',0,0),
+                      r(5,'COM4',1,4),r(6,'COM3',0,0)])
+        self.assertEqual(a.get('device_transition_counts'),{'COM4_to_COM3':2,'COM3_to_COM4':1})
+        self.assertEqual(a.get('COM4_to_COM3_with_flagged_episode_end'),1)
+        self.assertEqual(a.get('COM4_to_COM3_without_flagged_episode_end'),1)
     def test_missing_boundary(self):
         e=audit_rows([r(2,'COM4',2,0)])['episodes'][0]
         self.assertIsNone(e['before_immediate'])
