@@ -1,4 +1,4 @@
-name: GKA NASA RW3 raw reference context
+name: GKA NASA RW3 original reference context
 on:
   pull_request:
     paths:
@@ -19,12 +19,13 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install scientific libraries
-        run: python -m pip install --only-binary=:all: numpy==2.5.5 scipy==1.18.1
-      - name: Synthetic controls
+        run: |
+          python -m pip install --only-binary=:all: numpy==2.5.5 scipy==1.18.1
+      - name: Synthetic numerical controls
         run: python research/gka_nasa_rw3_reference_context.py --self-test
-      - name: Original raw reference context
-        run: python research/gka_nasa_rw3_reference_context.py
-      - name: Retain evidence
+      - name: Original source reference context
+        run: python research/gka_nasa_rw3_reference_context.py --output evidence/GKA_NASA_RW3_RAW_CONTEXT_20261124.json
+      - name: Retain real evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: GKA-NASA-RW3-RAW-CONTEXT
