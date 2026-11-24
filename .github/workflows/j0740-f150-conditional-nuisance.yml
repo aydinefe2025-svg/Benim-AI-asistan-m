@@ -1,0 +1,127 @@
+name: J0740 F150 13-dimensional conditional nuisance pilot
+on:
+  pull_request:
+    branches: [science/j0740-f148-native-candidate-likelihood-20261124]
+    paths: ['.github/workflows/j0740-f150-conditional-nuisance.yml', 'research/j0740/f150/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  original_joint_likelihood:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [ENG_derived, MPA1_derived, MS1_derived, MS1B_derived, WFF1_derived, WFF2_derived]
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve immutable F146 source bytes and exact member hashes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence-f150 "$RUNNER_TEMP/f150-input"
+          for pair in 14905441131:inputs 14905157121:manifest; do
+            id=${pair%:*}; name=${pair#*:}
+            curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" -o "$RUNNER_TEMP/$name.zip"
+          done
+          printf '%s  %s\n' ffc877fb69f49c8a23b8494456bf0fe85cc7c45922a684b4d6389f1fe00478e9 "$RUNNER_TEMP/inputs.zip" ef59b3874f4f105b2d1de68396a903026cf957412e645d5cf07d6cd8307c990d "$RUNNER_TEMP/manifest.zip" | sha256sum -c
+          python3 - <<'PY'
+          import hashlib,json,os,zipfile,pathlib
+          tmp=pathlib.Path(os.environ['RUNNER_TEMP'])
+          out=tmp/'f150-input'
+          with zipfile.ZipFile(tmp/'manifest.zip') as z:
+              receipt=json.loads(z.read('input_stage.json'))
+          assert receipt['status']=='PASS_ORIGINAL_INPUT_STAGING'
+          with zipfile.ZipFile(tmp/'inputs.zip') as z:
+              assert set(z.namelist())==set(receipt['selected_members'])
+              for name,v in receipt['selected_members'].items():
+                  target=out.joinpath(name)
+                  assert target.resolve().is_relative_to(out.resolve())
+                  target.parent.mkdir(parents=True,exist_ok=True)
+                  h=hashlib.sha256()
+                  count=0
+                  with z.open(name) as src,target.open('wb') as dst:
+                      for b in iter(lambda:src.read(1048576),b''):
+                          h.update(b); count+=len(b); dst.write(b)
+                  assert count==v['bytes'] and h.hexdigest()==v['sha256'],name
+          root=out/'J0740_GAMMA_zenodo'
+          mod=root/'STU/STU_NICER_XMM_hr/STU_modules'
+          lines=[]
+          for line in (mod/'config.ini').read_text().splitlines():
+              if line.strip()=='--multinest':continue
+              if '=' in line:
+                  key,old=line.split('=',1)
+                  if key=='--NICER-matrix-path':
+                      path=tmp/'F150_generated_counts.txt'
+                      assert not path.exists()
+                  else:
+                      matches=list(root.rglob(pathlib.Path(old).name))
+                      assert len(matches)==1,(key,matches)
+                      path=matches[0]
+                  line=key+'='+str(path)
+              lines.append(line)
+          assert '--NICER' in lines and '--XMM' in lines
+          (tmp/'f150_config.ini').write_text('\n'.join(lines)+'\n')
+          pathlib.Path('evidence-f150/input_verification.json').write_text(json.dumps({'source_artifact_id':14905441131,'verified_members':len(receipt['selected_members']),'selected_bytes':receipt['selected_bytes'],'generated_matrix_initially_absent':True,'sampler_enabled':False},indent=2))
+          PY
+          cp "$RUNNER_TEMP/f150_config.ini" evidence-f150/config_relocated.ini
+      - name: Install GSL development library
+        run: sudo apt-get update -qq && sudo apt-get install -y libgsl-dev
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: xpsi-legacy
+          init-shell: bash
+          cache-environment: false
+          condarc: |
+            channels:
+              - defaults
+              - conda-forge
+            channel_priority: flexible
+          create-args: >-
+            python=2.7
+            numpy=1.16.5
+            scipy=1.2.1
+            cython=0.28.5
+            matplotlib=2.2.3
+            wrapt=1.11.2
+            setuptools=44.0.0
+            six
+      - name: Compile X-PSI v1.2.0 (publisher run version)
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v1.2.0 https://github.com/xpsi-group/xpsi.git "$RUNNER_TEMP/xpsi-v1.2.0"
+          git -C "$RUNNER_TEMP/xpsi-v1.2.0" rev-parse HEAD | tee evidence-f150/source_commit.txt
+          test "$(cat evidence-f150/source_commit.txt)" = 78880035d0a8aba021761266327dc17e28cd4ed6
+          cd "$RUNNER_TEMP/xpsi-v1.2.0"
+          CC=gcc python setup.py install --NumHot > "$GITHUB_WORKSPACE/evidence-f150/build.log" 2>&1 || { tail -120 "$GITHUB_WORKSPACE/evidence-f150/build.log"; exit 1; }
+      - name: Retrieve immutable F148 proposal seed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14908868425/zip" -o "$RUNNER_TEMP/F148.zip"
+          printf '%s  %s\n' 682a94aa0fe7ccfa34ec2f38c73008d652aa5e577deee04975ccf716c6b8f087 "$RUNNER_TEMP/F148.zip" | sha256sum -c
+          unzip -p "$RUNNER_TEMP/F148.zip" slices.json > "$RUNNER_TEMP/F148_slices.json"
+      - name: Actual 13D source-prior importance integration at fixed mass and radius
+        env:
+          OMP_NUM_THREADS: '1'
+          OPENBLAS_NUM_THREADS: '1'
+          MODEL: ${{ matrix.model }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/f150-input/J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules"
+          printf '%s  %s\n' 440451fd57c8d8c775f3c847861d6fce77a82ab975ca090fb660289191d8c1af main_lp40k_Xse001_Dfix.py | sha256sum -c
+          python -u "$GITHUB_WORKSPACE/research/j0740/f150/conditional.py" "$RUNNER_TEMP/f150_config.ini" "$RUNNER_TEMP/F148_slices.json" "$GITHUB_WORKSPACE/evidence-f150/conditional.json" "$MODEL" 2>&1 | tee "$GITHUB_WORKSPACE/evidence-f150/native_likelihood.log"
+          grep -F F150_COMPLETE "$GITHUB_WORKSPACE/evidence-f150/native_likelihood.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F150-conditional-${{ matrix.model }}
+          path: evidence-f150/
+          if-no-files-found: error
