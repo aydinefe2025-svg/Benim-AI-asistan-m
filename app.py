@@ -706,7 +706,7 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
         queue_loader=_inventory_queue.list if _inventory_queue is not None else None,
         code_loader=(lambda: CodeJobStore(
             os.environ["AGENT_TASK_DATABASE_URL"], _inventory_owner).recent(limit=10))
-            if os.environ.get("AGENT_TASK_DATABASE_URL") and _inventory_owner else None,
+            if _inventory_owner and os.environ.get("AGENT_TASK_DATABASE_URL") else None,
     )
     if inventory is not None:
         st.session_state.pop("last_provider_used", None)
