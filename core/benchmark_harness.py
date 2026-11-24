@@ -34,6 +34,8 @@ def _canonical_cases(cases: Sequence[BenchmarkCase]) -> list[dict[str, str]]:
         raise ValueError("Benchmark contains an invalid case")
     if len({case.case_id for case in cases}) != len(cases):
         raise ValueError("Duplicate benchmark case identifiers")
+    if len({" ".join(case.prompt.split()) for case in cases}) != len(cases):
+        raise ValueError("Duplicate benchmark prompts; use distinct questions")
     return [
         {"id": case.case_id, "prompt": case.prompt, "expected": case.expected}
         for case in sorted(cases, key=lambda item: item.case_id)
@@ -81,6 +83,7 @@ def parse_memory_benchmark_cases(raw: str, *, max_cases: int = 5) -> tuple[Bench
             item["case_id"].strip(), item["prompt"].strip(), item["expected"].strip()))
     if len({case.case_id for case in cases}) != len(cases):
         raise ValueError("Vaka kimlikleri tekrarlanmamalı")
+    _canonical_cases(cases)
     return tuple(cases)
 
 
