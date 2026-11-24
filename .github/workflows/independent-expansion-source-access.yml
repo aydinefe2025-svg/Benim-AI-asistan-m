@@ -1,0 +1,92 @@
+name: Independent battery expansion data acquisition probe
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/independent-expansion-source-access.yml'
+permissions:
+  contents: read
+jobs:
+  source-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Inspect public author repositories and acquire bounded original evidence
+        run: |
+          mkdir -p /tmp/expansion-evidence
+          python - <<'PY'
+          import urllib.request, urllib.parse, json, pathlib, hashlib, re, zipfile, io, csv
+          root=pathlib.Path('/tmp/expansion-evidence')
+          receipt={'goal':'independent-expansion-source-access-20261124','probes':[],'candidate_files':[],'downloaded':[],'physical_validation':False}
+          def fetch(url, limit=2000000):
+              try:
+                  req=urllib.request.Request(url,headers={'User-Agent':'CANO scientific public-data provenance audit/1.0','Accept':'application/json,text/html,*/*'})
+                  with urllib.request.urlopen(req,timeout=20) as r:
+                      b=r.read(limit+1)
+                      if len(b)>limit: raise ValueError('bounded download exceeded')
+                      receipt['probes'].append({'url':url,'final_url':r.url,'status':r.status,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+                      return b
+              except Exception as e:
+                  receipt['probes'].append({'url':url,'error':str(e)})
+                  return None
+          u=fetch('https://api.datacite.org/dois/10.7302/7tw1-kc35')
+          if u:
+              (root/'michigan_datacite_original.json').write_bytes(u)
+              d=json.loads(u)['data']['attributes']
+              receipt['michigan']={k:d.get(k) for k in ('doi','url','titles','sizes','formats','rightsList','relatedIdentifiers')}
+              if d.get('url'):
+                  h=fetch(d['url'])
+                  if h:
+                      (root/'michigan_landing.html').write_bytes(h)
+                      receipt['michigan']['visible_download_paths']=list(dict.fromkeys(re.findall(r'href="([^"]*(?:downloads|file_sets|\.csv|\.zip)[^"]*)"',h.decode(errors='replace'),re.I)))[:50]
+          base='https://data.mendeley.com/public-api/datasets/4nww8p6vxf/versions/1/'
+          visited=set()
+          def walk(folder=None,depth=0):
+              if depth>4 or len(visited)>20 or folder in visited:return
+              visited.add(folder)
+              suffix='?folder_id='+urllib.parse.quote(folder) if folder else ''
+              for typ in ('files','folders'):
+                  b=fetch(base+typ+suffix)
+                  if not b:continue
+                  try: obj=json.loads(b)
+                  except ValueError:continue
+                  (root/('mendeley_'+typ+'_'+str(folder or 'root')+'.json')).write_bytes(b)
+                  arr=obj if isinstance(obj,list) else obj.get(typ,obj.get('data',[]))
+                  if not isinstance(arr,list):continue
+                  for f in arr:
+                      if not isinstance(f,dict):continue
+                      if typ=='folders':
+                          if f.get('id'):walk(str(f['id']),depth+1)
+                      else:
+                          receipt['candidate_files'].append(f)
+          walk()
+          for f in receipt['candidate_files']:
+              name=f.get('filename') or f.get('name') or ''
+              if not re.search('capacity.*calibr|readme|capacity.*summary',name,re.I):continue
+              if not re.search(r'\.(csv|xlsx|txt)$',name,re.I):continue
+              c=f.get('content_details') or {}
+              size=c.get('size') or f.get('size') or 0
+              try: size=int(size)
+              except: size=0
+              if size>8000000:continue
+              url=c.get('download_url') or f.get('download_url')
+              if not isinstance(url,str) or not url.startswith('https://'):continue
+              b=fetch(url,8000000)
+              if not b:continue
+              safe=pathlib.PurePath(name).name
+              if safe.endswith('.xlsx'):
+                  try:
+                      with zipfile.ZipFile(io.BytesIO(b)) as z:
+                          assert z.testzip() is None and 'xl/workbook.xml' in z.namelist()
+                  except Exception:continue
+              (root/safe).write_bytes(b)
+              receipt['downloaded'].append({'name':safe,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest(),'repository_file_metadata':f})
+              if len(receipt['downloaded'])>=2:break
+          (root/'receipt.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2))
+          print(json.dumps({'probes':receipt['probes'],'candidate_count':len(receipt['candidate_files']),'downloaded':receipt['downloaded'],'michigan':receipt.get('michigan')},ensure_ascii=False)[:22000])
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: independent-expansion-source-acquisition
+          path: /tmp/expansion-evidence/
+          if-no-files-found: error
+          retention-days: 14
