@@ -38,14 +38,20 @@ jobs:
                   if h:
                       (root/'michigan_landing.html').write_bytes(h)
                       receipt['michigan']['visible_download_paths']=list(dict.fromkeys(re.findall(r'href="([^"]*(?:downloads|file_sets|\.csv|\.zip)[^"]*)"',h.decode(errors='replace'),re.I)))[:50]
-          base='https://data.mendeley.com/public-api/datasets/4nww8p6vxf/versions/1/'
+          m=fetch('https://api.datacite.org/dois/10.17632/4nww8p6vxf.1')
+          if m:
+              (root/'mendeley_datacite_original.json').write_bytes(m)
+              d=json.loads(m)['data']['attributes']
+              receipt['mendeley']={k:d.get(k) for k in ('doi','url','titles','sizes','formats','rightsList','relatedIdentifiers')}
+          base='https://api.data.mendeley.com/datasets/publics/4nww8p6vxf/'
           visited=set()
           def walk(folder=None,depth=0):
               if depth>4 or len(visited)>20 or folder in visited:return
               visited.add(folder)
-              suffix='?folder_id='+urllib.parse.quote(folder) if folder else ''
+              suffix='?version=1'
               for typ in ('files','folders'):
-                  b=fetch(base+typ+suffix)
+                  param='parent_id' if typ=='folders' else 'folder_id'
+                  b=fetch(base+typ+suffix+('&'+param+'='+urllib.parse.quote(folder) if folder else ''))
                   if not b:continue
                   try: obj=json.loads(b)
                   except ValueError:continue
@@ -79,10 +85,13 @@ jobs:
                           assert z.testzip() is None and 'xl/workbook.xml' in z.namelist()
                   except Exception:continue
               (root/safe).write_bytes(b)
-              receipt['downloaded'].append({'name':safe,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest(),'repository_file_metadata':f})
+              expected=c.get('sha256_hash')
+              if expected and expected.lower()!=hashlib.sha256(b).hexdigest():
+                  (root/safe).unlink();continue
+              receipt['downloaded'].append({'name':safe,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest(),'publisher_sha256_match':bool(expected),'repository_file_metadata':f})
               if len(receipt['downloaded'])>=2:break
           (root/'receipt.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2))
-          print(json.dumps({'probes':receipt['probes'],'candidate_count':len(receipt['candidate_files']),'downloaded':receipt['downloaded'],'michigan':receipt.get('michigan')},ensure_ascii=False)[:22000])
+          print(json.dumps({'probes':receipt['probes'],'candidate_count':len(receipt['candidate_files']),'downloaded':receipt['downloaded'],'michigan':receipt.get('michigan'),'mendeley':receipt.get('mendeley')},ensure_ascii=False)[:22000])
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
