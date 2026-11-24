@@ -1,0 +1,38 @@
+name: Bayreuth measured terminal voltage cutoff
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/bayreuth_measured_cutoff.py'
+      - '.github/workflows/bayreuth-measured-terminal-cutoff.yml'
+permissions:
+  contents: read
+jobs:
+  original-measured-crossings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Verify interpolation and missing threshold behavior
+        run: |
+          python - <<'PY'
+          from research.battery_curve_audit.bayreuth_measured_cutoff import crossing
+          rows=[{'time_h':0,'v':4,'i':-2,'ah':0},{'time_h':1,'v':3,'i':-2,'ah':-2}]
+          a=crossing(rows,3.5)
+          assert a['integral_mAh']==1000 and a['native_increment_mAh']==1000
+          assert a['bracket_low_mAh']==0 and a['bracket_high_mAh']==2000
+          assert crossing(rows,2.9) is None and crossing(rows,4) is None
+          rows[1]['i']=-4
+          assert crossing(rows,3.5)['integral_mAh']==1250
+          print('INTERPOLATION_CHECKS_PASS')
+          PY
+      - name: Download MD5-pinned original ZIPs and integrate observed first crossings
+        run: python -m research.battery_curve_audit.bayreuth_measured_cutoff /tmp/cano_measured_cutoff
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: bayreuth-original-measured-cutoff
+          path: /tmp/cano_measured_cutoff
+          if-no-files-found: error
+          retention-days: 14
