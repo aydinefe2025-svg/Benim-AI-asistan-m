@@ -71,7 +71,14 @@ def render_owner_code_status(st, jobs):
     # Both the summary and receipt links must inspect the same owner-scoped rows.
     jobs = list(jobs)
     stats = summarize_recent_code_jobs(jobs)
+    # Keep one mobile status panel and use only fixed labels for the newest row.
+    latest_status = jobs[0].get("status") if jobs and isinstance(jobs[0], dict) else None
+    latest_label = (
+        "En yeni kod işi: sırada. " if latest_status == "queued" else
+        "En yeni kod işi: çalışıyor. " if latest_status == "running" else ""
+    )
     st.info(
+        f"{latest_label}"
         f"🛠️ CANO kod işleri — Son {stats['total']} kayıt: "
         f"{stats['deployed']} tam makbuzlu yayın kaydı · "
         f"{stats['unverified_deployments']} makbuzu eksik yayın etiketi · "
@@ -84,12 +91,6 @@ def render_owner_code_status(st, jobs):
         "Görünen bağlantılar kayıt kanıtıdır; CI başarısı ve Render LIVE "
         "bu ekranda bağımsız olarak yeniden kontrol edilmemiştir."
     )
-    # recent() is newest-first; distinguish the current request from old receipts.
-    if jobs and isinstance(jobs[0], dict):
-        if jobs[0].get("status") == "queued":
-            st.info("En yeni kod işi: sırada")
-        elif jobs[0].get("status") == "running":
-            st.info("En yeni kod işi: çalışıyor")
     if stats["last_pr_url"]:
         st.link_button("Son yayınlanan kod değişikliğini aç", stats["last_pr_url"])
     # Only show a complete same-job PR/CI/Render receipt; never mix
