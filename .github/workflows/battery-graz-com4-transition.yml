@@ -1,0 +1,27 @@
+name: Graz original COM4 episode boundary states
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_com4_transition_audit.py'
+      - 'tests/test_graz_com4_transition_audit.py'
+      - '.github/workflows/battery-graz-com4-transition.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - run: python -m unittest tests.test_graz_com4_transition_audit -v
+      - run: python -m research.battery_curve_audit.graz_com4_transition_audit transition.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-original-COM4-episode-transition
+          path: transition.json
+          if-no-files-found: error
+          retention-days: 14
