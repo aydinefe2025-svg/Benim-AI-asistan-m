@@ -56,6 +56,27 @@ def holdout(histograms):
                    'test_outside_train_q99':sum(v for k,v in test.items() if k>q99)}
     return out
 
+def residual_context(rows, threshold=1099):
+    # Freeze threshold at previous four-cell training maximum, 0.27475.
+    # Nearby-row counterfactuals are diagnostic, not predictions.
+    records=[]
+    for j,r in enumerate(rows):
+        if r.device!='COM4' or r.p<=0 or r.p!=round(r.p):continue
+        lo,hi=interval(r.v,r.i)
+        if hi<80000:continue
+        g=magnitude_gap(lo,hi,r.p)
+        if g<=threshold:continue
+        candidates=[]
+        for k in range(max(0,j-3),min(len(rows),j+4)):
+            q=rows[k]
+            if q.device!='COM4' or abs(q.t-r.t)>4:continue
+            # Test product of neighbor readings, keeping observed P fixed.
+            a,b=interval(q.v,q.i)
+            if b<80000:continue
+            candidates.append({'offset':k-j,'dt':round(q.t-r.t,6),'line':q.line,'v':q.v,'i':q.i,'p':q.p,'required_tolerance':magnitude_gap(a,b,r.p)/4000})
+        records.append({'line':r.line,'time_numeric':r.t,'v':r.v,'i':r.i,'p':r.p,'required_tolerance':g/4000,'signed_residual':round(r.p-r.v*r.i,8),'neighbors':candidates,'nearby_feasible':any(x['offset']!=0 and x['required_tolerance']<=threshold/4000 for x in candidates)})
+    return records
+
 def scan(rows):
     counts=collections.Counter(); extrema={}; model_bad=collections.Counter(); witnesses={}; gaps=collections.Counter()
     def witness(key,val,row,maximum):
@@ -113,7 +134,13 @@ def selftest():
     assert folds['a']['test_outside_train_max']==0
     assert folds['b']['test_outside_train_max']==2
     assert folds['b']['test_outside_train_q99']==2
-    print('17 synthetic checks passed')
+    x=boundary.Row(10,10,'COM4',4.34,37.5,160)
+    y=boundary.Row(11,11,'COM4',4.27,37.5,160)
+    diag=residual_context([x,y])
+    assert len(diag)==1 and diag[0]['line']==10 and diag[0]['nearby_feasible']
+    assert not residual_context([y])
+    assert not residual_context([x,boundary.Row(11,20,'COM4',4.27,37.5,160)])[0]['nearby_feasible']
+    print('20 synthetic checks passed')
 def main():
     selftest()
     if '--selftest' in sys.argv:return
@@ -126,14 +153,14 @@ def main():
             ms=[m for m in z.infolist() if not m.is_dir() and source.explicit_cell_in_path(m.filename)==cell and source.role_for_member(m.filename)=='charge_discharge_log_candidate']
             if len(ms)!=1:raise ValueError('log count')
             rows,h=boundary.parse_member(z,ms[0]); ids.extend(h); rowcount+=len(rows)
-            cells[cell]=scan(rows); del rows
+            cells[cell]=scan(rows); cells[cell]['frozen_tolerance_exceptions']=residual_context(rows); del rows
     digest=hashlib.sha256(json.dumps(sorted(ids),separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
     if digest!=DIGEST or len(ids)!=1900 or rowcount!=prior.EXPECTED_ROWS:raise ValueError('source counts/identity')
     lower=max(c['extrema']['max_zero_lower']['numerator'] for c in cells.values())
     upper=min(c['extrema']['min_nonzero_upper']['numerator'] for c in cells.values())
     total=collections.Counter()
     for c in cells.values():total.update(c['counts'])
-    d={'goal_key':'graz-full-com4-threshold-identifiability-20261124','source_sha256':cert['original_zip_sha256'],'source_rows':rowcount,'flagged_identity_sha256':digest,'cells':cells,'all_counts':dict(total),'global_threshold_strict_lower':lower/4000,'global_threshold_conservative_upper':upper/4000,'global_any_threshold_possible_on_grid':lower<upper,'all_rows_grid_covered':not total['off_grid'],'rounding_assumption':'nearest 0.01 V and 0.1 I numeric; closed conservative intervals','model_incompatible_all':{m:sum(c['model_incompatible'][m] for c in cells.values()) for m in MODELS},'model_assumptions':'threshold fixed at 20; integer power quantization, conservative closed bounds; pre vs post clipping', 'holdout':holdout({k:v.pop('positive_gap_histogram') for k,v in cells.items()}),'positive_structural_infeasible_total':total['positive_structural_infeasible'],'holdout_scope':'post-hoc model chosen using same five cells, leave-one-cell-out tolerance fitting only; positive power magnitude, not independent physical calibration', 'physical_root_cause_proven':False,'physical_units_verified':False,'physical_production_release_allowed':False}
+    d={'goal_key':'graz-full-com4-threshold-identifiability-20261124','source_sha256':cert['original_zip_sha256'],'source_rows':rowcount,'flagged_identity_sha256':digest,'cells':cells,'all_counts':dict(total),'global_threshold_strict_lower':lower/4000,'global_threshold_conservative_upper':upper/4000,'global_any_threshold_possible_on_grid':lower<upper,'all_rows_grid_covered':not total['off_grid'],'rounding_assumption':'nearest 0.01 V and 0.1 I numeric; closed conservative intervals','model_incompatible_all':{m:sum(c['model_incompatible'][m] for c in cells.values()) for m in MODELS},'model_assumptions':'threshold fixed at 20; integer power quantization, conservative closed bounds; pre vs post clipping', 'holdout':holdout({k:v.pop('positive_gap_histogram') for k,v in cells.items()}),'positive_structural_infeasible_total':total['positive_structural_infeasible'],'holdout_scope':'post-hoc model chosen using same five cells, leave-one-cell-out tolerance fitting only; positive power magnitude, not independent physical calibration', 'exception_diagnostic_scope':'frozen previous cell03 train max 0.27475; +/-3 same-device neighboring rows within 4 seconds; feasibility only, no causal or predictive claim','physical_root_cause_proven':False,'physical_units_verified':False,'physical_production_release_allowed':False}
     Path(sys.argv[1]).write_text(json.dumps(d,indent=2,sort_keys=True,allow_nan=False)+'\n')
     print(json.dumps(d,sort_keys=True))
 if __name__=='__main__':main()
