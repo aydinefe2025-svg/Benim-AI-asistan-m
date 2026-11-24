@@ -616,6 +616,9 @@ render_authorized_queue_panel(
 if _CANO_OWNER_KEY and _CANO_QUEUE_BACKUP is not None:
     from core.local_task_handoff_panel import render_local_task_handoff
     render_local_task_handoff(st, _CANO_QUEUE_BACKUP, owner_key=_CANO_OWNER_KEY)
+    from core.local_grant_owner_panel import render_local_grant_owner
+    render_local_grant_owner(st, _CANO_QUEUE_BACKUP, owner_key=_CANO_OWNER_KEY,
+                             environment=os.environ)
 render_colony_panel(st, answer=_team_answer if available_models else None,
                     owner_key=_CANO_OWNER_KEY,
                     database_url=cano_database_url(os.environ) if _CANO_OWNER_KEY else None)

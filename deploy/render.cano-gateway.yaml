@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: benim-ai-asistan-streamlit
+    runtime: python
+    repo: https://github.com/aydinefe2025-svg/Benim-AI-asistan-m
+    branch: main
+    region: frankfurt
+    plan: free
+    autoDeployTrigger: 'off'
+    buildCommand: pip install -r requirements.txt && pip install waitress==3.0.2 && python -m scripts.install_cano_caddy
+    startCommand: python -m scripts.start_cano_render
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: CANO_LOCAL_GRANT_ENABLED
+        value: '0'

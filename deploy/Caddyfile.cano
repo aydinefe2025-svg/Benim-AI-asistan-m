@@ -1,0 +1,47 @@
+{
+    admin off
+    auto_https off
+    servers {
+        max_header_size 64KB
+        timeouts {
+            read_header 10s
+            idle 2m
+        }
+    }
+}
+
+http://:{$PORT} {
+    bind {$CANO_PROXY_BIND:0.0.0.0}
+    @grant path /v1/local-task/take /v1/local-task/finish
+    handle @grant {
+        @insecure not header X-Forwarded-Proto https
+        respond @insecure 403
+        request_body {
+            max_size 65536
+        }
+        timeouts {
+            read_timeout 10s
+            write_timeout 25s
+        }
+        reverse_proxy 127.0.0.1:{$CANO_GATEWAY_PORT:8502} {
+            header_up -Forwarded
+            header_up -X-Forwarded-For
+            header_up -X-Forwarded-Host
+            header_up -X-Forwarded-Port
+            header_up -X-Forwarded-Protocol
+            header_up -X-Forwarded-SSL
+            header_up X-Forwarded-Proto https
+            transport http {
+                dial_timeout 3s
+                response_header_timeout 20s
+                read_timeout 20s
+                write_timeout 10s
+            }
+        }
+    }
+    handle {
+        reverse_proxy 127.0.0.1:{$CANO_STREAMLIT_PORT:8501} {
+            header_up X-Forwarded-Proto {http.request.header.X-Forwarded-Proto}
+        }
+    }
+}
