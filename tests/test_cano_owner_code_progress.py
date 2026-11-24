@@ -74,6 +74,28 @@ class OwnerCodeStatusTests(unittest.TestCase):
         self.assertEqual(3, len(st.links))
         self.assertEqual(CANONICAL_PR, st.links[0][1])
 
+    def test_newest_queued_job_is_explicitly_distinguished_from_old_deployments(self):
+        st = FakeStreamlit()
+        jobs = [
+            {"status": "queued", "goal": "PRIVATE CURRENT GOAL", "id": "private-id"},
+            {"status": "deployed", "pr_url": CANONICAL_PR,
+             "ci_run_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/44717625508",
+             "deploy_id": "dep-dc01u0v40ujc73f694rg"},
+            {"status": "blocked"},
+        ]
+        stats = render_owner_code_status(st, jobs)
+        visible = " ".join(st.messages)
+        self.assertIn("En yeni kod işi: sırada", visible)
+        self.assertNotIn("PRIVATE CURRENT GOAL", visible)
+        self.assertNotIn("private-id", visible)
+        self.assertEqual(1, stats["deployed"])
+        self.assertEqual(1, stats["active"])
+
+    def test_newest_running_job_is_explicitly_distinguished(self):
+        st = FakeStreamlit()
+        render_owner_code_status(st, [{"status": "running"}, {"status": "deployed"}])
+        self.assertIn("En yeni kod işi: çalışıyor", " ".join(st.messages))
+
     def test_main_mobile_view_is_owner_gated_and_not_sidebar_only(self):
         source = (ROOT / "app.py").read_text(encoding="utf-8")
         self.assertIn("_CODE_JOB_RECEIPTS = None", source)
