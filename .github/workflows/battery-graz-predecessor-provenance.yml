@@ -1,0 +1,67 @@
+name: Graz prior published method and original dataset provenance
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/battery-graz-predecessor-provenance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prior-publisher-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Authenticate both original datasets and predecessor paper
+        shell: bash
+        run: |
+          mkdir evidence
+          python - <<'PY'
+          import hashlib, io, json, urllib.request, urllib.parse, zipfile
+          from pathlib import Path
+          def acquire(rec,ext,md5):
+              base=f'https://zenodo.org/api/records/{rec}'
+              req=lambda u:urllib.request.Request(u,headers={'User-Agent':'CANO-original-source-research/1.0'})
+              with urllib.request.urlopen(req(base),timeout=60) as r: meta=json.load(r)
+              files=[f for f in meta['files'] if f['key'].lower().endswith(ext)]
+              assert len(files)==1,(rec,len(files))
+              f=files[0]
+              assert f['checksum']=='md5:'+md5
+              size=f['size']
+              assert isinstance(size,int) and 0<size<25000000
+              url=f'https://zenodo.org/records/{rec}/files/'+urllib.parse.quote(f['key'])+'?download=1'
+              with urllib.request.urlopen(req(url),timeout=120) as r: b=r.read(size+1)
+              assert len(b)==size
+              assert hashlib.md5(b).hexdigest()==md5
+              return b,{'record':rec,'name':f['key'],'bytes':size,'md5':md5,'sha256':hashlib.sha256(b).hexdigest()}
+          p,pm=acquire(19554839,'.pdf','fa208a94e1f7f0e205cf9b4bfa9cc796')
+          assert p.startswith(b'%PDF')
+          Path('evidence/predecessor.pdf').write_bytes(p)
+          a,am=acquire(18315429,'.zip','992d01404d4e25d21ca0f2155be7720f')
+          b,bm=acquire(22079387,'.zip','b9ed863766e30afbd0e309951c855d08')
+          assert bm['sha256']=='5627a1606b8e378de0e4e4ced99222509bcbbcb725d26da6e7a5fad34aa42fc7'
+          def members(blob):
+              with zipfile.ZipFile(io.BytesIO(blob)) as z:
+                  assert sum(x.file_size for x in z.infolist())<500000000
+                  assert z.testzip() is None
+                  rows=[]
+                  for x in z.infolist():
+                      if x.is_dir(): continue
+                      raw=z.read(x)
+                      rows.append({'path':x.filename,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'is_log':x.filename.lower().endswith('.log')})
+                  return rows
+          aa,bb=members(a),members(b)
+          matches=[{'prior':x['path'],'current':y['path'],'bytes':x['bytes'],'sha256':x['sha256'],'is_log':x['is_log']} for x in aa for y in bb if x['sha256']==y['sha256'] and x['bytes']==y['bytes']]
+          d={'prior_paper':pm,'prior_data':am,'current_data':bm,'prior_members':aa,'current_members':bb,'byte_identical_members':matches,'note':'Exact byte equality is proof of reuse, not proof of independence for nonidentical files. No hardware or calibration claim.'}
+          Path('evidence/provenance.json').write_text(json.dumps(d,indent=2)+'\n')
+          print('SOURCE_IDENTITY_PASS',pm,am,bm,'MATCHES',len(matches))
+          print(json.dumps(matches,indent=2))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-predecessor-authentic-paper-and-member-provenance
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 14
