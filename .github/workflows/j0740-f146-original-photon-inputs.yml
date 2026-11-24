@@ -1,0 +1,50 @@
+name: J0740 F146 stage original NICER XMM photon inputs
+on:
+  push:
+    branches:
+      - science/j0740-f146-original-photon-inputs-20261124
+  pull_request:
+    branches:
+      - science/j0740-f144-public-archive-stream-20261124
+  workflow_dispatch:
+jobs:
+  original_photon_inputs:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Stage original data and source members
+        run: |
+          set -eu
+          mkdir -p f146_evidence
+          set +e
+          python research/j0740/f144/zenodo_resumable_stdout.py 2>f146_evidence/download.log | python research/j0740/f146/stage_original_photon_inputs.py --output "$RUNNER_TEMP/j0740_input" --evidence f146_evidence >f146_evidence/stage.log 2>&1
+          statuses=("${PIPESTATUS[@]}")
+          producer=${statuses[0]}
+          consumer=${statuses[1]}
+          set -e
+          echo "producer=$producer consumer=$consumer" | tee f146_evidence/pipe_status.txt
+          if [ "$consumer" -ne 0 ]; then
+            tail -100 f146_evidence/stage.log
+            exit "$consumer"
+          fi
+          test -s f146_evidence/input_stage.json
+          cp "$RUNNER_TEMP/j0740_input/J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules/config.ini" f146_evidence/config_original.ini
+          echo "F146_STAGED_ORIGINAL_INPUTS"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F146-input-stage-evidence
+          path: f146_evidence/
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: J0740-F146-original-photon-inputs
+          path: ${{ runner.temp }}/j0740_input/
+          compression-level: 6
+          retention-days: 7
+          if-no-files-found: error
