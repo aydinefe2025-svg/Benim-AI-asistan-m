@@ -1,0 +1,51 @@
+name: J0740 F149 full original posterior chain
+on:
+  pull_request:
+    branches: [science/j0740-f147-exact-photon-likelihood-20261124]
+    paths: ['research/j0740/f149/**','.github/workflows/j0740-f149-full-native-posterior.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  recover_full_chain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install numpy==2.3.5
+      - name: Regression check for chain ordering, mismatch and archive digest
+        run: |
+          python - <<'PY'
+          import numpy as np,tarfile,io,hashlib,tempfile,pathlib
+          from research.j0740.f149.full_chain import compare,extract
+          a=np.zeros((2,16));a[:,:2]=[[2,12],[2.1,13]]
+          assert compare(a,a[::-1,:2])['same_multiset_exact']
+          assert not compare(a,a[:,:2]+1)['matched_to_1e-7']
+          raw=io.BytesIO()
+          with tarfile.open(fileobj=raw,mode='w:gz') as t:
+              m=tarfile.TarInfo('test');m.size=3;t.addfile(m,io.BytesIO(b'abc'))
+          b=raw.getvalue()
+          with tempfile.TemporaryDirectory() as d:
+              assert extract(io.BytesIO(b),pathlib.Path(d),{'test':3},hashlib.md5(b).hexdigest())['test']['bytes']==3
+              try: extract(io.BytesIO(b),pathlib.Path(d),{'test':3},'0'*32)
+              except ValueError: pass
+              else: raise AssertionError('Bad checksum accepted')
+          PY
+      - name: Retrieve independently published MR projection
+        run: |
+          curl -fLsS --retry 4 'https://zenodo.org/records/10519473/files/mr_samples_and_contours.tar.gz?download=1' -o "$RUNNER_TEMP/mr.tar.gz"
+          printf '%s  %s\n' ca8e70eeca81feb71321f1a88a24f2f9 "$RUNNER_TEMP/mr.tar.gz" | md5sum -c
+      - name: Stream source archive once and preserve only original full posterior chain
+        run: |
+          set -euo pipefail
+          mkdir -p results/F149
+          python -u research/j0740/f144/zenodo_resumable_stdout.py 2>results/F149/download.log | python -u -m research.j0740.f149.full_chain results/F149 "$RUNNER_TEMP/mr.tar.gz" | tee results/F149/chain.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F149-original-full-chain
+          path: results/F149/
+          if-no-files-found: error
