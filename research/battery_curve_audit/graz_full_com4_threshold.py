@@ -45,7 +45,10 @@ def holdout(histograms):
             if other!=cell:train.update(h)
         n=sum(train.values())
         limit=max(train)
-        q99=next(k for k in sorted(train) if sum(train[j] for j in train if j<=k)*100>=99*n)
+        cumulative=0
+        for q99 in sorted(train):
+            cumulative+=train[q99]
+            if cumulative*100>=99*n:break
         out[cell]={'train_positive_rows':n,'test_positive_rows':sum(test.values()),
                    'train_max_tolerance':limit/4000,'train_q99_tolerance':q99/4000,
                    'test_max_required_tolerance':max(test)/4000,
@@ -70,7 +73,10 @@ def scan(rows):
         # exact integer arithmetic, power numerator /4000. Closed upper interval
         # is conservative: an impossibility remains impossible with open ends.
         if not zero:
-            gaps[magnitude_gap(lo,hi,r.p)]+=1
+            if hi<80000 or r.p<0 or r.p!=round(r.p):
+                counts['positive_structural_infeasible']+=1
+            else:
+                gaps[magnitude_gap(lo,hi,r.p)]+=1
         for model in MODELS:
             if not compatible(lo,hi,r.p,model):
                 model_bad[model]+=1
@@ -93,6 +99,7 @@ def selftest():
     c=boundary.Row(3,2,'COM4',4.34,3.0,13)
     assert not scan([a,c])['any_threshold_possible_on_grid']
     assert scan([a,c])['counts']['nonzero_impossible_T20']==1
+    assert scan([a,c])['counts']['positive_structural_infeasible']==1
     assert compatible(78897,80817,20,'pre_nearest')
     assert compatible(78897,80817,0,'pre_nearest')
     assert not compatible(78897,80817,0,'post_nearest')
@@ -106,7 +113,7 @@ def selftest():
     assert folds['a']['test_outside_train_max']==0
     assert folds['b']['test_outside_train_max']==2
     assert folds['b']['test_outside_train_q99']==2
-    print('16 synthetic checks passed')
+    print('17 synthetic checks passed')
 def main():
     selftest()
     if '--selftest' in sys.argv:return
@@ -126,7 +133,7 @@ def main():
     upper=min(c['extrema']['min_nonzero_upper']['numerator'] for c in cells.values())
     total=collections.Counter()
     for c in cells.values():total.update(c['counts'])
-    d={'goal_key':'graz-full-com4-threshold-identifiability-20261124','source_sha256':cert['original_zip_sha256'],'source_rows':rowcount,'flagged_identity_sha256':digest,'cells':cells,'all_counts':dict(total),'global_threshold_strict_lower':lower/4000,'global_threshold_conservative_upper':upper/4000,'global_any_threshold_possible_on_grid':lower<upper,'all_rows_grid_covered':not total['off_grid'],'rounding_assumption':'nearest 0.01 V and 0.1 I numeric; closed conservative intervals','model_incompatible_all':{m:sum(c['model_incompatible'][m] for c in cells.values()) for m in MODELS},'model_assumptions':'threshold fixed at 20; integer power quantization, conservative closed bounds; pre vs post clipping', 'holdout':holdout({k:v.pop('positive_gap_histogram') for k,v in cells.items()}),'holdout_scope':'post-hoc model chosen using same five cells, leave-one-cell-out tolerance fitting only; positive power magnitude, not independent physical calibration', 'physical_root_cause_proven':False,'physical_units_verified':False,'physical_production_release_allowed':False}
+    d={'goal_key':'graz-full-com4-threshold-identifiability-20261124','source_sha256':cert['original_zip_sha256'],'source_rows':rowcount,'flagged_identity_sha256':digest,'cells':cells,'all_counts':dict(total),'global_threshold_strict_lower':lower/4000,'global_threshold_conservative_upper':upper/4000,'global_any_threshold_possible_on_grid':lower<upper,'all_rows_grid_covered':not total['off_grid'],'rounding_assumption':'nearest 0.01 V and 0.1 I numeric; closed conservative intervals','model_incompatible_all':{m:sum(c['model_incompatible'][m] for c in cells.values()) for m in MODELS},'model_assumptions':'threshold fixed at 20; integer power quantization, conservative closed bounds; pre vs post clipping', 'holdout':holdout({k:v.pop('positive_gap_histogram') for k,v in cells.items()}),'positive_structural_infeasible_total':total['positive_structural_infeasible'],'holdout_scope':'post-hoc model chosen using same five cells, leave-one-cell-out tolerance fitting only; positive power magnitude, not independent physical calibration', 'physical_root_cause_proven':False,'physical_units_verified':False,'physical_production_release_allowed':False}
     Path(sys.argv[1]).write_text(json.dumps(d,indent=2,sort_keys=True,allow_nan=False)+'\n')
     print(json.dumps(d,sort_keys=True))
 if __name__=='__main__':main()
