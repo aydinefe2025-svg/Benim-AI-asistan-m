@@ -86,6 +86,7 @@ class OwnerCodeStatusTests(unittest.TestCase):
         stats = render_owner_code_status(st, jobs)
         visible = " ".join(st.messages)
         self.assertIn("En yeni kod işi: sırada", visible)
+        self.assertEqual(1, len(st.messages))
         self.assertNotIn("PRIVATE CURRENT GOAL", visible)
         self.assertNotIn("private-id", visible)
         self.assertEqual(1, stats["deployed"])
@@ -95,6 +96,14 @@ class OwnerCodeStatusTests(unittest.TestCase):
         st = FakeStreamlit()
         render_owner_code_status(st, [{"status": "running"}, {"status": "deployed"}])
         self.assertIn("En yeni kod işi: çalışıyor", " ".join(st.messages))
+        self.assertEqual(1, len(st.messages))
+
+    def test_unrecognized_latest_status_is_not_echoed(self):
+        st = FakeStreamlit()
+        render_owner_code_status(st, [{"status": "PRIVATE UNKNOWN STATUS"}])
+        self.assertEqual(1, len(st.messages))
+        self.assertNotIn("PRIVATE UNKNOWN STATUS", st.messages[0])
+        self.assertNotIn("En yeni kod işi:", st.messages[0])
 
     def test_main_mobile_view_is_owner_gated_and_not_sidebar_only(self):
         source = (ROOT / "app.py").read_text(encoding="utf-8")
