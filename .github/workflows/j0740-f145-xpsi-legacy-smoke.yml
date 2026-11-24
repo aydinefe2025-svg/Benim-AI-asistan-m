@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - science/j0740-f145-xpsi-legacy-smoke-20261124
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
   workflow_dispatch:
 jobs:
   xpsi_legacy:
