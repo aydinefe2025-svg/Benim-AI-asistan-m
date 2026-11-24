@@ -43,6 +43,7 @@ def measure(s):
       "max_time_gap_s":float(dt.max()),"capacity_abs_discharge_Ah":q,"capacity_signed_discharge_Ah":q_signed,
       "capacity_manual_Ah":q2,"charge_channel_abs_integral_Ah":float(np.trapezoid(np.abs(charge),t)/3600),
       "discharge_current_min_A":float(i.min()),"discharge_current_max_A":float(i.max()),
+      "opposite_sign_fraction_of_absolute_integral":float((q-abs(q_signed))/(2*q)),
       "initial_voltage_V":float(a["V_batt"][0]),"final_voltage_V":float(a["V_batt"][-1]),
       "initial_laser_sum_V":float(laser[0]),"final_laser_sum_V":float(laser[-1]),
       "laser_range_mm":float(np.ptp(derived)),"stored_deformation_range_mm":float(np.ptp(stored)),
@@ -85,15 +86,28 @@ def main():
             for b in iter(lambda:r.read(1024*1024),b""):f.write(b)
     identity=hashfile(p)
     print("ORIGINAL_SOURCE",identity,flush=True)
-    if identity["md5"]!=MD5:raise ValueError("publisher MD5 mismatch")
+    if identity["md5"]!=MD5 or identity["sha256"]!="c9048b0cf5a089e09a9e97470ca5dd4048e9eb538b5c3ff69277babc52cf2d96":raise ValueError("pinned original source digest mismatch")
     info=whosmat(p);print("MAT_SCHEMA",info,flush=True)
     (out/"source_schema.json").write_text(json.dumps({"doi":DOI,"file":identity,"mat_variables":info},indent=2))
-    cand=[name for name,shape,kind in info if len(shape)==2 and shape[0]==2 and shape[1]>=6 and kind=="cell"]
-    if len(cand)!=1:raise ValueError("ambiguous documented main MATLAB 2x6 cell "+str(cand))
+    cand=[name for name,shape,kind in info if name=="D" and tuple(shape)==(3,7) and kind=="cell"]
+    if len(cand)!=1:raise ValueError("original pinned D 3x7 structure changed "+str(info))
     d=loadmat(p,variable_names=cand,struct_as_record=False,squeeze_me=False)[cand[0]]
+    # Publisher explicitly assigns D{1,1}, D{2,1}, and sixth-column aging
+    # vectors. Additional third row and seventh column are inventoried, not interpreted.
+    def describe(x):
+        x=unwrap(x)
+        if isinstance(x,np.ndarray):
+            y=next((unwrap(t) for t in x.flat if not (isinstance(t,np.ndarray) and t.size==0)),None) if x.dtype.kind=="O" else None
+            return {"shape":list(x.shape),"dtype":str(x.dtype),"first_nonempty_record_fields":getattr(y,"_fieldnames",None),
+                "numeric_vector_preview":x.ravel()[:8].tolist() if x.dtype.kind in "iuf" and x.size<=200 else None}
+        return {"type":type(x).__name__,"fields":getattr(x,"_fieldnames",None)}
+    inventory=[[describe(d[i,j]) for j in range(d.shape[1])] for i in range(d.shape[0])]
+    (out/"original_nested_schema.json").write_text(json.dumps(inventory,indent=2,default=str))
+    print("ORIGINAL_NESTED_SCHEMA",json.dumps(inventory,default=str),flush=True)
     rows=[];excluded=[];stage=[]
     for rate,row in (("RPT-A-high",0),("RPT-B-low",1)):
         a=unwrap(d[row,0]);ages=vector(d[row,5])
+        if row==0 and a.shape[0]!=47:raise ValueError("publisher high-rate aging count 47 differs")
         print("RPT_STRUCTURE",rate,a.shape,ages.shape,ages.tolist(),flush=True)
         if not isinstance(a,np.ndarray) or a.ndim!=2 or a.shape[0]!=len(ages) or not np.isfinite(ages).all():
             raise ValueError("discharge matrix does not match documented cycle-vector axis")
