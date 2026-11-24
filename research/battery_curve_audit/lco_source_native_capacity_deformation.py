@@ -32,7 +32,7 @@ def measure(s):
     i=a["I_EL"]; charge=a["I_PS"]
     q=float(np.trapezoid(np.abs(i),t)/3600)
     q_signed=float(np.trapezoid(i,t)/3600)
-    q2=math.fsum(float(x)*float(y+z)*0.5 for x,y,z in zip(dt,np.abs(i[:-1]),np.abs(i[1:]))/3600
+    q2=math.fsum(float(x)*float(y+z)*0.5 for x,y,z in zip(dt,np.abs(i[:-1]),np.abs(i[1:])))/3600
     if not math.isclose(q,q2,rel_tol=1e-11,abs_tol=1e-11):raise ValueError("integration disagreement")
     if q<=0:raise ValueError("nonpositive discharge integral")
     laser=a["Las1"]+a["Las2"]
