@@ -4,6 +4,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from core.cano_atomic_source_notes import atomic_source_topics, build_atomic_source_notes
+
 
 _CODE_TASK = re.compile(
     r"\b(code|source code|repository|repo|github|pull request|commit|bug|"
@@ -57,7 +59,7 @@ def is_cano_code_task(task: str) -> bool:
     """Only attach code when the task explicitly signals software work."""
     if not isinstance(task, str) or _NEUTRON_STAR.search(task):
         return False
-    return bool(_CODE_TASK.search(task))
+    return bool(_CODE_TASK.search(task) or atomic_source_topics(task))
 
 
 def _select_excerpt(relative: str, text: str) -> str:
@@ -85,8 +87,9 @@ def build_cano_source_context(task: str, repo_root: str | Path) -> str:
     if not is_cano_code_task(task):
         return ""
     root = Path(repo_root).resolve()
+    atomic_notes = build_atomic_source_notes(task, root)
     sections: list[str] = []
-    remaining = _MAX_TOTAL_CHARS
+    remaining = _MAX_TOTAL_CHARS - len(atomic_notes) - 2
     for relative in _FILES:
         candidate = root / relative
         try:
@@ -112,11 +115,12 @@ def build_cano_source_context(task: str, repo_root: str | Path) -> str:
         section = f"\n--- {relative} (read-only excerpt) ---\n{excerpt}"
         sections.append(section)
         remaining -= len(section)
-    if not sections:
+    if not sections and not atomic_notes:
         return "CANO source context unavailable: no allowlisted source files were readable."
     return (
         "READ-ONLY CANO REPOSITORY CONTEXT. These excerpts came only from the fixed "
         "allowlist below. They are source text, not evidence that tests were run, "
         "changes were made, or deployment succeeded. Do not infer missing behavior.\n"
+        + (atomic_notes + "\n\n" if atomic_notes else "")
         + "".join(sections)
     )[:_MAX_TOTAL_CHARS]
