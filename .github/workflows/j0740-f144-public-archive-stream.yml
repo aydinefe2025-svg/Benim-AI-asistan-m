@@ -1,0 +1,61 @@
+name: J0740 F144 public archive source-input audit
+on:
+  pull_request:
+    branches: [science/j0740-apr4-firstlaw-gr-pilot-20261117]
+    paths:
+      - 'research/j0740/f144/**'
+      - '.github/workflows/j0740-f144-public-archive-stream.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source_input_audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check audit code and original member signatures
+        run: |
+          python -m py_compile research/j0740/f144/j0740_archive_input_audit.py
+          python - <<'PY'
+          import hashlib,io,tarfile,tempfile
+          from pathlib import Path
+          from research.j0740.f144 import j0740_archive_input_audit as audit
+          with tempfile.TemporaryDirectory() as d:
+              p=Path(d)/'tiny.tar.gz';n=audit.PREFIX+'STU_modules/config.ini';b=b'[run]\nfixture=1\n'
+              with tarfile.open(p,'w:gz') as tar:
+                  i=tarfile.TarInfo(n);i.size=len(b);tar.addfile(i,io.BytesIO(b))
+              audit.EXPECTED={n:hashlib.sha256(b).hexdigest()}
+              audit.ARCHIVE_MD5=hashlib.md5(p.read_bytes()).hexdigest()
+              assert audit.audit(p,Path(d)/'out')['status']=='PASS_ORIGINAL_F31_SOURCE_MEMBERS'
+              audit.ARCHIVE_MD5='0'*32
+              try:audit.audit(p,Path(d)/'bad')
+              except ValueError as exc:assert 'MD5 mismatch' in str(exc)
+              else:raise AssertionError('corrupt archive accepted')
+          PY
+      - name: Stream original 12.9 GB public archive directly into member audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 3 --retry-delay 15 \
+            'https://zenodo.org/records/10519473/files/psr_J0740%2B6620_with_3p6_Years_of_NICER_Data.tar.gz?download=1' \
+            | python -u research/j0740/f144/j0740_archive_input_audit.py - --out results/F144
+      - name: Record audit-file identities
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          d=Path('results/F144');d.mkdir(parents=True,exist_ok=True)
+          files=[p for p in d.rglob('*') if p.is_file()]
+          (d/'F144_SHA256.json').write_text(json.dumps({str(p.relative_to(d)):hashlib.sha256(p.read_bytes()).hexdigest() for p in files},indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F144-original-public-archive-input-audit
+          path: results/F144/
+          if-no-files-found: warn
