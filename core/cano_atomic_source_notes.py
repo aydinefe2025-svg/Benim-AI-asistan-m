@@ -13,10 +13,15 @@ from pathlib import Path
 _TOPICS = {
     "source": re.compile(r"kaynak\s+bağlam|source\s+context", re.I),
     "benchmark": re.compile(r"benchmark|test\s+takımı|kıyaslama", re.I),
+    "lesson": re.compile(r"ders\s+(?:benzerlik|tekrar|eşleşme)|lesson\s+(?:similarity|duplicate)", re.I),
 }
 _CANO = re.compile(r"\bCANO\b", re.I)
 # file, function scope (None = module), expression, human-readable fact
 _SPECS = {
+    "lesson": (
+        ("core/agent_colony.py", "AgentColony.approve_feedback", r"min\(len\(signature\), len\(prior\)\) >= (\d+)", "Yaklaşık ders eşleşmesi asgari metin uzunluğu"),
+        ("core/agent_colony.py", "AgentColony.approve_feedback", r"SequenceMatcher\(None, signature, prior, autojunk=False\)\.ratio\(\) >= (0\.\d+|1\.0)", "Yaklaşık ders eşleşmesi oran eşiği"),
+    ),
     "source": (
         ("core/cano_source_context.py", None, r"_MAX_FILE_CHARS = (\d+)", "Tek dosya alıntısı karakter sınırı"),
         ("core/cano_source_context.py", None, r"_MAX_TOTAL_CHARS = (\d+)", "Toplam kaynak bağlamı karakter sınırı"),
@@ -57,7 +62,14 @@ def _expressions(tree, function):
     if function is None:
         return [(ast.unparse(n), n.lineno) for n in tree.body
                 if isinstance(n, ast.Assign)]
-    functions = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == function]
+    body = tree.body
+    if "." in function:
+        class_name, function = function.split(".", 1)
+        classes = [n for n in body if isinstance(n, ast.ClassDef) and n.name == class_name]
+        if len(classes) != 1:
+            return []
+        body = classes[0].body
+    functions = [n for n in body if isinstance(n, ast.FunctionDef) and n.name == function]
     if len(functions) != 1:
         return []
     node = functions[0]
