@@ -16,20 +16,26 @@ jobs:
         shell: bash -el {0}
     steps:
       - uses: actions/checkout@v4
+      - name: Install GSL development library
+        run: sudo apt-get update -qq && sudo apt-get install -y libgsl-dev
       - uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: xpsi-legacy
           init-shell: bash
           cache-environment: false
+          condarc: |
+            channels:
+              - defaults
+              - conda-forge
+            channel_priority: flexible
           create-args: >-
             python=2.7
-            numpy=1.16.6
-            scipy=1.2.3
+            numpy=1.16.5
+            scipy=1.2.1
             cython=0.28.5
-            gsl=2.5
-            matplotlib=2.2.5
+            matplotlib=2.2.3
             wrapt=1.11.2
-            setuptools<45
+            setuptools=44.0.0
       - name: Compile original numerical-atmosphere X-PSI
         run: |
           set -eo pipefail
