@@ -10,7 +10,7 @@ import os
 import sqlite3
 from hashlib import sha256
 
-from core.agent_colony import AgentColony
+from core.agent_colony import AgentColony, PotentialDuplicateLesson
 from core.collaborative_mission import CollaborativeMission, synthesis_needs_repair
 from core.cano_mobile_resume import (select_mobile_resume_items,
                                      select_mobile_completed_mission)
@@ -692,6 +692,9 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                                     pending_lesson["id"], approved=True)
                                 newly_accepted = approval["status"] == "accepted"
                                 _checkpoint(archive_prior=False)
+                            except PotentialDuplicateLesson:
+                                st.warning("Benzer bir ders zaten onaylı; bu aday incelemede kalıyor.")
+                                return
                             except Exception:
                                 if newly_accepted:
                                     # A failed/ambiguous CAS acknowledgement must
