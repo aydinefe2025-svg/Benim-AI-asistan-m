@@ -39,6 +39,7 @@ def measure(s):
     derived=laser-laser[0]
     stored=a["Dthk"]-a["Dthk"][0]
     residual=stored-derived
+    reverse_residual=stored+derived
     return {"samples":n,"duration_s":float(t[-1]-t[0]),"zero_time_intervals":int((dt==0).sum()),
       "max_time_gap_s":float(dt.max()),"capacity_abs_discharge_Ah":q,"capacity_signed_discharge_Ah":q_signed,
       "capacity_manual_Ah":q2,"charge_channel_abs_integral_Ah":float(np.trapezoid(np.abs(charge),t)/3600),
@@ -50,6 +51,13 @@ def measure(s):
       "laser_endpoint_mm":float(derived[-1]),"stored_deformation_endpoint_mm":float(stored[-1]),
       "max_laser_identity_error_mm":float(np.max(np.abs(residual))),
       "rms_laser_identity_error_mm":float(np.sqrt(np.mean(residual**2))),
+      "reverse_laser_identity_max_error_mm":float(np.max(np.abs(reverse_residual))),
+      "reverse_laser_identity_rms_error_mm":float(np.sqrt(np.mean(reverse_residual**2))),
+      "reverse_laser_endpoint_error_mm":float(abs(reverse_residual[-1])),
+      "median_discharge_current_A":float(np.median(i)),
+      "median_time_step_s":float(np.median(dt)),
+      "net_current_integral_Ah":float(np.trapezoid(i-charge,t)/3600),
+      "discharge_nominal_22Ah_ratio":q/22.0,
       "ambient_median_C":float(np.median(a["T_amb"])),
       "battery_median_C":float(np.median(a["T_batt"])),
       "capacity_numeric_integrators_agree":True}
@@ -62,6 +70,9 @@ def selftest():
     d=measure(s);assert math.isclose(d["capacity_abs_discharge_Ah"],2)
     assert math.isclose(d["laser_range_mm"],.4)
     assert d["max_laser_identity_error_mm"]<1e-12
+    s.Dthk=-s.Dthk
+    assert measure(s)["reverse_laser_identity_max_error_mm"]<1e-12
+    s.Dthk=-s.Dthk
     s.Dthk=np.array([0.,.2,.5]);assert measure(s)["max_laser_identity_error_mm"]>.09
     s.Time=np.array([0.,2.,1.])
     try:measure(s)
@@ -105,7 +116,7 @@ def main():
     inventory=[[describe(d[i,j]) for j in range(d.shape[1])] for i in range(d.shape[0])]
     (out/"original_nested_schema.json").write_text(json.dumps(inventory,indent=2,default=str))
     print("ORIGINAL_NESTED_SCHEMA",json.dumps(inventory,default=str),flush=True)
-    rows=[];excluded=[];stage=[];unlabeled=[];layout=[]
+    rows=[];excluded=[];stage=[];unlabeled=[];layout=[];rest=[];time_issues=[]
     for rate,row in (("RPT-A-high",0),("RPT-B-low",1)):
         a=unwrap(d[row,0]);ages=vector(d[row,5])
         print("RPT_STRUCTURE",rate,a.shape,ages.shape,ages.tolist(),flush=True)
@@ -137,6 +148,11 @@ def main():
                     continue
                 try:r=measure(s)
                 except ValueError as e:
+                    if "nonmonotonic time" in str(e):
+                        t=field(s,"Time"); ii=field(s,"I_EL"); jumps=np.flatnonzero(np.diff(t)<0)
+                        time_issues.append({"rate":rate,"cycle":float(age),"repeat":k+1,"samples":len(t),
+                          "reversals":[{"index":int(x),"before_s":float(t[x]),"after_s":float(t[x+1])} for x in jumps[:30]],
+                          "reversal_count":len(jumps),"positive_dt_only_integral_Ah_diagnostic_not_capacity":float(np.sum(np.maximum(np.diff(t),0)*(np.abs(ii[1:])+np.abs(ii[:-1]))/2)/3600)})
                     excluded.append({"rate":rate,"cycle":float(age),"repeat":k+1,"reason":str(e)})
                     continue
                 r.update(rate=rate,cycle=float(age),repeat=k+1)
@@ -149,6 +165,25 @@ def main():
                     "charge_channel_abs_integral_Ah")},
                   "capacity_repeat_min_Ah":min(r["capacity_abs_discharge_Ah"] for r in group),
                   "capacity_repeat_max_Ah":max(r["capacity_abs_discharge_Ah"] for r in group)})
+    # Explicitly labeled high-rate post-discharge and post-charge rest arrays
+    # are negative controls for current offsets, never automatic calibrators.
+    for col,phase in ((2,"after_discharge"),(3,"after_charge")):
+        a=unwrap(d[0,col]); ages=vector(d[0,5])
+        for j,age in enumerate(ages):
+            for k in range(a.shape[1]):
+                x=unwrap(a[j,k])
+                if isinstance(x,np.ndarray) and x.size==0:continue
+                try:
+                    t=field(x,"Time"); il=field(x,"I_EL"); ip=field(x,"I_PS")
+                    if len(t)<2 or len(t)!=len(il) or len(t)!=len(ip) or not all(np.isfinite(v).all() for v in (t,il,ip)) or np.any(np.diff(t)<0):
+                        continue
+                    mask=(t-t[0])>=60
+                    if not np.any(mask):continue
+                    rest.append({"phase":phase,"cycle":float(age),"repeat":k+1,"samples":int(mask.sum()),
+                        "duration_s":float(t[-1]-t[0]),"median_EL_A":float(np.median(il[mask])),
+                        "median_PS_A":float(np.median(ip[mask])),
+                        "median_net_A":float(np.median((il-ip)[mask]))})
+                except (ValueError,AttributeError):continue
     if not rows or len(stage)<5:raise ValueError("insufficient actual source discharge data")
     assert sum(x["labeled_slots"] for x in layout)==len(rows)+len(excluded)
     assert sum(x["matrix_shape"][0]*x["matrix_shape"][1] for x in layout)==len(rows)+len(excluded)+sum(x["empty_tail_slots"] for x in layout)+len(unlabeled)
@@ -174,18 +209,25 @@ def main():
             "rho_capacity_vs_initial_laser_sum_descriptive":rho("capacity_abs_discharge_Ah","initial_laser_sum_V"),
             "max_laser_identity_error_mm":max(x["max_laser_identity_error_mm"] for x in rr),
             "runs_laser_identity_within_1um":sum(x["max_laser_identity_error_mm"]<=.001 for x in rr),
-            "runs_charge_channel_over_0p01Ah":sum(x["charge_channel_abs_integral_Ah"]>.01 for x in rr)}
+            "runs_charge_channel_over_0p01Ah":sum(x["charge_channel_abs_integral_Ah"]>.01 for x in rr),
+            "runs_integral_over_nominal_22Ah":sum(x["capacity_abs_discharge_Ah"]>22 for x in rr),
+            "median_reverse_laser_identity_rms_mm":float(np.median([x["reverse_laser_identity_rms_error_mm"] for x in rr])),
+            "max_reverse_laser_identity_error_mm":max(x["reverse_laser_identity_max_error_mm"] for x in rr),
+            "runs_reverse_sign_smaller_rms":sum(x["reverse_laser_identity_rms_error_mm"]<x["rms_laser_identity_error_mm"] for x in rr),
+            "median_discharge_current_A":float(np.median([x["median_discharge_current_A"] for x in rr])),
+            "median_test_duration_s":float(np.median([x["duration_s"] for x in rr]))}
     receipt={"goal":"lco-20261124-native-units-capacity-laser-identity","source_doi":DOI,
       "original":identity,"publisher_md5_match":True,"mat_variable":cand[0],
       "physical_cells":1,"data":"published RPT discharge tests only",
-      "capacity_method":"absolute I_EL trapezoid with source seconds /3600; compare independently with math.fsum",
+      "capacity_method":"unvalidated recorded I_EL channel integral; compare two numerical methods; not automatically certified capacity",
       "laser_method":"publisher 1 V per mm; sum of Las1+Las2 relative to segment first sample; compare with Dthk similarly centered",
       "stage_median_not_independent_cells":True,"full_physical_calibration_certificate_verified":False,
       "causal_or_population_claim":False,"production_release":False,
-      "summary":summaries,"excluded_slots":excluded,"unlabeled_nonempty_slots":unlabeled,"layout":layout,"valid_discharge_runs":len(rows),
+      "summary":summaries,"time_issues":time_issues,"rest_negative_controls":rest,"rest_offset_applied":False,"low_rate_capacity_certified":False,"physical_deformation_sign_certified":False,"excluded_slots":excluded,"unlabeled_nonempty_slots":unlabeled,"layout":layout,"valid_discharge_runs":len(rows),
       "total_valid_samples":sum(x["samples"] for x in rows)}
     (out/"receipt.json").write_text(json.dumps(receipt,indent=2,allow_nan=False))
-    for n,ar in (("discharge_runs.csv",rows),("stage_medians.csv",stage)):
+    for n,ar in (("discharge_runs.csv",rows),("stage_medians.csv",stage),("rest_controls.csv",rest)):
+        if not ar:continue
         with (out/n).open("w",newline="") as f:
             w=csv.DictWriter(f,fieldnames=list(ar[0]));w.writeheader();w.writerows(ar)
     print("REAL_LCO_SOURCE_RESULT",json.dumps(receipt,allow_nan=False),flush=True)
