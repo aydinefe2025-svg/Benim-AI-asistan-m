@@ -57,7 +57,15 @@ def audit_rows(rows):
             'first_flag':describe(first,first),'last_flag':describe(last,last),
             'before_20_rows_states':dict(Counter(x.device+'/'+state(x) for x in rows[max(0,a-20):a])),
             'after_20_rows_states':dict(Counter(x.device+'/'+state(x) for x in rows[b+1:b+21]))})
-    return {'rows':len(rows),'flagged_rows':len(flags),'numeric_state_counts':dict(counts),'episodes':episodes}
+    transitions=Counter();after_flag=0;ends={g[-1] for g in groups}
+    for j,(x,y) in enumerate(zip(rows,rows[1:])):
+        if x.device!=y.device:
+            transitions[x.device+'_to_'+y.device]+=1
+            if x.device=='COM4' and y.device=='COM3' and j in ends:after_flag+=1
+    return {'rows':len(rows),'flagged_rows':len(flags),'numeric_state_counts':dict(counts),'episodes':episodes,
+            'device_transition_counts':dict(transitions),
+            'COM4_to_COM3_with_flagged_episode_end':after_flag,
+            'COM4_to_COM3_without_flagged_episode_end':transitions['COM4_to_COM3']-after_flag}
 
 def parse_member(z,m):
     rows=[];hashes=[]
