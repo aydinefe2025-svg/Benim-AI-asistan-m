@@ -1,0 +1,25 @@
+name: GKA NASA RW2 held-out cell capacity
+on:
+  pull_request:
+    paths:
+      - 'research/gka_nasa_rw_capacity_holdout.py'
+      - '.github/workflows/gka-nasa-rw-capacity-holdout.yml'
+permissions:
+  contents: read
+jobs:
+  original-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --only-binary=:all: numpy==2.5.5 scipy==1.18.1
+      - run: python research/gka_nasa_rw_capacity_holdout.py --self-test --output unused.json
+      - run: python research/gka_nasa_rw_capacity_holdout.py --output evidence/GKA_NASA_RW2_LOCO_20261124.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GKA-NASA-RW2-LOCO
+          path: evidence/GKA_NASA_RW2_LOCO_20261124.json
+          if-no-files-found: error
