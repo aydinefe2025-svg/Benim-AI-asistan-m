@@ -433,6 +433,10 @@ class CollaborativeMission:
                 # in production before a fourth stage is saved or checkpointed.
                 # _run's failure handler preserves the previous three stages
                 # and owner checkpoint; resuming retries this role only.
+                if index == 3 and re.search(r"(?i)\bCANO_LESSON_CANDIDATE\s*:", result["output"]):
+                    exc = RuntimeError("internal reviewer marker in final synthesis; previous stages preserved")
+                    exc.failure_kind = "response"
+                    raise exc
                 if index == 3 and _looks_like_incomplete_final_synthesis(result["output"]):
                     exc = RuntimeError("incomplete final synthesis; previous stages preserved")
                     exc.failure_kind = "response"
