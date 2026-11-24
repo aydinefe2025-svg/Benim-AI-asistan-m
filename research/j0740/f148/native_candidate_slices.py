@@ -15,7 +15,11 @@ CANDIDATES=[
 config,out=sys.argv[1:]
 sys.path.insert(0,os.getcwd())
 sys.argv=['main_lp40k_Xse001_Dfix.py','@'+config]
-g=runpy.run_path(sys.argv[0],run_name='f148_source_module')
+assert '--multinest' not in open(config).read().splitlines()
+assert '--emcee' not in open(config).read().splitlines()
+# Publisher uses actual CLI arguments ONLY when __name__ == '__main__'.
+# Both sampler flags are disabled, so running as main builds and checks the model only.
+g=runpy.run_path(sys.argv[0],run_name='__main__')
 L=g['likelihood']; ref=np.array(g['p'],dtype=float)
 assert len(L)==15 and ref.shape==(15,)
 assert L.index('mass')==0 and L.index('radius')==1
