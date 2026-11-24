@@ -40,8 +40,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --location --silent --show-error --retry 3 --retry-delay 15 \
-            'https://zenodo.org/records/10519473/files/psr_J0740%2B6620_with_3p6_Years_of_NICER_Data.tar.gz?download=1' \
+          python research/j0740/f144/zenodo_resumable_stdout.py --probe-range
+          python -u research/j0740/f144/zenodo_resumable_stdout.py \
             | python -u research/j0740/f144/j0740_archive_input_audit.py - --out results/F144
       - name: Record audit-file identities
         if: always()
