@@ -277,7 +277,6 @@ def run():
     print("PostgreSQL local file handoff: owner/lease/one attempt/replay/readback OK")
     # Durable capability across fresh server adapter instances, no shared memory.
     from core.postgres_local_grant import PostgresLocalGrant
-    from concurrent.futures import ThreadPoolExecutor
     durable_owner = PostgresAuthorizedQueue(database_url, owner_key=owner+"-http")
     other_owner = PostgresAuthorizedQueue(database_url, owner_key=owner+"-http-other")
     durable_job = durable_owner.enqueue("durable", "Persistent local goal", approved=True)
