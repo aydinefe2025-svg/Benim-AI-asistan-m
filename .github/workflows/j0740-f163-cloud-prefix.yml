@@ -1,0 +1,229 @@
+name: J0740 F163 independent cloud full rotating curve MS1 MS1B
+on:
+  pull_request:
+    branches: [science/j0740-f162-cloud-prefix-20261124]
+    paths: ['.github/workflows/j0740-f163-cloud-prefix.yml', 'research/j0740/f163/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.8.0
+      - name: Recover already verified complete posterior and two original rotating RNS witnesses
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/f163-prep"
+          for pair in 14914475266:chain 14551852570:MS1 14552137092:MS1B 14952611863:old_proposal 14961842842:f162_proposal; do
+            id=${pair%:*}; name=${pair#*:}
+            curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" -o "$RUNNER_TEMP/f163-prep/$name.zip"
+          done
+      - name: Freeze four independent scrambled Sobol sets per model
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
+          MKL_NUM_THREADS: '1'
+        run: python research/j0740/f163/prepare.py "$RUNNER_TEMP/f163-prep" evidence-f163-proposal
+      - uses: actions/upload-artifact@v4
+        with:
+          name: F163-frozen-proposals
+          path: evidence-f163-proposal/
+          if-no-files-found: error
+  original_joint_likelihood:
+    needs: prepare
+    runs-on: ubuntu-22.04
+    timeout-minutes: 200
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [MS1, MS1B]
+        seed: [342001, 342003, 342007, 342011]
+        shard: [0, 1]
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve immutable F146 source bytes and exact member hashes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence-f163 "$RUNNER_TEMP/f163-input"
+          for pair in 14905441131:inputs 14905157121:manifest; do
+            id=${pair%:*}; name=${pair#*:}
+            curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" -o "$RUNNER_TEMP/$name.zip"
+          done
+          printf '%s  %s\n' ffc877fb69f49c8a23b8494456bf0fe85cc7c45922a684b4d6389f1fe00478e9 "$RUNNER_TEMP/inputs.zip" ef59b3874f4f105b2d1de68396a903026cf957412e645d5cf07d6cd8307c990d "$RUNNER_TEMP/manifest.zip" | sha256sum -c
+          python3 - <<'PY'
+          import hashlib,json,os,zipfile,pathlib
+          tmp=pathlib.Path(os.environ['RUNNER_TEMP'])
+          out=tmp/'f163-input'
+          with zipfile.ZipFile(tmp/'manifest.zip') as z:
+              receipt=json.loads(z.read('input_stage.json'))
+          assert receipt['status']=='PASS_ORIGINAL_INPUT_STAGING'
+          with zipfile.ZipFile(tmp/'inputs.zip') as z:
+              assert set(z.namelist())==set(receipt['selected_members'])
+              for name,v in receipt['selected_members'].items():
+                  target=out.joinpath(name)
+                  assert target.resolve().is_relative_to(out.resolve())
+                  target.parent.mkdir(parents=True,exist_ok=True)
+                  h=hashlib.sha256()
+                  count=0
+                  with z.open(name) as src,target.open('wb') as dst:
+                      for b in iter(lambda:src.read(1048576),b''):
+                          h.update(b); count+=len(b); dst.write(b)
+                  assert count==v['bytes'] and h.hexdigest()==v['sha256'],name
+          root=out/'J0740_GAMMA_zenodo'
+          mod=root/'STU/STU_NICER_XMM_hr/STU_modules'
+          lines=[]
+          for line in (mod/'config.ini').read_text().splitlines():
+              if line.strip()=='--multinest':continue
+              if '=' in line:
+                  key,old=line.split('=',1)
+                  if key=='--NICER-matrix-path':
+                      path=tmp/'F163_generated_counts.txt'
+                      assert not path.exists()
+                  else:
+                      matches=list(root.rglob(pathlib.Path(old).name))
+                      assert len(matches)==1,(key,matches)
+                      path=matches[0]
+                  line=key+'='+str(path)
+              lines.append(line)
+          assert '--NICER' in lines and '--XMM' in lines
+          (tmp/'f163_config.ini').write_text('\n'.join(lines)+'\n')
+          pathlib.Path('evidence-f163/input_verification.json').write_text(json.dumps({'source_artifact_id':14905441131,'verified_members':len(receipt['selected_members']),'selected_bytes':receipt['selected_bytes'],'generated_matrix_initially_absent':True,'sampler_enabled':False},indent=2))
+          PY
+          cp "$RUNNER_TEMP/f163_config.ini" evidence-f163/config_relocated.ini
+      - name: Install GSL development library
+        run: sudo apt-get update -qq && sudo apt-get install -y libgsl-dev
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: xpsi-legacy
+          init-shell: bash
+          cache-environment: false
+          condarc: |
+            channels:
+              - defaults
+              - conda-forge
+            channel_priority: flexible
+          create-args: >-
+            python=2.7
+            numpy=1.16.5
+            scipy=1.2.1
+            cython=0.28.5
+            matplotlib=2.2.3
+            wrapt=1.11.2
+            setuptools=44.0.0
+            six
+      - name: Compile X-PSI v1.2.0 (publisher run version)
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v1.2.0 https://github.com/xpsi-group/xpsi.git "$RUNNER_TEMP/xpsi-v1.2.0"
+          git -C "$RUNNER_TEMP/xpsi-v1.2.0" rev-parse HEAD | tee evidence-f163/source_commit.txt
+          test "$(cat evidence-f163/source_commit.txt)" = 78880035d0a8aba021761266327dc17e28cd4ed6
+          cd "$RUNNER_TEMP/xpsi-v1.2.0"
+          python - <<'PY'
+          import os
+          p='xpsi/likelihoods/default_background_marginalisation.pyx'
+          s=open(p).read()
+          a='        if limit > 0.0:\\n            LOGLIKE = llzero * (0.1 + 0.9 * np.random.rand(1))\\n            break'.replace('\\n','\n')
+          b='        if limit > 0.0:\\n            print("F163_HIGH_COUNTS_CUTOFF", i, limit, av_STAR * SCALE, av_DATA)\\n            if not os.environ.get("F163_BYPASS_CUTOFF"):\\n                LOGLIKE = llzero * (0.1 + 0.9 * np.random.rand(1))\\n                break'.replace('\\n','\n')
+          assert s.count(a)==1
+          s=s.replace(a,b)
+          a='            else:\\n                LOGLIKE = llzero * (0.1 + 0.9 * np.random.rand(1))\\n                break'.replace('\\n','\n')
+          assert s.count(a)==1
+          s=s.replace(a,'            else:\\n                print("F163_QUADRATURE_NONPOSITIVE", i, result, abserr)\\n                LOGLIKE = llzero * (0.1 + 0.9 * np.random.rand(1))\\n                break'.replace('\\n','\n'))
+          s=s.replace('import numpy as np','import os\nimport numpy as np',1)
+          open(p,'w').write(s)
+          PY
+          git diff -- xpsi/likelihoods/default_background_marginalisation.pyx > "$GITHUB_WORKSPACE/evidence-f163/explicit_source_patch.diff"
+          CC=gcc python setup.py install --NumHot > "$GITHUB_WORKSPACE/evidence-f163/build.log" 2>&1 || { tail -120 "$GITHUB_WORKSPACE/evidence-f163/build.log"; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          name: F163-frozen-proposals
+          path: ${{ runner.temp }}/f163-proposals
+      - name: Evaluate independent real rotating-curve photons
+        env:
+          OMP_NUM_THREADS: '1'
+          OPENBLAS_NUM_THREADS: '1'
+          MODEL: ${{ matrix.model }}
+          SEED: ${{ matrix.seed }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/f163-input/J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules"
+          printf '%s  %s\n' 440451fd57c8d8c775f3c847861d6fce77a82ab975ca090fb660289191d8c1af main_lp40k_Xse001_Dfix.py | sha256sum -c
+          PYTHONPATH="$GITHUB_WORKSPACE/research/j0740/f150" python -u "$GITHUB_WORKSPACE/research/j0740/f163/native.py" "$RUNNER_TEMP/f163_config.ini" "$RUNNER_TEMP/f163-proposals/${MODEL}_${SEED}_${SHARD}.json" "$GITHUB_WORKSPACE/evidence-f163/native.json" 2>&1 | tee "$GITHUB_WORKSPACE/evidence-f163/native.log"
+          grep -F F163_NATIVE_COMPLETE "$GITHUB_WORKSPACE/evidence-f163/native.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: F163-${{ matrix.model }}-${{ matrix.seed }}-${{ matrix.shard }}
+          path: evidence-f163/
+          if-no-files-found: error
+  audit:
+    needs: original_joint_likelihood
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install numpy==2.3.5 scipy==1.17.0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: F163-MS1*
+          path: all-receipts
+      - name: Retrieve immutable old prefixes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p old-prefix
+          while read -r key id; do
+            curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" -o "old-prefix/$key.zip"
+          done <<'EOF'
+          MS1-342001 14954388707
+          MS1-342003 14954147528
+          MS1-342007 14955431713
+          MS1-342011 14953947297
+          MS1B-342001 14955222751
+          MS1B-342003 14953014002
+          MS1B-342007 14953398487
+          MS1B-342011 14955640190
+          EOF
+      - name: Retrieve immutable F162 suffixes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p old-suffix
+          while read -r key id; do
+            curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" -o "old-suffix/$key.zip"
+          done <<'EOF'
+          MS1-342001 14966456194
+          MS1-342003 14966413110
+          MS1-342007 14966715780
+          MS1-342011 14967896156
+          MS1B-342001 14967794163
+          MS1B-342003 14968138889
+          MS1B-342007 14966784763
+          MS1B-342011 14967183134
+          EOF
+      - run: python research/j0740/f163/audit.py all-receipts F163_acceptance.json old-prefix old-suffix
+      - uses: actions/upload-artifact@v4
+        with:
+          name: F163-independent-acceptance
+          path: F163_acceptance.json
+          if-no-files-found: error
