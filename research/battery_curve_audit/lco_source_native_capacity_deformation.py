@@ -99,19 +99,35 @@ def main():
         if isinstance(x,np.ndarray):
             y=next((unwrap(t) for t in x.flat if not (isinstance(t,np.ndarray) and t.size==0)),None) if x.dtype.kind=="O" else None
             return {"shape":list(x.shape),"dtype":str(x.dtype),"first_nonempty_record_fields":getattr(y,"_fieldnames",None),
-                "numeric_vector_preview":x.ravel()[:8].tolist() if x.dtype.kind in "iuf" and x.size<=200 else None}
+                "numeric_vector_preview":x.ravel()[:8].tolist() if x.dtype.kind in "iuf" and x.size<=200 else None,
+                "source_text":x.ravel().tolist() if x.dtype.kind in "US" and x.size<=10 else None}
         return {"type":type(x).__name__,"fields":getattr(x,"_fieldnames",None)}
     inventory=[[describe(d[i,j]) for j in range(d.shape[1])] for i in range(d.shape[0])]
     (out/"original_nested_schema.json").write_text(json.dumps(inventory,indent=2,default=str))
     print("ORIGINAL_NESTED_SCHEMA",json.dumps(inventory,default=str),flush=True)
-    rows=[];excluded=[];stage=[]
+    rows=[];excluded=[];stage=[];unlabeled=[];layout=[]
     for rate,row in (("RPT-A-high",0),("RPT-B-low",1)):
         a=unwrap(d[row,0]);ages=vector(d[row,5])
-        if row==0 and a.shape[0]!=47:raise ValueError("publisher high-rate aging count 47 differs")
         print("RPT_STRUCTURE",rate,a.shape,ages.shape,ages.tolist(),flush=True)
-        if not isinstance(a,np.ndarray) or a.ndim!=2 or a.shape[0]!=len(ages) or not np.isfinite(ages).all():
-            raise ValueError("discharge matrix does not match documented cycle-vector axis")
+        if not isinstance(a,np.ndarray) or a.ndim!=2 or a.shape[0]<len(ages) or not np.isfinite(ages).all():
+            raise ValueError("invalid documented cycle-vector axis")
+        if len(ages)!=(47 if row==0 else 17):raise ValueError("pinned source age vector length changed")
         if np.any(np.diff(ages)<=0):raise ValueError("nonunique or unordered stage labels")
+        # Author documents that the age vector labels the sequential rows;
+        # rectangular MATLAB arrays may contain extra allocated empty slots.
+        # Never label a nonempty tail record by guessing an age.
+        empty_tail=0
+        for j in range(len(ages),a.shape[0]):
+            for k in range(a.shape[1]):
+                x=unwrap(a[j,k])
+                if isinstance(x,np.ndarray) and x.size==0:
+                    empty_tail+=1
+                else:
+                    unlabeled.append({"rate":rate,"matlab_row":j+1,"repeat":k+1,
+                        "record_fields":getattr(x,"_fieldnames",None),"reason":"row outside original age vector; not analyzed"})
+        layout.append({"rate":rate,"matrix_shape":list(a.shape),"labeled_rows":len(ages),
+            "labeled_slots":int(len(ages)*a.shape[1]),"empty_tail_slots":empty_tail,
+            "unlabeled_nonempty_slots":sum(x["rate"]==rate for x in unlabeled)})
         for j,age in enumerate(ages):
             group=[]
             for k in range(a.shape[1]):
@@ -134,6 +150,9 @@ def main():
                   "capacity_repeat_min_Ah":min(r["capacity_abs_discharge_Ah"] for r in group),
                   "capacity_repeat_max_Ah":max(r["capacity_abs_discharge_Ah"] for r in group)})
     if not rows or len(stage)<5:raise ValueError("insufficient actual source discharge data")
+    assert sum(x["labeled_slots"] for x in layout)==len(rows)+len(excluded)
+    assert sum(x["matrix_shape"][0]*x["matrix_shape"][1] for x in layout)==len(rows)+len(excluded)+sum(x["empty_tail_slots"] for x in layout)+len(unlabeled)
+    print("ORIGINAL_PADDING_ACCOUNTING",json.dumps(layout),flush=True)
     for rate in ("RPT-A-high","RPT-B-low"):
         g=[x for x in stage if x["rate"]==rate]
         if len(g)<2:raise ValueError("one of the documented rate groups lacks stages")
@@ -163,7 +182,7 @@ def main():
       "laser_method":"publisher 1 V per mm; sum of Las1+Las2 relative to segment first sample; compare with Dthk similarly centered",
       "stage_median_not_independent_cells":True,"full_physical_calibration_certificate_verified":False,
       "causal_or_population_claim":False,"production_release":False,
-      "summary":summaries,"excluded_slots":excluded,"valid_discharge_runs":len(rows),
+      "summary":summaries,"excluded_slots":excluded,"unlabeled_nonempty_slots":unlabeled,"layout":layout,"valid_discharge_runs":len(rows),
       "total_valid_samples":sum(x["samples"] for x in rows)}
     (out/"receipt.json").write_text(json.dumps(receipt,indent=2,allow_nan=False))
     for n,ar in (("discharge_runs.csv",rows),("stage_medians.csv",stage)):
