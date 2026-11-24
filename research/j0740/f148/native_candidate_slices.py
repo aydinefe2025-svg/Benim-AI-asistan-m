@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import os,sys,json,math,runpy
 import numpy as np
+import xpsi
 # Source: fine static TOV target roots from A01.01.51/J0740_CAUSAL_CANDIDATE_TOV_20261124.zip,
 # each paired with its actual fine-grid gravitational mass. These are derived
 # P-E models, NOT the original nuclear EOS or rotating-star radii.
@@ -26,12 +27,14 @@ assert L.index('mass')==0 and L.index('radius')==1
 assert L.index('p__super_radius')==6 and L.index('s__super_radius')==10
 assert L.index('p__super_temperature')==7 and L.index('s__super_temperature')==11
 L.externally_updated=False
-data={'source_commit':'78880035d0a8aba021761266327dc17e28cd4ed6','f147_artifact_id':14906124279,'status':'RUNNING','parameter_names':list(L.names),'limitations':'Fixed/partially varied nuisance parameters, static-radius points used as coordinate-radius hypotheses, not rotating equilibrium, no APR4 inference, not marginalized likelihood or Bayes factors.','rows':[]}
+data={'source_commit':'78880035d0a8aba021761266327dc17e28cd4ed6','f147_artifact_id':14906124279,'status':'RUNNING','parameter_names':[p.name for p in L],'limitations':'Fixed/partially varied nuisance parameters, static-radius points used as coordinate-radius hypotheses, not rotating equilibrium, no APR4 inference, not marginalized likelihood or Bayes factors.','rows':[]}
 def save():
     with open(out+'.tmp','w') as f:json.dump(data,f,indent=2,allow_nan=False)
     os.rename(out+'.tmp',out)
 def evaluate(label,q,mode):
     row={'model':label,'mode':mode,'p':q.tolist()}
+    # Prior.__call__ reads the model state, not its optional vector argument.
+    xpsi.ParameterSubspace.__call__(L,q)
     lp=float(L._prior(q))
     if not np.isfinite(lp):
         row.update(status='PRIOR_REJECTED',logL=None)
