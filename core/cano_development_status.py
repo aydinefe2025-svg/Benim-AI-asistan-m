@@ -84,6 +84,12 @@ def render_owner_code_status(st, jobs):
         "Görünen bağlantılar kayıt kanıtıdır; CI başarısı ve Render LIVE "
         "bu ekranda bağımsız olarak yeniden kontrol edilmemiştir."
     )
+    # recent() is newest-first; distinguish the current request from old receipts.
+    if jobs and isinstance(jobs[0], dict):
+        if jobs[0].get("status") == "queued":
+            st.info("En yeni kod işi: sırada")
+        elif jobs[0].get("status") == "running":
+            st.info("En yeni kod işi: çalışıyor")
     if stats["last_pr_url"]:
         st.link_button("Son yayınlanan kod değişikliğini aç", stats["last_pr_url"])
     # Only show a complete same-job PR/CI/Render receipt; never mix
