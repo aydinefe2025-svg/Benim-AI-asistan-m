@@ -20,7 +20,6 @@ jobs:
         run: |
           set -eu
           mkdir -p f146_evidence
-          python research/j0740/f144/zenodo_resumable_stdout.py --probe-range
           set +e
           python research/j0740/f144/zenodo_resumable_stdout.py 2>f146_evidence/download.log | python research/j0740/f146/stage_original_photon_inputs.py --output "$RUNNER_TEMP/j0740_input" --evidence f146_evidence >f146_evidence/stage.log 2>&1
           statuses=("${PIPESTATUS[@]}")
