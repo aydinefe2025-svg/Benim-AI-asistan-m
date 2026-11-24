@@ -49,7 +49,7 @@ def select(arc,name):
     for rows in segments(arc,name):
         if len(rows)>=20 and rows[0]["v"]>=3.7 and rows[-1]["v"]<=3.1 and rows[-1]["time_h"]-rows[0]["time_h"]<5:
             q=-(rows[-1]["ah"]-rows[0]["ah"])
-            if q>=0.5:
+            if q>=0.03:  # same minimum measured throughput as original core pairing guard
                 eligible.append((q,rows))
     if not eligible:
         return None
