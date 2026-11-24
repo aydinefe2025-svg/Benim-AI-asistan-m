@@ -44,6 +44,16 @@ def reference(s):
     temp=np.asarray(s["temperature"],float).ravel()
     temperature_ok=bool(len(temp)==len(t) and np.isfinite(temp).all() and temp.min()>=-20 and temp.max()<=80)
     return {"x":x,"actual_ah":q,"v1":predict(x,False),"ablation":predict(x,True),"mean":INTERCEPT,"temperature_ok":temperature_ok,"temperature_start_c":float(temp[0]) if len(temp) and np.isfinite(temp[0]) else None}
+
+def protocol_profile(s):
+    t,v,i,temp=[np.asarray(s[k],float).ravel() for k in ("relativeTime","voltage","current","temperature")]
+    def finite_summary(a):
+        b=a[np.isfinite(a)]
+        return {"n":len(a),"finite":len(b),"median":float(np.median(b)) if len(b) else None,"min":float(b.min()) if len(b) else None,"max":float(b.max()) if len(b) else None,"first":float(a[0]) if len(a) and np.isfinite(a[0]) else None,"last":float(a[-1]) if len(a) and np.isfinite(a[-1]) else None}
+    prefix_i=i[(t-t[0])<=300] if len(t)==len(i) and len(t) else np.array([])
+    dt=np.diff(t[(t-t[0])<=300]) if len(t) else np.array([])
+    return {"type":str(s["type"]),"date":str(s["date"]),"current_a":finite_summary(i),"prefix_current_a":finite_summary(prefix_i),"prefix_dt_s":finite_summary(dt),"voltage_v":finite_summary(v),"temperature_c":finite_summary(temp),"duration_s":float(t[-1]-t[0]) if len(t)>1 and np.isfinite(t[[0,-1]]).all() else None}
+
 def groups(steps):
     out=[];g=[];rw=False
     for j,s in enumerate(steps):
@@ -73,7 +83,7 @@ def main(out):
     req=urllib.request.Request("https://zenodo.org/records/15277374/files/"+urllib.parse.quote(NAME)+"?download=1",headers={"User-Agent":"GKA-external-frozen-ablation/1.0"})
     with urllib.request.urlopen(req,timeout=120) as f:raw=f.read()
     require(hashlib.md5(raw).hexdigest()==MD5,"publisher hash")
-    rows=[];rejected=[];inventory={};secondary=[]
+    rows=[];rejected=[];inventory={};secondary=[];protocol=[]
     with zipfile.ZipFile(io.BytesIO(raw)) as z:
         require(z.testzip() is None,"CRC")
         for n in sorted(x for x in z.namelist() if x.endswith(".mat")):
@@ -84,6 +94,7 @@ def main(out):
             for k,g in enumerate(gg):
                 for rep,(j,s) in enumerate(g):
                     ident={"cell":c,"checkpoint":k,"step":j,"repeat":rep+1}
+                    protocol.append(ident|protocol_profile(s))
                     try:r=reference(s)
                     except ValueError as e:rejected.append(ident|{"reason":str(e)});continue
                     (rows if rep==0 else secondary).append(ident|r)
@@ -94,10 +105,11 @@ def main(out):
     by={c:{key:metrics([r for r in rows if r["cell"]==c],key,inventory[c]["groups"]) for key in ("v1","ablation")} for c in sorted(EXPECTED)}
     a=allm["ablation"]
     gate={"coverage":a["coverage"]>=GATE["coverage_min"],"rmse":a["rmse_ah"] is not None and a["rmse_ah"]<=GATE["rmse_max_ah"],"tolerance":a["within_all_fraction"]>=GATE["fraction_within_0p1ah_all_groups_min"],"per_cell":all(x["ablation"]["rmse_ah"] is not None and x["ablation"]["rmse_ah"]<=GATE["per_cell_rmse_max_ah"] for x in by.values())}
-    report={"status":"EXTERNAL_ABLATION_GATE_PASS" if all(gate.values()) else "EXTERNAL_ABLATION_GATE_NOT_MET","source_md5":MD5,"source_sha256":hashlib.sha256(raw).hexdigest(),"source_bytes":len(raw),"v1_model_sha256":V1_SHA,"frozen_coefficients":{"mean":MU,"scale":SCALE,"coef":COEF,"intercept":INTERCEPT,"ablation_coef":[0,*COEF[1:]]},"gate_definition":GATE,"gate":gate,"inventory":inventory,"primary_groups":total,"metrics":allm,"per_cell":by,"valid_temperature_subset":{key:metrics([r for r in rows if r["temperature_ok"]],key,total) for key in ("v1","ablation")},"rows":rows,"secondary":secondary,"rejected":rejected,"limits":["No fitting or parameter selection on group 5. Ablation selected on previously examined group 3. Same NASA program, not a separate lab.","NASA catalog title says high temperature but archive filename says room temperature; actual recorded temperature reported, not inferred from title.","First reference per contiguous group, no replacement for exclusions. Full waveform QC is retrospective. Out-of-protocol first references counted against total tolerance and coverage.","Temperature screen is a broad plausibility check, not calibration; no causal claim or AGV transfer."]}
+    require(len(protocol)==sum(x["raw_references"] for x in inventory.values()),"protocol accounting")
+    report={"protocol_profiles":protocol,"status":"EXTERNAL_ABLATION_GATE_PASS" if all(gate.values()) else "EXTERNAL_ABLATION_GATE_NOT_MET","source_md5":MD5,"source_sha256":hashlib.sha256(raw).hexdigest(),"source_bytes":len(raw),"v1_model_sha256":V1_SHA,"frozen_coefficients":{"mean":MU,"scale":SCALE,"coef":COEF,"intercept":INTERCEPT,"ablation_coef":[0,*COEF[1:]]},"gate_definition":GATE,"gate":gate,"inventory":inventory,"primary_groups":total,"metrics":allm,"per_cell":by,"valid_temperature_subset":{key:metrics([r for r in rows if r["temperature_ok"]],key,total) for key in ("v1","ablation")},"rows":rows,"secondary":secondary,"rejected":rejected,"limits":["No fitting or parameter selection on group 5. Ablation selected on previously examined group 3. Same NASA program, not a separate lab.","NASA catalog title says high temperature but archive filename says room temperature; actual recorded temperature reported, not inferred from title.","First reference per contiguous group, no replacement for exclusions. Full waveform QC is retrospective. Out-of-protocol first references counted against total tolerance and coverage.","Temperature screen is a broad plausibility check, not calibration; no causal claim or AGV transfer."]}
     p=pathlib.Path(out);p.parent.mkdir(parents=True,exist_ok=True)
     with p.open("x",encoding="utf8") as f:json.dump(report,f,indent=2,allow_nan=False);f.write("\n")
-    print(json.dumps({k:v for k,v in report.items() if k not in ("rows","secondary","rejected")}|{"rejection_counts":dict(collections.Counter(x["reason"] for x in rejected)),"report_sha256":hashlib.sha256(p.read_bytes()).hexdigest()}))
+    print(json.dumps({k:v for k,v in report.items() if k not in ("rows","secondary","rejected","protocol_profiles")}|{"rejection_counts":dict(collections.Counter(x["reason"] for x in rejected)),"report_sha256":hashlib.sha256(p.read_bytes()).hexdigest()}))
 if __name__=="__main__":
     p=argparse.ArgumentParser();p.add_argument("--self-test",action="store_true");p.add_argument("--output",default="evidence/GKA_NASA_RW5_FROZEN_ABLATION_20261124.json");a=p.parse_args()
     if a.self_test:controls()
