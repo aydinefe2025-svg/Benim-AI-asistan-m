@@ -2,19 +2,84 @@
 from __future__ import annotations
 
 from hashlib import sha256
+import json
 
+from core.archive_integrity import check_archive_integrity
 from core.backup_encryption import prepare_encrypted_download
+from core.cano_backup_bundle import verify_portable_bundle
+
+
+
+def _stable_source_digest(plaintext: bytes) -> str:
+    """Invalidate prepared downloads only when verified backup content changes.
+
+    The portable archive's creation timestamp and ZIP entry timestamps change
+    on every Streamlit rerun even when owner records are unchanged. Hash its
+    verified manifest without the non-data creation timestamp instead.
+    Non-portable payloads retain the original byte-exact identity behavior.
+    """
+    try:
+        files = verify_portable_bundle(plaintext)
+    except ValueError:
+        return sha256(plaintext).hexdigest()
+    manifest = json.loads(files["manifest.json"].decode("utf-8"))
+    manifest.pop("created_at", None)
+    # The real research export is regenerated on each Streamlit rerun, changing
+    # exported_at and the nested checksum despite unchanged task records.
+    # Normalize only a recognized export whose nested SHA-256 is valid.
+    try:
+        research = json.loads(files["research-tasks.json"].decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError):
+        research = None
+    if (isinstance(research, dict)
+            and set(research) == {
+                "schema", "exported_at", "warning", "tasks", "integrity"}
+            and research.get("schema") == "research-task-export-v1"
+            and isinstance(research.get("exported_at"), str)
+            and isinstance(research.get("warning"), str)
+            and isinstance(research.get("tasks"), list)
+            and isinstance(research.get("integrity"), dict)):
+        try:
+            check_archive_integrity(research)
+        except ValueError:
+            pass  # Bad nested checksum: keep ordinary byte-exact invalidation.
+        else:
+            semantic_content = {
+                key: value for key, value in research.items()
+                if key not in ("exported_at", "integrity")
+            }
+            semantic = json.dumps(
+                semantic_content, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":"), allow_nan=False).encode("utf-8")
+            manifest["components"]["research-tasks.json"] = {
+                "sha256": sha256(semantic).hexdigest(),
+                "size_bytes": len(semantic),
+            }
+    stable = json.dumps(manifest, ensure_ascii=False, sort_keys=True,
+                        separators=(",", ":"), allow_nan=False).encode("utf-8")
+    return sha256(stable).hexdigest()
+
+
+
+def _discard_stale_prepared_backup(st, storage_key: str) -> None:
+    """Fail closed when the current backup cannot be exported."""
+    st.session_state[storage_key + "_encrypted"] = None
+    st.session_state.pop(storage_key + "_source_digest", None)
+    st.session_state[storage_key + "_passphrase"] = ""
+    st.session_state[storage_key + "_confirm"] = ""
 
 
 def render_encrypted_download(st, *, label: str, filename: str,
                               plaintext: bytes, storage_key: str) -> None:
     if not isinstance(plaintext, bytes) or not plaintext:
+        _discard_stale_prepared_backup(st, storage_key)
         st.warning("Yedek paketi oluşturulamadı; hiçbir dosya indirilmedi.")
         return
     if len(plaintext) > 20 * 1024 * 1024:
+        _discard_stale_prepared_backup(st, storage_key)
         st.error("Yedek paketi 20 MiB sınırını aşıyor.")
         return
-    digest = sha256(plaintext).hexdigest()
+    digest = _stable_source_digest(plaintext)
     encrypted_key = storage_key + "_encrypted"
     if st.session_state.get(storage_key + "_source_digest") != digest:
         st.session_state[encrypted_key] = None

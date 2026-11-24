@@ -1,0 +1,4 @@
+﻿impact_energy_joule,capacity_retained_pct_of_fresh,capacity_loss_pct_vs_fresh,internal_resistance_increase_pct_vs_fresh,failure_displacement_decrease_pct_vs_fresh,failure_deformation_energy_decrease_pct_vs_fresh,grain,source_doi
+3,99.4,0.6,4.2,18,40,paper-reported impact-group aggregate; original per-cell traces not supplied,10.11883/bzycj-2024-0312
+5,93.6,6.4,16.2,21,47,paper-reported impact-group aggregate; original per-cell traces not supplied,10.11883/bzycj-2024-0312
+7,87.9,12.1,28.7,34,67,paper-reported impact-group aggregate; original per-cell traces not supplied,10.11883/bzycj-2024-0312

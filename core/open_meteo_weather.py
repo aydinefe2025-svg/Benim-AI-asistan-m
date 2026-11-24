@@ -148,6 +148,28 @@ def _verified_context(value):
     return raw
 
 
+
+def _bounded_weather_get(get, url, *, params, timeout):
+    """Retry one transient failure, without widening endpoint or data scope.
+
+    Never retry 429, an ordinary 4xx, malformed JSON, or a data-validation
+    failure. No backoff loop or third-party host is introduced.
+    """
+    try:
+        response = get(url, params=params, timeout=timeout)
+    except Exception as exc:
+        if (not isinstance(exc, TimeoutError)
+                and type(exc).__name__ not in (
+                    "Timeout", "ConnectTimeout", "ReadTimeout",
+                    "ReadTimeoutError",
+                )):
+            raise
+        return get(url, params=params, timeout=timeout)
+    if getattr(response, "status_code", None) in (500, 502, 503, 504):
+        return get(url, params=params, timeout=timeout)
+    return response
+
+
 def fetch_open_meteo_weather(city, *, get, forecast=False, province=None):
     """Return an internal, bounded source envelope; never a raw API answer.
 
@@ -161,8 +183,8 @@ def fetch_open_meteo_weather(city, *, get, forecast=False, province=None):
     ):
         return None
     try:
-        geo_response = get(
-            _GEO_URL,
+        geo_response = _bounded_weather_get(
+            get, _GEO_URL,
             params={"name": city, "count": 10, "language": "tr", "format": "json"},
             timeout=5,
         )
@@ -186,7 +208,8 @@ def fetch_open_meteo_weather(city, *, get, forecast=False, province=None):
         if forecast:
             parameters["daily"] = "temperature_2m_min,temperature_2m_max"
             parameters["forecast_days"] = 3
-        response = get(_FORECAST_URL, params=parameters, timeout=6)
+        response = _bounded_weather_get(
+            get, _FORECAST_URL, params=parameters, timeout=6)
         if response.status_code != 200:
             return None
         body = response.json()

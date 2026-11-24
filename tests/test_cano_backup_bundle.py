@@ -146,6 +146,97 @@ class CanoBackupBundleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "size limit"):
             verify_portable_bundle(forged.getvalue())
 
+    def test_strict_owner_restore_rejects_checksum_valid_incomplete_account(self):
+        """File hashes alone must not certify recovery of the full owner's account."""
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        bundle = create_portable_bundle(
+            colony=colony, memories=None, research_tasks=None,
+            authorized_queue=None, organism_records=[],
+        )
+        self.assertEqual(len(verify_portable_bundle(bundle)), 6)
+        password = "correct-horse-staple-cano-backup"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source, destination = root / "incomplete.canoenc", root / "restored"
+            source.write_bytes(encrypt_backup(bundle, password))
+            with self.assertRaisesRegex(ValueError, "complete|unavailable"):
+                restore_to_new_directory(
+                    source, destination, password, require_complete=True)
+            self.assertFalse(destination.exists(),
+                             "Do not extract a partial archive as a full account")
+
+    def test_strict_owner_restore_rejects_malformed_research_with_valid_hash(self):
+        """A fully available but unusable section cannot pass full recovery."""
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        bundle = create_portable_bundle(
+            colony=colony, memories=[], research_tasks=b"{}",
+            authorized_queue=[], organism_records=[],
+        )
+        self.assertEqual(len(verify_portable_bundle(bundle)), 6)
+        password = "correct-horse-staple-cano-backup"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source, destination = root / "malformed.canoenc", root / "restored"
+            source.write_bytes(encrypt_backup(bundle, password))
+            with self.assertRaisesRegex(ValueError, "research"):
+                restore_to_new_directory(
+                    source, destination, password, require_complete=True)
+            self.assertFalse(destination.exists())
+
+    def test_complete_preflight_rejects_invalid_research_receipt_with_valid_outer_hash(self):
+        """A rebuilt outer ZIP manifest must not mask corrupt research provenance."""
+        from core.archive_integrity import archive_digest
+        from core.cano_backup_bundle import verify_complete_portable_bundle
+
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        research = {
+            "schema": "research-task-export-v1",
+            "exported_at": "2026-11-23T20:00:00+00:00",
+            "warning": "unverified draft",
+            "tasks": [{"id": "original-task"}],
+        }
+        research["integrity"] = {"algorithm": "sha256", "digest": archive_digest(research)}
+        common = dict(
+            colony=colony, memories=[], authorized_queue=[], organism_records=[],
+        )
+        good = create_portable_bundle(
+            research_tasks=json.dumps(research).encode("utf-8"), **common,
+        )
+        self.assertEqual(len(verify_complete_portable_bundle(good)), 6)
+
+        # The current archive writer authenticates these bytes in its outer
+        # manifest, but the research payload's own signed-off digest is stale.
+        research["tasks"][0]["id"] = "changed-after-receipt"
+        tampered = create_portable_bundle(
+            research_tasks=json.dumps(research).encode("utf-8"), **common,
+        )
+        self.assertEqual(len(verify_portable_bundle(tampered)), 6)
+        with self.assertRaisesRegex(ValueError, "research|integrity"):
+            verify_complete_portable_bundle(tampered)
+
+    def test_strict_owner_restore_accepts_verified_complete_account(self):
+        """A valid v2 archive remains recoverable in the complete-owner mode."""
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        bundle = create_portable_bundle(
+            colony=colony, memories=[],
+            research_tasks=b'{"schema":"research-task-export-v1","tasks":[]}',
+            authorized_queue=[], organism_records=[],
+        )
+        password = "correct-horse-staple-cano-backup"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source, destination = root / "complete.canoenc", root / "restored"
+            source.write_bytes(encrypt_backup(bundle, password))
+            files = restore_to_new_directory(
+                source, destination, password, require_complete=True)
+            self.assertEqual(len(files), 5)
+            self.assertEqual(set(files), {
+                "cano-colony.json", "memory-library.json",
+                "research-tasks.json", "authorized-queue.json",
+                "organism-lab-records.json",
+            })
+
+
     def test_bundle_rejects_tampered_component_and_unexpected_files(self):
         colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
         bundle = create_portable_bundle(

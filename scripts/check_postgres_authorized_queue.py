@@ -244,6 +244,94 @@ def run():
     assert reopened.get(queued["id"])["draft"] == "Only winner draft"
     assert [event["state"] for event in reopened.events(queued["id"])] == [
         "queued", "running", "review_pending"]
+    # Exercise the new file handoff against real PostgreSQL, with a fresh owner
+    # and synthetic local callback. No live account or model credentials.
+    from pathlib import Path
+    from tempfile import TemporaryDirectory
+    from core.local_task_handoff import claim_ticket, run_ticket, accept_result
+    handoff = PostgresAuthorizedQueue(database_url, owner_key=owner+"-handoff")
+    local_job = handoff.enqueue("local", "One local task", approved=True)
+    private = claim_ticket(handoff, approved=True)
+    assert private["ticket"]["job_id"] == local_job["id"]
+    assert "lease_token" not in private["ticket"] and "owner_key" not in private["ticket"]
+    with TemporaryDirectory() as temp:
+        calls = []
+        def answer(goal):
+            calls.append(goal)
+            return "Synthetic local draft"
+        ledger = Path(temp) / "worker.sqlite3"
+        result = run_ticket(private["ticket"], ledger, answer, approved=True)
+        assert run_ticket(private["ticket"], ledger, answer, approved=True) == result
+        assert calls == ["One local task"]
+        try:
+            accept_result(other, private, result, approved=True)
+            raise AssertionError("Cross-owner handoff accepted")
+        except PermissionError:
+            pass
+        receipt = accept_result(handoff, private, result, approved=True)
+        assert receipt["readback"] and not receipt["verified"]
+        assert accept_result(handoff, private, result, approved=True) == receipt
+    assert handoff.get(local_job["id"])["attempts"] == 1
+    assert [e["state"] for e in handoff.events(local_job["id"])] == [
+        "queued", "running", "review_pending"]
+    print("PostgreSQL local file handoff: owner/lease/one attempt/replay/readback OK")
+    # Durable capability across fresh server adapter instances, no shared memory.
+    from core.postgres_local_grant import PostgresLocalGrant
+    durable_owner = PostgresAuthorizedQueue(database_url, owner_key=owner+"-http")
+    other_owner = PostgresAuthorizedQueue(database_url, owner_key=owner+"-http-other")
+    durable_job = durable_owner.enqueue("durable", "Persistent local goal", approved=True)
+    issued = PostgresLocalGrant.issue(durable_owner, approved=True)
+    assert issued["id"] == durable_job["id"]
+    token = issued["grant"]
+    saved_worker = durable_owner.get(durable_job["id"])["worker_id"]
+    assert token not in saved_worker and token.split(".")[1] not in saved_worker
+    def denied(fn):
+        try:
+            fn()
+        except PermissionError:
+            return
+        raise AssertionError("Unauthorized local grant operation accepted")
+    denied(lambda: PostgresLocalGrant(database_url).take(token[:-1]+("0" if token[-1]!="0" else "1")))
+    denied(lambda: PostgresLocalGrant.revoke(other_owner, durable_job["id"], approved=True))
+    # Two fresh service objects race for the same grant, one receives the ticket.
+    def competing_take(_):
+        try:
+            return PostgresLocalGrant(database_url).take(token)
+        except PermissionError:
+            return None
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        taken = [t for t in pool.map(competing_take, (1, 2)) if t is not None]
+    assert len(taken) == 1
+    ticket = taken[0]
+    assert "owner_key" not in ticket and "lease_token" not in ticket
+    with TemporaryDirectory() as temp:
+        result = run_ticket(ticket, Path(temp)/"worker.db", lambda _:"Durable synthetic draft", approved=True)
+        tampered = dict(result, job_id="0"*32)
+        try:
+            PostgresLocalGrant(database_url).finish(token,tampered)
+            raise AssertionError("Wrong job result accepted")
+        except ValueError:
+            pass
+        receipt = PostgresLocalGrant(database_url).finish(token,result)
+        assert receipt["readback"] and not receipt["verified"]
+        denied(lambda: PostgresLocalGrant(database_url).finish(token,result))
+    assert durable_owner.get(durable_job["id"])["state"] == "review_pending"
+    assert durable_owner.get(durable_job["id"])["attempts"] == 1
+    assert [e["code"] for e in durable_owner.events(durable_job["id"])] == [
+        "explicit_approval","authorized_claim","local_http_taken","unverified_draft_saved"]
+    revocable = durable_owner.enqueue("revoke", "Revoke local task", approved=True)
+    issued = PostgresLocalGrant.issue(durable_owner, approved=True)
+    assert PostgresLocalGrant.revoke(durable_owner,revocable["id"],approved=True)["status"] == "blocked"
+    denied(lambda: PostgresLocalGrant(database_url).take(issued["grant"]))
+    expired = durable_owner.enqueue("expire", "Expire local task", approved=True)
+    issued = PostgresLocalGrant.issue(durable_owner, approved=True)
+    with psycopg.connect(database_url) as db, db.cursor() as cur:
+        cur.execute("UPDATE public.cano_authorized_jobs SET lease_until=EXTRACT(EPOCH FROM clock_timestamp())-1 WHERE owner_key=%s AND id=%s",
+                    (durable_owner.owner_key,expired["id"]))
+    denied(lambda: PostgresLocalGrant(database_url).take(issued["grant"]))
+    assert durable_owner.recover_expired() == 1
+    assert durable_owner.get(expired["id"])["state"] == "blocked"
+    print("PostgreSQL durable local grant: restart/race/hash/revocation/expiry/one attempt/readback OK")
     print("PostgreSQL CANO queue integration: authorization/idempotency/owners/"
           "claims/single-writer/retry/expiry/readback OK")
 if __name__ == "__main__":

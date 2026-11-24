@@ -1,0 +1,58 @@
+name: Graz verified physical cell signal layout
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_signal_layout_probe.py'
+      - 'tests/test_graz_signal_layout_probe.py'
+      - 'research/battery_curve_audit/graz_signal_alignment.py'
+      - 'tests/test_graz_signal_alignment.py'
+      - '.github/workflows/battery-graz-signal-layout.yml'
+  workflow_dispatch:
+
+jobs:
+  real-source-layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Run source-format negative and numerical shape unit tests
+        run: python -m unittest tests.test_graz_signal_layout_probe tests.test_graz_signal_alignment -v
+      - name: Download exact original source and inspect all original 02 and 03 time-series formats
+        run: python -m research.battery_curve_audit.graz_signal_layout_probe /tmp/graz_original_signal_layout.json
+      - name: Quantify genuine clock-matched SP sensor and electrical current signals per physical cell
+        run: python -m research.battery_curve_audit.graz_signal_alignment /tmp/graz_original_signal_alignment.json
+      - name: Archive source-derived layout metadata only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-original-02-03-source-layout
+          path: |
+            /tmp/graz_original_signal_layout.json
+            /tmp/graz_original_signal_alignment.json
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Reject fictitious sensor time and lab stage certification
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/graz_original_signal_layout.json'))
+          assert d['source_doi']=='10.5281/zenodo.22079387'
+          assert d['tested_raw_source_file_count']==8
+          assert d['publisher_full_archive_md5_pass'] and d['member_crc_pass']
+          assert not d['source_stage_equality_verified']
+          assert d['measured_false_match_rate'] is None
+          assert all(x['parsed_candidate_rows']>0 for x in d['source_layouts'])
+          s=json.load(open('/tmp/graz_original_signal_alignment.json'))
+          assert s['original_zip_sha256']==d['full_archive_sha256']
+          assert s['genuine_original_measurement_series']==8
+          assert s['same_cell_sp_files_total']==6
+          assert s['cross_cell_source_labels_never_joined']
+          assert not s['exact_experiment_step_homology_verified']
+          assert s['field_false_positive_rate'] is None
+          assert s['independent_capacity_loss_estimate'] is None
+          assert s['same_cell_timestamp_overlapping_sp_files']>=1
+          print('EIGHT_GRAZ_SOURCE_LIVE_MEASUREMENT_LAYOUTS_INSPECTED')
+          PY

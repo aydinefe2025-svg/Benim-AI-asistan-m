@@ -1,0 +1,54 @@
+name: Graz original COM4 episode boundary states
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_com4_transition_audit.py'
+      - 'tests/test_graz_com4_transition_audit.py'
+      - '.github/workflows/battery-graz-com4-transition.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - run: python -m unittest tests.test_graz_com4_transition_audit -v
+      - run: python -m research.battery_curve_audit.graz_com4_transition_audit transition.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-original-COM4-episode-transition
+          path: transition.json
+          if-no-files-found: error
+          retention-days: 14
+  original-method-paper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Acquire immutable published open access paper, check official MD5
+        run: |
+          python - <<'PY'
+          import urllib.request,json,hashlib,pathlib
+          req=lambda u: urllib.request.Request(u,headers={'User-Agent':'CANO-public-source-method-audit/1.0'})
+          meta=json.load(urllib.request.urlopen(req('https://zenodo.org/api/records/23468479'),timeout=50))
+          fs=[x for x in meta['files'] if x['key']=='batteries-12-00417.pdf']
+          assert len(fs)==1
+          f=fs[0];assert f['checksum']=='md5:81b3930e0f0c7c1c8a045670bdce369d'
+          size=f['size'];assert 0<size<30000000
+          url=f['links'].get('content') or f['links'].get('self');assert url.startswith('https://zenodo.org/')
+          blob=urllib.request.urlopen(req(url),timeout=120).read(size+1)
+          assert len(blob)==size and blob.startswith(b'%PDF-')
+          assert hashlib.md5(blob).hexdigest()=='81b3930e0f0c7c1c8a045670bdce369d'
+          pathlib.Path('publisher-method.pdf').write_bytes(blob)
+          print('AUTHENTIC_PAPER',len(blob),hashlib.sha256(blob).hexdigest())
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-original-method-paper
+          path: publisher-method.pdf
+          if-no-files-found: error
+          retention-days: 1

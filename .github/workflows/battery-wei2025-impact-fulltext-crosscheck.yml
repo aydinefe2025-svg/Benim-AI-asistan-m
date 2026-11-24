@@ -1,0 +1,44 @@
+name: Battery Wei 2025 publisher impact fulltext crosscheck
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/impact_published_protocol_crosscheck.py'
+      - 'research/battery_curve_audit/impact_wei2025_publisher_group.csv'
+      - 'tests/test_impact_published_protocol_crosscheck.py'
+      - '.github/workflows/battery-wei2025-impact-fulltext-crosscheck.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paper-number-math-check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Run adversarial numerical and scope checks
+        run: python -m unittest tests.test_impact_published_protocol_crosscheck -v
+      - name: Recompute fulltext source-method check without network or extra packages
+        shell: bash
+        run: |
+          python -m research.battery_curve_audit.impact_published_protocol_crosscheck research/battery_curve_audit/impact_wei2025_publisher_group.csv published-impact-audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          o=json.loads(Path('published-impact-audit.json').read_text())
+          assert o['reported_impact_groups']==3
+          assert o['source_grain']=='PUBLISHED_GROUP_SUMMARIES_NOT_PER_CELL'
+          assert o['common_reference_baseline_math_possible'] is True
+          assert o['nominal_850mAh_falls_inside_conditional_common_baseline'] is False
+          assert o['production_release_allowed'] is False
+          assert o['dated_instrument_calibration_verified'] is False
+          assert o['original_individual_cell_rows_retrieved'] is False
+          assert [r['energy_group_J'] for r in o['impact_groups']]==[3,5,7]
+          print('PUBLISHED_PAPER_REPRODUCED_NO_FALSE_CERTIFICATION',o['conditional_common_reference_baseline_interval_mAh'])
+          PY

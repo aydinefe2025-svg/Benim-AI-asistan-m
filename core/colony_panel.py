@@ -7,7 +7,7 @@ import re
 import sqlite3
 from pathlib import Path
 
-from core.agent_colony import AgentColony
+from core.agent_colony import AgentColony, PotentialDuplicateLesson
 from core.agent_review_loop import AgentReviewLoop
 from core.cano_autonomous_improvement import run_bounded_improvement_cycle
 from core.collaborative_mission import CollaborativeMission
@@ -545,6 +545,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                                     "hafıza bağlamına eklenecek. Model ağırlıkları değişmedi.")
                                 st.session_state.pop("cano_improvement_cycle", None)
                                 st.rerun()
+                        except PotentialDuplicateLesson:
+                            st.warning("Benzer bir ders zaten onaylı; bu aday incelemede kalıyor.")
                         except (KeyError, ValueError, PermissionError, sqlite3.Error):
                             st.error("Ders onaylanamadı; etkin hafıza değişmedi.")
         if st.session_state.get("colony_last_review"):

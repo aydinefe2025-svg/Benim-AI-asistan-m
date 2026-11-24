@@ -54,6 +54,179 @@ class EncryptedBackupUiTests(unittest.TestCase):
         self.assertEqual(st.session_state["backup_passphrase"], "")
         self.assertEqual(st.session_state["backup_confirm"], "")
 
+    def test_portable_download_survives_a_timestamp_only_streamlit_rerun(self):
+        from datetime import datetime, timezone
+        from unittest.mock import patch
+        from core.cano_backup_bundle import create_portable_bundle
+
+        colony = {part: [] for part in ("agents", "feedback", "reviews", "missions")}
+        kwargs = dict(colony=colony, memories=[], research_tasks=b"{}",
+                      authorized_queue=[], organism_records=[])
+        with patch("core.cano_backup_bundle.datetime") as clock:
+            clock.now.return_value = datetime(2026, 11, 23, 10, 30, tzinfo=timezone.utc)
+            first = create_portable_bundle(**kwargs)
+            clock.now.return_value = datetime(2026, 11, 23, 10, 31, tzinfo=timezone.utc)
+            second = create_portable_bundle(**kwargs)
+
+        self.assertNotEqual(first, second)
+        password = "correct-horse-staple-cano-backup"
+        st = FakeSt(passphrase=password, confirm=password, submit=True)
+        render_encrypted_download(st, label="Download", filename="cano.canoenc",
+                                  plaintext=first, storage_key="backup")
+        self.assertIsNotNone(st.download)
+        prepared = st.download["data"]
+        self.assertEqual(decrypt_backup(prepared, password), first)
+
+        # Streamlit executes the page again after submitting the form.
+        st.download = None
+        render_encrypted_download(st, label="Download", filename="cano.canoenc",
+                                  plaintext=second, storage_key="backup")
+        self.assertIsNotNone(st.download, "Rerun must not erase a prepared download")
+        self.assertEqual(st.download["data"], prepared)
+
+
+    def test_real_research_archive_exported_at_only_does_not_erase_download(self):
+        """Actual research exports change both timestamp and nested integrity SHA."""
+        from datetime import datetime, timezone
+        from unittest.mock import patch
+        from core.research_export import export_research_archive
+        from core.cano_backup_bundle import create_portable_bundle
+
+        class FakeResearchStore:
+            def list(self):
+                return []
+
+        with patch("core.research_export.datetime") as clock:
+            clock.now.return_value = datetime(2026, 11, 23, 10, 30,
+                                              tzinfo=timezone.utc)
+            first_research = export_research_archive(FakeResearchStore())
+            clock.now.return_value = datetime(2026, 11, 23, 10, 31,
+                                              tzinfo=timezone.utc)
+            second_research = export_research_archive(FakeResearchStore())
+        self.assertNotEqual(first_research, second_research)
+        self.assertIn(b'"integrity"', first_research)
+
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        inputs = dict(colony=colony, memories=[], authorized_queue=[],
+                      organism_records=[])
+        first = create_portable_bundle(research_tasks=first_research, **inputs)
+        second = create_portable_bundle(research_tasks=second_research, **inputs)
+        secret = "correct-horse-staple-cano-backup"
+        st = FakeSt(passphrase=secret, confirm=secret, submit=True)
+        render_encrypted_download(st, label="Download", filename="cano.canoenc",
+                                  plaintext=first, storage_key="backup")
+        self.assertIsNotNone(st.download)
+        prepared = st.download["data"]
+        self.assertEqual(decrypt_backup(prepared, secret), first)
+
+        st.download = None
+        render_encrypted_download(st, label="Download", filename="cano.canoenc",
+                                  plaintext=second, storage_key="backup")
+        self.assertIsNotNone(st.download,
+                             "Research timestamp-only rerun must not erase ciphertext")
+        self.assertEqual(st.download["data"], prepared)
+
+    def test_real_research_change_still_invalidates_prepared_download(self):
+        from core.research_export import export_research_archive
+        from core.cano_backup_bundle import create_portable_bundle
+
+        class FakeResearchStore:
+            def __init__(self, draft):
+                self.draft = draft
+
+            def list(self):
+                return [{"id": "research-1", "status": "planned"}]
+
+            def load_draft(self, task_id):
+                return self.draft
+
+            def history(self, task_id):
+                return []
+
+        colony = {key: [] for key in ("agents", "feedback", "reviews", "missions")}
+        inputs = dict(colony=colony, memories=[], authorized_queue=[],
+                      organism_records=[])
+        first = create_portable_bundle(
+            research_tasks=export_research_archive(FakeResearchStore("first draft")),
+            **inputs)
+        second = create_portable_bundle(
+            research_tasks=export_research_archive(FakeResearchStore("changed draft")),
+            **inputs)
+        secret = "correct-horse-staple-cano-backup"
+        st = FakeSt(passphrase=secret, confirm=secret, submit=True)
+        render_encrypted_download(st, label="Download", filename="cano.canoenc",
+                                  plaintext=first, storage_key="backup")
+        self.assertIsNotNone(st.download)
+        st.download = None
+        render_encrypted_download(st, label="Download", filename="cano.canoenc",
+                                  plaintext=second, storage_key="backup")
+        self.assertIsNone(st.download,
+                          "Real research task content change must reject old backup")
+        self.assertIsNone(st.session_state["backup_encrypted"])
+
+
+    def test_portable_download_invalidates_on_changed_owner_records(self):
+        from core.cano_backup_bundle import create_portable_bundle
+
+        old = {part: [] for part in ("agents", "feedback", "reviews", "missions")}
+        changed = {**old, "agents": [{"id": "agent-2", "role": "researcher"}]}
+        inputs = dict(memories=[], research_tasks=b"{}", authorized_queue=[],
+                      organism_records=[])
+        first = create_portable_bundle(colony=old, **inputs)
+        second = create_portable_bundle(colony=changed, **inputs)
+        password = "correct-horse-staple-cano-backup"
+        st = FakeSt(passphrase=password, confirm=password, submit=True)
+        render_encrypted_download(st, label="Download", filename="cano.canoenc",
+                                  plaintext=first, storage_key="backup")
+        self.assertIsNotNone(st.download)
+        st.download = None
+        render_encrypted_download(st, label="Download", filename="cano.canoenc",
+                                  plaintext=second, storage_key="backup")
+        self.assertIsNone(st.download, "Changed owner data must invalidate ciphertext")
+        self.assertIsNone(st.session_state["backup_encrypted"])
+
+    def test_non_portable_payload_keeps_byte_exact_invalidation(self):
+        password = "correct-horse-staple-cano-backup"
+        st = FakeSt(passphrase=password, confirm=password, submit=True)
+        render_encrypted_download(st, label="Download", filename="other.canoenc",
+                                  plaintext=b"original source", storage_key="backup")
+        self.assertIsNotNone(st.download)
+        st.download = None
+        render_encrypted_download(st, label="Download", filename="other.canoenc",
+                                  plaintext=b"modified source", storage_key="backup")
+        self.assertIsNone(st.download)
+        self.assertIsNone(st.session_state["backup_encrypted"])
+
+
+    def test_invalid_source_clears_previous_ciphertext_and_password_fields(self):
+        password = "correct-horse-staple-cano-backup"
+        for broken_source in (b"", b"x" * (20 * 1024 * 1024 + 1)):
+            with self.subTest(source_bytes=len(broken_source)):
+                st = FakeSt(passphrase=password, confirm=password, submit=True)
+                render_encrypted_download(st, label="Download",
+                                          filename="cano.canoenc",
+                                          plaintext=b"original records", storage_key="backup")
+                self.assertIsNotNone(st.session_state["backup_encrypted"])
+                self.assertIsNotNone(st.download)
+                self.assertTrue(st.session_state["backup_source_digest"])
+
+                # An export failure must never retain a previously prepared
+                # ciphertext or sensitive form values in Streamlit session state.
+                st.session_state["backup_passphrase"] = "stale-secret"
+                st.session_state["backup_confirm"] = "stale-secret"
+                st.download = None
+                render_encrypted_download(st, label="Download",
+                                          filename="cano.canoenc",
+                                          plaintext=broken_source, storage_key="backup")
+
+                self.assertIsNone(st.download)
+                self.assertIsNone(st.session_state.get("backup_encrypted"))
+                self.assertFalse(st.session_state.get("backup_source_digest"))
+                self.assertEqual(st.session_state.get("backup_passphrase"), "")
+                self.assertEqual(st.session_state.get("backup_confirm"), "")
+                self.assertTrue(st.errors)
+
+
     def test_mismatched_password_never_offers_download(self):
         st = FakeSt(passphrase="correct-horse-staple-cano-backup",
                     confirm="different-passphrase-cano", submit=True)

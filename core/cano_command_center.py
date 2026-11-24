@@ -10,8 +10,10 @@ import os
 import sqlite3
 from hashlib import sha256
 
-from core.agent_colony import AgentColony
-from core.collaborative_mission import CollaborativeMission
+from core.agent_colony import AgentColony, PotentialDuplicateLesson
+from core.collaborative_mission import CollaborativeMission, synthesis_needs_repair
+from core.cano_mobile_resume import (select_mobile_resume_items,
+                                     select_mobile_completed_mission)
 from core.colony_postgres import ColonySnapshotStore
 from core.storage_config import database_provider_label
 from core.browser_colony import (
@@ -28,9 +30,11 @@ from core.doi_priority import prioritize_requested_dois
 from core.task_panel import _session_database_path
 from core.research_status import label_unverified_claim_headings
 from core.claim_evidence import audit_claim_quotes, record_source_claim_review
-from core.cano_backup_bundle import create_portable_bundle, export_authorized_queue
+from core.cano_backup_bundle import (create_portable_bundle, export_authorized_queue,
+                                     verify_complete_portable_bundle)
 from core.organism_lab_persistence import OrganismLabStore
-from core.encrypted_backup_ui import render_encrypted_download
+from core.encrypted_backup_ui import (render_encrypted_download,
+                                      _discard_stale_prepared_backup)
 
 
 class _AnswerAdapter:
@@ -401,6 +405,60 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             st.error("Ekip veya kalıcı yedek doğrulanamadı; yerel veri silinmedi.")
             return
 
+    # The mobile link is a selector, never an authentication bypass.
+    # Resolve only against the OIDC owner's restored registry.
+    params = getattr(st, "query_params", {})
+    requested_resume = params.get("resume_mission") if hasattr(params, "get") else None
+    mobile_completed_id = select_mobile_completed_mission(manager.get, requested_resume)
+    if mobile_completed_id:
+        st.success("📱 Seçilen görev 4/4 aşamayla kaydedildi; artık engellenmiş değil. "
+                   "Aşağıda inceleme bekleyen nihai metni görebilirsiniz. "
+                   "Bu sonuç kodun uygulandığı veya bağımsız olarak doğrulandığı anlamına gelmez.")
+
+    if status["blocked"] and not mobile_completed_id:
+        st.warning(f"{status['blocked']} yarım kalmış görev kayıtlı. "
+                   "Kayıtlı aşamalar korunuyor; aşağıdan kaldığınız yerden sürdürebilirsiniz.")
+        # A phone link selects one existing task, never grants authority.
+        # Owner-bound PostgreSQL recovery above must succeed before this point.
+        if requested_resume:
+            st.caption("📱 Mobil devam: yalnızca seçtiğiniz kayıtlı görevi gösteriyoruz.")
+        available = select_mobile_resume_items(
+            manager.interrupted(limit=10), requested_resume)
+        if requested_resume and not available and not mobile_completed_id:
+            st.warning("Bu hesaptaki kayıtlı yarım görevler arasında belirtilen kimlik bulunamadı.")
+        for item in available:
+            saved = manager.get(item["id"])
+            completed = len(saved["stages"])
+            st.caption(f"{item['task'][:160]} — {completed}/4 aşama kayıtlı")
+            if st.button("↻ Görevi kaldığı yerden sürdür: " + item["id"][:8],
+                         key="cano_resume_partial_" + item["id"]):
+                try:
+                    _checkpoint()
+                except Exception:
+                    st.error("Kalıcı CANO yedek kontrolü geçmedi; görev sürdürülmedi. "
+                             "Bu denemede sağlayıcı çağrısı yapılmadı; kayıtlı aşamalar korundu.")
+                    return
+                checkpoint_count = [0]
+                def _resume_checkpoint():
+                    _checkpoint(archive_prior=(checkpoint_count[0] == 0))
+                    checkpoint_count[0] += 1
+                try:
+                    result = manager.resume(
+                        item["id"], client=_AnswerAdapter(answer),
+                        model="configured-provider",
+                        on_checkpoint=_resume_checkpoint if backup_store is not None else None)
+                    _checkpoint(archive_prior=False)
+                    st.session_state["cano_cockpit_latest_mission"] = result["id"]
+                    st.success("Kayıtlı aşamalar korundu; görev kaldığı yerden tamamlandı.")
+                    st.rerun()
+                    return
+                except Exception as exc:
+                    # Provider/PostgreSQL adapters can raise their own exception
+                    # classes; keep every resume failure inside the safe UI path.
+                    from core.colony_panel import mission_failure_message
+                    st.error(mission_failure_message(
+                        exc, getattr(manager, "last_failure", None)))
+
     if not status["ready"]:
         st.info("Ekip görevi için kurucu araştırmacı ve kanıt inceleyici gerekiyor. "
                 "Yukarıdaki hazırlama düğmesini kullanın.")
@@ -478,47 +536,9 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                     st.rerun()
                     return
 
-    if status["blocked"]:
-        st.warning(f"{status['blocked']} yarım kalmış görev kayıtlı. "
-                   "Kayıtlı aşamalar korunuyor; aşağıdan kaldığınız yerden sürdürebilirsiniz.")
-        for item in manager.interrupted(limit=10):
-            if item["status"] != "blocked":
-                continue
-            saved = manager.get(item["id"])
-            completed = len(saved["stages"])
-            st.caption(f"{item['task'][:160]} — {completed}/4 aşama kayıtlı")
-            if st.button("↻ Görevi kaldığı yerden sürdür: " + item["id"][:8],
-                         key="cano_resume_partial_" + item["id"]):
-                try:
-                    _checkpoint()
-                except Exception:
-                    st.error("Kalıcı CANO yedek kontrolü geçmedi; görev sürdürülmedi. "
-                             "Bu denemede sağlayıcı çağrısı yapılmadı; kayıtlı aşamalar korundu.")
-                    return
-                checkpoint_count = [0]
-                def _resume_checkpoint():
-                    _checkpoint(archive_prior=(checkpoint_count[0] == 0))
-                    checkpoint_count[0] += 1
-                try:
-                    result = manager.resume(
-                        item["id"], client=_AnswerAdapter(answer),
-                        model="configured-provider",
-                        on_checkpoint=_resume_checkpoint if backup_store is not None else None)
-                    _checkpoint(archive_prior=False)
-                    st.session_state["cano_cockpit_latest_mission"] = result["id"]
-                    st.success("Kayıtlı aşamalar korundu; görev kaldığı yerden tamamlandı.")
-                    st.rerun()
-                    return
-                except Exception as exc:
-                    # Provider/PostgreSQL adapters can raise their own exception
-                    # classes; keep every resume failure inside the safe UI path.
-                    from core.colony_panel import mission_failure_message
-                    st.error(mission_failure_message(
-                        exc, getattr(manager, "last_failure", None)))
-
     # Refresh after a button-triggered task so results are visible on this run.
     status = read_cano_status(colony)
-    latest_id = st.session_state.get("cano_cockpit_latest_mission")
+    latest_id = mobile_completed_id or st.session_state.get("cano_cockpit_latest_mission")
     if not latest_id and status["history"]:
         latest_id = status["history"][0]["id"]
     if latest_id:
@@ -538,11 +558,19 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             for stage in latest["stages"]:
                 with st.expander(names.get(stage["role"], stage["role"]),
                                  expanded=(stage["role"] == "synthesis")):
-                    legacy_notice = stage_execution_notice(stage)
-                    if legacy_notice:
-                        st.warning(legacy_notice)
-                    st.caption("Bu aşama model metnidir; kod, cihaz veya fiziksel deney "
-                               "çalıştırılmadı. Gerçek kaynak okuma kayıtları ayrıca gösterilir.")
+                    if stage.get("repair_method") == "owner_supplied_local_offline":
+                        st.info("Bu bölüm CANO'nun dördüncü model çağrısı değildir; "
+                                "bilgisayarda hazırlanan ve hesap sahibi adına açıkça "
+                                "eklenen harici bir taslaktır. Kod uygulanmadı, "
+                                "bağımsız doğrulama yapılmadı.")
+                        with st.expander("Önceki 204 karakterlik kesik metin (korundu)"):
+                            st.text(stage.get("previous_truncated_output", ""))
+                    else:
+                        legacy_notice = stage_execution_notice(stage)
+                        if legacy_notice:
+                            st.warning(legacy_notice)
+                        st.caption("Bu aşama model metnidir; kod, cihaz veya fiziksel deney "
+                                   "çalıştırılmadı. Gerçek kaynak okuma kayıtları ayrıca gösterilir.")
                     st.markdown(label_unverified_claim_headings(stage["output"]))
                     lessons_used = stage.get("approved_lessons_used")
                     if type(lessons_used) is int and lessons_used >= 0:
@@ -562,6 +590,73 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
         except (KeyError, ValueError, sqlite3.Error):
             inspected = None
         if inspected and inspected["status"] == "review_pending" and inspected["stages"]:
+            if synthesis_needs_repair(inspected):
+                st.warning(
+                    "Nihai sentez kısa ve cümle ortasında kesilmiş görünüyor. "
+                    "4/4 kayıt bulunması sonucun yeterli olduğu anlamına gelmez. "
+                    "İlk üç aşama korunacak; yeni görev başlatılmayacak.")
+                # Offline route is intentionally separate from the billable model
+                # button; only the authenticated owner may checkpoint its text.
+                if owner_key is not None and backup_store is not None:
+                    with st.expander("📋 Yerel metinle son aşamayı tamamla (0 model çağrısı)",
+                                     expanded=True):
+                        st.caption(
+                            "Bu metin dışarıdan hazırlanır. Modelin kendi çıktısı "
+                            "olarak gösterilmez; eski kesik yanıt, ilk üç aşama "
+                            "ve görev kimliği korunur. Sadece bu hesabın "
+                            "PostgreSQL yedeğine doğrulanarak eklenir.")
+                        offline_text = st.text_area(
+                            "Kaynaklı yerel nihai sentez (en az 500 karakter)",
+                            max_chars=4000, height=250,
+                            key="cano_offline_synthesis_" + latest_id)
+                        if st.button("📥 Yerel sentezi kaydet — 0 bulut model çağrısı",
+                                     key="cano_save_offline_synthesis_" + latest_id):
+                            try:
+                                _checkpoint(archive_prior=False)
+                                manager.replace_truncated_synthesis_with_owner_text(
+                                    latest_id, offline_text,
+                                    on_checkpoint=_checkpoint)
+                            except (ValueError, RuntimeError, sqlite3.Error):
+                                st.error("Yerel taslak geçersiz veya PostgreSQL geri "
+                                         "okuması başarısız; kayıt korunuyor.")
+                                return
+                            st.success("Yerel harici sentez ayrı köken etiketiyle "
+                                       "kaydedildi. Eski kesik yanıt ve önceki "
+                                       "aşamalar korundu; inceleme hâlâ gerekli.")
+                            st.rerun()
+                            return
+                if owner_key is None or backup_store is None or answer is None:
+                    st.info("Güvenli onarım için doğrulanmış hesap, PostgreSQL ve model bağlantısı gerekir.")
+                else:
+                    st.caption(
+                        "Bu işlem yalnızca sizin açıkça başlatmanızla seçili "
+                        "sağlayıcıya TEK yeni metin isteği gönderir. "
+                        "Sağlayıcının kotası veya ücretlendirmesi geçerli olabilir. "
+                        "Eksik yanıt ya da veritabanı hatasında eski sonuç korunur.")
+                    if st.button("🔧 Kesilmiş 4. aşamayı güvenle yeniden oluştur",
+                                 key="cano_repair_synthesis_" + latest_id):
+                        try:
+                            _checkpoint(archive_prior=False)
+                        except Exception:
+                            st.error("PostgreSQL ön denetimi geçmedi; model çağrısı başlatılmadı.")
+                            return
+                        try:
+                            manager.repair_truncated_synthesis(
+                                latest_id, client=_AnswerAdapter(answer),
+                                model="configured-provider",
+                                on_checkpoint=_checkpoint)
+                        except Exception:
+                            st.error(
+                                "Son aşama onarılamadı. Sağlayıcı veya güvenli "
+                                "kayıt hatası olabilir. Önceki sonuç ve "
+                                "ilk üç aşama korunacak; tekrar denemeden "
+                                "önce hesabın son yedeğini kontrol edin.")
+                            return
+                        st.success("Son aşama yenilendi; eski kesik metin ve "
+                                   "ilk üç aşama korundu. Nihai metin hâlâ "
+                                   "bağımsız inceleme bekliyor.")
+                        st.rerun()
+                        return
             planner_stage = inspected["stages"][0]
             pending_lesson = manager.pending_lesson(latest_id)
             if pending_lesson:
@@ -597,6 +692,9 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                                     pending_lesson["id"], approved=True)
                                 newly_accepted = approval["status"] == "accepted"
                                 _checkpoint(archive_prior=False)
+                            except PotentialDuplicateLesson:
+                                st.warning("Benzer bir ders zaten onaylı; bu aday incelemede kalıyor.")
+                                return
                             except Exception:
                                 if newly_accepted:
                                     # A failed/ambiguous CAS acknowledgement must
@@ -683,6 +781,7 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
             st.session_state["_cano_secure_export_owner"] = secure_key
             if (memories is None or research_tasks is None
                     or authorized_queue_store is None or not database_url):
+                _discard_stale_prepared_backup(st, secure_key)
                 st.error("Şifreli tam yedek hazır değil: hesap hafızası, araştırma görevi "
                          "onaylı kuyruk veya laboratuvar veritabanına erişim yok. "
                          "Eksik paketi indirmedim.")
@@ -697,16 +796,28 @@ def render_cano_command_center(st, answer=None, *, owner_key=None, database_url=
                         authorized_queue=jobs,
                         organism_records=lab_records,
                     )
+                    # File checksums alone do not establish a recoverable
+                    # owner account. Refuse the encrypted download form unless
+                    # every source passes the strict complete-owner verifier.
+                    verify_complete_portable_bundle(portable)
                 except Exception:
-                    st.error("Şifreli CANO paketi oluşturulamadı; veri değiştirilmedi.")
+                    _discard_stale_prepared_backup(st, secure_key)
+                    st.error("Şifreli tam yedek ön kontrolü başarısız: hesap "
+                             "verileri eksik veya doğrulanamadı. "
+                             "Önceki hazırlık temizlendi; veri değiştirilmedi.")
                 else:
+                    st.success("🛡️ Tam hesap yedeği ön kontrolü: 5/5 kaynak "
+                               "ve bileşen bütünlüğü doğrulandı.")
+                    st.caption("Bu ön kontrol, şifreli dosyanın indirildiği veya "
+                               "başka ortamda geri açıldığı anlamına gelmez. "
+                               "İndirme ve kurtarma ayrıca doğrulanmalıdır.")
                     render_encrypted_download(
                         st, label="💾 Şifreli CANO hesap yedeğini indir",
                         filename="cano-hesap-yedegi.canoenc",
                         plaintext=portable, storage_key=secure_key)
                     st.caption("Paket: ajanlar, ekip görevleri, dersler, hafıza, "
-                               "araştırma görev/taslakları ve onaylı kuyruk kayıtları. "
-                               "Her bölümün kullanılabilirlik durumu manifestte yer alır.")
+                               "araştırma görev/taslakları, onaylı kuyruk "
+                               "ve laboratuvar kayıtları.")
         elif status["agents"]:
             payload = json.dumps(snapshot, ensure_ascii=False, indent=2)
             st.download_button(

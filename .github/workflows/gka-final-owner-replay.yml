@@ -1,0 +1,69 @@
+name: GKA final owner-ready original-source replay
+on:
+  pull_request:
+    paths:
+      - research/gka_final_owner_replay.py
+      - research/test_gka_final_owner_replay.py
+      - research/gka_build_windows_bundle.py
+      - scripts/GKA_FINAL_WINDOWS.ps1
+      - .github/workflows/gka-final-owner-replay.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-source-one-shot:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - name: Test acceptance gate (reject invalid scientific claims)
+        run: python -m unittest discover -s research -p 'test_gka_final_owner_replay.py' -v
+      - name: One-command original-source replay on Ubuntu
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python research/gka_final_owner_replay.py --output-dir gka-proof
+      - name: One-command original-source replay with owner's PowerShell script on Windows
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: .\scripts\GKA_FINAL_WINDOWS.ps1 -OutputDir gka-proof
+      - name: Retain portable original-data result and all 7 JSON receipts
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: gka-original-source-owner-proof-${{ matrix.os }}
+          path: |
+            gka-proof/GKA_FINAL_REPLAY_STATUS.json
+            gka-proof/GKA_FINAL_PROOF.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  build-windows-handoff:
+    needs: original-source-one-shot
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - name: Package exact tested code and PowerShell runner without source binaries
+        run: python research/gka_build_windows_bundle.py --output-dir gka-handoff
+      - name: Upload one-click owner's Windows handoff bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: gka-windows-standalone-local-replay-bundle
+          path: gka-handoff/GKA_WINDOWS_LOCAL_BUNDLE.zip
+          if-no-files-found: error
+          retention-days: 30

@@ -9,6 +9,7 @@ import json
 import re
 import unicodedata
 from contextlib import contextmanager
+from difflib import SequenceMatcher
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -38,6 +39,14 @@ def _lesson_terms(text):
         token for token in re.findall(r"[a-z0-9]{2,}", normalized)
         if token not in _LESSON_STOP_WORDS
     }
+
+
+class PotentialDuplicateLesson(ValueError):
+    """A near-identical lesson needs consolidation before activation."""
+
+
+def _lesson_signature(text):
+    return " ".join(re.findall(r"\w+", unicodedata.normalize("NFKC", text).casefold()))
 
 
 class AgentColony:
@@ -371,7 +380,7 @@ class AgentColony:
         with self._db() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
-                "SELECT id,agent_id,accepted FROM colony_feedback WHERE id=?",
+                "SELECT id,agent_id,task,lesson,accepted FROM colony_feedback WHERE id=?",
                 (feedback_id,),
             ).fetchone()
             if row is None:
@@ -379,6 +388,18 @@ class AgentColony:
             if row["accepted"]:
                 return {"id": row["id"], "agent_id": row["agent_id"],
                         "status": "already_accepted"}
+            # Keep this candidate pending; a similarity score is a review hold,
+            # not proof of semantic equivalence. Never delete either record.
+            signature = _lesson_signature(row["lesson"])
+            for previous in db.execute(
+                    "SELECT lesson FROM colony_feedback "
+                    "WHERE agent_id=? AND task=? AND accepted=1",
+                    (row["agent_id"], row["task"])):
+                prior = _lesson_signature(previous["lesson"])
+                if signature and (signature == prior or (
+                        min(len(signature), len(prior)) >= 80
+                        and SequenceMatcher(None, signature, prior, autojunk=False).ratio() >= 0.90)):
+                    raise PotentialDuplicateLesson("Potential duplicate lesson; candidate remains pending")
             db.execute("UPDATE colony_feedback SET accepted=1 WHERE id=?",
                        (feedback_id,))
             return {"id": row["id"], "agent_id": row["agent_id"],

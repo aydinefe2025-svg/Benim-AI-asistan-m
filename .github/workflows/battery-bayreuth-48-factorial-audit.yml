@@ -1,0 +1,40 @@
+name: Battery Bayreuth 48 source CF factorial interaction audit
+on:
+  push:
+    paths:
+      - 'research/battery_curve_audit/bayreuth_48_factorial_audit.py'
+      - 'research/battery_curve_audit/bayreuth_48_publisher_cf.csv'
+      - 'tests/test_bayreuth_48_factorial_audit.py'
+      - '.github/workflows/battery-bayreuth-48-factorial-audit.yml'
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/bayreuth_48_factorial_audit.py'
+      - 'research/battery_curve_audit/bayreuth_48_publisher_cf.csv'
+      - 'tests/test_bayreuth_48_factorial_audit.py'
+      - '.github/workflows/battery-bayreuth-48-factorial-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  factorial-source-audit:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Validate source-grain and 13 tests
+        run: python -m unittest discover -s tests -p 'test_bayreuth_48_factorial_audit.py' -v
+      - name: Reproduce 48 source-conditioned statistics
+        shell: bash
+        run: |
+          python research/battery_curve_audit/bayreuth_48_factorial_audit.py --output bayreuth_factorial_audit_results.json
+          python -c "import json; x=json.load(open('bayreuth_factorial_audit_results.json')); assert x['n_physical_cells']==48; assert x['n_conditions']==24; assert x['cf_difference_0C_minus_25C_all_rates_positive']; assert not any(x['claims'].values())"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: bayreuth-48-factorial-${{ matrix.os }}
+          path: bayreuth_factorial_audit_results.json
+          if-no-files-found: error

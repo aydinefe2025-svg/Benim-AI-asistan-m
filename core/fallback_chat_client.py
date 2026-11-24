@@ -53,6 +53,12 @@ class FallbackChatClient:
         self._next_fallback = 0
         self._active_fallback: tuple[str, ChatClient, str] | None = None
         self._failure_kinds: list[str] = []
+        self._last_safe_failure: RuntimeError | None = None
+
+    def _record_failure(self, exc: Exception) -> None:
+        self._failure_kinds.append(type(exc).__name__)
+        self._last_safe_failure = RuntimeError("Provider call failed")
+        copy_safe_failure_metadata(exc, self._last_safe_failure)
 
     def chat(self, model: str, system: str, prompt: str, *, temperature: float = 0.2) -> str:
         safe_response = safe_response_for_prompt(prompt)
@@ -69,7 +75,7 @@ class FallbackChatClient:
                     self.last_provider_used = provider
                     return result
                 except Exception as exc:
-                    self._failure_kinds.append(type(exc).__name__)
+                    self._record_failure(exc)
                     self._active_fallback = None
             return self._call_next_fallback(system, prompt, temperature)
         try:
@@ -86,7 +92,7 @@ class FallbackChatClient:
                 raise failure from None
             self.fallback_active = True
             self.fallback_reason = type(exc).__name__
-            self._failure_kinds.append(type(exc).__name__)
+            self._record_failure(exc)
             return self._call_next_fallback(system, prompt, temperature)
 
     def _call_next_fallback(self, system: str, prompt: str, temperature: float) -> str:
@@ -98,12 +104,15 @@ class FallbackChatClient:
             try:
                 result = client.chat(model_name, system, prompt, temperature=temperature)
             except Exception as exc:
-                self._failure_kinds.append(type(exc).__name__)
+                self._record_failure(exc)
                 continue
             self._active_fallback = (provider, client, model_name)
             self.last_model_used = getattr(client, "last_model_used", None) or model_name
             self.last_provider_used = provider
             return result
         failures = ", ".join(self._failure_kinds) or "no fallback configured"
-        raise RuntimeError(f"All explicitly enabled chat providers failed ({failures})") from None
+        failure = RuntimeError(f"All explicitly enabled chat providers failed ({failures})")
+        if self._last_safe_failure is not None:
+            copy_safe_failure_metadata(self._last_safe_failure, failure)
+        raise failure from None
 

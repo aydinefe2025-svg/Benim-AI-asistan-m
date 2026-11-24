@@ -1,0 +1,53 @@
+name: Battery impact 2026 exact SOC small-sample inference
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/impact_2026_exact_soc_survival.py'
+      - 'tests/test_impact_2026_exact_soc_survival.py'
+      - '.github/workflows/battery-impact-2026-exact-soc-inference.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-conditional-soc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout pinned
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Run legacy published counts and new exact small-sample regression tests
+        run: |
+          python -m unittest discover -s tests -p 'test_impact_2026_survival_audit.py' -v
+          python -m unittest discover -s tests -p 'test_impact_2026_exact_soc_survival.py' -v
+      - name: Generate exact fixed-margin inference and hash receipt
+        run: |
+          mkdir -p /tmp/impact_exact
+          python research/battery_curve_audit/impact_2026_exact_soc_survival.py --output /tmp/impact_exact/exact_source_pinned_5j_soc_and_3_energy_survival.json
+          python - <<'PY'
+          import json,hashlib,pathlib
+          folder=pathlib.Path('/tmp/impact_exact')
+          f=folder/'exact_source_pinned_5j_soc_and_3_energy_survival.json'
+          data=json.loads(f.read_text())
+          assert data['cohort']['total_physically_impacted_cells']==45
+          assert data['five_j_global_exact_fixed_margin_p'] > 0.05
+          assert all(x>=0.05 for x in data['five_j_pairwise_holm_familywise_p'].values())
+          assert data['statistical_limits']['unreleased_individual_cell_capacity_and_hppc']
+          receipt={'artifact':'exact_source_pinned_5j_soc_and_3_energy_survival.json',
+            'sha256':hashlib.sha256(f.read_bytes()).hexdigest(),
+            'bytes':len(f.read_bytes()),'source_doi':data['source']['doi'],
+            'input':'published independent physical cell group counts, not raw charge-discharge traces',
+            'pass':True}
+          (folder/'source_provenance_sha256_receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          print('EXACT_TEST_AND_RESTRICTIVE_INFERENCE_PASS',receipt)
+          PY
+      - name: Upload immutable finite-sample evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: impact-2026-5j-soc-exact-small-n-statistics
+          path: /tmp/impact_exact/
+          retention-days: 14
+          if-no-files-found: error

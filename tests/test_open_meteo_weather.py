@@ -228,6 +228,76 @@ class OpenMeteoFailoverTests(unittest.TestCase):
         self.assertIsNone(fetch_open_meteo_weather("<script>", get=get))
         self.assertIsNone(fetch_open_meteo_weather("", get=get))
 
+    def test_geocoder_single_transient_503_retries_once_and_returns_verified_data(self):
+        from core.open_meteo_weather import fetch_open_meteo_weather
+        from core.weather_reliability import weather_direct_reply
+        calls = []
+
+        def get(url, **kwargs):
+            calls.append(url)
+            if "geocoding" in url:
+                return fake_response(status=503) if calls.count(url) == 1 else (
+                    fake_response(payload=MULTIPLE_ODEMIS))
+            return fake_response(payload=valid_meteo_payload())
+        source = fetch_open_meteo_weather(
+            "Ödemiş", get=get, province="İzmir")
+        self.assertIsNotNone(source)
+        self.assertEqual(2, sum("geocoding" in url for url in calls))
+        self.assertEqual(1, sum("forecast" in url for url in calls))
+        self.assertIn("Open-Meteo", weather_direct_reply("İzmir Ödemiş hava durumu", source))
+
+    def test_forecast_single_transient_502_retries_once_without_changing_location(self):
+        from core.open_meteo_weather import fetch_open_meteo_weather
+        from core.weather_reliability import weather_direct_reply
+        calls = []
+
+        def get(url, **kwargs):
+            calls.append((url, kwargs))
+            if "geocoding" in url:
+                return fake_response(payload=MULTIPLE_ODEMIS)
+            if sum("forecast" in row[0] for row in calls) == 1:
+                return fake_response(status=502)
+            return fake_response(payload=valid_meteo_payload(forecast=True))
+        source = fetch_open_meteo_weather(
+            "Ödemiş", get=get, province="İzmir", forecast=True)
+        self.assertIsNotNone(source)
+        forecast_requests = [opts for url, opts in calls if "forecast" in url]
+        self.assertEqual(2, len(forecast_requests))
+        self.assertEqual(
+            forecast_requests[0]["params"], forecast_requests[1]["params"])
+        self.assertIn("3 günlük", weather_direct_reply("İzmir Ödemiş hava tahminleri", source))
+
+    def test_timeout_retries_once_without_retrying_any_other_provider_error(self):
+        from core.open_meteo_weather import fetch_open_meteo_weather
+        for first_error in (TimeoutError("synthetic network timeout"),):
+            calls = []
+            def get(url, **kwargs):
+                calls.append(url)
+                if "geocoding" in url:
+                    if len(calls) == 1:
+                        raise first_error
+                    return fake_response(payload=MULTIPLE_ODEMIS)
+                return fake_response(payload=valid_meteo_payload())
+            self.assertIsNotNone(fetch_open_meteo_weather(
+                "Ödemiş", get=get, province="İzmir"))
+            self.assertEqual(3, len(calls))
+        calls = []
+        def bad(url, **kwargs):
+            calls.append(url)
+            return fake_response(status=429)
+        self.assertIsNone(fetch_open_meteo_weather("Ödemiş", get=bad))
+        self.assertEqual(1, len(calls), "HTTP 429 must never be retried")
+
+    def test_persistent_503_is_bounded_to_two_geocoding_requests(self):
+        from core.open_meteo_weather import fetch_open_meteo_weather
+        calls = []
+        def get(url, **kwargs):
+            calls.append(url)
+            return fake_response(status=503)
+        self.assertIsNone(fetch_open_meteo_weather("Ödemiş", get=get))
+        self.assertEqual(2, len(calls))
+        self.assertTrue(all("geocoding" in url for url in calls))
+
     def test_cano_direct_router_accepts_validated_open_meteo_without_llm(self):
         from core.weather_reliability import weather_direct_reply
         from core.open_meteo_weather import fetch_open_meteo_weather

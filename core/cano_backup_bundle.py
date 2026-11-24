@@ -9,6 +9,7 @@ import json
 import zlib
 from zipfile import BadZipFile, ZIP_DEFLATED, ZipFile
 
+from core.archive_integrity import check_archive_integrity
 from core.backup_encryption import MAX_PLAINTEXT_BYTES
 from core.organism_lab_persistence import OrganismLabStore
 from core.user_memory import export_library
@@ -198,3 +199,58 @@ def verify_portable_bundle(bundle: bytes) -> dict[str, bytes]:
             raise ValueError("Portable backup checksum mismatch")
     return files
 
+
+def verify_complete_portable_bundle(bundle: bytes) -> dict[str, bytes]:
+    """Require every account source to be present and structurally recoverable.
+
+    This is stricter than verify_portable_bundle(), which intentionally supports
+    older or partial archives. Verify *before* extracting owner-private JSON.
+    """
+    files = verify_portable_bundle(bundle)
+    manifest = json.loads(files["manifest.json"].decode("utf-8"))
+    required_sources = {
+        "cano_colony", "memory_library", "research_tasks",
+        "authorized_queue", "organism_lab",
+    }
+    available = manifest.get("sources_available")
+    if (manifest.get("schema") != "cano-portable-backup-v2"
+            or not isinstance(available, dict)
+            or set(available) != required_sources
+            or any(available[source] is not True for source in required_sources)):
+        raise ValueError("Complete owner backup has unavailable sources")
+
+    try:
+        colony = json.loads(files["cano-colony.json"].decode("utf-8"))
+        memory = json.loads(files["memory-library.json"].decode("utf-8"))
+        research = json.loads(files["research-tasks.json"].decode("utf-8"))
+        queue = json.loads(files["authorized-queue.json"].decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError):
+        raise ValueError("Complete owner backup has malformed JSON") from None
+
+    if (not isinstance(colony, dict) or any(
+            not isinstance(colony.get(key), list)
+            for key in ("agents", "feedback", "reviews", "missions"))):
+        raise ValueError("Complete owner backup colony is invalid")
+    if (not isinstance(memory, dict)
+            or memory.get("schema_version") != 1
+            or not isinstance(memory.get("items"), list)):
+        raise ValueError("Complete owner backup memory library is invalid")
+    if (not isinstance(research, dict)
+            or research.get("schema") != "research-task-export-v1"
+            or not isinstance(research.get("tasks"), list)):
+        raise ValueError("Complete owner backup research tasks are invalid")
+    # An outer ZIP hash can be valid even if the research export's own
+    # source integrity receipt has gone stale. Verify it when present;
+    # older research exports without a receipt remain recoverable.
+    if "integrity" in research:
+        try:
+            check_archive_integrity(research)
+        except ValueError:
+            raise ValueError("Complete owner backup research integrity is invalid") from None
+    if (not isinstance(queue, dict)
+            or queue.get("schema") != "cano-authorized-queue-export-v1"
+            or queue.get("available") is not True
+            or not isinstance(queue.get("jobs"), list)):
+        raise ValueError("Complete owner backup authorized queue is invalid")
+    # verify_portable_bundle already checked the laboratory format and records.
+    return files

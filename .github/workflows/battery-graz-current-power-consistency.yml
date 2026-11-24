@@ -1,0 +1,67 @@
+name: Graz original five-cell voltage-current-power dimensional check
+on:
+  pull_request:
+    paths:
+      - 'research/battery_curve_audit/graz_current_power_audit.py'
+      - 'tests/test_graz_current_power_audit.py'
+      - '.github/workflows/battery-graz-current-power-consistency.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-numeric-vip:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Numeric rows are not an SI calibration certificate
+        run: python -m unittest -v tests.test_graz_current_power_audit
+  original-publisher-five-cell:
+    needs: test-numeric-vip
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Authenticate and scan actual publisher 1,091,337 original electrical rows for P/(V*I) numerical ratios
+        run: python -m research.battery_curve_audit.graz_current_power_audit /tmp/graz_original_five_cell_vip_numeric.json
+      - name: Fail closed on provenance, physical scope, absent cells and fake SI claim
+        run: |
+          python - <<'PY'
+          import json
+          p='/tmp/graz_original_five_cell_vip_numeric.json'
+          d=json.load(open(p,encoding='utf-8'))
+          assert d['source_doi']=='10.5281/zenodo.22079387'
+          assert d['original_zip_sha256']=='5627a1606b8e378de0e4e4ced99222509bcbbcb725d26da6e7a5fad34aa42fc7'
+          assert d['official_publisher_md5_verified'] is True and d['original_archive_crc_verified'] is True
+          assert d['real_electrical_rows']==1091337
+          assert d['numeric_review_queue_total_rows']==1900
+          assert d['source_numeric_full_scan_eligible_vi_rows']==382481
+          assert d['all_numeric_discrepancy_rows_have_source_line_and_sha256'] is True
+          assert sum(d['cells'][c]['per_device_full_original_nonzero_vi_consistency']['COM4']['deviating_with_near_zero_numeric_power'] for c in d['cells'])==1900
+          assert all(d['cells'][c]['per_device_full_original_nonzero_vi_consistency']['COM3']['numerically_near_ratio_1_5pct_rows']==d['cells'][c]['per_device_full_original_nonzero_vi_consistency']['COM3']['eligible_nonzero_vi_rows'] for c in d['cells'])
+          assert set(d['cells'])=={'01','02','03','04','05'}
+          assert all(d['cells'][cell]['genuine_original_row_count']>=100 for cell in d['cells'])
+          assert all(d['cells'][cell]['calibrated_current_unit_A'] is False for cell in d['cells'])
+          assert d['power_and_current_units_independently_certified'] is False
+          assert d['controller_program_phase_certified'] is False
+          assert d['real_capacity_Ah_reconstructed'] is False
+          assert d['physical_production_release_allowed'] is False
+          print('FIVE_ORIGINAL_LOGS_NUMERIC_CONSISTENCY_ONLY_NO_REAL_UNIT_CALIBRATION',d['real_electrical_rows'])
+          PY
+      - name: Preserve compact derived numerical summary only, never raw electrical rows
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graz-five-original-vip-numerical-not-calibrated
+          path: /tmp/graz_original_five_cell_vip_numeric.json
+          if-no-files-found: error
+          retention-days: 14
