@@ -1,0 +1,164 @@
+name: J0740 F153 posterior-informed conditional native integration
+on:
+  pull_request:
+    branches: [science/j0740-f150-conditional-nuisance-20261124]
+    paths: ['.github/workflows/j0740-f153-posterior-informed.yml', 'research/j0740/f153/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  fit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.8.0
+      - name: Verify original chain and previous photon evaluations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for pair in 14914475266:chain 14908868425:slices; do
+            id=${pair%:*}; name=${pair#*:}
+            curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" -o "$RUNNER_TEMP/$name.zip"
+          done
+          printf '%s  %s\n' c89cd81f2ade68ee17004838017869a6e8a9e1d2bd5f484f08601495fea82532 "$RUNNER_TEMP/chain.zip" 682a94aa0fe7ccfa34ec2f38c73008d652aa5e577deee04975ccf716c6b8f087 "$RUNNER_TEMP/slices.zip" | sha256sum -c
+      - name: Fit posterior-informed mixture once with duplicate-vector grouping
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
+          MKL_NUM_THREADS: '1'
+        run: |
+          python research/j0740/f153/fit_cube.py "$RUNNER_TEMP/chain.zip" results/F153 "$RUNNER_TEMP/slices.zip"
+          sha256sum results/F153/cube_proposal.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: F153-trained-proposal
+          path: results/F153/cube_proposal.json
+          if-no-files-found: error
+  original_joint_likelihood:
+    needs: fit
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [ENG_derived, MPA1_derived, MS1_derived, MS1B_derived, WFF1_derived, WFF2_derived]
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve immutable F146 source bytes and exact member hashes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence-f153 "$RUNNER_TEMP/f153-input"
+          for pair in 14905441131:inputs 14905157121:manifest; do
+            id=${pair%:*}; name=${pair#*:}
+            curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" -o "$RUNNER_TEMP/$name.zip"
+          done
+          printf '%s  %s\n' ffc877fb69f49c8a23b8494456bf0fe85cc7c45922a684b4d6389f1fe00478e9 "$RUNNER_TEMP/inputs.zip" ef59b3874f4f105b2d1de68396a903026cf957412e645d5cf07d6cd8307c990d "$RUNNER_TEMP/manifest.zip" | sha256sum -c
+          python3 - <<'PY'
+          import hashlib,json,os,zipfile,pathlib
+          tmp=pathlib.Path(os.environ['RUNNER_TEMP'])
+          out=tmp/'f153-input'
+          with zipfile.ZipFile(tmp/'manifest.zip') as z:
+              receipt=json.loads(z.read('input_stage.json'))
+          assert receipt['status']=='PASS_ORIGINAL_INPUT_STAGING'
+          with zipfile.ZipFile(tmp/'inputs.zip') as z:
+              assert set(z.namelist())==set(receipt['selected_members'])
+              for name,v in receipt['selected_members'].items():
+                  target=out.joinpath(name)
+                  assert target.resolve().is_relative_to(out.resolve())
+                  target.parent.mkdir(parents=True,exist_ok=True)
+                  h=hashlib.sha256()
+                  count=0
+                  with z.open(name) as src,target.open('wb') as dst:
+                      for b in iter(lambda:src.read(1048576),b''):
+                          h.update(b); count+=len(b); dst.write(b)
+                  assert count==v['bytes'] and h.hexdigest()==v['sha256'],name
+          root=out/'J0740_GAMMA_zenodo'
+          mod=root/'STU/STU_NICER_XMM_hr/STU_modules'
+          lines=[]
+          for line in (mod/'config.ini').read_text().splitlines():
+              if line.strip()=='--multinest':continue
+              if '=' in line:
+                  key,old=line.split('=',1)
+                  if key=='--NICER-matrix-path':
+                      path=tmp/'F153_generated_counts.txt'
+                      assert not path.exists()
+                  else:
+                      matches=list(root.rglob(pathlib.Path(old).name))
+                      assert len(matches)==1,(key,matches)
+                      path=matches[0]
+                  line=key+'='+str(path)
+              lines.append(line)
+          assert '--NICER' in lines and '--XMM' in lines
+          (tmp/'f153_config.ini').write_text('\n'.join(lines)+'\n')
+          pathlib.Path('evidence-f153/input_verification.json').write_text(json.dumps({'source_artifact_id':14905441131,'verified_members':len(receipt['selected_members']),'selected_bytes':receipt['selected_bytes'],'generated_matrix_initially_absent':True,'sampler_enabled':False},indent=2))
+          PY
+          cp "$RUNNER_TEMP/f153_config.ini" evidence-f153/config_relocated.ini
+      - name: Install GSL development library
+        run: sudo apt-get update -qq && sudo apt-get install -y libgsl-dev
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: xpsi-legacy
+          init-shell: bash
+          cache-environment: false
+          condarc: |
+            channels:
+              - defaults
+              - conda-forge
+            channel_priority: flexible
+          create-args: >-
+            python=2.7
+            numpy=1.16.5
+            scipy=1.2.1
+            cython=0.28.5
+            matplotlib=2.2.3
+            wrapt=1.11.2
+            setuptools=44.0.0
+            six
+      - name: Compile X-PSI v1.2.0 (publisher run version)
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v1.2.0 https://github.com/xpsi-group/xpsi.git "$RUNNER_TEMP/xpsi-v1.2.0"
+          git -C "$RUNNER_TEMP/xpsi-v1.2.0" rev-parse HEAD | tee evidence-f153/source_commit.txt
+          test "$(cat evidence-f153/source_commit.txt)" = 78880035d0a8aba021761266327dc17e28cd4ed6
+          cd "$RUNNER_TEMP/xpsi-v1.2.0"
+          CC=gcc python setup.py install --NumHot > "$GITHUB_WORKSPACE/evidence-f153/build.log" 2>&1 || { tail -120 "$GITHUB_WORKSPACE/evidence-f153/build.log"; exit 1; }
+      - name: Retrieve immutable F148 proposal seed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14908868425/zip" -o "$RUNNER_TEMP/F148.zip"
+          printf '%s  %s\n' 682a94aa0fe7ccfa34ec2f38c73008d652aa5e577deee04975ccf716c6b8f087 "$RUNNER_TEMP/F148.zip" | sha256sum -c
+          unzip -p "$RUNNER_TEMP/F148.zip" slices.json > "$RUNNER_TEMP/F148_slices.json"
+      - uses: actions/download-artifact@v4
+        with:
+          name: F153-trained-proposal
+          path: ${{ runner.temp }}/f153-proposal
+      - name: Actual posterior-informed 13D integration with original native engine
+        env:
+          OMP_NUM_THREADS: '1'
+          OPENBLAS_NUM_THREADS: '1'
+          MODEL: ${{ matrix.model }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/f153-input/J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules"
+          printf '%s  %s\n' 440451fd57c8d8c775f3c847861d6fce77a82ab975ca090fb660289191d8c1af main_lp40k_Xse001_Dfix.py | sha256sum -c
+          PYTHONPATH="$GITHUB_WORKSPACE/research/j0740/f150" python -u "$GITHUB_WORKSPACE/research/j0740/f153/native.py" "$RUNNER_TEMP/f153_config.ini" "$RUNNER_TEMP/F148_slices.json" "$RUNNER_TEMP/f153-proposal/cube_proposal.json" "$GITHUB_WORKSPACE/evidence-f153/conditional.json" "$MODEL" 2>&1 | tee "$GITHUB_WORKSPACE/evidence-f153/native_likelihood.log"
+          grep -F F153_COMPLETE "$GITHUB_WORKSPACE/evidence-f153/native_likelihood.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: J0740-F153-conditional-${{ matrix.model }}
+          path: evidence-f153/
+          if-no-files-found: error
