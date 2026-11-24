@@ -8,7 +8,7 @@ from pathlib import Path
 _CODE_TASK = re.compile(
     r"\b(code|source code|repository|repo|github|pull request|commit|bug|"
     r"kod|dosya|depo|hata|mimari|uygulama|application|software|yazılım|"
-    r"geliştir|geliştirme|özellik|birim test|otomatik test)\b", re.IGNORECASE)
+    r"geliştir\w*|geliştirme|özellik|birim test|otomatik test)\b", re.IGNORECASE)
 _NEUTRON_STAR = re.compile(
     r"neutron\s+star|nötron\s+yıldız|pulsar|J0740|PSR\s+J", re.IGNORECASE)
 
@@ -47,7 +47,7 @@ def extract_cano_task(prompt: str) -> str:
     if not isinstance(prompt, str):
         return ""
     match = re.search(
-        r"(?is)\bGoal:\s*(.*?)(?=\n(?:Plan:|Draft:|Critique:|UNVERIFIED|Execution boundary:)|$)",
+        r"(?is)\b(?:Goal|Hedef):\s*(.*?)(?=\n(?:\s*\n)?(?:Plan:|Draft:|Critique:|Taslak \(doğrulanmamış\):|Eleştiri \(doğrulanmamış\):|UNVERIFIED|Execution boundary:|Yanıt kalitesi:|Accepted past lessons \(not verified facts\):)|$)",
         prompt,
     )
     return match.group(1).strip() if match else ""
