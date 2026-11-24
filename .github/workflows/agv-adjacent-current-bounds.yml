@@ -1,0 +1,27 @@
+name: AGV adjacent original counter current bounds
+on:
+  pull_request:
+    paths:
+      - research/agv_adjacent_current_bounds.py
+      - research/test_agv_adjacent_current_bounds.py
+      - .github/workflows/agv-adjacent-current-bounds.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - run: python -m unittest discover -s research -p 'test_agv_adjacent_current_bounds.py' -v
+      - run: python research/agv_adjacent_current_bounds.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: agv-adjacent-current-original-evidence
+          path: AGV_ADJACENT_CURRENT_RECEIPT.json
+          if-no-files-found: error
+          retention-days: 30
