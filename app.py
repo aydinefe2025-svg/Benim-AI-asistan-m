@@ -546,7 +546,11 @@ def _research_answer(goal: str) -> str:
     return router.chat(aktif_llm_adi, system, prompt)
 
 
+# One router per Streamlit run, so the four stages reuse a successful fallback.
+_team_router = None
+
 def _team_answer(prompt: str) -> str:
+    global _team_router
     system = (
         "You are a bounded Turkish CANO specialist. Keep claims tentative, "
         "do not invent sources or claim actions/tests that were not run. "
@@ -561,7 +565,9 @@ def _team_answer(prompt: str) -> str:
         prompt += "\n\n" + source_context
     # Team stages include the saved plan, review text and bounded code context;
     # allow a longer response window without changing ordinary chat timeouts.
-    router = _new_provider_router(google_timeout=60.0)
+    if _team_router is None:
+        _team_router = _new_provider_router(google_timeout=60.0)
+    router = _team_router
     try:
         return router.chat(aktif_llm_adi, system, prompt)
     except Exception as exc:
@@ -569,7 +575,9 @@ def _team_answer(prompt: str) -> str:
         # only the allowlisted category, numeric HTTP status and machine code.
         status, code = failure_diagnostics(exc)
         logging.getLogger(__name__).warning(
-            "CANO team provider failure category=%s status=%s code=%s exception_type=%s",
+            "CANO team provider failure primary=%s fallback_active=%s category=%s status=%s code=%s exception_type=%s",
+            getattr(router, "primary_provider", "unknown"),
+            getattr(router, "fallback_active", False),
             failure_category(exc), status, code, type(exc).__name__[:80],
         )
         raise
