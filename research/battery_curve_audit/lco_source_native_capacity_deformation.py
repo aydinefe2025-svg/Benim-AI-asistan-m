@@ -216,6 +216,71 @@ def main():
             "runs_reverse_sign_smaller_rms":sum(x["reverse_laser_identity_rms_error_mm"]<x["rms_laser_identity_error_mm"] for x in rr),
             "median_discharge_current_A":float(np.median([x["median_discharge_current_A"] for x in rr])),
             "median_test_duration_s":float(np.median([x["duration_s"] for x in rr]))}
+
+    # Raw-record identity, not derived summaries. Preserve field names, shape,
+    # dtype, and every numeric or string value. Exclude labels only.
+    def signal_digest(x, keys):
+        h=hashlib.sha256()
+        for k in keys:
+            v=np.asarray(getattr(unwrap(x),k))
+            if v.dtype.kind not in "biufcUS":raise ValueError("unsupported fingerprint field "+k)
+            h.update(json.dumps([k,v.dtype.str,list(v.shape)],separators=(",",":")).encode()+b"\0")
+            h.update(v.tobytes(order="C"))
+        return h.hexdigest()
+    from collections import defaultdict
+    groups=defaultdict(list); allgroups=defaultdict(list); resets=[]; outliers=[]
+    for rate,row in (("RPT-A-high",0),("RPT-B-low",1)):
+        a=unwrap(d[row,0]); ages=vector(d[row,5])
+        for j,age in enumerate(ages):
+            for k in range(a.shape[1]):
+                x=unwrap(a[j,k])
+                if isinstance(x,np.ndarray) and x.size==0:continue
+                ident={"rate":rate,"cycle":float(age),"repeat":k+1}
+                keys=sorted(x._fieldnames)
+                numeric=[f for f in keys if np.asarray(getattr(x,f)).dtype.kind in "biufc"]
+                groups[signal_digest(x,numeric)].append(ident)
+                allgroups[signal_digest(x,keys)].append(ident)
+                t=field(x,"Time"); jump=np.flatnonzero(np.diff(t)<0)
+                if len(jump):
+                    bounds=[0]+[int(i)+1 for i in jump]+[len(t)]
+                    segs=[]
+                    for lo,hi in zip(bounds[:-1],bounds[1:]):
+                        seg={"start_row_0based":lo,"end_row_exclusive":hi,"samples":hi-lo,
+                             "first_s":float(t[lo]),"last_s":float(t[hi-1])}
+                        hh=hashlib.sha256()
+                        for f in numeric:
+                            v=vector(getattr(x,f))
+                            if len(v)!=len(t):continue
+                            hh.update(f.encode()+b"\0"+np.asarray(v[lo:hi],dtype="<f8").tobytes())
+                        seg["all_aligned_numeric_sha256"]=hh.hexdigest()
+                        segs.append(seg)
+                    comparisons=[]
+                    for j1 in range(len(segs)):
+                        for j2 in range(j1+1,len(segs)):
+                            p1,p2=segs[j1],segs[j2]
+                            n=min(p1["samples"],p2["samples"])
+                            matches={}
+                            for f in numeric:
+                                v=vector(getattr(x,f))
+                                if len(v)==len(t):
+                                    aa=v[p1["start_row_0based"]:p1["start_row_0based"]+n]
+                                    bb=v[p2["start_row_0based"]:p2["start_row_0based"]+n]
+                                    matches[f]=bool(np.array_equal(aa,bb,equal_nan=True))
+                            comparisons.append({"segments":[j1,j2],"prefix_rows":n,"exact_fields":matches,
+                                "all_fields_equal":all(matches.values())})
+                    resets.append({**ident,"segments":segs,"pairwise_prefix_comparisons":comparisons})
+                if rate=="RPT-A-high" and age==750:
+                    v=field(x,"V_batt")
+                    outliers.append({**ident,"duration_s":float(t[-1]-t[0]),"voltage_min_V":float(v.min()),
+                        "voltage_max_V":float(v.max()),"voltage_last_V":float(v[-1]),
+                        "str1":str(getattr(x,"str1"))[:300],"str2":str(getattr(x,"str2"))[:300]})
+    raw_audit={"numeric_duplicate_groups":[{"sha256":h,"records":g} for h,g in groups.items() if len(g)>1],
+        "all_field_duplicate_groups":[{"sha256":h,"records":g} for h,g in allgroups.items() if len(g)>1],
+        "nonempty_records_fingerprinted":sum(map(len,groups.values())),"reset_record_comparisons":resets,
+        "cycle750_raw_endpoints":outliers,"automatic_deduplication_or_time_repair":False}
+    (out/"raw_record_identity_audit.json").write_text(json.dumps(raw_audit,indent=2))
+    print("RAW_RECORD_IDENTITY_AUDIT",json.dumps(raw_audit),flush=True)
+
     receipt={"goal":"lco-20261124-native-units-capacity-laser-identity","source_doi":DOI,
       "original":identity,"publisher_md5_match":True,"mat_variable":cand[0],
       "physical_cells":1,"data":"published RPT discharge tests only",
