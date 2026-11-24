@@ -20,7 +20,16 @@ assert '--multinest' not in open(config).read().splitlines()
 assert '--emcee' not in open(config).read().splitlines()
 # Publisher uses actual CLI arguments ONLY when __name__ == '__main__'.
 # Both sampler flags are disabled, so running as main builds and checks the model only.
-g=runpy.run_path(sys.argv[0],run_name='__main__')
+# Python 2 runpy temporarily installs and then clears a module namespace.
+# Keep a real module object alive: MOS1/MOS2 derive alpha from global PN.
+import types
+publisher=types.ModuleType('__main__')
+publisher.__file__=os.path.abspath(sys.argv[0])
+g=publisher.__dict__
+execfile(publisher.__file__,g,g)
+assert g['PN'] is not None
+assert g['MOS1'].instrument['alpha']==g['PN'].instrument['alpha']
+assert g['MOS2'].instrument['alpha']==g['PN'].instrument['alpha']
 L=g['likelihood']; ref=np.array(g['p'],dtype=float)
 assert len(L)==15 and ref.shape==(15,)
 assert L.index('mass')==0 and L.index('radius')==1
