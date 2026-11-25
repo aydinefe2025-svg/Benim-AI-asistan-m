@@ -562,7 +562,7 @@ jobs:
           printf '%q ' ./bin/athena "${args[@]}" > "$E/command.txt"
           # Live guard monitors native output and irreversible acceptance violations.
           cat > "$E/live_guard.py" <<'PY'
-          import json, math, os, pathlib, re, signal, subprocess, sys, time
+          import hashlib, json, math, os, pathlib, re, signal, subprocess, sys, time
           
           def check(names, row, initial):
               if len(row)!=len(names) or not all(math.isfinite(v) for v in row):
@@ -600,7 +600,10 @@ jobs:
               reason=None; initial=None; last=None; names=None; seen=0; offset=0; hist=None
               log=d/"native.log"
               fatal=re.compile(rb"Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT")
-              start=time.monotonic()
+              start=time.monotonic(); last_progress=start
+              stall_limit=float(os.environ.get('J0740_STALL_SECONDS','900'))
+              startup_limit=float(os.environ.get('J0740_STARTUP_SECONDS','1800'))
+              assert stall_limit>0 and startup_limit>0
               with log.open("wb") as output:
                   p=subprocess.Popen(command,stdout=output,stderr=subprocess.STDOUT,start_new_session=True)
                   with log.open("rb") as inp:
@@ -634,11 +637,20 @@ jobs:
                                       if error:
                                           reason=error;break
                                       if initial is None: initial=dict(zip(names,row))
-                                      last=dict(zip(names,row));seen+=1
-                          if reason is None and time.monotonic()-start>19500: reason="time_budget"
+                                      current=dict(zip(names,row))
+                                      if last is not None and current['time']<last['time']:
+                                          reason='history_time_regression';break
+                                      if last is None or current['time']>last['time']: last_progress=time.monotonic()
+                                      last=current;seen+=1
+                          now=time.monotonic()
+                          if reason is None and now-start>19500: reason="time_budget"
+                          if reason is None and p.poll() is None and now-last_progress>(stall_limit if seen else startup_limit):
+                              reason='history_progress_stalled' if seen else 'startup_history_timeout'
                           if reason:
+                              print('LIVE_GUARD_STOP',reason,'last_valid_time',None if last is None else last['time'],flush=True)
                               if p.poll() is None:
-                                  os.killpg(p.pid,signal.SIGTERM)
+                                  try: os.killpg(p.pid,signal.SIGTERM)
+                                  except ProcessLookupError: pass
                                   try: p.wait(timeout=20)
                                   except subprocess.TimeoutExpired:
                                       os.killpg(p.pid,signal.SIGKILL);p.wait()
@@ -653,8 +665,12 @@ jobs:
                       if rest: sys.stdout.buffer.write(rest);sys.stdout.buffer.flush()
               rc=p.wait()
               if reason is None and rc!=0: reason="native_nonzero_exit"
+              candidates=[]
+              for q in sorted((d/'run').glob('*.rst')):
+                  with q.open('rb') as ff: digest=hashlib.file_digest(ff,'sha256').hexdigest()
+                  candidates.append(dict(path=str(q.relative_to(d)),bytes=q.stat().st_size,sha256=digest,status='candidate_only_native_restart_not_verified'))
               receipt=dict(reason=reason,exit_code=rc,valid_history_rows=seen,last_valid_history=last,
-                  checkpoint_candidates=[dict(path=str(q.relative_to(d)),bytes=q.stat().st_size) for q in sorted((d/"run").glob("*.rst"))],
+                  checkpoint_candidates=candidates,
                   recovery_policy="preserve raw checkpoint candidates; do not auto-resume unverified or physically rejected states",
                   scope="live fail-fast guard; final physical acceptance unchanged")
               (d/"guard_receipt.json").write_text(json.dumps(receipt,indent=2,allow_nan=False))
@@ -663,6 +679,22 @@ jobs:
           if __name__=="__main__": sys.exit(main())
           PY
           /usr/bin/python3 "$E/live_guard.py" --selftest
+          # Exercise actual process termination, not just the pure history predicate.
+          /usr/bin/python3 - "$E/live_guard.py" <<'PY'
+          import json,os,pathlib,subprocess,sys,tempfile
+          guard=sys.argv[1]
+          header='# '+ ' '.join('[%d]=%s'%(i+1,k) for i,k in enumerate(('time','mass','J0740_Jz','max_rho','num_c2p_fail','min_alpha','H-norm2','M-norm2','J0740_Esrc_L1','J0740_Ssrc_L1')))+'\n'
+          row='0 2.4 .69 .001 0 .5 .003 .00001 0 0\n'
+          for case,extra,expected in [('ok','',None),('fatal','print("NO_SOLUTION",flush=True); time.sleep(60)','native_fatal_message'),('stall','time.sleep(60)','history_progress_stalled'),('badrow','f.write("1 2.4 .69 .002 0 .5 .003 .00001 0 0\\n"); f.flush(); time.sleep(60)','irreversible_max_gate:max_rho')]:
+              with tempfile.TemporaryDirectory() as tmp:
+                  d=pathlib.Path(tmp);(d/'run').mkdir()
+                  program='import time; f=open('+repr(str(d/'run'/'test.hst'))+',"w"); f.write('+repr(header+row)+'); f.flush(); '+extra
+                  env=dict(os.environ,J0740_STALL_SECONDS='1.5',J0740_STARTUP_SECONDS='5')
+                  p=subprocess.run([sys.executable,guard,tmp,sys.executable,'-u','-c',program],env=env,timeout=15)
+                  r=json.loads((d/'guard_receipt.json').read_text());assert r['reason']==expected,(case,r)
+                  assert p.returncode==(0 if expected is None else 75),(case,p.returncode)
+          print('LIVE_GUARD_PROCESS_TESTS: 4/4',flush=True)
+          PY
           set +e
           /usr/bin/python3 -u "$E/live_guard.py" "$E" stdbuf -oL -eL ./bin/athena "${args[@]}"
           guard_rc=$?
