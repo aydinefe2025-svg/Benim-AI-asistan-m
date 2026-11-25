@@ -79,6 +79,76 @@ jobs:
           git -C athena rev-parse HEAD | tee evidence/athena_commit.txt
           make -C rnsc -j2 2>&1 | tee evidence/rnsc_build.log
           cd athena
+          # Pinned upstream is missing its declared cold hybrid policy. Add only the adapter.
+          cat > src/z4c/primitive/cold_hybrid_table.hpp <<'CPP'
+          #ifndef J0740_COLD_HYBRID_TABLE_HPP
+          #define J0740_COLD_HYBRID_TABLE_HPP
+          #include <algorithm>
+          #include <cmath>
+          #include <stdexcept>
+          #include "hybrid_table.hpp"
+          #include "unit_system.hpp"
+          namespace Primitive {
+          // Compatibility adapter: delegate all cold thermodynamics to the native
+          // HybridTable at T=0. No changes to the native evolution equations.
+          class ColdHybridTable : public HybridTable {
+           protected:
+            Real T = 0;
+            ColdHybridTable() = default;
+            ~ColdHybridTable() = default;
+            Real Pressure(Real n) { return HybridTable::Pressure(n,0,nullptr); }
+            Real Energy(Real n) { return HybridTable::Energy(n,0,nullptr); }
+            Real Enthalpy(Real n) { return HybridTable::Enthalpy(n,0,nullptr); }
+            Real SpecificInternalEnergy(Real n) {
+              return HybridTable::SpecificInternalEnergy(n,0,nullptr);
+            }
+            Real Y(Real, int) { throw std::logic_error("No composition in cold MPA1 table"); }
+            int Count() {
+              const auto x=GetRawLogNumberDensity();
+              return 1+int(std::llround((std::log(max_n)-x[0])/(x[1]-x[0])));
+            }
+            Real dPdn(Real n) {
+              if (!(n>0)) throw std::domain_error("Nonpositive density");
+              const auto x=GetRawLogNumberDensity();
+              const auto p=GetRawTable();
+              const int count=Count();
+              const Real dx=x[1]-x[0];
+              const int i=std::max(0,std::min(count-2,int((std::log(n)-x[0])/dx)));
+              return Pressure(n)*(p[i+1]-p[i])/(dx*n);
+            }
+            Real Inverse(Real v,int column) {
+              if (!(v>0)) throw std::domain_error("Nonpositive inverse query");
+              const auto x=GetRawLogNumberDensity();
+              const int count=Count();
+              const auto y=GetRawTable()+column*count;
+              const Real lv=std::log(v);
+              const int i=std::max(0,std::min(count-2,int(std::upper_bound(y,y+count,lv)-y)-1));
+              if (!(y[i+1]>y[i])) throw std::domain_error("Nonmonotonic cold table");
+              return std::exp(x[i]+(x[i+1]-x[i])*(lv-y[i])/(y[i+1]-y[i]));
+            }
+            Real DensityFromPressure(Real p) { return Inverse(p,ECLOGP); }
+            Real DensityFromEnergy(Real e) { return Inverse(e,ECLOGE); }
+           public:
+            void ReadColdSliceFromFile(std::string file,std::string*) {
+              if (NSCALARS!=0) throw std::logic_error("Cold adapter requires NSCALARS=0");
+              ReadTableFromFile(file);
+              SetThermalGamma(1.75);
+              n_species=0;
+              if (Count()<2) throw std::runtime_error("Invalid table");
+              for (int i=0;i<64;++i) {
+                const Real n=std::exp(std::log(min_n)+(std::log(max_n)-std::log(min_n))*i/63.);
+                if (std::abs(DensityFromPressure(Pressure(n))/n-1)>1e-9 ||
+                    std::abs(DensityFromEnergy(Energy(n))/n-1)>1e-9)
+                  throw std::runtime_error("Cold table inverse mismatch");
+              }
+            }
+          };
+          }
+          #endif
+          CPP
+          printf '#include "cold_hybrid_table.hpp"\n' > src/z4c/primitive/cold_hybrid_table.cpp
+          cp src/z4c/primitive/cold_hybrid_table.hpp ../evidence/cold_adapter.hpp
+          sha256sum src/z4c/primitive/cold_hybrid_table.{hpp,cpp} > ../evidence/cold_adapter.sha256
           python3 configure.py --prob=gr_rns -f -z -z_vc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
           test -x bin/athena
@@ -124,5 +194,6 @@ jobs:
             evidence/*.sha256
             evidence/*.par
             evidence/*.inp
+            evidence/*.hpp
             evidence/run/*.hst
           if-no-files-found: error
