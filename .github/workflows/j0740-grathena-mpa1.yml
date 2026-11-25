@@ -92,7 +92,7 @@ jobs:
           sha256sum evidence/bridge.dat evidence/cold.h5 > evidence/input.sha256
           diff -u upstream/src/pgen/gr_rns.cpp upstream/src/pgen/gr_j0740.cpp > evidence/pgen.diff || test "$?" = 1
           cd upstream
-          python3 configure.py --prob=gr_j0740 -f -z -z_vc --eospolicy=hybrid_table --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
+          python3 configure.py --prob=gr_j0740 --coord=gr_dynamical -f -g -z -z_vc --eospolicy=hybrid_table --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
           sha256sum bin/athena > ../evidence/binary.sha256
       - name: Run whole-star bounded native evolution
