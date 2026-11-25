@@ -1,0 +1,96 @@
+name: J0740 F164 same-six exact-barotrope rotating RNS and fixed-J survey
+on:
+  pull_request:
+    branches: [science/j0740-f100-real-f99-GR-static-zero-and-fixed-J-turn-20261122]
+    paths: ['research/j0740/f164/**', '.github/workflows/j0740-f164-exact-derived-rotating.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  rotating:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [ENG, MPA1, MS1, MS1B, WFF1, WFF2]
+        grid: [151x301, 201x401]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-exact
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install numpy==2.3.5 scipy==1.17.0
+      - name: Reuse exact static-radial EOS source, no other model family
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          test "$(git -C rns-exact rev-parse HEAD)" = 97e85d325a33e37f702306414533f6cd77812477
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/14859941911/zip" -o F140_source.zip
+          printf '%s  %s\n' c73eada7da05c015fae75a27f29782aaafc62038a49bc760830f3de4cee6c435 F140_source.zip | sha256sum -c
+      - name: Pin six exact source barotropes and compile only EOS lookup adapter
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
+        run: |
+          set -euo pipefail
+          python research/j0740/f164/prepare.py rns-exact F140_source.zip ${{ matrix.model }} ${{ matrix.grid }} evidence
+          git -C rns-exact diff -- equil.c findmodel.c rns.c makefile > evidence/source_patch.diff
+          sha256sum rns-exact/exact_barotrope.h > evidence/adapter.sha256
+          make -C rns-exact CC='gcc -include stdlib.h' rns 2>&1 | tee evidence/build.log
+          sha256sum rns-exact/rns > evidence/binary.sha256
+      - name: Real native Einstein RNS static transfer, spin sequence and fixed-J samples
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
+        run: |
+          set -euo pipefail
+          python -u research/j0740/f164/solve.py rns-exact/rns evidence 2>&1 | tee evidence/solve.log
+          grep F164_COMPLETE evidence/solve.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: F164-${{ matrix.model }}-${{ matrix.grid }}
+          path: evidence/
+          if-no-files-found: warn
+  audit:
+    runs-on: ubuntu-24.04
+    needs: rotating
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: F164-*
+          path: all
+      - name: Match actual two-grid rotating solutions and document remaining physical limits
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          result={}
+          for m in ('ENG','MPA1','MS1','MS1B','WFF1','WFF2'):
+            a,b=[json.loads(Path(f'all/F164-{m}-{g}/result.json').read_text()) for g in ('151x301','201x401')]
+            assert a['status']==b['status']=='NATIVE_EQUILIBRIA_RECORDED'
+            assert a['inputs']['candidate_sha']==b['inputs']['candidate_sha']
+            assert a['inputs']['rns_table_sha']==b['inputs']['rns_table_sha']
+            assert a['binary_sha']!=b['binary_sha']
+            x,y=a['target'],b['target']
+            assert max(abs(z['M_msun']-2.073) for z in (x,y))<=2e-5
+            assert max(abs(z['f']-346.536369) for z in (x,y))<=.05
+            dr=abs(x['R_km']-y['R_km'])
+            result[m]={'R_eq_km_fine':y['R_km'],'radius_mesh_delta_km':dr,'mesh_radius_gate':dr<=.025,'local_fixedJ_positive_both':a['local_fixedJ_positive'] and b['local_fixedJ_positive'],'sampled_fixedJ_turning_both':a['sampled_fixedJ_turning'] and b['sampled_fixedJ_turning'],'scan_counts':[len(a['scan']),len(b['scan'])],'scan_errors':[len(a['scan_errors']),len(b['scan_errors'])],'fixedJ_errors':[len(a['fixedJ_errors']),len(b['fixedJ_errors'])],'candidate_sha':a['inputs']['candidate_sha']}
+            print('F164_AUDIT',m,result[m])
+          Path('F164_result.json').write_text(json.dumps({'status':'TWO_GRID_ROTATING_DIAGNOSTICS_ONLY','models':result,'limits':'Not original EOS or rotating dynamical eigenfrequency proof. Local fixed-J slopes and sampled turning are diagnostics. Baryon normalization conventional; no physical microphysics certification or new photon evidence.'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: F164-two-grid-audit
+          path: F164_result.json
