@@ -4,6 +4,9 @@ on:
     branches: [main]
     paths: ['.github/workflows/j0740-one-rotation.yml']
   workflow_dispatch:
+concurrency:
+  group: j0740-one-rotation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
 permissions:
   contents: read
   actions: read
@@ -557,13 +560,114 @@ jobs:
             esac
           done
           printf '%q ' ./bin/athena "${args[@]}" > "$E/command.txt"
-          # Stream and fail fast on actual primitive recovery/metric failure;
-          # archive existing checkpoints and raw history even on failure.
+          # Live guard monitors native output and irreversible acceptance violations.
+          cat > "$E/live_guard.py" <<'PY'
+          import json, math, os, pathlib, re, signal, subprocess, sys, time
+          
+          def check(names, row, initial):
+              if len(row)!=len(names) or not all(math.isfinite(v) for v in row):
+                  return "nonfinite_or_malformed_history"
+              x=dict(zip(names,row))
+              required=("time","mass","J0740_Jz","max_rho","num_c2p_fail","min_alpha","H-norm2","M-norm2","J0740_Esrc_L1","J0740_Ssrc_L1")
+              if not all(k in x for k in required): return "missing_history_columns"
+              if x["mass"]<=0 or x["max_rho"]<=0 or x["min_alpha"]<=0: return "nonpositive_physical_state"
+              if x["num_c2p_fail"]!=0: return "primitive_recovery_failure"
+              if min(x["H-norm2"],x["M-norm2"],x["J0740_Esrc_L1"],x["J0740_Ssrc_L1"])<0: return "negative_norm"
+              ref=initial or x
+              if ref["J0740_Jz"]==0: return "zero_initial_angular_momentum"
+              for k,limit in (("mass",.001),("J0740_Jz",.01),("max_rho",.02)):
+                  if abs(x[k]/ref[k]-1)>limit: return "irreversible_max_gate:"+k
+              for k in ("J0740_Esrc_L1","J0740_Ssrc_L1"):
+                  if x[k]/ref["mass"]>=1e-4: return "irreversible_max_gate:"+k
+              return None
+          
+          def selftest():
+              names=["time","mass","J0740_Jz","max_rho","num_c2p_fail","min_alpha","H-norm2","M-norm2","J0740_Esrc_L1","J0740_Ssrc_L1"]
+              row=[0,2.4,.69,.001,0,.5,.003,.00001,0,0]
+              ref=dict(zip(names,row))
+              assert check(names,row,ref) is None
+              for k,v in (("mass",2.5),("J0740_Jz",.75),("max_rho",.0011),("num_c2p_fail",1),("min_alpha",0),("H-norm2",float("nan")),("J0740_Esrc_L1",.01),("M-norm2",-1)):
+                  a=row.copy();a[names.index(k)]=v
+                  assert check(names,a,ref),k
+              assert check(names,row[:-1],ref)
+              print("GUARD_SELFTEST: 10/10",flush=True)
+          
+          def main():
+              selftest()
+              if sys.argv[1:]==["--selftest"]: return 0
+              d=pathlib.Path(sys.argv[1]); command=sys.argv[2:]
+              assert command and d.is_dir()
+              reason=None; initial=None; last=None; names=None; seen=0; offset=0; hist=None
+              log=d/"native.log"
+              fatal=re.compile(rb"Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT")
+              start=time.monotonic()
+              with log.open("wb") as output:
+                  p=subprocess.Popen(command,stdout=output,stderr=subprocess.STDOUT,start_new_session=True)
+                  with log.open("rb") as inp:
+                      pending=b""
+                      while True:
+                          chunk=inp.read(65536)
+                          if chunk:
+                              sys.stdout.buffer.write(chunk);sys.stdout.buffer.flush()
+                              pending+=chunk
+                              if fatal.search(pending): reason="native_fatal_message"
+                              pending=pending[-512:]
+                          files=list((d/"run").glob("*.hst"))
+                          if len(files)>1: reason="ambiguous_history"
+                          if len(files)==1:
+                              hist=files[0]
+                              with hist.open("rb") as f:
+                                  f.seek(offset)
+                                  while True:
+                                      line=f.readline()
+                                      if not line or not line.endswith(b"\n"): break
+                                      offset=f.tell()
+                                      if line.lstrip().startswith(b"#"):
+                                          if b"[1]=time" in line:
+                                              names=re.findall(r"\[\d+\]=([^ ]+)",line.decode().strip())
+                                          continue
+                                      if not line.strip(): continue
+                                      if names is None: reason="missing_history_header";break
+                                      try: row=[float(v) for v in line.split()]
+                                      except ValueError: reason="malformed_history";break
+                                      error=check(names,row,initial)
+                                      if error:
+                                          reason=error;break
+                                      if initial is None: initial=dict(zip(names,row))
+                                      last=dict(zip(names,row));seen+=1
+                          if reason is None and time.monotonic()-start>19500: reason="time_budget"
+                          if reason:
+                              if p.poll() is None:
+                                  os.killpg(p.pid,signal.SIGTERM)
+                                  try: p.wait(timeout=20)
+                                  except subprocess.TimeoutExpired:
+                                      os.killpg(p.pid,signal.SIGKILL);p.wait()
+                              break
+                          if p.poll() is not None and not chunk:
+                              if seen==0: reason="no_valid_history"
+                              elif p.returncode!=0: reason="native_nonzero_exit"
+                              break
+                          if not chunk: time.sleep(.25)
+                      # Preserve all remaining raw diagnostics after termination.
+                      rest=inp.read()
+                      if rest: sys.stdout.buffer.write(rest);sys.stdout.buffer.flush()
+              rc=p.wait()
+              if reason is None and rc!=0: reason="native_nonzero_exit"
+              receipt=dict(reason=reason,exit_code=rc,valid_history_rows=seen,last_valid_history=last,
+                  checkpoint_candidates=[dict(path=str(q.relative_to(d)),bytes=q.stat().st_size) for q in sorted((d/"run").glob("*.rst"))],
+                  recovery_policy="preserve raw checkpoint candidates; do not auto-resume unverified or physically rejected states",
+                  scope="live fail-fast guard; final physical acceptance unchanged")
+              (d/"guard_receipt.json").write_text(json.dumps(receipt,indent=2,allow_nan=False))
+              return 75 if reason else rc
+          
+          if __name__=="__main__": sys.exit(main())
+          PY
+          /usr/bin/python3 "$E/live_guard.py" --selftest
           set +e
-          timeout --signal=TERM --kill-after=30s 325m stdbuf -oL -eL ./bin/athena "${args[@]}" 2>&1 | awk '{print;fflush(); if($0 ~ /Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT/) exit 75}' | tee "$E/native.log"
-          statuses=("${PIPESTATUS[@]}")
+          /usr/bin/python3 -u "$E/live_guard.py" "$E" stdbuf -oL -eL ./bin/athena "${args[@]}"
+          guard_rc=$?
           set -e
-          printf '%s\n' "${statuses[@]}" > "$E/process_status.txt"
+          printf '%s\n' "$guard_rc" > "$E/process_status.txt"
           /usr/bin/python3 - <<'PY'
           import pathlib,json,math,re,os,numpy as np
           d=pathlib.Path('../evidence');files=list((d/'run').rglob('*.hst'))
@@ -605,6 +709,7 @@ jobs:
             evidence/*.inp
             evidence/*.hpp
             evidence/*.patch
+            evidence/live_guard.py
             evidence/run/*.hst
             evidence/run/*.rst
             evidence/run/*.athdf
