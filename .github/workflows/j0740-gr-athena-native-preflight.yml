@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, exact successful run
         with:
           repository: computationalrelativity/gr-athena
           ref: f534ca0f6fa0d55b90df1686fa9abd476730bf3b
@@ -53,7 +53,7 @@ jobs:
           (d/'receipt.json').write_text(json.dumps({'status':'UPSTREAM_Z4C_SMOKE_ONLY','history_rows':len(samples),'max_history_time':max(r[0] for r in samples),'limits':'Gauge wave, not fluid or J0740 evolution. No physical EOS acceptance.'},indent=2))
           print((d/'receipt.json').read_text())
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, exact successful run
         if: always()
         with:
           name: j0740-gr-athena-upstream-native-smoke
