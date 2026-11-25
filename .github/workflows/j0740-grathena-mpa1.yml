@@ -106,6 +106,20 @@ jobs:
           p.write_text(s.replace(a,a+'\n  void SetMaximumDensity(Real n_max) { max_n = n_max; }\n  void SetMaximumTemperature(Real T_max) { max_T = T_max; }'))
           PY
           git -C upstream diff -- src/z4c/primitive/hybrid_table.hpp > evidence/hybrid_limits.diff
+          # HybridTable::Entropy is deliberately unimplemented upstream.
+          # This run evolves energy, not entropy. Mark only the unused diagnostic
+          # unavailable; never invent an entropy or change the EOS/fluxes.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('upstream/src/eos/eos_utils.cpp')
+          s=p.read_text()
+          a='    hyd_der_ms(IX_SPB, k, j, i) =' + chr(10) + '      skip_spb ? hyd_der_ms(IX_SPB, k, j, i)' + chr(10) + '               : ((T > 0) ? GetEOS().GetEntropyPerBaryon(n, T, Y) : 0);'
+          assert s.count(a)==1
+          b='    hyd_der_ms(IX_SPB, k, j, i) = std::numeric_limits<Real>::quiet_NaN(); // unavailable, not a physical entropy'
+          s=s.replace(a,b)
+          p.write_text(s)
+          PY
+          git -C upstream diff -- src/eos/eos_utils.cpp > evidence/entropy_diagnostic.diff
           cd upstream
           python3 configure.py --prob=gr_j0740 --coord=gr_dynamical -f -g -z -z_vc --eospolicy=hybrid_table --cxx g++ --cflag=-g1 -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
@@ -144,6 +158,10 @@ jobs:
           '''
           s=re.sub(r'^problem_id\s*=.*$','problem_id = j0740_mpa1',s,flags=re.M)
           s=re.sub(r'^tlim\s*=.*$','tlim = 2.0',s,flags=re.M)
+          # Explicitly prohibit entropy reconstruction with this cold+thermal EOS.
+          assert 'xorder_use_aux_s' not in s
+          s=s.replace('<time>', '<time>' + chr(10) + 'xorder_use_aux_s = false', 1)
+          (d/'entropy_scope.json').write_text(json.dumps(dict(entropy_available=False,entropy_reconstruction=False,diagnostic='NaN; not used for acceptance',evolution='energy-based')))
           (d/'star.inp').write_text(s)
           PY
           mkdir -p evidence/run
