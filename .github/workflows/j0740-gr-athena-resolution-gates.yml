@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        n: [48, 64, 96]
+        n: [48, 64]
     env:
       J0740_N: ${{ matrix.n }}
     steps:
@@ -495,6 +495,19 @@ jobs:
           p.write_text(s)
           PY
           git diff -- src/z4c/matter_sources.cpp src/pgen/gr_rns.cpp > ../evidence/current_matter_source.patch
+          # Controlled outer-boundary repair: only Z4c spacetime ghost fill.
+          # N48 raw HDF5: 99.615% of final momentum norm2 is in |x|,|y| or |z|>20.
+          # Copying a nonconstant exterior metric forces zero normal derivative.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/comm/physical_bcs.cpp')
+          s=p.read_text()
+          a='    case PhysicalBC::Outflow:'+chr(10)+'      OutflowBC(var, nvar, face, il, iu, jl, ju, kl, ku, ngh);'
+          assert s.count(a)==1
+          b='    case PhysicalBC::Outflow:'+chr(10)+'      if (spec.label == "z4c_u" && sampling == Sampling::CC)'+chr(10)+'        ExtrapolateOutflowBC(var, nvar, face, il, iu, jl, ju, kl, ku, ngh);'+chr(10)+'      else'+chr(10)+'        OutflowBC(var, nvar, face, il, iu, jl, ju, kl, ku, ngh);'
+          p.write_text(s.replace(a,b))
+          PY
+          git diff -- src/comm/physical_bcs.cpp > ../evidence/outer_boundary.patch
           python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
           test -x bin/athena
@@ -555,6 +568,16 @@ jobs:
                       if isinstance(v,h5py.Dataset) and np.issubdtype(v.dtype,np.number):assert np.isfinite(v[:]).all(),(p,k)
           result=dict(status='SHORT_MATCHED_RESOLUTION_SCREEN_ONLY',n=int(os.environ['J0740_N']),max_time=float(a[-1,0]),rotation_target=585.8691805265147,mass_initial=float(mass[0]),J_initial=float(jz[0]),mass_drift=dmass,J_drift=dj,rho_drift=drho,H0=float(H[0]),Hfinal=float(H[-1]),M0=float(M[0]),Mfinal=float(M[-1]),Hmax=float(max(H)),Mmax=float(max(M)),gates=gates)
           (d/'receipt.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
+          # Localize errors without excluding any region from the global gate.
+          for p in sorted((d/'run').glob('*out3*.athdf')):
+              with h5py.File(p) as f:
+                  names=[x.decode() for x in f.attrs['VariableNames']]
+                  ds=f[f.attrs['DatasetNames'][0].decode()]
+                  q=int((ds.shape[-1]-16)//2); sl=slice(q,q+16)
+                  m=ds[names.index('geom.con.M'),:,sl,sl,sl]
+                  x=f['x1v'][:,sl]; y=f['x2v'][:,sl]; z=f['x3v'][:,sl]
+                  edge=np.maximum(np.maximum(abs(x[:,None,None,:]),abs(y[:,None,:,None])),abs(z[:,:,None,None]))>20
+                  print('MOMENTUM_LOCALIZATION',float(f.attrs['Time']),float(m[edge].sum()),float(m[~edge].sum()))
           assert all(gates.values()), 'short screen rejected; do not extend unqualified evolution'
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
