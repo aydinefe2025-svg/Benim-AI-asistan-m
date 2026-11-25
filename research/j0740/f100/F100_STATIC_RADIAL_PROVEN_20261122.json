@@ -1,0 +1,211 @@
+{
+  "schema": "J0740_F100_DERIVED_F99_STATIC_TOV_GLOBAL_TURNING_AND_RADIAL_EIGENMODE_BIFURCATION",
+  "source_F99_SHA256": "c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331",
+  "derived_model_distinct_from_original_seven_EOS": true,
+  "reference_eos": "F99_1981_NODE_DISTINCT_AFFINE_COLD_PHYSICALLY_DERIVED",
+  "nodes": 1981,
+  "all_EOS_native_segments_causal": true,
+  "cs2_min": 2.8870393167868587e-13,
+  "cs2_max": 0.9953877974017378,
+  "EOS_max_tabulated_P_MeVfm3": 1456.0680211848526,
+  "M_max_TOV_MSun": 2.1779560617279676,
+  "Pc_at_Mmax_MeVfm3": 952.362876774197,
+  "R_km_at_Mmax": 10.047690151539742,
+  "J0740_mass_reference_2p073_MSun_central_P_MeVfm3": 418.74321216708,
+  "static_models": [
+    {
+      "label": "j0740_equilibrium",
+      "central_P_MeVfm3": 418.74321216708,
+      "M_Msun": 2.0730000114214646,
+      "R_km": 10.724335947938666,
+      "modes": [
+        {
+          "mesh": 220,
+          "omega0_squared_km_minus2": 0.002368484480763796,
+          "signed_f0_Hz": 2322.074270150806,
+          "nodes": 0
+        },
+        {
+          "mesh": 320,
+          "omega0_squared_km_minus2": 0.0023677448995347715,
+          "signed_f0_Hz": 2321.7116972390813,
+          "nodes": 0
+        },
+        {
+          "mesh": 480,
+          "omega0_squared_km_minus2": 0.002369049112400201,
+          "signed_f0_Hz": 2322.351037525578,
+          "nodes": 0
+        },
+        {
+          "mesh": 700,
+          "omega0_squared_km_minus2": 0.0023678645638960877,
+          "signed_f0_Hz": 2321.770365433713,
+          "nodes": 0
+        }
+      ]
+    },
+    {
+      "label": "stable_branch",
+      "central_P_MeVfm3": 900.0,
+      "M_Msun": 2.177498522011848,
+      "R_km": 10.098513138787059,
+      "modes": [
+        {
+          "mesh": 220,
+          "omega0_squared_km_minus2": 0.00016925608648370237,
+          "signed_f0_Hz": 620.7446454991702,
+          "nodes": 0
+        },
+        {
+          "mesh": 320,
+          "omega0_squared_km_minus2": 0.0001667878957562035,
+          "signed_f0_Hz": 616.2019939957968,
+          "nodes": 0
+        },
+        {
+          "mesh": 480,
+          "omega0_squared_km_minus2": 0.0001667588041809994,
+          "signed_f0_Hz": 616.1482518812284,
+          "nodes": 0
+        },
+        {
+          "mesh": 700,
+          "omega0_squared_km_minus2": 0.00016733832449178352,
+          "signed_f0_Hz": 617.2179427536205,
+          "nodes": 0
+        }
+      ]
+    },
+    {
+      "label": "tov_mass_maximum",
+      "central_P_MeVfm3": 952.362876774197,
+      "M_Msun": 2.1779560617279676,
+      "R_km": 10.047690151539742,
+      "modes": [
+        {
+          "mesh": 220,
+          "omega0_squared_km_minus2": 7.584886696748221e-07,
+          "signed_f0_Hz": 41.55424379362109,
+          "nodes": 0
+        },
+        {
+          "mesh": 320,
+          "omega0_squared_km_minus2": 3.8983595929397e-07,
+          "signed_f0_Hz": 29.790773736111685,
+          "nodes": 0
+        },
+        {
+          "mesh": 480,
+          "omega0_squared_km_minus2": 5.614804005288384e-07,
+          "signed_f0_Hz": 35.752641577350424,
+          "nodes": 0
+        },
+        {
+          "mesh": 700,
+          "omega0_squared_km_minus2": 5.585108101618391e-07,
+          "signed_f0_Hz": 35.657970906003875,
+          "nodes": 0
+        }
+      ]
+    },
+    {
+      "label": "unstable_branch",
+      "central_P_MeVfm3": 985.0,
+      "M_Msun": 2.177795539044937,
+      "R_km": 10.017184659737987,
+      "modes": [
+        {
+          "mesh": 220,
+          "omega0_squared_km_minus2": -9.8967306362058e-05,
+          "signed_f0_Hz": -474.6644534345685,
+          "nodes": 0
+        },
+        {
+          "mesh": 320,
+          "omega0_squared_km_minus2": -9.829971931754962e-05,
+          "signed_f0_Hz": -473.06081258614364,
+          "nodes": 0
+        },
+        {
+          "mesh": 480,
+          "omega0_squared_km_minus2": -9.789354970408227e-05,
+          "signed_f0_Hz": -472.08246889841575,
+          "nodes": 0
+        },
+        {
+          "mesh": 700,
+          "omega0_squared_km_minus2": -9.874538974474156e-05,
+          "signed_f0_Hz": -474.13197938167804,
+          "nodes": 0
+        }
+      ]
+    },
+    {
+      "label": "deep_unstable_branch",
+      "central_P_MeVfm3": 1200.0,
+      "M_Msun": 2.1707280788700847,
+      "R_km": 9.83626953235697,
+      "modes": [
+        {
+          "mesh": 220,
+          "omega0_squared_km_minus2": -0.000658554475886159,
+          "signed_f0_Hz": -1224.4376846734096,
+          "nodes": 0
+        },
+        {
+          "mesh": 320,
+          "omega0_squared_km_minus2": -0.0006582425033789911,
+          "signed_f0_Hz": -1224.1476280732734,
+          "nodes": 0
+        },
+        {
+          "mesh": 480,
+          "omega0_squared_km_minus2": -0.0006591039824592113,
+          "signed_f0_Hz": -1224.9484216611966,
+          "nodes": 0
+        },
+        {
+          "mesh": 700,
+          "omega0_squared_km_minus2": -0.000659293473152263,
+          "signed_f0_Hz": -1225.1244937611511,
+          "nodes": 0
+        }
+      ]
+    }
+  ],
+  "radial_omega2_zero_mesh_checks": [
+    {
+      "mesh": 220,
+      "zero_omega0sq_P_MeVfm3": 952.8767996078396,
+      "delta_from_static_max_P_MeVfm3": 0.5139228336425958,
+      "relative_delta_pct": 0.05396292171565248
+    },
+    {
+      "mesh": 320,
+      "zero_omega0sq_P_MeVfm3": 952.875634391492,
+      "delta_from_static_max_P_MeVfm3": 0.5127576172949375,
+      "relative_delta_pct": 0.05384057167701961
+    },
+    {
+      "mesh": 480,
+      "zero_omega0sq_P_MeVfm3": 952.5034452731387,
+      "delta_from_static_max_P_MeVfm3": 0.14056849894166135,
+      "relative_delta_pct": 0.01475997252410646
+    },
+    {
+      "mesh": 700,
+      "zero_omega0sq_P_MeVfm3": 952.5043745071188,
+      "delta_from_static_max_P_MeVfm3": 0.14149773292172085,
+      "relative_delta_pct": 0.014857543943858452
+    }
+  ],
+  "mesh_root_delta_max_pct": 0.05396292171565248,
+  "real_GR_TOV_stars_derived_EOS": true,
+  "real_GR_radial_linear_axisymmetric_mode_nonrotating": true,
+  "uniformly_rotating_axisymmetric_perturbation_eigenmodes": "NOT_RUN",
+  "real_rotating_fixed_J_sequence": "NOT_RUN_BY_THIS_SCRIPT",
+  "seven_original_EOS_all_MR_native_photon_evidence": "NOT_RUN",
+  "failure_guard": "Mode nodes and eigenvalue signs validated; no positive frequency assigned to unstable eigenvalues",
+  "source_method": "F95 native-source verified static GR radial Sturm-Liouville FE operator reused but EOS is F99 thermodynamically derived (not published APR original)."
+}

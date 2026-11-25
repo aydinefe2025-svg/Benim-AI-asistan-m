@@ -1,0 +1,148 @@
+name: J0740 F100 genuine F99 cold-EOS static GR zero-mode and two-grid rotating fixed-J high-density turning
+on:
+  pull_request:
+    branches:
+      - science/j0740-apr4-firstlaw-gr-pilot-20261117
+    paths:
+      - 'research/j0740/f100/**'
+      - '.github/workflows/j0740-f100-true-source-fixed-J-rotating-turning-and-static-radial.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  real_F99_derived_GR_rotating_turning_and_static_radial:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns-upstream
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Freeze the numerical environment
+        run: python -m pip install 'numpy==2.3.5' 'scipy==1.17.0'
+      - name: Reuse existing genuine original F88 and F99 frozen physical native C evidence (do not repeat old 18 stars)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p results/F88 results/F99prior results/F100 research/j0740/f99
+          gh run download 44818195695 -R "$GITHUB_REPOSITORY" -n J0740-F88-ACTUAL-ORIGINAL-APR-C-RNS-TWO-GRID -D results/F88
+          gh run download 45007148970 -R "$GITHUB_REPOSITORY" -n J0740-F99-ORIGINAL-SOURCE-NOGO-DISTINCT-1981-COLD-EOS-REAL-18-C-STARS -D results/F99prior
+          printf '%s  %s\n' 8338af81270a87c93f19c28df86fbaac5618296aff6535177eb41052c77dcb12 results/F88/F87_verified_publisher_original.zip | sha256sum -c -
+          printf '%s  %s\n' 7643d0e4361adee77cc79d1b69eb445db70a52443b833c4dddafa973193fb580 results/F88/m.rns | sha256sum -c -
+          printf '%s  %s\n' f1f91c17d7c6b7975b71418f72fb7fb56d5602fab3326f2503772cb3d25e3766 results/F99prior/F99_NEW_REAL_1981_EOS_18_NATIVE_EINSTEIN_C_STARS.json | sha256sum -c -
+          cp results/F88/m.rns research/j0740/f99/F88_m_original.rns
+      - name: Rebuild F99 exactly from original publisher to short EOS path, preserving frozen F99 thermo receipt
+        run: |
+          set -euo pipefail
+          cp research/j0740/f99/F99_1933_exact_source_no_go_and_1981_model_receipt_20261122.json results/F100/F100_PREEXISTING_F99_COLD_RECEIPT.json
+          python research/j0740/f99/f99_physical_firstlaw_source_no_go_derived_eos.py \
+            --source research/j0740/f99/F88_m_original.rns --out m100.rns \
+            --report results/F100/F100_NEW_F99_COLD_RECEIPT.json \
+            2>&1 | tee results/F100/F100_NO_NEW_EOS_F99_REBUILD.log
+          printf '%s  %s\n' c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331 m100.rns | sha256sum -c -
+          cmp results/F100/F100_PREEXISTING_F99_COLD_RECEIPT.json results/F100/F100_NEW_F99_COLD_RECEIPT.json
+      - name: ACTUAL general relativistic TOV peak + 5 stellar models + 4 meshes of Chandrasekhar radial eigenmodes
+        run: |
+          set -euo pipefail
+          cp research/j0740/f100/F100_STATIC_RADIAL_PROVEN_20261122.json results/F100/F100_ORIGINAL_NUMERIC_REFERENCE.json
+          OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -u research/j0740/f100/f100_full_static_physics.py \
+            --eos m100.rns --solver-root research/j0740/f95 \
+            --out research/j0740/f100/F100_STATIC_RADIAL_PROVEN_20261122.json \
+            2>&1 | tee results/F100/F100_ACTUAL_STATIC_TOV_RADIAL_SOLVER.log
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          old=json.loads(Path('results/F100/F100_ORIGINAL_NUMERIC_REFERENCE.json').read_text())
+          actual=json.loads(Path('research/j0740/f100/F100_STATIC_RADIAL_PROVEN_20261122.json').read_text())
+          assert old['source_F99_SHA256']==actual['source_F99_SHA256']
+          assert abs(old['M_max_TOV_MSun']-actual['M_max_TOV_MSun'])<.0005
+          assert abs(old['Pc_at_Mmax_MeVfm3']-actual['Pc_at_Mmax_MeVfm3'])<2
+          assert actual['mesh_root_delta_max_pct']<.08
+          for a,b in zip(old['static_models'],actual['static_models']):
+           assert abs(a['M_Msun']-b['M_Msun'])<.0005
+          print('F100_F99_REAL_STATIC_GR_MASS_MAX_AND_RADIAL_ZERO_INDEPENDENT_SOURCE_REPRODUCED')
+          PY
+          cp research/j0740/f100/F100_STATIC_RADIAL_PROVEN_20261122.json results/F100/
+      - name: Ten independent source, physics, numerical uncertainty and no-overclaim tests
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -m unittest discover -s research/j0740/f100 -p 'test_f100_physical_static_rotating_preflight.py' -v \
+            2>&1 | tee results/F100/F100_SOURCE_PHYSICS_10_UNIT_TESTS.log
+      - name: Compile two completely distinct Einstein C native RNS grids from exact pinned upstream (print format only)
+        run: |
+          set -euo pipefail
+          test "$(git -C rns-upstream rev-parse HEAD)" = '97e85d325a33e37f702306414533f6cd77812477'
+          cp -a rns-upstream rns151
+          cp -a rns-upstream rns201
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'research/j0740/f81')
+          from f81_exact_mass_spin import patch_print_only
+          for folder,grid in (('rns151','151x301'),('rns201','201x401')):
+           p=Path(folder)/'rns.c';p.write_text(patch_print_only(p.read_text()))
+           mf=Path(folder)/'makefile';txt=mf.read_text()
+           needle='HIGHSIZE=-DMDIV=151 -DSDIV=301'
+           assert txt.splitlines().count(needle)==1
+           if grid=='201x401':mf.write_text(txt.replace(needle,'HIGHSIZE=-DMDIV=201 -DSDIV=401',1))
+          PY
+          make -C rns151 CC='gcc -include stdlib.h' rns
+          make -C rns201 CC='gcc -include stdlib.h' rns
+          sha256sum rns151/rns rns201/rns | tee results/F100/F100_TWO_PINNED_NATIVE_C_EINSTEIN_BINARY_SHA256.txt
+      - name: ACTUAL 14x2 NEW high-density C/RNS stars at fixed J, beyond old low-density real C models, crossing derived F99 static mass peak
+        run: |
+          set -euo pipefail
+          OPENBLAS_NUM_THREADS=1 python -u research/j0740/f100/f100_real_rotating_fixedJ_highdensity.py \
+            --old-f99 results/F99prior/F99_NEW_REAL_1981_EOS_18_NATIVE_EINSTEIN_C_STARS.json \
+            --eos m100.rns \
+            --rns151 "$GITHUB_WORKSPACE/rns151/rns" \
+            --rns201 "$GITHUB_WORKSPACE/rns201/rns" \
+            --out results/F100/F100_REAL_NEW_28_TWO_GRID_EINSTEIN_C_STARS.json \
+            2>&1 | tee results/F100/F100_GENUINE_NEW_28_STARS_NATIVE_C_TRACE.log
+      - name: "Independent strict real C proof of 28 unique source stars and two-grid peak evidence"
+        run: |
+          python - <<'PY'
+          import json,math
+          from pathlib import Path
+          p=Path('results/F100/F100_REAL_NEW_28_TWO_GRID_EINSTEIN_C_STARS.json')
+          d=json.loads(p.read_text()); grids=d['two_grid_results']
+          assert set(grids)=={'151x301','201x401'}
+          assert d['original_7_EOS_native_MR_photon_evidence']=='NOT_RUN'
+          assert d['real_rotating_dynamical_mode_eigenfrequencies']=='NOT_RUN'
+          assert d['derived_F99_eos_sha256']=='c99eadee07bf6cbbf78f59b6171ef7e21ffad7d034f4ca4e9b7d85d36d9b4331'
+          for k,g in grids.items():
+           assert len(g['actual_C_stars'])==14 and not g['real_C_errors'],k
+           assert len({x['source_point_index'] for x in g['actual_C_stars']})==14
+           assert all(x['real_solver_checked'] and x['J_relative_error']<=3e-5 for x in g['actual_C_stars'])
+           assert g['actual_native_C_calls_logged']>=14
+           assert g['sampling_diagnostic']['continuous_turning_point_math_proven']=='NO_DISCRETE_RNS_SAMPLES_ONLY'
+          assert d['native_real_C_stars']==28
+          assert d['two_mesh_sampled_mass_turning_peak_seen'],'Rotating source-native sample mass maximum has NOT been independently demonstrated: physical negative result must remain visible'
+          assert d['status']=='TWO_GRID_SOURCE_REAL_C_SIGN_CHANGE_FOUND_NOT_FULL_DYNAMICAL_MODE'
+          print('F100_REAL_TWO_GRID_28_ROTATING_C_STARS_AND_SIGN_CHANGE_VERIFIED',d['new_native_C_calls'])
+          PY
+      - name: Always preserve every real C root and failure, no silent success
+        if: always()
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          p=Path('results/F100');p.mkdir(parents=True,exist_ok=True)
+          m={a.name:{'sha256':hashlib.sha256(a.read_bytes()).hexdigest(),'bytes':a.stat().st_size} for a in p.iterdir() if a.is_file()}
+          (p/'F100_REAL_EINSTEIN_C_SHA256_RECEIPT.json').write_text(json.dumps(m,indent=2)+'\n')
+          PY
+      - name: Preserve REAL source star calculations, independently measured slopes, and all traces even if scientific claim fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: J0740-F100-F99-DERIVED-COLD-GR-STATIC-MASSMAX-RADIAL-ZERO-REAL-ROTATING-C-28-STARS
+          path: results/F100/
+          if-no-files-found: warn
