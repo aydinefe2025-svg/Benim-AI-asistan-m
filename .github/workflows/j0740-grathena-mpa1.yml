@@ -106,81 +106,44 @@ jobs:
           p.write_text(s.replace(a,a+'\n  void SetMaximumDensity(Real n_max) { max_n = n_max; }\n  void SetMaximumTemperature(Real T_max) { max_T = T_max; }'))
           PY
           git -C upstream diff -- src/z4c/primitive/hybrid_table.hpp > evidence/hybrid_limits.diff
-          # HybridTable::Entropy is deliberately unimplemented upstream.
-          # This run evolves energy, not entropy. Mark only the unused diagnostic
-          # unavailable; never invent an entropy or change the EOS/fluxes.
+          # Match the finite cell-centred pilot (run 45704689216).
+          # Gamma-law entropy is a diagnostic, not microphysical entropy.
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('upstream/src/eos/eos_utils.cpp')
+          p=Path('upstream/src/z4c/primitive/hybrid_table.cpp')
           s=p.read_text()
-          a='    hyd_der_ms(IX_SPB, k, j, i) =' + chr(10) + '      skip_spb ? hyd_der_ms(IX_SPB, k, j, i)' + chr(10) + '               : ((T > 0) ? GetEOS().GetEntropyPerBaryon(n, T, Y) : 0);'
-          assert s.count(a)==1
-          b='    hyd_der_ms(IX_SPB, k, j, i) = std::numeric_limits<Real>::quiet_NaN(); // unavailable, not a physical entropy'
-          s=s.replace(a,b)
-          p.write_text(s)
-          PY
-          git -C upstream diff -- src/eos/eos_utils.cpp > evidence/entropy_diagnostic.diff
-          # VC physical ghost bounds must use the Z4c vertex lattice, not
-          # the fluid cell lattice. Preserve the same boundary condition.
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('upstream/src/comm/physical_bcs.cpp')
-          s=p.read_text()
-          inc='#include "../mesh/mesh_refinement.hpp"'
-          assert s.count(inc)==1
-          s=s.replace(inc,inc+chr(10)+'#include "../z4c/z4c.hpp"')
-          start=s.index('void ApplyPhysicalBCs(MeshBlock*')
-          end=s.index('  // Start with transverse limits',start)
-          prefix=s[start:end]
-          old='  const int ng           = spec.nghost;'
-          assert prefix.count(old)==1
-          prefix=prefix.replace(old,'  const bool vc = spec.sampling == Sampling::VC && pmb->pz4c != nullptr;'+chr(10)+'  const int ng = vc ? pmb->pz4c->mbi.ng : spec.nghost;')
-          for ax,lo,hi in [('i','il','iu'),('j','jl','ju'),('k','kl','ku')]:
-              old=f'  const int {ax}s = pmb->{ax}s, {ax}e = pmb->{ax}e;'
-              assert prefix.count(old)==1
-              prefix=prefix.replace(old,f'  const int {ax}s = vc ? pmb->pz4c->mbi.{lo} : pmb->{ax}s, {ax}e = vc ? pmb->pz4c->mbi.{hi} : pmb->{ax}e;')
-          s=s[:start]+prefix+s[end:]
-          p.write_text(s)
-          # VC interpolation: determinant and inverse must describe exactly
-          # the same local cell metric, not an independently cached quantity.
-          p=Path('upstream/src/eos/eos_utils.cpp')
-          s=p.read_text()
-          old='      const Real oo_det_gamma_i = 1. / SQR(sqrt_det_gamma_(i));'
+          old='throw std::logic_error("HybridTable::Entropy not currently implemented.");'
           assert s.count(old)==1
-          new='      const Real det_gamma_i = LinearAlgebra::Det3Metric(gamma_dd_, i);'+chr(10)+'      sqrt_det_gamma_(i) = std::sqrt(det_gamma_i);'+chr(10)+'      const Real oo_det_gamma_i = 1. / det_gamma_i;'
-          p.write_text(s.replace(old,new))
-          PY
-          git -C upstream diff -- src/comm/physical_bcs.cpp src/eos/eos_utils.cpp > evidence/vc_geometry.diff
-          # Vertex-to-cell interpolation must precede determinant and inversion:
-          # det(interp(gamma)) is not interp(det(gamma)).
-          python3 - <<'PY'
-          from pathlib import Path
+          s=s.replace(old,'''if (!(n > 0 && T > 0 && std::isfinite(n) && std::isfinite(T)))
+              throw std::domain_error("Hybrid thermal entropy requires positive finite n,T");
+            return std::log(T)/gamma_th_m1 - std::log(n);''')
+          p.write_text(s)
           p=Path('upstream/src/eos/eos_utils.cpp')
           s=p.read_text()
-          i=s.index('void EquationOfState::GeometryToSlicedCC(')
-          a=s.index('  if (!coarse_flag)',i)
-          b=s.index('  // recycle scratch alloc.',a)
-          tail=s[a:b]
-          start=tail.index('    for (int i = il; i <= iu; ++i)',tail.index('  else'+chr(10)+'  {'))
-          end=tail.rindex('  }')
-          loop=tail[start:end].rstrip()
-          assert 'Det3Metric(gamma_dd_, i)' in loop and 'Inv3Metric' in loop
-          s=s[:a]+'#pragma omp simd'+chr(10)+loop+chr(10)+chr(10)+s[b:]
-          p.write_text(s)
-          # Stop on the first invalid conserved energy instead of producing
-          # gigabytes of invalid evolution. Keep the original diagnostic.
+          old='sqrt_det_gamma_(i) = sl_adm_sqrt_detgamma(k, j, i);'
+          assert s.count(old)==1
+          s=s.replace(old,'''const Real det_here = LinearAlgebra::Det3Metric(gamma_dd_, i);
+                if (!(std::isfinite(det_here) && det_here > 0.0)) {
+                  std::cerr << "INVALID_METRIC_DETERMINANT " << i << " " << j << " " << k << " " << det_here << std::endl;
+                  std::abort();
+                }
+                sqrt_det_gamma_(i) = std::sqrt(det_here);''')
+          start=s.index('#if defined(Z4C_CX_ENABLED) || defined(Z4C_CC_ENABLED)',s.index('void EquationOfState::GeometryToSlicedCC'))
+          end=s.index('#endif',start)
+          block=s[start:end+len('#endif')]
+          assert '#else' in block and 'Inv3Metric' in block
+          s=s[:start]+block.split('#else',1)[1].rsplit('#endif',1)[0]+s[end+len('#endif'):]
+          p.write_text('#include <cstdlib>\n'+s)
           p=Path('upstream/src/eos/eostaudyn_ps_gr.cpp')
           s=p.read_text()
-          a='    std::cerr << "Tau is not finite!'
-          assert s.count(a)==1
-          a='    std::cerr << "    sdetg = " << sdetg << "\\n";'
-          assert s.count(a)==1
-          s=s.replace(a,a+chr(10)+'    throw std::runtime_error("J0740: first nonfinite conserved energy; inspect backtrace");')
-          p.write_text('#include <stdexcept>'+chr(10)+s)
+          old='// Push the densitized conserved variables to Athena.'
+          assert s.count(old)==1
+          s=s.replace(old,'if (!std::isfinite(cons_pt[IEN])) std::abort();\n  '+old)
+          p.write_text('#include <cstdlib>\n'+s)
           PY
-          git -C upstream diff -- src/eos/eos_utils.cpp src/eos/eostaudyn_ps_gr.cpp > evidence/geometry_consistency.diff
+          git -C upstream diff -- src/z4c/primitive/hybrid_table.cpp src/eos/eos_utils.cpp src/eos/eostaudyn_ps_gr.cpp > evidence/cc_geometry.diff
           cd upstream
-          python3 configure.py --prob=gr_j0740 --coord=gr_dynamical -f -g -z -z_vc --eospolicy=hybrid_table --cxx g++ --cflag=-g1 -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
+          python3 configure.py --prob=gr_j0740 --coord=gr_dynamical -f -g -z -z_cc --eospolicy=hybrid_table --errorpolicy=reset_floor --cxx g++ --cflag=-g1 -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
           sha256sum bin/athena > ../evidence/binary.sha256
       - name: Run whole-star bounded native evolution
@@ -197,7 +160,7 @@ jobs:
           # the nonphysical periodic test domain and problem settings.
           import re
           for axis in (1,2,3):
-              for k,v in [(f'nx{axis}',32),(f'x{axis}min',-r['domain_halfwidth']),(f'x{axis}max',r['domain_halfwidth']),(f'ix{axis}_bc','gr_sommerfeld'),(f'ox{axis}_bc','gr_sommerfeld')]:
+              for k,v in [(f'nx{axis}',32),(f'x{axis}min',-r['domain_halfwidth']),(f'x{axis}max',r['domain_halfwidth']),(f'ix{axis}_bc','outflow'),(f'ox{axis}_bc','outflow')]:
                   s,n=re.subn(r'^'+k+r'\s*=.*$',f'{k} = {v}',s,count=1,flags=re.M)
                   assert n==1,k
           s=re.sub(r'(<meshblock>[^\n]*\n).*?(?=<problem>)',r'\g<1>nx1=16\nnx2=16\nnx3=16\n',s,flags=re.S)
@@ -220,7 +183,7 @@ jobs:
           # Explicitly prohibit entropy reconstruction with this cold+thermal EOS.
           assert 'xorder_use_aux_s' not in s
           s=s.replace('<time>', '<time>' + chr(10) + 'xorder_use_aux_s = false', 1)
-          (d/'entropy_scope.json').write_text(json.dumps(dict(entropy_available=False,entropy_reconstruction=False,diagnostic='NaN; not used for acceptance',evolution='energy-based')))
+          (d/'entropy_scope.json').write_text(json.dumps(dict(entropy_available=False,entropy_reconstruction=False,diagnostic='finite gamma-law reference diagnostic; not microphysical entropy',evolution='energy-based')))
           # Coupled GRMHD_Z4c_Monolithic inherits LowStorage, not Butcher.
           s, n = re.subn(r'^integrator\s*=.*$', 'integrator = rk3', s, flags=re.M)
           assert n == 1
@@ -231,7 +194,7 @@ jobs:
           PY
           mkdir -p evidence/run
           set +e
-          OMP_NUM_THREADS=2 stdbuf -oL -eL upstream/bin/athena -i "$PWD/evidence/star.inp" -d "$PWD/evidence/run" mesh/num_threads=2 problem/verbose=true 2>&1 | tee evidence/native.log
+          OMP_NUM_THREADS=2 stdbuf -oL -eL upstream/bin/athena -i "$PWD/evidence/star.inp" -d "$PWD/evidence/run" mesh/num_threads=2 problem/verbose=true time/cfl_number=0.2 hydro/smooth_temperature=false 2>&1 | tee evidence/native.log
           rc=${PIPESTATUS[0]}
           set -e
           if [ "$rc" -ne 0 ]; then
@@ -239,6 +202,7 @@ jobs:
             OMP_NUM_THREADS=1 gdb --batch -ex 'set pagination off' -ex 'set breakpoint pending on' -ex 'break exit' -ex 'break _exit' -ex 'catch throw' -ex run -ex 'thread apply all bt' --args upstream/bin/athena -i "$PWD/evidence/star.inp" -d "$PWD/evidence/debug_run" mesh/num_threads=1 problem/verbose=true 2>&1 | tee evidence/init_backtrace.log || true
             exit "$rc"
           fi
+          if grep -Eq 'Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT' evidence/native.log; then exit 1; fi
           .venv/bin/python - <<'PY'
           import pathlib,math,json,h5py,numpy as np
           d=pathlib.Path('evidence');samples=[]
@@ -247,6 +211,7 @@ jobs:
                   if l.strip() and not l.lstrip().startswith('#'):
                       row=[float(x) for x in l.split()];assert all(math.isfinite(x) for x in row);samples.append(row)
           assert len(samples)>1 and max(r[0] for r in samples)>=1.99
+          assert all(r[21]==0 for r in samples), 'primitive recovery failure'
           files=list((d/'run').rglob('*.athdf'));assert files
           datasets=0
           for p in files:
