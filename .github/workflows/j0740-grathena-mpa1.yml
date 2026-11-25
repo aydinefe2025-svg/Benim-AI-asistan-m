@@ -62,7 +62,7 @@ jobs:
           # The original RNS generator unconditionally writes the empty u1 (SIGSEGV).
           a='  pz4c->ADMToZ4c(pz4c->storage.adm, pz4c->storage.u1);'
           assert s.count(a)==1
-          s=s.replace(a,'  if (!pz4c->storage.u1.IsEmpty()) {\\n  '+a+'\\n  }')
+          s=s.replace(a, '  if (!pz4c->storage.u1.IsEmpty()) {' + chr(10) + '  ' + a + chr(10) + '  }')
           Path('upstream/src/pgen/gr_j0740.cpp').write_text(s)
           PY
           diff -u upstream/src/pgen/gr_rns.cpp upstream/src/pgen/gr_j0740.cpp > evidence/pgen.diff || test "$?" = 1
