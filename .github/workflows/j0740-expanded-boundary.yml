@@ -318,7 +318,10 @@ jobs:
             const char* ns=std::getenv("J0740_N");
             if(!ns) throw std::runtime_error("J0740_N missing");
             const int N=std::stoi(ns);
-            if(n!=2*N+17 || std::abs(x0+24+8*dx)>1e-12 || std::abs(dx*N-24)>1e-12) throw std::runtime_error("Grid header mismatch");
+            const char* width=std::getenv("J0740_HALF_WIDTH");
+            if(!width) throw std::runtime_error("J0740_HALF_WIDTH missing");
+            const double Lbox=std::stod(width);
+            if(!(Lbox>0 && dx>0) || n!=2*N+17 || std::abs(x0+Lbox+8*dx)>1e-12 || std::abs(dx*N-Lbox)>1e-12) throw std::runtime_error("Grid header mismatch");
             a.resize(size_t(n)*n*n*25);
             f.read(reinterpret_cast<char*>(a.data()),a.size()*sizeof(double));
             if(!f || f.peek()!=EOF) throw std::runtime_error("Grid byte count mismatch");
