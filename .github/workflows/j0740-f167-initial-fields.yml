@@ -1,0 +1,84 @@
+name: J0740 MPA1 full stationary initial field export and constraints
+on:
+  pull_request:
+    branches: [science/j0740-f164-exact-derived-rotating-20261125]
+    paths: ['research/j0740/f167/**', '.github/workflows/j0740-f167-initial-fields.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  initial_fields:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - grid: 151x301
+            artifact: 15002739436
+            digest: 5b7396e6edfc966a9ab7ba227738a0e68c0760ba1919f26434846f9833ba1517
+          - grid: 201x401
+            artifact: 15002814220
+            digest: f9792b3d0a6d38faf5ac564f2f09900ae73aadf534ab5ad6c8ebe9268fe47a18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install numpy==2.3.5 scipy==1.17.0
+      - name: Recover exact validated model and source patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/${{ matrix.artifact }}/zip" -o source.zip
+          echo "${{ matrix.digest }}  source.zip" | sha256sum -c
+          unzip -t source.zip
+          unzip -q source.zip -d source
+          test "$(git -C rns rev-parse HEAD)" = 97e85d325a33e37f702306414533f6cd77812477
+          git -C rns apply --check "$PWD/source/source_patch.diff"
+          git -C rns apply "$PWD/source/source_patch.diff"
+          cp research/j0740/f164/exact_barotrope.h rns/
+          echo '709f927bac24685ac4c29d31fa88271b2e93648661ddf759877f38871332b9b8  rns/exact_barotrope.h' | sha256sum -c
+      - name: Export only the already accepted mass and spin target
+        run: |
+          mkdir -p evidence
+          python research/j0740/f167/export.py rns source evidence
+          git -C rns diff > evidence/source_patch.diff
+      - name: Check the Einstein constraint diagnostics and matter field transfer
+        run: python research/j0740/f167/constraints.py evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: F167-MPA1-${{ matrix.grid }}
+          path: evidence/
+          if-no-files-found: error
+  compare:
+    needs: initial_fields
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: F167-MPA1-*
+          path: all
+      - run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          a,b=[json.loads(Path(f'all/F167-MPA1-{g}/constraints.json').read_text()) for g in ('151x301','201x401')]
+          keys=['hamiltonian_core_rms_normalized','momentum_phi_core_rms_normalized']
+          out={'status':'STATIONARY_FIELDS_EXPORTED_NOT_EVOLVED','coarse':a,'fine':b,'fine_over_coarse':{k:b[k]/a[k] if a[k]>0 else None for k in keys},'limits':'No time evolution, no dynamic stability claim, finite difference core diagnostics only.'}
+          Path('F167_initial_fields.json').write_text(json.dumps(out,indent=2))
+          print(json.dumps(out,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: F167-initial-field-diagnostics
+          path: F167_initial_fields.json
