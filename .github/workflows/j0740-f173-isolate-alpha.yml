@@ -1,0 +1,156 @@
+name: J0740 F173 single-axis alpha derivative isolation
+on:
+  pull_request:
+    branches: [science/j0740-f172-alpha-second-derivative-20261125]
+    paths: ['.github/workflows/j0740-f173-isolate-alpha.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  isolate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        grid: [151x301, 201x401]
+        variant: [radial-only, angular-only]
+        include:
+          - grid: 151x301
+            artifact: 15038184064
+            digest: dd96edda579ae9997bd7591abd069d2deb788b13fb7ca46e5793b0d95b792cd0
+            m: 151
+            s: 301
+          - grid: 201x401
+            artifact: 15038164239
+            digest: a7770d2fb40bea0a50d2c2f7f7c60fce1ad755d53b9ccd8648c3b036dfbba77c
+            m: 201
+            s: 401
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install numpy==2.3.5 scipy==1.17.0
+      - name: Recover exact valid F171 source and same-input control
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT: ${{ matrix.artifact }}
+          DIGEST: ${{ matrix.digest }}
+        run: |
+          set -euo pipefail
+          mkdir -p baseline evidence
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT/zip" -o baseline.zip
+          echo "$DIGEST  baseline.zip" | sha256sum -c
+          unzip -t baseline.zip
+          unzip -q baseline.zip -d baseline
+          test "$(git -C rns rev-parse HEAD)" = 97e85d325a33e37f702306414533f6cd77812477
+          git -C rns apply --check "$PWD/baseline/source_patch.diff"
+          git -C rns apply "$PWD/baseline/source_patch.diff"
+          cp research/j0740/f164/exact_barotrope.h research/j0740/f170/split_quad.h rns/
+          echo '709f927bac24685ac4c29d31fa88271b2e93648661ddf759877f38871332b9b8  rns/exact_barotrope.h' | sha256sum -c
+          cp baseline/model.rns evidence/
+          sha256sum baseline.zip baseline/source_patch.diff baseline/model.rns rns/exact_barotrope.h rns/split_quad.h > evidence/input_sha256.txt
+      - name: Apply exactly one F172 derivative change
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          python - <<'PY'
+          import os,hashlib,json
+          from pathlib import Path
+          p=Path('rns/equil.c');s=p.read_text()
+          a='d_gama_ss=s1*deriv_s(dgds,s,m)+(1.0-2.0*sgp)'
+          b='d_gama_ss=s1*((s>1 && s<SDIV)?(gama[s+1][m]-2.0*gama[s][m]+gama[s-1][m])/SQ(DS):deriv_s(dgds,s,m))+(1.0-2.0*sgp)'
+          c='d_gama_mm=m1*deriv_m(dgdm,s,m)-2.0*mum*d_gama_m;'
+          d='d_gama_mm=m1*((m>1 && m<MDIV)?(gama[s][m+1]-2.0*gama[s][m]+gama[s][m-1])/SQ(DM):deriv_m(dgdm,s,m))-2.0*mum*d_gama_m;'
+          assert s.count(a)==s.count(c)==1
+          v=os.environ['VARIANT'];assert v in ('radial-only','angular-only')
+          old,new,unchanged=(a,b,c) if v=='radial-only' else (c,d,a)
+          t=s.replace(old,new,1)
+          assert t.count(old)==0 and t.count(new)==t.count(unchanged)==1
+          assert t.replace(new,old,1)==s
+          p.write_text(t)
+          Path('evidence/intervention.json').write_text(json.dumps(dict(variant=v,old=old,new=new,unchanged=unchanged,base_sha=hashlib.sha256(s.encode()).hexdigest(),patched_sha=hashlib.sha256(t.encode()).hexdigest()),indent=2))
+          PY
+          git -C rns diff > evidence/source_patch.diff
+      - name: Compile and perform only the previously failed input point
+        env:
+          GRID: ${{ matrix.grid }}
+          MDIV: ${{ matrix.m }}
+          SDIV: ${{ matrix.s }}
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          set -euo pipefail
+          make -C rns "CC=gcc -include stdlib.h" "HIGHSIZE=-DMDIV=$MDIV -DSDIV=$SDIV" rns
+          python - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          import numpy as np
+          p=Path('evidence')
+          b=json.loads(Path('baseline/retarget_calls.jsonl').read_text().splitlines()[0])
+          rho,ratio=b['rho'],b['ratio']
+          expected={'151x301':(1018111781626475.6,.9746465523612041),'201x401':(1018344879006894.0,.9746954509069058)}
+          assert (rho,ratio)==expected[os.environ['GRID']]
+          def parse(s):
+              x=[l.split()[1:] for l in s.splitlines() if l.startswith('F164_NATIVE ')]
+              return x[0] if len(x)==1 and len(x[0])==7 else []
+          ref=parse(b['stdout']);assert b['returncode']==0 and len(ref)==7 and np.isfinite(np.array(ref,float)).all()
+          assert os.environ['GRID'] in b['stdout']
+          cmd=[str(Path('rns/rns').resolve()),'-f','model.rns','-e',format(rho,'.17e'),'-r',format(ratio,'.17e')]
+          run=subprocess.run(cmd,cwd=p,capture_output=True,text=True,timeout=300)
+          (p/'native.log').write_text(run.stdout+'\nSTDERR:\n'+run.stderr)
+          values=parse(run.stdout)
+          result=dict(grid=os.environ['GRID'],variant=os.environ['VARIANT'],rho=rho,ratio=ratio,baseline=ref,native=values,returncode=run.returncode,scope='Single intervention, fixed density and axis ratio at archived failed F172 input; not retargeted mass/spin or dynamical stability.')
+          finite=len(values)==7 and np.isfinite(np.array(values,float)).all()
+          result['finite_native']=bool(finite)
+          field=p/'fields.txt'
+          field_ok=False
+          if field.exists():
+              raw=np.loadtxt(field)
+              field_ok=raw.shape==(int(os.environ['MDIV'])*int(os.environ['SDIV']),10) and np.isfinite(raw).all()
+              result['field_nodes']=len(raw)
+              result['nonfinite_field_cells']=int(np.count_nonzero(~np.isfinite(raw)))
+              result['field_sha256']=hashlib.sha256(field.read_bytes()).hexdigest()
+          result['finite_fields']=bool(field_ok)
+          acceptable=False
+          if finite and field_ok and run.returncode==0:
+              v=np.array(values,float);r=np.array(ref,float)
+              positive=bool(np.all(v>0))
+              rel=np.abs(v/r-1)
+              result['relative_delta']=rel.tolist()
+              acceptable=positive and rel[0]<1e-8 and bool(np.max(rel[1:])<.02)
+          result['gross_screen']=bool(acceptable)
+          result['status']='FINITE_DIAGNOSTIC' if acceptable else 'REJECTED_SINGLE_INTERVENTION'
+          (p/'result.json').write_text(json.dumps(result,indent=2,allow_nan=False))
+          print('F173_RESULT',json.dumps(result),flush=True)
+          PY
+      - name: Test native-field consistency only for finite cases
+        run: |
+          python - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          p=Path('evidence');r=json.loads((p/'result.json').read_text())
+          if r['gross_screen']:
+              x=subprocess.run(['python','research/j0740/f167/constraints.py',str(p)],capture_output=True,text=True)
+              (p/'constraint.log').write_text(x.stdout+'\n'+x.stderr)
+              r['constraint_exit']=x.returncode
+              r['status']='FINITE_CONSTRAINT_DIAGNOSTIC' if x.returncode==0 else 'REJECTED_FIELD_CONSISTENCY'
+          else:r['constraint_exit']=None
+          (p/'result.json').write_text(json.dumps(r,indent=2,allow_nan=False))
+          print('F173_FINAL',json.dumps(r),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: F173-MPA1-${{ matrix.grid }}-${{ matrix.variant }}
+          path: evidence/
+          if-no-files-found: error
