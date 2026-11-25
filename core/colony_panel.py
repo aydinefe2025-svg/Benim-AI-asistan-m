@@ -448,8 +448,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                 review_goal = st.text_area(
                     "Geliştirme görevi", max_chars=1200)
                 run_improvement = st.checkbox(
-                    "Bir ders adayı üretip beş sabit testte sınamayı onaylıyorum "
-                    "(en fazla 24 model çağrısı)",
+                    "Bir ders adayı üretip iki ayrı beş vakalık test takımında sınamayı onaylıyorum "
+                    "(en fazla 44 model çağrısı; sağlayıcı kotası tüketebilir)",
                     value=False, key="cano_bounded_improvement_opt_in")
                 dataset_ref = st.text_input(
                     "Beş insan etiketli test için sürüm/etiket", max_chars=120)
@@ -457,6 +457,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                     "Beş sabit test (JSON; case_id, prompt, expected)",
                     max_chars=12000,
                     placeholder='[{"case_id":"test-1","prompt":"...","expected":"..."}]')
+                holdout_ref = st.text_input("İkinci test takımı etiketi (farklı)", max_chars=120)
+                holdout_json = st.text_area("Önceden belirlenmiş beş yeni doğrulama testi (JSON)", max_chars=12000)
                 review_run = st.form_submit_button(
                     "CANO incelemesini ve sınırlı döngüyü çalıştır")
             if review_run:
@@ -466,7 +468,8 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                             run_bounded_improvement_cycle(
                                 colony, selected, reviewer, review_goal, cases_json,
                                 dataset_ref, client=AnswerAdapter(answer),
-                                model="configured-provider"))
+                                model="configured-provider", holdout_cases_json=holdout_json,
+                                holdout_dataset_ref=holdout_ref))
                         if not saved:
                             return
                         st.session_state["cano_improvement_cycle"] = result
@@ -475,7 +478,7 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                             if result.get("review_id") else None)
                         if result["status"] == "review_pending":
                             st.success(
-                                "Aday beş testte iyileşme gösterdi; yalnızca inceleme "
+                                "Aday her iki test takımında iyileşme gösterdi; yalnızca inceleme "
                                 "bekleyen ders olarak kaydedildi.")
                         elif result["status"] == "blocked":
                             if result.get("review_id"):
@@ -529,7 +532,13 @@ def render_colony_panel(st, answer=None, *, owner_key=None, database_url=None):
                     f"{cycle['benchmark']['delta']:+.0%}. "
                     f"Tekrar tutarlılığı: {cycle['benchmark']['reproducible']}; "
                     f"gerileme: {len(cycle['benchmark']['regressed_case_ids'])}.")
-                if cycle["status"] == "review_pending":
+                if cycle.get("holdout_benchmark"):
+                    held = cycle["holdout_benchmark"]
+                    st.caption(f"İkinci takım: {held['baseline_passed']}/{held['total_cases']} → "
+                               f"{held['candidate_passed']}/{held['total_cases']}; "
+                               f"gerileme: {len(held['regressed_case_ids'])}; "
+                               f"tekrar: {held['reproducible']}.")
+                if cycle["status"] == "review_pending" and cycle.get("holdout_benchmark"):
                     st.text_area(
                         "İnceleme bekleyen ders adayı", value=cycle["lesson"],
                         disabled=True, key="cano_pending_improvement_lesson")
