@@ -591,6 +591,12 @@ jobs:
               output2/dt=*) args[i]=output2/dt=2;;
             esac
           done
+          # Diagnostic intervention: use stationary gauge coefficients instead
+          # of the vacuum gauge-wave driver; evolve all physical fields normally.
+          # Radiative baseline run 45719404582: 96.5% of M norm2 inside r<8.
+          # No EOS, matter source, or physical threshold changes.
+          args+=(z4c/lapse_oplog=0 z4c/lapse_harmonic=0 z4c/lapse_advect=0 z4c/shift_Gamma=0 z4c/shift_eta=0 z4c/shift_alpha2Gamma=0 z4c/shift_H=0 z4c/shift_advect=0)
+          printf '%q ' ./bin/athena "${args[@]}" > "$E/command.txt"
           ./bin/athena "${args[@]}" 2>&1 | tee "$E/native.log"
           grep -q 'Terminating on time limit' "$E/native.log"
           if grep -Eq 'Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT' "$E/native.log"; then exit 1; fi
@@ -623,6 +629,8 @@ jobs:
                   x=f['x1v'][:,sl]; y=f['x2v'][:,sl]; z=f['x3v'][:,sl]
                   edge=np.maximum(np.maximum(abs(x[:,None,None,:]),abs(y[:,None,:,None])),abs(z[:,:,None,None]))>20
                   print('MOMENTUM_LOCALIZATION',float(f.attrs['Time']),float(m[edge].sum()),float(m[~edge].sum()))
+                  inner=x[:,None,None,:]**2+y[:,None,:,None]**2+z[:,:,None,None]**2<64
+                  print('MOMENTUM_STAR_REGION',float(f.attrs['Time']),float(m[inner].sum()),float(m[~inner].sum()))
           assert all(gates.values()), 'short screen rejected; do not extend unqualified evolution'
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
