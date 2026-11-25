@@ -1,0 +1,136 @@
+name: J0740 native MPA1 GR-Athena star evolution
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-grathena-mpa1.yml', 'research/j0740/grathena_bridge/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  native-star:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: computationalrelativity/gr-athena
+          ref: f534ca0f6fa0d55b90df1686fa9abd476730bf3b
+          path: upstream
+          persist-credentials: false
+      - name: Verify archived F171 real data and compile data adapter
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/15038164239/zip" -o f171.zip
+          echo 'a7770d2fb40bea0a50d2c2f7f7c60fce1ad755d53b9ccd8648c3b036dfbba77c  f171.zip' | sha256sum -c
+          sudo apt-get update -qq
+          sudo apt-get install -y libhdf5-dev libgsl-dev
+          python3 -m venv .venv
+          .venv/bin/pip install numpy==2.3.5 scipy==1.17.0 h5py==3.15.1
+          .venv/bin/python research/j0740/grathena_bridge/prepare.py f171.zip evidence | tee evidence/prepare.log
+          g++ -std=c++17 -O2 research/j0740/grathena_bridge/test_bridge.cpp -o bridge-test
+          read -r MB JJ < <(.venv/bin/python -c "import json; r=json.load(open('evidence/input_receipt.json'));print(r['expected_Mb'],r['expected_J'])")
+          ./bridge-test evidence/bridge.dat 32 "$MB" "$JJ" | tee evidence/import32.log
+          ./bridge-test evidence/bridge.dat 64 "$MB" "$JJ" | tee evidence/import64.log
+          sha256sum evidence/bridge.dat evidence/cold.h5 > evidence/input.sha256
+      - name: Build unchanged upstream evolution with F171 import adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream rev-parse HEAD)" = f534ca0f6fa0d55b90df1686fa9abd476730bf3b
+          cp research/j0740/grathena_bridge/j0740_rns.hpp upstream/src/pgen/
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('upstream/src/pgen/gr_rns.cpp')
+          s=p.read_text()
+          old='#include "RNS.h"'
+          assert s.count(old)==1
+          s=s.replace(old,'#include "j0740_rns.hpp"')
+          # Upstream pressure recomputation above floor retained. Supply cold,
+          # finite atmosphere explicitly only where the original pressure vanishes.
+          a='if (rho[flat_ix] > rho_min)'
+          assert s.count(a)==1
+          s=s.replace(a,'if (rho[flat_ix] <= rho_min) { rho[flat_ix] = rho_min; pres[flat_ix] = ceos->GetPressure(rho_min); ux[flat_ix] = uy[flat_ix] = uz[flat_ix] = 0.0; }\n        '+a)
+          Path('upstream/src/pgen/gr_j0740.cpp').write_text(s)
+          PY
+          diff -u upstream/src/pgen/gr_rns.cpp upstream/src/pgen/gr_j0740.cpp > evidence/pgen.diff || test "$?" = 1
+          cd upstream
+          python3 configure.py --prob=gr_j0740 -f -z -z_vc --eospolicy=hybrid_table --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
+          make -j2 2>&1 | tee ../evidence/build.log
+          sha256sum bin/athena > ../evidence/binary.sha256
+      - name: Run whole-star bounded native evolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          .venv/bin/python - <<'PY'
+          from pathlib import Path
+          import json
+          d=Path('evidence').resolve()
+          r=json.loads((d/'input_receipt.json').read_text())
+          s=Path('upstream/inputs/z4c/awa/z4c_AwA_gauge_wave_1s.inp').read_text()
+          # Start from the upstream gauge/time configuration. Explicitly replace
+          # the nonphysical periodic test domain and problem settings.
+          import re
+          for axis in (1,2,3):
+              for k,v in [(f'nx{axis}',32),(f'x{axis}min',-r['domain_halfwidth']),(f'x{axis}max',r['domain_halfwidth']),(f'ix{axis}_bc','gr_sommerfeld'),(f'ox{axis}_bc','gr_sommerfeld')]:
+                  s,n=re.subn(r'^'+k+r'\s*=.*$',f'{k} = {v}',s,count=1,flags=re.M)
+                  assert n==1,k
+          s=re.sub(r'(<meshblock>[^\n]*\n).*?(?=<problem>)',r'\g<1>nx1=16\nnx2=16\nnx3=16\n',s,flags=re.S)
+          s=re.sub(r'(<problem>[^\n]*\n).*?(?=<output1>)',r'\g<1>filename = '+str(d/'bridge.dat')+'\npres_pert=0.0\nv_pert=0.0\n<hydro>\ndfloor=1e-12\ntfloor=1e-10\ndthreshold=1.0\ngamma_th=1.75\nrsolver=hlle\ntable='+str(d/'cold.h5')+'\n',s,flags=re.S)
+          s=s[:s.index('<output1>')]+'''<output1>
+          file_type = hst
+          dt = 0.1
+          data_format = %.18g
+          <output2>
+          file_type = hdf5
+          variable = prim
+          dt = 0.5
+          <output3>
+          file_type = hdf5
+          variable = geom.con
+          dt = 0.5
+          '''
+          s=re.sub(r'^problem_id\s*=.*$','problem_id = j0740_mpa1',s,flags=re.M)
+          s=re.sub(r'^tlim\s*=.*$','tlim = 2.0',s,flags=re.M)
+          (d/'star.inp').write_text(s)
+          PY
+          mkdir -p evidence/run
+          OMP_NUM_THREADS=2 upstream/bin/athena -i "$PWD/evidence/star.inp" -d "$PWD/evidence/run" mesh/num_threads=2 2>&1 | tee evidence/native.log
+          .venv/bin/python - <<'PY'
+          import pathlib,math,json,h5py,numpy as np
+          d=pathlib.Path('evidence');samples=[]
+          for f in (d/'run').rglob('*.hst'):
+              for l in f.read_text().splitlines():
+                  if l.strip() and not l.lstrip().startswith('#'):
+                      row=[float(x) for x in l.split()];assert all(math.isfinite(x) for x in row);samples.append(row)
+          assert len(samples)>1 and max(r[0] for r in samples)>=1.99
+          files=list((d/'run').rglob('*.athdf'));assert files
+          datasets=0
+          for p in files:
+              with h5py.File(p) as f:
+                  for key,v in f.items():
+                      if isinstance(v,h5py.Dataset) and np.issubdtype(v.dtype,np.number):
+                          assert np.all(np.isfinite(v[:])),(p,key);datasets+=1
+          assert datasets>0
+          r=dict(status='NATIVE_WHOLE_STAR_SHORT_EVOLUTION_ONLY',history_rows=len(samples),max_time=max(x[0] for x in samples),files=len(files),finite_datasets=datasets,limits='32^3, finite domain, hybrid thermal extension, no long-time convergence or physical stability acceptance')
+          (d/'native_receipt.json').write_text(json.dumps(r,indent=2));print(json.dumps(r))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-mpa1-native-evolution
+          path: |
+            evidence/*.json
+            evidence/*.log
+            evidence/*.sha256
+            evidence/*.diff
+            evidence/*.inp
+            evidence/run/
+          if-no-files-found: error
