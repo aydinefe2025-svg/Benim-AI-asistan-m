@@ -692,6 +692,27 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     if safe_response is not None:
         return safe_response
 
+    from core.cano_work_inventory import work_inventory_reply
+    from core.cano_code_jobs import CodeJobStore
+    _inventory_owner = globals().get("_OWNER_KEY")
+    _inventory_memory = globals().get("_MEMORY_STORE")
+    _inventory_tasks = globals().get("_TASK_STORE")
+    _inventory_queue = globals().get("_CANO_QUEUE_BACKUP")
+    inventory = work_inventory_reply(
+        kullanici_mesaji,
+        authenticated=bool(globals().get("_AUTH_REQUIRED") and _inventory_owner),
+        memory_loader=(lambda: _inventory_memory.list(_inventory_owner)) if _inventory_memory is not None else None,
+        research_loader=_inventory_tasks.list if _inventory_tasks is not None else None,
+        queue_loader=_inventory_queue.list if _inventory_queue is not None else None,
+        code_loader=(lambda: CodeJobStore(
+            os.environ["AGENT_TASK_DATABASE_URL"], _inventory_owner).recent(limit=10))
+            if _inventory_owner and os.environ.get("AGENT_TASK_DATABASE_URL") else None,
+    )
+    if inventory is not None:
+        st.session_state.pop("last_provider_used", None)
+        st.session_state.pop("last_model_used", None)
+        return inventory
+
     # A signed-in user's explicit code instruction creates a real durable job;
     # never pass this instruction to the text-only four-stage mission runner.
     from core.cano_code_jobs import CodeJobStore, parse_code_request

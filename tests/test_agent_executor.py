@@ -53,6 +53,23 @@ class ResearchExecutorTests(unittest.TestCase):
         self.assertEqual(delays, [1, 2])
         self.assertEqual(load_draft(self.store.db_path, self.task["id"]), "Recovered draft")
 
+    def test_cancel_during_retry_wait_prevents_another_provider_call(self):
+        task_id = self.task["id"]
+        calls = []
+        def provider(_):
+            calls.append(1)
+            raise TimeoutError("private provider detail")
+
+        def cancel_during_wait(_):
+            self.store.transition(task_id, "blocked", note="Cancelled by operator")
+
+        result = run_research_task(self.store, task_id, provider, sleep=cancel_during_wait)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(self.store.get(task_id)["status"], "blocked")
+        self.assertIsNone(load_draft(self.store.db_path, task_id))
+        self.assertEqual(self.store.history(task_id)[-1]["note"], "Cancelled by operator")
+
     def test_draft_write_failure_does_not_mark_task_complete(self):
         with self.store._connection() as conn:
             conn.execute("""CREATE TRIGGER reject_draft_event BEFORE INSERT ON task_events

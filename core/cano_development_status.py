@@ -71,7 +71,14 @@ def render_owner_code_status(st, jobs):
     # Both the summary and receipt links must inspect the same owner-scoped rows.
     jobs = list(jobs)
     stats = summarize_recent_code_jobs(jobs)
+    # Keep one mobile status panel and use only fixed labels for the newest row.
+    latest_status = jobs[0].get("status") if jobs and isinstance(jobs[0], dict) else None
+    latest_label = (
+        "En yeni kod işi: sırada. " if latest_status == "queued" else
+        "En yeni kod işi: çalışıyor. " if latest_status == "running" else ""
+    )
     st.info(
+        f"{latest_label}"
         f"🛠️ CANO kod işleri — Son {stats['total']} kayıt: "
         f"{stats['deployed']} tam makbuzlu yayın kaydı · "
         f"{stats['unverified_deployments']} makbuzu eksik yayın etiketi · "
