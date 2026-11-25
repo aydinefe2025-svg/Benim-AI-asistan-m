@@ -1,0 +1,49 @@
+name: HPPC scaled cloud replay (research)
+on:
+  pull_request:
+    paths:
+      - 'research/hppc_scaled_cloud_20261125/**'
+      - '.github/workflows/hppc_scaled_cloud_20261125.yml'
+permissions:
+  contents: read
+concurrency:
+  group: hppc-scaled-cloud-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate code and fetch pinned public archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check 'numpy==2.2.6'
+          python -m py_compile research/hppc_scaled_cloud_20261125/replay.py
+          mkdir -p "$RUNNER_TEMP/hppc"
+          cd "$RUNNER_TEMP/hppc"
+          curl --fail --location --retry 2 --retry-delay 3 --connect-timeout 20 --max-time 300 'https://zenodo.org/records/10891871/files/Batch19Batch50.7z?download=1' -o source.7z
+          test "$(stat -c%s source.7z)" = 312899281
+          echo '8942c4aa8412c6789f0502c29423daf8  source.7z' | md5sum -c -
+          echo '36a8bd0904a27fd90e44820c5cf938c8e7ed3e01acb6d2232c759b9f07e811cf  source.7z' | sha256sum -c -
+          7z t source.7z
+          7z x source.7z -oextracted -y
+      - name: Replay old and scaled solvers on identical time holdout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/hppc_scaled_cloud_20261125/replay.py "$RUNNER_TEMP/hppc/extracted" "$RUNNER_TEMP/hppc-result"
+          sha256sum "$RUNNER_TEMP/hppc-result/result.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hppc-scaled-cloud-replay
+          path: ${{ runner.temp }}/hppc-result/result.json
+          if-no-files-found: error
+          retention-days: 14
