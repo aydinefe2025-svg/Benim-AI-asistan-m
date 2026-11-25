@@ -58,6 +58,11 @@ jobs:
           a='if (rho[flat_ix] > rho_min)'
           assert s.count(a)==1
           s=s.replace(a,'if (rho[flat_ix] <= rho_min) { rho[flat_ix] = rho_min; pres[flat_ix] = ceos->GetPressure(rho_min); ux[flat_ix] = uy[flat_ix] = uz[flat_ix] = 0.0; }\n        '+a)
+          # bt_rk4 allocates stage scratch in the task list, not storage.u1.
+          # The original RNS generator unconditionally writes the empty u1 (SIGSEGV).
+          a='  pz4c->ADMToZ4c(pz4c->storage.adm, pz4c->storage.u1);'
+          assert s.count(a)==1
+          s=s.replace(a,'  if (!pz4c->storage.u1.IsEmpty()) {\\n  '+a+'\\n  }')
           Path('upstream/src/pgen/gr_j0740.cpp').write_text(s)
           PY
           diff -u upstream/src/pgen/gr_rns.cpp upstream/src/pgen/gr_j0740.cpp > evidence/pgen.diff || test "$?" = 1
