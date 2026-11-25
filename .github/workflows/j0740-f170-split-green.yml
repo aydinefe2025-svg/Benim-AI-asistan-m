@@ -1,0 +1,78 @@
+name: J0740 F170 split Green kernel quadrature controlled MPA1 experiment
+on:
+  pull_request:
+    branches: [science/j0740-f167-mpa1-gr-initial-fields-20261125]
+    paths: ['research/j0740/f170/**', '.github/workflows/j0740-f170-split-green.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  initial_fields:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - grid: 151x301
+            artifact: 15002739436
+            baseline: 15019141551
+            baseline_digest: 36a0233b13ba88f6c5a2e4079523372e8e8862a9254c1fb90689a4717e3cbde8
+            digest: 5b7396e6edfc966a9ab7ba227738a0e68c0760ba1919f26434846f9833ba1517
+          - grid: 201x401
+            artifact: 15002814220
+            baseline: 15018557656
+            baseline_digest: 08110acf3ce9ec27c9e11bbd5a3b7a1ea68541802d92450db8823cc378e5810c
+            digest: f9792b3d0a6d38faf5ac564f2f09900ae73aadf534ab5ad6c8ebe9268fe47a18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rns-alberta/rns
+          ref: 97e85d325a33e37f702306414533f6cd77812477
+          path: rns
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install numpy==2.3.5 scipy==1.17.0
+      - name: Recover exact validated model and source patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/${{ matrix.artifact }}/zip" -o source.zip
+          echo "${{ matrix.digest }}  source.zip" | sha256sum -c
+          unzip -t source.zip
+          unzip -q source.zip -d source
+          test "$(git -C rns rev-parse HEAD)" = 97e85d325a33e37f702306414533f6cd77812477
+          git -C rns apply --check "$PWD/source/source_patch.diff"
+          git -C rns apply "$PWD/source/source_patch.diff"
+          cp research/j0740/f164/exact_barotrope.h rns/
+          echo '709f927bac24685ac4c29d31fa88271b2e93648661ddf759877f38871332b9b8  rns/exact_barotrope.h' | sha256sum -c
+      - name: Verify baseline field data and test split quadrature
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/${{ matrix.baseline }}/zip" -o baseline.zip
+          echo "${{ matrix.baseline_digest }}  baseline.zip" | sha256sum -c
+          gcc -O2 -Wall -Wextra research/j0740/f170/test.c -lm -o /tmp/test_quad
+          /tmp/test_quad
+          python research/j0740/f170/patch.py rns
+      - name: Export only the controlled variant at same density and spin
+        run: |
+          mkdir -p evidence
+          python research/j0740/f170/export.py rns source evidence
+          git -C rns diff > evidence/source_patch.diff
+      - name: Compare unsmoothed full-grid derivatives and parity against original baseline
+        run: python research/j0740/f170/compare.py baseline.zip evidence evidence
+      - name: Check the Einstein constraint diagnostics and matter field transfer
+        run: python research/j0740/f167/constraints.py evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: F170-MPA1-${{ matrix.grid }}
+          path: evidence/
+          if-no-files-found: error
