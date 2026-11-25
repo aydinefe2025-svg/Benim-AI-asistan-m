@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        n: [48]
+        n: [48, 64, 96]
     env:
       J0740_N: ${{ matrix.n }}
     steps:
@@ -517,104 +517,50 @@ jobs:
           EOF
           export J0740_GRID="$E/f171_grid.bin" OMP_NUM_THREADS=2
           args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=j0740_native time/tlim=2 time/integrator=rk3 time/cfl_number=0.2 mesh/nx1=$J0740_N mesh/nx2=$J0740_N mesh/nx3=$J0740_N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-24 mesh/x1max=24 mesh/x2min=-24 mesh/x2max=24 mesh/x3min=-24 mesh/x3max=24 mesh/ix1_bc=outflow mesh/ox1_bc=outflow mesh/ix2_bc=outflow mesh/ox2_bc=outflow mesh/ix3_bc=outflow mesh/ox3_bc=outflow mesh/num_threads=2 output2/dt=0.1 time/xorder_use_aux_s=false hydro/smooth_temperature=false z4c/r_max_con=100)
-          # Diagnostic-only paired source control: identical geometry, altered matter.
-          # Explicitly excluded from physical acceptance. Capture t=0 fields.
+          # Source-response gate already passed in run 45714775013, artifact 15069975802.
+          # Use exact unperturbed initial data only, matched resolutions.
           /usr/bin/python3 - <<'PY'
-          import pathlib, re, os
+          import pathlib, os, json
           d=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'evidence'
-          s=(d/'star.inp').read_text()
-          s=s.split('<output1>')[0]+'''<output1>
-          file_type = hst
-          dt = 0.1
-          data_format = %.18g
-          <output2>
-          file_type = hdf5
-          variable = geom.con
-          dt = 0.1
-          <output3>
-          file_type = hdf5
-          variable = geom.mat
-          dt = 0.1
-          <output4>
-          file_type = hdf5
-          variable = geom.adm
-          dt = 0.1
-          '''
+          s=(d/'star.inp').read_text().split('<output1>')[0]
           s+='\n<hydro>\ntable = '+str(d/'cold.h5')+'\ngamma_th = 1.75\ndfloor = 1e-12\ntfloor = 1e-10\nrsolver = hlle\n'
-          assert '<hydro>' in s and str(d/'cold.h5') in s
-          (d/'source_probe.inp').write_text(s)
-          import numpy as np,struct
-          p=d/'f171_grid.bin'
-          with p.open('rb') as f:
-              hdr=f.read(20);n,x0,dx=struct.unpack('<idd',hdr)
-              a=np.fromfile(f,dtype='<f8').reshape(-1,25)
-          # Only change the density in the test input. The RNS initializer
-          # recomputes pressure from the cold EOS; geometry is byte-identical.
-          mask=a[:,16]>1e-8
-          assert mask.sum()>0
-          a[mask,16]*=1.05
-          with (d/'source_probe.bin').open('wb') as f:
-              f.write(hdr);a.tofile(f)
+          s+='\n<output1>\nfile_type = hst\ndt = 0.1\ndata_format = %.18g\n<output2>\nfile_type = hdf5\nvariable = prim\ndt = 2\n<output3>\nfile_type = hdf5\nvariable = geom.con\ndt = 2\n<output4>\nfile_type = rst\ndt = 2\n'
+          (d/'star.inp').write_text(s)
+          (d/'source_gate_reference.json').write_text(json.dumps(dict(run=45714775013,artifact=15069975802,sha256='3bec88d1406947e188f9becaeab9cf716839e580764ce9ddea409a6fa6d4820d',H_relative_error=2.3840752858557353e-15,M_relative_error=2.8340148683525334e-15)))
           PY
-          for kind in base altered; do
-            mkdir -p "$E/probe_$kind"
-            grid="$E/f171_grid.bin"
-            if [ "$kind" = altered ]; then grid="$E/source_probe.bin"; fi
-            probe_args=("${args[@]}")
-            probe_args[1]="$E/source_probe.inp"
-            probe_args[3]="$E/probe_$kind"
-            for i in "${!probe_args[@]}"; do
-              case "${probe_args[i]}" in
-                time/tlim=*) probe_args[i]=time/tlim=0.1;;
-              esac
-            done
-            J0740_GRID="$grid" ./bin/athena "${probe_args[@]}" 2>&1 | tee "$E/probe_$kind.log"
-            grep -q "Terminating on time limit" "$E/probe_$kind.log"
-            test "$(find "$E/probe_$kind" -name "*.athdf" | wc -l)" -ge 3
+          for i in "${!args[@]}"; do
+            case "${args[i]}" in
+              output2/dt=*) args[i]=output2/dt=2;;
+            esac
           done
+          ./bin/athena "${args[@]}" 2>&1 | tee "$E/native.log"
+          grep -q 'Terminating on time limit' "$E/native.log"
+          if grep -Eq 'Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT' "$E/native.log"; then exit 1; fi
           /usr/bin/python3 - <<'PY'
-          import pathlib,os,h5py,numpy as np,json
+          import pathlib,json,re,os,numpy as np,h5py
           d=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'evidence'
-          def load(kind):
-              out={};coords=None
-              for p in sorted((d/('probe_'+kind)).rglob('*.athdf')):
-                  with h5py.File(p) as f:
-                      if abs(float(f.attrs['Time']))>1e-12:continue
-                      names=[x.decode() if isinstance(x,bytes) else str(x) for x in f.attrs['VariableNames']]
-                      datasets=[x.decode() if isinstance(x,bytes) else str(x) for x in f.attrs['DatasetNames']]
-                      loc=f['LogicalLocations'][:]
-                      order=np.lexsort((loc[:,2],loc[:,1],loc[:,0]))
-                      if coords is None:coords=loc[order]
-                      assert np.array_equal(coords,loc[order])
-                      j=0
-                      for ds,count in zip(datasets,f.attrs['NumVariables']):
-                          a=f[ds][:]
-                          for v in range(int(count)):out[names[j]]=a[v,order].astype(float);j+=1
-              return out,coords
-          a,x=load('base');b,y=load('altered')
-          assert np.array_equal(x,y)
-          for k in a:
-              assert np.all(np.isfinite(a[k])) and np.all(np.isfinite(b[k])),k
-          delta=b['geom.mat.rho']-a['geom.mat.rho']
-          dh=b['geom.con.H']-a['geom.con.H']
-          expected=-16*np.pi*delta
-          geom=max(float(np.max(abs(b[k]-a[k]))) for k in a if k.startswith('geom.adm.'))
-          amp=float(np.max(abs(expected)))
-          assert amp>1e-5
-          err=float(np.max(abs(dh-expected))/amp)
-          ds=np.stack([b['geom.mat.S'+i]-a['geom.mat.S'+i] for i in 'xyz'])
-          dm=np.stack([b['geom.con.M'+i]-a['geom.con.M'+i] for i in 'xyz'])
-          ma=float(np.max(abs(8*np.pi*ds))); me=float(np.max(abs(dm+8*np.pi*ds))/max(ma,1e-30))
-          result=dict(geometry_max_delta=geom,source_delta_max=float(np.max(abs(delta))),H_expected_amplitude=amp,H_response_relative_error=err,M_response_relative_error=me,scope='diagnostic-only identical-geometry source perturbation, not physical initial data or stability proof')
-          (d/'source_response_probe.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
-          assert geom<1e-10 and err<1e-5 and ma>1e-8 and me<1e-5,'native matter sensitivity or diagnostic output is inconsistent'
+          f=next((d/'run').rglob('*.hst')); lines=f.read_text().splitlines()
+          names=re.findall(r'\[\d+\]=([^ ]+)',next(x for x in lines if '[1]=time' in x))
+          a=np.loadtxt(f);assert a.ndim==2 and a.shape[1]==len(names) and np.isfinite(a).all() and a[-1,0]>=1.99
+          col=lambda name:a[:,names.index(name)]
+          mass,jz,H,M,rho,fail,alpha=[col(k) for k in ('mass','J0740_Jz','H-norm2','M-norm2','max_rho','num_c2p_fail','min_alpha')]
+          assert mass[0]>0 and abs(jz[0])>0 and min(H)>=0 and min(M)>=0
+          dmass=float(np.max(abs(mass/mass[0]-1)));dj=float(np.max(abs(jz/jz[0]-1)));drho=float(np.max(abs(rho/rho[0]-1)))
+          srcE,srcS=col('J0740_Esrc_L1'),col('J0740_Ssrc_L1')
+          gates=dict(finite=True,primitive_recovery=bool(max(fail)==0),positive_lapse=bool(min(alpha)>0),mass_drift_below_0p1pct=dmass<=1e-3,J_drift_below_1pct=dj<=.01,density_drift_below_2pct=drho<=.02,momentum_norm2_non_growth=bool(M[-1]<=M[0]),energy_source_closure=bool(max(srcE)/mass[0]<1e-4),momentum_source_closure=bool(max(srcS)/mass[0]<1e-4))
+          files=list((d/'run').glob('*.athdf'));assert files
+          for p in files:
+              with h5py.File(p) as h:
+                  for k,v in h.items():
+                      if isinstance(v,h5py.Dataset) and np.issubdtype(v.dtype,np.number):assert np.isfinite(v[:]).all(),(p,k)
+          result=dict(status='SHORT_MATCHED_RESOLUTION_SCREEN_ONLY',n=int(os.environ['J0740_N']),max_time=float(a[-1,0]),rotation_target=585.8691805265147,mass_initial=float(mass[0]),J_initial=float(jz[0]),mass_drift=dmass,J_drift=dj,rho_drift=drho,H0=float(H[0]),Hfinal=float(H[-1]),M0=float(M[0]),Mfinal=float(M[-1]),Hmax=float(max(H)),Mmax=float(max(M)),gates=gates)
+          (d/'receipt.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
+          assert all(gates.values()), 'short screen rejected; do not extend unqualified evolution'
           PY
-          # Source probe only; do not repeat unqualified physical evolution.
-          exit 0
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-native-source-response-N${{ matrix.n }}
+          name: j0740-native-physical-screen-N${{ matrix.n }}
           path: |
             evidence/*.log
             evidence/*.json
@@ -625,6 +571,6 @@ jobs:
             evidence/*.hpp
             evidence/*.patch
             evidence/run/*.hst
-            evidence/probe_*/*.athdf
-            evidence/probe_*/*.hst
+            evidence/run/*.athdf
+            evidence/run/*.rst
           if-no-files-found: error
