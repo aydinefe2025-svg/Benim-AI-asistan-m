@@ -162,6 +162,56 @@ jobs:
           assert 'xorder_use_aux_s' not in s
           s=s.replace('<time>', '<time>' + chr(10) + 'xorder_use_aux_s = false', 1)
           (d/'entropy_scope.json').write_text(json.dumps(dict(entropy_available=False,entropy_reconstruction=False,diagnostic='NaN; not used for acceptance',evolution='energy-based')))
+          # Coupled GRMHD_Z4c_Monolithic inherits LowStorage; bt_rk4 is
+          # supported by vacuum tasklists but not this coupled tasklist.
+          s, n = re.subn(r'^integrator\s*=.*
+          PY
+          mkdir -p evidence/run
+          set +e
+          OMP_NUM_THREADS=2 stdbuf -oL -eL upstream/bin/athena -i "$PWD/evidence/star.inp" -d "$PWD/evidence/run" mesh/num_threads=2 problem/verbose=true 2>&1 | tee evidence/native.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            mkdir -p evidence/debug_run
+            OMP_NUM_THREADS=1 gdb --batch -ex 'set pagination off' -ex 'set breakpoint pending on' -ex 'break exit' -ex 'break _exit' -ex 'catch throw' -ex run -ex 'thread apply all bt' --args upstream/bin/athena -i "$PWD/evidence/star.inp" -d "$PWD/evidence/debug_run" mesh/num_threads=1 problem/verbose=true 2>&1 | tee evidence/init_backtrace.log || true
+            exit "$rc"
+          fi
+          .venv/bin/python - <<'PY'
+          import pathlib,math,json,h5py,numpy as np
+          d=pathlib.Path('evidence');samples=[]
+          for f in (d/'run').rglob('*.hst'):
+              for l in f.read_text().splitlines():
+                  if l.strip() and not l.lstrip().startswith('#'):
+                      row=[float(x) for x in l.split()];assert all(math.isfinite(x) for x in row);samples.append(row)
+          assert len(samples)>1 and max(r[0] for r in samples)>=1.99
+          files=list((d/'run').rglob('*.athdf'));assert files
+          datasets=0
+          for p in files:
+              with h5py.File(p) as f:
+                  for key,v in f.items():
+                      if isinstance(v,h5py.Dataset) and np.issubdtype(v.dtype,np.number):
+                          assert np.all(np.isfinite(v[:])),(p,key);datasets+=1
+          assert datasets>0
+          r=dict(status='NATIVE_WHOLE_STAR_SHORT_EVOLUTION_ONLY',history_rows=len(samples),max_time=max(x[0] for x in samples),files=len(files),finite_datasets=datasets,limits='32^3, finite domain, hybrid thermal extension, no long-time convergence or physical stability acceptance')
+          (d/'native_receipt.json').write_text(json.dumps(r,indent=2));print(json.dumps(r))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-mpa1-native-evolution
+          path: |
+            evidence/*.json
+            evidence/*.log
+            evidence/*.sha256
+            evidence/*.diff
+            evidence/*.inp
+            evidence/run/
+          if-no-files-found: error
+, 'integrator = rk3', s, flags=re.M)
+          assert n == 1
+          # Preserve actual restart state for debugging; not a pass criterion.
+          s += chr(10) + '<output4>' + chr(10) + 'file_type = rst' + chr(10) + 'dt = 0.5' + chr(10)
+          (d/'integrator_scope.json').write_text(json.dumps(dict(integrator='rk3',reason='coupled LowStorage tasklist',cfl=0.25,restart_dt=0.5)))
           (d/'star.inp').write_text(s)
           PY
           mkdir -p evidence/run
