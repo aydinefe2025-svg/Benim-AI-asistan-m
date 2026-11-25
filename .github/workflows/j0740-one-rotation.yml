@@ -601,6 +601,7 @@ jobs:
               log=d/"native.log"
               fatal=re.compile(rb"Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT")
               start=time.monotonic(); last_progress=start
+              total_budget=float(os.environ.get('J0740_GUARD_BUDGET','19500'))
               stall_limit=float(os.environ.get('J0740_STALL_SECONDS','900'))
               startup_limit=float(os.environ.get('J0740_STARTUP_SECONDS','1800'))
               assert stall_limit>0 and startup_limit>0
@@ -643,7 +644,7 @@ jobs:
                                       if last is None or current['time']>last['time']: last_progress=time.monotonic()
                                       last=current;seen+=1
                           now=time.monotonic()
-                          if reason is None and now-start>19500: reason="time_budget"
+                          if reason is None and now-start>total_budget: reason="time_budget"
                           if reason is None and p.poll() is None and now-last_progress>(stall_limit if seen else startup_limit):
                               reason='history_progress_stalled' if seen else 'startup_history_timeout'
                           if reason:
@@ -695,8 +696,61 @@ jobs:
                   assert p.returncode==(0 if expected is None else 75),(case,p.returncode)
           print('LIVE_GUARD_PROCESS_TESTS: 4/4',flush=True)
           PY
+          # At most one controlled CFL-halving experiment, never retry the
+          # rejected state or silently override acceptance. A separate receipt
+          # records which original failure triggered the experiment.
+          cat > "$E/guarded_attempt.py" <<'PY'
+          import json, os, pathlib, shutil, subprocess, sys, time
+          def retry_allowed(receipt, remaining):
+              return (remaining >= 60 and
+                  receipt.get('reason') in ('native_fatal_message','primitive_recovery_failure','nonfinite_or_malformed_history') and
+                  (receipt.get('last_valid_history') or {}).get('time',0)>0)
+          def retry_command(cmd):
+              hits=[i for i,x in enumerate(cmd) if x.startswith('time/cfl_number=')]
+              assert len(hits)==1
+              out=list(cmd);i=hits[0];v=float(out[i].split('=',1)[1])
+              assert 0<v<=.2
+              out[i]='time/cfl_number='+str(v/2)
+              return out
+          def main():
+              d=pathlib.Path(sys.argv[1]);cmd=sys.argv[2:]
+              if cmd==['--selftest']:
+                  assert retry_allowed(dict(reason='native_fatal_message',last_valid_history={'time':1}),100)
+                  assert not retry_allowed(dict(reason='native_fatal_message',last_valid_history={'time':0}),100)
+                  assert not retry_allowed(dict(reason='irreversible_max_gate:mass',last_valid_history={'time':1}),100)
+                  assert not retry_allowed(dict(reason='primitive_recovery_failure',last_valid_history={'time':1}),59)
+                  assert retry_command(['solver','time/cfl_number=0.2'])==['solver','time/cfl_number=0.1']
+                  print('CFL_RECOVERY_POLICY_TESTS 5/5',flush=True)
+                  return 0
+              started=time.monotonic()
+              def run(command):
+                  return subprocess.run([sys.executable,'-u',str(d/'live_guard.py'),str(d),*command]).returncode
+              rc=run(cmd)
+              receipt=json.loads((d/'guard_receipt.json').read_text())
+              remaining=19500-(time.monotonic()-started)
+              info=dict(original_exit=rc,original_reason=receipt.get('reason'),retry=False,
+                        scope='controlled numerical experiment, not certified repair; original failure retained')
+              if rc and retry_allowed(receipt,remaining):
+                  retry=retry_command(cmd)
+                  previous=d/'failed_attempt_0';previous.mkdir()
+                  for name in ('run','native.log','guard_receipt.json'):
+                      shutil.move(str(d/name),str(previous/name))
+                  (d/'run').mkdir()
+                  info.update(retry=True,original_cfl=.2,retry_cfl=.1)
+                  (d/'recovery_receipt.json').write_text(json.dumps(info,indent=2))
+                  print('CFL_RECOVERY_START: original evidence preserved, fresh initial state',flush=True)
+                  # The enclosing timeout bounds the combined wall clock.
+                  os.environ['J0740_GUARD_BUDGET']=str(max(1,remaining-60))
+                  rc=run(retry)
+                  info['retry_exit']=rc
+                  info['retry_reason']=json.loads((d/'guard_receipt.json').read_text()).get('reason')
+              (d/'recovery_receipt.json').write_text(json.dumps(info,indent=2))
+              return rc
+          if __name__=='__main__':sys.exit(main())
+          PY
+          /usr/bin/python3 "$E/guarded_attempt.py" "$E" --selftest
           set +e
-          /usr/bin/python3 -u "$E/live_guard.py" "$E" stdbuf -oL -eL ./bin/athena "${args[@]}"
+          /usr/bin/python3 -u "$E/guarded_attempt.py" "$E" stdbuf -oL -eL ./bin/athena "${args[@]}"
           guard_rc=$?
           set -e
           printf '%s\n' "$guard_rc" > "$E/process_status.txt"
@@ -742,6 +796,8 @@ jobs:
             evidence/*.hpp
             evidence/*.patch
             evidence/live_guard.py
+            evidence/guarded_attempt.py
+            evidence/failed_attempt_0/**
             evidence/run/*.hst
             evidence/run/*.rst
             evidence/run/*.athdf
