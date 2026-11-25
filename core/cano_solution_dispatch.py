@@ -45,6 +45,19 @@ def actionable_solution(answer):
     if re.search(r"\b(?:degistiremem|gelistiremem|uygulayamam|yapamam|"
                  r"ekleyemem|olusturamam|erisemem|calistiramam)\b", normalized):
         return False
+    # Follow-up approval needs a specific CANO target or source path.
+    # A generic solution heading or programming example is not a fix.
+    target = re.search(
+        r"\bcano\s+(?:web\s+sohbet\w*|uygulama\w*|gorev\s+kuyrug\w*|kod\w*)\b",
+        normalized
+    )
+    path = re.search(
+        r"\b(?:(?:core|tests|scripts|pages)/[a-z0-9_./-]+\.(?:py|js|ts|yml|yaml)|app\.py)\b",
+        normalized
+    )
+    defect = re.search(r"\b(?:hata|sorun|baglanti|kuyruk|regresyon|eksik|guvenlik)\w*\b", normalized)
+    if not path and not (target and defect):
+        return False
     # Match whole imperative words, not prefixes of explanations such as
     # 'ekleyebiliriz' (we can add a memory note) or 'gelistirme' (job status).
     # A plain noun 'test' is not a command; 'test et' is.
