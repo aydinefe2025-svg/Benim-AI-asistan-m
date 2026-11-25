@@ -173,7 +173,9 @@ jobs:
           s=p.read_text()
           a='    std::cerr << "Tau is not finite!'
           assert s.count(a)==1
-          s=s.replace(a,'    throw std::runtime_error("J0740: first nonfinite conserved energy; inspect backtrace");'+chr(10)+a)
+          a='    std::cerr << "    sdetg = " << sdetg << "\\n";'
+          assert s.count(a)==1
+          s=s.replace(a,a+chr(10)+'    throw std::runtime_error("J0740: first nonfinite conserved energy; inspect backtrace");')
           p.write_text('#include <stdexcept>'+chr(10)+s)
           PY
           git -C upstream diff -- src/eos/eos_utils.cpp src/eos/eostaudyn_ps_gr.cpp > evidence/geometry_consistency.diff
