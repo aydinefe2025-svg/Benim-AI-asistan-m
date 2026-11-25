@@ -94,6 +94,49 @@ def gate(t,i,v,scaled):
     e=1000*(pred[test]-v[test])
     return {"choice":choice,"MAE_mV":float(np.mean(abs(e))),"RMSE_mV":float(np.sqrt(np.mean(e*e))),"max_mV":float(np.max(abs(e))),"params":params.tolist(),"holdout_points":int(test.sum()),"cut_s":float(start+2),"diagnostics":ds,"scores_V":scores}
 
+
+def stable_gate(t,i,v,legacy,cut):
+    """Exploratory causal variants: no persistent squared-charge extrapolation.
+    First cut-1 seconds after discharge onset used for fit, last second for selection.
+    Legacy prediction always comes from its fixed original 2-second calibration.
+    """
+    X,Z=design(t,i);start=t[np.flatnonzero(i<-3)[0]]
+    pre=t<start+cut-1;val=(t>=start+cut-1)&(t<start+cut);fit=t<start+cut;test=~fit
+    assert val.sum()>=45 and test.sum()>1000
+    assert cut>=2 and t[np.flatnonzero(i<-3)[-1]]>start+cut
+    base=X@FROZEN
+    legacy_design={"frozen":X,"local_2RC":X,"direction_curvature":Z}
+    reference=legacy_design[legacy["choice"]]@np.array(legacy["params"])
+    D=Z[:,:-1]
+    dq=integral(t,np.maximum(-i,0))
+    # A varying discharge resistance vanishes when the current returns to zero.
+    J=np.column_stack([D,np.minimum(i,0)*dq])
+    candidates={"local_2RC":X,"direction_only":D,"direction_charge_resistance":J}
+    scores={"frozen":float(np.mean(abs(base[val]-v[val])))}
+    for name,A in candidates.items():
+        b,ok,_=solve(A[pre],v[pre],True)
+        if ok:scores[name]=float(np.mean(abs(A[val]@b-v[val])))
+    choice=min(scores,key=scores.get);pred=base;params=FROZEN
+    if choice!="frozen" and scores[choice]<.9*scores["frozen"]:
+        A=candidates[choice];b,ok,_=solve(A[fit],v[fit],True)
+        if ok:pred=A@b;params=b
+        else:choice="frozen"
+    else:choice="frozen"
+    def metrics(p,mask):
+        e=1000*(p[mask]-v[mask])
+        return {"MAE_mV":float(np.mean(abs(e))),"RMSE_mV":float(np.sqrt(np.mean(e*e))),"max_mV":float(np.max(abs(e))),"points":int(mask.sum())}
+    return {"choice":choice,"scores_V":scores,"params":params.tolist(),"cut_s":float(start+cut),"legacy":metrics(reference,test),"candidate":metrics(pred,test),
+            "legacy_remaining_discharge":metrics(reference,test&(i<-3)),"candidate_remaining_discharge":metrics(pred,test&(i<-3)),
+            "legacy_rest":metrics(reference,test&(i>=-3)),"candidate_rest":metrics(pred,test&(i>=-3))}
+def summarize_stable(results,key):
+    a=[r[key] for r in results]
+    out={}
+    for label in ("","_remaining_discharge","_rest"):
+        old=[r["legacy"+label]["MAE_mV"] for r in a];new=[r["candidate"+label]["MAE_mV"] for r in a]
+        out[label or "all"]={"legacy_mean_mV":statistics.mean(old),"candidate_mean_mV":statistics.mean(new),"legacy_worst_mV":max(old),"candidate_worst_mV":max(new),"improved":sum(n<o-1e-8 for o,n in zip(old,new)),"worsened":sum(n>o+1e-8 for o,n in zip(old,new))}
+    out["choices"]={name:sum(r["choice"]==name for r in a) for name in sorted({r["choice"] for r in a})}
+    return out
+
 def main():
     files=sorted(ROOT.glob("HPPCs/Batch*/*.csv"))
     assert len(files)==254 and len({p.parent.name for p in files})==32
@@ -107,12 +150,16 @@ def main():
         old=gate(t,i,v,False);new=gate(t,i,v,True)
         assert old["holdout_points"]==new["holdout_points"]
         row={"member":str(p.relative_to(ROOT)),"sha256":hashlib.sha256(p.read_bytes()).hexdigest(),"initial_V":bv,"numeric_rows":n,"legacy":old,"scaled":new}
+        row['stable_2s']=stable_gate(t,i,v,old,2.)
+        row['stable_5s']=stable_gate(t,i,v,old,5.)
         results.append(row)
         print(json.dumps({"member":row["member"],"old":old["MAE_mV"],"new":new["MAE_mV"],"choice":new["choice"]}),flush=True)
     a=statistics.mean(x["legacy"]["MAE_mV"] for x in results);b=statistics.mean(x["scaled"]["MAE_mV"] for x in results)
     # The previous Windows aggregate is an independent reproduction target, not a fit target.
     assert abs(a-3.9206089537565467)<1e-5,(a,"legacy replay drift")
     summary={"files":24,"legacy_mean_mV":a,"scaled_mean_mV":b,"improved":sum(x["scaled"]["MAE_mV"]<x["legacy"]["MAE_mV"]-1e-8 for x in results),"worsened":sum(x["scaled"]["MAE_mV"]>x["legacy"]["MAE_mV"]+1e-8 for x in results),"legacy_worst_mV":max(x["legacy"]["MAE_mV"] for x in results),"scaled_worst_mV":max(x["scaled"]["MAE_mV"] for x in results)}
+    summary["stable_2s"]=summarize_stable(results,"stable_2s")
+    summary["stable_5s"]=summarize_stable(results,"stable_5s")
     report={"goal_key":"battery-20261125-hppc-scaled-cloud-replay-v1","archive_sha256":"36a8bd0904a27fd90e44820c5cf938c8e7ed3e01acb6d2232c759b9f07e811cf","scope":"same previously observed 24 low-voltage source files; no independent cell or temperature certification","summary":summary,"results":results}
     OUT.mkdir(parents=True,exist_ok=True)
     (OUT/"result.json").write_text(json.dumps(report,indent=2,allow_nan=False),encoding="utf-8")
