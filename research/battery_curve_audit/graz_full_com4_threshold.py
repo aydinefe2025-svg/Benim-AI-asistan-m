@@ -107,6 +107,41 @@ def fixed_lag_control(rows, lag=2):
         assert g['eligible']==sum(g[k] for k in ('pass_to_pass','pass_to_fail','fail_to_pass','fail_to_fail'))
     return {'groups':{k:dict(v) for k,v in groups.items()},'examples':examples}
 
+def select_lag(v,i,previous_v,previous_i):
+    # Exploratory rule frozen before this full-population run, after seeing five exceptions.
+    # No P, future rows, cell identity or source line number is used.
+    vc,ic,qv,qi=round(v*100),round(i*10),round(previous_v*100),round(previous_i*10)
+    return ic>=1000 and 0<=vc-qv<=1 and abs(ic-qi)<=1 and qv*qi<vc*ic
+
+def conditional_lag_control(rows):
+    groups={k:collections.Counter() for k in ('positive','flagged_zero','other_zero')}
+    examples={}
+    for j,r in enumerate(rows):
+        if r.device!='COM4':continue
+        key='positive' if r.p!=0 else ('flagged_zero' if abs(r.v*r.i)>=1 else 'other_zero')
+        g=groups[key];g['total']+=1
+        if j<2 or rows[j-2].line!=r.line-2 or not all(q.device=='COM4' for q in rows[j-2:j+1]) or not 0<r.t-rows[j-2].t<=4:
+            g['not_eligible']+=1;continue
+        q=rows[j-2];g['eligible']+=1
+        selected=select_lag(r.v,r.i,q.v,q.i)
+        baseline=lag_feasible(r.v,r.i,r.p)
+        shifted=lag_feasible(q.v,q.i,r.p) if selected else baseline
+        if selected:g['triggered']+=1
+        outcome=('pass' if baseline else 'fail')+'_to_'+('pass' if shifted else 'fail')
+        g[outcome]+=1
+        # Set-valued screen: keep both possible histories if rule triggers.
+        # Never changes logged P or claims a unique prediction.
+        if not baseline and shifted:g['ambiguity_screen_extra_compatible']+=1
+        if not (baseline or shifted):g['ambiguity_screen_incompatible']+=1
+        if outcome in ('fail_to_pass','pass_to_fail'):
+            examples.setdefault(key+'/'+outcome,{'line':r.line,'previous_line':q.line,'v':r.v,'i':r.i,'p':r.p,'previous_v':q.v,'previous_i':q.i})
+    for g in groups.values():
+        for k in ('total','not_eligible','eligible','triggered','pass_to_pass','pass_to_fail','fail_to_pass','fail_to_fail','ambiguity_screen_extra_compatible','ambiguity_screen_incompatible'):g[k]+=0
+        assert g['total']==g['eligible']+g['not_eligible']
+        assert g['eligible']==sum(g[k] for k in ('pass_to_pass','pass_to_fail','fail_to_pass','fail_to_fail'))
+        assert g['ambiguity_screen_incompatible']==g['fail_to_fail']
+    return {'groups':{k:dict(v) for k,v in groups.items()},'examples':examples}
+
 def scan(rows):
     counts=collections.Counter(); extrema={}; model_bad=collections.Counter(); witnesses={}; gaps=collections.Counter()
     def witness(key,val,row,maximum):
@@ -176,7 +211,13 @@ def selftest():
     cc=fixed_lag_control(rr)['groups']['positive']
     assert cc['eligible']==2 and cc['not_eligible']==2
     assert cc['fail_to_pass']==1 and cc['pass_to_fail']==1
-    print('22 synthetic checks passed')
+    assert select_lag(3.62,112.6,3.61,112.6)
+    assert select_lag(3.62,112.6,3.62,112.5)
+    assert not select_lag(3.62,37.5,3.61,37.5)
+    assert not select_lag(3.62,112.6,3.62,112.6)
+    cc=conditional_lag_control(rr)['groups']['positive']
+    assert cc['triggered']==0 and cc['pass_to_fail']==0 and cc['fail_to_fail']==1
+    print('27 synthetic checks passed')
 def main():
     selftest()
     if '--selftest' in sys.argv:return
@@ -189,14 +230,14 @@ def main():
             ms=[m for m in z.infolist() if not m.is_dir() and source.explicit_cell_in_path(m.filename)==cell and source.role_for_member(m.filename)=='charge_discharge_log_candidate']
             if len(ms)!=1:raise ValueError('log count')
             rows,h=boundary.parse_member(z,ms[0]); ids.extend(h); rowcount+=len(rows)
-            cells[cell]=scan(rows); cells[cell]['frozen_tolerance_exceptions']=residual_context(rows); cells[cell]['fixed_lag_control']=fixed_lag_control(rows); del rows
+            cells[cell]=scan(rows); cells[cell]['frozen_tolerance_exceptions']=residual_context(rows); cells[cell]['fixed_lag_control']=fixed_lag_control(rows); cells[cell]['conditional_lag_control']=conditional_lag_control(rows); del rows
     digest=hashlib.sha256(json.dumps(sorted(ids),separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
     if digest!=DIGEST or len(ids)!=1900 or rowcount!=prior.EXPECTED_ROWS:raise ValueError('source counts/identity')
     lower=max(c['extrema']['max_zero_lower']['numerator'] for c in cells.values())
     upper=min(c['extrema']['min_nonzero_upper']['numerator'] for c in cells.values())
     total=collections.Counter()
     for c in cells.values():total.update(c['counts'])
-    d={'goal_key':'graz-full-com4-threshold-identifiability-20261124','source_sha256':cert['original_zip_sha256'],'source_rows':rowcount,'flagged_identity_sha256':digest,'cells':cells,'all_counts':dict(total),'global_threshold_strict_lower':lower/4000,'global_threshold_conservative_upper':upper/4000,'global_any_threshold_possible_on_grid':lower<upper,'all_rows_grid_covered':not total['off_grid'],'rounding_assumption':'nearest 0.01 V and 0.1 I numeric; closed conservative intervals','model_incompatible_all':{m:sum(c['model_incompatible'][m] for c in cells.values()) for m in MODELS},'model_assumptions':'threshold fixed at 20; integer power quantization, conservative closed bounds; pre vs post clipping', 'holdout':holdout({k:v.pop('positive_gap_histogram') for k,v in cells.items()}),'positive_structural_infeasible_total':total['positive_structural_infeasible'],'holdout_scope':'post-hoc model chosen using same five cells, leave-one-cell-out tolerance fitting only; positive power magnitude, not independent physical calibration', 'exception_diagnostic_scope':'frozen previous cell03 train max 0.27475; +/-3 same-device neighboring rows within 4 seconds; feasibility only, no causal or predictive claim','fixed_lag_scope':'fixed two earlier consecutive original lines, same device throughout, elapsed <=4 s; compare baseline and lag on identical eligible rows, tolerance 0.27475 and threshold 20; post hoc negative control, no source rewrite','physical_root_cause_proven':False,'physical_units_verified':False,'physical_production_release_allowed':False}
+    d={'goal_key':'graz-full-com4-threshold-identifiability-20261124','source_sha256':cert['original_zip_sha256'],'source_rows':rowcount,'flagged_identity_sha256':digest,'cells':cells,'all_counts':dict(total),'global_threshold_strict_lower':lower/4000,'global_threshold_conservative_upper':upper/4000,'global_any_threshold_possible_on_grid':lower<upper,'all_rows_grid_covered':not total['off_grid'],'rounding_assumption':'nearest 0.01 V and 0.1 I numeric; closed conservative intervals','model_incompatible_all':{m:sum(c['model_incompatible'][m] for c in cells.values()) for m in MODELS},'model_assumptions':'threshold fixed at 20; integer power quantization, conservative closed bounds; pre vs post clipping', 'holdout':holdout({k:v.pop('positive_gap_histogram') for k,v in cells.items()}),'positive_structural_infeasible_total':total['positive_structural_infeasible'],'holdout_scope':'post-hoc model chosen using same five cells, leave-one-cell-out tolerance fitting only; positive power magnitude, not independent physical calibration', 'exception_diagnostic_scope':'frozen previous cell03 train max 0.27475; +/-3 same-device neighboring rows within 4 seconds; feasibility only, no causal or predictive claim','fixed_lag_scope':'fixed two earlier consecutive original lines, same device throughout, elapsed <=4 s; compare baseline and lag on identical eligible rows, tolerance 0.27475 and threshold 20; post hoc negative control, no source rewrite','conditional_lag_scope':'post-hoc exploratory causal-input rule: I>=100 numeric, voltage rise 0 or .01, current difference <=.1, past product smaller; only historical/current V/I, no target P for selection; same frozen tolerance; union is ambiguity screening not predictive reconstruction; no independent cell data','physical_root_cause_proven':False,'physical_units_verified':False,'physical_production_release_allowed':False}
     Path(sys.argv[1]).write_text(json.dumps(d,indent=2,sort_keys=True,allow_nan=False)+'\n')
     print(json.dumps(d,sort_keys=True))
 if __name__=='__main__':main()
