@@ -316,7 +316,33 @@ jobs:
           print("48 thermal-entropy adiabatic checks passed; diagnostic only")
           PY
           git diff -- src/z4c/primitive/hybrid_table.cpp > ../evidence/thermal_entropy.patch
-          python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_vc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/eos/eos_utils.cpp')
+          s=p.read_text()
+          old='sqrt_det_gamma_(i) = sl_adm_sqrt_detgamma(k, j, i);'
+          assert s.count(old)==1
+          s=s.replace(old,'''const Real det_here = LinearAlgebra::Det3Metric(gamma_dd_, i);
+                if (!(std::isfinite(det_here) && det_here > 0.0)) {
+                  std::cerr << "INVALID_METRIC_DETERMINANT " << i << " " << j << " " << k << " " << det_here << std::endl;
+                  std::abort();
+                }
+                sqrt_det_gamma_(i) = std::sqrt(det_here);''')
+          start=s.index('#if defined(Z4C_CX_ENABLED) || defined(Z4C_CC_ENABLED)',s.index('void EquationOfState::GeometryToSlicedCC'))
+          end=s.index('#endif',start)
+          block=s[start:end+len('#endif')]
+          assert '#else' in block and 'Inv3Metric' in block
+          s=s[:start]+block.split('#else',1)[1].rsplit('#endif',1)[0]+s[end+len('#endif'):]
+          p.write_text('#include <cstdlib>\n'+s)
+          p=Path('src/eos/eostaudyn_ps_gr.cpp')
+          s=p.read_text()
+          old='// Push the densitized conserved variables to Athena.'
+          assert s.count(old)==1
+          s=s.replace(old,'if (!std::isfinite(cons_pt[IEN])) std::abort();\n  '+old)
+          p.write_text('#include <cstdlib>\n'+s)
+          PY
+          git diff -- src/eos/eos_utils.cpp src/eos/eostaudyn_ps_gr.cpp > ../evidence/metric_consistency.patch
+          python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
           test -x bin/athena
           sha256sum bin/athena > ../evidence/binary.sha256
@@ -349,6 +375,7 @@ jobs:
             OMP_NUM_THREADS=1 timeout 90s gdb --batch -ex 'set pagination off' -ex 'catch throw' -ex run -ex 'thread apply all bt' --args ./bin/athena "${debug_args[@]}" 2>&1 | tee "$E/debug.log" || true
             exit 1
           fi
+          if grep -Eq 'Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT' "$E/native.log"; then exit 1; fi
           grep -q 'Step 08: Entering main integration loop' "$E/native.log"
           grep -q 'Terminating on time limit' "$E/native.log"
           /usr/bin/python3 - <<'PY'
