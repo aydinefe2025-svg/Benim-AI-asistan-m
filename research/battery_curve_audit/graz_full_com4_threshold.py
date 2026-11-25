@@ -77,6 +77,36 @@ def residual_context(rows, threshold=1099):
         records.append({'line':r.line,'time_numeric':r.t,'v':r.v,'i':r.i,'p':r.p,'required_tolerance':g/4000,'signed_residual':round(r.p-r.v*r.i,8),'neighbors':candidates,'nearby_feasible':any(x['offset']!=0 and x['required_tolerance']<=threshold/4000 for x in candidates)})
     return records
 
+def lag_feasible(v,i,p,tolerance=1099):
+    lo,hi=interval(v,i)
+    if p==0:return lo<80000
+    if p<0 or p!=round(p) or hi<80000:return False
+    return magnitude_gap(lo,hi,p)<=tolerance
+
+def fixed_lag_control(rows, lag=2):
+    # Compare on identical eligible rows; fixed lag never chosen by each target's residual.
+    # The two earlier original lines must exist and be in the same device segment.
+    groups={k:collections.Counter() for k in ('positive','flagged_zero','other_zero')}
+    examples={}
+    for j,r in enumerate(rows):
+        if r.device!='COM4':continue
+        key='positive' if r.p!=0 else ('flagged_zero' if abs(r.v*r.i)>=1 else 'other_zero')
+        g=groups[key];g['total']+=1
+        if j<lag or rows[j-lag].line!=r.line-lag or not all(q.device=='COM4' for q in rows[j-lag:j+1]) or not 0<r.t-rows[j-lag].t<=4:
+            g['not_eligible']+=1;continue
+        q=rows[j-lag];g['eligible']+=1
+        baseline=lag_feasible(r.v,r.i,r.p)
+        shifted=lag_feasible(q.v,q.i,r.p)
+        outcome=('pass' if baseline else 'fail')+'_to_'+('pass' if shifted else 'fail')
+        g[outcome]+=1
+        if outcome in ('fail_to_pass','pass_to_fail'):
+            examples.setdefault(key+'/'+outcome,{'line':r.line,'previous_line':q.line,'dt':round(r.t-q.t,6),'v':r.v,'i':r.i,'p':r.p,'previous_v':q.v,'previous_i':q.i})
+    for g in groups.values():
+        for k in ('total','not_eligible','eligible','pass_to_pass','pass_to_fail','fail_to_pass','fail_to_fail'):g[k]+=0
+        assert g['total']==g['eligible']+g['not_eligible']
+        assert g['eligible']==sum(g[k] for k in ('pass_to_pass','pass_to_fail','fail_to_pass','fail_to_fail'))
+    return {'groups':{k:dict(v) for k,v in groups.items()},'examples':examples}
+
 def scan(rows):
     counts=collections.Counter(); extrema={}; model_bad=collections.Counter(); witnesses={}; gaps=collections.Counter()
     def witness(key,val,row,maximum):
@@ -140,7 +170,13 @@ def selftest():
     assert len(diag)==1 and diag[0]['line']==10 and diag[0]['nearby_feasible']
     assert not residual_context([y])
     assert not residual_context([x,boundary.Row(11,20,'COM4',4.27,37.5,160)])[0]['nearby_feasible']
-    print('20 synthetic checks passed')
+    # Earlier product explains 160 at a later 4.34*37.5 row, but
+    # breaks 163 at the next row. The identical paired denominator matters.
+    rr=[boundary.Row(1,1,'COM4',4.27,37.5,160),boundary.Row(2,2,'COM4',4.27,37.5,160),boundary.Row(3,3,'COM4',4.34,37.5,160),boundary.Row(4,4,'COM4',4.34,37.5,163)]
+    cc=fixed_lag_control(rr)['groups']['positive']
+    assert cc['eligible']==2 and cc['not_eligible']==2
+    assert cc['fail_to_pass']==1 and cc['pass_to_fail']==1
+    print('22 synthetic checks passed')
 def main():
     selftest()
     if '--selftest' in sys.argv:return
@@ -153,14 +189,14 @@ def main():
             ms=[m for m in z.infolist() if not m.is_dir() and source.explicit_cell_in_path(m.filename)==cell and source.role_for_member(m.filename)=='charge_discharge_log_candidate']
             if len(ms)!=1:raise ValueError('log count')
             rows,h=boundary.parse_member(z,ms[0]); ids.extend(h); rowcount+=len(rows)
-            cells[cell]=scan(rows); cells[cell]['frozen_tolerance_exceptions']=residual_context(rows); del rows
+            cells[cell]=scan(rows); cells[cell]['frozen_tolerance_exceptions']=residual_context(rows); cells[cell]['fixed_lag_control']=fixed_lag_control(rows); del rows
     digest=hashlib.sha256(json.dumps(sorted(ids),separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
     if digest!=DIGEST or len(ids)!=1900 or rowcount!=prior.EXPECTED_ROWS:raise ValueError('source counts/identity')
     lower=max(c['extrema']['max_zero_lower']['numerator'] for c in cells.values())
     upper=min(c['extrema']['min_nonzero_upper']['numerator'] for c in cells.values())
     total=collections.Counter()
     for c in cells.values():total.update(c['counts'])
-    d={'goal_key':'graz-full-com4-threshold-identifiability-20261124','source_sha256':cert['original_zip_sha256'],'source_rows':rowcount,'flagged_identity_sha256':digest,'cells':cells,'all_counts':dict(total),'global_threshold_strict_lower':lower/4000,'global_threshold_conservative_upper':upper/4000,'global_any_threshold_possible_on_grid':lower<upper,'all_rows_grid_covered':not total['off_grid'],'rounding_assumption':'nearest 0.01 V and 0.1 I numeric; closed conservative intervals','model_incompatible_all':{m:sum(c['model_incompatible'][m] for c in cells.values()) for m in MODELS},'model_assumptions':'threshold fixed at 20; integer power quantization, conservative closed bounds; pre vs post clipping', 'holdout':holdout({k:v.pop('positive_gap_histogram') for k,v in cells.items()}),'positive_structural_infeasible_total':total['positive_structural_infeasible'],'holdout_scope':'post-hoc model chosen using same five cells, leave-one-cell-out tolerance fitting only; positive power magnitude, not independent physical calibration', 'exception_diagnostic_scope':'frozen previous cell03 train max 0.27475; +/-3 same-device neighboring rows within 4 seconds; feasibility only, no causal or predictive claim','physical_root_cause_proven':False,'physical_units_verified':False,'physical_production_release_allowed':False}
+    d={'goal_key':'graz-full-com4-threshold-identifiability-20261124','source_sha256':cert['original_zip_sha256'],'source_rows':rowcount,'flagged_identity_sha256':digest,'cells':cells,'all_counts':dict(total),'global_threshold_strict_lower':lower/4000,'global_threshold_conservative_upper':upper/4000,'global_any_threshold_possible_on_grid':lower<upper,'all_rows_grid_covered':not total['off_grid'],'rounding_assumption':'nearest 0.01 V and 0.1 I numeric; closed conservative intervals','model_incompatible_all':{m:sum(c['model_incompatible'][m] for c in cells.values()) for m in MODELS},'model_assumptions':'threshold fixed at 20; integer power quantization, conservative closed bounds; pre vs post clipping', 'holdout':holdout({k:v.pop('positive_gap_histogram') for k,v in cells.items()}),'positive_structural_infeasible_total':total['positive_structural_infeasible'],'holdout_scope':'post-hoc model chosen using same five cells, leave-one-cell-out tolerance fitting only; positive power magnitude, not independent physical calibration', 'exception_diagnostic_scope':'frozen previous cell03 train max 0.27475; +/-3 same-device neighboring rows within 4 seconds; feasibility only, no causal or predictive claim','fixed_lag_scope':'fixed two earlier consecutive original lines, same device throughout, elapsed <=4 s; compare baseline and lag on identical eligible rows, tolerance 0.27475 and threshold 20; post hoc negative control, no source rewrite','physical_root_cause_proven':False,'physical_units_verified':False,'physical_production_release_allowed':False}
     Path(sys.argv[1]).write_text(json.dumps(d,indent=2,sort_keys=True,allow_nan=False)+'\n')
     print(json.dumps(d,sort_keys=True))
 if __name__=='__main__':main()
