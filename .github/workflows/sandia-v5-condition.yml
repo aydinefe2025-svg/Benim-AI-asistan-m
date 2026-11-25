@@ -1,0 +1,35 @@
+name: Sandia V5 condition-aware power gate
+on:
+  pull_request:
+    paths:
+      - research/eps_lab_v4/condition_gate.py
+      - research/eps_lab_v4/test_condition_gate.py
+      - .github/workflows/sandia-v5-condition.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: research/eps_lab_v4
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - run: python -m unittest -v test_condition_gate
+      - run: python sandia_ingest.py
+      - run: python pair_audit.py
+      - run: python condition_gate.py SANDIA_PAIRED_POWER_RECEIPT.json AnonDB.csv
+      - run: python -c "import json; d=json.load(open('SANDIA_CONDITION_GATE_V5.json')); assert d['metadata_loaded'] and d['all_count']==613 and d['latest_count']==438 and d['later_count']==322 and d['causal_labels']==0"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sandia-v5-condition-gate
+          path: |
+            research/eps_lab_v4/SANDIA_CONDITION_GATE_V5.json
+            research/eps_lab_v4/AnonDB.csv
+          if-no-files-found: error
+          retention-days: 30
