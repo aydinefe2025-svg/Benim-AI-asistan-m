@@ -567,6 +567,47 @@ jobs:
           p.write_text(s.replace(a,b))
           PY
           git diff -- src/comm/physical_bcs.cpp > ../evidence/outer_boundary.patch
+          # J0740 hydro source local geometry: same stage metric and primitives
+          # for determinant, inverse, Lorentz factor, temperature and enthalpy.
+          # This is a controlled numerical intervention, not a physical fit.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/coordinates/gr_dynamical.cpp')
+          s=p.read_text()
+          i=s.index('      // Prepare determinant-like')
+          j=s.index('      // indicial manipulations',i)
+          old=s[i:j]
+          assert old.count('Inv3Metric(')==1 and old.count('adm_sqrt_detgamma(k, j, i)')==1
+          inv=old[old.index('      CC_PCO_ILOOP1(i)',old.index('#else')):old.index('#endif')]
+          s=s[:i]+'''      // Recompute both determinant and inverse from the sliced metric.
+                CC_PCO_ILOOP1(i)
+                {
+                  const Real a=gamma_dd_(0,0,i), b=gamma_dd_(0,1,i), c=gamma_dd_(0,2,i);
+                  const Real d=gamma_dd_(1,1,i), e=gamma_dd_(1,2,i), f=gamma_dd_(2,2,i);
+                  const Real det=a*d*f+2*b*c*e-a*e*e-d*c*c-f*b*b;
+                  if (!(std::isfinite(det) && det>0)) {
+                    std::fprintf(stderr,"INVALID_METRIC_DETERMINANT hydro-source %d %d %d %.17g\n",i,j,k,double(det));
+                    std::abort();
+                  }
+                  sqrt_detgamma_(i)=std::sqrt(det);
+                }
+          '''+inv+s[j:]
+          a='W_(i) = pmb->phydro->derived_ms(IX_LOR, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'''Real u2=0;
+                for (int q=0;q<NDIM;++q) u2+=w_util_d_(q,i)*w_util_u_(q,i);
+                W_(i)=std::sqrt(1.0+u2);''')
+          a='Real T = pmb->phydro->derived_ms(IX_T, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'Real T = peos->GetEOS().GetTemperatureFromP(n, w_p(k, j, i), Y);')
+          a='Real h = pmb->phydro->derived_ms(IX_ETH, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'Real h = peos->GetEOS().GetEnthalpy(n, T, Y);')
+          # The generated C++ needs a literal escaped newline in the format.
+          s=s.replace('%.17g\n",i,j,k','%.17g\\n",i,j,k')
+          p.write_text('#include <cstdio>\n#include <cstdlib>\n'+s)
+          PY
+          git diff -- src/coordinates/gr_dynamical.cpp > ../evidence/hydro_source_local_geometry.patch
           python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
           test -x bin/athena
