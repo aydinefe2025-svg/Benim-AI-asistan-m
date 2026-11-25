@@ -61,6 +61,36 @@ jobs:
           Path('upstream/src/pgen/gr_j0740.cpp').write_text(s)
           PY
           diff -u upstream/src/pgen/gr_rns.cpp upstream/src/pgen/gr_j0740.cpp > evidence/pgen.diff || test "$?" = 1
+          # Reuse upstream ColdEOSCompOSE verbatim for the missing cold hybrid policy.
+          # Its cold-slice reader requires a group with the same table and t=0.
+          .venv/bin/python - <<'PY'
+          import h5py
+          with h5py.File('evidence/cold.h5','r+') as f:
+              g=f.create_group('cold_slice')
+              for k in ('nb','mn','Q1','Q7'):
+                  g[k]=f[k]
+              g['t']=[0.]
+          PY
+          cat > upstream/src/z4c/primitive/cold_hybrid_table.hpp <<'CPP'
+          #pragma once
+          #include "cold_eos_compose.hpp"
+          namespace Primitive { using ColdHybridTable = ColdEOSCompOSE; }
+          CPP
+          # Build original implementation under the filename expected by configure.
+          cp upstream/src/z4c/primitive/cold_eos_compose.cpp upstream/src/z4c/primitive/cold_hybrid_table.cpp
+          sha256sum upstream/src/z4c/primitive/cold_eos_compose.cpp upstream/src/z4c/primitive/cold_hybrid_table.cpp > evidence/cold_policy.sha256
+          # Our adapter already returns density in the target baryon mass convention.
+          # The upstream RNSC conversion is inappropriate for this adapter.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('upstream/src/pgen/gr_j0740.cpp')
+          s=p.read_text()
+          a='rho[flat_ix] *= ceos->mb / mb_rnsc;'
+          assert s.count(a)==1
+          p.write_text(s.replace(a,'/* already in target EOS rest-mass convention */'))
+          PY
+          sha256sum evidence/bridge.dat evidence/cold.h5 > evidence/input.sha256
+          diff -u upstream/src/pgen/gr_rns.cpp upstream/src/pgen/gr_j0740.cpp > evidence/pgen.diff || test "$?" = 1
           cd upstream
           python3 configure.py --prob=gr_j0740 -f -z -z_vc --eospolicy=hybrid_table --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
