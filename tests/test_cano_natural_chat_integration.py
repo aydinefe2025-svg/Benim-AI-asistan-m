@@ -50,11 +50,18 @@ class NaturalChatIntegrationTests(unittest.TestCase):
 
     def test_solution_followup_queues_last_solution_without_copying(self):
         history=[{"role":"assistant","content":
-                  "Çözüm: Uygulama kodunu düzelt; sonra test ekle ve Render dağıtımı yap."}]
+                  "Çözüm: CANO uygulamasında görev kuyruğu bağlantı sorununu düzelt; sonra test ekle ve Render'da doğrula."}]
         answer=self.call_app("CANO bunu uygula",history)
         self.assertEqual(1,len(FakeCodeJobStore.calls))
         self.assertIn("Render",FakeCodeJobStore.calls[0][2])
         self.assertIn("kalıcı kuyruğa alındı",answer)
+
+    def test_generic_solution_followup_does_not_queue_code_job(self):
+        history=[{"role":"assistant","content":
+                  "Çözüm: Uygulama kodunu düzelt; sonra test ekle ve Render dağıtımı yap."}]
+        answer=self.call_app("CANO bunu uygula",history)
+        self.assertEqual([], FakeCodeJobStore.calls)
+        self.assertNotIn("kalıcı kuyruğa alındı",answer)
 
     def test_one_click_action_is_available_behind_owner_gate(self):
         text=APP.read_text(encoding="utf8")
