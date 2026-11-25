@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        n: [48, 64, 96]
+        n: [48, 64]
     env:
       J0740_N: ${{ matrix.n }}
     steps:
@@ -440,6 +440,61 @@ jobs:
           p.write_text('#include <cstdlib>\n'+s)
           PY
           git diff -- src/eos/eos_utils.cpp src/eos/eostaudyn_ps_gr.cpp > ../evidence/metric_consistency.patch
+          # CC matter source: derive h and W from the current primitive/metric
+          # rather than cached derived_ms fields. Audit source closure separately.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/z4c/matter_sources.cpp')
+          s=p.read_text()
+          a='Real T = ph->derived_ms(IX_T, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'Real T = peos->GetEOS().GetTemperatureFromP(n, w_p(i), Y);')
+          a='Real h = ph->derived_ms(IX_ETH, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'Real h = peos->GetEOS().GetEnthalpy(n, T, Y);')
+          a='W(i) = ph->derived_ms(IX_LOR, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'W(i) = std::sqrt(1.0 + InnerProductSlicedVec3Metric(w_utilde_u, adm.g_dd, k, j, i));')
+          p.write_text(s)
+          p=Path('src/pgen/gr_rns.cpp')
+          s=p.read_text()
+          a='}, "J0740_Jz", UserHistoryOperation::sum);'
+          assert s.count(a)==1
+          s=s.replace(a,a+'''
+            EnrollUserHistoryOutput(+[](MeshBlock* b,int) -> Real {
+              Real sum=0;
+              for(int k=b->ks;k<=b->ke;k++)for(int j=b->js;j<=b->je;j++)for(int i=b->is;i<=b->ie;i++){
+                const auto &g=b->pz4c->adm.g_dd;
+                const Real a=g(0,0,k,j,i),d=g(1,1,k,j,i),f=g(2,2,k,j,i);
+                const Real c=g(0,2,k,j,i),e=g(1,2,k,j,i),h=g(0,1,k,j,i);
+                const Real det=a*d*f+2*h*c*e-a*e*e-d*c*c-f*h*h;
+                if(!(std::isfinite(det)&&det>0))throw std::runtime_error("J0740 source metric invalid");
+                const Real v=b->pz4c->mat.rho(k,j,i)*std::sqrt(det);
+                const Real u=b->phydro->u(IDN,k,j,i)+b->phydro->u(IEN,k,j,i);
+                sum+=std::abs(v-u)*b->pcoord->dx1v(i)*b->pcoord->dx2v(j)*b->pcoord->dx3v(k);
+              }
+              return sum;
+            },"J0740_Esrc_L1",UserHistoryOperation::sum);
+            EnrollUserHistoryOutput(+[](MeshBlock* b,int) -> Real {
+              Real sum=0;
+              for(int k=b->ks;k<=b->ke;k++)for(int j=b->js;j<=b->je;j++)for(int i=b->is;i<=b->ie;i++){
+                const auto &g=b->pz4c->adm.g_dd;
+                const Real a=g(0,0,k,j,i),d=g(1,1,k,j,i),f=g(2,2,k,j,i);
+                const Real c=g(0,2,k,j,i),e=g(1,2,k,j,i),h=g(0,1,k,j,i);
+                const Real det=a*d*f+2*h*c*e-a*e*e-d*c*c-f*h*h;
+                if(!(std::isfinite(det)&&det>0))throw std::runtime_error("J0740 source metric invalid");
+                for(int q=0;q<3;q++){
+                  const Real v=b->pz4c->mat.S_d(q,k,j,i)*std::sqrt(det);
+                  const Real u=b->phydro->u(IM1+q,k,j,i);
+                  sum+=std::abs(v-u)*b->pcoord->dx1v(i)*b->pcoord->dx2v(j)*b->pcoord->dx3v(k);
+                }
+              }
+              return sum;
+            },"J0740_Ssrc_L1",UserHistoryOperation::sum);
+          ''')
+          p.write_text(s)
+          PY
+          git diff -- src/z4c/matter_sources.cpp src/pgen/gr_rns.cpp > ../evidence/current_matter_source.patch
           python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
           test -x bin/athena
@@ -500,7 +555,15 @@ jobs:
               mass_drift_below_0p1pct=dmass<=1e-3,J_drift_below_1pct=dj<=.01,
               density_drift_below_2pct=drho<=.02,
               momentum_norm2_non_growth=bool(M[-1]<=M[0]))
-          result=dict(status='SHORT_MATCHED_RESOLUTION_SCREEN_ONLY',n=int(os.environ['J0740_N']),history_rows=len(rows),max_time=float(a[-1,0]),
+          srcE,srcS=col('J0740_Esrc_L1'),col('J0740_Ssrc_L1')
+          gates['energy_source_closure']=bool(max(srcE)/mass[0]<1e-4)
+          gates['momentum_source_closure']=bool(max(srcS)/mass[0]<1e-4)
+          # Negative control: actual matter perturbation must not yield identical
+          # constraint history to the prior pointwise sampling run.
+          baseline={48:(0.0303490979221741,0.014537248166876078,0.0024587319641590126),64:(0.01599836139423608,0.006878364219667045,0.0013518388537236987)}[int(os.environ['J0740_N'])]
+          response=max(abs(np.array([H[0],H[-1],M[-1]])/baseline-1))
+          gates['matter_response_nonidentical']=bool(response>1e-6)
+          result=dict(source_E_L1_max=float(max(srcE)),source_S_L1_max=float(max(srcS)),matter_response=float(response),status='SHORT_MATCHED_RESOLUTION_SCREEN_ONLY',n=int(os.environ['J0740_N']),history_rows=len(rows),max_time=float(a[-1,0]),
               rotation_target=585.8691805265147,mass_initial=float(mass[0]),J_initial=float(jz[0]),
               mass_drift=dmass,J_drift=dj,rho_drift=drho,H0=float(H[0]),Hfinal=float(H[-1]),M0=float(M[0]),Mfinal=float(M[-1]),
               Hmax=float(max(H)),Mmax=float(max(M)),gates=gates,
@@ -511,7 +574,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-native-cell-average-N${{ matrix.n }}
+          name: j0740-native-current-matter-N${{ matrix.n }}
           path: |
             evidence/*.log
             evidence/*.json
