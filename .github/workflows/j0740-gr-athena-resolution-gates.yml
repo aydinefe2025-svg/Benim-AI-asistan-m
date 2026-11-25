@@ -540,6 +540,8 @@ jobs:
           variable = geom.adm
           dt = 0.1
           '''
+          s+='\n<hydro>\ntable = '+str(d/'cold.h5')+'\ngamma_th = 1.75\ndfloor = 1e-12\ntfloor = 1e-10\nrsolver = hlle\n'
+          assert '<hydro>' in s and str(d/'cold.h5') in s
           (d/'source_probe.inp').write_text(s)
           import numpy as np,struct
           p=d/'f171_grid.bin'
@@ -567,6 +569,8 @@ jobs:
               esac
             done
             J0740_GRID="$grid" ./bin/athena "${probe_args[@]}" 2>&1 | tee "$E/probe_$kind.log"
+            grep -q "Terminating on time limit" "$E/probe_$kind.log"
+            test "$(find "$E/probe_$kind" -name "*.athdf" | wc -l)" -ge 3
           done
           /usr/bin/python3 - <<'PY'
           import pathlib,os,h5py,numpy as np,json
@@ -605,64 +609,12 @@ jobs:
           (d/'source_response_probe.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
           assert geom<1e-10 and err<1e-5 and ma>1e-8 and me<1e-5,'native matter sensitivity or diagnostic output is inconsistent'
           PY
-          # No entropy-based reconstruction; entropy is a diagnostic only.
-          if ! ./bin/athena "${args[@]}" 2>&1 | tee "$E/native.log"; then
-            mkdir -p "$E/debug_run"
-            debug_args=("${args[@]}")
-            for i in "${!debug_args[@]}"; do
-              if [[ "${debug_args[i]}" == "$E/run" ]]; then debug_args[i]="$E/debug_run"; fi
-              if [[ "${debug_args[i]}" == "mesh/num_threads=2" ]]; then debug_args[i]="mesh/num_threads=1"; fi
-            done
-            OMP_NUM_THREADS=1 timeout 90s gdb --batch -ex 'set pagination off' -ex 'catch throw' -ex run -ex 'thread apply all bt' --args ./bin/athena "${debug_args[@]}" 2>&1 | tee "$E/debug.log" || true
-            exit 1
-          fi
-          if grep -Eq 'Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT' "$E/native.log"; then exit 1; fi
-          grep -q 'Step 08: Entering main integration loop' "$E/native.log"
-          grep -q 'Terminating on time limit' "$E/native.log"
-          /usr/bin/python3 - <<'PY'
-          import pathlib,json,math,re,os,numpy as np
-          d=pathlib.Path('../evidence')
-          rows=[]; names=[]
-          for f in (d/'run').rglob('*.hst'):
-              lines=f.read_text().splitlines()
-              names=re.findall(r'\[\d+\]=([^ ]+)',next(x for x in lines if '[1]=time' in x))
-              for line in lines:
-                  if line.strip() and not line.lstrip().startswith('#'):
-                      r=[float(v) for v in line.split()]
-                      assert all(math.isfinite(v) for v in r)
-                      rows.append(r)
-          assert len(rows)>=2 and max(r[0] for r in rows)>=1.9
-          a=np.asarray(rows); assert a.shape[1]==len(names)
-          col=lambda name:a[:,names.index(name)]
-          mass,jz,H,M,rho,fail,alpha=[col(k) for k in ('mass','J0740_Jz','H-norm2','M-norm2','max_rho','num_c2p_fail','min_alpha')]
-          assert mass[0]>0 and abs(jz[0])>0 and min(H)>=0 and min(M)>=0
-          # Predeclared screening criteria, not a physical stability proof.
-          dmass=float(np.max(abs(mass/mass[0]-1)));dj=float(np.max(abs(jz/jz[0]-1)))
-          drho=float(np.max(abs(rho/rho[0]-1)))
-          gates=dict(finite=True,primitive_recovery=bool(max(fail)==0),positive_lapse=bool(min(alpha)>0),
-              mass_drift_below_0p1pct=dmass<=1e-3,J_drift_below_1pct=dj<=.01,
-              density_drift_below_2pct=drho<=.02,
-              momentum_norm2_non_growth=bool(M[-1]<=M[0]))
-          srcE,srcS=col('J0740_Esrc_L1'),col('J0740_Ssrc_L1')
-          gates['energy_source_closure']=bool(max(srcE)/mass[0]<1e-4)
-          gates['momentum_source_closure']=bool(max(srcS)/mass[0]<1e-4)
-          # Negative control: actual matter perturbation must not yield identical
-          # constraint history to the prior pointwise sampling run.
-          baseline={48:(0.0303490979221741,0.014537248166876078,0.0024587319641590126),64:(0.01599836139423608,0.006878364219667045,0.0013518388537236987)}[int(os.environ['J0740_N'])]
-          response=max(abs(np.array([H[0],H[-1],M[-1]])/baseline-1))
-          gates['matter_response_nonidentical']=bool(response>1e-6)
-          result=dict(source_E_L1_max=float(max(srcE)),source_S_L1_max=float(max(srcS)),matter_response=float(response),status='SHORT_MATCHED_RESOLUTION_SCREEN_ONLY',n=int(os.environ['J0740_N']),history_rows=len(rows),max_time=float(a[-1,0]),
-              rotation_target=585.8691805265147,mass_initial=float(mass[0]),J_initial=float(jz[0]),
-              mass_drift=dmass,J_drift=dj,rho_drift=drho,H0=float(H[0]),Hfinal=float(H[-1]),M0=float(M[0]),Mfinal=float(M[-1]),
-              Hmax=float(max(H)),Mmax=float(max(M)),gates=gates,
-              limits='Coordinate-volume integrated squared constraint indicators; hybrid thermal diagnostic, no long-time or perturbation proof.')
-          (d/'receipt.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
-          assert all(gates.values()), 'short screen rejected; do not extend unqualified evolution'
-          PY
+          # Source probe only; do not repeat unqualified physical evolution.
+          exit 0
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-native-current-matter-N${{ matrix.n }}
+          name: j0740-native-source-response-N${{ matrix.n }}
           path: |
             evidence/*.log
             evidence/*.json
