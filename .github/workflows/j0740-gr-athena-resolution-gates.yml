@@ -79,6 +79,7 @@ jobs:
           import io, zipfile, pathlib, json, hashlib, struct, os
           import numpy as np
           from scipy.interpolate import RectBivariateSpline, RegularGridInterpolator
+          from numpy.polynomial.legendre import leggauss
           d=pathlib.Path('evidence').resolve()
           C=2.99792458e10; G=6.67408e-8; MS=1.98848e33; L=G*MS/C**2
           F=np.sqrt(1e-15*C*C/6.673e-8)/L; RCONV=1e15*L**3/MS
@@ -97,6 +98,45 @@ jobs:
           X,Y=np.meshgrid(xs,xs,indexing='xy')
           out=d/'f171_grid.bin'
           maximum=0.; minmetric=1e99
+          qnodes,qweights=leggauss(4)
+          closure_max=0.; energy_absdiff=0.; mass_sum=0.; J_sum=0.; energy_quad=0.
+          def cold(p):
+              j=np.clip(np.searchsorted(pt,p,side='right')-1,0,len(slope)-1)
+              dp=p-pt[j]; e=et[j]+slope[j]*dp
+              h=ht[j]+np.log1p((1+slope[j])*dp/(et[j]+pt[j]))/(1+slope[j])
+              m=p<pt[0];f=(p[m]/pt[0])**.25
+              e[m]=et[0]*f**3;h[m]=4*np.log1p(pt[0]/et[0]*f)
+              return e,h
+          def quad_sample(pos):
+              xx,yy,zz=pos.T;rr=np.linalg.norm(pos,axis=-1);rc=np.hypot(xx,yy)
+              ss=rr/(rr+re*F);uu=np.abs(zz)/np.where(rr>0,rr,1)
+              al,gg,ro,ww=[v.ev(ss,uu) for v in sp]
+              ac=np.exp(2*al);bc=np.exp(gg-ro);N=np.exp((gg+ro)/2);sqrtg=ac*np.sqrt(bc)
+              p=np.maximum(pp((ss,uu)),0.);e,h=cold(p)
+              speed=(Omega-ww)/F/N
+              W=1/np.sqrt(1-np.where(p>0,bc*(speed*rc)**2,0))
+              phi=np.stack([-yy,xx,np.zeros_like(xx)],-1)
+              E=((e+p)*W**2-p)*RCONV
+              S=(e+p)[:,None]*W[:,None]**2*(bc*speed)[:,None]*phi*RCONV
+              D=(e+p)*np.exp(-h)*W*RCONV
+              return np.c_[sqrtg*E,sqrtg[:,None]*S,sqrtg*D]
+          def conservative_cold(Dg,Sg,gi):
+              p=np.zeros_like(Dg);e=p.copy();h=p.copy();W=np.ones_like(Dg)
+              m=Dg>0;D0=Dg[m]/RCONV
+              ratio=np.sqrt(np.maximum(np.einsum('...ij,...i,...j->...',gi[m],Sg[m],Sg[m]),0))/RCONV/D0
+              lo=np.full_like(D0,np.log(pt[0])-80.);hi=np.full_like(D0,np.log(pt[-1]))
+              for _ in range(58):
+                  mid=(lo+hi)/2;p0=np.exp(mid);e0,h0=cold(p0)
+                  W0=np.sqrt(1+(ratio*np.exp(-h0))**2)
+                  too=(e0+p0)*np.exp(-h0)*W0>D0
+                  hi=np.where(too,mid,hi);lo=np.where(too,lo,mid)
+              p[m]=np.exp((lo+hi)/2);e[m],h[m]=cold(p[m])
+              W[m]=np.sqrt(1+(ratio*np.exp(-h[m]))**2)
+              rho=(e+p)*np.exp(-h)*RCONV;E=((e+p)*W**2-p)*RCONV
+              err=float(np.max(abs(rho[m]*W[m]/Dg[m]-1),initial=0))
+              assert err<1e-10
+              vel=np.divide(np.einsum('...ij,...j->...i',gi,Sg),(E+p*RCONV)[:,None],out=np.zeros_like(Sg),where=(E+p*RCONV)[:,None]>0)
+              return rho,p*RCONV,e*RCONV,W,vel,E,err
           with out.open('wb') as fp:
               fp.write(struct.pack('<idd',n,x0,dx))
               for zz in xs:
@@ -125,12 +165,41 @@ jobs:
                   assert np.all(v2[mat]<1)
                   v[~mat]=0; W=1/np.sqrt(1-np.where(mat,v2,0))
                   rho[~mat]=1e-12; p[~mat]=0
+                  # Replace pointwise matter by exact volume-averaged D and S_i,
+                  # then reconstruct the cold primitive at the local metric.
+                  # Geometry and K are left unchanged. 4^3 Gauss quadrature was
+                  # independently compared against 8^3 on the same actual fields.
+                  select=r<re*F+np.sqrt(3)*2*dx
+                  pos=np.stack([X,Y,Z],-1)[select]
+                  acc=np.zeros((len(pos),5))
+                  for iq,xq in enumerate(qnodes):
+                      for jq,yq in enumerate(qnodes):
+                          for kq,zq in enumerate(qnodes):
+                              acc+=qweights[iq]*qweights[jq]*qweights[kq]/8*quad_sample(pos+dx*np.array([xq,yq,zq]))
+                  sqrtg=(ac*np.sqrt(bc))[select];avg=acc/sqrtg[:,None]
+                  gi=np.linalg.inv(g[select])
+                  rh,pr,er,Wr,vr,EE,cl=conservative_cold(avg[:,4],avg[:,1:4],gi)
+                  closure_max=max(closure_max,cl)
+                  rho[select]=rh;p[select]=pr/RCONV;e[select]=er/RCONV
+                  v[select]=vr;W[select]=Wr
+                  # Cell-center points only, no duplicate half-grid quadrature.
+                  if round((zz+24)/dx)%2==1 and abs(zz)<24:
+                      mask=select & (abs(X)<24)&(abs(Y)<24)&(np.rint((X+24)/dx).astype(int)%2==1)&(np.rint((Y+24)/dx).astype(int)%2==1)
+                      take=mask[select]
+                      mass_sum+=float(acc[take,4].sum()*(2*dx)**3)
+                      J_sum+=float(np.sum(pos[take,0]*acc[take,2]-pos[take,1]*acc[take,1])*(2*dx)**3)
+                      energy_absdiff+=float(np.sum(abs(EE[take]*sqrtg[take]-acc[take,0]))*(2*dx)**3)
+                      energy_quad+=float(acc[take,0].sum()*(2*dx)**3)
+                  mat=rho>1e-12
+                  rho[~mat]=1e-12;p[~mat]=0;e[~mat]=0;v[~mat]=0;W[~mat]=1
                   eps=np.where(mat,e*RCONV/rho-1,0)
                   idx=((0,0),(0,1),(0,2),(1,1),(1,2),(2,2))
                   vals=np.stack([lapse,*np.moveaxis(beta,-1,0),*[g[...,i,j] for i,j in idx],*[K[...,i,j] for i,j in idx],rho,eps,*np.moveaxis(v,-1,0),*np.moveaxis(v*W[...,None],-1,0),p*RCONV],-1)
                   assert vals.shape[-1]==25 and np.isfinite(vals).all()
                   vals.astype('<f8').tofile(fp)
-          assert minmetric>0
+          assert minmetric>0 and closure_max<1e-10
+          assert abs(mass_sum/2.4142703584211214-1)<.002 and abs(J_sum/.6892530936503651-1)<.002
+          (d/'conservative_import.json').write_text(json.dumps(dict(Mb=mass_sum,Jz=J_sum,primitive_closure=closure_max,energy_L1_relative=energy_absdiff/energy_quad,quadrature_order=4,scope='cell-averaged D,S, exact cold reconstruction; E reconstructed not independently conserved'),indent=2))
           (d/'import.json').write_text(json.dumps({'source_fields_sha256':hashlib.sha256(b).hexdigest(),'grid_sha256':hashlib.file_digest(out.open('rb'),'sha256').hexdigest(),'points':n**3,'max_matter_v2':maximum,'min_metric_eigenvalue':minmetric,'scope':'F171 native stationary fields, explicit floor, cubic metric and linear pressure interpolation; no RNSC re-solve'},indent=2))
           PY
           cat evidence/target.json
@@ -442,7 +511,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-native-gates-N${{ matrix.n }}
+          name: j0740-native-cell-average-N${{ matrix.n }}
           path: |
             evidence/*.log
             evidence/*.json
