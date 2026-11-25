@@ -151,6 +151,32 @@ jobs:
           p.write_text(s.replace(old,new))
           PY
           git -C upstream diff -- src/comm/physical_bcs.cpp src/eos/eos_utils.cpp > evidence/vc_geometry.diff
+          # Vertex-to-cell interpolation must precede determinant and inversion:
+          # det(interp(gamma)) is not interp(det(gamma)).
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('upstream/src/eos/eos_utils.cpp')
+          s=p.read_text()
+          i=s.index('void EquationOfState::GeometryToSlicedCC(')
+          a=s.index('  if (!coarse_flag)',i)
+          b=s.index('  // recycle scratch alloc.',a)
+          tail=s[a:b]
+          start=tail.index('    for (int i = il; i <= iu; ++i)',tail.index('  else'+chr(10)+'  {'))
+          end=tail.rindex('  }')
+          loop=tail[start:end].rstrip()
+          assert 'Det3Metric(gamma_dd_, i)' in loop and 'Inv3Metric' in loop
+          s=s[:a]+'#pragma omp simd'+chr(10)+loop+chr(10)+chr(10)+s[b:]
+          p.write_text(s)
+          # Stop on the first invalid conserved energy instead of producing
+          # gigabytes of invalid evolution. Keep the original diagnostic.
+          p=Path('upstream/src/eos/eostaudyn_ps_gr.cpp')
+          s=p.read_text()
+          a='    std::cerr << "Tau is not finite!'
+          assert s.count(a)==1
+          s=s.replace(a,'    throw std::runtime_error("J0740: first nonfinite conserved energy; inspect backtrace");'+chr(10)+a)
+          p.write_text('#include <stdexcept>'+chr(10)+s)
+          PY
+          git -C upstream diff -- src/eos/eos_utils.cpp src/eos/eostaudyn_ps_gr.cpp > evidence/geometry_consistency.diff
           cd upstream
           python3 configure.py --prob=gr_j0740 --coord=gr_dynamical -f -g -z -z_vc --eospolicy=hybrid_table --cxx g++ --cflag=-g1 -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
@@ -198,6 +224,7 @@ jobs:
           assert n == 1
           s += chr(10) + '<output4>' + chr(10) + 'file_type = rst' + chr(10) + 'dt = 0.5' + chr(10)
           (d/'integrator_scope.json').write_text(json.dumps(dict(integrator='rk3',reason='coupled LowStorage tasklist',cfl=0.25,restart_dt=0.5)))
+          s += chr(10) + '<output5>' + chr(10) + 'file_type = hdf5' + chr(10) + 'variable = geom.adm' + chr(10) + 'dt = 0.1' + chr(10)
           (d/'star.inp').write_text(s)
           PY
           mkdir -p evidence/run
