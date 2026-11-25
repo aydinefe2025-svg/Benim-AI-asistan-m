@@ -305,7 +305,7 @@ jobs:
           assert s.count(a)==1
           s=s.replace(a,a+'''
             EnrollUserHistoryOutput(
-              [](MeshBlock* b,int) -> Real {
+              +[](MeshBlock* b,int) -> Real {
                 Real jz=0;
                 for(int k=b->ks;k<=b->ke;k++)for(int j=b->js;j<=b->je;j++)for(int i=b->is;i<=b->ie;i++){
                   const Real x=b->pcoord->x1v(i),y=b->pcoord->x2v(j);
