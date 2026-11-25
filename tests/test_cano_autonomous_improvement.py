@@ -63,10 +63,12 @@ class BoundedImprovementTests(unittest.TestCase):
             self.colony, self.author, self.reviewer,
             "Review a short research summary.", self.cases_json(), "safe-v1",
             client=client, model="mock",
+            holdout_cases_json=self.cases_json().replace("Prompt ", "New held-out question "),
+            holdout_dataset_ref="safe-v2",
         )
         self.assertEqual(result["status"], "review_pending")
-        self.assertEqual(result["provider_calls_max"], 24)
-        self.assertEqual(client.calls, 24)
+        self.assertEqual(result["provider_calls_max"], 44)
+        self.assertEqual(client.calls, 44)
         self.assertFalse(result["candidate_activated"])
         self.assertFalse(result["model_weights_updated"])
         self.assertEqual(result["benchmark"]["candidate_passed"], 5)
