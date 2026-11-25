@@ -120,6 +120,37 @@ jobs:
           p.write_text(s)
           PY
           git -C upstream diff -- src/eos/eos_utils.cpp > evidence/entropy_diagnostic.diff
+          # VC physical ghost bounds must use the Z4c vertex lattice, not
+          # the fluid cell lattice. Preserve the same boundary condition.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('upstream/src/comm/physical_bcs.cpp')
+          s=p.read_text()
+          inc='#include "../mesh/mesh_refinement.hpp"'
+          assert s.count(inc)==1
+          s=s.replace(inc,inc+chr(10)+'#include "../z4c/z4c.hpp"')
+          start=s.index('void ApplyPhysicalBCs(MeshBlock*')
+          end=s.index('  // Start with transverse limits',start)
+          prefix=s[start:end]
+          old='  const int ng           = spec.nghost;'
+          assert prefix.count(old)==1
+          prefix=prefix.replace(old,'  const bool vc = spec.sampling == Sampling::VC && pmb->pz4c != nullptr;'+chr(10)+'  const int ng = vc ? pmb->pz4c->mbi.ng : spec.nghost;')
+          for ax,lo,hi in [('i','il','iu'),('j','jl','ju'),('k','kl','ku')]:
+              old=f'  const int {ax}s = pmb->{ax}s, {ax}e = pmb->{ax}e;'
+              assert prefix.count(old)==1
+              prefix=prefix.replace(old,f'  const int {ax}s = vc ? pmb->pz4c->mbi.{lo} : pmb->{ax}s, {ax}e = vc ? pmb->pz4c->mbi.{hi} : pmb->{ax}e;')
+          s=s[:start]+prefix+s[end:]
+          p.write_text(s)
+          # VC interpolation: determinant and inverse must describe exactly
+          # the same local cell metric, not an independently cached quantity.
+          p=Path('upstream/src/eos/eos_utils.cpp')
+          s=p.read_text()
+          old='      const Real oo_det_gamma_i = 1. / SQR(sqrt_det_gamma_(i));'
+          assert s.count(old)==1
+          new='      const Real det_gamma_i = LinearAlgebra::Det3Metric(gamma_dd_, i);'+chr(10)+'      sqrt_det_gamma_(i) = std::sqrt(det_gamma_i);'+chr(10)+'      const Real oo_det_gamma_i = 1. / det_gamma_i;'
+          p.write_text(s.replace(old,new))
+          PY
+          git -C upstream diff -- src/comm/physical_bcs.cpp src/eos/eos_utils.cpp > evidence/vc_geometry.diff
           cd upstream
           python3 configure.py --prob=gr_j0740 --coord=gr_dynamical -f -g -z -z_vc --eospolicy=hybrid_table --cxx g++ --cflag=-g1 -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
