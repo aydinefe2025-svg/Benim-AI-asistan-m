@@ -1,0 +1,128 @@
+name: J0740 independent RNSC and GR-Athena fluid pilot
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-gr-athena-native-fluid.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  native-fluid:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: computationalrelativity/gr-athena
+          ref: f534ca0f6fa0d55b90df1686fa9abd476730bf3b
+          path: athena
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: computationalrelativity/RNSC
+          ref: 4bff105b52b2738f2d11fd2df8a458dce1e6b172
+          path: rnsc
+          persist-credentials: false
+      - name: Fetch and verify exact F171 source, prepare native input
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/run
+          sudo apt-get update -qq
+          sudo apt-get install -y libhdf5-dev libgsl-dev python3-numpy python3-h5py
+          gh api repos/${{ github.repository }}/actions/artifacts/15038164239/zip > evidence/F171.zip
+          echo 'a7770d2fb40bea0a50d2c2f7f7c60fce1ad755d53b9ccd8648c3b036dfbba77c  evidence/F171.zip' | sha256sum -c -
+          /usr/bin/python3 - <<'PY'
+          import hashlib, json, pathlib, zipfile, io, math
+          import numpy as np
+          import h5py
+          d=pathlib.Path('evidence').resolve()
+          with zipfile.ZipFile(d/'F171.zip') as z:
+              assert z.testzip() is None
+              b=z.read('model.rns')
+              assert hashlib.sha256(b).hexdigest()=='bd9cda6359f4e68d4de3a27b3a0e80bd830d0fb3936f91dfea59517e403c090d'
+              (d/'model.rns').write_bytes(b)
+              ref=json.loads(z.read('reference.json'))
+              row=np.fromstring(z.read('fields.txt').splitlines()[1],sep=' ')
+          C=2.99792458e10; MB=1.66e-24; MEV=1.6021766208e-6
+          G=6.67408e-8; MS=1.98848e33; L=G*MS/C**2
+          a=np.loadtxt(io.BytesIO(b),skiprows=1)
+          E,P,H,n=a[:,0]*C*C,a[:,1],a[:,2]/C**2,a[:,3]
+          slope=np.diff(E)/np.diff(P)
+          assert np.all(slope>=1-1e-10)
+          assert np.max(abs((E+P)*np.exp(-H)/(MB*C*C*n)-1))<1e-12
+          q=np.exp(np.linspace(np.log(n[0]*1e-6),np.log(n[-1]),1048577));q[-1]=n[-1]
+          i=np.clip(np.searchsorted(n,q,side='right')-1,0,len(slope)-1)
+          delta=(E[i]+P[i])/(1+slope[i])*np.expm1((1+slope[i])/slope[i]*np.log(q/n[i]))
+          p=P[i]+delta;e=E[i]+slope[i]*delta;cs2=1/slope[i]
+          low=q<n[0];y=np.cbrt(q[low]/n[0]);aa=P[0]/E[0];t=y/(1+aa-aa*y)
+          p[low]=P[0]*t**4;e[low]=E[0]*t**3;cs2[low]=4*p[low]/(3*e[low])
+          nb=q*1e-39;en=e*1e-39/MEV;pn=p*1e-39/MEV;mb=MB*C*C/MEV
+          with h5py.File(d/'cold.h5','w') as f:
+              for name,v in {'nb':nb,'mn':np.array([mb]),'Q1':pn/nb,'Q2':np.zeros_like(nb),'Q3':(en+pn)/(nb*mb)-1,'Q4':np.zeros_like(nb),'Q5':np.zeros_like(nb),'Q7':en/(nb*mb)-1,'cs2':cs2}.items():f.create_dataset(name,data=v)
+          rhoc=(row[6]+row[7])*math.exp(-row[8])*1e15*L**3/MS
+          ratio=ref['retarget_ratio']
+          assert 0.001<rhoc<0.002 and 0.95<ratio<1
+          (d/'star.par').write_text('\n'.join(['rns_verbose=2','rns_SDIV=401','rns_MDIV=201','rns_save_2ddata=0','rns_eos_type=tab','rns_eos_tab='+str(d/'model.rns'),'rns_rhoc='+str(rhoc),'rns_axes_ratio='+str(ratio),'rns_rotation_type=uniform','atm_level_rho=1e-12','outputdir='+str(d)]))
+          (d/'target.json').write_text(json.dumps({'rhoc_geometric':rhoc,'axes_ratio':ratio,'target_mass_msun':ref['target_msun'],'target_spin_hz':ref['target_spin'],'scope':'independent RNSC reconstruction; not identical F178 fields; thermal/composition placeholders; compare target before acceptance'},indent=2))
+          PY
+          cat evidence/target.json
+          sha256sum evidence/model.rns evidence/cold.h5 evidence/star.par > evidence/inputs.sha256
+      - name: Build pinned native solvers
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C rnsc rev-parse HEAD | tee evidence/rnsc_commit.txt
+          git -C athena rev-parse HEAD | tee evidence/athena_commit.txt
+          make -C rnsc -j2 2>&1 | tee evidence/rnsc_build.log
+          cd athena
+          python3 configure.py --prob=gr_rns -f -z -z_vc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
+          make -j2 2>&1 | tee ../evidence/build.log
+          test -x bin/athena
+          sha256sum bin/athena > ../evidence/binary.sha256
+      - name: Native coupled RNS fluid evolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd athena
+          E="$GITHUB_WORKSPACE/evidence"
+          cp inputs/z4c/awa/z4c_AwA_gauge_wave_1s.inp "$E/star.inp"
+          cat >> "$E/star.inp" <<EOF
+
+          <hydro>
+          table = $E/cold.h5
+          gamma_th = 1.75
+          dfloor = 1e-12
+          tfloor = 1e-10
+          rsolver = hlle
+          EOF
+          OMP_NUM_THREADS=2 ./bin/athena -i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=j0740_native time/tlim=2 time/cfl_number=0.2 mesh/nx1=32 mesh/nx2=32 mesh/nx3=32 meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-24 mesh/x1max=24 mesh/x2min=-24 mesh/x2max=24 mesh/x3min=-24 mesh/x3max=24 mesh/ix1_bc=outflow mesh/ox1_bc=outflow mesh/ix2_bc=outflow mesh/ox2_bc=outflow mesh/ix3_bc=outflow mesh/ox3_bc=outflow mesh/num_threads=2 output2/dt=0.1 2>&1 | tee "$E/native.log"
+          /usr/bin/python3 - <<'PY'
+          import pathlib,json,math
+          d=pathlib.Path('../evidence')
+          rows=[]
+          for f in (d/'run').rglob('*.hst'):
+              for line in f.read_text().splitlines():
+                  if line.strip() and not line.lstrip().startswith('#'):
+                      r=[float(v) for v in line.split()]
+                      assert all(math.isfinite(v) for v in r)
+                      rows.append(r)
+          assert len(rows)>=2 and max(r[0] for r in rows)>=1.9
+          (d/'receipt.json').write_text(json.dumps({'status':'NATIVE_FLUID_PILOT_COMPLETED_NOT_PHYSICAL_ACCEPTANCE','history_rows':len(rows),'max_time':max(r[0] for r in rows),'limits':'independently regenerated RNS model; verify native mass/spin, constraint, atmosphere, flux and multi-resolution gates before acceptance'},indent=2))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-native-fluid-pilot
+          path: |
+            evidence/*.log
+            evidence/*.json
+            evidence/*.txt
+            evidence/*.sha256
+            evidence/*.par
+            evidence/*.inp
+            evidence/run/*.hst
+          if-no-files-found: error
