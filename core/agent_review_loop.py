@@ -53,7 +53,8 @@ class AgentReviewLoop:
         critique_budget = min(12000, remaining - draft_budget)
         revision_task = (prefix + draft["output"][:draft_budget] + separator
                          + critique["output"][:critique_budget])
-        revision = self.colony.run(author_id, revision_task, client=client, model=model, internal_review=True)
+        revision = self.colony.run(author_id, revision_task, client=client, model=model,
+                                   internal_review=True, final_owner_task=original)
         record_id = str(uuid.uuid4())
         with self.colony._db() as db:
             db.execute("INSERT INTO colony_reviews VALUES (?,?,?,?,?,?,?,?,?)",
