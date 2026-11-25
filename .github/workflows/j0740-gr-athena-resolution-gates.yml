@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        n: [48]
+        n: [48, 64]
     env:
       J0740_N: ${{ matrix.n }}
     steps:
@@ -107,12 +107,26 @@ jobs:
               m=p<pt[0];f=(p[m]/pt[0])**.25
               e[m]=et[0]*f**3;h[m]=4*np.log1p(pt[0]/et[0]*f)
               return e,h
+          # Enforce the native stationary rigid-rotation first integral at
+          # interpolation points rather than linearly interpolating pressure
+          # across the free surface. Constant from the original central data.
+          B=float(cold(np.array([a[0,0,7]]))[1][0]+(a[0,0,3]+a[0,0,4])/2)
+          def equilibrium_pressure(r,rc,gg,ro,ww):
+              p=np.zeros_like(r);m=r<=1.05*re*F
+              v2=np.exp(-2*ro[m])*((Omega-ww[m])/F*rc[m])**2
+              assert np.all((v2>=0)&(v2<1))
+              h=np.maximum(B-(gg[m]+ro[m])/2-.5*np.log1p(-v2),0)
+              j=np.clip(np.searchsorted(ht,h,side='right')-1,0,len(slope)-1)
+              pn=pt[j]+(et[j]+pt[j])*np.expm1((1+slope[j])*(h-ht[j]))/(1+slope[j])
+              low=h<ht[0];pn[low]=pt[0]*(np.expm1(h[low]/4)/(pt[0]/et[0]))**4
+              p[m]=np.maximum(pn,0)
+              return p
           def quad_sample(pos):
               xx,yy,zz=pos.T;rr=np.linalg.norm(pos,axis=-1);rc=np.hypot(xx,yy)
               ss=rr/(rr+re*F);uu=np.abs(zz)/np.where(rr>0,rr,1)
               al,gg,ro,ww=[v.ev(ss,uu) for v in sp]
               ac=np.exp(2*al);bc=np.exp(gg-ro);N=np.exp((gg+ro)/2);sqrtg=ac*np.sqrt(bc)
-              p=np.maximum(pp((ss,uu)),0.);e,h=cold(p)
+              p=equilibrium_pressure(rr,rc,gg,ro,ww);e,h=cold(p)
               speed=(Omega-ww)/F/N
               W=1/np.sqrt(1-np.where(p>0,bc*(speed*rc)**2,0))
               phi=np.stack([-yy,xx,np.zeros_like(xx)],-1)
@@ -143,7 +157,7 @@ jobs:
                   Z=np.full_like(X,zz); r=np.sqrt(X*X+Y*Y+Z*Z); rc=np.hypot(X,Y)
                   safe=np.where(r>0,r,1.); ss=r/(r+re*F); uu=np.abs(Z)/safe
                   al,gg,rr,ww=[v.ev(ss,uu) for v in sp]
-                  p=np.maximum(pp((ss,uu)),0.)
+                  p=equilibrium_pressure(r,rc,gg,rr,ww)
                   j=np.clip(np.searchsorted(pt,p,side='right')-1,0,len(slope)-1)
                   dp=p-pt[j]; e=et[j]+slope[j]*dp
                   low=p<pt[0]; h=np.empty_like(p)
@@ -199,7 +213,7 @@ jobs:
                   vals.astype('<f8').tofile(fp)
           assert minmetric>0 and closure_max<1e-10
           assert abs(mass_sum/2.4142703584211214-1)<.002 and abs(J_sum/.6892530936503651-1)<.002
-          (d/'conservative_import.json').write_text(json.dumps(dict(Mb=mass_sum,Jz=J_sum,primitive_closure=closure_max,energy_L1_relative=energy_absdiff/energy_quad,quadrature_order=4,scope='cell-averaged D,S, exact cold reconstruction; E reconstructed not independently conserved'),indent=2))
+          (d/'conservative_import.json').write_text(json.dumps(dict(Mb=mass_sum,Jz=J_sum,primitive_closure=closure_max,energy_L1_relative=energy_absdiff/energy_quad,quadrature_order=4,scope='cell-averaged D,S from equilibrium first integral; E reconstructed not independently conserved',bernoulli_constant=B),indent=2))
           (d/'import.json').write_text(json.dumps({'source_fields_sha256':hashlib.sha256(b).hexdigest(),'grid_sha256':hashlib.file_digest(out.open('rb'),'sha256').hexdigest(),'points':n**3,'max_matter_v2':maximum,'min_metric_eigenvalue':minmetric,'scope':'F171 native stationary fields, explicit floor, cubic metric and linear pressure interpolation; no RNSC re-solve'},indent=2))
           PY
           cat evidence/target.json
@@ -575,6 +589,8 @@ jobs:
           EOF
           export J0740_GRID="$E/f171_grid.bin" OMP_NUM_THREADS=2
           args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=j0740_native time/tlim=2 time/integrator=rk3 time/cfl_number=0.2 mesh/nx1=$J0740_N mesh/nx2=$J0740_N mesh/nx3=$J0740_N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-24 mesh/x1max=24 mesh/x2min=-24 mesh/x2max=24 mesh/x3min=-24 mesh/x3max=24 mesh/ix1_bc=gr_sommerfeld mesh/ox1_bc=gr_sommerfeld mesh/ix2_bc=gr_sommerfeld mesh/ox2_bc=gr_sommerfeld mesh/ix3_bc=gr_sommerfeld mesh/ox3_bc=gr_sommerfeld mesh/num_threads=2 output2/dt=0.1 time/xorder_use_aux_s=false hydro/smooth_temperature=false z4c/r_max_con=100)
+          # Equilibrium pressure repair: same native radiative boundary, gauge,
+          # EOS and global gates as control run 45719404582. No threshold change.
           # Source-response gate already passed in run 45714775013, artifact 15069975802.
           # Use exact unperturbed initial data only, matched resolutions.
           /usr/bin/python3 - <<'PY'
@@ -620,6 +636,8 @@ jobs:
           result=dict(status='SHORT_MATCHED_RESOLUTION_SCREEN_ONLY',n=int(os.environ['J0740_N']),max_time=float(a[-1,0]),rotation_target=585.8691805265147,mass_initial=float(mass[0]),J_initial=float(jz[0]),mass_drift=dmass,J_drift=dj,rho_drift=drho,H0=float(H[0]),Hfinal=float(H[-1]),M0=float(M[0]),Mfinal=float(M[-1]),Hmax=float(max(H)),Mmax=float(max(M)),gates=gates)
           (d/'receipt.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
           # Localize errors without excluding any region from the global gate.
+          result.update(C0=float(col('C-norm2')[0]),Cfinal=float(col('C-norm2')[-1]),Cmax=float(max(col('C-norm2'))),control_run=45719404582,pressure_method='stationary first integral')
+          (d/'receipt.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
           for p in sorted((d/'run').glob('*out3*.athdf')):
               with h5py.File(p) as f:
                   names=[x.decode() for x in f.attrs['VariableNames']]
