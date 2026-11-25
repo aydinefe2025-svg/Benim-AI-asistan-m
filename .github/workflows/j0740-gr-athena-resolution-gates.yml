@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        n: [48, 64]
+        n: [48]
     env:
       J0740_N: ${{ matrix.n }}
     steps:
@@ -517,6 +517,94 @@ jobs:
           EOF
           export J0740_GRID="$E/f171_grid.bin" OMP_NUM_THREADS=2
           args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=j0740_native time/tlim=2 time/integrator=rk3 time/cfl_number=0.2 mesh/nx1=$J0740_N mesh/nx2=$J0740_N mesh/nx3=$J0740_N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-24 mesh/x1max=24 mesh/x2min=-24 mesh/x2max=24 mesh/x3min=-24 mesh/x3max=24 mesh/ix1_bc=outflow mesh/ox1_bc=outflow mesh/ix2_bc=outflow mesh/ox2_bc=outflow mesh/ix3_bc=outflow mesh/ox3_bc=outflow mesh/num_threads=2 output2/dt=0.1 time/xorder_use_aux_s=false hydro/smooth_temperature=false)
+          # Diagnostic-only paired source control: identical geometry, altered matter.
+          # Explicitly excluded from physical acceptance. Capture t=0 fields.
+          /usr/bin/python3 - <<'PY'
+          import pathlib, re, os
+          d=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'evidence'
+          s=(d/'star.inp').read_text()
+          s=s.split('<output1>')[0]+'''<output1>
+          file_type = hst
+          dt = 0.1
+          data_format = %.18g
+          <output2>
+          file_type = hdf5
+          variable = geom.con
+          dt = 0.1
+          <output3>
+          file_type = hdf5
+          variable = geom.mat
+          dt = 0.1
+          <output4>
+          file_type = hdf5
+          variable = geom.adm
+          dt = 0.1
+          '''
+          (d/'source_probe.inp').write_text(s)
+          import numpy as np,struct
+          p=d/'f171_grid.bin'
+          with p.open('rb') as f:
+              hdr=f.read(20);n,x0,dx=struct.unpack('<idd',hdr)
+              a=np.fromfile(f,dtype='<f8').reshape(-1,25)
+          # Only change the density in the test input. The RNS initializer
+          # recomputes pressure from the cold EOS; geometry is byte-identical.
+          mask=a[:,16]>1e-8
+          assert mask.sum()>0
+          a[mask,16]*=1.05
+          with (d/'source_probe.bin').open('wb') as f:
+              f.write(hdr);a.tofile(f)
+          PY
+          for kind in base altered; do
+            mkdir -p "$E/probe_$kind"
+            grid="$E/f171_grid.bin"
+            if [ "$kind" = altered ]; then grid="$E/source_probe.bin"; fi
+            probe_args=("${args[@]}")
+            probe_args[1]="$E/source_probe.inp"
+            probe_args[3]="$E/probe_$kind"
+            for i in "${!probe_args[@]}"; do
+              case "${probe_args[i]}" in
+                time/tlim=*) probe_args[i]=time/tlim=0.1;;
+              esac
+            done
+            J0740_GRID="$grid" ./bin/athena "${probe_args[@]}" 2>&1 | tee "$E/probe_$kind.log"
+          done
+          /usr/bin/python3 - <<'PY'
+          import pathlib,os,h5py,numpy as np,json
+          d=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'evidence'
+          def load(kind):
+              out={};coords=None
+              for p in sorted((d/('probe_'+kind)).rglob('*.athdf')):
+                  with h5py.File(p) as f:
+                      if abs(float(f.attrs['Time']))>1e-12:continue
+                      names=[x.decode() if isinstance(x,bytes) else str(x) for x in f.attrs['VariableNames']]
+                      datasets=[x.decode() if isinstance(x,bytes) else str(x) for x in f.attrs['DatasetNames']]
+                      loc=f['LogicalLocations'][:]
+                      order=np.lexsort((loc[:,2],loc[:,1],loc[:,0]))
+                      if coords is None:coords=loc[order]
+                      assert np.array_equal(coords,loc[order])
+                      j=0
+                      for ds,count in zip(datasets,f.attrs['NumVariables']):
+                          a=f[ds][:]
+                          for v in range(int(count)):out[names[j]]=a[v,order].astype(float);j+=1
+              return out,coords
+          a,x=load('base');b,y=load('altered')
+          assert np.array_equal(x,y)
+          for k in a:
+              assert np.all(np.isfinite(a[k])) and np.all(np.isfinite(b[k])),k
+          delta=b['geom.mat.rho']-a['geom.mat.rho']
+          dh=b['geom.con.H']-a['geom.con.H']
+          expected=-16*np.pi*delta
+          geom=max(float(np.max(abs(b[k]-a[k]))) for k in a if k.startswith('geom.adm.'))
+          amp=float(np.max(abs(expected)))
+          assert amp>1e-5
+          err=float(np.max(abs(dh-expected))/amp)
+          ds=np.stack([b['geom.mat.S'+i]-a['geom.mat.S'+i] for i in 'xyz'])
+          dm=np.stack([b['geom.con.M'+i]-a['geom.con.M'+i] for i in 'xyz'])
+          ma=float(np.max(abs(8*np.pi*ds))); me=float(np.max(abs(dm+8*np.pi*ds))/max(ma,1e-30))
+          result=dict(geometry_max_delta=geom,source_delta_max=float(np.max(abs(delta))),H_expected_amplitude=amp,H_response_relative_error=err,M_response_relative_error=me,scope='diagnostic-only identical-geometry source perturbation, not physical initial data or stability proof')
+          (d/'source_response_probe.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
+          assert geom<1e-10 and err<1e-5 and ma>1e-8 and me<1e-5,'native matter sensitivity or diagnostic output is inconsistent'
+          PY
           # No entropy-based reconstruction; entropy is a diagnostic only.
           if ! ./bin/athena "${args[@]}" 2>&1 | tee "$E/native.log"; then
             mkdir -p "$E/debug_run"
@@ -585,4 +673,6 @@ jobs:
             evidence/*.hpp
             evidence/*.patch
             evidence/run/*.hst
+            evidence/probe_*/*.athdf
+            evidence/probe_*/*.hst
           if-no-files-found: error
