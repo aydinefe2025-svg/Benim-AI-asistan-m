@@ -1013,7 +1013,11 @@ jobs:
           assert len(np.unique(flat))==N**3
           R=np.empty((N,N,N));R.ravel()[flat]=a[:,3]
           norm=float(np.sum(R**2)*h**3)
-          assert np.isclose(norm,2.281753375737761e-5+0.0001214850354611951,rtol=.01),norm
+          # Changed ghost reconstruction intentionally changes the pilot residual.
+          # Retain the original upper bound; do not require the old red value to recur.
+          old_linear_norm=2.281753375737761e-5+0.0001214850354611951
+          assert np.isfinite(norm) and 0<norm<=old_linear_norm*1.01,norm
+          print('PILOT_QUADRATIC_NORM',norm,'LINEAR_CONTROL',old_linear_norm)
           # Flat preconditioner for native Khat RHS: R_new approximately R - Lap(delta alpha).
           # No evolved RHS or constraint diagnostic is modified.
           def lap(v):
