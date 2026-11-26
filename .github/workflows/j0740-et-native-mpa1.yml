@@ -464,6 +464,43 @@ jobs:
           (d/'rnsid_atmosphere.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile='rnsid.c',tofile='rnsid.c.fixed')))
           p.write_text(t)
           PY
+          # Preserve density, geometry, rotation; reconstruct cold energy and pressure
+          # from the same serialized evolution EOS instead of independent interpolants.
+          cat > /evidence/cold_reproject.h <<'COLD'
+          struct j0740_cold { int n; double xmin,xmax,dx; double *eps,*gam; };
+          static struct j0740_cold j0740_read(const char *path) {
+            struct j0740_cold t={0}; char b[256]; double lo,hi,cs; int ny,nt;
+            FILE *f=fopen(path,"r"); if(!f) abort();
+            if(!fgets(b,sizeof b,f)||!fgets(b,sizeof b,f)||sscanf(b,"Nrho = %d NYe = %d NT = %d",&t.n,&ny,&nt)!=3||t.n<2||ny!=1||nt!=1) abort();
+            if(!fgets(b,sizeof b,f)||sscanf(b,"RhoMin = %lf RhoMax = %lf",&lo,&hi)!=2||!(lo>0&&hi>lo)) abort();
+            for(int i=0;i<4;i++) if(!fgets(b,sizeof b,f)) abort();
+            t.xmin=log10(lo);t.xmax=log10(hi);t.dx=(t.xmax-t.xmin)/(t.n-1);
+            t.eps=malloc((size_t)t.n*sizeof(double));t.gam=malloc((size_t)t.n*sizeof(double));if(!t.eps||!t.gam)abort();
+            for(int i=0;i<t.n;i++) if(fscanf(f,"%lf%lf%lf",&t.eps[i],&t.gam[i],&cs)!=3||!isfinite(t.eps[i])||!isfinite(t.gam[i]))abort();
+            fclose(f);return t;
+          }
+          static void j0740_eval(const struct j0740_cold *t,double rho,double *e,double *p) {
+            double x=log10(rho);if(!isfinite(x)||x<t->xmin||x>t->xmax)abort();
+            int i=(int)((x-t->xmin)/t->dx);if(i>=t->n-1)i=t->n-2;if(i<0)i=0;
+            double w=(x-(t->xmin+i*t->dx))/t->dx;
+            double eps=t->eps[i]+w*(t->eps[i+1]-t->eps[i]);
+            double g=t->gam[i]+w*(t->gam[i+1]-t->gam[i]);
+            *e=rho*(1+eps);*p=pow(rho,g);if(!isfinite(*e)||!isfinite(*p)||*p<=0)abort();
+          }
+          COLD
+          python3 - <<'PY'
+          import pathlib,os,difflib
+          d=pathlib.Path('/evidence');p=pathlib.Path(os.environ['RNS_SRC']);s=p.read_text()
+          def once(t,old,new):
+              assert t.count(old)==1,(old,t.count(old))
+              return t.replace(old,new)
+          t=once(s,'#include "hdf5_save.h"','#include "hdf5_save.h"\n'+(d/'cold_reproject.h').read_text())
+          t=once(t,'#pragma omp for collapse (3)','struct j0740_cold cold={0};\n      if(strcmp(eos_type,"tab")==0) cold=j0740_read("/evidence/mpa1_eos_omni_fixed.dat");\n#pragma omp for collapse (3)')
+          t=once(t,'              exp_nu_ijk = exp(nu_ijk);','              if(strcmp(eos_type,"tab")==0 && rho_0_ijk>=rho_0_atm)\n                j0740_eval(&cold,rho_0_ijk,&energy_ijk,&pressure_ijk);\n              exp_nu_ijk = exp(nu_ijk);')
+          t=once(t,'           } /* END FOR LOOP OF LINE 525 */','           } /* END FOR LOOP OF LINE 525 */\n      free(cold.eps);free(cold.gam);')
+          (d/'rnsid_cold_projection.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile='rnsid.c',tofile='rnsid.c.cold')))
+          p.write_text(t)
+          PY
           make -C "$root" -j2 sim 2>&1 | tee /evidence/rebuild.log
           test -x "$exe"
           sha256sum "$exe" > /evidence/executable.sha256
@@ -520,7 +557,20 @@ jobs:
           assert np.count_nonzero(mask)>0
           result['atmosphere_check']=dict(points=int(np.count_nonzero(mask)),pressure_max_relative=float(np.max(abs(pp[mask,-1]/at['pressure']-1))),eps_max_relative=float(np.max(abs(ee[mask,-1]/at['eps']-1))))
           result['atmosphere_match']=max(result['atmosphere_check']['pressure_max_relative'],result['atmosphere_check']['eps_max_relative'])<1e-5
-          result['short_screen_pass']=result['source_match_gate'] and result['momentum_component_non_growth'] and result['atmosphere_match']
+          with (d/'mpa1_eos_omni_fixed.dat').open() as inp:
+              hdr=[next(inp).rstrip('\n') for _ in range(7)];tab=np.loadtxt(inp)
+          grid=np.linspace(math.log10(float(hdr[2][9:16])),math.log10(float(hdr[2][25:32])),len(tab))
+          de=[];dp=[]
+          for axis in 'xyz':
+              r,p,e=[np.loadtxt(d/'run'/('hydrobase-'+v+'.'+axis+'.asc')) for v in ('rho','press','eps')]
+              assert np.array_equal(r[:,:12],p[:,:12]) and np.array_equal(r[:,:12],e[:,:12])
+              m=(r[:,0]==0)&(r[:,2]==1)&(r[:,-1]>1e-8)
+              assert np.count_nonzero(m)>0
+              rh=r[m,-1];x=np.log10(rh);ep=np.interp(x,grid,tab[:,0]);pc=rh**np.interp(x,grid,tab[:,1])
+              de.extend((e[m,-1]-ep).tolist());dp.extend((p[m,-1]/pc-1).tolist())
+          result['cold_initial_check']=dict(samples=len(de),negative_thermal_count=int(np.count_nonzero(np.array(de)<-1e-12)),eps_max_absolute=float(np.max(np.abs(de))),pressure_max_relative=float(np.max(np.abs(dp))))
+          result['cold_initial_match']=result['cold_initial_check']['eps_max_absolute']<1e-10 and result['cold_initial_check']['pressure_max_relative']<1e-8
+          result['short_screen_pass']=result['source_match_gate'] and result['momentum_component_non_growth'] and result['atmosphere_match'] and result['cold_initial_match']
           (d/'independent.json').write_text(json.dumps(result,indent=2))
           print('NATIVE_MPA1_RESULT',json.dumps(result))
           if os.environ['TRIAL']=='retarget': assert result['short_screen_pass'], 'original short physical gates not all met'
@@ -528,6 +578,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere-cold-projection
           path: evidence/
           if-no-files-found: error
