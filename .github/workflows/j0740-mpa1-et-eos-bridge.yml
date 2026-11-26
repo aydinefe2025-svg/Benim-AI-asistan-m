@@ -1,0 +1,84 @@
+name: J0740 F171 to EOS Omni thermodynamic bridge
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-mpa1-et-eos-bridge.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  eos-bridge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Verify original F171 data and create cold table
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir evidence
+          gh api repos/${{ github.repository }}/actions/artifacts/15038164239/zip > F171.zip
+          echo 'a7770d2fb40bea0a50d2c2f7f7c60fce1ad755d53b9ccd8648c3b036dfbba77c  F171.zip' | sha256sum -c -
+          python3 -m pip install numpy
+          python3 - <<'PY'
+          import numpy as np, json, pathlib, zipfile,hashlib,io
+          d=pathlib.Path('evidence')
+          with zipfile.ZipFile('F171.zip') as z:
+              assert z.testzip() is None
+              b=z.read('model.rns')
+              ref=json.loads(z.read('reference.json'))
+          assert hashlib.sha256(b).hexdigest()=='bd9cda6359f4e68d4de3a27b3a0e80bd830d0fb3936f91dfea59517e403c090d'
+          (d/'model.rns').write_bytes(b)
+          a=np.loadtxt(io.BytesIO(b),skiprows=1)
+          C=2.99792458e10; MB=1.66e-24; G=6.67408e-8; MS=1.98848e33
+          L=G*MS/C**2; conv=L**3/MS
+          E,P,H,n=a[:,0]*C*C,a[:,1],a[:,2]/C**2,a[:,3]
+          slope=np.diff(E)/np.diff(P)
+          assert np.all(slope>=1-1e-10) and np.all(np.diff(n)>0)
+          assert np.max(abs((E+P)*np.exp(-H)/(MB*C*C*n)-1))<1e-12
+          def cold(q):
+              i=np.clip(np.searchsorted(n,q,side='right')-1,0,len(slope)-1)
+              delta=(E[i]+P[i])/(1+slope[i])*np.expm1((1+slope[i])/slope[i]*np.log(q/n[i]))
+              p=P[i]+delta;e=E[i]+slope[i]*delta;cs2=1/slope[i]
+              low=q<n[0];y=np.cbrt(q[low]/n[0]);aa=P[0]/E[0];t=y/(1+aa-aa*y)
+              p[low]=P[0]*t**4;e[low]=E[0]*t**3;cs2[low]=4*p[low]/(3*e[low])
+              rho=q*MB*conv
+              return rho,p/C**2*conv,e/(q*MB*C*C)-1,np.sqrt(cs2)
+          # Uniform log-density sampling of the same thermodynamic interpolant.
+          # Keep all original knots inside range; no high-density extrapolation.
+          N=262145
+          qmin=min(n[0],1e-14/(MB*conv)); qmax=n[-1]
+          q=np.geomspace(qmin,qmax,N);rho,p,eps,cs=cold(q)
+          assert np.all(np.isfinite([rho,p,eps,cs])) and np.all(p>0) and np.all((cs>0)&(cs<=1+1e-10))
+          assert np.all(rho<1), 'pressure exponent representation singular at rho=1'
+          gamma=np.log(p)/np.log(rho)
+          header=f'EoSType = Tabulated\nNrho = {N} NYe = 1 NT = 1\nRhoMin = {rho[0]:.17e} RhoMax = {rho[-1]:.17e}\nHeatCapacityE = 1\nGammaTh = 1.75\nKappa = 1\nRhoSpacing = Log\n'
+          dest=d/'mpa1_eos_omni.dat'
+          with dest.open('w') as f:
+              f.write(header);np.savetxt(f,np.c_[eps,gamma,cs],fmt='%.17e')
+          # Independently read back the serialized columns and evaluate all knots
+          # plus midpoints, using the documented log-density gamma interpolation.
+          v=np.loadtxt(dest,skiprows=7);assert v.shape==(N,3)
+          z=np.sort(np.r_[n,np.sqrt(n[:-1]*n[1:]),np.geomspace(qmin,qmax,100003)])
+          rz,pz,ez,cz=cold(z);x=np.log10(rz);grid=np.log10(rho)
+          p2=rz**np.interp(x,grid,v[:,1]);e2=np.interp(x,grid,v[:,0]);c2=np.interp(x,grid,v[:,2])
+          err=dict(pressure_max_relative=float(np.max(abs(p2/pz-1))),energy_max_relative=float(np.max(abs(e2-ez)/(1+abs(ez)))),sound_speed_max_absolute=float(np.max(abs(c2-cz))))
+          assert err['pressure_max_relative']<1e-3,err
+          assert err['energy_max_relative']<1e-4,err
+          # Sound speed may jump at EOS knots; quantify this rather than claim
+          # that smoothing a discontinuous derivative is exact.
+          assert np.all((c2>0)&(c2<=1+1e-10))
+          # Negative control: a pressure-column corruption must be detected.
+          bad=rz**(np.interp(x,grid,v[:,1])+.01)
+          assert np.max(abs(bad/pz-1))>1e-3
+          out=dict(scope='format bridge and independent Python readback, NOT native EOS_Omni execution or exact derivative equivalence',source_artifact=15038164239,source_sha256=hashlib.sha256(b).hexdigest(),table_sha256=hashlib.sha256(dest.read_bytes()).hexdigest(),rows=N,range=[float(rho[0]),float(rho[-1])],central_density=float(ref['retarget_rho']*conv),axes_ratio=ref['retarget_ratio'],target_spin_hz=ref['target_spin'],gamma_thermal=1.75,errors=err,negative_control=True)
+          (d/'bridge.json').write_text(json.dumps(out,indent=2));print('MPA1_ET_BRIDGE',json.dumps(out))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: mpa1-et-eos-bridge
+          path: evidence/
+          if-no-files-found: error
