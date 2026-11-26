@@ -1,4 +1,4 @@
-name: J0740 MPA1 rotation stages 5 and 15 degrees
+name: J0740 MPA1 rotation stage 45 degrees
 on:
   pull_request:
     branches: [main]
@@ -17,7 +17,7 @@ jobs:
         include:
           - dx: '3'
             finest: '0.75'
-            duration: '24.5625'
+            duration: '73.3125'
             trial: retarget
             solver: HLLC
     env:
@@ -70,14 +70,14 @@ jobs:
           setparam('CarpetRegrid2::num_levels_1','3')
           setparam('CarpetRegrid2::radius_1[1]','24.0')
           s+='\nCarpetRegrid2::radius_1[2] = 12.0\n'
-          for axis in 'xyz': setparam('CoordBase::'+axis+'max','48.0')
+          for axis in 'xyz': setparam('CoordBase::'+axis+'max','144.0')
           assert float(os.environ['DX'])/4==float(os.environ['FINEST'])
           # Initial and sparse later 3D snapshots support independent AMR mass and angular-momentum integrals.
-          s+='\nCarpetIOHDF5::out3D_every = 4096\nCarpetIOHDF5::out3D_vars = "GRHydro::dens ADMBase::metric ADMBase::curv ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::press HydroBase::eps HydroBase::vel"\n'
+          s+='\nCarpetIOHDF5::out3D_every = 16384\nCarpetIOHDF5::out3D_vars = "GRHydro::dens ADMBase::metric ADMBase::curv ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::press HydroBase::eps HydroBase::vel"\n'
           s,n=re.subn(r'(IOASCII::out1D_vars\s*=\s*"[^\"]*?ADMBase::lapse)',r'\1\n ADMBase::shift',s,flags=re.S); assert n==1
           # Rigid rotation breaks x/y mirror symmetry. Keep equatorial z symmetry only.
           for axis in 'xy':
-              setparam('CoordBase::'+axis+'min','-48.0')
+              setparam('CoordBase::'+axis+'min','-144.0')
               setparam('CoordBase::boundary_shiftout_'+axis+'_lower','0')
               setparam('ReflectionSymmetry::reflection_'+axis,'"no"')
           setparam('GRHydro::riemann_solver','"'+os.environ['SOLVER']+'"')
@@ -659,7 +659,7 @@ jobs:
                   # Retain partial finite histories even if the walltime trigger stops early.
                   ans.append(dict(file=p.name,initial=rows[0],final=rows[-1],rows=len(rows),peak_columns=[max(abs(row[i]) for row in rows) for i in range(2,len(rows[0]))],legacy_short_sample=min(rows,key=lambda row:abs(row[1]-2.0625)),max_relative_excursion=[max(abs(row[i]/rows[0][i]-1) for row in rows) if rows[0][i]!=0 else None for i in range(2,len(rows[0]))]))
               return ans
-          result=dict(scope='native F171 MPA1 EOS ingestion and independently reconstructed rotating star; not identical F171 fields; no certification',dx=float(os.environ['FINEST']),base_dx=float(os.environ['DX']),requested_time=float(os.environ['DURATION']),outer_boundary=48.0,solver=os.environ['SOLVER'],evolution_eos='MPA1 cold_tabulated + GammaTh=1.75',axes_ratio=json.loads((d/'spin_trial.json').read_text())['applied'],trial=os.environ['TRIAL'],hamiltonian=history('ham','norm2'),momentum=history('mom','norm2'),density=history('rho','maximum'),velocity=history('vel','maximum'),conserved_density=history('dens','sum'),image_digest=(d/'image-digest.txt').read_text().strip())
+          result=dict(scope='native F171 MPA1 EOS ingestion and independently reconstructed rotating star; not identical F171 fields; no certification',dx=float(os.environ['FINEST']),base_dx=float(os.environ['DX']),requested_time=float(os.environ['DURATION']),outer_boundary=144.0,solver=os.environ['SOLVER'],evolution_eos='MPA1 cold_tabulated + GammaTh=1.75',axes_ratio=json.loads((d/'spin_trial.json').read_text())['applied'],trial=os.environ['TRIAL'],hamiltonian=history('ham','norm2'),momentum=history('mom','norm2'),density=history('rho','maximum'),velocity=history('vel','maximum'),conserved_density=history('dens','sum'),image_digest=(d/'image-digest.txt').read_text().strip())
           assert any(abs(x)>1e-5 for v in result['velocity'] for x in v['initial'][2:]), 'nonzero initial rotation not measured'
           log=(d/'native.log').read_text()
           pat=r'INFO \(Hydro_RNSID\):\s+rho_center\s+e_center\s+Mass\s+Mass_0\s+R_e[^\n]*\nINFO \(Hydro_RNSID\):\s+([^\n]+)\nINFO \(Hydro_RNSID\):\s+J\s+T/W\s+Omega[^\n]*\nINFO \(Hydro_RNSID\):\s+([^\n]+)'
@@ -730,7 +730,7 @@ jobs:
           d=pathlib.Path('evidence')
           log=(d/'native.log').read_text(errors='replace') if (d/'native.log').exists() else ''
           omega0=0.01072470762421574
-          result={'scope':'nominal initial angular frequency markers, not Lagrangian rotation or physical certification','omega0':omega0,'target_degrees':[5,15],'stages':{},'histories':{},'first_threshold_crossings':{},'c2p_warnings':sum('count > GRHydro_countmax' in l for l in log.splitlines()),'fatal_c2p':sum('Con2Prim failed; stopping' in l for l in log.splitlines()),'termination_lines':[l for l in log.splitlines() if 'Terminating due to' in l]}
+          result={'scope':'nominal initial angular frequency markers, not Lagrangian rotation or physical certification','omega0':omega0,'target_degrees':[5,15,45],'stages':{},'histories':{},'first_threshold_crossings':{},'c2p_warnings':sum('count > GRHydro_countmax' in l for l in log.splitlines()),'fatal_c2p':sum('Con2Prim failed; stopping' in l for l in log.splitlines()),'termination_lines':[l for l in log.splitlines() if 'Terminating due to' in l]}
           specs={'H':('ham','norm2'),'M':('mom','norm2'),'rho_max':('rho','maximum'),'dens_sum':('dens','sum'),'velocity_max':('vel','maximum')}
           for key,(token,reduction) in specs.items():
               paths=sorted(p for p in (d/'run').rglob('*.asc') if token in p.name.lower() and reduction in p.name.lower())
@@ -748,7 +748,7 @@ jobs:
                   except ValueError:malformed+=1
               if not rows:continue
               result['histories'][key]={'initial':rows[0],'last':rows[-1],'rows':len(rows),'malformed_or_nonfinite':malformed}
-              for deg in (5,15):
+              for deg in (5,15,45):
                   target=math.radians(deg)/omega0
                   hit=next((r for r in rows if r[1]>=target),None)
                   result['stages'].setdefault(str(deg),{})[key]={'target_time':target,'reached':hit is not None,'first_at_or_after':hit,'nominal_degrees':math.degrees(hit[1]*omega0) if hit else None}
@@ -764,6 +764,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-rotation-stages-15deg
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-rotation-stages-45deg
           path: evidence/
           if-no-files-found: error
