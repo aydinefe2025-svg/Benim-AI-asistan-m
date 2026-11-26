@@ -501,6 +501,42 @@ jobs:
           (d/'rnsid_cold_projection.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile='rnsid.c',tofile='rnsid.c.cold')))
           p.write_text(t)
           PY
+          # Correct Jacobian of the actual serialized EOS pressure function.
+          # GRHydro Con2Prim uses both partials in its Newton update.
+          python3 - <<'PY'
+          import pathlib,os,hashlib,difflib,json
+          d=pathlib.Path('/evidence')
+          p=pathlib.Path(os.environ['EOS_SRC'])/'EOS_Omni_SingleVarCalls.F90'
+          raw=p.read_bytes()
+          assert hashlib.sha256(raw).hexdigest()=='376e30d726c064aa8f91e472bdabe308673264f563af53df66d2f2357a39e2d2'
+          s=raw.decode()
+          old='dpdrhoe(i) = cs2*h + press_th / rho(i)'
+          new='''! Differentiate P_c=rho**gamma(log10 rho), not the separately tabulated cs2.
+           dpdrhoe(i) = press_cold/rho(i) * (gamma + xrho(1) * &
+                (coldeos_gamma(ir)-coldeos_gamma(ir-1)) / &
+                (coldeos_logrho(ir)-coldeos_logrho(ir-1)))
+           ! At fixed eps, d eps_th / d rho = -d eps_cold / d rho on the warm branch.
+           if (keytemp.eq.0 .and. eps_th.gt.0.0d0) then
+              dpdrhoe(i) = dpdrhoe(i) + coldeos_thfac*(coldeos_gammath-1.0d0) * &
+                   (eps_th - (coldeos_eps(ir)-coldeos_eps(ir-1)) / &
+                   ((coldeos_logrho(ir)-coldeos_logrho(ir-1))*log(10.0d0)))
+           endif'''
+          assert s.count(old)==1
+          t=s.replace(old,new)
+          old='dpdepsrho(i) = coldeos_thfac * (coldeos_gammath - 1.0d0)*rho(i)'
+          new='''! Match the clipped thermal pressure, choosing the cold side at its kink.
+           dpdepsrho(i) = 0.0d0
+           if (keytemp.eq.0 .and. eps_th.gt.0.0d0) then
+              dpdepsrho(i) = coldeos_thfac * (coldeos_gammath - 1.0d0)*rho(i)
+           endif'''
+          assert t.count(old)==1
+          t=t.replace(old,new)
+          (d/'eos_jacobian.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile=p.name,tofile=p.name+'.jacobian')))
+          p.write_text(t)
+          report=dict(scope='partial derivatives of serialized pressure; not proof of momentum repair',before=hashlib.sha256(raw).hexdigest(),after=hashlib.sha256(p.read_bytes()).hexdigest())
+          (d/'eos_jacobian_fix.json').write_text(json.dumps(report,indent=2))
+          print('EOS_JACOBIAN_FIX',json.dumps(report))
+          PY
           make -C "$root" -j2 sim 2>&1 | tee /evidence/rebuild.log
           test -x "$exe"
           sha256sum "$exe" > /evidence/executable.sha256
