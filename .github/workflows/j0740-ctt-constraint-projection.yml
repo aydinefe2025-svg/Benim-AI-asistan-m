@@ -890,6 +890,51 @@ jobs:
           p.write_text(s[:a]+sub+s[b:])
           PY
           git diff -- src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp > ../evidence/rk_constraint_trace.patch
+          # Fixed-grid fresh-start candidate: dissipate perturbations of the
+          # initial geometry instead of dissipating the equilibrium itself.
+          # Do not subtract any Einstein/matter RHS or alter acceptance.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/z4c/z4c.hpp')
+          s=p.read_text()
+          a='  void Z4cRHS(AA& u, AA& mat, AA& rhs);'
+          assert s.count(a)==1
+          p.write_text(s.replace(a,'  std::vector<Real> j0740_ko_reference;'+chr(10)+a))
+          p=Path('src/z4c/calculate_z4c_rhs.cpp')
+          s=p.read_text()
+          a='''  for (int n = 0; n < N_Z4c; ++n)
+            {
+              ILOOP3(k, j, i)
+              {
+                for (int a = 0; a < NDIM; ++a)
+                  u_rhs(n, k, j, i) += fd->Diss(a, u(n, k, j, i), opt.diss);
+              }
+            }'''
+          # YAML indentation is removed by the runner; preserve C++ indentation.
+          assert s.count(a)==1, repr(a)
+          b='''  const int nx=IX_IU-IX_IL+1, ny=IX_JU-IX_JL+1, nz=IX_KU-IX_KL+1;
+            const std::size_t cells=std::size_t(nx)*ny*nz;
+            const bool capture=j0740_ko_reference.empty();
+            if(capture) j0740_ko_reference.resize(N_Z4c*cells);
+            if(j0740_ko_reference.size()!=N_Z4c*cells)
+              throw std::runtime_error("J0740 KO reference requires fixed grid");
+            for (int n=0; n<N_Z4c; ++n)
+            {
+              double norm=0.0;
+              NS_ILOOP3(k,j,i)
+              {
+                const std::size_t q=std::size_t(n)*cells+
+                  (std::size_t(k-IX_KL)*ny+(j-IX_JL))*nx+(i-IX_IL);
+                Real ko=0.0;
+                for(int a=0;a<NDIM;++a) ko+=fd->Diss(a,u(n,k,j,i),opt.diss);
+                if(capture) {j0740_ko_reference[q]=ko; norm+=double(ko)*double(ko);}
+                u_rhs(n,k,j,i)+=ko-j0740_ko_reference[q];
+              }
+              if(capture) std::fprintf(stderr,"J0740_KO_REFERENCE %d %.17g\\n",n,norm);
+            }'''
+          p.write_text('#include <cstdio>\\n#include <stdexcept>\\n'+s.replace(a,b))
+          PY
+          git diff -- src/z4c/z4c.hpp src/z4c/calculate_z4c_rhs.cpp > ../evidence/ko_equilibrium.patch
           python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
           test -x bin/athena
