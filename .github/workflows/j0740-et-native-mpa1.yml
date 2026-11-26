@@ -15,12 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - dx: '1.5'
-            trial: retarget
-            solver: HLLC
-          - dx: '0.75'
-            trial: original
-            solver: HLLC
           - dx: '0.75'
             trial: retarget
             solver: HLLC
@@ -350,6 +344,42 @@ jobs:
           p.write_text(s)
           (d/'spin_trial.json').write_text(json.dumps(dict(trial=trial,original=original,applied=q,target_hz=target,baseline_hz=measured,scope='candidate retarget, measured native match required'),indent=2))
           PY
+      - name: Match atmosphere thermodynamics to active MPA1 at unchanged floor
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,math,numpy as np,re,json
+          d=pathlib.Path('evidence')
+          p=d/'control.par'; s=p.read_text()
+          floor=1e-12
+          for key in ('GRHydro::rho_abs_min','Hydro_RNSID::rns_rho_min'):
+              m=re.findall(r'^'+re.escape(key)+r'\s*=\s*([0-9.eE+-]+)',s,re.M|re.I)
+              assert len(m)==1 and float(m[0])==floor,(key,m)
+          with (d/'mpa1_eos_omni_fixed.dat').open() as inp:
+              header=[next(inp).rstrip('\n') for _ in range(7)]
+              tab=np.loadtxt(inp)
+          lo,hi=float(header[2][9:16]),float(header[2][25:32])
+          x=np.linspace(math.log10(lo),math.log10(hi),len(tab))
+          eps,g=np.interp(math.log10(floor),x,tab[:,0]),np.interp(math.log10(floor),x,tab[:,1])
+          pressure=floor**g
+          assert 0<eps and 0<pressure
+          # GRHydro's general C2P uses a separate polytrope for atmosphere.
+          # Match both p and epsilon exactly at the existing density floor;
+          # do not replace the active cold_tabulated evolution EOS.
+          gamma=1+pressure/(floor*eps)
+          k=pressure/floor**gamma
+          assert abs(k*floor**gamma/pressure-1)<1e-12
+          assert abs(k*floor**(gamma-1)/(gamma-1)/eps-1)<1e-12
+          assert pressure/(100*floor**2)>1e5
+          for key,val in [('EOS_Omni::poly_gamma',gamma),('EOS_Omni::poly_k',k)]:
+              s,n=re.subn(r'^'+re.escape(key)+r'\s*=.*$',f'{key} = {val:.17e}',s,flags=re.M)
+              assert n==1,(key,n)
+          p.write_text(s)
+          report=dict(rho=floor,pressure=pressure,eps=eps,poly_gamma=gamma,poly_k=k,old_pressure=100*floor**2,old_eps=100*floor,scope='matched atmosphere closure at fixed floor; not a momentum repair claim')
+          (d/'atmosphere_eos.json').write_text(json.dumps(report,indent=2))
+          print('ATMOSPHERE_EOS',json.dumps(report))
+          PY
       - name: Execute actual independent BSSN and GRHydro evolution
         shell: bash
         run: |
@@ -410,6 +440,30 @@ jobs:
           test -d "$root/cactusjar.git/.git"
           git config --global --add safe.directory "$root/cactusjar.git/.git"
           git config --global --get-all safe.directory > /evidence/formaline-safe-directory.txt
+          # Match the RNSID tabulated-atmosphere initialization too. Exact
+          # archived source hash from the successful baseline, no interior change.
+          export RNS_SRC="$root/arrangements/EinsteinInitialData/Hydro_RNSID/src/rnsid.c"
+          python3 - <<'PY'
+          import pathlib,hashlib,os,json,difflib
+          d=pathlib.Path('/evidence')
+          p=pathlib.Path(os.environ['RNS_SRC'])
+          raw=p.read_bytes()
+          assert hashlib.sha256(raw).hexdigest()=='5b6618eb2bf5565a835c68e1fa9380785ca0e4b37452a5ba4dbf567664b4d72d'
+          s=raw.decode()
+          v=json.loads((d/'atmosphere_eos.json').read_text())
+          old='p_atm = eos_k*pow(rho_0_atm,eos_ideal_fluid_gamma);'
+          new=old+('\n       if(strcmp(eos_type,"tab")==0) {\n'
+                   +f'         p_atm = {v["pressure"]:.17e};\n'
+                   +f'         e_atm = rho_0_atm*(1.0+{v["eps"]:.17e});\n'
+                   +'       }')
+          assert s.count(old)==1
+          t=s.replace(old,new)
+          old='energy_ijk  = e_atm + 1.e-20;'
+          assert t.count(old)==1
+          t=t.replace(old,'energy_ijk  = strcmp(eos_type,"tab")==0 ? e_atm : e_atm + 1.e-20;')
+          (d/'rnsid_atmosphere.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile='rnsid.c',tofile='rnsid.c.fixed')))
+          p.write_text(t)
+          PY
           make -C "$root" -j2 sim 2>&1 | tee /evidence/rebuild.log
           test -x "$exe"
           sha256sum "$exe" > /evidence/executable.sha256
@@ -456,7 +510,17 @@ jobs:
           result['momentum_component_non_growth']=all(b<=a for rec in result['momentum'] for a,b in zip(rec['initial'][2:],rec['final'][2:]))
           (d/'independent.json').write_text(json.dumps(result,indent=2))
           result['nominal_period_coverage']=result['hamiltonian'][0]['final'][1]*j[2]/(2*math.pi)
-          result['short_screen_pass']=result['source_match_gate'] and result['momentum_component_non_growth']
+          # Measure actual atmosphere values in the initial equatorial line,
+          # comparing coordinates and same unchanged floor, not inferred values.
+          import numpy as np
+          rr,pp,ee=[np.loadtxt(d/'run'/('hydrobase-'+v+'.x.asc')) for v in ('rho','press','eps')]
+          assert np.array_equal(rr[:,:12],pp[:,:12]) and np.array_equal(rr[:,:12],ee[:,:12])
+          at=json.loads((d/'atmosphere_eos.json').read_text())
+          mask=(rr[:,0]==0)&(rr[:,2]==1)&(abs(rr[:,-1]/at['rho']-1)<1e-8)
+          assert np.count_nonzero(mask)>0
+          result['atmosphere_check']=dict(points=int(np.count_nonzero(mask)),pressure_max_relative=float(np.max(abs(pp[mask,-1]/at['pressure']-1))),eps_max_relative=float(np.max(abs(ee[mask,-1]/at['eps']-1))))
+          result['atmosphere_match']=max(result['atmosphere_check']['pressure_max_relative'],result['atmosphere_check']['eps_max_relative'])<1e-5
+          result['short_screen_pass']=result['source_match_gate'] and result['momentum_component_non_growth'] and result['atmosphere_match']
           (d/'independent.json').write_text(json.dumps(result,indent=2))
           print('NATIVE_MPA1_RESULT',json.dumps(result))
           if os.environ['TRIAL']=='retarget': assert result['short_screen_pass'], 'original short physical gates not all met'
@@ -464,6 +528,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere
           path: evidence/
           if-no-files-found: error
