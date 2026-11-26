@@ -14,11 +14,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dx: ['1.5']
-        solver: ['HLLC']
+        include:
+          - dx: '1.5'
+            trial: retarget
+            solver: HLLC
+          - dx: '0.75'
+            trial: original
+            solver: HLLC
+          - dx: '0.75'
+            trial: retarget
+            solver: HLLC
     env:
       DX: ${{ matrix.dx }}
       SOLVER: ${{ matrix.solver }}
+      TRIAL: ${{ matrix.trial }}
     steps:
       - name: Obtain official independent solver and pinned tutorial initial data
         env:
@@ -318,6 +327,29 @@ jobs:
           assert k==1
           par.write_text(s)
           PY
+      - name: Apply isolated spin retarget candidate from measured successful equilibrium
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,re,pathlib
+          d=pathlib.Path('evidence')
+          p=d/'control.par'
+          s=p.read_text()
+          original=json.loads((d/'bridge.json').read_text())['axes_ratio']
+          target=346.536369
+          measured=347.1647363180208
+          # Slow-rotation first-order estimate: flattening proportional to omega^2.
+          # This is a candidate; actual native frequency, M and J are the gates.
+          trial=os.environ['TRIAL']
+          assert trial in ('original','retarget')
+          q=1-(1-original)*(target/measured)**2 if trial=='retarget' else original
+          assert original<=q<1 and q-original<0.001
+          s,n=re.subn(r'^Hydro_RNSID::axes_ratio\s*=.*$',f'Hydro_RNSID::axes_ratio = {q:.17e}',s,flags=re.M)
+          assert n==1
+          p.write_text(s)
+          (d/'spin_trial.json').write_text(json.dumps(dict(trial=trial,original=original,applied=q,target_hz=target,baseline_hz=measured,scope='candidate retarget, measured native match required'),indent=2))
+          PY
       - name: Execute actual independent BSSN and GRHydro evolution
         shell: bash
         run: |
@@ -407,7 +439,7 @@ jobs:
                   assert rows[-1][1]>=1.9,(p,rows[-1])
                   ans.append(dict(file=p.name,initial=rows[0],final=rows[-1],rows=len(rows)))
               return ans
-          result=dict(scope='native F171 MPA1 EOS ingestion and independently reconstructed rotating star; not identical F171 fields; no certification',dx=float(os.environ['DX']),solver=os.environ['SOLVER'],evolution_eos='MPA1 cold_tabulated + GammaTh=1.75',axes_ratio=json.loads((d/'bridge.json').read_text())['axes_ratio'],hamiltonian=history('ham','norm2'),momentum=history('mom','norm2'),density=history('rho','maximum'),velocity=history('vel','maximum'),conserved_density=history('dens','sum'),image_digest=(d/'image-digest.txt').read_text().strip())
+          result=dict(scope='native F171 MPA1 EOS ingestion and independently reconstructed rotating star; not identical F171 fields; no certification',dx=float(os.environ['DX']),solver=os.environ['SOLVER'],evolution_eos='MPA1 cold_tabulated + GammaTh=1.75',axes_ratio=json.loads((d/'spin_trial.json').read_text())['applied'],trial=os.environ['TRIAL'],hamiltonian=history('ham','norm2'),momentum=history('mom','norm2'),density=history('rho','maximum'),velocity=history('vel','maximum'),conserved_density=history('dens','sum'),image_digest=(d/'image-digest.txt').read_text().strip())
           assert any(abs(x)>1e-5 for v in result['velocity'] for x in v['initial'][2:]), 'nonzero initial rotation not measured'
           log=(d/'native.log').read_text()
           pat=r'INFO \(Hydro_RNSID\):\s+rho_center\s+e_center\s+Mass\s+Mass_0\s+R_e[^\n]*\nINFO \(Hydro_RNSID\):\s+([^\n]+)\nINFO \(Hydro_RNSID\):\s+J\s+T/W\s+Omega[^\n]*\nINFO \(Hydro_RNSID\):\s+([^\n]+)'
@@ -423,11 +455,15 @@ jobs:
           result['source_match_gate']=result['source_match']['mass_relative']<1e-3 and result['source_match']['spin_absolute_hz']<.1 and result['source_match']['J_relative']<.01
           result['momentum_component_non_growth']=all(b<=a for rec in result['momentum'] for a,b in zip(rec['initial'][2:],rec['final'][2:]))
           (d/'independent.json').write_text(json.dumps(result,indent=2))
+          result['nominal_period_coverage']=result['hamiltonian'][0]['final'][1]*j[2]/(2*math.pi)
+          result['short_screen_pass']=result['source_match_gate'] and result['momentum_component_non_growth']
+          (d/'independent.json').write_text(json.dumps(result,indent=2))
           print('NATIVE_MPA1_RESULT',json.dumps(result))
+          if os.environ['TRIAL']=='retarget': assert result['short_screen_pass'], 'original short physical gates not all met'
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}
           path: evidence/
           if-no-files-found: error
