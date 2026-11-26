@@ -115,13 +115,18 @@ jobs:
                           for s in (t,t.lstrip('0') if t.startswith('0.') else t):
                               if not s or len(s)>7: continue
                               v=float(s)
-                              if v>0 and (v>=x if lower else v<=x): candidates.add(s)
+                              if v>0 and ((v>=x if lower else v<=x) or abs(v-x)<=math.ulp(x)): candidates.add(s)
               assert candidates,(x,lower)
               return min(candidates,key=lambda s:(abs(float(s)/x-1),len(s),s))
           l,h=compact_inside(lo,True),compact_inside(hi,False)
           L,H=float(l),float(h)
           assert max(abs(L/lo-1),abs(H/hi-1))<1e-3,(lo,hi,L,H)
           assert L<H
+          # One floating-point ULP is decimal serialization roundoff, not EOS extrapolation.
+          assert L>=lo or lo-L<=math.ulp(lo)
+          assert H<=hi or H-hi<=math.ulp(hi)
+          assert float(compact_inside(1.0000000000000002e-14,True))==1e-14
+          assert float(compact_inside(0.0027219588509891255,False))<=0.0027219588509891255
           # Recompute the EOS at the actual serialized grid; never reinterpret
           # unchanged rows at shifted densities or extrapolate above source max.
           a=np.loadtxt(d/'model.rns',skiprows=1)
