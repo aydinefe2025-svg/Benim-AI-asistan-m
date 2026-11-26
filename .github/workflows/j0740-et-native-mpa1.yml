@@ -1,4 +1,4 @@
-name: J0740 MPA1 resolved coarse-grid pressure bracket reproducer
+name: J0740 MPA1 rotation stages 5 and 15 degrees
 on:
   pull_request:
     branches: [main]
@@ -17,7 +17,7 @@ jobs:
         include:
           - dx: '3'
             finest: '0.75'
-            duration: '3'
+            duration: '24.5625'
             trial: retarget
             solver: HLLC
     env:
@@ -64,7 +64,7 @@ jobs:
           setparam('IOScalar::outScalar_every','1')
           setparam('IOBasic::outInfo_every','8192')
           setparam('IOASCII::out1D_every','1')
-          setparam('CarpetIOHDF5::out2D_every','81920')
+          setparam('CarpetIOHDF5::out2D_every','1024')
           setparam('TerminationTrigger::max_walltime','5')
           setparam('TerminationTrigger::on_remaining_walltime','10')
           setparam('CarpetRegrid2::num_levels_1','3')
@@ -73,7 +73,7 @@ jobs:
           for axis in 'xyz': setparam('CoordBase::'+axis+'max','48.0')
           assert float(os.environ['DX'])/4==float(os.environ['FINEST'])
           # Initial and sparse later 3D snapshots support independent AMR mass and angular-momentum integrals.
-          s+='\nCarpetIOHDF5::out3D_every = 81920\nCarpetIOHDF5::out3D_vars = "GRHydro::dens ADMBase::metric ADMBase::curv ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::press HydroBase::eps HydroBase::vel"\n'
+          s+='\nCarpetIOHDF5::out3D_every = 4096\nCarpetIOHDF5::out3D_vars = "GRHydro::dens ADMBase::metric ADMBase::curv ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::press HydroBase::eps HydroBase::vel"\n'
           s,n=re.subn(r'(IOASCII::out1D_vars\s*=\s*"[^\"]*?ADMBase::lapse)',r'\1\n ADMBase::shift',s,flags=re.S); assert n==1
           # Rigid rotation breaks x/y mirror symmetry. Keep equatorial z symmetry only.
           for axis in 'xy':
@@ -721,9 +721,49 @@ jobs:
           assert result['requested_duration_reached'], 'requested duration not reached; retained partial diagnostic only'
           if result['requested_time']>=600: assert result['nominal_period_coverage']>=1, 'less than one nominal rotation period'
           PY
+      - name: Preserve measured rotation stages even on evolution failure
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,pathlib,math,re
+          d=pathlib.Path('evidence')
+          log=(d/'native.log').read_text(errors='replace') if (d/'native.log').exists() else ''
+          omega0=0.01072470762421574
+          result={'scope':'nominal initial angular frequency markers, not Lagrangian rotation or physical certification','omega0':omega0,'target_degrees':[5,15],'stages':{},'histories':{},'first_threshold_crossings':{},'c2p_warnings':sum('count > GRHydro_countmax' in l for l in log.splitlines()),'fatal_c2p':sum('Con2Prim failed; stopping' in l for l in log.splitlines()),'termination_lines':[l for l in log.splitlines() if 'Terminating due to' in l]}
+          specs={'H':('ham','norm2'),'M':('mom','norm2'),'rho_max':('rho','maximum'),'dens_sum':('dens','sum'),'velocity_max':('vel','maximum')}
+          for key,(token,reduction) in specs.items():
+              paths=sorted(p for p in (d/'run').rglob('*.asc') if token in p.name.lower() and reduction in p.name.lower())
+              if len(paths)!=1:
+                  result['histories'][key]={'missing_or_ambiguous':[str(p) for p in paths]}
+                  continue
+              rows=[]
+              malformed=0
+              for line in paths[0].read_text().splitlines():
+                  if not line.strip() or line.lstrip().startswith('#'):continue
+                  try:
+                      v=list(map(float,line.split()))
+                      if len(v)<3 or not all(map(math.isfinite,v)):raise ValueError()
+                      rows.append(v)
+                  except ValueError:malformed+=1
+              if not rows:continue
+              result['histories'][key]={'initial':rows[0],'last':rows[-1],'rows':len(rows),'malformed_or_nonfinite':malformed}
+              for deg in (5,15):
+                  target=math.radians(deg)/omega0
+                  hit=next((r for r in rows if r[1]>=target),None)
+                  result['stages'].setdefault(str(deg),{})[key]={'target_time':target,'reached':hit is not None,'first_at_or_after':hit,'nominal_degrees':math.degrees(hit[1]*omega0) if hit else None}
+              if key in ('H','M','rho_max','dens_sum'):
+                  for i,v in enumerate(rows[0][2:],2):
+                      if not v:continue
+                      for threshold in (.01,.1,1.):
+                          hit=next((r for r in rows[1:] if abs(r[i]/v-1)>=threshold),None)
+                          result['first_threshold_crossings'][f'{key}_{i-2}_{threshold}']={'row':hit,'nominal_degrees':math.degrees(hit[1]*omega0) if hit else None}
+          (d/'rotation_stages.json').write_text(json.dumps(result,indent=2,allow_nan=False))
+          print('ROTATION_STAGES',json.dumps(result,allow_nan=False))
+          PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere-cold-projection-pressure-bracket
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-rotation-stages-15deg
           path: evidence/
           if-no-files-found: error
