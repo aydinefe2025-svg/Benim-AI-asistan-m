@@ -1,4 +1,4 @@
-name: J0740 boundary order and matched-spacing isolation
+name: J0740 proper-volume constraint and timestep audit
 on:
   pull_request:
     branches: [main]
@@ -18,11 +18,18 @@ jobs:
             gauge: standard
             box: 24
             order: 2
+            cfl: '0.1'
+          - n: 64
+            gauge: standard
+            box: 24
+            order: 2
+            cfl: '0.05'
     env:
       N: ${{ matrix.n }}
       GAUGE: ${{ matrix.gauge }}
       BOX: ${{ matrix.box }}
       ORDER: ${{ matrix.order }}
+      CFL: ${{ matrix.cfl }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -210,8 +217,13 @@ jobs:
           variable = geom.con
           dt = 0.5
           ghost_zones = false
+          <output3>
+          file_type = hdf5
+          variable = geom.adm
+          dt = 0.5
+          ghost_zones = false
           EOF
-          args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=rotating_reference time/tlim=2 time/integrator=rk3 time/cfl_number=0.1 mesh/nx1=$N mesh/nx2=$N mesh/nx3=$N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-$BOX mesh/x1max=$BOX mesh/x2min=-$BOX mesh/x2max=$BOX mesh/x3min=-$BOX mesh/x3max=$BOX mesh/ix1_bc=gr_sommerfeld mesh/ox1_bc=gr_sommerfeld mesh/ix2_bc=gr_sommerfeld mesh/ox2_bc=gr_sommerfeld mesh/ix3_bc=gr_sommerfeld mesh/ox3_bc=gr_sommerfeld mesh/num_threads=2 time/xorder=weno5z time/xorder_use_fb=true time/xorder_fb=lin_vl time/xorder_use_aux_s=false hydro/smooth_temperature=false z4c/r_max_con=100)
+          args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=rotating_reference time/tlim=2 time/integrator=rk3 time/cfl_number=$CFL mesh/nx1=$N mesh/nx2=$N mesh/nx3=$N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-$BOX mesh/x1max=$BOX mesh/x2min=-$BOX mesh/x2max=$BOX mesh/x3min=-$BOX mesh/x3max=$BOX mesh/ix1_bc=gr_sommerfeld mesh/ox1_bc=gr_sommerfeld mesh/ix2_bc=gr_sommerfeld mesh/ox2_bc=gr_sommerfeld mesh/ix3_bc=gr_sommerfeld mesh/ox3_bc=gr_sommerfeld mesh/num_threads=2 time/xorder=weno5z time/xorder_use_fb=true time/xorder_fb=lin_vl time/xorder_use_aux_s=false hydro/smooth_temperature=false z4c/r_max_con=100)
           if [[ "$GAUGE" == stationary ]]; then
             args+=(z4c/lapse_oplog=0 z4c/lapse_harmonic=0 z4c/lapse_advect=0 z4c/shift_Gamma=0 z4c/shift_eta=0 z4c/shift_alpha2Gamma=0 z4c/shift_H=0 z4c/shift_advect=0)
           fi
@@ -246,17 +258,26 @@ jobs:
           # Localize the same native constraints; retain raw histories and field snapshots.
           import h5py
           profiles=[]
-          for f in sorted((d/'run').glob('*.athdf')):
-              with h5py.File(f) as z:
+          for f in sorted((d/'run').glob('*.out2.*.athdf')):
+              with h5py.File(f) as z, h5py.File(str(f).replace('.out2.','.out3.')) as g:
                   names=[v.decode() if isinstance(v,bytes) else str(v) for v in z.attrs['VariableNames']]
                   datasets=[v.decode() if isinstance(v,bytes) else str(v) for v in z.attrs['DatasetNames']]
                   counts=list(z.attrs['NumVariables'])
-                  def field(name):
-                      index=names.index(name)
-                      for ds,count in zip(datasets,counts):
-                          if index<count:return z[ds][index,...]
+                  def field(name, file=z):
+                      ns=[v.decode() if isinstance(v,bytes) else str(v) for v in file.attrs['VariableNames']]
+                      dsns=[v.decode() if isinstance(v,bytes) else str(v) for v in file.attrs['DatasetNames']]
+                      index=ns.index(name)
+                      for ds,count in zip(dsns,file.attrs['NumVariables']):
+                          if index<count:return file[ds][index,...]
                           index-=count
                       raise AssertionError(name)
+                  assert abs(float(z.attrs['Time'])-float(g.attrs['Time']))<1e-12
+                  for key in ('x1v','x2v','x3v','LogicalLocations','Levels'):
+                      assert np.array_equal(z[key][...],g[key][...]),key
+                  a,b,c,e,f0,h=[field('geom.adm.'+k,g) for k in ('gxx','gxy','gxz','gyy','gyz','gzz')]
+                  det=a*e*h+2*b*c*f0-a*f0*f0-e*c*c-h*b*b
+                  assert np.isfinite(det).all() and (det>0).all()
+                  proper=np.sqrt(det)
                   H=field('geom.con.H')
                   M=field('geom.con.M')
                   assert np.isfinite(H).all() and np.isfinite(M).all() and M.min()>=0
@@ -269,23 +290,30 @@ jobs:
                       dv=np.diff(wf)[:,None,None]*np.diff(yf)[None,:,None]*np.diff(xf)[None,None,:]
                       boundary=np.maximum.reduce(np.broadcast_arrays(abs(w[:,None,None]),abs(y[None,:,None]),abs(x[None,None,:])))
                       for tag,mask in [('all',rad>=0),('inner8',rad<8),('shell8to16',(rad>=8)&(rad<16)),('outer16',rad>=16),('boundary',boundary>float(os.environ['BOX'])-3)]:
-                          a=regions.setdefault(tag,[0.,0.,0.])
+                          a=regions.setdefault(tag,[0.,0.,0.,0.,0.,0.])
                           a[0]+=float(np.sum((H[b]**2*dv)[mask]))
                           a[1]+=float(np.sum((M[b]*dv)[mask]))
                           a[2]+=float(np.sum(dv[mask]))
+                          pdv=dv*proper[b]
+                          a[3]+=float(np.sum((H[b]**2*pdv)[mask]))
+                          a[4]+=float(np.sum((M[b]*pdv)[mask]))
+                          a[5]+=float(np.sum(pdv[mask]))
                   profiles.append(dict(time=float(z.attrs['Time']),regions=regions))
           assert len(profiles)>=2
+          for profile in profiles:
+              profile['proper_rms']={k:dict(H=float(np.sqrt(v[3]/v[5])),M=float(np.sqrt(v[4]/v[5]))) for k,v in profile['regions'].items() if v[5]>0}
+          result['cfl']=float(os.environ['CFL'])
           result['gauge']=os.environ['GAUGE']
           result['box_half_width']=int(os.environ['BOX'])
           result['ghost_order']=int(os.environ['ORDER'])
           result['localized_constraints']=profiles
           (d/'reference.json').write_text(json.dumps(result,indent=2))
-          print('GAUGE_LOCALIZATION',json.dumps(dict(N=result['N'],box=result['box_half_width'],order=result['ghost_order'],gauge=result['gauge'],profiles=profiles,M=result['stats']['M-norm2'],H=result['stats']['H-norm2'])))
+          print('GAUGE_LOCALIZATION',json.dumps(dict(cfl=result['cfl'],N=result['N'],box=result['box_half_width'],order=result['ghost_order'],gauge=result['gauge'],profiles=profiles,M=result['stats']['M-norm2'],H=result['stats']['H-norm2'])))
           # A diagnostic receipt does not relax the J0740 acceptance criteria.
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: rnsc-parity-N${{ matrix.n }}-box${{ matrix.box }}-order${{ matrix.order }}
+          name: rnsc-proper-norm-cfl${{ matrix.cfl }}
           path: evidence/
           if-no-files-found: error
