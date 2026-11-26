@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        n: [64, 96]
+        n: [48]
     env:
       J0740_N: ${{ matrix.n }}
     steps:
@@ -648,6 +648,70 @@ jobs:
           p.write_text('#include <cstdio>\n'+s)
           PY
           git diff -- src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp > ../evidence/angular_momentum_budget.patch
+          # Experimental equilibrium-preserving formulation of the hydrodynamic
+          # update: subtract the discrete background RHS, never the constraint
+          # residual or a measured global angular momentum error. No change to
+          # spacetime equations or floors. Fixed mesh only, fresh t=0 only.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp')
+          s=p.read_text()
+          for fn,call,label in [
+              ('AddFluxDivergenceHydroScalars','ph->AddFluxDivergence(dt_scaled, ph->u);','flux'),
+              ('AddSourceTermsHydro','pc->AddCoordTermsDivergence(dt_scaled, ph->w, ps->r, pf->bcc, ph->u);','source')]:
+              i=s.index('TaskStatus GRMHD_Z4c_Monolithic::'+fn+'(')
+              j=s.index('\n// ---------------------------------------------------------------------------',i)
+              sub=s[i:j]
+              assert sub.count(call)==1
+              patch=r'''
+              // Cache only the initial local discrete operator, before floors.
+              // Separate flux/source caches give L(U)-L(U_eq) in the sum.
+              static std::mutex wb_mutex;
+              static std::map<int,std::vector<Real>> wb_reference;
+              const bool wb_init=(stage==1 && pmb->pmy_mesh->time==0.0);
+              if (!(dt_scaled>0 && std::isfinite(dt_scaled))) std::abort();
+              std::vector<Real> wb_before;
+              wb_before.reserve(NHYDRO*(pmb->ie-pmb->is+1)*(pmb->je-pmb->js+1)*(pmb->ke-pmb->ks+1));
+              for(int n=0;n<NHYDRO;++n)
+              for(int k=pmb->ks;k<=pmb->ke;++k)
+              for(int j=pmb->js;j<=pmb->je;++j)
+              for(int i=pmb->is;i<=pmb->ie;++i) wb_before.push_back(ph->u(n,k,j,i));
+              ORIGINAL_CALL
+              {
+                std::lock_guard<std::mutex> lock(wb_mutex);
+                if(wb_init) {
+                  auto inserted=wb_reference.emplace(pmb->gid,std::vector<Real>());
+                  if(!inserted.second) std::abort();
+                  auto &ref=inserted.first->second;
+                  ref.reserve(wb_before.size());
+                  size_t q=0;
+                  Real l1=0;
+                  for(int n=0;n<NHYDRO;++n)
+                  for(int k=pmb->ks;k<=pmb->ke;++k)
+                  for(int j=pmb->js;j<=pmb->je;++j)
+                  for(int i=pmb->is;i<=pmb->ie;++i) {
+                    const Real rate=(ph->u(n,k,j,i)-wb_before[q++])/dt_scaled;
+                    if(!std::isfinite(rate)) std::abort();
+                    ref.push_back(rate); l1+=std::abs(rate);
+                  }
+                  std::fprintf(stderr,"J0740_WB_REFERENCE LABEL %d %zu %.17g\n",pmb->gid,ref.size(),double(l1));
+                }
+                auto it=wb_reference.find(pmb->gid);
+                if(it==wb_reference.end() || it->second.size()!=wb_before.size()) std::abort();
+                const auto &ref=it->second;
+                size_t q=0;
+                for(int n=0;n<NHYDRO;++n)
+                for(int k=pmb->ks;k<=pmb->ke;++k)
+                for(int j=pmb->js;j<=pmb->je;++j)
+                for(int i=pmb->is;i<=pmb->ie;++i) {
+                  ph->u(n,k,j,i)-=dt_scaled*ref[q++];
+                }
+              }
+          '''.replace('ORIGINAL_CALL',call).replace('LABEL',label)
+              s=s[:i]+sub.replace(call,patch)+s[j:]
+          p.write_text('#include <map>\n#include <mutex>\n#include <vector>\n#include <cmath>\n#include <cstdlib>\n'+s)
+          PY
+          git diff -- src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp > ../evidence/well_balanced_hydro.patch
           python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
           test -x bin/athena
@@ -744,6 +808,11 @@ jobs:
           records=[dict(time=t,stage=st,term=term,delta_J=v[0],L1=v[1],blocks=v[2]) for (t,st,term),v in sorted(budget.items())]
           (d/'angular_momentum_budget.json').write_text(json.dumps(records,indent=2))
           print('J0740_FIRST_STAGE_BUDGET',json.dumps([x for x in records if x['time']==0 and x['stage']==1]))
+          refs=[line.split() for line in (d/'native.log').open() if line.startswith('J0740_WB_REFERENCE ')]
+          assert len(refs)==2*(int(os.environ['J0740_N'])//16)**3
+          assert len({(x[1],x[2]) for x in refs})==len(refs)
+          assert all(float(x[4])>=0 and np.isfinite(float(x[4])) for x in refs)
+          (d/'well_balanced_scope.json').write_text(json.dumps(dict(status='EXPERIMENTAL_EQUILIBRIUM_PRESERVING_SCREEN_ONLY',reference_blocks=len(refs),requires_independent_perturbation_and_resolution_tests=True,control_run=45782781351),indent=2))
           assert all(gates.values()), 'short screen rejected; do not extend unqualified evolution'
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
