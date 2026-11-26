@@ -390,6 +390,44 @@ jobs:
           receipt=dict(H0=H0,M0=M0,H1=H1,M1=Mdirect,conformal_H_trace=trace,gmres_info=int(info),momentum_step=best,psi_min=float(psi.min()),psi_max=float(psi.max()),scope='independent sixth-order ADM; native-radius-3 conformal chain-rule surrogate; finite-box zero correction; not exact native Z4c or stationary Euler solution')
           (d/'ctt_projection.json').write_text(json.dumps(receipt,indent=2));print('CTT_PROJECTION',json.dumps(receipt),flush=True)
           assert H1<.8*H0 and Mdirect<.8*M0,'independent constraint projection rejected; do not evolve'
+          # On the projected maximal slice, solve the stationary trace-K
+          # equation D^i D_i alpha = alpha*(K_ij K^ij + 4*pi*(E+S)).
+          # Keep D,S_i, g,K and shift fixed; no evolution RHS subtraction.
+          alpha0=f[...,0].copy()
+          S_trace=np.zeros(shape)
+          E_lapse=Ep.copy()
+          if np.any(mat):
+              rh,pr,er,ww,vv,ee,cl=conservative_cold(Dg[mat]/(sqrtg[mat]*psi[mat]**6),Sg[mat]/(sqrtg[mat,None]*psi[mat,None]**6),gip[mat])
+              E_lapse[mat]=ee
+              S_trace[mat]=ee-er+3*pr
+          potential=sq(Kp,gip)+4*np.pi*(E_lapse+S_trace)
+          assert np.isfinite(potential).all() and np.min(potential)>=-1e-14
+          # Use the projected physical metric's connection and direct Dxx.
+          contracted=np.einsum('...ij,...kij->...k',gip,Gp)
+          def lapse_op(u):
+              y=-potential*u
+              for i in range(3):
+                  y-=contracted[...,i]*der(u,i)
+                  for j in range(i,3):
+                      y+=(1 if i==j else 2)*gip[...,i,j]*d2(u,i,j)
+              return y
+          # Linear correction with homogeneous outer correction, original
+          # asymptotically flat lapse outside the physical box.
+          rhs_l=-lapse_op(alpha0)[sl]
+          al0=norm(lapse_op(alpha0))
+          assert np.isfinite(al0) and al0>0
+          op_l=LinearOperator((N**3,N**3),matvec=lambda x:lapse_op(extend(x.reshape((N,)*3)))[sl].ravel(),dtype=float)
+          pre_l=LinearOperator((N**3,N**3),matvec=lambda x:poisson(x.reshape((N,)*3)).ravel(),dtype=float)
+          da,flag_l=solve_gmres(op_l,rhs_l.ravel(),M=pre_l,restart=20,maxiter=16)
+          da=extend(da.reshape((N,)*3))
+          alpha1=alpha0+da
+          al1=norm(lapse_op(alpha1))
+          lapse_receipt=dict(initial=al0,corrected=al1,gmres_info=int(flag_l),minimum=float(alpha1.min()),maximum=float(alpha1.max()),max_abs_delta=float(np.max(abs(da))),scope='stationary maximal slicing on projected geometry, independent surrogate; native dynamics not yet qualified')
+          (d/'maximal_lapse.json').write_text(json.dumps(lapse_receipt,indent=2))
+          print('MAXIMAL_LAPSE',json.dumps(lapse_receipt),flush=True)
+          assert flag_l==0 and al1<.1*al0 and np.isfinite(alpha1).all() and alpha1.min()>0
+          assert np.max(abs(da))<.05,'lapse correction exceeds pilot trust region'
+          alcoeff=spline_filter(da,order=3)
           # Map correction to all half-grid points; reconstruct physical
           # cold primitives from unchanged densitized mass and momentum.
           coeff=spline_filter(psi-1,order=3)
@@ -399,6 +437,8 @@ jobs:
               coords=[np.full_like(xx,xy[z]),yy,xx]
               u=1+map_coordinates(coeff,coords,order=3,mode='constant',cval=0,prefilter=False)
               q=np.array(grid[z]); gq=sym(q,4); Kq=sym(q,10)
+              q[...,0]+=map_coordinates(alcoeff,coords,order=3,mode='constant',cval=0,prefilter=False)
+              assert np.min(q[...,0])>0
               gqi=np.linalg.inv(gq); tr=np.einsum('...ij,...ij->...',gqi,Kq)
               Aq=Kq-gq*tr[...,None,None]/3
               for k,(i,j) in enumerate(idx):
@@ -890,19 +930,6 @@ jobs:
           p.write_text(s[:a]+sub+s[b:])
           PY
           git diff -- src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp > ../evidence/rk_constraint_trace.patch
-          # Discrete Gamma constraint: use the contracted metric connection
-          # at initialization, matching the native evolution definition.
-          # Preserve CTT and bounded face fill; discard failed KO experiment.
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('src/z4c/adm_z4c.cpp')
-          s=p.read_text()
-          a="          // Is it ba or ab like in the pseudocode? Is the contraction correct?\n          z4c.Gam_u(a, k, j, i) -= fd->Dx(b, g_uu(b, a, k, j, i));"
-          b="          // Initialize the contracted Christoffel using the identical\n          // centered metric derivative as the native Z4c RHS.\n          for (int c=0; c<NDIM; ++c)\n            for (int d=0; d<NDIM; ++d)\n              z4c.Gam_u(a,k,j,i) += g_uu(a,c,k,j,i)*g_uu(b,d,k,j,i)*\n                (fd->Dx(b,z4c.g_dd(d,c,k,j,i)) -\n                 Real(0.5)*fd->Dx(c,z4c.g_dd(b,d,k,j,i)));"
-          assert s.count(a)==1
-          p.write_text(s.replace(a,b))
-          PY
-          git diff -- src/z4c/adm_z4c.cpp > ../evidence/gamma_initial_connection.patch
           python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
           test -x bin/athena
