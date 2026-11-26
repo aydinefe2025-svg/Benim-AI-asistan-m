@@ -1,4 +1,4 @@
-name: J0740 polytropic exterior EOS consistency
+name: J0740 rotation negative control and corrected-grid convergence
 on:
   pull_request:
     branches: [main]
@@ -19,12 +19,20 @@ jobs:
             box: 24
             order: 2
             cfl: '0.1'
+            axis: '1.0'
+          - n: 96
+            gauge: standard
+            box: 24
+            order: 2
+            cfl: '0.1'
+            axis: '0.8'
     env:
       N: ${{ matrix.n }}
       GAUGE: ${{ matrix.gauge }}
       BOX: ${{ matrix.box }}
       ORDER: ${{ matrix.order }}
       CFL: ${{ matrix.cfl }}
+      AXIS: ${{ matrix.axis }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -249,7 +257,7 @@ jobs:
           # Stable rotating reference configuration: DOI 10.1186/s40668-017-0022-0.
           # RNSC defaults use Gamma=2, K=100; D4 is deliberately NOT used (unstable).
           # This is a short diagnostic with GR-Athena++, not a reproduction of the published evolution method.
-          printf '%s\n' 'rns_verbose=2' 'rns_rhoc=1.28e-3' 'rns_axes_ratio=0.8' 'rns_SDIV=401' 'rns_MDIV=201' 'rns_save_2ddata=0' 'rns_rotation_type=uniform' 'atm_level_rho=1e-12' "outputdir=$E" > "$E/star.par"
+          printf '%s\n' 'rns_verbose=2' 'rns_rhoc=1.28e-3' "rns_axes_ratio=$AXIS" 'rns_SDIV=401' 'rns_MDIV=201' 'rns_save_2ddata=0' 'rns_rotation_type=uniform' 'atm_level_rho=1e-12' "outputdir=$E" > "$E/star.par"
           cd athena
           sed '/^<output1>/,$d' inputs/z4c/awa/z4c_AwA_gauge_wave_1s.inp > "$E/star.inp"
           cat >> "$E/star.inp" <<'EOF'
@@ -272,6 +280,11 @@ jobs:
           <output3>
           file_type = hdf5
           variable = geom.adm
+          dt = 0.5
+          ghost_zones = false
+          <output4>
+          file_type = hdf5
+          variable = prim
           dt = 0.5
           ghost_zones = false
           EOF
@@ -311,7 +324,7 @@ jobs:
           import h5py
           profiles=[]
           for f in sorted((d/'run').glob('*.out2.*.athdf')):
-              with h5py.File(f) as z, h5py.File(str(f).replace('.out2.','.out3.')) as g:
+              with h5py.File(f) as z, h5py.File(str(f).replace('.out2.','.out3.')) as g, h5py.File(str(f).replace('.out2.','.out4.')) as hydro:
                   names=[v.decode() if isinstance(v,bytes) else str(v) for v in z.attrs['VariableNames']]
                   datasets=[v.decode() if isinstance(v,bytes) else str(v) for v in z.attrs['DatasetNames']]
                   counts=list(z.attrs['NumVariables'])
@@ -330,6 +343,12 @@ jobs:
                   det=a*e*h+2*b*c*f0-a*f0*f0-e*c*c-h*b*b
                   assert np.isfinite(det).all() and (det>0).all()
                   proper=np.sqrt(det)
+                  rho=field('rho',hydro)
+                  press=field('press',hydro)
+                  assert abs(float(z.attrs['Time'])-float(hydro.attrs['Time']))<1e-12
+                  for key in ('x1v','x2v','x3v','LogicalLocations','Levels'):
+                      assert np.array_equal(z[key][...],hydro[key][...]),key
+                  assert np.isfinite(rho).all() and np.isfinite(press).all()
                   H=field('geom.con.H')
                   M=field('geom.con.M')
                   assert np.isfinite(H).all() and np.isfinite(M).all() and M.min()>=0
@@ -341,7 +360,7 @@ jobs:
                       rad=np.sqrt(w[:,None,None]**2+y[None,:,None]**2+x[None,None,:]**2)
                       dv=np.diff(wf)[:,None,None]*np.diff(yf)[None,:,None]*np.diff(xf)[None,None,:]
                       boundary=np.maximum.reduce(np.broadcast_arrays(abs(w[:,None,None]),abs(y[None,:,None]),abs(x[None,None,:])))
-                      for tag,mask in [('all',rad>=0),('inner8',rad<8),('shell8to16',(rad>=8)&(rad<16)),('outer16',rad>=16),('boundary',boundary>float(os.environ['BOX'])-3)]:
+                      for tag,mask in [('all',rad>=0),('inner8',rad<8),('shell8to16',(rad>=8)&(rad<16)),('outer16',rad>=16),('boundary',boundary>float(os.environ['BOX'])-3),('dense_core',rho[b]>=1e-4),('low_density_matter',(rho[b]>1e-10)&(rho[b]<1e-4)),('atmosphere',rho[b]<=1e-10)]:
                           a=regions.setdefault(tag,[0.,0.,0.,0.,0.,0.])
                           a[0]+=float(np.sum((H[b]**2*dv)[mask]))
                           a[1]+=float(np.sum((M[b]*dv)[mask]))
@@ -354,18 +373,19 @@ jobs:
           assert len(profiles)>=2
           for profile in profiles:
               profile['proper_rms']={k:dict(H=float(np.sqrt(v[3]/v[5])),M=float(np.sqrt(v[4]/v[5]))) for k,v in profile['regions'].items() if v[5]>0}
+          result['axis_ratio']=float(os.environ['AXIS'])
           result['cfl']=float(os.environ['CFL'])
           result['gauge']=os.environ['GAUGE']
           result['box_half_width']=int(os.environ['BOX'])
           result['ghost_order']=int(os.environ['ORDER'])
           result['localized_constraints']=profiles
           (d/'reference.json').write_text(json.dumps(result,indent=2))
-          print('GAUGE_LOCALIZATION',json.dumps(dict(cfl=result['cfl'],N=result['N'],box=result['box_half_width'],order=result['ghost_order'],gauge=result['gauge'],profiles=profiles,M=result['stats']['M-norm2'],H=result['stats']['H-norm2'])))
+          print('GAUGE_LOCALIZATION',json.dumps(dict(axis=result['axis_ratio'],cfl=result['cfl'],N=result['N'],box=result['box_half_width'],order=result['ghost_order'],gauge=result['gauge'],profiles=profiles,M=result['stats']['M-norm2'],H=result['stats']['H-norm2'])))
           # A diagnostic receipt does not relax the J0740 acceptance criteria.
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: rnsc-atmosphere-eos-N${{ matrix.n }}
+          name: rnsc-rotation-control-N${{ matrix.n }}-axis${{ matrix.axis }}
           path: evidence/
           if-no-files-found: error
