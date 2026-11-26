@@ -47,9 +47,9 @@ jobs:
           setparam('IOBasic::outInfo_every','1')
           (d/'control.par').write_text(s)
           PY
-          docker pull einsteintoolkit/et-notebook:latest
-          docker image inspect einsteintoolkit/et-notebook:latest > evidence/image.json
-          docker image inspect --format '{{index .RepoDigests 0}}' einsteintoolkit/et-notebook:latest > evidence/image-digest.txt
+          docker pull einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66
+          docker image inspect einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66 > evidence/image.json
+          docker image inspect --format '{{index .RepoDigests 0}}' einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66 > evidence/image-digest.txt
           test -s evidence/image-digest.txt
       - name: Execute actual independent BSSN and GRHydro evolution
         shell: bash
@@ -59,12 +59,24 @@ jobs:
           set -euo pipefail
           export OMP_NUM_THREADS=2 OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
           mkdir -p /tmp/et-control /evidence/run
-          archive=$(find /home /opt -type f -name Cactus.tar.gz -print -quit 2>/dev/null || true)
-          if [[ -n "$archive" ]]; then
-            tar -xzf "$archive" -C /tmp/et-control
+          # Official base.docker sets etuser home to /usr/etuser; its
+          # build-cactus-tarball.sh leaves Cactus.tar.gz in that home.
+          archive=/usr/etuser/Cactus.tar.gz
+          if [[ ! -s "$archive" ]]; then
+            archive=$(find /usr/etuser /home /opt /root -type f -name Cactus.tar.gz -print -quit 2>/dev/null || true)
           fi
-          exe=$(find /tmp/et-control /home /opt -type f -name cactus_sim -executable -print -quit 2>/dev/null || true)
-          test -n "$exe"
+          if [[ -z "$archive" || ! -s "$archive" ]]; then
+            echo 'Cactus archive unavailable' >&2
+            exit 2
+          fi
+          printf '%s\n' "$archive" | tee /evidence/archive-path.txt
+          sha256sum "$archive" > /evidence/archive.sha256
+          tar -xzf "$archive" -C /tmp/et-control
+          exe=$(find /tmp/et-control -type f -name cactus_sim -executable -print -quit)
+          if [[ -z "$exe" ]]; then echo 'Extracted Cactus executable unavailable' >&2; exit 3; fi
+          printf '%s\n' "$exe" | tee /evidence/executable-path.txt
+          ldd "$exe" | tee /evidence/executable-ldd.txt
+          if grep -q 'not found' /evidence/executable-ldd.txt; then exit 4; fi
           sha256sum "$exe" > /evidence/executable.sha256
           cd /evidence
           "$exe" /evidence/control.par 2>&1 | tee native.log
