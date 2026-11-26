@@ -374,6 +374,10 @@ jobs:
           (d/'eos_cs2_source_fix.json').write_text(json.dumps(report,indent=2))
           print('EOS_CS2_SOURCE_FIX',json.dumps(report))
           PY
+          # Formaline pushes only to the extracted local archive in this disposable container.
+          test -d "$root/cactusjar.git/.git"
+          git config --global --add safe.directory "$root/cactusjar.git/.git"
+          git config --global --get-all safe.directory > /evidence/formaline-safe-directory.txt
           make -C "$root" -j2 sim 2>&1 | tee /evidence/rebuild.log
           test -x "$exe"
           sha256sum "$exe" > /evidence/executable.sha256
