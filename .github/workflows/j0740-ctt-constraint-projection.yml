@@ -216,6 +216,9 @@ jobs:
           assert abs(mass_sum/2.4142703584211214-1)<.002 and abs(J_sum/.6892530936503651-1)<.002
           (d/'conservative_import.json').write_text(json.dumps(dict(Mb=mass_sum,Jz=J_sum,primitive_closure=closure_max,energy_L1_relative=energy_absdiff/energy_quad,quadrature_order=4,scope='cell-averaged D,S from equilibrium first integral; E reconstructed not independently conserved',bernoulli_constant=B),indent=2))
           (d/'import.json').write_text(json.dumps({'source_fields_sha256':hashlib.sha256(b).hexdigest(),'grid_sha256':hashlib.file_digest(out.open('rb'),'sha256').hexdigest(),'points':n**3,'max_matter_v2':maximum,'min_metric_eigenvalue':minmetric,'scope':'F171 native stationary fields, explicit floor, cubic metric and linear pressure interpolation; no RNSC re-solve'},indent=2))
+          # Preserve original input for matched zero-step native comparison.
+          import shutil
+          shutil.copyfile(out,d/'f171_grid_unprojected.bin')
           # York-Lichnerowicz CTT pilot; fixed densitized D and S_i.
           # Four ghost cells, independent fourth-order Cartesian ADM residual.
           from scipy.fft import dstn,idstn
@@ -893,6 +896,69 @@ jobs:
           # No EOS, matter source, or physical threshold changes.
           args+=(z4c/lapse_oplog=0 z4c/lapse_harmonic=0 z4c/lapse_advect=0 z4c/shift_Gamma=0 z4c/shift_eta=0 z4c/shift_alpha2Gamma=0 z4c/shift_H=0 z4c/shift_advect=0)
           args+=(z4c/damp_kappa1=4.0 z4c/damp_kappa2=0.0)
+          # Native zero-step comparison after conversion and ghost fill.
+          for kind in unprojected projected; do
+            mkdir -p "$E/preflight_$kind"
+            probe=("${args[@]}")
+            for i in "${!probe[@]}"; do
+              if [[ "${probe[i]}" == "-d" ]]; then probe[i+1]="$E/preflight_$kind"; fi
+            done
+            if [[ "$kind" == unprojected ]]; then grid="$E/f171_grid_unprojected.bin"; else grid="$E/f171_grid.bin"; fi
+            J0740_GRID="$grid" ./bin/athena "${probe[@]}" time/nlim=0 2>&1 | tee "$E/preflight_$kind.log"
+          done
+          /usr/bin/python3 - <<'PY'
+          import math, json, re, os, pathlib, numpy as np, h5py
+          d=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'evidence'
+          def accept(H,M,info,mass,J):
+              return (all(math.isfinite(x) for x in (H,M,mass,J))
+                      and 0 <= H < 0.0027710030385517106
+                      and 0 <= M <= 2.0252526710566176e-6
+                      and info == 0
+                      and abs(mass/2.4142703584211214-1)<.002
+                      and abs(J/.6892530936503651-1)<.002)
+          assert not accept(0.03076716098180077,3.615542155881324e-7,8,2.4145686868847345,0.6892632968821596)
+          assert not accept(.001,1e-6,8,2.41427,.689253)
+          assert accept(.001,1e-6,0,2.41427,.689253)
+          assert not accept(float('nan'),1e-6,0,2.41427,.689253)
+          assert not accept(.001,1e-6,0,2.5,.689253)
+          def measure(kind):
+              folder=d/('preflight_'+kind)
+              fs=list(folder.rglob('*.hst')); assert len(fs)==1,fs
+              f=fs[0]
+              names=re.findall(r'\[\d+\]=([^ ]+)',next(x for x in f.read_text().splitlines() if '[1]=time' in x))
+              a=np.atleast_2d(np.loadtxt(f))
+              assert a.shape[1]==len(names) and np.isfinite(a).all()
+              assert np.max(abs(a[:,0]))<1e-14,'preflight advanced time'
+              col=lambda k:float(a[0,names.index(k)])
+              result=dict(H=col('H-norm2'),M=col('M-norm2'),mass=col('mass'),J=col('J0740_Jz'))
+              assert result['H']>=0 and result['M']>=0
+              data=sorted(folder.glob('*out3*.athdf')); assert data,folder
+              with h5py.File(data[0]) as f:
+                  assert abs(float(f.attrs['Time']))<1e-14
+                  names=[v.decode() for v in f.attrs['VariableNames']]
+                  ds=f[f.attrs['DatasetNames'][0].decode()]
+                  q=(ds.shape[-1]-16)//2; sl=slice(q,q+16)
+                  H=np.asarray(ds[names.index('geom.con.H'),:,sl,sl,sl])
+                  M=np.asarray(ds[names.index('geom.con.M'),:,sl,sl,sl])
+                  assert np.isfinite(H).all() and np.isfinite(M).all() and np.min(M)>=0
+                  x=f['x1v'][:,sl]; y=f['x2v'][:,sl]; z=f['x3v'][:,sl]
+                  edge=np.maximum(np.maximum(abs(x[:,None,None,:]),abs(y[:,None,:,None])),abs(z[:,:,None,None]))>20
+                  ix=np.arange(16)
+                  face=(ix<3)|(ix>=13)
+                  interface=np.broadcast_to(face[None,None,None,:]|face[None,None,:,None]|face[None,:,None,None],H.shape)
+                  dv=(48/int(os.environ['J0740_N']))**3
+                  result['regions']={}
+                  for label,mask in [('outer',edge),('block_face_nonouter',interface&~edge),('block_core_nonouter',~interface&~edge)]:
+                      result['regions'][label]=dict(cells=int(mask.sum()),H_squared_integral=float(np.sum(H[mask]**2)*dv),M_integral=float(np.sum(M[mask])*dv))
+              return result
+          before,after=measure('unprojected'),measure('projected')
+          ctt=json.loads((d/'ctt_projection.json').read_text())
+          ok=accept(after['H'],after['M'],ctt['gmres_info'],after['mass'],after['J']) and after['H']<before['H'] and after['M']<=before['M']
+          receipt=dict(before=before,after=after,gmres_info=ctt['gmres_info'],accepted=bool(ok),scope='zero-step native matched diagnostic, not an evolution or physical certification')
+          (d/'native_initial_gate.json').write_text(json.dumps(receipt,indent=2))
+          print('NATIVE_INITIAL_GATE',json.dumps(receipt),flush=True)
+          assert ok,'native initial gate rejected; full evolution not started'
+          PY
           printf '%q ' ./bin/athena "${args[@]}" > "$E/command.txt"
           ./bin/athena "${args[@]}" 2>&1 | tee "$E/native.log"
           grep -q 'Terminating on time limit' "$E/native.log"
@@ -994,6 +1060,8 @@ jobs:
             evidence/*.inp
             evidence/*.hpp
             evidence/*.patch
+            evidence/preflight_*/*.hst
+            evidence/preflight_*/*out3*.athdf
             evidence/run/*.hst
             evidence/run/*.athdf
             evidence/run/*.rst
