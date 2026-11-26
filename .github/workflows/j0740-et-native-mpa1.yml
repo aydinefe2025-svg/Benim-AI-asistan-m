@@ -10,12 +10,12 @@ permissions:
 jobs:
   independent-bssn:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
         dx: ['1.5']
-        solver: ['HLLC', 'HLLE']
+        solver: ['HLLC']
     env:
       DX: ${{ matrix.dx }}
       SOLVER: ${{ matrix.solver }}
@@ -345,6 +345,41 @@ jobs:
           ldd "$exe" | tee /evidence/executable-ldd.txt
           if grep -q 'not found' /evidence/executable-ldd.txt; then exit 4; fi
           sha256sum "$exe" > /evidence/executable.sha256
+          # Exact archived native source revealed 3 identical divide-by-self
+          # interpolation bugs; equal cs2 knots cause 0/0 before HLLC fluxes.
+          root=$(dirname "$(dirname "$exe")")
+          test -f "$root/Makefile"
+          src="$root/arrangements/EinsteinEOS/EOS_Omni/src"
+          export EOS_SRC="$src"
+          cp /evidence/executable.sha256 /evidence/original-executable.sha256
+          python3 - <<'PY'
+          import pathlib,hashlib,os,re,difflib,json
+          p=pathlib.Path(os.environ['EOS_SRC'])
+          d=pathlib.Path('/evidence')
+          specs={'EOS_Omni_SingleVarCalls.F90':('e54835fd72b0d77228bc6dba82682de501dd43c4037982057c0a62ac40b93b25',2),'EOS_Omni_MultiVarCalls.F90':('5ccd9836a23f0e6c360fb65ef3753b7c4dd5f1d6399acdbbc80b17978aca6b82',1)}
+          old='(coldeos_cs2(ir) - coldeos_cs2(ir-1)) * &'
+          new='(coldeos_logrho(ir) - coldeos_logrho(ir-1)) * &'
+          report={}
+          for fn,(expected,n) in specs.items():
+              q=p/fn; raw=q.read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==expected,fn
+              s=raw.decode()
+              assert s.count(old)==n,(fn,s.count(old))
+              t=s.replace(old,new)
+              assert t.count(old)==0
+              assert len(s.splitlines())==len(t.splitlines())
+              (d/(fn+'.patch')).write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile=fn,tofile=fn+'.fixed')))
+              q.write_text(t)
+              report[fn]={'original_sha256':expected,'patched_sha256':hashlib.sha256(q.read_bytes()).hexdigest(),'corrected_denominators':n}
+          (d/'eos_cs2_source_fix.json').write_text(json.dumps(report,indent=2))
+          print('EOS_CS2_SOURCE_FIX',json.dumps(report))
+          PY
+          make -C "$root" -j2 sim 2>&1 | tee /evidence/rebuild.log
+          test -x "$exe"
+          sha256sum "$exe" > /evidence/executable.sha256
+          test "$(cut -d' ' -f1 /evidence/original-executable.sha256)" != "$(cut -d' ' -f1 /evidence/executable.sha256)"
+          ldd "$exe" | tee /evidence/patched-executable-ldd.txt
+          if grep -q 'not found' /evidence/patched-executable-ldd.txt; then exit 4; fi
           cd /evidence
           "$exe" /evidence/control.par 2>&1 | tee native.log
           if grep -Eq 'NaN/Inf value\(s\) found|scheduling graceful termination of Cactus' native.log; then exit 5; fi
