@@ -1,0 +1,391 @@
+name: J0740 rotation negative control and corrected-grid convergence
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-parity-stationary-localization.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  upstream-reference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - n: 64
+            gauge: standard
+            box: 24
+            order: 2
+            cfl: '0.1'
+            axis: '1.0'
+          - n: 96
+            gauge: standard
+            box: 24
+            order: 2
+            cfl: '0.1'
+            axis: '0.8'
+    env:
+      N: ${{ matrix.n }}
+      GAUGE: ${{ matrix.gauge }}
+      BOX: ${{ matrix.box }}
+      ORDER: ${{ matrix.order }}
+      CFL: ${{ matrix.cfl }}
+      AXIS: ${{ matrix.axis }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: computationalrelativity/gr-athena
+          ref: f534ca0f6fa0d55b90df1686fa9abd476730bf3b
+          path: athena
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: computationalrelativity/RNSC
+          ref: 4bff105b52b2738f2d11fd2df8a458dce1e6b172
+          path: rnsc
+          persist-credentials: false
+      - name: Build and test RNSC parity repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/run
+          sudo apt-get update -qq
+          sudo apt-get install -y libhdf5-dev libgsl-dev python3-numpy python3-h5py
+          make -C rnsc -j2 2>&1 | tee evidence/rnsc-build.log
+          # Compile and execute an actual RNSC reflection regression before changing code.
+          cat > evidence/parity.c <<'C'
+          #include "RNS.h"
+          int main(int argc,char **argv) {
+            if(argc!=2)return 2;
+            RNS_params_set_default();
+            RNS_params_set_inputfile(argv[1]);
+            ini_data *d=RNS_make_initial_data();
+            int lo[3]={0,0,0}, n[3]={2,2,2};
+            double x[2]={2.,4.},y[2]={1.,3.},z[2]={-2.,2.};
+            double K[6][8];
+            RNS_Cartesian_interpolation(d,lo,n,n,x,y,z,
+              NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+              K[0],K[1],K[2],K[3],K[4],K[5],
+              NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+            double err=0.,scale=0.;
+            int parity[6]={1,1,-1,1,-1,1};
+            for(int c=0;c<6;c++)for(int i=0;i<4;i++){
+              double a=K[c][i],b=K[c][i+4];
+              if(!isfinite(a)||!isfinite(b))return 3;
+              err+=pow(a-parity[c]*b,2);scale+=a*a+b*b;
+            }
+            if(!(scale>0))return 4;
+            printf("PARITY_REL %.17g\n",sqrt(err/scale));
+            RNS_finalise(d);
+            return 0;
+          }
+          C
+          printf '%s\n' 'rns_verbose=0' 'rns_rhoc=1.28e-3' 'rns_axes_ratio=0.8' 'rns_SDIV=401' 'rns_MDIV=201' 'rns_save_2ddata=0' 'rns_rotation_type=uniform' "outputdir=$GITHUB_WORKSPACE/evidence" > evidence/parity.par
+          gcc -std=c99 -I rnsc/include evidence/parity.c -L rnsc/lib -Wl,-rpath,"$GITHUB_WORKSPACE/rnsc/lib" -lRNS -lm -o evidence/parity
+          evidence/parity evidence/parity.par | tee evidence/parity-before.log
+          /usr/bin/python3 - <<'PY'
+          import pathlib,re
+          p=pathlib.Path('rnsc/src/RNS_rnsid_util.c')
+          s=p.read_text()
+          start=s.index('void grid_interp_all_new')
+          a,b=s[:start],s[start:]
+          for name in ('nu','B','alpha','omega'):
+              pat=r'(grid_interp_new\(\s*k_s,\s*k_m,\s*)sign(,\s*s_c,\s*mu_c,\s*zp,\s*s_4,\s*mu_4,\s*'+name+r'_dth,\s*'+name+r'_dth_c\s*\);)'
+              b,n=re.subn(pat,r'\g<1>-1\2',b)
+              assert n==1,(name,n)
+          p.write_text(a+b)
+          PY
+          git -C rnsc diff -- src/RNS_rnsid_util.c > evidence/rnsc-parity.patch
+          make -C rnsc -j2 2>&1 | tee evidence/rnsc-rebuild.log
+          evidence/parity evidence/parity.par | tee evidence/parity-after.log
+          /usr/bin/python3 - <<'PY'
+          import pathlib,re,json
+          d=pathlib.Path('evidence')
+          get=lambda f:float(re.findall(r'PARITY_REL ([0-9.eE+-]+)',(d/f).read_text())[-1])
+          before,after=get('parity-before.log'),get('parity-after.log')
+          print('RNS_PARITY_RED_GREEN',before,after)
+          (d/'parity.json').write_text(json.dumps(dict(before=before,after=after)))
+          assert before>1e-6 and after<1e-10,(before,after)
+          PY
+          # Real library regression: exterior fallback returns rho, p, and specific energy.
+          cat > evidence/atmosphere.c <<'C'
+          #include "RNS.h"
+          int main(int argc,char **argv) {
+            if(argc!=2)return 2;
+            RNS_params_set_default();
+            RNS_params_set_inputfile(argv[1]);
+            ini_data *d=RNS_make_initial_data();
+            int lo[3]={0,0,0}, n[3]={2,2,2};
+            double x[2]={40.,42.},y[2]={41.,43.},z[2]={44.,46.};
+            double rho[8],eps[8],p[8];
+            RNS_Cartesian_interpolation(d,lo,n,n,x,y,z,
+              NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+              NULL,NULL,NULL,NULL,NULL,NULL,
+              rho,eps,NULL,NULL,NULL,NULL,NULL,NULL,p);
+            int count=0; double err=0.;
+            for(int i=0;i<8;i++) {
+              if(fabs(rho[i]/1e-6-1)>1e-12)continue;
+              count++;
+              double pe=100.*rho[i]*rho[i],ee=pe/rho[i];
+              err=fmax(err,fabs(p[i]/pe-1));
+              err=fmax(err,fabs(eps[i]/ee-1));
+              if(!isfinite(p[i])||!isfinite(eps[i]))return 3;
+            }
+            printf("ATMOSPHERE_EOS %d %.17g\n",count,err);
+            RNS_finalise(d);
+            if(count==0)return 4;
+            return err<1e-8?0:42;
+          }
+          C
+          cp evidence/parity.par evidence/atmosphere.par
+          printf '%s\n' 'atm_level_rho=1e-6' >> evidence/atmosphere.par
+          gcc -std=c99 -I rnsc/include evidence/atmosphere.c -L rnsc/lib -Wl,-rpath,"$GITHUB_WORKSPACE/rnsc/lib" -lRNS -lm -o evidence/atmosphere
+          set +e
+          evidence/atmosphere evidence/atmosphere.par > evidence/atmosphere-before.log 2>&1
+          code=$?
+          set -e
+          cat evidence/atmosphere-before.log
+          test "$code" -eq 42
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('rnsc/src/RNS.c')
+          s=p.read_text()
+          a='  params_set_real("atm_level_e",e_atm);'
+          assert s.count(a)==1
+          b='''  // Use the actual exterior fallback density for the cold polytrope.
+            if (strcmp(eos_type,"poly")==0) {
+              const double floor_rho=params_get_real("atm_level_rho");
+              p_atm=eos_k*pow(floor_rho,eos_ideal_fluid_gamma);
+              e_atm=floor_rho+p_atm/(eos_ideal_fluid_gamma-1.);
+            }
+          '''
+          p.write_text(s.replace(a,b+a))
+          PY
+          git -C rnsc diff -- src/RNS.c > evidence/rnsc-atmosphere.patch
+          make -C rnsc -j2 2>&1 | tee evidence/atmosphere-rebuild.log
+          evidence/atmosphere evidence/atmosphere.par | tee evidence/atmosphere-after.log
+          cd athena
+          # Test non-cascading linear extrapolation of spacetime ghost fields only.
+          # Previous high-order extrapolation failed positive determinant at a corner.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/comm/physical_bcs.cpp')
+          s=p.read_text()
+          a='    case PhysicalBC::Outflow:'+chr(10)+'      OutflowBC(var, nvar, face, il, iu, jl, ju, kl, ku, ngh);'
+          assert s.count(a)==1
+          b='''    case PhysicalBC::Outflow:
+                if (spec.label == "z4c_u" && sampling == Sampling::CC)
+                {
+                  // Start with the verified zeroth-order ghost fill.
+                  OutflowBC(var, nvar, face, il, iu, jl, ju, kl, ku, ngh);
+                  const auto linear = [](Real u0, Real u1, int d) {
+                    return u0 + Real(d)*(u0-u1);
+                  };
+                  for (int n=0; n<nvar; ++n)
+                    for (int d=1; d<=ngh; ++d) {
+                      switch (face) {
+                      case BoundaryFace::inner_x1:
+                      case BoundaryFace::outer_x1: {
+                        const int i0=face==BoundaryFace::inner_x1?il:iu;
+                        const int step=face==BoundaryFace::inner_x1?1:-1;
+                        for(int k=kl;k<=ku;++k) for(int j=jl;j<=ju;++j)
+                          var(n,k,j,i0-step*d)=linear(var(n,k,j,i0),var(n,k,j,i0+step),d);
+                        break;
+                      }
+                      case BoundaryFace::inner_x2:
+                      case BoundaryFace::outer_x2: {
+                        const int j0=face==BoundaryFace::inner_x2?jl:ju;
+                        const int step=face==BoundaryFace::inner_x2?1:-1;
+                        for(int k=kl;k<=ku;++k) for(int i=il;i<=iu;++i)
+                          var(n,k,j0-step*d,i)=linear(var(n,k,j0,i),var(n,k,j0+step,i),d);
+                        break;
+                      }
+                      case BoundaryFace::inner_x3:
+                      case BoundaryFace::outer_x3: {
+                        const int k0=face==BoundaryFace::inner_x3?kl:ku;
+                        const int step=face==BoundaryFace::inner_x3?1:-1;
+                        for(int j=jl;j<=ju;++j) for(int i=il;i<=iu;++i)
+                          var(n,k0-step*d,j,i)=linear(var(n,k0,j,i),var(n,k0+step,j,i),d);
+                        break;
+                      }
+                      default: break;
+                      }
+                    }
+                }
+                else
+                  OutflowBC(var, nvar, face, il, iu, jl, ju, kl, ku, ngh);'''
+          import os
+          if os.environ['ORDER']=='2':
+              # Manufactured polynomial check: exact quadratic continuation from three interior points.
+              for d in range(1,5):
+                  for c0,c1,c2 in [(1.,2.,3.),(1.,-2.,0.),(0.,0.,1.)]:
+                      f=lambda x:c0+c1*x+c2*x*x
+                      assert abs(f(0)+d*(f(0)-f(1))+d*(d+1)/2*(f(0)-2*f(1)+f(2))-f(-d))<1e-12
+              for old,new in [
+                  ('[](Real u0, Real u1, int d)', '[](Real u0, Real u1, Real u2, int d)'),
+                  ('return u0 + Real(d)*(u0-u1);', 'return u0 + Real(d)*(u0-u1) + Real(d*(d+1))*0.5*(u0-2*u1+u2);')]:
+                  assert b.count(old)==1,(old,b.count(old))
+                  b=b.replace(old,new)
+              for old,new in [
+                  ('var(n,k,j,i0+step),d)','var(n,k,j,i0+step),var(n,k,j,i0+2*step),d)'),
+                  ('var(n,k,j0+step,i),d)','var(n,k,j0+step,i),var(n,k,j0+2*step,i),d)'),
+                  ('var(n,k0+step,j,i),d)','var(n,k0+step,j,i),var(n,k0+2*step,j,i),d)')]:
+                  assert b.count(old)==1
+                  b=b.replace(old,new)
+          s=s.replace(a,b)
+          # Retain the tested linear ghost fill for Z4c under the native
+          # radiative boundary flag, while hydro retains its CC outflow fallback.
+          a='  const Sampling sampling = spec.sampling;'
+          assert s.count(a)==1
+          b=a+chr(10)+'  if (bc == PhysicalBC::GRSommerfeld && spec.label == "z4c_u" && sampling == Sampling::CC) bc = PhysicalBC::Outflow;'
+          p.write_text(s.replace(a,b))
+          PY
+          git diff -- src/comm/physical_bcs.cpp > ../evidence/outer_boundary.patch
+          python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=idealgas --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
+          make -j2 2>&1 | tee ../evidence/build.log
+          test -x bin/athena
+          test "$(git diff --name-only -- src)" = src/comm/physical_bcs.cpp
+          sha256sum bin/athena > ../evidence/binary.sha256
+      - name: Published equilibrium parameters and short native evolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          E="$GITHUB_WORKSPACE/evidence"
+          export OMP_NUM_THREADS=2
+          # Stable rotating reference configuration: DOI 10.1186/s40668-017-0022-0.
+          # RNSC defaults use Gamma=2, K=100; D4 is deliberately NOT used (unstable).
+          # This is a short diagnostic with GR-Athena++, not a reproduction of the published evolution method.
+          printf '%s\n' 'rns_verbose=2' 'rns_rhoc=1.28e-3' "rns_axes_ratio=$AXIS" 'rns_SDIV=401' 'rns_MDIV=201' 'rns_save_2ddata=0' 'rns_rotation_type=uniform' 'atm_level_rho=1e-12' "outputdir=$E" > "$E/star.par"
+          cd athena
+          sed '/^<output1>/,$d' inputs/z4c/awa/z4c_AwA_gauge_wave_1s.inp > "$E/star.inp"
+          cat >> "$E/star.inp" <<'EOF'
+
+          <hydro>
+          gamma = 2.0
+          k_adi = 100.0
+          dfloor = 1e-12
+          tfloor = 1e-10
+          rsolver = hlle
+          <output1>
+          file_type = hst
+          dt = 0.1
+          data_format = %.18g
+          <output2>
+          file_type = hdf5
+          variable = geom.con
+          dt = 0.5
+          ghost_zones = false
+          <output3>
+          file_type = hdf5
+          variable = geom.adm
+          dt = 0.5
+          ghost_zones = false
+          <output4>
+          file_type = hdf5
+          variable = prim
+          dt = 0.5
+          ghost_zones = false
+          EOF
+          args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=rotating_reference time/tlim=2 time/integrator=rk3 time/cfl_number=$CFL mesh/nx1=$N mesh/nx2=$N mesh/nx3=$N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-$BOX mesh/x1max=$BOX mesh/x2min=-$BOX mesh/x2max=$BOX mesh/x3min=-$BOX mesh/x3max=$BOX mesh/ix1_bc=gr_sommerfeld mesh/ox1_bc=gr_sommerfeld mesh/ix2_bc=gr_sommerfeld mesh/ox2_bc=gr_sommerfeld mesh/ix3_bc=gr_sommerfeld mesh/ox3_bc=gr_sommerfeld mesh/num_threads=2 time/xorder=weno5z time/xorder_use_fb=true time/xorder_fb=lin_vl time/xorder_use_aux_s=false hydro/smooth_temperature=false z4c/r_max_con=100)
+          if [[ "$GAUGE" == stationary ]]; then
+            args+=(z4c/lapse_oplog=0 z4c/lapse_harmonic=0 z4c/lapse_advect=0 z4c/shift_Gamma=0 z4c/shift_eta=0 z4c/shift_alpha2Gamma=0 z4c/shift_H=0 z4c/shift_advect=0)
+          fi
+          printf '%q ' ./bin/athena "${args[@]}" > "$E/command.txt"
+          ./bin/athena "${args[@]}" 2>&1 | tee "$E/native.log"
+          grep -q 'Terminating on time limit' "$E/native.log"
+          if grep -Eq 'Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT' "$E/native.log"; then exit 1; fi
+      - name: Report native constraint and matter histories
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 - <<'PY'
+          import pathlib, json, re, os, numpy as np
+          d=pathlib.Path('evidence')
+          f=next((d/'run').rglob('*.hst'))
+          names=re.findall(r'\[\d+\]=([^ ]+)',next(x for x in f.read_text().splitlines() if '[1]=time' in x))
+          a=np.loadtxt(f)
+          assert a.ndim==2 and len(names)==a.shape[1] and np.isfinite(a).all() and a[-1,0]>=1.99
+          stats={}
+          for i,name in enumerate(names):
+              x=a[:,i]
+              stats[name]=dict(initial=float(x[0]),final=float(x[-1]),minimum=float(x.min()),maximum=float(x.max()))
+          for k in ('H-norm2','M-norm2','mass','max_rho'):
+              assert k in stats,(k,names)
+          h,m=stats['H-norm2'],stats['M-norm2']
+          assert h['minimum']>=0 and m['minimum']>=0
+          mass,rho=stats['mass'],stats['max_rho']
+          assert mass['initial']>0 and rho['initial']>0
+          result=dict(scope='published equilibrium parameters, RNSC angular parity repair short control; not J0740 or long-time certification',doi='10.1186/s40668-017-0022-0',N=int(os.environ['N']),time=float(a[-1,0]),stats=stats,momentum_non_growth=m['final']<=m['initial'],mass_max_relative_drift=float(np.max(abs(a[:,names.index('mass')]/mass['initial']-1))),density_max_relative_drift=float(np.max(abs(a[:,names.index('max_rho')]/rho['initial']-1))))
+          (d/'reference.json').write_text(json.dumps(result,indent=2))
+          print('REFERENCE_CONTROL',json.dumps(result))
+          # Localize the same native constraints; retain raw histories and field snapshots.
+          import h5py
+          profiles=[]
+          for f in sorted((d/'run').glob('*.out2.*.athdf')):
+              with h5py.File(f) as z, h5py.File(str(f).replace('.out2.','.out3.')) as g, h5py.File(str(f).replace('.out2.','.out4.')) as hydro:
+                  names=[v.decode() if isinstance(v,bytes) else str(v) for v in z.attrs['VariableNames']]
+                  datasets=[v.decode() if isinstance(v,bytes) else str(v) for v in z.attrs['DatasetNames']]
+                  counts=list(z.attrs['NumVariables'])
+                  def field(name, file=z):
+                      ns=[v.decode() if isinstance(v,bytes) else str(v) for v in file.attrs['VariableNames']]
+                      dsns=[v.decode() if isinstance(v,bytes) else str(v) for v in file.attrs['DatasetNames']]
+                      index=ns.index(name)
+                      for ds,count in zip(dsns,file.attrs['NumVariables']):
+                          if index<count:return file[ds][index,...]
+                          index-=count
+                      raise AssertionError(name)
+                  assert abs(float(z.attrs['Time'])-float(g.attrs['Time']))<1e-12
+                  for key in ('x1v','x2v','x3v','LogicalLocations','Levels'):
+                      assert np.array_equal(z[key][...],g[key][...]),key
+                  a,b,c,e,f0,h=[field('geom.adm.'+k,g) for k in ('gxx','gxy','gxz','gyy','gyz','gzz')]
+                  det=a*e*h+2*b*c*f0-a*f0*f0-e*c*c-h*b*b
+                  assert np.isfinite(det).all() and (det>0).all()
+                  proper=np.sqrt(det)
+                  rho=field('rho',hydro)
+                  press=field('press',hydro)
+                  assert abs(float(z.attrs['Time'])-float(hydro.attrs['Time']))<1e-12
+                  for key in ('x1v','x2v','x3v','LogicalLocations','Levels'):
+                      assert np.array_equal(z[key][...],hydro[key][...]),key
+                  assert np.isfinite(rho).all() and np.isfinite(press).all()
+                  H=field('geom.con.H')
+                  M=field('geom.con.M')
+                  assert np.isfinite(H).all() and np.isfinite(M).all() and M.min()>=0
+                  regions={}
+                  for b in range(H.shape[0]):
+                      x,y,w=[np.asarray(z[k][b]) for k in ('x1v','x2v','x3v')]
+                      xf,yf,wf=[np.asarray(z[k][b]) for k in ('x1f','x2f','x3f')]
+                      assert H[b].shape==(len(w),len(y),len(x))
+                      rad=np.sqrt(w[:,None,None]**2+y[None,:,None]**2+x[None,None,:]**2)
+                      dv=np.diff(wf)[:,None,None]*np.diff(yf)[None,:,None]*np.diff(xf)[None,None,:]
+                      boundary=np.maximum.reduce(np.broadcast_arrays(abs(w[:,None,None]),abs(y[None,:,None]),abs(x[None,None,:])))
+                      for tag,mask in [('all',rad>=0),('inner8',rad<8),('shell8to16',(rad>=8)&(rad<16)),('outer16',rad>=16),('boundary',boundary>float(os.environ['BOX'])-3),('dense_core',rho[b]>=1e-4),('low_density_matter',(rho[b]>1e-10)&(rho[b]<1e-4)),('atmosphere',rho[b]<=1e-10)]:
+                          a=regions.setdefault(tag,[0.,0.,0.,0.,0.,0.])
+                          a[0]+=float(np.sum((H[b]**2*dv)[mask]))
+                          a[1]+=float(np.sum((M[b]*dv)[mask]))
+                          a[2]+=float(np.sum(dv[mask]))
+                          pdv=dv*proper[b]
+                          a[3]+=float(np.sum((H[b]**2*pdv)[mask]))
+                          a[4]+=float(np.sum((M[b]*pdv)[mask]))
+                          a[5]+=float(np.sum(pdv[mask]))
+                  profiles.append(dict(time=float(z.attrs['Time']),regions=regions))
+          assert len(profiles)>=2
+          for profile in profiles:
+              profile['proper_rms']={k:dict(H=float(np.sqrt(v[3]/v[5])),M=float(np.sqrt(v[4]/v[5]))) for k,v in profile['regions'].items() if v[5]>0}
+          result['axis_ratio']=float(os.environ['AXIS'])
+          result['cfl']=float(os.environ['CFL'])
+          result['gauge']=os.environ['GAUGE']
+          result['box_half_width']=int(os.environ['BOX'])
+          result['ghost_order']=int(os.environ['ORDER'])
+          result['localized_constraints']=profiles
+          (d/'reference.json').write_text(json.dumps(result,indent=2))
+          print('GAUGE_LOCALIZATION',json.dumps(dict(axis=result['axis_ratio'],cfl=result['cfl'],N=result['N'],box=result['box_half_width'],order=result['ghost_order'],gauge=result['gauge'],profiles=profiles,M=result['stats']['M-norm2'],H=result['stats']['H-norm2'])))
+          # A diagnostic receipt does not relax the J0740 acceptance criteria.
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: rnsc-rotation-control-N${{ matrix.n }}-axis${{ matrix.axis }}
+          path: evidence/
+          if-no-files-found: error
