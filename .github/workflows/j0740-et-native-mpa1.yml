@@ -1,4 +1,4 @@
-name: J0740 MPA1 extended evolution with distant boundary
+name: J0740 MPA1 exterior pressure bracket reproducer
 on:
   pull_request:
     branches: [main]
@@ -17,12 +17,7 @@ jobs:
         include:
           - dx: '96'
             finest: '0.75'
-            duration: '600'
-            trial: retarget
-            solver: HLLC
-          - dx: '48'
-            finest: '0.375'
-            duration: '60'
+            duration: '3'
             trial: retarget
             solver: HLLC
     env:
@@ -68,7 +63,7 @@ jobs:
           setparam('IO::out_dir','"/evidence/run"')
           setparam('IOScalar::outScalar_every','1')
           setparam('IOBasic::outInfo_every','8192')
-          setparam('IOASCII::out1D_every','8192')
+          setparam('IOASCII::out1D_every','1')
           setparam('CarpetIOHDF5::out2D_every','81920')
           setparam('TerminationTrigger::max_walltime','5')
           setparam('TerminationTrigger::on_remaining_walltime','10')
@@ -522,6 +517,119 @@ jobs:
           (d/'rnsid_cold_projection.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile='rnsid.c',tofile='rnsid.c.cold')))
           p.write_text(t)
           PY
+          export C2P_SRC="$root/arrangements/EinsteinEvolve/GRHydro/src/GRHydro_Con2Prim.F90"
+          python3 - <<'PY'
+          import pathlib,os,hashlib,difflib
+          p=pathlib.Path(os.environ['C2P_SRC']); raw=p.read_bytes()
+          assert hashlib.sha256(raw).hexdigest()=='b746c04821d1df8f1611da878b41a7ff7b64a3da608a88c6eb616628f0eacc9c'
+          s=raw.decode(); start=s.index('subroutine Con2Prim_pt('); end=s.index('end subroutine Con2Prim_pt',start)
+          q=s[start:end]
+          def once(t,old,new):
+              assert t.count(old)==1,(old,t.count(old))
+              return t.replace(old,new)
+          q=once(q,'  implicit none','  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite\n  implicit none')
+          q=once(q,'  logical epsnegative, mustbisect','''  logical epsnegative, mustbisect, br_ok, br_found
+          CCTK_REAL br_lo,br_hi,br_p,br_f,br_rho,br_eps,br_w,br_wm,br_q,br_b,br_t
+          CCTK_INT br_i''')
+          old='  mustbisect = .false.\n'
+          candidate=r'''
+          ! Low-density pre-solve: bracket the actual EOS residual before the
+          ! legacy absolute 1e-10 initial offset. Never overwrite conserved data.
+          br_found=.false.
+          if (udens.gt.0d0.and.udens.le.100d0*GRHydro_rho_min.and.pmin.gt.0d0.and. &
+              s2.ge.0d0.and.GRHydro_C2P_failed.eq.0d0) then
+            br_lo=max(pmin,sqrt(s2)-utau-udens)
+            br_hi=max(2d0*br_lo,xpress)
+            call J0740PressureEval(handle,udens,utau,s2,br_lo,br_rho,br_eps,br_w,br_f,br_ok)
+            if (br_ok.and.br_f.le.0d0) then
+              do br_i=1,64
+                call J0740PressureEval(handle,udens,utau,s2,br_hi,br_rho,br_eps,br_w,br_f,br_ok)
+                if (.not.br_ok.or.br_f.ge.0d0) exit
+                br_hi=2d0*br_hi
+              enddo
+              if (br_ok.and.br_f.ge.0d0) then
+                do br_i=1,64
+                  br_p=br_lo+(br_hi-br_lo)*0.5d0
+                  call J0740PressureEval(handle,udens,utau,s2,br_p,br_rho,br_eps,br_w,br_f,br_ok)
+                  if (.not.br_ok) exit
+                  if (abs(br_f).le.1d-9*br_p) then
+                    br_q=udens+utau+br_p
+                    br_b=sqrt(br_q*br_q-s2)
+                    br_wm=s2/(br_b*(br_q+br_b))
+                    br_t=br_rho*br_eps*br_w**2+br_rho*br_w*br_wm+br_p*br_wm*(br_w+1d0)
+                    if (br_rho.ge.GRHydro_rho_min.and.br_eps.ge.0d0.and. &
+                        abs(br_rho*br_w-udens).le.1d-10*udens.and. &
+                        abs(br_t-utau).le.1d-8*max(abs(utau),udens*1d-12)) br_found=.true.
+                    exit
+                  endif
+                  if (br_f.gt.0d0) then
+                    br_hi=br_p
+                  else
+                    br_lo=br_p
+                  endif
+                enddo
+              endif
+            endif
+            if (br_found) then
+              rho=br_rho
+              epsilon=br_eps
+              w_lorentz=br_w
+              pnew=br_p
+              if (abs(r-24d0).lt.1d-6.and.cctk_iteration.eq.1) then
+          !$OMP CRITICAL (j0740_bracket_log)
+                write(*,*) 'J0740_BRACKET_OK ',cctk_iteration,GRHydro_reflevel,x,y,z, &
+                           udens,utau,s2,pmin,br_p,br_f
+          !$OMP END CRITICAL (j0740_bracket_log)
+              endif
+              goto 52
+            endif
+          endif
+          '''
+          # There is another mustbisect reset in the iteration; insert only at
+          # the exact initialization marker together with its next comment.
+          marker=old+'\n!!$  Check that the variables have a chance of being physical'
+          q=once(q,marker,old+candidate+'\n!!$  Check that the variables have a chance of being physical')
+          q=once(q,'!!$  Calculate primitive variables from root','52 continue\n!!$  Calculate primitive variables from root')
+          q=once(q,'      GRHydro_C2P_failed = 1\n\n      !$OMP CRITICAL','''      if (abs(r-24d0).lt.1d-6) then
+          !$OMP CRITICAL (j0740_bracket_log)
+              write(*,*) 'J0740_BRACKET_FAILED ',cctk_iteration,GRHydro_reflevel,x,y,z, &
+                         udens,utau,s2,pmin,pold,pnew,f,df
+          !$OMP END CRITICAL (j0740_bracket_log)
+            endif
+            GRHydro_C2P_failed = 1
+
+            !$OMP CRITICAL''')
+          helper=r'''
+          subroutine J0740PressureEval(handle,d,tau,s2,p,rho,eps,w,f,ok)
+            use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+            implicit none
+            DECLARE_CCTK_PARAMETERS
+            CCTK_INT handle,n,keytemp,keyerr,anyerr
+            CCTK_REAL d,tau,s2,p,rho,eps,w,f,q,b,wm,xpress,xtemp,xye
+            logical ok
+            ok=.false.
+            f=0d0
+            q=d+tau+p
+            if (.not.ieee_is_finite(q).or.q.le.0d0.or.q*q.le.s2) return
+            b=sqrt(q*q-s2)
+            w=q/b
+            wm=s2/(b*(q+b))
+            rho=d/w
+            eps=(tau-s2/(q+b)-p*wm)/d
+            if (.not.ieee_is_finite(rho).or..not.ieee_is_finite(eps).or.rho.le.0d0) return
+            n=1; keytemp=0; keyerr=0; anyerr=0; xtemp=0d0; xye=0d0
+            call EOS_Omni_press(handle,keytemp,GRHydro_eos_rf_prec,n, &
+                 rho,eps,xtemp,xye,xpress,keyerr,anyerr)
+            if (keyerr.ne.0.or.anyerr.ne.0.or..not.ieee_is_finite(xpress)) return
+            f=p-xpress
+            ok=ieee_is_finite(f)
+          end subroutine J0740PressureEval
+          '''
+          tail='end subroutine Con2Prim_pt'
+          t=s[:start]+q+tail+helper+s[end+len(tail):]
+          pathlib.Path('/evidence/c2p_bracket.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile='GRHydro_Con2Prim.F90',tofile='GRHydro_Con2Prim.F90.bracket')))
+          p.write_text(t)
+          PY
           make -C "$root" -j2 sim 2>&1 | tee /evidence/rebuild.log
           test -x "$exe"
           sha256sum "$exe" > /evidence/executable.sha256
@@ -603,6 +711,8 @@ jobs:
           assert len(times)>=2 and np.all(np.diff(times)>0) and np.isfinite(omega).all()
           result['eulerian_rotation_proxy']=dict(radius=3.0,initial_omega=float(omega[0]),final_omega=float(omega[-1]),turns=float(np.sum(.5*(omega[1:]+omega[:-1])*np.diff(times))/(2*math.pi)),last_sample_time=float(times[-1]),scope='fixed-coordinate fluid angular speed integrated over time, not a tracked fluid parcel')
           np.savetxt(d/'angular_speed_proxy.asc',np.column_stack((times,omega)),header='geometric_time coordinate_angular_speed_at_x3')
+          result['bracket_success_rows']=sum('J0740_BRACKET_OK ' in line for line in log.splitlines())
+          result['bracket_failure_rows']=sum('J0740_BRACKET_FAILED ' in line for line in log.splitlines())
           result['physical_stability_certified']=False
           result['diagnostic_scope']='extended observation only; no acceptance without matched-domain convergence, AMR volume integrals and tracked rotation'
           (d/'independent.json').write_text(json.dumps(result,indent=2))
@@ -614,6 +724,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere-cold-projection
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere-cold-projection-pressure-bracket
           path: evidence/
           if-no-files-found: error
