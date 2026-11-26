@@ -1,4 +1,4 @@
-name: J0740 MPA1 resolved coarse-grid exterior reproducer
+name: J0740 MPA1 matched-domain finer-grid diagnostic
 on:
   pull_request:
     branches: [main]
@@ -15,8 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - dx: '3'
-            finest: '0.75'
+          - dx: '1.5'
+            finest: '0.375'
             duration: '3'
             trial: retarget
             solver: HLLC
@@ -713,13 +713,20 @@ jobs:
           np.savetxt(d/'angular_speed_proxy.asc',np.column_stack((times,omega)),header='geometric_time coordinate_angular_speed_at_x3')
           result['bracket_success_rows']=sum('J0740_BRACKET_OK ' in line for line in log.splitlines())
           result['bracket_failure_rows']=sum('J0740_BRACKET_FAILED ' in line for line in log.splitlines())
-          result['coarse_grid_scope']='base dx=3, finest=.75, three levels, outer boundary=48; changes coarse timestep and domain together; not an isolated causal contrast'
+          result['coarse_grid_scope']='base dx=1.5, finest=.375, same three levels and outer boundary=48 as verified PR994; fixed CFL, timestep scales with resolution'
+          result['matched_reference']=dict(pr=994,run=45901431739,artifact=15155807839,sha256='498f377b7ab974036647d74fccac373b76978f66d0bea5035b627e72aef25ad9',time=3.0,dx=.75,hamiltonian=3.52511138784682e-5,momentum=[3.91557683708865e-6,3.91557683884968e-6,2.9014230882022e-6])
+          ref=result['matched_reference']
+          result['matched_final_time']=all(abs(rec['final'][1]-ref['time'])<1e-10 for k in ('hamiltonian','momentum') for rec in result[k])
+          if result['matched_final_time']:
+              result['scalar_constraint_ratios']=dict(hamiltonian=result['hamiltonian'][0]['final'][2]/ref['hamiltonian'],momentum=[v/w for v,w in zip(result['momentum'][0]['final'][2:],ref['momentum'])],scope='same requested physical domain and time; scalar reductions, not independent volume norms or measured convergence order')
           result['physical_stability_certified']=False
           result['diagnostic_scope']='extended observation only; no acceptance without matched-domain convergence, AMR volume integrals and tracked rotation'
           (d/'independent.json').write_text(json.dumps(result,indent=2))
           print('NATIVE_MPA1_RESULT',json.dumps(result))
           assert result['source_match_gate'] and result['atmosphere_match'] and result['cold_initial_match'], 'input validity failed'
           assert result['requested_duration_reached'], 'requested duration not reached; retained partial diagnostic only'
+          assert result['matched_final_time'], 'reference time not reached'
+          assert result['bracket_failure_rows']==0, 'failed bracket diagnostics remain'
           if result['requested_time']>=600: assert result['nominal_period_coverage']>=1, 'less than one nominal rotation period'
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
