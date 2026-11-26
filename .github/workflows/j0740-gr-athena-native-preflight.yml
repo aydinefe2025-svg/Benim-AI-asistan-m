@@ -1,0 +1,61 @@
+name: J0740 GR-Athena upstream native Z4c smoke
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-gr-athena-native-preflight.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-z4c:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, exact successful run
+        with:
+          repository: computationalrelativity/gr-athena
+          ref: f534ca0f6fa0d55b90df1686fa9abd476730bf3b
+          persist-credentials: false
+      - name: Build exact upstream solver
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          git rev-parse HEAD | tee evidence/upstream_commit.txt
+          test "$(git rev-parse HEAD)" = f534ca0f6fa0d55b90df1686fa9abd476730bf3b
+          sudo apt-get update -qq
+          sudo apt-get install -y libhdf5-dev libgsl-dev
+          python3 configure.py --prob=z4c_awa_tests -z -z_vc --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee evidence/configure.log
+          make -j2 2>&1 | tee evidence/build.log
+          test -x bin/athena
+          sha256sum bin/athena inputs/z4c/awa/z4c_AwA_gauge_wave_1s.inp | tee evidence/inputs.sha256
+      - name: Run bounded upstream shifted gauge wave
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/run
+          ./bin/athena -h > evidence/binary_options.txt 2>&1
+          OMP_NUM_THREADS=2 ./bin/athena -i inputs/z4c/awa/z4c_AwA_gauge_wave_1s.inp -d evidence/run time/tlim=0.2 mesh/num_threads=2 2>&1 | tee evidence/native.log
+          python3 - <<'PY'
+          import pathlib,re,json,math
+          d=pathlib.Path('evidence')
+          s=(d/'native.log').read_text()
+          files=list((d/'run').rglob('*.hst'))
+          assert files, 'no actual history output'
+          samples=[]
+          for f in files:
+              for line in f.read_text().splitlines():
+                  if line.strip() and not line.lstrip().startswith('#'):
+                      row=[float(x) for x in line.split()]
+                      assert all(math.isfinite(x) for x in row)
+                      samples.append(row)
+          assert len(samples)>=2 and max(r[0] for r in samples)>=0.19, 'time target not evidenced'
+          (d/'receipt.json').write_text(json.dumps({'status':'UPSTREAM_Z4C_SMOKE_ONLY','history_rows':len(samples),'max_history_time':max(r[0] for r in samples),'limits':'Gauge wave, not fluid or J0740 evolution. No physical EOS acceptance.'},indent=2))
+          print((d/'receipt.json').read_text())
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, exact successful run
+        if: always()
+        with:
+          name: j0740-gr-athena-upstream-native-smoke
+          path: evidence/
+          if-no-files-found: error
