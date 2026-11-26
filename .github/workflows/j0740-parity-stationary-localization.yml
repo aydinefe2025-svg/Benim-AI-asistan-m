@@ -1,4 +1,4 @@
-name: J0740 parity repaired radiative ghost correction
+name: J0740 boundary order and matched-spacing isolation
 on:
   pull_request:
     branches: [main]
@@ -13,11 +13,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        n: [64]
-        gauge: [standard]
+        include:
+          - n: 64
+            gauge: standard
+            box: 24
+            order: 2
+          - n: 96
+            gauge: standard
+            box: 24
+            order: 1
+          - n: 96
+            gauge: standard
+            box: 36
+            order: 1
     env:
       N: ${{ matrix.n }}
       GAUGE: ${{ matrix.gauge }}
+      BOX: ${{ matrix.box }}
+      ORDER: ${{ matrix.order }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -144,6 +157,23 @@ jobs:
                 }
                 else
                   OutflowBC(var, nvar, face, il, iu, jl, ju, kl, ku, ngh);'''
+          import os
+          if os.environ['ORDER']=='2':
+              # Manufactured polynomial check: exact quadratic continuation from three interior points.
+              for d in range(1,5):
+                  for c0,c1,c2 in [(1.,2.,3.),(1.,-2.,0.),(0.,0.,1.)]:
+                      f=lambda x:c0+c1*x+c2*x*x
+                      assert abs(f(0)+d*(f(0)-f(1))+d*(d+1)/2*(f(0)-2*f(1)+f(2))-f(-d))<1e-12
+              old='const auto linear = [](Real u0, Real u1, int d) {\n                    return u0 + Real(d)*(u0-u1);'
+              new='const auto linear = [](Real u0, Real u1, Real u2, int d) {\n                    return u0 + Real(d)*(u0-u1) + Real(d*(d+1))*0.5*(u0-2*u1+u2);'
+              assert b.count(old)==1
+              b=b.replace(old,new)
+              for old,new in [
+                  ('var(n,k,j,i0+step),d)','var(n,k,j,i0+step),var(n,k,j,i0+2*step),d)'),
+                  ('var(n,k,j0+step,i),d)','var(n,k,j0+step,i),var(n,k,j0+2*step,i),d)'),
+                  ('var(n,k0+step,j,i),d)','var(n,k0+step,j,i),var(n,k0+2*step,j,i),d)')]:
+                  assert b.count(old)==1
+                  b=b.replace(old,new)
           s=s.replace(a,b)
           # Retain the tested linear ghost fill for Z4c under the native
           # radiative boundary flag, while hydro retains its CC outflow fallback.
@@ -188,7 +218,7 @@ jobs:
           dt = 0.5
           ghost_zones = false
           EOF
-          args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=rotating_reference time/tlim=2 time/integrator=rk3 time/cfl_number=0.1 mesh/nx1=$N mesh/nx2=$N mesh/nx3=$N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-24 mesh/x1max=24 mesh/x2min=-24 mesh/x2max=24 mesh/x3min=-24 mesh/x3max=24 mesh/ix1_bc=gr_sommerfeld mesh/ox1_bc=gr_sommerfeld mesh/ix2_bc=gr_sommerfeld mesh/ox2_bc=gr_sommerfeld mesh/ix3_bc=gr_sommerfeld mesh/ox3_bc=gr_sommerfeld mesh/num_threads=2 time/xorder=weno5z time/xorder_use_fb=true time/xorder_fb=lin_vl time/xorder_use_aux_s=false hydro/smooth_temperature=false z4c/r_max_con=100)
+          args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=rotating_reference time/tlim=2 time/integrator=rk3 time/cfl_number=0.1 mesh/nx1=$N mesh/nx2=$N mesh/nx3=$N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-$BOX mesh/x1max=$BOX mesh/x2min=-$BOX mesh/x2max=$BOX mesh/x3min=-$BOX mesh/x3max=$BOX mesh/ix1_bc=gr_sommerfeld mesh/ox1_bc=gr_sommerfeld mesh/ix2_bc=gr_sommerfeld mesh/ox2_bc=gr_sommerfeld mesh/ix3_bc=gr_sommerfeld mesh/ox3_bc=gr_sommerfeld mesh/num_threads=2 time/xorder=weno5z time/xorder_use_fb=true time/xorder_fb=lin_vl time/xorder_use_aux_s=false hydro/smooth_temperature=false z4c/r_max_con=100)
           if [[ "$GAUGE" == stationary ]]; then
             args+=(z4c/lapse_oplog=0 z4c/lapse_harmonic=0 z4c/lapse_advect=0 z4c/shift_Gamma=0 z4c/shift_eta=0 z4c/shift_alpha2Gamma=0 z4c/shift_H=0 z4c/shift_advect=0)
           fi
@@ -245,7 +275,7 @@ jobs:
                       rad=np.sqrt(w[:,None,None]**2+y[None,:,None]**2+x[None,None,:]**2)
                       dv=np.diff(wf)[:,None,None]*np.diff(yf)[None,:,None]*np.diff(xf)[None,None,:]
                       boundary=np.maximum.reduce(np.broadcast_arrays(abs(w[:,None,None]),abs(y[None,:,None]),abs(x[None,None,:])))
-                      for tag,mask in [('all',rad>=0),('inner8',rad<8),('shell8to16',(rad>=8)&(rad<16)),('outer16',rad>=16),('boundary',boundary>21)]:
+                      for tag,mask in [('all',rad>=0),('inner8',rad<8),('shell8to16',(rad>=8)&(rad<16)),('outer16',rad>=16),('boundary',boundary>float(os.environ['BOX'])-3)]:
                           a=regions.setdefault(tag,[0.,0.,0.])
                           a[0]+=float(np.sum((H[b]**2*dv)[mask]))
                           a[1]+=float(np.sum((M[b]*dv)[mask]))
@@ -253,14 +283,16 @@ jobs:
                   profiles.append(dict(time=float(z.attrs['Time']),regions=regions))
           assert len(profiles)>=2
           result['gauge']=os.environ['GAUGE']
+          result['box_half_width']=int(os.environ['BOX'])
+          result['ghost_order']=int(os.environ['ORDER'])
           result['localized_constraints']=profiles
           (d/'reference.json').write_text(json.dumps(result,indent=2))
-          print('GAUGE_LOCALIZATION',json.dumps(dict(gauge=result['gauge'],profiles=profiles,M=result['stats']['M-norm2'],H=result['stats']['H-norm2'])))
+          print('GAUGE_LOCALIZATION',json.dumps(dict(N=result['N'],box=result['box_half_width'],order=result['ghost_order'],gauge=result['gauge'],profiles=profiles,M=result['stats']['M-norm2'],H=result['stats']['H-norm2'])))
           # A diagnostic receipt does not relax the J0740 acceptance criteria.
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: rnsc-parity-linear-ghost-N${{ matrix.n }}-${{ matrix.gauge }}
+          name: rnsc-parity-N${{ matrix.n }}-box${{ matrix.box }}-order${{ matrix.order }}
           path: evidence/
           if-no-files-found: error
