@@ -220,35 +220,67 @@ jobs:
           import shutil
           shutil.copyfile(out,d/'f171_grid_unprojected.bin')
           # York-Lichnerowicz CTT pilot; fixed densitized D and S_i.
-          # Four ghost cells, independent fourth-order Cartesian ADM residual.
+          # Four ghost cells, independent sixth-order Cartesian ADM residual.
           from scipy.fft import dstn,idstn
           from scipy.ndimage import map_coordinates,spline_filter
           from scipy.sparse.linalg import LinearOperator,gmres
           grid=np.memmap(out,dtype='<f8',mode='r+',offset=20,shape=(n,n,n,25))
           zyx=(2,1,0); hstep=2*dx; N=int(os.environ['J0740_N'])
           pad=4; sl=(slice(pad,-pad),)*3; shape=(N+2*pad,)*3
+          # Match pinned GR-Athena NGHOST=4 centered stencils (radius 3).
+          # Unlike D1(D1), Dxx detects the alternating-cell mode.
           def der(f,i):
               ax=zyx[i]
-              return (8*(np.roll(f,-1,ax)-np.roll(f,1,ax))-(np.roll(f,-2,ax)-np.roll(f,2,ax)))/(12*hstep)
+              return (45*(np.roll(f,-1,ax)-np.roll(f,1,ax))-9*(np.roll(f,-2,ax)-np.roll(f,2,ax))+(np.roll(f,-3,ax)-np.roll(f,3,ax)))/(60*hstep)
+          def dxx(f,i):
+              ax=zyx[i]
+              return (2*(np.roll(f,-3,ax)+np.roll(f,3,ax))-27*(np.roll(f,-2,ax)+np.roll(f,2,ax))+270*(np.roll(f,-1,ax)+np.roll(f,1,ax))-490*f)/(180*hstep**2)
+          def d2(f,i,j):
+              return dxx(f,i) if i==j else der(der(f,j),i)
+          checker=(-1.)**np.arange(N)
+          checker=checker[None,None,:]
+          assert np.max(abs(der(der(checker,0),0)))<1e-12
+          assert np.max(abs(dxx(checker,0)+(272./45)*checker/hstep**2))<1e-11
+          assert np.max(abs(dxx(np.ones_like(checker),0)))<1e-12
+          q=(np.arange(N)*hstep)[None,None,:]**2
+          assert np.max(abs(dxx(q,0)[...,3:-3]-2))<1e-10
+          print('NATIVE_STENCIL_MANUFACTURED_PASS',flush=True)
           def sym(f,offset):
               g=np.empty(f.shape[:-1]+(3,3))
               for k,(i,j) in enumerate(idx):g[...,i,j]=g[...,j,i]=f[...,offset+k]
               return g
           def geom(g):
+              # Reconstruct the default chi=det(g)^(-1/3), gtilde=chi*g.
+              # Use native ADMConstraints chain-rule derivative structure.
+              # Still a global-array surrogate, not native block/ghost execution.
               gi=np.linalg.inv(g)
-              dg=[der(g,i) for i in range(3)]
-              Gm=np.empty(g.shape[:-2]+(3,3,3))
+              chi=np.cbrt(1/np.linalg.det(g))
+              ci=1/chi
+              ct=chi[...,None,None]
+              gt=ct*g
+              dc=[der(chi,i) for i in range(3)]
+              dt=[der(gt,i) for i in range(3)]
+              dg=[(dt[i]-gt*(dc[i]*ci)[...,None,None])*ci[...,None,None] for i in range(3)]
+              dd={}
+              for i in range(3):
+                  for j in range(i,3):
+                      v=(d2(gt,i,j)-(dt[j]*dc[i][...,None,None]+dt[i]*dc[j][...,None,None]+gt*d2(chi,i,j)[...,None,None])*ci[...,None,None]+2*gt*(ci**2*dc[i]*dc[j])[...,None,None])*ci[...,None,None]
+                      dd[i,j]=dd[j,i]=v
+              Glo=np.empty(g.shape[:-2]+(3,3,3))
               for i in range(3):
                   for j in range(3):
-                      Gm[..., :,i,j]=.5*np.einsum('...kl,...l->...k',gi,np.stack([dg[i][...,j,l]+dg[j][...,i,l]-dg[l][...,i,j] for l in range(3)],axis=-1))
-              R=np.zeros(g.shape[:-2])
+                      Glo[..., :,i,j]=.5*np.stack([dg[i][...,j,l]+dg[j][...,i,l]-dg[l][...,i,j] for l in range(3)],axis=-1)
+              Gm=np.einsum('...kl,...lij->...kij',gi,Glo)
               T=np.einsum('...kki->...i',Gm)
+              R=np.zeros(g.shape[:-2])
               for i in range(3):
                   for j in range(3):
-                      Rij=-der(T[...,i],j)
+                      Rij=np.zeros_like(R)
                       for k in range(3):
-                          Rij+=der(Gm[...,k,i,j],k)+T[...,k]*Gm[...,k,i,j]
-                          for l in range(3):Rij-=Gm[...,k,j,l]*Gm[...,l,i,k]
+                          for l in range(3):
+                              Rij+=.5*gi[...,k,l]*(-dd[j,i][...,k,l]+dd[l,i][...,j,k]+dd[l,j][...,i,k]-dd[l,k][...,i,j])
+                              for c in range(3):
+                                  Rij+=gi[...,k,l]*(Gm[...,c,i,l]*Glo[...,c,j,k]-Gm[...,c,i,j]*Glo[...,c,l,k])
                       R+=gi[...,i,j]*Rij
               return gi,Gm,T,R
           def divA(A,gi,Gm,T):
@@ -316,7 +348,7 @@ jobs:
           check,flag=solve_gmres(small,rhs,restart=2,maxiter=3)
           assert flag==0 and np.linalg.norm(small@check-rhs)<=1e-4*np.linalg.norm(rhs)
           print('GMRES_API_PREFLIGHT',scipy.__version__,tolkey,flag,flush=True)
-          w,info=solve_gmres(op,-Rm[sl].ravel(),M=pre,restart=10,maxiter=8)
+          w,info=solve_gmres(op,-Rm[sl].ravel(),M=pre,restart=20,maxiter=16)
           Wcorr=extend(w.reshape(N,N,N,3)); dA=LW(Wcorr)
           best=min([0.,.25,.5,1.],key=lambda f: norm(Rm+f*divA(dA,gi,Gm,T)))
           dA*=best; A1=A+dA; M1=norm(divA(A1,gi,Gm,T)-8*np.pi*S)
@@ -333,7 +365,7 @@ jobs:
               return En
           def lap(u):
               du=np.stack([der(u,i) for i in range(3)],axis=-1)
-              dd=np.stack([der(du,i) for i in range(3)],axis=-2)
+              dd=np.stack([np.stack([d2(u,i,j) for j in range(3)],axis=-1) for i in range(3)],axis=-2)
               return np.einsum('...ij,...ij->...',gi,dd-np.einsum('...kij,...k->...ij',Gm,du))
           def ham(psi):
               return R/psi**4-8*lap(psi)/psi**5-A2/psi**12-16*np.pi*matter(psi)
@@ -355,7 +387,7 @@ jobs:
           Hp=Rp-sq(Kp,gip)-16*np.pi*Ep
           Mp=divA(Kp,gip,Gp,Tp)-8*np.pi*S/psi[...,None]**6
           H1=norm(Hp); Mdirect=norm(Mp)
-          receipt=dict(H0=H0,M0=M0,H1=H1,M1=Mdirect,conformal_H_trace=trace,gmres_info=int(info),momentum_step=best,psi_min=float(psi.min()),psi_max=float(psi.max()),scope='independent fourth-order ADM; finite-box zero correction; not exact native Z4c or stationary Euler solution')
+          receipt=dict(H0=H0,M0=M0,H1=H1,M1=Mdirect,conformal_H_trace=trace,gmres_info=int(info),momentum_step=best,psi_min=float(psi.min()),psi_max=float(psi.max()),scope='independent sixth-order ADM; native-radius-3 conformal chain-rule surrogate; finite-box zero correction; not exact native Z4c or stationary Euler solution')
           (d/'ctt_projection.json').write_text(json.dumps(receipt,indent=2));print('CTT_PROJECTION',json.dumps(receipt),flush=True)
           assert H1<.8*H0 and Mdirect<.8*M0,'independent constraint projection rejected; do not evolve'
           # Map correction to all half-grid points; reconstruct physical
