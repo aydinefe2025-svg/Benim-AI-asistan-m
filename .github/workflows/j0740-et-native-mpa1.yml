@@ -1,4 +1,4 @@
-name: J0740 MPA1 rotation stages 5 and 15 degrees
+name: J0740 MPA1 fine-grid 15 degree convergence diagnostic
 on:
   pull_request:
     branches: [main]
@@ -15,8 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - dx: '3'
-            finest: '0.75'
+          - dx: '1.5'
+            finest: '0.375'
             duration: '24.5625'
             trial: retarget
             solver: HLLC
@@ -64,7 +64,7 @@ jobs:
           setparam('IOScalar::outScalar_every','1')
           setparam('IOBasic::outInfo_every','8192')
           setparam('IOASCII::out1D_every','1')
-          setparam('CarpetIOHDF5::out2D_every','1024')
+          setparam('CarpetIOHDF5::out2D_every','2048')
           setparam('TerminationTrigger::max_walltime','5')
           setparam('TerminationTrigger::on_remaining_walltime','10')
           setparam('CarpetRegrid2::num_levels_1','3')
@@ -73,7 +73,7 @@ jobs:
           for axis in 'xyz': setparam('CoordBase::'+axis+'max','48.0')
           assert float(os.environ['DX'])/4==float(os.environ['FINEST'])
           # Initial and sparse later 3D snapshots support independent AMR mass and angular-momentum integrals.
-          s+='\nCarpetIOHDF5::out3D_every = 4096\nCarpetIOHDF5::out3D_vars = "GRHydro::dens ADMBase::metric ADMBase::curv ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::press HydroBase::eps HydroBase::vel"\n'
+          s+='\nCarpetIOHDF5::out3D_every = 16384\nCarpetIOHDF5::out3D_vars = "GRHydro::dens ADMBase::metric ADMBase::curv ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::press HydroBase::eps HydroBase::vel"\n'
           s,n=re.subn(r'(IOASCII::out1D_vars\s*=\s*"[^\"]*?ADMBase::lapse)',r'\1\n ADMBase::shift',s,flags=re.S); assert n==1
           # Rigid rotation breaks x/y mirror symmetry. Keep equatorial z symmetry only.
           for axis in 'xy':
@@ -713,6 +713,11 @@ jobs:
           np.savetxt(d/'angular_speed_proxy.asc',np.column_stack((times,omega)),header='geometric_time coordinate_angular_speed_at_x3')
           result['bracket_success_rows']=sum('J0740_BRACKET_OK ' in line for line in log.splitlines())
           result['bracket_failure_rows']=sum('J0740_BRACKET_FAILED ' in line for line in log.splitlines())
+          ref={'run':45903219046,'time':24.5625,'dx':.75,'hamiltonian':9.6882409895004e-5,'momentum':[3.86361619701221e-6,3.86361619596847e-6,3.18357701346206e-6],'rho_initial':.001450055080819,'rho_final':.00142911620659277}
+          result['matched_15deg_reference']=ref
+          result['matched_final_time']=all(abs(v['final'][1]-ref['time'])<1e-12 for key in ('hamiltonian','momentum','density') for v in result[key])
+          if result['matched_final_time']:
+              result['matched_15deg_scalar_ratios']={'hamiltonian':result['hamiltonian'][0]['final'][2]/ref['hamiltonian'],'momentum':[v/r for v,r in zip(result['momentum'][0]['final'][2:],ref['momentum'])],'density_drift_ratio':abs(result['density'][0]['final'][2]/result['density'][0]['initial'][2]-1)/abs(ref['rho_final']/ref['rho_initial']-1),'scope':'native scalar reductions at matched domain and time; not independent volume-integrated convergence'}
           result['physical_stability_certified']=False
           result['diagnostic_scope']='extended observation only; no acceptance without matched-domain convergence, AMR volume integrals and tracked rotation'
           (d/'independent.json').write_text(json.dumps(result,indent=2))
@@ -764,6 +769,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-rotation-stages-15deg
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-fine-rotation-stages-15deg
           path: evidence/
           if-no-files-found: error
