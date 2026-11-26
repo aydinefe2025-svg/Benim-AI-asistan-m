@@ -1,4 +1,4 @@
-name: J0740 F171 quadratic ghost transfer
+name: J0740 F171 quadratic boundary damping isolation
 on:
   pull_request:
     branches: [main]
@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         n: [64]
-        kappa: ['4.0']
+        kappa: ['1.0', '2.0']
         relaxation: ['1.0']
     env:
       J0740_N: ${{ matrix.n }}
@@ -1166,7 +1166,7 @@ jobs:
           print('GEOMETRY_OPERATOR_TRACE',json.dumps(report))
           # The fixed archived red control, not a candidate-specific equality requirement.
           control=dict(run=45791294314,kappa1=0.02,M0=2.0252526710566045e-6,Mfinal=0.00010250806464990059,Hfinal=0.0026725120051595244)
-          kappa=float(os.environ['J0740_KAPPA']); assert kappa in (1.0,4.0)
+          kappa=float(os.environ['J0740_KAPPA']); assert kappa in (1.0,2.0,4.0)
           result['elliptic_correction']=json.loads((d/'elliptic_correction.json').read_text())
           result['actual_initial_Mb_relative']=float(mass[0]/2.4142703584211214-1)
           result['actual_initial_J_relative']=float(jz[0]/.6892530936503651-1)
@@ -1212,7 +1212,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-native-signed-lapse-defect-N${{ matrix.n }}
+          name: j0740-quadratic-ghost-N${{ matrix.n }}-kappa${{ matrix.kappa }}
           path: |
             evidence/*.log
             evidence/lapse-pilot/signed_*.txt
