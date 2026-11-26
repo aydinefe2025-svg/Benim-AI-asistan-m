@@ -265,6 +265,23 @@ jobs:
           assert s.count('Hydro_RNSID::eos_file = "/evidence/model.rns"')==1
           par.write_text(s.replace('Hydro_RNSID::eos_file = "/evidence/model.rns"','Hydro_RNSID::eos_file = "/evidence/model_rnsid_crust.rns"'))
           PY
+      - name: Enable documented bracketed C2P fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp evidence/control.par evidence/control_before_c2p.par
+          python3 - <<'PY'
+          import pathlib,re
+          p=pathlib.Path('evidence/control.par')
+          s=p.read_text()
+          key='GRHydro::c2p_resort_to_bisection'
+          pattern=r'^\s*'+re.escape(key)+r'\s*=.*$'
+          s,n=re.subn(pattern,key+' = "yes"',s,flags=re.M|re.I)
+          assert n<=1
+          if not n: s+='\n'+key+' = "yes"\n'
+          p.write_text(s)
+          assert len(re.findall(pattern,s,flags=re.M|re.I))==1
+          PY
       - name: Execute actual independent BSSN and GRHydro evolution
         shell: bash
         run: |
@@ -295,6 +312,7 @@ jobs:
           cd /evidence
           "$exe" /evidence/control.par 2>&1 | tee native.log
           if grep -Eq 'NaN/Inf value\(s\) found|scheduling graceful termination of Cactus' native.log; then exit 5; fi
+          if grep -Eq 'count > GRHydro_countmax|Setting the point to atmosphere|Could not solve quadratic equation' native.log; then exit 7; fi
           SH
           docker run --rm --user 0:0 --entrypoint /bin/bash -v "$PWD/evidence:/evidence" "$(cat evidence/image-digest.txt)" /evidence/execute.sh
       - name: Validate raw independent constraint histories
