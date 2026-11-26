@@ -83,6 +83,13 @@ def lag_feasible(v,i,p,tolerance=1099):
     if p<0 or p!=round(p) or hi<80000:return False
     return magnitude_gap(lo,hi,p)<=tolerance
 
+def eligible_history(rows,j,lag=2):
+    if lag<1 or j<lag:return False
+    segment=rows[j-lag:j+1]
+    return (all(q.device=='COM4' and math.isfinite(q.t) for q in segment)
+            and all(b.line==a.line+1 and b.t>a.t for a,b in zip(segment,segment[1:]))
+            and 0<segment[-1].t-segment[0].t<=4)
+
 def fixed_lag_control(rows, lag=2):
     # Compare on identical eligible rows; fixed lag never chosen by each target's residual.
     # The two earlier original lines must exist and be in the same device segment.
@@ -92,7 +99,7 @@ def fixed_lag_control(rows, lag=2):
         if r.device!='COM4':continue
         key='positive' if r.p!=0 else ('flagged_zero' if abs(r.v*r.i)>=1 else 'other_zero')
         g=groups[key];g['total']+=1
-        if j<lag or rows[j-lag].line!=r.line-lag or not all(q.device=='COM4' for q in rows[j-lag:j+1]) or not 0<r.t-rows[j-lag].t<=4:
+        if not eligible_history(rows,j,lag):
             g['not_eligible']+=1;continue
         q=rows[j-lag];g['eligible']+=1
         baseline=lag_feasible(r.v,r.i,r.p)
@@ -120,7 +127,7 @@ def conditional_lag_control(rows):
         if r.device!='COM4':continue
         key='positive' if r.p!=0 else ('flagged_zero' if abs(r.v*r.i)>=1 else 'other_zero')
         g=groups[key];g['total']+=1
-        if j<2 or rows[j-2].line!=r.line-2 or not all(q.device=='COM4' for q in rows[j-2:j+1]) or not 0<r.t-rows[j-2].t<=4:
+        if not eligible_history(rows,j):
             g['not_eligible']+=1;continue
         q=rows[j-2];g['eligible']+=1
         selected=select_lag(r.v,r.i,q.v,q.i)
@@ -217,7 +224,11 @@ def selftest():
     assert not select_lag(3.62,112.6,3.62,112.6)
     cc=conditional_lag_control(rr)['groups']['positive']
     assert cc['triggered']==0 and cc['pass_to_fail']==0 and cc['fail_to_fail']==1
-    print('27 synthetic checks passed')
+    assert eligible_history(rr,2)
+    assert not eligible_history([rr[0],boundary.Row(2,3,'COM4',4.27,37.5,160),rr[2]],2)
+    assert not eligible_history([rr[0],boundary.Row(3,2,'COM4',4.27,37.5,160),rr[2]],2)
+    assert not eligible_history([rr[0],boundary.Row(2,2,'COM3',4.27,37.5,160),rr[2]],2)
+    print('31 synthetic checks passed')
 def main():
     selftest()
     if '--selftest' in sys.argv:return
@@ -237,7 +248,9 @@ def main():
     upper=min(c['extrema']['min_nonzero_upper']['numerator'] for c in cells.values())
     total=collections.Counter()
     for c in cells.values():total.update(c['counts'])
-    d={'goal_key':'graz-full-com4-threshold-identifiability-20261124','source_sha256':cert['original_zip_sha256'],'source_rows':rowcount,'flagged_identity_sha256':digest,'cells':cells,'all_counts':dict(total),'global_threshold_strict_lower':lower/4000,'global_threshold_conservative_upper':upper/4000,'global_any_threshold_possible_on_grid':lower<upper,'all_rows_grid_covered':not total['off_grid'],'rounding_assumption':'nearest 0.01 V and 0.1 I numeric; closed conservative intervals','model_incompatible_all':{m:sum(c['model_incompatible'][m] for c in cells.values()) for m in MODELS},'model_assumptions':'threshold fixed at 20; integer power quantization, conservative closed bounds; pre vs post clipping', 'holdout':holdout({k:v.pop('positive_gap_histogram') for k,v in cells.items()}),'positive_structural_infeasible_total':total['positive_structural_infeasible'],'holdout_scope':'post-hoc model chosen using same five cells, leave-one-cell-out tolerance fitting only; positive power magnitude, not independent physical calibration', 'exception_diagnostic_scope':'frozen previous cell03 train max 0.27475; +/-3 same-device neighboring rows within 4 seconds; feasibility only, no causal or predictive claim','fixed_lag_scope':'fixed two earlier consecutive original lines, same device throughout, elapsed <=4 s; compare baseline and lag on identical eligible rows, tolerance 0.27475 and threshold 20; post hoc negative control, no source rewrite','conditional_lag_scope':'post-hoc exploratory causal-input rule: I>=100 numeric, voltage rise 0 or .01, current difference <=.1, past product smaller; only historical/current V/I, no target P for selection; same frozen tolerance; union is ambiguity screening not predictive reconstruction; no independent cell data','physical_root_cause_proven':False,'physical_units_verified':False,'physical_production_release_allowed':False}
+    if total['COM4']!=569396 or total['nonzero']!=201868 or total['zero']!=367528 or total['off_grid'] or total['positive_structural_infeasible']:
+        raise ValueError('COM4 population or grid coverage changed')
+    d={'goal_key':'graz-full-com4-threshold-identifiability-20261124','source_sha256':cert['original_zip_sha256'],'source_rows':rowcount,'flagged_identity_sha256':digest,'cells':cells,'all_counts':dict(total),'global_threshold_strict_lower':lower/4000,'global_threshold_conservative_upper':upper/4000,'global_any_threshold_possible_on_grid':lower<upper,'all_rows_grid_covered':not total['off_grid'],'rounding_assumption':'nearest 0.01 V and 0.1 I numeric; closed conservative intervals','model_incompatible_all':{m:sum(c['model_incompatible'][m] for c in cells.values()) for m in MODELS},'model_assumptions':'threshold fixed at 20; integer power quantization, conservative closed bounds; pre vs post clipping', 'holdout':holdout({k:v.pop('positive_gap_histogram') for k,v in cells.items()}),'positive_structural_infeasible_total':total['positive_structural_infeasible'],'holdout_scope':'post-hoc model chosen using same five cells, leave-one-cell-out tolerance fitting only; positive power magnitude, not independent physical calibration', 'exception_diagnostic_scope':'frozen previous cell03 train max 0.27475; +/-3 same-device neighboring rows within 4 seconds; feasibility only, no causal or predictive claim','fixed_lag_scope':'fixed two earlier consecutive original lines, same device throughout, strictly increasing finite timestamps and consecutive lines, elapsed <=4 s; compare baseline and lag on identical eligible rows, tolerance 0.27475 and threshold 20; post hoc negative control, no source rewrite','conditional_lag_scope':'post-hoc exploratory causal-input rule: I>=100 numeric, voltage rise 0 or .01, current difference <=.1, past product smaller; only historical/current V/I, no target P for selection; same frozen tolerance; union is ambiguity screening not predictive reconstruction; no independent cell data','physical_root_cause_proven':False,'physical_units_verified':False,'physical_production_release_allowed':False}
     Path(sys.argv[1]).write_text(json.dumps(d,indent=2,sort_keys=True,allow_nan=False)+'\n')
     print(json.dumps(d,sort_keys=True))
 if __name__=='__main__':main()
