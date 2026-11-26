@@ -932,7 +932,7 @@ jobs:
               }
               if(capture) std::fprintf(stderr,"J0740_KO_REFERENCE %d %.17g\\n",n,norm);
             }'''
-          p.write_text('#include <cstdio>\\n#include <stdexcept>\\n'+s.replace(a,b))
+          p.write_text('#include <cstdio>'+chr(10)+'#include <stdexcept>'+chr(10)+s.replace(a,b))
           PY
           git diff -- src/z4c/z4c.hpp src/z4c/calculate_z4c_rhs.cpp > ../evidence/ko_equilibrium.patch
           python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
