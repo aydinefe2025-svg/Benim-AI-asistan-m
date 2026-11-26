@@ -1,0 +1,153 @@
+name: J0740 reference EOS import isolation
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-reference-eos-import.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  upstream-reference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [64]
+        variant: [density, pressure]
+    env:
+      N: ${{ matrix.n }}
+      VARIANT: ${{ matrix.variant }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: computationalrelativity/gr-athena
+          ref: f534ca0f6fa0d55b90df1686fa9abd476730bf3b
+          path: athena
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: computationalrelativity/RNSC
+          ref: 4bff105b52b2738f2d11fd2df8a458dce1e6b172
+          path: rnsc
+          persist-credentials: false
+      - name: Build instrumented upstream reference solvers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/run
+          sudo apt-get update -qq
+          sudo apt-get install -y libhdf5-dev libgsl-dev python3-numpy python3-h5py
+          make -C rnsc -j2 2>&1 | tee evidence/rnsc-build.log
+          cd athena
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/pgen/gr_rns.cpp')
+          s=p.read_text()
+          s='#include <cstdlib>\n#include <cmath>\n#include <cstdio>\n'+s
+          a='  Real pres_diff = 0.0;'
+          assert s.count(a)==1
+          s=s.replace(a,a+'''
+            Real core_error_before=0., core_error_after=0., core_rho_change=0.;
+            int core_count=0;
+            const char* variant=std::getenv("VARIANT");
+            const bool pressure_variant=variant && std::string(variant)=="pressure";
+          ''')
+          a='          Real pres_eos = ceos->GetPressure(rho[flat_ix]);'
+          assert s.count(a)==1
+          s=s.replace(a,a+'''
+                    // Diagnostic only: compare density-led import with pressure-led
+                    // inversion in the dense core of the Gamma=2, K=100 reference.
+                    // Exclude the surface/atmosphere where interpolation overshoots.
+                    if (rho[flat_ix] >= 1.e-5 && pres[flat_ix]>0.) {
+                      ++core_count;
+                      const Real oldrho=rho[flat_ix];
+                      const Real target=pres[flat_ix];
+                      core_error_before=std::max(core_error_before,std::abs(target/pres_eos-1.));
+                      if (pressure_variant) {
+                        rho[flat_ix]=std::sqrt(target/100.);
+                        pres_eos=ceos->GetPressure(rho[flat_ix]);
+                      }
+                      core_error_after=std::max(core_error_after,std::abs(target/pres_eos-1.));
+                      core_rho_change=std::max(core_rho_change,std::abs(rho[flat_ix]/oldrho-1.));
+                    }
+          ''')
+          a='  if (pres_diff > 1e-3)'
+          assert s.count(a)==1
+          s=s.replace(a,'''  if (core_count>0)
+              std::fprintf(stderr,"REFERENCE_EOS_CORE %d %.17g %.17g %.17g\\n",core_count,core_error_before,core_error_after,core_rho_change);
+          '''+a)
+          p.write_text(s)
+          PY
+          git diff -- src/pgen/gr_rns.cpp > ../evidence/import.patch
+          python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=idealgas --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
+          make -j2 2>&1 | tee ../evidence/build.log
+          test -x bin/athena
+          sha256sum bin/athena > ../evidence/binary.sha256
+      - name: Published equilibrium parameters and short native evolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          E="$GITHUB_WORKSPACE/evidence"
+          export OMP_NUM_THREADS=2 VARIANT
+          # Stable rotating reference configuration: DOI 10.1186/s40668-017-0022-0.
+          # RNSC defaults use Gamma=2, K=100; D4 is deliberately NOT used (unstable).
+          # This is a short diagnostic with GR-Athena++, not a reproduction of the published evolution method.
+          printf '%s\n' 'rns_verbose=2' 'rns_rhoc=1.28e-3' 'rns_axes_ratio=0.8' 'rns_SDIV=401' 'rns_MDIV=201' 'rns_save_2ddata=0' 'rns_rotation_type=uniform' 'atm_level_rho=1e-12' "outputdir=$E" > "$E/star.par"
+          cd athena
+          sed '/^<output1>/,$d' inputs/z4c/awa/z4c_AwA_gauge_wave_1s.inp > "$E/star.inp"
+          cat >> "$E/star.inp" <<'EOF'
+
+          <hydro>
+          gamma = 2.0
+          k_adi = 100.0
+          dfloor = 1e-12
+          tfloor = 1e-10
+          rsolver = hlle
+          <output1>
+          file_type = hst
+          dt = 0.1
+          data_format = %.18g
+          EOF
+          args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=rotating_reference time/tlim=2 time/integrator=rk3 time/cfl_number=0.1 mesh/nx1=$N mesh/nx2=$N mesh/nx3=$N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-24 mesh/x1max=24 mesh/x2min=-24 mesh/x2max=24 mesh/x3min=-24 mesh/x3max=24 mesh/ix1_bc=gr_sommerfeld mesh/ox1_bc=gr_sommerfeld mesh/ix2_bc=gr_sommerfeld mesh/ox2_bc=gr_sommerfeld mesh/ix3_bc=gr_sommerfeld mesh/ox3_bc=gr_sommerfeld mesh/num_threads=2 time/xorder=weno5z time/xorder_use_fb=true time/xorder_fb=lin_vl time/xorder_use_aux_s=false hydro/smooth_temperature=false z4c/r_max_con=100)
+          printf '%q ' ./bin/athena "${args[@]}" > "$E/command.txt"
+          ./bin/athena "${args[@]}" 2>&1 | tee "$E/native.log"
+          grep -q 'Terminating on time limit' "$E/native.log"
+          if grep -Eq 'Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT' "$E/native.log"; then exit 1; fi
+      - name: Report native constraint and matter histories
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 - <<'PY'
+          import pathlib, json, re, os, numpy as np
+          d=pathlib.Path('evidence')
+          f=next((d/'run').rglob('*.hst'))
+          names=re.findall(r'\[\d+\]=([^ ]+)',next(x for x in f.read_text().splitlines() if '[1]=time' in x))
+          a=np.loadtxt(f)
+          assert a.ndim==2 and len(names)==a.shape[1] and np.isfinite(a).all() and a[-1,0]>=1.99
+          stats={}
+          for i,name in enumerate(names):
+              x=a[:,i]
+              stats[name]=dict(initial=float(x[0]),final=float(x[-1]),minimum=float(x.min()),maximum=float(x.max()))
+          for k in ('H-norm2','M-norm2','mass','max_rho'):
+              assert k in stats,(k,names)
+          h,m=stats['H-norm2'],stats['M-norm2']
+          assert h['minimum']>=0 and m['minimum']>=0
+          mass,rho=stats['mass'],stats['max_rho']
+          assert mass['initial']>0 and rho['initial']>0
+          result=dict(scope='reference controlled core import experiment; not J0740 or long-time certification',doi='10.1186/s40668-017-0022-0',variant=os.environ['VARIANT'],N=int(os.environ['N']),time=float(a[-1,0]),stats=stats,momentum_non_growth=m['final']<=m['initial'],mass_max_relative_drift=float(np.max(abs(a[:,names.index('mass')]/mass['initial']-1))),density_max_relative_drift=float(np.max(abs(a[:,names.index('max_rho')]/rho['initial']-1))))
+          core=np.array([[float(v) for v in m.groups()] for m in re.finditer(r'REFERENCE_EOS_CORE (\d+) ([0-9.eE+\-]+) ([0-9.eE+\-]+) ([0-9.eE+\-]+)',(d/'native.log').read_text())])
+          assert core.ndim==2 and core.shape[1]==4 and np.isfinite(core).all()
+          result['core_import']=dict(points_including_ghosts=int(core[:,0].sum()),max_original_pressure_mismatch=float(core[:,1].max()),max_corrected_pressure_mismatch=float(core[:,2].max()),max_density_change=float(core[:,3].max()))
+          if os.environ['VARIANT']=='pressure':
+              assert core[:,2].max()<1e-10, 'pressure inversion failed EOS closure'
+          (d/'reference.json').write_text(json.dumps(result,indent=2))
+          print('REFERENCE_CONTROL',json.dumps(result))
+          # A diagnostic receipt does not relax the J0740 acceptance criteria.
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: reference-eos-import-${{ matrix.variant }}-N${{ matrix.n }}
+          path: evidence/
+          if-no-files-found: error
