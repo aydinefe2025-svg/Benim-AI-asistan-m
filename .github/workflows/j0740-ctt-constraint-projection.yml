@@ -76,12 +76,11 @@ jobs:
           (d/'star.par').write_text('\n'.join(['rns_verbose=2','rns_SDIV=401','rns_MDIV=201','rns_save_2ddata=0','rns_eos_type=tab','rns_eos_tab='+str(d/'model.rns'),'rns_rhoc='+str(rhoc),'rns_axes_ratio='+str(ratio),'rns_rotation_type=uniform','atm_level_rho=1e-12','outputdir='+str(d)]))
           (d/'target.json').write_text(json.dumps({'rhoc_geometric':rhoc,'axes_ratio':ratio,'target_mass_msun':ref['target_msun'],'target_spin_hz':ref['target_spin'],'scope':'independent RNSC reconstruction; not identical F178 fields; thermal/composition placeholders; compare target before acceptance'},indent=2))
           PY
-      - name: Project initial constraints and solve maximal lapse
+      - name: Write projected initial data solver part one
         shell: bash
         run: |
           set -euo pipefail
-          export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
-          /usr/bin/python3 - <<'PY'
+          cat > evidence/project_initial.py <<'PY'
           import io, zipfile, pathlib, json, hashlib, struct, os
           import numpy as np
           from scipy.interpolate import RectBivariateSpline, RegularGridInterpolator
@@ -395,6 +394,13 @@ jobs:
           receipt=dict(H0=H0,M0=M0,H1=H1,M1=Mdirect,conformal_H_trace=trace,gmres_info=int(info),momentum_step=best,psi_min=float(psi.min()),psi_max=float(psi.max()),scope='independent sixth-order ADM; native-radius-3 conformal chain-rule surrogate; finite-box zero correction; not exact native Z4c or stationary Euler solution')
           (d/'ctt_projection.json').write_text(json.dumps(receipt,indent=2));print('CTT_PROJECTION',json.dumps(receipt),flush=True)
           assert H1<.8*H0 and Mdirect<.8*M0,'independent constraint projection rejected; do not evolve'
+          PY
+      - name: Complete and run coupled initial gauge solver
+        shell: bash
+        run: |
+          set -euo pipefail
+          export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+          cat >> evidence/project_initial.py <<'PY'
           # On the projected maximal slice, solve the stationary trace-K
           # equation D^i D_i alpha = alpha*(K_ij K^ij + 4*pi*(E+S)).
           # Keep D,S_i, g,K and shift fixed; no evolution RHS subtraction.
@@ -439,6 +445,47 @@ jobs:
           assert flag_l==0 and al1<.1*al0 and np.isfinite(alpha1).all() and alpha1.min()>0
           assert np.max(abs(da))<.05,'lapse correction exceeds pilot trust region'
           alcoeff=spline_filter(da,order=3)
+          # Minimal-distortion stationary shift on the corrected geometry:
+          # div(L beta - 2 alpha K)=0, beta represented as a covector.
+          # Preserve projected g,K and densitized matter; solve only gauge.
+          beta0=f[...,1:4].copy()
+          beta_lower=np.einsum('...ij,...j->...i',gp,beta0)
+          def LWp(w):
+              Dw=np.stack([der(w,i)-np.einsum('...kj,...k->...j',Gp[..., :,i,:],w) for i in range(3)],axis=-2)
+              trace=np.einsum('...ij,...ij->...',gip,Dw)
+              return Dw+np.swapaxes(Dw,-1,-2)-2*gp*trace[...,None,None]/3
+          Ktarget=2*alpha1[...,None,None]*Kp
+          mismatch=LWp(beta_lower)-Ktarget
+          residual=divA(mismatch,gip,Gp,Tp)
+          def tensor_norm(v):
+              return float(np.sqrt(np.sum(sq(v,gip)[sl])*hstep**3))
+          sh0=norm(residual); kin0=tensor_norm(mismatch)
+          assert sh0>0 and kin0>0 and np.isfinite([sh0,kin0]).all()
+          def shift_matvec(x):
+              return divA(LWp(extend(x.reshape(N,N,N,3))),gip,Gp,Tp)[sl].ravel()
+          op_s=LinearOperator((nvec,nvec),matvec=shift_matvec,dtype=float)
+          # Actual projected operator manufactured recovery; no fitted source.
+          known_s=np.zeros((N,N,N,3));known_s[...,0]=1e-5*test
+          known_s=known_s.ravel();src_s=op_s@known_s
+          chk_s,flag_s=solve_gmres(op_s,src_s,M=pre,restart=20,maxiter=16)
+          err_s=float(np.linalg.norm(chk_s-known_s)/np.linalg.norm(known_s))
+          assert flag_s==0 and err_s<.01
+          db,flag_b=solve_gmres(op_s,-residual[sl].ravel(),M=pre,restart=20,maxiter=16)
+          db=extend(db.reshape(N,N,N,3))
+          sh1=norm(residual+divA(LWp(db),gip,Gp,Tp))
+          assert flag_b==0 and sh1<.1*sh0
+          # Independently check the actual tensor residual before choosing step.
+          delta_L=LWp(db)
+          trials_b=[(tensor_norm(mismatch+a*delta_L),a) for a in (1.,.5,.25,.125)]
+          kin1,step_b=min(trials_b)
+          assert kin1<kin0,'no improvement of stationary metric evolution'
+          dbeta=step_b*np.einsum('...ij,...j->...i',gip,db)
+          shchosen=norm(residual+step_b*divA(delta_L,gip,Gp,Tp))
+          assert np.isfinite(dbeta).all() and np.max(abs(dbeta))<.05
+          shift_receipt=dict(gmres_info=int(flag_b),manufactured_relative_error=err_s,divergence_initial=sh0,divergence_full=sh1,divergence_chosen=shchosen,stationary_tensor_initial=kin0,stationary_tensor_corrected=kin1,step=step_b,max_abs_delta=float(np.max(abs(dbeta))),scope='independent minimal-distortion gauge candidate, not full stationary Einstein-Euler solution')
+          (d/'stationary_shift.json').write_text(json.dumps(shift_receipt,indent=2))
+          print('STATIONARY_SHIFT',json.dumps(shift_receipt),flush=True)
+          bcoeff=[spline_filter(dbeta[...,i],order=3) for i in range(3)]
           # Map correction to all half-grid points; reconstruct physical
           # cold primitives from unchanged densitized mass and momentum.
           coeff=spline_filter(psi-1,order=3)
@@ -450,6 +497,7 @@ jobs:
               q=np.array(grid[z]); gq=sym(q,4); Kq=sym(q,10)
               q[...,0]+=map_coordinates(alcoeff,coords,order=3,mode='constant',cval=0,prefilter=False)
               assert np.min(q[...,0])>0
+              for i in range(3):q[...,1+i]+=map_coordinates(bcoeff[i],coords,order=3,mode='constant',cval=0,prefilter=False)
               gqi=np.linalg.inv(gq); tr=np.einsum('...ij,...ij->...',gqi,Kq)
               Aq=Kq-gq*tr[...,None,None]/3
               for k,(i,j) in enumerate(idx):
@@ -468,6 +516,7 @@ jobs:
           grid.flush()
           (d/'ctt_grid.sha256').write_text(hashlib.file_digest(out.open('rb'),'sha256').hexdigest()+'\n')
           PY
+          /usr/bin/python3 evidence/project_initial.py
           cat evidence/target.json
           sha256sum evidence/model.rns evidence/cold.h5 evidence/star.par > evidence/inputs.sha256
       - name: Build pinned native solvers
