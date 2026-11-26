@@ -76,6 +76,11 @@ jobs:
           (d/'star.par').write_text('\n'.join(['rns_verbose=2','rns_SDIV=401','rns_MDIV=201','rns_save_2ddata=0','rns_eos_type=tab','rns_eos_tab='+str(d/'model.rns'),'rns_rhoc='+str(rhoc),'rns_axes_ratio='+str(ratio),'rns_rotation_type=uniform','atm_level_rho=1e-12','outputdir='+str(d)]))
           (d/'target.json').write_text(json.dumps({'rhoc_geometric':rhoc,'axes_ratio':ratio,'target_mass_msun':ref['target_msun'],'target_spin_hz':ref['target_spin'],'scope':'independent RNSC reconstruction; not identical F178 fields; thermal/composition placeholders; compare target before acceptance'},indent=2))
           PY
+      - name: Project initial constraints and solve maximal lapse
+        shell: bash
+        run: |
+          set -euo pipefail
+          export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
           /usr/bin/python3 - <<'PY'
           import io, zipfile, pathlib, json, hashlib, struct, os
           import numpy as np
@@ -411,15 +416,11 @@ jobs:
                   for j in range(i,3):
                       y+=(1 if i==j else 2)*gip[...,i,j]*d2(u,i,j)
               return y
-          # Linear correction with homogeneous outer correction, original
-          # asymptotically flat lapse outside the physical box.
           rhs_l=-lapse_op(alpha0)[sl]
           al0=norm(lapse_op(alpha0))
           assert np.isfinite(al0) and al0>0
           op_l=LinearOperator((N**3,N**3),matvec=lambda x:lapse_op(extend(x.reshape((N,)*3)))[sl].ravel(),dtype=float)
           pre_l=LinearOperator((N**3,N**3),matvec=lambda x:poisson(x.reshape((N,)*3)).ravel(),dtype=float)
-          # Manufactured nonzero correction on the actual projected operator.
-          # Test solver closure independently of the physical RHS.
           known=(1e-4*test).ravel()
           synthetic_rhs=op_l@known
           recovered,synthetic_flag=solve_gmres(op_l,synthetic_rhs,M=pre_l,restart=20,maxiter=16)
@@ -760,6 +761,11 @@ jobs:
           p.write_text(s)
           PY
           git diff -- src/z4c/matter_sources.cpp src/pgen/gr_rns.cpp > ../evidence/current_matter_source.patch
+      - name: Apply boundary corrections and compile native solver
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd athena
           # Test bounded quadratic face extrapolation of spacetime ghosts only.
           # Keep proven linear fill in tangential ghost/corner cells. Same native
           # radiative RHS, hydro boundary, initial projection and physical gates.
