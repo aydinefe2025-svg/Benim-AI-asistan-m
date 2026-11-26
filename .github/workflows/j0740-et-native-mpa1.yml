@@ -17,11 +17,17 @@ jobs:
         include:
           - dx: '0.75'
             trial: retarget
+            solver: HLLE
+            cfl: '0.25'
+          - dx: '0.75'
+            trial: retarget
             solver: HLLC
+            cfl: '0.125'
     env:
       DX: ${{ matrix.dx }}
       SOLVER: ${{ matrix.solver }}
       TRIAL: ${{ matrix.trial }}
+      CFL: ${{ matrix.cfl }}
     steps:
       - name: Obtain official independent solver and pinned tutorial initial data
         env:
@@ -56,6 +62,7 @@ jobs:
               assert n==1,(key,n)
           setparam('Cactus::cctk_final_time','2.0')
           for axis in 'xyz': setparam('CoordBase::d'+axis,os.environ['DX'])
+          setparam('time::dtfac',os.environ['CFL'])
           setparam('IO::out_dir','"/evidence/run"')
           setparam('IOScalar::outScalar_every','1')
           setparam('IOBasic::outInfo_every','1')
@@ -570,6 +577,7 @@ jobs:
               de.extend((e[m,-1]-ep).tolist());dp.extend((p[m,-1]/pc-1).tolist())
           result['cold_initial_check']=dict(samples=len(de),negative_thermal_count=int(np.count_nonzero(np.array(de)<-1e-12)),eps_max_absolute=float(np.max(np.abs(de))),pressure_max_relative=float(np.max(np.abs(dp))))
           result['cold_initial_match']=result['cold_initial_check']['eps_max_absolute']<1e-10 and result['cold_initial_check']['pressure_max_relative']<1e-8
+          result['cfl']=float(os.environ['CFL'])
           result['short_screen_pass']=result['source_match_gate'] and result['momentum_component_non_growth'] and result['atmosphere_match'] and result['cold_initial_match']
           (d/'independent.json').write_text(json.dumps(result,indent=2))
           print('NATIVE_MPA1_RESULT',json.dumps(result))
@@ -578,6 +586,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere-cold-projection
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere-cold-projection-cfl-${{ matrix.cfl }}
           path: evidence/
           if-no-files-found: error
