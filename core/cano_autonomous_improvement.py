@@ -133,10 +133,12 @@ def run_bounded_improvement_cycle(
     *,
     client,
     model: str,
+    holdout_cases_json: str | None = None,
+    holdout_dataset_ref: str | None = None,
 ) -> dict:
     """Run one reviewed task, derive one lesson, compare it, and save a pending candidate.
 
-    Max provider calls: 4 review/candidate calls plus 20 benchmark calls.
+    Max provider calls: 4 review/candidate calls plus up to 40 benchmark calls.
     """
     cases = parse_memory_benchmark_cases(cases_json, max_cases=5)
     if len(cases) != 5:
@@ -146,13 +148,28 @@ def run_bounded_improvement_cycle(
     _reject_obvious_sensitive_text(task)
     if not isinstance(dataset_ref, str) or not dataset_ref.strip() or len(dataset_ref) > 120:
         raise ValueError("Benchmark label/version is required")
+    holdout = None
+    held = None
+    if holdout_cases_json is not None or holdout_dataset_ref is not None:
+        if (not isinstance(holdout_dataset_ref, str) or not holdout_dataset_ref.strip()
+                or len(holdout_dataset_ref) > 120 or holdout_dataset_ref.strip() == dataset_ref.strip()):
+            raise ValueError("Distinct holdout dataset label required")
+        holdout = parse_memory_benchmark_cases(holdout_cases_json, max_cases=5)
+        if len(holdout) != 5:
+            raise ValueError("Five holdout cases required")
+        normalized = lambda suite: {" ".join(c.prompt.split()).casefold() for c in suite}
+        if normalized(cases) & normalized(holdout):
+            raise ValueError("Holdout prompts overlap primary suite")
+    for case in (*cases, *(holdout or ())):
+        _reject_obvious_sensitive_text(case.prompt + "\n" + case.expected)
+    call_cap = 44 if holdout is not None else 24
     try:
         review = AgentReviewLoop(colony).execute(
             author_id, reviewer_id, task, client=client, model=model)
     except Exception as exc:
         return {
             "status": "blocked", "review_id": None, "lesson": None,
-            "feedback_id": None, "benchmark": None, "provider_calls_max": 24,
+            "feedback_id": None, "benchmark": None, "provider_calls_max": call_cap,
             "model_weights_updated": False, "candidate_activated": False,
             "failure_category": failure_category(exc),
             "failure_type": _safe_failure_type(exc), "failure_stage": "review",
@@ -163,6 +180,11 @@ def run_bounded_improvement_cycle(
             colony, author_id, lesson, cases, client=client, model=model,
             dataset_ref=dataset_ref,
         )
+        if measured["eligible"] and holdout is not None:
+            held = evaluate_lesson_candidate(
+                colony, author_id, lesson, holdout, client=client, model=model,
+                dataset_ref=holdout_dataset_ref,
+            )
     except Exception as exc:
         # Keep the completed review durable, but never expose provider exception
         # text or save an untested candidate lesson.
@@ -172,7 +194,7 @@ def run_bounded_improvement_cycle(
             "lesson": None,
             "feedback_id": None,
             "benchmark": None,
-            "provider_calls_max": 24,
+            "provider_calls_max": call_cap,
             "model_weights_updated": False,
             "candidate_activated": False,
             "failure_category": failure_category(exc),
@@ -180,11 +202,14 @@ def run_bounded_improvement_cycle(
             "failure_stage": "candidate_or_benchmark",
         }
     feedback_id = None
-    if measured["eligible"]:
+    if measured["eligible"] and held is not None and held["eligible"]:
         evidence = (
             f"benchmark_sha256={measured['benchmark_sha256']}; "
             f"candidate={measured['candidate'].passed}/{measured['candidate'].total}; "
             f"baseline={measured['baseline'].passed}/{measured['baseline'].total}; "
+            f"holdout_sha256={held['benchmark_sha256']}; "
+            f"holdout_candidate={held['candidate'].passed}/{held['candidate'].total}; "
+            f"holdout_baseline={held['baseline'].passed}/{held['baseline'].total}; "
             f"regressions=0; model={model}; review={review['id']}"
         )
         try:
@@ -199,7 +224,7 @@ def run_bounded_improvement_cycle(
                 "lesson": None,
                 "feedback_id": None,
                 "benchmark": None,
-                "provider_calls_max": 24,
+                "provider_calls_max": call_cap,
                 "model_weights_updated": False,
                 "candidate_activated": False,
                 "failure_category": "storage",
@@ -207,7 +232,9 @@ def run_bounded_improvement_cycle(
                 "failure_stage": "proposal_save",
             }
     safe_result = {
-        "status": "review_pending" if feedback_id else "not_improved",
+        "status": ("review_pending" if feedback_id else
+                   "holdout_required" if measured["eligible"] and holdout is None else
+                   "not_improved"),
         "review_id": review["id"],
         "lesson": lesson,
         "feedback_id": feedback_id,
@@ -222,8 +249,18 @@ def run_bounded_improvement_cycle(
             "reproducible": measured["reproducible"],
             "sha256": measured["benchmark_sha256"],
         },
-        "provider_calls_max": 24,
+        "provider_calls_max": call_cap,
         "model_weights_updated": False,
         "candidate_activated": False,
     }
+    safe_result["holdout_benchmark"] = ({
+        "dataset_ref": holdout_dataset_ref.strip(),
+        "baseline_passed": held["baseline"].passed,
+        "candidate_passed": held["candidate"].passed,
+        "total_cases": held["baseline"].total,
+        "delta": held["delta"],
+        "regressed_case_ids": held["regressed_case_ids"],
+        "reproducible": held["reproducible"],
+        "sha256": held["benchmark_sha256"],
+    } if held is not None else None)
     return safe_result
