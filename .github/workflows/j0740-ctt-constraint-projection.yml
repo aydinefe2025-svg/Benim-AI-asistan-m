@@ -1,0 +1,987 @@
+name: J0740 CTT initial constraint projection
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-ctt-constraint-projection.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  native-fluid:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [64]
+    env:
+      J0740_N: ${{ matrix.n }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: computationalrelativity/gr-athena
+          ref: f534ca0f6fa0d55b90df1686fa9abd476730bf3b
+          path: athena
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: computationalrelativity/RNSC
+          ref: 4bff105b52b2738f2d11fd2df8a458dce1e6b172
+          path: rnsc
+          persist-credentials: false
+      - name: Fetch and verify exact F171 source, prepare native input
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/run
+          sudo apt-get update -qq
+          sudo apt-get install -y libhdf5-dev libgsl-dev python3-numpy python3-h5py python3-scipy gdb
+          gh api repos/${{ github.repository }}/actions/artifacts/15038164239/zip > evidence/F171.zip
+          echo 'a7770d2fb40bea0a50d2c2f7f7c60fce1ad755d53b9ccd8648c3b036dfbba77c  evidence/F171.zip' | sha256sum -c -
+          /usr/bin/python3 - <<'PY'
+          import hashlib, json, pathlib, zipfile, io, math
+          import numpy as np
+          import h5py
+          d=pathlib.Path('evidence').resolve()
+          with zipfile.ZipFile(d/'F171.zip') as z:
+              assert z.testzip() is None
+              b=z.read('model.rns')
+              assert hashlib.sha256(b).hexdigest()=='bd9cda6359f4e68d4de3a27b3a0e80bd830d0fb3936f91dfea59517e403c090d'
+              (d/'model.rns').write_bytes(b)
+              ref=json.loads(z.read('reference.json'))
+              row=np.fromstring(z.read('fields.txt').splitlines()[1],sep=' ')
+          C=2.99792458e10; MB=1.66e-24; MEV=1.6021766208e-6
+          G=6.67408e-8; MS=1.98848e33; L=G*MS/C**2
+          a=np.loadtxt(io.BytesIO(b),skiprows=1)
+          E,P,H,n=a[:,0]*C*C,a[:,1],a[:,2]/C**2,a[:,3]
+          slope=np.diff(E)/np.diff(P)
+          assert np.all(slope>=1-1e-10)
+          assert np.max(abs((E+P)*np.exp(-H)/(MB*C*C*n)-1))<1e-12
+          q=np.exp(np.linspace(np.log(n[0]*1e-6),np.log(n[-1]),1048577));q[-1]=n[-1]
+          i=np.clip(np.searchsorted(n,q,side='right')-1,0,len(slope)-1)
+          delta=(E[i]+P[i])/(1+slope[i])*np.expm1((1+slope[i])/slope[i]*np.log(q/n[i]))
+          p=P[i]+delta;e=E[i]+slope[i]*delta;cs2=1/slope[i]
+          low=q<n[0];y=np.cbrt(q[low]/n[0]);aa=P[0]/E[0];t=y/(1+aa-aa*y)
+          p[low]=P[0]*t**4;e[low]=E[0]*t**3;cs2[low]=4*p[low]/(3*e[low])
+          nb=q*1e-39;en=e*1e-39/MEV;pn=p*1e-39/MEV;mb=MB*C*C/MEV
+          with h5py.File(d/'cold.h5','w') as f:
+              for name,v in {'nb':nb,'mn':np.array([mb]),'Q1':pn/nb,'Q2':np.zeros_like(nb),'Q3':(en+pn)/(nb*mb)-1,'Q4':np.zeros_like(nb),'Q5':np.zeros_like(nb),'Q7':en/(nb*mb)-1,'cs2':cs2}.items():f.create_dataset(name,data=v)
+          rhoc=(row[6]+row[7])*math.exp(-row[8])*1e15*L**3/MS
+          ratio=ref['retarget_ratio']
+          assert 0.001<rhoc<0.002 and 0.95<ratio<1
+          (d/'star.par').write_text('\n'.join(['rns_verbose=2','rns_SDIV=401','rns_MDIV=201','rns_save_2ddata=0','rns_eos_type=tab','rns_eos_tab='+str(d/'model.rns'),'rns_rhoc='+str(rhoc),'rns_axes_ratio='+str(ratio),'rns_rotation_type=uniform','atm_level_rho=1e-12','outputdir='+str(d)]))
+          (d/'target.json').write_text(json.dumps({'rhoc_geometric':rhoc,'axes_ratio':ratio,'target_mass_msun':ref['target_msun'],'target_spin_hz':ref['target_spin'],'scope':'independent RNSC reconstruction; not identical F178 fields; thermal/composition placeholders; compare target before acceptance'},indent=2))
+          PY
+          /usr/bin/python3 - <<'PY'
+          import io, zipfile, pathlib, json, hashlib, struct, os
+          import numpy as np
+          from scipy.interpolate import RectBivariateSpline, RegularGridInterpolator
+          from numpy.polynomial.legendre import leggauss
+          d=pathlib.Path('evidence').resolve()
+          C=2.99792458e10; G=6.67408e-8; MS=1.98848e33; L=G*MS/C**2
+          F=np.sqrt(1e-15*C*C/6.673e-8)/L; RCONV=1e15*L**3/MS
+          with zipfile.ZipFile(d/'F171.zip') as z:
+              b=z.read('fields.txt')
+              hdr=np.fromstring(b.splitlines()[0].decode()[2:],sep=' ')
+              ns,nu=map(int,hdr[:2]); re,Omega=hdr[2:4]
+              a=np.loadtxt(io.BytesIO(b)).reshape(ns,nu,10)
+          sg,ug=a[:,0,0],a[0,:,1]
+          sp=[RectBivariateSpline(sg,ug,a[:,:,i]) for i in range(2,6)]
+          pp=RegularGridInterpolator((sg,ug),a[:,:,7],bounds_error=True)
+          tab=np.loadtxt(d/'model.rns',skiprows=1)
+          et=tab[:,0]/1e15; pt=tab[:,1]/(1e15*C*C); ht=tab[:,2]/C**2
+          slope=np.diff(et)/np.diff(pt)
+          N=int(os.environ['J0740_N']); dx=24./N; x0=-24.-8*dx; n=2*N+17; xs=x0+dx*np.arange(n)
+          X,Y=np.meshgrid(xs,xs,indexing='xy')
+          out=d/'f171_grid.bin'
+          maximum=0.; minmetric=1e99
+          qnodes,qweights=leggauss(4)
+          closure_max=0.; energy_absdiff=0.; mass_sum=0.; J_sum=0.; energy_quad=0.
+          def cold(p):
+              j=np.clip(np.searchsorted(pt,p,side='right')-1,0,len(slope)-1)
+              dp=p-pt[j]; e=et[j]+slope[j]*dp
+              h=ht[j]+np.log1p((1+slope[j])*dp/(et[j]+pt[j]))/(1+slope[j])
+              m=p<pt[0];f=(p[m]/pt[0])**.25
+              e[m]=et[0]*f**3;h[m]=4*np.log1p(pt[0]/et[0]*f)
+              return e,h
+          # Enforce the native stationary rigid-rotation first integral at
+          # interpolation points rather than linearly interpolating pressure
+          # across the free surface. Constant from the original central data.
+          B=float(cold(np.array([a[0,0,7]]))[1][0]+(a[0,0,3]+a[0,0,4])/2)
+          def equilibrium_pressure(r,rc,gg,ro,ww):
+              p=np.zeros_like(r);m=r<=1.05*re*F
+              v2=np.exp(-2*ro[m])*((Omega-ww[m])/F*rc[m])**2
+              assert np.all((v2>=0)&(v2<1))
+              h=np.maximum(B-(gg[m]+ro[m])/2-.5*np.log1p(-v2),0)
+              j=np.clip(np.searchsorted(ht,h,side='right')-1,0,len(slope)-1)
+              pn=pt[j]+(et[j]+pt[j])*np.expm1((1+slope[j])*(h-ht[j]))/(1+slope[j])
+              low=h<ht[0];pn[low]=pt[0]*(np.expm1(h[low]/4)/(pt[0]/et[0]))**4
+              p[m]=np.maximum(pn,0)
+              return p
+          def quad_sample(pos):
+              xx,yy,zz=pos.T;rr=np.linalg.norm(pos,axis=-1);rc=np.hypot(xx,yy)
+              ss=rr/(rr+re*F);uu=np.abs(zz)/np.where(rr>0,rr,1)
+              al,gg,ro,ww=[v.ev(ss,uu) for v in sp]
+              ac=np.exp(2*al);bc=np.exp(gg-ro);N=np.exp((gg+ro)/2);sqrtg=ac*np.sqrt(bc)
+              p=equilibrium_pressure(rr,rc,gg,ro,ww);e,h=cold(p)
+              speed=(Omega-ww)/F/N
+              W=1/np.sqrt(1-np.where(p>0,bc*(speed*rc)**2,0))
+              phi=np.stack([-yy,xx,np.zeros_like(xx)],-1)
+              E=((e+p)*W**2-p)*RCONV
+              S=(e+p)[:,None]*W[:,None]**2*(bc*speed)[:,None]*phi*RCONV
+              D=(e+p)*np.exp(-h)*W*RCONV
+              return np.c_[sqrtg*E,sqrtg[:,None]*S,sqrtg*D]
+          def conservative_cold(Dg,Sg,gi):
+              p=np.zeros_like(Dg);e=p.copy();h=p.copy();W=np.ones_like(Dg)
+              m=Dg>0;D0=Dg[m]/RCONV
+              ratio=np.sqrt(np.maximum(np.einsum('...ij,...i,...j->...',gi[m],Sg[m],Sg[m]),0))/RCONV/D0
+              lo=np.full_like(D0,np.log(pt[0])-80.);hi=np.full_like(D0,np.log(pt[-1]))
+              for _ in range(58):
+                  mid=(lo+hi)/2;p0=np.exp(mid);e0,h0=cold(p0)
+                  W0=np.sqrt(1+(ratio*np.exp(-h0))**2)
+                  too=(e0+p0)*np.exp(-h0)*W0>D0
+                  hi=np.where(too,mid,hi);lo=np.where(too,lo,mid)
+              p[m]=np.exp((lo+hi)/2);e[m],h[m]=cold(p[m])
+              W[m]=np.sqrt(1+(ratio*np.exp(-h[m]))**2)
+              rho=(e+p)*np.exp(-h)*RCONV;E=((e+p)*W**2-p)*RCONV
+              err=float(np.max(abs(rho[m]*W[m]/Dg[m]-1),initial=0))
+              assert err<1e-10
+              vel=np.divide(np.einsum('...ij,...j->...i',gi,Sg),(E+p*RCONV)[:,None],out=np.zeros_like(Sg),where=(E+p*RCONV)[:,None]>0)
+              return rho,p*RCONV,e*RCONV,W,vel,E,err
+          with out.open('wb') as fp:
+              fp.write(struct.pack('<idd',n,x0,dx))
+              for zz in xs:
+                  Z=np.full_like(X,zz); r=np.sqrt(X*X+Y*Y+Z*Z); rc=np.hypot(X,Y)
+                  safe=np.where(r>0,r,1.); ss=r/(r+re*F); uu=np.abs(Z)/safe
+                  al,gg,rr,ww=[v.ev(ss,uu) for v in sp]
+                  p=equilibrium_pressure(r,rc,gg,rr,ww)
+                  j=np.clip(np.searchsorted(pt,p,side='right')-1,0,len(slope)-1)
+                  dp=p-pt[j]; e=et[j]+slope[j]*dp
+                  low=p<pt[0]; h=np.empty_like(p)
+                  h[~low]=ht[j[~low]]+np.log1p((1+slope[j[~low]])*dp[~low]/(et[j[~low]]+pt[j[~low]]))/(1+slope[j[~low]])
+                  t=(p[low]/pt[0])**.25; e[low]=et[0]*t**3; h[low]=4*np.log1p(pt[0]/et[0]*t)
+                  ac=np.exp(2*al); bc=np.exp(gg-rr); lapse=np.exp((gg+rr)/2)
+                  phi=np.stack([-Y,X,np.zeros_like(X)],-1); ep=phi/np.where(rc>0,rc,1.)[...,None]
+                  g=ac[...,None,None]*np.eye(3)+(bc-ac)[...,None,None]*ep[..., :,None]*ep[...,None,:]
+                  radial=np.stack([X,Y,Z],-1)/safe[...,None]
+                  du=-uu[...,None]*radial/safe[...,None]; du[...,2]+=np.sign(Z)/safe
+                  dw=sp[3].ev(ss,uu,dx=1)[...,None]/F*(re*F/(r+re*F)**2)[...,None]*radial+sp[3].ev(ss,uu,dy=1)[...,None]/F*du
+                  pc=bc[...,None]*phi; K=-(pc[..., :,None]*dw[...,None,:]+dw[..., :,None]*pc[...,None,:])/(2*lapse[...,None,None])
+                  beta=-ww[...,None]/F*phi
+                  rho=(e+p)*np.exp(-h)*RCONV; mat=rho>1e-12
+                  v=(Omega-ww)[...,None]/F/lapse[...,None]*phi
+                  v2=np.einsum('...i,...ij,...j->...',v,g,v)
+                  maximum=max(maximum,float(np.max(v2[mat],initial=0)))
+                  minmetric=min(minmetric,float(np.min(np.linalg.eigvalsh(g))))
+                  assert np.all(v2[mat]<1)
+                  v[~mat]=0; W=1/np.sqrt(1-np.where(mat,v2,0))
+                  rho[~mat]=1e-12; p[~mat]=0
+                  # Replace pointwise matter by exact volume-averaged D and S_i,
+                  # then reconstruct the cold primitive at the local metric.
+                  # Geometry and K are left unchanged. 4^3 Gauss quadrature was
+                  # independently compared against 8^3 on the same actual fields.
+                  select=r<re*F+np.sqrt(3)*2*dx
+                  pos=np.stack([X,Y,Z],-1)[select]
+                  acc=np.zeros((len(pos),5))
+                  for iq,xq in enumerate(qnodes):
+                      for jq,yq in enumerate(qnodes):
+                          for kq,zq in enumerate(qnodes):
+                              acc+=qweights[iq]*qweights[jq]*qweights[kq]/8*quad_sample(pos+dx*np.array([xq,yq,zq]))
+                  sqrtg=(ac*np.sqrt(bc))[select];avg=acc/sqrtg[:,None]
+                  gi=np.linalg.inv(g[select])
+                  rh,pr,er,Wr,vr,EE,cl=conservative_cold(avg[:,4],avg[:,1:4],gi)
+                  closure_max=max(closure_max,cl)
+                  rho[select]=rh;p[select]=pr/RCONV;e[select]=er/RCONV
+                  v[select]=vr;W[select]=Wr
+                  # Cell-center points only, no duplicate half-grid quadrature.
+                  if round((zz+24)/dx)%2==1 and abs(zz)<24:
+                      mask=select & (abs(X)<24)&(abs(Y)<24)&(np.rint((X+24)/dx).astype(int)%2==1)&(np.rint((Y+24)/dx).astype(int)%2==1)
+                      take=mask[select]
+                      mass_sum+=float(acc[take,4].sum()*(2*dx)**3)
+                      J_sum+=float(np.sum(pos[take,0]*acc[take,2]-pos[take,1]*acc[take,1])*(2*dx)**3)
+                      energy_absdiff+=float(np.sum(abs(EE[take]*sqrtg[take]-acc[take,0]))*(2*dx)**3)
+                      energy_quad+=float(acc[take,0].sum()*(2*dx)**3)
+                  mat=rho>1e-12
+                  rho[~mat]=1e-12;p[~mat]=0;e[~mat]=0;v[~mat]=0;W[~mat]=1
+                  eps=np.where(mat,e*RCONV/rho-1,0)
+                  idx=((0,0),(0,1),(0,2),(1,1),(1,2),(2,2))
+                  vals=np.stack([lapse,*np.moveaxis(beta,-1,0),*[g[...,i,j] for i,j in idx],*[K[...,i,j] for i,j in idx],rho,eps,*np.moveaxis(v,-1,0),*np.moveaxis(v*W[...,None],-1,0),p*RCONV],-1)
+                  assert vals.shape[-1]==25 and np.isfinite(vals).all()
+                  vals.astype('<f8').tofile(fp)
+          assert minmetric>0 and closure_max<1e-10
+          assert abs(mass_sum/2.4142703584211214-1)<.002 and abs(J_sum/.6892530936503651-1)<.002
+          (d/'conservative_import.json').write_text(json.dumps(dict(Mb=mass_sum,Jz=J_sum,primitive_closure=closure_max,energy_L1_relative=energy_absdiff/energy_quad,quadrature_order=4,scope='cell-averaged D,S from equilibrium first integral; E reconstructed not independently conserved',bernoulli_constant=B),indent=2))
+          (d/'import.json').write_text(json.dumps({'source_fields_sha256':hashlib.sha256(b).hexdigest(),'grid_sha256':hashlib.file_digest(out.open('rb'),'sha256').hexdigest(),'points':n**3,'max_matter_v2':maximum,'min_metric_eigenvalue':minmetric,'scope':'F171 native stationary fields, explicit floor, cubic metric and linear pressure interpolation; no RNSC re-solve'},indent=2))
+          # York-Lichnerowicz CTT pilot; fixed densitized D and S_i.
+          # Four ghost cells, independent fourth-order Cartesian ADM residual.
+          from scipy.fft import dstn,idstn
+          from scipy.ndimage import map_coordinates,spline_filter
+          from scipy.sparse.linalg import LinearOperator,gmres
+          grid=np.memmap(out,dtype='<f8',mode='r+',offset=20,shape=(n,n,n,25))
+          zyx=(2,1,0); hstep=2*dx; N=int(os.environ['J0740_N'])
+          pad=4; sl=(slice(pad,-pad),)*3; shape=(N+2*pad,)*3
+          def der(f,i):
+              ax=zyx[i]
+              return (8*(np.roll(f,-1,ax)-np.roll(f,1,ax))-(np.roll(f,-2,ax)-np.roll(f,2,ax)))/(12*hstep)
+          def sym(f,offset):
+              g=np.empty(f.shape[:-1]+(3,3))
+              for k,(i,j) in enumerate(idx):g[...,i,j]=g[...,j,i]=f[...,offset+k]
+              return g
+          def geom(g):
+              gi=np.linalg.inv(g)
+              dg=[der(g,i) for i in range(3)]
+              Gm=np.empty(g.shape[:-2]+(3,3,3))
+              for i in range(3):
+                  for j in range(3):
+                      Gm[..., :,i,j]=.5*np.einsum('...kl,...l->...k',gi,np.stack([dg[i][...,j,l]+dg[j][...,i,l]-dg[l][...,i,j] for l in range(3)],axis=-1))
+              R=np.zeros(g.shape[:-2])
+              T=np.einsum('...kki->...i',Gm)
+              for i in range(3):
+                  for j in range(3):
+                      Rij=-der(T[...,i],j)
+                      for k in range(3):
+                          Rij+=der(Gm[...,k,i,j],k)+T[...,k]*Gm[...,k,i,j]
+                          for l in range(3):Rij-=Gm[...,k,j,l]*Gm[...,l,i,k]
+                      R+=gi[...,i,j]*Rij
+              return gi,Gm,T,R
+          def divA(A,gi,Gm,T):
+              mix=np.einsum('...jk,...ki->...ji',gi,A)
+              v=np.zeros(A.shape[:-1])
+              for i in range(3):
+                  for j in range(3):
+                      v[...,i]+=der(mix[...,j,i],j)+T[...,j]*mix[...,j,i]
+                      for k in range(3):v[...,i]-=Gm[...,k,j,i]*mix[...,j,k]
+              return v
+          def norm(x):
+              return float(np.sqrt(np.sum(x[sl]**2)*hstep**3))
+          def state(f,g):
+              gi=np.linalg.inv(g); sqrtg=np.sqrt(np.linalg.det(g));rho=f[...,16]; e=rho*(1+f[...,17]); p=f[...,24];v=f[...,18:21]
+              vl=np.einsum('...ij,...j->...i',g,v); v2=np.einsum('...i,...i->...',vl,v)
+              assert np.all(v2<1)
+              W=(1-v2)**-.5
+              Dg=sqrtg*rho*W
+              Sg=sqrtg[...,None]*(e+p)[...,None]*W[...,None]**2*vl
+              E=(e+p)*W**2-p
+              return Dg,Sg,E,sqrtg
+          f=np.array(grid[1:-1:2,1:-1:2,1:-1:2]); assert f.shape[:3]==shape
+          g=sym(f,4); K=sym(f,10); gi,Gm,T,R=geom(g)
+          Dg,Sg,E,sqrtg=state(f,g); S=Sg/sqrtg[...,None]
+          trK=np.einsum('...ij,...ij->...',gi,K)
+          assert norm(trK)<1e-8+1e-6*norm(K),'maximal slicing assumption not valid'
+          A=K-g*trK[...,None,None]/3
+          def sq(A,gi):
+              return np.einsum('...ij,...ik,...jl,...kl->...',A,gi,gi,A,optimize=True)
+          Hbase=R+trK**2-sq(K,gi)-16*np.pi*E
+          Mbase=divA(K,gi,Gm,T)-np.stack([der(trK,i) for i in range(3)],axis=-1)-8*np.pi*S
+          H0=norm(Hbase); M0=norm(Mbase)
+          assert H0>0 and M0>0 and np.isfinite([H0,M0]).all()
+          def extend(x):
+              return np.pad(x,[(pad,pad)]*3+[(0,0)]*(x.ndim-3))
+          k=np.arange(1,N+1); ev=-4*np.sin(np.pi*k/(2*(N+1)))**2/hstep**2
+          lam=ev[:,None,None]+ev[None,:,None]+ev[None,None,:]
+          def poisson(rhs):
+              return idstn(dstn(rhs,type=1,norm='ortho',axes=(0,1,2))/lam[(...,)+(None,)*(rhs.ndim-3)],type=1,norm='ortho',axes=(0,1,2))
+          # Manufactured inverse-Laplacian control; zero boundary correction.
+          t=np.sin(np.pi*k/(N+1)); test=t[:,None,None]*t[None,:,None]*t[None,None,:]
+          assert np.max(abs(poisson((3*ev[0])*test)-test))<1e-10
+          def LW(w):
+              Dw=np.stack([der(w,i)-np.einsum('...kj,...k->...j',Gm[..., :,i,:],w) for i in range(3)],axis=-2)
+              div=np.einsum('...ij,...ij->...',gi,Dw)
+              return Dw+np.swapaxes(Dw,-1,-2)-2*g*div[...,None,None]/3
+          # Solve the linear covariant momentum correction with a flat
+          # Dirichlet Laplace preconditioner, then assess the actual residual.
+          Rm=divA(A,gi,Gm,T)-8*np.pi*S
+          def matvec(x):
+              w=extend(x.reshape(N,N,N,3))
+              return divA(LW(w),gi,Gm,T)[sl].ravel()
+          nvec=3*N**3
+          op=LinearOperator((nvec,nvec),matvec=matvec,dtype=float)
+          pre=LinearOperator((nvec,nvec),matvec=lambda x:poisson(x.reshape(N,N,N,3)).ravel(),dtype=float)
+          w,info=gmres(op,-Rm[sl].ravel(),M=pre,rtol=1e-4,atol=0,restart=10,maxiter=8)
+          Wcorr=extend(w.reshape(N,N,N,3)); dA=LW(Wcorr)
+          best=min([0.,.25,.5,1.],key=lambda f: norm(Rm+f*divA(dA,gi,Gm,T)))
+          dA*=best; A1=A+dA; M1=norm(divA(A1,gi,Gm,T)-8*np.pi*S)
+          print('CTT_MOMENTUM',json.dumps(dict(gmres_info=int(info),alpha=best,M0=M0,M_projected=M1)),flush=True)
+          A2=sq(A1,gi)
+          mat=f[...,16]>1e-11
+          def matter(psi):
+              gnew=g*psi[...,None,None]**4
+              fac=psi**6*sqrtg
+              En=np.full(shape,1e-12)
+              if np.any(mat):
+                  _,_,_,_,_,energy,_=conservative_cold(Dg[mat]/fac[mat],Sg[mat]/fac[mat,None],gi[mat]/psi[mat,None,None]**4)
+                  En[mat]=energy
+              return En
+          def lap(u):
+              du=np.stack([der(u,i) for i in range(3)],axis=-1)
+              dd=np.stack([der(du,i) for i in range(3)],axis=-2)
+              return np.einsum('...ij,...ij->...',gi,dd-np.einsum('...kij,...k->...ij',Gm,du))
+          def ham(psi):
+              return R/psi**4-8*lap(psi)/psi**5-A2/psi**12-16*np.pi*matter(psi)
+          psi=np.ones(shape); trace=[norm(ham(psi))]
+          for it in range(20):
+              H=ham(psi); delta=extend(poisson((H*psi**5/8)[sl]))
+              trials=[]
+              for step in (1.,.5,.25,.125,.0625):
+                  pp=psi+step*delta
+                  if np.min(pp)>.9 and np.max(pp)<1.1:trials.append((norm(ham(pp)),pp))
+              if not trials:break
+              val,pp=min(trials,key=lambda v:v[0])
+              if val>=trace[-1]*(1-1e-6):break
+              psi=pp;trace.append(val)
+              if val<.1*H0:break
+          # Independent direct ADM residual, not the conformal equation.
+          gp=g*psi[...,None,None]**4; Kp=A1/psi[...,None,None]**2
+          gip,Gp,Tp,Rp=geom(gp); Ep=matter(psi)
+          Hp=Rp-sq(Kp,gip)-16*np.pi*Ep
+          Mp=divA(Kp,gip,Gp,Tp)-8*np.pi*S/psi[...,None]**6
+          H1=norm(Hp); Mdirect=norm(Mp)
+          receipt=dict(H0=H0,M0=M0,H1=H1,M1=Mdirect,conformal_H_trace=trace,gmres_info=int(info),momentum_step=best,psi_min=float(psi.min()),psi_max=float(psi.max()),scope='independent fourth-order ADM; finite-box zero correction; not exact native Z4c or stationary Euler solution')
+          (d/'ctt_projection.json').write_text(json.dumps(receipt,indent=2));print('CTT_PROJECTION',json.dumps(receipt),flush=True)
+          assert H1<.8*H0 and Mdirect<.8*M0,'independent constraint projection rejected; do not evolve'
+          # Map correction to all half-grid points; reconstruct physical
+          # cold primitives from unchanged densitized mass and momentum.
+          coeff=spline_filter(psi-1,order=3)
+          acorr=[spline_filter(dA[...,i,j],order=3) for i,j in idx]
+          xy=(np.arange(n)-1)/2; yy,xx=np.meshgrid(xy,xy,indexing='ij')
+          for z in range(n):
+              coords=[np.full_like(xx,xy[z]),yy,xx]
+              u=1+map_coordinates(coeff,coords,order=3,mode='constant',cval=0,prefilter=False)
+              q=np.array(grid[z]); gq=sym(q,4); Kq=sym(q,10)
+              gqi=np.linalg.inv(gq); tr=np.einsum('...ij,...ij->...',gqi,Kq)
+              Aq=Kq-gq*tr[...,None,None]/3
+              for k,(i,j) in enumerate(idx):
+                  v=map_coordinates(acorr[k],coords,order=3,mode='constant',cval=0,prefilter=False)
+                  Aq[...,i,j]+=v
+                  if i!=j:Aq[...,j,i]+=v
+              Dq,Sq,_,_=state(q,gq)
+              gn=gq*u[...,None,None]**4; Kn=Aq/u[...,None,None]**2
+              sgnew=np.sqrt(np.linalg.det(gn)); m=q[...,16]>1e-11
+              if np.any(m):
+                  rh,pr,er,ww,vv,EE,cl=conservative_cold(Dq[m]/sgnew[m],Sq[m]/sgnew[m,None],np.linalg.inv(gn[m]))
+                  q[...,16][m]=rh;q[...,17][m]=er/rh-1;q[...,18:21][m]=vv;q[...,21:24][m]=vv*ww[:,None];q[...,24][m]=pr
+              for k,(i,j) in enumerate(idx):q[...,4+k]=gn[...,i,j];q[...,10+k]=Kn[...,i,j]
+              assert np.isfinite(q).all()
+              grid[z]=q
+          grid.flush()
+          (d/'ctt_grid.sha256').write_text(hashlib.file_digest(out.open('rb'),'sha256').hexdigest()+'\n')
+          PY
+          cat evidence/target.json
+          sha256sum evidence/model.rns evidence/cold.h5 evidence/star.par > evidence/inputs.sha256
+      - name: Build pinned native solvers
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C rnsc rev-parse HEAD | tee evidence/rnsc_commit.txt
+          git -C athena rev-parse HEAD | tee evidence/athena_commit.txt
+          make -C rnsc -j2 2>&1 | tee evidence/rnsc_build.log
+          cd athena
+          # Pinned upstream is missing its declared cold hybrid policy. Add only the adapter.
+          cat > src/z4c/primitive/cold_hybrid_table.hpp <<'CPP'
+          #ifndef J0740_COLD_HYBRID_TABLE_HPP
+          #define J0740_COLD_HYBRID_TABLE_HPP
+          #include <algorithm>
+          #include <cmath>
+          #include <stdexcept>
+          #include "hybrid_table.hpp"
+          #include "unit_system.hpp"
+          namespace Primitive {
+          // Compatibility adapter: delegate all cold thermodynamics to the native
+          // HybridTable at T=0. No changes to the native evolution equations.
+          class ColdHybridTable : public HybridTable {
+           protected:
+            Real T = 0;
+            ColdHybridTable() = default;
+            ~ColdHybridTable() = default;
+            Real Pressure(Real n) { return HybridTable::Pressure(n,0,nullptr); }
+            Real Energy(Real n) { return HybridTable::Energy(n,0,nullptr); }
+            Real Enthalpy(Real n) { return HybridTable::Enthalpy(n,0,nullptr); }
+            Real SpecificInternalEnergy(Real n) {
+              return HybridTable::SpecificInternalEnergy(n,0,nullptr);
+            }
+            Real Y(Real, int) { throw std::logic_error("No composition in cold MPA1 table"); }
+            int Count() {
+              const auto x=GetRawLogNumberDensity();
+              return 1+int(std::llround((std::log(max_n)-x[0])/(x[1]-x[0])));
+            }
+            Real dPdn(Real n) {
+              if (!(n>0)) throw std::domain_error("Nonpositive density");
+              const auto x=GetRawLogNumberDensity();
+              const auto p=GetRawTable();
+              const int count=Count();
+              const Real dx=x[1]-x[0];
+              const int i=std::max(0,std::min(count-2,int((std::log(n)-x[0])/dx)));
+              return Pressure(n)*(p[i+1]-p[i])/(dx*n);
+            }
+            Real Inverse(Real v,int column) {
+              if (!(v>0)) throw std::domain_error("Nonpositive inverse query");
+              const auto x=GetRawLogNumberDensity();
+              const int count=Count();
+              const auto y=GetRawTable()+column*count;
+              const Real lv=std::log(v);
+              const int i=std::max(0,std::min(count-2,int(std::upper_bound(y,y+count,lv)-y)-1));
+              if (!(y[i+1]>y[i])) throw std::domain_error("Nonmonotonic cold table");
+              return std::exp(x[i]+(x[i+1]-x[i])*(lv-y[i])/(y[i+1]-y[i]));
+            }
+            Real DensityFromPressure(Real p) { return Inverse(p,ECLOGP); }
+            Real DensityFromEnergy(Real e) { return Inverse(e,ECLOGE); }
+           public:
+            void ReadColdSliceFromFile(std::string file,std::string*) {
+              if (NSCALARS!=0) throw std::logic_error("Cold adapter requires NSCALARS=0");
+              ReadTableFromFile(file);
+              SetThermalGamma(1.75);
+              n_species=0;
+              if (Count()<2) throw std::runtime_error("Invalid table");
+              for (int i=0;i<64;++i) {
+                const Real n=std::exp(std::log(min_n)+(std::log(max_n)-std::log(min_n))*i/63.);
+                if (std::abs(DensityFromPressure(Pressure(n))/n-1)>1e-9 ||
+                    std::abs(DensityFromEnergy(Energy(n))/n-1)>1e-9)
+                  throw std::runtime_error("Cold table inverse mismatch");
+              }
+            }
+          };
+          }
+          #endif
+          CPP
+          printf '#include "cold_hybrid_table.hpp"\n' > src/z4c/primitive/cold_hybrid_table.cpp
+          cp src/z4c/primitive/cold_hybrid_table.hpp ../evidence/cold_adapter.hpp
+          sha256sum src/z4c/primitive/cold_hybrid_table.{hpp,cpp} > ../evidence/cold_adapter.sha256
+          # Native EOS exposes read-only table bounds. Reject nondefault scaling.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/eos/eostaudyn_ps_gr.cpp')
+          s=p.read_text()
+          for old,new in [
+              ('eos.SetMaximumDensity(eos.GetMaximumDensity() * n_max_factor);','if (n_max_factor != 1.0) throw std::runtime_error("Unsupported density bound scaling");'),
+              ('eos.SetMaximumTemperature(eos.GetMaximumTemperature() * T_max_factor);','if (T_max_factor != 1.0) throw std::runtime_error("Unsupported temperature bound scaling");')]:
+              assert s.count(old)==1
+              s=s.replace(old,new)
+          p.write_text('#include <stdexcept>\n'+s)
+          PY
+          git diff -- src/eos/eostaudyn_ps_gr.cpp > ../evidence/eos_bounds.patch
+          # Import the already validated F171 star, bypass failed native RNSC re-solve.
+          cat > src/pgen/j0740_f171_grid.hpp <<'CPP'
+          #include <fstream>
+          #include <iostream>
+          #include <vector>
+          #include <cmath>
+          #include <stdexcept>
+          #include <cstdlib>
+          namespace {
+          struct F171Grid {
+           int n=0; double x0=0,dx=0; std::vector<double> a;
+           F171Grid() {
+            const char* file=std::getenv("J0740_GRID");
+            if(!file) throw std::runtime_error("J0740_GRID missing");
+            std::ifstream f(file,std::ios::binary);
+            f.read(reinterpret_cast<char*>(&n),4);
+            f.read(reinterpret_cast<char*>(&x0),8);
+            f.read(reinterpret_cast<char*>(&dx),8);
+            const char* ns=std::getenv("J0740_N");
+            if(!ns) throw std::runtime_error("J0740_N missing");
+            const int N=std::stoi(ns);
+            if(n!=2*N+17 || std::abs(x0+24+8*dx)>1e-12 || std::abs(dx*N-24)>1e-12) throw std::runtime_error("Grid header mismatch");
+            a.resize(size_t(n)*n*n*25);
+            f.read(reinterpret_cast<char*>(a.data()),a.size()*sizeof(double));
+            if(!f || f.peek()!=EOF) throw std::runtime_error("Grid byte count mismatch");
+           }
+           int index(double x) const {
+            const int i=std::lround((x-x0)/dx);
+            if(i<0||i>=n||std::abs(x-(x0+i*dx))>1e-8)
+             { std::cerr << "F171 coordinate mismatch x=" << x << " nearest=" << x0+i*dx << std::endl; throw std::runtime_error("Grid coordinate mismatch"); }
+            return i;
+           }
+          };
+          void F171Interpolation(ini_data*, int*,int*,int* n,double*x,double*y,double*z,
+           double*a0,double*a1,double*a2,double*a3,
+           double*a4,double*a5,double*a6,double*a7,double*a8,double*a9,
+           double*a10,double*a11,double*a12,double*a13,double*a14,double*a15,
+           double*a16,double*a17,double*a18,double*a19,double*a20,
+           double*a21,double*a22,double*a23,double*a24) {
+           static const F171Grid grid;
+           double* out[]={a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24};
+           for(int k=0;k<n[2];++k) for(int j=0;j<n[1];++j) for(int i=0;i<n[0];++i){
+            size_t src=(size_t(grid.index(z[k]))*grid.n*grid.n+size_t(grid.index(y[j]))*grid.n+grid.index(x[i]))*25;
+            size_t dst=i+n[0]*(j+n[1]*k);
+            for(int q=0;q<25;++q) if(out[q])out[q][dst]=grid.a[src+q];
+           }
+          }
+          }
+          CPP
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/pgen/gr_rns.cpp')
+          s=p.read_text()
+          assert s.count('rns_data = RNS_make_initial_data();')==1
+          s=s.replace('rns_data = RNS_make_initial_data();','rns_data = new ini_data{};')
+          s=s.replace('RNS_finalise(rns_data);','delete rns_data;')
+          s=s.replace('RNS_Cartesian_interpolation(','F171Interpolation(')
+          s=s.replace('using namespace std;','#include "j0740_f171_grid.hpp"\nusing namespace std;')
+          s=s.replace('Real v_pert    = pin->GetOrAddReal("problem", "v_pert", 0);','Real v_pert    = pin->GetOrAddReal("problem", "v_pert", 0);\n  if (pres_pert || v_pert) throw std::runtime_error("Import pilot perturbations disabled");')
+          # bt_* integrators allocate stage arrays in the task list, not Z4c::storage.u1.
+          old='  pz4c->ADMToZ4c(pz4c->storage.adm, pz4c->storage.u1);'
+          assert s.count(old)==1
+          s=s.replace(old,'  if (pin->GetOrAddString("time", "integrator", "vl2").find("bt_") == std::string::npos) {\n'+old+'\n  }\n  std::cerr << "F171 ADM-to-Z4c completed" << std::endl;')
+          old='  for (int k = 0; k < mbi->nn3; ++k)'
+          assert s.count(old)==1
+          s=s.replace(old,'  std::cerr << "F171 ADM import returned" << std::endl;\n'+old)
+          old='  peos->PrimitiveToConserved(phydro->w,'
+          assert s.count(old)==1
+          s=s.replace(old,'  std::cerr << "F171 primitive import completed; entering P2C" << std::endl;\n'+old)
+          p.write_text(s)
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/pgen/gr_rns.cpp')
+          s=p.read_text()
+          a='  EnrollUserStandardHydro(pin);'
+          assert s.count(a)==1
+          s=s.replace(a,a+'''
+            EnrollUserHistoryOutput(
+              +[](MeshBlock* b,int) -> Real {
+                Real jz=0;
+                for(int k=b->ks;k<=b->ke;k++)for(int j=b->js;j<=b->je;j++)for(int i=b->is;i<=b->ie;i++){
+                  const Real x=b->pcoord->x1v(i),y=b->pcoord->x2v(j);
+                  jz+=(x*b->phydro->u(IM2,k,j,i)-y*b->phydro->u(IM1,k,j,i))*
+                    b->pcoord->dx1v(i)*b->pcoord->dx2v(j)*b->pcoord->dx3v(k);
+                }
+                return jz;
+              }, "J0740_Jz", UserHistoryOperation::sum);
+          ''')
+          p.write_text(s)
+          PY
+          git diff -- src/pgen/gr_rns.cpp > ../evidence/f171_import.patch
+          cp src/pgen/j0740_f171_grid.hpp ../evidence/
+          # HybridTable::Entropy is intentionally unimplemented upstream,
+          # but the GRHD derived-field calculation invokes it at T>0.
+          # The gamma-law thermal extension has ds=dT/[(gamma-1)T]-dn/n.
+          # Use an explicitly referenced classical thermal entropy diagnostic only.
+          python3 - <<'PY'
+          from pathlib import Path
+          import math
+          p=Path('src/z4c/primitive/hybrid_table.cpp')
+          s=p.read_text()
+          old='throw std::logic_error("HybridTable::Entropy not currently implemented.");'
+          assert s.count(old)==1
+          s=s.replace(old,'''if (!(n > 0 && T > 0 && std::isfinite(n) && std::isfinite(T)))
+              throw std::domain_error("Hybrid thermal entropy requires positive finite n,T");
+            // Reference n=1 fm^-3, T=1 MeV; dimensionless entropy/k_B.
+            return std::log(T)/gamma_th_m1 - std::log(n);''')
+          p.write_text(s)
+          # Adiabatic invariance and first-law finite-difference check.
+          g=1.75
+          def ent(n,t): return math.log(t)/(g-1)-math.log(n)
+          for n in [1e-12,1e-6,.1,1.]:
+              for t in [1e-12,1e-6,.01,1.]:
+                  for a in [.5,2.,10.]:
+                      assert abs(ent(a*n,t*a**(g-1))-ent(n,t))<1e-12
+          print("48 thermal-entropy adiabatic checks passed; diagnostic only")
+          PY
+          git diff -- src/z4c/primitive/hybrid_table.cpp > ../evidence/thermal_entropy.patch
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/eos/eos_utils.cpp')
+          s=p.read_text()
+          old='sqrt_det_gamma_(i) = sl_adm_sqrt_detgamma(k, j, i);'
+          assert s.count(old)==1
+          s=s.replace(old,'''const Real det_here = LinearAlgebra::Det3Metric(gamma_dd_, i);
+                if (!(std::isfinite(det_here) && det_here > 0.0)) {
+                  std::cerr << "INVALID_METRIC_DETERMINANT " << i << " " << j << " " << k << " " << det_here << std::endl;
+                  std::abort();
+                }
+                sqrt_det_gamma_(i) = std::sqrt(det_here);''')
+          start=s.index('#if defined(Z4C_CX_ENABLED) || defined(Z4C_CC_ENABLED)',s.index('void EquationOfState::GeometryToSlicedCC'))
+          end=s.index('#endif',start)
+          block=s[start:end+len('#endif')]
+          assert '#else' in block and 'Inv3Metric' in block
+          s=s[:start]+block.split('#else',1)[1].rsplit('#endif',1)[0]+s[end+len('#endif'):]
+          p.write_text('#include <cstdlib>\n'+s)
+          p=Path('src/eos/eostaudyn_ps_gr.cpp')
+          s=p.read_text()
+          old='// Push the densitized conserved variables to Athena.'
+          assert s.count(old)==1
+          s=s.replace(old,'if (!std::isfinite(cons_pt[IEN])) std::abort();\n  '+old)
+          p.write_text('#include <cstdlib>\n'+s)
+          PY
+          git diff -- src/eos/eos_utils.cpp src/eos/eostaudyn_ps_gr.cpp > ../evidence/metric_consistency.patch
+          # CC matter source: derive h and W from the current primitive/metric
+          # rather than cached derived_ms fields. Audit source closure separately.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/z4c/matter_sources.cpp')
+          s=p.read_text()
+          a='Real T = ph->derived_ms(IX_T, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'Real T = peos->GetEOS().GetTemperatureFromP(n, w_p(i), Y);')
+          a='Real h = ph->derived_ms(IX_ETH, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'Real h = peos->GetEOS().GetEnthalpy(n, T, Y);')
+          a='W(i) = ph->derived_ms(IX_LOR, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'W(i) = std::sqrt(1.0 + InnerProductSlicedVec3Metric(w_utilde_u, adm.g_dd, k, j, i));')
+          p.write_text(s)
+          p=Path('src/pgen/gr_rns.cpp')
+          s=p.read_text()
+          a='}, "J0740_Jz", UserHistoryOperation::sum);'
+          assert s.count(a)==1
+          s=s.replace(a,a+'''
+            EnrollUserHistoryOutput(+[](MeshBlock* b,int) -> Real {
+              Real sum=0;
+              for(int k=b->ks;k<=b->ke;k++)for(int j=b->js;j<=b->je;j++)for(int i=b->is;i<=b->ie;i++){
+                const auto &g=b->pz4c->adm.g_dd;
+                const Real a=g(0,0,k,j,i),d=g(1,1,k,j,i),f=g(2,2,k,j,i);
+                const Real c=g(0,2,k,j,i),e=g(1,2,k,j,i),h=g(0,1,k,j,i);
+                const Real det=a*d*f+2*h*c*e-a*e*e-d*c*c-f*h*h;
+                if(!(std::isfinite(det)&&det>0))throw std::runtime_error("J0740 source metric invalid");
+                const Real v=b->pz4c->mat.rho(k,j,i)*std::sqrt(det);
+                const Real u=b->phydro->u(IDN,k,j,i)+b->phydro->u(IEN,k,j,i);
+                sum+=std::abs(v-u)*b->pcoord->dx1v(i)*b->pcoord->dx2v(j)*b->pcoord->dx3v(k);
+              }
+              return sum;
+            },"J0740_Esrc_L1",UserHistoryOperation::sum);
+            EnrollUserHistoryOutput(+[](MeshBlock* b,int) -> Real {
+              Real sum=0;
+              for(int k=b->ks;k<=b->ke;k++)for(int j=b->js;j<=b->je;j++)for(int i=b->is;i<=b->ie;i++){
+                const auto &g=b->pz4c->adm.g_dd;
+                const Real a=g(0,0,k,j,i),d=g(1,1,k,j,i),f=g(2,2,k,j,i);
+                const Real c=g(0,2,k,j,i),e=g(1,2,k,j,i),h=g(0,1,k,j,i);
+                const Real det=a*d*f+2*h*c*e-a*e*e-d*c*c-f*h*h;
+                if(!(std::isfinite(det)&&det>0))throw std::runtime_error("J0740 source metric invalid");
+                for(int q=0;q<3;q++){
+                  const Real v=b->pz4c->mat.S_d(q,k,j,i)*std::sqrt(det);
+                  const Real u=b->phydro->u(IM1+q,k,j,i);
+                  sum+=std::abs(v-u)*b->pcoord->dx1v(i)*b->pcoord->dx2v(j)*b->pcoord->dx3v(k);
+                }
+              }
+              return sum;
+            },"J0740_Ssrc_L1",UserHistoryOperation::sum);
+          ''')
+          p.write_text(s)
+          PY
+          git diff -- src/z4c/matter_sources.cpp src/pgen/gr_rns.cpp > ../evidence/current_matter_source.patch
+          # Test non-cascading linear extrapolation of spacetime ghost fields only.
+          # Previous high-order extrapolation failed positive determinant at a corner.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/comm/physical_bcs.cpp')
+          s=p.read_text()
+          a='    case PhysicalBC::Outflow:'+chr(10)+'      OutflowBC(var, nvar, face, il, iu, jl, ju, kl, ku, ngh);'
+          assert s.count(a)==1
+          b='''    case PhysicalBC::Outflow:
+                if (spec.label == "z4c_u" && sampling == Sampling::CC)
+                {
+                  // Start with the verified zeroth-order ghost fill.
+                  OutflowBC(var, nvar, face, il, iu, jl, ju, kl, ku, ngh);
+                  const auto linear = [](Real u0, Real u1, int d) {
+                    return u0 + Real(d)*(u0-u1);
+                  };
+                  for (int n=0; n<nvar; ++n)
+                    for (int d=1; d<=ngh; ++d) {
+                      switch (face) {
+                      case BoundaryFace::inner_x1:
+                      case BoundaryFace::outer_x1: {
+                        const int i0=face==BoundaryFace::inner_x1?il:iu;
+                        const int step=face==BoundaryFace::inner_x1?1:-1;
+                        for(int k=kl;k<=ku;++k) for(int j=jl;j<=ju;++j)
+                          var(n,k,j,i0-step*d)=linear(var(n,k,j,i0),var(n,k,j,i0+step),d);
+                        break;
+                      }
+                      case BoundaryFace::inner_x2:
+                      case BoundaryFace::outer_x2: {
+                        const int j0=face==BoundaryFace::inner_x2?jl:ju;
+                        const int step=face==BoundaryFace::inner_x2?1:-1;
+                        for(int k=kl;k<=ku;++k) for(int i=il;i<=iu;++i)
+                          var(n,k,j0-step*d,i)=linear(var(n,k,j0,i),var(n,k,j0+step,i),d);
+                        break;
+                      }
+                      case BoundaryFace::inner_x3:
+                      case BoundaryFace::outer_x3: {
+                        const int k0=face==BoundaryFace::inner_x3?kl:ku;
+                        const int step=face==BoundaryFace::inner_x3?1:-1;
+                        for(int j=jl;j<=ju;++j) for(int i=il;i<=iu;++i)
+                          var(n,k0-step*d,j,i)=linear(var(n,k0,j,i),var(n,k0+step,j,i),d);
+                        break;
+                      }
+                      default: break;
+                      }
+                    }
+                }
+                else
+                  OutflowBC(var, nvar, face, il, iu, jl, ju, kl, ku, ngh);'''
+          s=s.replace(a,b)
+          # Retain the tested linear ghost fill for Z4c under the native
+          # radiative boundary flag, while hydro retains its CC outflow fallback.
+          a='  const Sampling sampling = spec.sampling;'
+          assert s.count(a)==1
+          b=a+chr(10)+'  if (bc == PhysicalBC::GRSommerfeld && spec.label == "z4c_u" && sampling == Sampling::CC) bc = PhysicalBC::Outflow;'
+          p.write_text(s.replace(a,b))
+          PY
+          git diff -- src/comm/physical_bcs.cpp > ../evidence/outer_boundary.patch
+          # J0740 hydro source local geometry: same stage metric and primitives
+          # for determinant, inverse, Lorentz factor, temperature and enthalpy.
+          # This is a controlled numerical intervention, not a physical fit.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/coordinates/gr_dynamical.cpp')
+          s=p.read_text()
+          i=s.index('      // Prepare determinant-like')
+          j=s.index('      // indicial manipulations',i)
+          old=s[i:j]
+          assert old.count('Inv3Metric(')==1 and old.count('adm_sqrt_detgamma(k, j, i)')==1
+          inv=old[old.index('      CC_PCO_ILOOP1(i)',old.index('#else')):old.index('#endif')]
+          s=s[:i]+'''      // Recompute both determinant and inverse from the sliced metric.
+                CC_PCO_ILOOP1(i)
+                {
+                  const Real a=gamma_dd_(0,0,i), b=gamma_dd_(0,1,i), c=gamma_dd_(0,2,i);
+                  const Real d=gamma_dd_(1,1,i), e=gamma_dd_(1,2,i), f=gamma_dd_(2,2,i);
+                  const Real det=a*d*f+2*b*c*e-a*e*e-d*c*c-f*b*b;
+                  if (!(std::isfinite(det) && det>0)) {
+                    std::fprintf(stderr,"INVALID_METRIC_DETERMINANT hydro-source %d %d %d %.17g\n",i,j,k,double(det));
+                    std::abort();
+                  }
+                  sqrt_detgamma_(i)=std::sqrt(det);
+                }
+          '''+inv+s[j:]
+          a='W_(i) = pmb->phydro->derived_ms(IX_LOR, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'''Real u2=0;
+                for (int q=0;q<NDIM;++q) u2+=w_util_d_(q,i)*w_util_u_(q,i);
+                W_(i)=std::sqrt(1.0+u2);''')
+          a='Real T = pmb->phydro->derived_ms(IX_T, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'Real T = peos->GetEOS().GetTemperatureFromP(n, w_p(k, j, i), Y);')
+          a='Real h = pmb->phydro->derived_ms(IX_ETH, k, j, i);'
+          assert s.count(a)==1
+          s=s.replace(a,'Real h = peos->GetEOS().GetEnthalpy(n, T, Y);')
+          # The generated C++ needs a literal escaped newline in the format.
+          s=s.replace('%.17g\n",i,j,k','%.17g\\n",i,j,k')
+          p.write_text('#include <cstdio>\n#include <cstdlib>\n'+s)
+          PY
+          git diff -- src/coordinates/gr_dynamical.cpp > ../evidence/hydro_source_local_geometry.patch
+          # Measure the actual angular momentum increment in every native RK
+          # hydro subtask. Do not modify the conserved state or acceptance.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp')
+          s=p.read_text()
+          for fn,label in [('IntegrateHydroScalars','rk_weight_and_floor'),
+                           ('AddFluxDivergenceHydroScalars','flux_and_floor'),
+                           ('AddSourceTermsHydro','geometry_source'),
+                           ('PrimitivesPhysical','c2p_physical'),
+                           ('PrimitivesGhosts','c2p_ghost')]:
+              start=s.index('TaskStatus GRMHD_Z4c_Monolithic::'+fn+'(')
+              end=s.index('\n// ---------------------------------------------------------------------------',start)
+              sub=s[start:end]
+              a='  if (stage <= nstages)\n  {'
+              assert sub.count(a)==1
+              body=r'''
+              const auto j0740_j = [&]() {
+                Real jz=0;
+                for(int k=pmb->ks;k<=pmb->ke;++k)
+                for(int j=pmb->js;j<=pmb->je;++j)
+                for(int i=pmb->is;i<=pmb->ie;++i) {
+                  jz+=(pmb->pcoord->x1v(i)*pmb->phydro->u(IM2,k,j,i)-
+                       pmb->pcoord->x2v(j)*pmb->phydro->u(IM1,k,j,i))*
+                    pmb->pcoord->dx1v(i)*pmb->pcoord->dx2v(j)*pmb->pcoord->dx3v(k);
+                }
+                return jz;
+              };
+              const Real j_before=j0740_j();
+          '''
+              sub=sub.replace(a,a+'\n'+body)
+              a='    return TaskStatus::next;'
+              assert sub.count(a)==1
+              sub=sub.replace(a,r'''    std::fprintf(stderr,"J0740_J_BUDGET %.17g %d %d LABEL %.17g %.17g\n",
+                  double(pmb->pmy_mesh->time),stage,pmb->gid,double(j_before),double(j0740_j()));
+          '''.replace('LABEL',label)+a)
+              s=s[:start]+sub+s[end:]
+          p.write_text('#include <cstdio>\n'+s)
+          PY
+          git diff -- src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp > ../evidence/angular_momentum_budget.patch
+          # Measure native ADM constraints after refreshed matter and geometry at each RK stage.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp')
+          s=p.read_text()
+          a=s.index('TaskStatus GRMHD_Z4c_Monolithic::ADM_Constraints(')
+          b=s.index('TaskStatus GRMHD_Z4c_Monolithic::Z4c_Weyl(',a)
+          sub=s[a:b]
+          old='  if (stage != nstages)\n    return TaskStatus::next;'
+          assert sub.count(old)==1
+          sub=sub.replace(old,'  if (stage < 1 || stage > nstages)\n    return TaskStatus::next;')
+          old='if (trgs.IsSatisfied(TriggerVariant::Z4c_ADM_constraints))'
+          assert sub.count(old)==1
+          sub=sub.replace(old,'if (true)')
+          old='                         pz4c->storage.u);'
+          assert sub.count(old)==1
+          sub=sub.replace(old,old+r'''
+              double h2=0, m2=0, mi=0, mo=0, v=0;
+              for(int k=pmb->ks;k<=pmb->ke;++k)
+              for(int j=pmb->js;j<=pmb->je;++j)
+              for(int i=pmb->is;i<=pmb->ie;++i) {
+                const double x=pmb->pcoord->x1v(i), y=pmb->pcoord->x2v(j), z=pmb->pcoord->x3v(k);
+                const double dv=pmb->pcoord->dx1v(i)*pmb->pcoord->dx2v(j)*pmb->pcoord->dx3v(k);
+                const double h=pz4c->con.H(k,j,i), m=pz4c->con.M(k,j,i);
+                h2+=h*h*dv; m2+=m*dv; v+=dv;
+                if(x*x+y*y+z*z<64) mi+=m*dv; else mo+=m*dv;
+              }
+              std::fprintf(stderr,"J0740_RK_CON %.17g %d %d %.17g %.17g %.17g %.17g %.17g\n",
+                 double(pmb->pmy_mesh->time),stage,pmb->gid,h2,m2,mi,mo,v);
+          ''')
+          p.write_text(s[:a]+sub+s[b:])
+          PY
+          git diff -- src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp > ../evidence/rk_constraint_trace.patch
+          python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
+          make -j2 2>&1 | tee ../evidence/build.log
+          test -x bin/athena
+          sha256sum bin/athena > ../evidence/binary.sha256
+      - name: Native coupled RNS fluid evolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd athena
+          E="$GITHUB_WORKSPACE/evidence"
+          cp inputs/z4c/awa/z4c_AwA_gauge_wave_1s.inp "$E/star.inp"
+          cat >> "$E/star.inp" <<EOF
+
+          <hydro>
+          table = $E/cold.h5
+          gamma_th = 1.75
+          dfloor = 1e-12
+          tfloor = 1e-10
+          rsolver = hlle
+          EOF
+          export J0740_GRID="$E/f171_grid.bin" OMP_NUM_THREADS=2
+          args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=j0740_native time/tlim=2 time/integrator=rk3 time/cfl_number=0.1 mesh/nx1=$J0740_N mesh/nx2=$J0740_N mesh/nx3=$J0740_N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-24 mesh/x1max=24 mesh/x2min=-24 mesh/x2max=24 mesh/x3min=-24 mesh/x3max=24 mesh/ix1_bc=gr_sommerfeld mesh/ox1_bc=gr_sommerfeld mesh/ix2_bc=gr_sommerfeld mesh/ox2_bc=gr_sommerfeld mesh/ix3_bc=gr_sommerfeld mesh/ox3_bc=gr_sommerfeld mesh/num_threads=2 output2/dt=0.1 time/xorder_use_aux_s=false hydro/smooth_temperature=false z4c/r_max_con=100 time/xorder=weno5z time/xorder_use_fb=true time/xorder_fb=lin_vl)
+          # Equilibrium pressure repair: same native radiative boundary, gauge,
+          # EOS and global gates as control run 45719404582. No threshold change.
+          # Source-response gate already passed in run 45714775013, artifact 15069975802.
+          # Use exact unperturbed initial data only, matched resolutions.
+          /usr/bin/python3 - <<'PY'
+          import pathlib, os, json
+          d=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'evidence'
+          s=(d/'star.inp').read_text().split('<output1>')[0]
+          s+='\n<hydro>\ntable = '+str(d/'cold.h5')+'\ngamma_th = 1.75\ndfloor = 1e-12\ntfloor = 1e-10\nrsolver = hlle\n'
+          s+='\n<output1>\nfile_type = hst\ndt = 0.1\ndata_format = %.18g\n<output2>\nfile_type = hdf5\nvariable = prim\ndt = 2\n<output3>\nfile_type = hdf5\nvariable = geom.con\ndt = 2\n<output4>\nfile_type = rst\ndt = 2\n'
+          (d/'star.inp').write_text(s)
+          (d/'source_gate_reference.json').write_text(json.dumps(dict(run=45714775013,artifact=15069975802,sha256='3bec88d1406947e188f9becaeab9cf716839e580764ce9ddea409a6fa6d4820d',H_relative_error=2.3840752858557353e-15,M_relative_error=2.8340148683525334e-15)))
+          PY
+          for i in "${!args[@]}"; do
+            case "${args[i]}" in
+              output2/dt=*) args[i]=output2/dt=2;;
+            esac
+          done
+          # Diagnostic intervention: use stationary gauge coefficients instead
+          # of the vacuum gauge-wave driver; evolve all physical fields normally.
+          # Radiative baseline run 45719404582: 96.5% of M norm2 inside r<8.
+          # No EOS, matter source, or physical threshold changes.
+          args+=(z4c/lapse_oplog=0 z4c/lapse_harmonic=0 z4c/lapse_advect=0 z4c/shift_Gamma=0 z4c/shift_eta=0 z4c/shift_alpha2Gamma=0 z4c/shift_H=0 z4c/shift_advect=0)
+          args+=(z4c/damp_kappa1=4.0 z4c/damp_kappa2=0.0)
+          printf '%q ' ./bin/athena "${args[@]}" > "$E/command.txt"
+          ./bin/athena "${args[@]}" 2>&1 | tee "$E/native.log"
+          grep -q 'Terminating on time limit' "$E/native.log"
+          if grep -Eq 'Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT' "$E/native.log"; then exit 1; fi
+          /usr/bin/python3 - <<'PY'
+          import pathlib,json,re,os,numpy as np,h5py
+          d=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'evidence'
+          f=next((d/'run').rglob('*.hst')); lines=f.read_text().splitlines()
+          names=re.findall(r'\[\d+\]=([^ ]+)',next(x for x in lines if '[1]=time' in x))
+          a=np.loadtxt(f);assert a.ndim==2 and a.shape[1]==len(names) and np.isfinite(a).all() and a[-1,0]>=1.99
+          col=lambda name:a[:,names.index(name)]
+          mass,jz,H,M,rho,fail,alpha=[col(k) for k in ('mass','J0740_Jz','H-norm2','M-norm2','max_rho','num_c2p_fail','min_alpha')]
+          assert mass[0]>0 and abs(jz[0])>0 and min(H)>=0 and min(M)>=0
+          dmass=float(np.max(abs(mass/mass[0]-1)));dj=float(np.max(abs(jz/jz[0]-1)));drho=float(np.max(abs(rho/rho[0]-1)))
+          srcE,srcS=col('J0740_Esrc_L1'),col('J0740_Ssrc_L1')
+          gates=dict(finite=True,primitive_recovery=bool(max(fail)==0),positive_lapse=bool(min(alpha)>0),mass_drift_below_0p1pct=dmass<=1e-3,J_drift_below_1pct=dj<=.01,density_drift_below_2pct=drho<=.02,momentum_norm2_non_growth=bool(M[-1]<=M[0]),energy_source_closure=bool(max(srcE)/mass[0]<1e-4),momentum_source_closure=bool(max(srcS)/mass[0]<1e-4))
+          files=list((d/'run').glob('*.athdf'));assert files
+          for p in files:
+              with h5py.File(p) as h:
+                  for k,v in h.items():
+                      if isinstance(v,h5py.Dataset) and np.issubdtype(v.dtype,np.number):assert np.isfinite(v[:]).all(),(p,k)
+          result=dict(status='SHORT_MATCHED_RESOLUTION_SCREEN_ONLY',n=int(os.environ['J0740_N']),max_time=float(a[-1,0]),rotation_target=585.8691805265147,mass_initial=float(mass[0]),J_initial=float(jz[0]),mass_drift=dmass,J_drift=dj,rho_drift=drho,H0=float(H[0]),Hfinal=float(H[-1]),M0=float(M[0]),Mfinal=float(M[-1]),Hmax=float(max(H)),Mmax=float(max(M)),gates=gates)
+          (d/'receipt.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
+          # Localize errors without excluding any region from the global gate.
+          result['flux_reconstruction']='weno5z with lin_vl admissibility fallback; compare exact prior lin_vl run 45780727510'
+          result.update(C0=float(col('C-norm2')[0]),Cfinal=float(col('C-norm2')[-1]),Cmax=float(max(col('C-norm2'))),control_run=45719404582,pressure_method='stationary first integral')
+          (d/'receipt.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
+          for p in sorted((d/'run').glob('*out3*.athdf')):
+              with h5py.File(p) as f:
+                  names=[x.decode() for x in f.attrs['VariableNames']]
+                  ds=f[f.attrs['DatasetNames'][0].decode()]
+                  q=int((ds.shape[-1]-16)//2); sl=slice(q,q+16)
+                  m=ds[names.index('geom.con.M'),:,sl,sl,sl]
+                  x=f['x1v'][:,sl]; y=f['x2v'][:,sl]; z=f['x3v'][:,sl]
+                  edge=np.maximum(np.maximum(abs(x[:,None,None,:]),abs(y[:,None,:,None])),abs(z[:,:,None,None]))>20
+                  print('MOMENTUM_LOCALIZATION',float(f.attrs['Time']),float(m[edge].sum()),float(m[~edge].sum()))
+                  inner=x[:,None,None,:]**2+y[:,None,:,None]**2+z[:,:,None,None]**2<64
+                  print('MOMENTUM_STAR_REGION',float(f.attrs['Time']),float(m[inner].sum()),float(m[~inner].sum()))
+          # Sum actual signed and absolute subtask increments, by cycle and RK stage.
+          import collections
+          budget=collections.defaultdict(lambda:[0.,0.,0])
+          for line in (d/'native.log').open():
+              if not line.startswith('J0740_J_BUDGET '):continue
+              _,time,stage,gid,label,before,after=line.split()
+              key=(float(time),int(stage),label)
+              delta=float(after)-float(before)
+              v=budget[key];v[0]+=delta;v[1]+=abs(delta);v[2]+=1
+          assert budget, 'missing native torque budget'
+          records=[dict(time=t,stage=st,term=term,delta_J=v[0],L1=v[1],blocks=v[2]) for (t,st,term),v in sorted(budget.items())]
+          (d/'angular_momentum_budget.json').write_text(json.dumps(records,indent=2))
+          print('J0740_FIRST_STAGE_BUDGET',json.dumps([x for x in records if x['time']==0 and x['stage']==1]))
+          # Fixed spatial grid, exact initial data and unchanged acceptance.
+          # Compare actual time increments, not just requested CFL.
+          n=int(os.environ['J0740_N'])
+          baseline={64:dict(M=0.0001019704494992566,H=0.0026756485259675855),96:dict(M=0.0001448318288730133,H=0.018681563817352344)}[n]
+          dt=np.array([float(x) for x in re.findall(r'^cycle=\d+ time=\S+ dt=(\S+)',(d/'native.log').read_text(),re.M)])
+          assert len(dt)>1 and np.isfinite(dt).all() and min(dt)>0
+          assert max(dt)<=0.1*48/n*(1+1e-9), (max(dt),n)
+          result['cfl_control']=dict(baseline_run=45782781351,baseline_cfl=0.2,cfl=0.1,steps=len(dt)-1,max_dt=float(max(dt)),M_ratio=float(M[-1]/baseline['M']),H_ratio=float(H[-1]/baseline['H']))
+          (d/'receipt.json').write_text(json.dumps(result,indent=2));print('CFL_CONTROL',json.dumps(result['cfl_control']))
+          # Aggregate each complete stage independently of the original native history norms.
+          rk=collections.defaultdict(dict)
+          for line in (d/'native.log').open():
+              if not line.startswith('J0740_RK_CON '):continue
+              _,t,st,gid,*vals=line.split()
+              key=(float(t),int(st)); gid=int(gid)
+              assert gid not in rk[key], (key,gid)
+              vals=np.array([float(x) for x in vals])
+              assert len(vals)==5 and np.isfinite(vals).all() and np.min(vals)>=0
+              rk[key][gid]=vals
+          assert rk, 'missing RK stage trace'
+          expected=(n//16)**3
+          records=[]
+          for (t,st),blocks in sorted(rk.items()):
+              assert len(blocks)==expected,(t,st,len(blocks))
+              h2,m2,mi,mo,v=np.sum(list(blocks.values()),axis=0)
+              assert v>0 and np.isclose(m2,mi+mo,rtol=1e-10,atol=1e-20)
+              records.append(dict(step_start=t,stage=st,H_integral_squared=float(h2),M_integral_squared=float(m2),M_inner=float(mi),M_outer=float(mo),coordinate_volume=float(v)))
+          assert len(records)==3*result['cfl_control']['steps'],len(records)
+          (d/'rk_constraint_trace.json').write_text(json.dumps(records,indent=2))
+          print('RK_CONSTRAINT_TRACE_FIRST',json.dumps(records[:9]))
+          print('RK_CONSTRAINT_TRACE_LAST',json.dumps(records[-3:]))
+          result['ctt_projection']=json.loads((d/'ctt_projection.json').read_text())
+          (d/'receipt.json').write_text(json.dumps(result,indent=2));print('CTT_NATIVE',json.dumps(result))
+          assert abs(result['mass_initial']/2.4142703584211214-1)<.002 and abs(result['J_initial']/.6892530936503651-1)<.002
+          assert all(gates.values()), 'short screen rejected; do not extend unqualified evolution'
+          assert result['H0']<0.0027710030385517106 and result['M0']<=2.0252526710566176e-6 and result['Mfinal']<=2.0252526710566176e-6, 'native constraint acceptance failed'
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-ctt-constraint-projection-N${{ matrix.n }}
+          path: |
+            evidence/*.log
+            evidence/*.json
+            evidence/*.txt
+            evidence/*.sha256
+            evidence/*.par
+            evidence/*.inp
+            evidence/*.hpp
+            evidence/*.patch
+            evidence/run/*.hst
+            evidence/run/*.athdf
+            evidence/run/*.rst
+          if-no-files-found: error
