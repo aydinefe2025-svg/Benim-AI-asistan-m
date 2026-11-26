@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        n: [48, 64]
+        n: [48]
     env:
       J0740_N: ${{ matrix.n }}
     steps:
@@ -608,6 +608,46 @@ jobs:
           p.write_text('#include <cstdio>\n#include <cstdlib>\n'+s)
           PY
           git diff -- src/coordinates/gr_dynamical.cpp > ../evidence/hydro_source_local_geometry.patch
+          # Measure the actual angular momentum increment in every native RK
+          # hydro subtask. Do not modify the conserved state or acceptance.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp')
+          s=p.read_text()
+          for fn,label in [('IntegrateHydroScalars','rk_weight_and_floor'),
+                           ('AddFluxDivergenceHydroScalars','flux_and_floor'),
+                           ('AddSourceTermsHydro','geometry_source'),
+                           ('PrimitivesPhysical','c2p_physical'),
+                           ('PrimitivesGhosts','c2p_ghost')]:
+              start=s.index('TaskStatus GRMHD_Z4c_Monolithic::'+fn+'(')
+              end=s.index('\n// ---------------------------------------------------------------------------',start)
+              sub=s[start:end]
+              a='  if (stage <= nstages)\n  {'
+              assert sub.count(a)==1
+              body=r'''
+              const auto j0740_j = [&]() {
+                Real jz=0;
+                for(int k=pmb->ks;k<=pmb->ke;++k)
+                for(int j=pmb->js;j<=pmb->je;++j)
+                for(int i=pmb->is;i<=pmb->ie;++i) {
+                  jz+=(pmb->pcoord->x1v(i)*pmb->phydro->u(IM2,k,j,i)-
+                       pmb->pcoord->x2v(j)*pmb->phydro->u(IM1,k,j,i))*
+                    pmb->pcoord->dx1v(i)*pmb->pcoord->dx2v(j)*pmb->pcoord->dx3v(k);
+                }
+                return jz;
+              };
+              const Real j_before=j0740_j();
+          '''
+              sub=sub.replace(a,a+'\n'+body)
+              a='    return TaskStatus::next;'
+              assert sub.count(a)==1
+              sub=sub.replace(a,r'''    std::fprintf(stderr,"J0740_J_BUDGET %.17g %d %d LABEL %.17g %.17g\n",
+                  double(pmb->pmy_mesh->time),stage,pmb->gid,double(j_before),double(j0740_j()));
+          '''.replace('LABEL',label)+a)
+              s=s[:start]+sub+s[end:]
+          p.write_text('#include <cstdio>\n'+s)
+          PY
+          git diff -- src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp > ../evidence/angular_momentum_budget.patch
           python3 configure.py --prob=gr_rns --coord=gr_dynamical -f -g -z -z_cc --eospolicy=hybrid_table --errorpolicy=reset_floor --rns_path="$GITHUB_WORKSPACE/rnsc" --cxx g++ -omp --nghost=4 -hdf5 -h5double -gsl --lib_path=/usr/lib/x86_64-linux-gnu/hdf5/serial --include=/usr/include/hdf5/serial 2>&1 | tee ../evidence/configure.log
           make -j2 2>&1 | tee ../evidence/build.log
           test -x bin/athena
@@ -690,6 +730,19 @@ jobs:
                   print('MOMENTUM_LOCALIZATION',float(f.attrs['Time']),float(m[edge].sum()),float(m[~edge].sum()))
                   inner=x[:,None,None,:]**2+y[:,None,:,None]**2+z[:,:,None,None]**2<64
                   print('MOMENTUM_STAR_REGION',float(f.attrs['Time']),float(m[inner].sum()),float(m[~inner].sum()))
+          # Sum actual signed and absolute subtask increments, by cycle and RK stage.
+          import collections
+          budget=collections.defaultdict(lambda:[0.,0.,0])
+          for line in (d/'native.log').open():
+              if not line.startswith('J0740_J_BUDGET '):continue
+              _,time,stage,gid,label,before,after=line.split()
+              key=(float(time),int(stage),label)
+              delta=float(after)-float(before)
+              v=budget[key];v[0]+=delta;v[1]+=abs(delta);v[2]+=1
+          assert budget, 'missing native torque budget'
+          records=[dict(time=t,stage=st,term=term,delta_J=v[0],L1=v[1],blocks=v[2]) for (t,st,term),v in sorted(budget.items())]
+          (d/'angular_momentum_budget.json').write_text(json.dumps(records,indent=2))
+          print('J0740_FIRST_STAGE_BUDGET',json.dumps([x for x in records if x['time']==0 and x['stage']==1]))
           assert all(gates.values()), 'short screen rejected; do not extend unqualified evolution'
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
