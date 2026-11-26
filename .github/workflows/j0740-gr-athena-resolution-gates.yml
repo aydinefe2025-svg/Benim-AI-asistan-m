@@ -669,7 +669,7 @@ jobs:
           rsolver = hlle
           EOF
           export J0740_GRID="$E/f171_grid.bin" OMP_NUM_THREADS=2
-          args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=j0740_native time/tlim=2 time/integrator=rk3 time/cfl_number=0.2 mesh/nx1=$J0740_N mesh/nx2=$J0740_N mesh/nx3=$J0740_N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-24 mesh/x1max=24 mesh/x2min=-24 mesh/x2max=24 mesh/x3min=-24 mesh/x3max=24 mesh/ix1_bc=gr_sommerfeld mesh/ox1_bc=gr_sommerfeld mesh/ix2_bc=gr_sommerfeld mesh/ox2_bc=gr_sommerfeld mesh/ix3_bc=gr_sommerfeld mesh/ox3_bc=gr_sommerfeld mesh/num_threads=2 output2/dt=0.1 time/xorder_use_aux_s=false hydro/smooth_temperature=false z4c/r_max_con=100)
+          args=(-i "$E/star.inp" -d "$E/run" problem/filename="$E/star.par" problem/verbose=true job/problem_id=j0740_native time/tlim=2 time/integrator=rk3 time/cfl_number=0.2 mesh/nx1=$J0740_N mesh/nx2=$J0740_N mesh/nx3=$J0740_N meshblock/nx1=16 meshblock/nx2=16 meshblock/nx3=16 mesh/x1min=-24 mesh/x1max=24 mesh/x2min=-24 mesh/x2max=24 mesh/x3min=-24 mesh/x3max=24 mesh/ix1_bc=gr_sommerfeld mesh/ox1_bc=gr_sommerfeld mesh/ix2_bc=gr_sommerfeld mesh/ox2_bc=gr_sommerfeld mesh/ix3_bc=gr_sommerfeld mesh/ox3_bc=gr_sommerfeld mesh/num_threads=2 output2/dt=0.1 time/xorder_use_aux_s=false hydro/smooth_temperature=false z4c/r_max_con=100 time/xorder=weno5z time/xorder_use_fb=true time/xorder_fb=lin_vl)
           # Equilibrium pressure repair: same native radiative boundary, gauge,
           # EOS and global gates as control run 45719404582. No threshold change.
           # Source-response gate already passed in run 45714775013, artifact 15069975802.
@@ -717,6 +717,7 @@ jobs:
           result=dict(status='SHORT_MATCHED_RESOLUTION_SCREEN_ONLY',n=int(os.environ['J0740_N']),max_time=float(a[-1,0]),rotation_target=585.8691805265147,mass_initial=float(mass[0]),J_initial=float(jz[0]),mass_drift=dmass,J_drift=dj,rho_drift=drho,H0=float(H[0]),Hfinal=float(H[-1]),M0=float(M[0]),Mfinal=float(M[-1]),Hmax=float(max(H)),Mmax=float(max(M)),gates=gates)
           (d/'receipt.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
           # Localize errors without excluding any region from the global gate.
+          result['flux_reconstruction']='weno5z with lin_vl admissibility fallback; compare exact prior lin_vl run 45780727510'
           result.update(C0=float(col('C-norm2')[0]),Cfinal=float(col('C-norm2')[-1]),Cmax=float(max(col('C-norm2'))),control_run=45719404582,pressure_method='stationary first integral')
           (d/'receipt.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
           for p in sorted((d/'run').glob('*out3*.athdf')):
