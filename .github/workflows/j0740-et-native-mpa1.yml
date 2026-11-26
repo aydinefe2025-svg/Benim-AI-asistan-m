@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - dx: '0.75'
+          - dx: '0.375'
             trial: retarget
             solver: HLLC
     env:
@@ -56,6 +56,7 @@ jobs:
               assert n==1,(key,n)
           setparam('Cactus::cctk_final_time','2.0')
           for axis in 'xyz': setparam('CoordBase::d'+axis,os.environ['DX'])
+          setparam('CarpetRegrid2::num_levels_1','1')
           setparam('IO::out_dir','"/evidence/run"')
           setparam('IOScalar::outScalar_every','1')
           setparam('IOBasic::outInfo_every','1')
@@ -531,6 +532,7 @@ jobs:
                   ans.append(dict(file=p.name,initial=rows[0],final=rows[-1],rows=len(rows)))
               return ans
           result=dict(scope='native F171 MPA1 EOS ingestion and independently reconstructed rotating star; not identical F171 fields; no certification',dx=float(os.environ['DX']),solver=os.environ['SOLVER'],evolution_eos='MPA1 cold_tabulated + GammaTh=1.75',axes_ratio=json.loads((d/'spin_trial.json').read_text())['applied'],trial=os.environ['TRIAL'],hamiltonian=history('ham','norm2'),momentum=history('mom','norm2'),density=history('rho','maximum'),velocity=history('vel','maximum'),conserved_density=history('dens','sum'),image_digest=(d/'image-digest.txt').read_text().strip())
+          result['grid_scope']='uniform single level, dx=0.375 matches finest spacing of PR987; same outer domain, EOS and CFL'
           assert any(abs(x)>1e-5 for v in result['velocity'] for x in v['initial'][2:]), 'nonzero initial rotation not measured'
           log=(d/'native.log').read_text()
           pat=r'INFO \(Hydro_RNSID\):\s+rho_center\s+e_center\s+Mass\s+Mass_0\s+R_e[^\n]*\nINFO \(Hydro_RNSID\):\s+([^\n]+)\nINFO \(Hydro_RNSID\):\s+J\s+T/W\s+Omega[^\n]*\nINFO \(Hydro_RNSID\):\s+([^\n]+)'
@@ -553,7 +555,7 @@ jobs:
           rr,pp,ee=[np.loadtxt(d/'run'/('hydrobase-'+v+'.x.asc')) for v in ('rho','press','eps')]
           assert np.array_equal(rr[:,:12],pp[:,:12]) and np.array_equal(rr[:,:12],ee[:,:12])
           at=json.loads((d/'atmosphere_eos.json').read_text())
-          mask=(rr[:,0]==0)&(rr[:,2]==1)&(abs(rr[:,-1]/at['rho']-1)<1e-8)
+          mask=(rr[:,0]==0)&(rr[:,2]==0)&(abs(rr[:,-1]/at['rho']-1)<1e-8)
           assert np.count_nonzero(mask)>0
           result['atmosphere_check']=dict(points=int(np.count_nonzero(mask)),pressure_max_relative=float(np.max(abs(pp[mask,-1]/at['pressure']-1))),eps_max_relative=float(np.max(abs(ee[mask,-1]/at['eps']-1))))
           result['atmosphere_match']=max(result['atmosphere_check']['pressure_max_relative'],result['atmosphere_check']['eps_max_relative'])<1e-5
@@ -564,7 +566,7 @@ jobs:
           for axis in 'xyz':
               r,p,e=[np.loadtxt(d/'run'/('hydrobase-'+v+'.'+axis+'.asc')) for v in ('rho','press','eps')]
               assert np.array_equal(r[:,:12],p[:,:12]) and np.array_equal(r[:,:12],e[:,:12])
-              m=(r[:,0]==0)&(r[:,2]==1)&(r[:,-1]>1e-8)
+              m=(r[:,0]==0)&(r[:,2]==0)&(r[:,-1]>1e-8)
               assert np.count_nonzero(m)>0
               rh=r[m,-1];x=np.log10(rh);ep=np.interp(x,grid,tab[:,0]);pc=rh**np.interp(x,grid,tab[:,1])
               de.extend((e[m,-1]-ep).tolist());dp.extend((p[m,-1]/pc-1).tolist())
@@ -578,6 +580,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere-cold-projection
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere-cold-projection-uniform
           path: evidence/
           if-no-files-found: error
