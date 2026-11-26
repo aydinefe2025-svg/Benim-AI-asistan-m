@@ -125,7 +125,22 @@ def stable_gate(t,i,v,legacy,cut):
     def metrics(p,mask):
         e=1000*(p[mask]-v[mask])
         return {"MAE_mV":float(np.mean(abs(e))),"RMSE_mV":float(np.sqrt(np.mean(e*e))),"max_mV":float(np.max(abs(e))),"points":int(mask.sum())}
-    return {"choice":choice,"scores_V":scores,"params":params.tolist(),"cut_s":float(start+cut),"legacy":metrics(reference,test),"candidate":metrics(pred,test),
+    # A causal, current-dependent prediction blend: no future measured voltage.
+    # Keep the already validated legacy relaxation prediction exactly.
+    w=np.clip((-i-3.)/1.,0.,1.)
+    w=w*w*(3.-2.*w)
+    blended=reference+w*(pred-reference)
+    hard=np.where(i<-3,pred,reference)
+    assert np.array_equal(blended[i>=-3],reference[i>=-3])
+    assert np.all(np.isfinite(blended))
+    assert np.all((w>=0)&(w<=1))
+    phase={"hard":metrics(hard,test),"smooth":metrics(blended,test),
+           "smooth_discharge":metrics(blended,test&(i<-3)),
+           "smooth_rest":metrics(blended,test&(i>=-3)),
+           "ramp_points":int(np.sum(test&(w>0)&(w<1))),
+           "max_smooth_minus_hard_mV":float(1000*np.max(abs(blended[test]-hard[test])))}
+    assert abs(phase["smooth_rest"]["MAE_mV"]-metrics(reference,test&(i>=-3))["MAE_mV"])<1e-12
+    return {"phase_guard":phase,"choice":choice,"scores_V":scores,"params":params.tolist(),"cut_s":float(start+cut),"legacy":metrics(reference,test),"candidate":metrics(pred,test),
             "legacy_remaining_discharge":metrics(reference,test&(i<-3)),"candidate_remaining_discharge":metrics(pred,test&(i<-3)),
             "legacy_rest":metrics(reference,test&(i>=-3)),"candidate_rest":metrics(pred,test&(i>=-3))}
 def summarize_stable(results,key):
@@ -160,7 +175,16 @@ def main():
     summary={"files":24,"legacy_mean_mV":a,"scaled_mean_mV":b,"improved":sum(x["scaled"]["MAE_mV"]<x["legacy"]["MAE_mV"]-1e-8 for x in results),"worsened":sum(x["scaled"]["MAE_mV"]>x["legacy"]["MAE_mV"]+1e-8 for x in results),"legacy_worst_mV":max(x["legacy"]["MAE_mV"] for x in results),"scaled_worst_mV":max(x["scaled"]["MAE_mV"] for x in results)}
     summary["stable_2s"]=summarize_stable(results,"stable_2s")
     summary["stable_5s"]=summarize_stable(results,"stable_5s")
-    report={"goal_key":"battery-20261125-hppc-scaled-cloud-replay-v1","archive_sha256":"36a8bd0904a27fd90e44820c5cf938c8e7ed3e01acb6d2232c759b9f07e811cf","scope":"same previously observed 24 low-voltage source files; no independent cell or temperature certification","summary":summary,"results":results}
+    phase=[r["stable_5s"] for r in results]
+    summary["phase_guard_5s"]={}
+    for k,base in (("hard","legacy"),("smooth","legacy"),("smooth_discharge","legacy_remaining_discharge"),("smooth_rest","legacy_rest")):
+        old=[r[base]["MAE_mV"] for r in phase];new=[r["phase_guard"][k]["MAE_mV"] for r in phase]
+        summary["phase_guard_5s"][k]={"mean_mV":statistics.mean(new),"legacy_mean_mV":statistics.mean(old),"worst_mV":max(new),"improved":sum(n<o-1e-8 for o,n in zip(old,new)),"worsened":sum(n>o+1e-8 for o,n in zip(old,new))}
+    summary["phase_guard_5s"]["ramp_points"]=sum(r["phase_guard"]["ramp_points"] for r in phase)
+    summary["phase_guard_5s"]["max_smooth_minus_hard_mV"]=max(r["phase_guard"]["max_smooth_minus_hard_mV"] for r in phase)
+    assert abs(summary["phase_guard_5s"]["hard"]["mean_mV"]-2.4796307575231014)<1e-5
+    assert summary["phase_guard_5s"]["smooth_rest"]["worsened"]==0
+    report={"goal_key":"battery-20261126-hppc-phase-guard-v1","archive_sha256":"36a8bd0904a27fd90e44820c5cf938c8e7ed3e01acb6d2232c759b9f07e811cf","scope":"same previously observed 24 low-voltage source files; no independent cell or temperature certification","summary":summary,"results":results}
     OUT.mkdir(parents=True,exist_ok=True)
     (OUT/"result.json").write_text(json.dumps(report,indent=2,allow_nan=False),encoding="utf-8")
     print("SUMMARY",json.dumps(summary),flush=True)
