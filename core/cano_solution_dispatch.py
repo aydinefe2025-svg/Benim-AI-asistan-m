@@ -113,6 +113,13 @@ def infer_code_goal(message, history):
     ):
         return SELF_DEVELOPMENT_GOAL
 
+    # Explicit owner self-development phrasing, not an ordinary research request.
+    if re.fullmatch(
+        r"(?:dostum |canom )?(?:su )?cano'?yu istedigim kivama getir(?: artik)?",
+        normalized.rstrip("!."),
+    ):
+        return SELF_DEVELOPMENT_GOAL
+
     # A user's explicit request to fix the immediately preceding *known*
     # provider error is an authorized code task, not another call to the
     # failed text model. Never turn arbitrary assistant output into commands.
