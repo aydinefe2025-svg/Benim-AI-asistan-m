@@ -710,8 +710,9 @@ jobs:
           p.write_text(s)
           PY
           git diff -- src/z4c/matter_sources.cpp src/pgen/gr_rns.cpp > ../evidence/current_matter_source.patch
-          # Test non-cascading linear extrapolation of spacetime ghost fields only.
-          # Previous high-order extrapolation failed positive determinant at a corner.
+          # Test bounded quadratic face extrapolation of spacetime ghosts only.
+          # Keep proven linear fill in tangential ghost/corner cells. Same native
+          # radiative RHS, hydro boundary, initial projection and physical gates.
           python3 - <<'PY'
           from pathlib import Path
           p=Path('src/comm/physical_bcs.cpp')
@@ -723,8 +724,15 @@ jobs:
                 {
                   // Start with the verified zeroth-order ghost fill.
                   OutflowBC(var, nvar, face, il, iu, jl, ju, kl, ku, ngh);
-                  const auto linear = [](Real u0, Real u1, int d) {
-                    return u0 + Real(d)*(u0-u1);
+                  const auto bounded = [](Real u0, Real u1, Real u2, int d, bool face_interior) {
+                    const Real slope=Real(d)*(u0-u1);
+                    if (!face_interior) return u0+slope;
+                    const Real bound=Real(0.5)*std::abs(slope);
+                    const Real correction=Real(0.5)*d*(d+1)*(u0-2*u1+u2);
+                    return u0+slope+std::max(-bound,std::min(bound,correction));
+                  };
+                  const auto core = [ngh](int a, int size) {
+                    return a>=ngh && a<size-ngh;
                   };
                   for (int n=0; n<nvar; ++n)
                     for (int d=1; d<=ngh; ++d) {
@@ -734,7 +742,7 @@ jobs:
                         const int i0=face==BoundaryFace::inner_x1?il:iu;
                         const int step=face==BoundaryFace::inner_x1?1:-1;
                         for(int k=kl;k<=ku;++k) for(int j=jl;j<=ju;++j)
-                          var(n,k,j,i0-step*d)=linear(var(n,k,j,i0),var(n,k,j,i0+step),d);
+                          var(n,k,j,i0-step*d)=bounded(var(n,k,j,i0),var(n,k,j,i0+step),var(n,k,j,i0+2*step),d,core(j,var.GetDim2()) && core(k,var.GetDim3()));
                         break;
                       }
                       case BoundaryFace::inner_x2:
@@ -742,7 +750,7 @@ jobs:
                         const int j0=face==BoundaryFace::inner_x2?jl:ju;
                         const int step=face==BoundaryFace::inner_x2?1:-1;
                         for(int k=kl;k<=ku;++k) for(int i=il;i<=iu;++i)
-                          var(n,k,j0-step*d,i)=linear(var(n,k,j0,i),var(n,k,j0+step,i),d);
+                          var(n,k,j0-step*d,i)=bounded(var(n,k,j0,i),var(n,k,j0+step,i),var(n,k,j0+2*step,i),d,core(i,var.GetDim1()) && core(k,var.GetDim3()));
                         break;
                       }
                       case BoundaryFace::inner_x3:
@@ -750,7 +758,7 @@ jobs:
                         const int k0=face==BoundaryFace::inner_x3?kl:ku;
                         const int step=face==BoundaryFace::inner_x3?1:-1;
                         for(int j=jl;j<=ju;++j) for(int i=il;i<=iu;++i)
-                          var(n,k0-step*d,j,i)=linear(var(n,k0,j,i),var(n,k0+step,j,i),d);
+                          var(n,k0-step*d,j,i)=bounded(var(n,k0,j,i),var(n,k0+step,j,i),var(n,k0+2*step,j,i),d,core(i,var.GetDim1()) && core(j,var.GetDim2()));
                         break;
                       }
                       default: break;
@@ -765,7 +773,7 @@ jobs:
           a='  const Sampling sampling = spec.sampling;'
           assert s.count(a)==1
           b=a+chr(10)+'  if (bc == PhysicalBC::GRSommerfeld && spec.label == "z4c_u" && sampling == Sampling::CC) bc = PhysicalBC::Outflow;'
-          p.write_text(s.replace(a,b))
+          p.write_text('#include <algorithm>\n#include <cmath>\n' + s.replace(a,b))
           PY
           git diff -- src/comm/physical_bcs.cpp > ../evidence/outer_boundary.patch
           # J0740 hydro source local geometry: same stage metric and primitives
