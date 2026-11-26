@@ -1,0 +1,64 @@
+name: J0740 archived spin and angular momentum provenance
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-archived-spin-provenance.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  archived-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Read pinned original and native archives without rerunning physics
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          gh api repos/${{ github.repository }}/actions/artifacts/15038164239/zip > F171.zip
+          gh api repos/${{ github.repository }}/actions/artifacts/15132899731/zip > PR970.zip
+          gh api repos/${{ github.repository }}/actions/artifacts/15135521652/zip > PR972.zip
+          echo 'a7770d2fb40bea0a50d2c2f7f7c60fce1ad755d53b9ccd8648c3b036dfbba77c  F171.zip' | sha256sum -c -
+          echo 'f2c78ff1b0d7df107fd6e65bd6a49d637a265abd7230fb5af379804624789d31  PR970.zip' | sha256sum -c -
+          echo '7aff4708eb5919ef61be6b77a847e7bc2ea044c6ea23770bafb64382c67bf5bb  PR972.zip' | sha256sum -c -
+          python3 - <<'PY'
+          import zipfile,json,math,pathlib
+          def member(z,name):
+              matches=[n for n in z.namelist() if pathlib.PurePosixPath(n).name==name]
+              assert len(matches)==1,(name,matches)
+              return matches[0]
+          with zipfile.ZipFile('F171.zip') as z:
+              ref=json.loads(z.read(member(z,'reference.json')))
+              with z.open(member(z,'fields.txt')) as f:
+                  h=list(map(float,f.readline().decode().lstrip('# ').split()))
+          assert len(h)==8 and all(map(math.isfinite,h))
+          C=2.99792458e10;G=6.67408e-8;MS=1.98848e33;L=G*MS/C**2
+          KAPPA=1e-15*C*C/6.673e-8
+          F=math.sqrt(KAPPA)/L
+          omega_code=h[3]/F
+          f_hz=omega_code*C/L/(2*math.pi)
+          native=ref['native']
+          assert abs(f_hz-native[3])<.01 and abs(f_hz-ref['target_spin'])<.01,(h,ref,f_hz)
+          out=dict(scope='archived source frequency and conserved angular momentum provenance only; no post-import local rotation or dynamical stability claim',source_artifact=15038164239,source_header=h,source_spin_hz=f_hz,source_native_spin_hz=native[3],observed_target_hz=ref['target_spin'],source_angular_momentum_cgs=native[4],native_runs=[])
+          for name,run in [('PR970',45851474835),('PR972',45853935890)]:
+              with zipfile.ZipFile(name+'.zip') as z:
+                  rec=json.loads(z.read(member(z,'receipt.json')))
+                  target=json.loads(z.read(member(z,'target.json')))
+              J=rec['J_initial']*G*MS**2/C
+              assert abs(J/native[4]-1)<.002,(name,J,native[4])
+              assert abs(target['target_spin_hz']-f_hz)<.01
+              out['native_runs'].append(dict(run=run,original_reported_rotation_target=rec['rotation_target'],label_mismatch=abs(rec['rotation_target']-f_hz)>.01,correct_source_spin_hz=f_hz,J_cgs=J,J_relative_error=J/native[4]-1,M0=rec['M0'],Mfinal=rec['Mfinal'],physical_gates=rec['gates'],physical_acceptance=all(rec['gates'].values())))
+          assert all(x['label_mismatch'] for x in out['native_runs'])
+          pathlib.Path('evidence/archived_spin_provenance.json').write_text(json.dumps(out,indent=2))
+          print('ARCHIVED_SPIN_PROVENANCE',json.dumps(out))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: archived-spin-provenance
+          path: evidence/
+          if-no-files-found: error
