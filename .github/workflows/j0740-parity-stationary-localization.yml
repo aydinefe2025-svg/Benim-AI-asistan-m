@@ -1,4 +1,4 @@
-name: J0740 proper-volume constraint and timestep audit
+name: J0740 polytropic exterior EOS consistency
 on:
   pull_request:
     branches: [main]
@@ -19,11 +19,6 @@ jobs:
             box: 24
             order: 2
             cfl: '0.1'
-          - n: 64
-            gauge: standard
-            box: 24
-            order: 2
-            cfl: '0.05'
     env:
       N: ${{ matrix.n }}
       GAUGE: ${{ matrix.gauge }}
@@ -106,6 +101,63 @@ jobs:
           (d/'parity.json').write_text(json.dumps(dict(before=before,after=after)))
           assert before>1e-6 and after<1e-10,(before,after)
           PY
+          # Real library regression: exterior fallback returns rho, p, and specific energy.
+          cat > evidence/atmosphere.c <<'C'
+          #include "RNS.h"
+          int main(int argc,char **argv) {
+            if(argc!=2)return 2;
+            RNS_params_set_default();
+            RNS_params_set_inputfile(argv[1]);
+            ini_data *d=RNS_make_initial_data();
+            int lo[3]={0,0,0}, n[3]={2,2,2};
+            double x[2]={40.,42.},y[2]={41.,43.},z[2]={44.,46.};
+            double rho[8],eps[8],p[8];
+            RNS_Cartesian_interpolation(d,lo,n,n,x,y,z,
+              NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+              NULL,NULL,NULL,NULL,NULL,NULL,
+              rho,eps,NULL,NULL,NULL,NULL,NULL,NULL,p);
+            int count=0; double err=0.;
+            for(int i=0;i<8;i++) {
+              if(fabs(rho[i]/1e-6-1)>1e-12)continue;
+              count++;
+              double pe=100.*rho[i]*rho[i],ee=pe/rho[i];
+              err=fmax(err,fabs(p[i]/pe-1));
+              err=fmax(err,fabs(eps[i]/ee-1));
+              if(!isfinite(p[i])||!isfinite(eps[i]))return 3;
+            }
+            printf("ATMOSPHERE_EOS %d %.17g\n",count,err);
+            RNS_finalise(d);
+            if(count==0)return 4;
+            return err<1e-8?0:42;
+          }
+          C
+          cp evidence/parity.par evidence/atmosphere.par
+          printf '%s\n' 'atm_level_rho=1e-6' >> evidence/atmosphere.par
+          gcc -std=c99 -I rnsc/include evidence/atmosphere.c -L rnsc/lib -Wl,-rpath,"$GITHUB_WORKSPACE/rnsc/lib" -lRNS -lm -o evidence/atmosphere
+          set +e
+          evidence/atmosphere evidence/atmosphere.par > evidence/atmosphere-before.log 2>&1
+          code=$?
+          set -e
+          cat evidence/atmosphere-before.log
+          test "$code" -eq 42
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('rnsc/src/RNS.c')
+          s=p.read_text()
+          a='  params_set_real("atm_level_e",e_atm);'
+          assert s.count(a)==1
+          b='''  // Use the actual exterior fallback density for the cold polytrope.
+            if (strcmp(eos_type,"poly")==0) {
+              const double floor_rho=params_get_real("atm_level_rho");
+              p_atm=eos_k*pow(floor_rho,eos_ideal_fluid_gamma);
+              e_atm=floor_rho+p_atm/(eos_ideal_fluid_gamma-1.);
+            }
+          '''
+          p.write_text(s.replace(a,b+a))
+          PY
+          git -C rnsc diff -- src/RNS.c > evidence/rnsc-atmosphere.patch
+          make -C rnsc -j2 2>&1 | tee evidence/atmosphere-rebuild.log
+          evidence/atmosphere evidence/atmosphere.par | tee evidence/atmosphere-after.log
           cd athena
           # Test non-cascading linear extrapolation of spacetime ghost fields only.
           # Previous high-order extrapolation failed positive determinant at a corner.
@@ -314,6 +366,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: rnsc-proper-norm-cfl${{ matrix.cfl }}
+          name: rnsc-atmosphere-eos-N${{ matrix.n }}
           path: evidence/
           if-no-files-found: error
