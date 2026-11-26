@@ -418,6 +418,16 @@ jobs:
           assert np.isfinite(al0) and al0>0
           op_l=LinearOperator((N**3,N**3),matvec=lambda x:lapse_op(extend(x.reshape((N,)*3)))[sl].ravel(),dtype=float)
           pre_l=LinearOperator((N**3,N**3),matvec=lambda x:poisson(x.reshape((N,)*3)).ravel(),dtype=float)
+          # Manufactured nonzero correction on the actual projected operator.
+          # Test solver closure independently of the physical RHS.
+          known=(1e-4*test).ravel()
+          synthetic_rhs=op_l@known
+          recovered,synthetic_flag=solve_gmres(op_l,synthetic_rhs,M=pre_l,restart=20,maxiter=16)
+          synthetic_residual=float(np.linalg.norm(op_l@recovered-synthetic_rhs)/np.linalg.norm(synthetic_rhs))
+          synthetic_error=float(np.linalg.norm(recovered-known)/np.linalg.norm(known))
+          assert synthetic_flag==0 and synthetic_residual<=1e-4 and synthetic_error<.01
+          (d/'maximal_lapse_operator_test.json').write_text(json.dumps(dict(flag=int(synthetic_flag),relative_residual=synthetic_residual,relative_solution_error=synthetic_error),indent=2))
+          print('MAXIMAL_LAPSE_OPERATOR_TEST',synthetic_flag,synthetic_residual,synthetic_error,flush=True)
           da,flag_l=solve_gmres(op_l,rhs_l.ravel(),M=pre_l,restart=20,maxiter=16)
           da=extend(da.reshape((N,)*3))
           alpha1=alpha0+da
