@@ -501,6 +501,48 @@ jobs:
           (d/'rnsid_cold_projection.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile='rnsid.c',tofile='rnsid.c.cold')))
           p.write_text(t)
           PY
+          # Instrument the actual native C++ source and Fortran directional update,
+          # not the unused Fortran source alternative. No change to RHS arithmetic.
+          export GR_SRC="$root/arrangements/EinsteinEvolve/GRHydro/src"
+          python3 - <<'PY'
+          import pathlib,os,hashlib,difflib
+          d=pathlib.Path('/evidence');root=pathlib.Path(os.environ['GR_SRC'])
+          specs={'GRHydro_Source.cc':'cb35f5d3d0c435b56bc43d034178ea23fdf55d99975ebc46760b663630afe501','GRHydro_CalcUpdate.F90':'6909bff4327d97778967371d792af414598b0f09fe3ab97d67ef94a94b10dc1a'}
+          # Exact hash gate for both archived files.
+          def patch(fn,old,new):
+              p=root/fn;raw=p.read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==specs[fn],fn
+              s=raw.decode();assert s.count(old)==1,(fn,s.count(old))
+              t=s.replace(old,new)
+              if fn.endswith('.cc'):
+                  t=t.replace('#include <cassert>','#include <cassert>\n#include <cstdio>\n#include <cmath>')
+              (d/(fn+'.rhs.patch')).write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile=fn,tofile=fn+'.diagnostic')))
+              p.write_text(t)
+          old='        srhs[ijk + 2*N]  = alp[ijk]*sqrtdet*sz_source;'
+          extra=r'''
+                  if (std::fabs(cctk_time)<=0.10 && std::fabs(dx-0.375)<1e-10 &&
+                      std::fabs(x[ijk])<1e-10 && std::fabs(y[ijk])<1e-10 &&
+                      z[ijk]>=0.75 && z[ijk]<=6.75) {
+                    std::printf("J0740_SRC %d %.17g %.17g %.17g %.17g %.17g %.17g %.17g %.17g\n",
+                       int(cctk_iteration),double(cctk_time),double(z[ijk]),double(rho[ijk]),
+                       double(press[ijk]),double(alp[ijk]),double(dz_alp),
+                       double(srhs[ijk+2*N]),double(sqrtdet));
+                  }'''
+          patch('GRHydro_Source.cc',old,old+extra)
+          old='            srhs(i,j,k,3) = srhs(i,j,k,3) + &\n                 (alp_l * szflux(i-xoffset,j-yoffset,k-zoffset) - &\n                 alp_r * szflux(i,j,k)) * idx'
+          extra=r'''            if (abs(cctk_time)<=0.10d0 .and. abs(CCTK_DELTA_SPACE(1)-0.375d0)<1d-10 &
+                      .and. abs(x(i,j,k))<1d-10 .and. abs(y(i,j,k))<1d-10 &
+                      .and. z(i,j,k)>=0.75d0 .and. z(i,j,k)<=6.75d0) then
+            !$OMP CRITICAL (j0740_rhs_log)
+              write(*,*) 'J0740_FLUX ', cctk_iteration,cctk_time,z(i,j,k),flux_direction, &
+                   rho(i,j,k),srhs(i,j,k,3), &
+                   (alp_l*szflux(i-xoffset,j-yoffset,k-zoffset)-alp_r*szflux(i,j,k))*idx, &
+                   atmosphere_mask(i,j,k)
+            !$OMP END CRITICAL (j0740_rhs_log)
+            endif
+          '''
+          patch('GRHydro_CalcUpdate.F90',old,extra+old)
+          PY
           make -C "$root" -j2 sim 2>&1 | tee /evidence/rebuild.log
           test -x "$exe"
           sha256sum "$exe" > /evidence/executable.sha256
@@ -570,6 +612,19 @@ jobs:
               de.extend((e[m,-1]-ep).tolist());dp.extend((p[m,-1]/pc-1).tolist())
           result['cold_initial_check']=dict(samples=len(de),negative_thermal_count=int(np.count_nonzero(np.array(de)<-1e-12)),eps_max_absolute=float(np.max(np.abs(de))),pressure_max_relative=float(np.max(np.abs(dp))))
           result['cold_initial_match']=result['cold_initial_check']['eps_max_absolute']<1e-10 and result['cold_initial_check']['pressure_max_relative']<1e-8
+          src=[];flux=[]
+          for line in log.splitlines():
+              if line.startswith('J0740_SRC '):
+                  v=line.split()[1:];assert len(v)==9
+                  src.append([float(x) for x in v])
+              elif line.lstrip().startswith('J0740_FLUX '):
+                  v=line.split()[1:];assert len(v)==8
+                  flux.append([float(x) for x in v])
+          assert src and flux,'native first-stage diagnostic missing'
+          assert all(math.isfinite(v) for row in src+flux for v in row)
+          assert {int(r[3]) for r in flux}=={1,2,3}
+          (d/'first_rhs_budget.json').write_text(json.dumps(dict(source=src,flux=flux,source_columns=['iteration','time','z','rho','p','alpha','dalpha_dz','rhs_z','sqrt_gamma'],flux_columns=['iteration','time','z','direction','rho','before_rhs_z','increment_rhs_z','atmosphere_mask']),indent=2))
+          result['first_rhs_trace']=dict(source_rows=len(src),flux_rows=len(flux),scope='actual native first-stage source and directional increments, no arithmetic changed')
           result['short_screen_pass']=result['source_match_gate'] and result['momentum_component_non_growth'] and result['atmosphere_match'] and result['cold_initial_match']
           (d/'independent.json').write_text(json.dumps(result,indent=2))
           print('NATIVE_MPA1_RESULT',json.dumps(result))
@@ -578,6 +633,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere-cold-projection
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-matched-atmosphere-cold-projection-first-rhs-budget
           path: evidence/
           if-no-files-found: error
