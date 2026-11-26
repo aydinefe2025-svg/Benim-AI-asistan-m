@@ -1,4 +1,4 @@
-name: J0740 F171 native momentum term attribution
+name: J0740 F171 discrete force balance attribution
 on:
   pull_request:
     branches: [main]
@@ -777,15 +777,42 @@ jobs:
                 return jz;
               };
               const Real j_before=j0740_j();
+              const char* force_dir=std::getenv("J0740_FORCE_DIR");
+              const bool force_trace=force_dir && pmb->pmy_mesh->time==0.0 && stage>=1;
+              std::vector<Real> force_before;
+              if(force_trace) {
+                for(int k=pmb->ks;k<=pmb->ke;++k)
+                for(int j=pmb->js;j<=pmb->je;++j)
+                for(int i=pmb->is;i<=pmb->ie;++i)
+                  for(int q=0;q<3;++q)
+                    force_before.push_back(pmb->phydro->u(IM1+q,k,j,i));
+              }
           '''
               sub=sub.replace(a,a+'\n'+body)
               a='    return TaskStatus::next;'
               assert sub.count(a)==1
               sub=sub.replace(a,r'''    std::fprintf(stderr,"J0740_J_BUDGET %.17g %d %d LABEL %.17g %.17g\n",
                   double(pmb->pmy_mesh->time),stage,pmb->gid,double(j_before),double(j0740_j()));
+              if(force_trace) {
+                const std::string file=std::string(force_dir)+"/force_"+std::to_string(stage)+"_"+std::to_string(pmb->gid)+"_LABEL.bin";
+                std::ofstream out(file,std::ios::binary);
+                size_t q=0;
+                for(int k=pmb->ks;k<=pmb->ke;++k)
+                for(int j=pmb->js;j<=pmb->je;++j)
+                for(int i=pmb->is;i<=pmb->ie;++i) {
+                  double row[9]={double(pmb->pcoord->x1v(i)),double(pmb->pcoord->x2v(j)),double(pmb->pcoord->x3v(k))};
+                  for(int n=0;n<3;++n) {
+                    row[3+n]=double(force_before[q]);
+                    row[6+n]=double(pmb->phydro->u(IM1+n,k,j,i)-force_before[q]);
+                    ++q;
+                  }
+                  out.write(reinterpret_cast<const char*>(row),sizeof(row));
+                }
+                if(!out.good()) throw std::runtime_error("force trace write failed");
+              }
           '''.replace('LABEL',label)+a)
               s=s[:start]+sub+s[end:]
-          p.write_text('#include <cstdio>\n'+s)
+          p.write_text('#include <cstdio>\n#include <fstream>\n#include <vector>\n#include <cstdlib>\n#include <string>\n#include <stdexcept>\n'+s)
           PY
           git diff -- src/task_list/gr/task_list_grmhd_z4c_monolithic.cpp > ../evidence/angular_momentum_budget.patch
           # Measure native ADM constraints after refreshed matter and geometry at each RK stage.
@@ -1119,7 +1146,8 @@ jobs:
           print('SIGNED_LAPSE_DEFECT', (d/'signed_lapse_defect.json').read_text())
           PY
           printf '%q ' ./bin/athena "${args[@]}" > "$E/command.txt"
-          ./bin/athena "${args[@]}" 2>&1 | tee "$E/native.log"
+          mkdir -p "$E/force-trace"
+          J0740_FORCE_DIR="$E/force-trace" ./bin/athena "${args[@]}" 2>&1 | tee "$E/native.log"
           grep -q 'Terminating on time limit' "$E/native.log"
           if grep -Eq 'Tau is not finite|NO_SOLUTION|INVALID_METRIC_DETERMINANT' "$E/native.log"; then exit 1; fi
           /usr/bin/python3 - <<'PY'
@@ -1215,6 +1243,31 @@ jobs:
               term_report.append(dict(t=t,calls=len(vs),inner=v[0].tolist(),outer=v[1].tolist()))
           (d/'momentum_terms.json').write_text(json.dumps(term_report,indent=2))
           print('MOMENTUM_TERMS_FIRST_LAST',json.dumps([term_report[0],term_report[-1]]))
+          force_report=[]
+          for st in (1,2,3):
+              files=sorted((d/'force-trace').glob(f'force_{st}_*_flux_and_floor.bin'))
+              assert len(files)==expected,(st,len(files))
+              totals={}
+              for f in files:
+                  base=f.name.removesuffix('_flux_and_floor.bin')
+                  read=lambda tag:np.fromfile(f.with_name(base+'_'+tag+'.bin'),dtype='<f8').reshape(-1,9)
+                  flux,src,rk0,c2p=[read(tag) for tag in ('flux_and_floor','geometry_source','rk_weight_and_floor','c2p_physical')]
+                  for arr in (src,rk0,c2p):
+                      assert np.array_equal(arr[:,:3],flux[:,:3])
+                      assert np.isfinite(arr).all()
+                  assert np.isfinite(flux).all()
+                  x,y,z=flux[:,:3].T
+                  rxy=np.hypot(x,y); rad=np.sqrt(x*x+y*y+z*z)
+                  def components(v):
+                      return np.stack([np.divide(x*v[:,0]+y*v[:,1],rxy,out=np.zeros_like(x),where=rxy>0),np.divide(-y*v[:,0]+x*v[:,1],rxy,out=np.zeros_like(x),where=rxy>0),v[:,2]],axis=1)
+                  changes={'flux':flux[:,6:], 'source':src[:,6:], 'net_flux_source':flux[:,6:]+src[:,6:], 'rk':rk0[:,6:], 'c2p':c2p[:,6:]}
+                  for region,mask in [('inner',rad<8),('outer',rad>=8)]:
+                      for name,v in changes.items():
+                          key=region+'_'+name
+                          totals[key]=totals.get(key,np.zeros(3))+np.sum(components(v)[mask]**2,axis=0)
+              force_report.append(dict(stage=st,components=['radial','azimuthal','vertical'],squared={k:v.tolist() for k,v in totals.items()}))
+          (d/'force_balance.json').write_text(json.dumps(force_report,indent=2))
+          print('FORCE_BALANCE',json.dumps(force_report))
           # First-step raw operator budgets: RHS and actual state increments
           # have different dimensions; never compare them as a constraint norm.
           op=collections.defaultdict(dict)
@@ -1284,7 +1337,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-quadratic-ghost-N${{ matrix.n }}-kappa${{ matrix.kappa }}
+          name: j0740-force-balance-N${{ matrix.n }}-kappa${{ matrix.kappa }}
           path: |
             evidence/*.log
             evidence/lapse-pilot/signed_*.txt
