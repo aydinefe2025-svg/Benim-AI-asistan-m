@@ -1,0 +1,39 @@
+name: J0740 archived longitudinal constraint correction
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-longitudinal-projection.yml','research/j0740/longitudinal_projection.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  projection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify source and discrete adjoints
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p source evidence
+          python3 -m pip install numpy scipy h5py
+          PYTHONPATH=research/j0740 python3 -c 'from longitudinal_projection import tests; tests()'
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15177726961/zip > source.zip
+          echo 'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073  source.zip' | sha256sum -c -
+          sha256sum source.zip > evidence/source.sha256
+          unzip -tq source.zip
+          unzip -q source.zip '*.xyz.h5' -d source
+      - name: Test exact discrete longitudinal momentum correction
+        run: python3 research/j0740/longitudinal_projection.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-longitudinal-projection
+          path: evidence/
+          if-no-files-found: error
