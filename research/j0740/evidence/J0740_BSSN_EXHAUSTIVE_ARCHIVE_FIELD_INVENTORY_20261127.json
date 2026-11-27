@@ -1,0 +1,114 @@
+{
+  "evidence_id": "j0740.bssn.archive-exhaustive-field-inventory.20261127.v1",
+  "date": "2026-11-27",
+  "source": {
+    "repository": "aydinefe2025-svg/Benim-AI-asistan-m",
+    "pull_request": 1015,
+    "branch": "science/j0740-coupled-conformal-constraint-candidate-20261127",
+    "commit": "32ec48403a80c2838825eee4ee029404abb67b30",
+    "merge_commit_tested": "3b09ee785bcd420f4ad23911e6e6b3371686d789",
+    "immutable_archive_artifact": 15177726961,
+    "archive_sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073"
+  },
+  "method": {
+    "inventory": "all source/**/*.xyz.h5 field files, no expected-name prefilter; keys at iterations 0 and 128, refinement level 2",
+    "exhaustive": true,
+    "field_file_count": 27,
+    "dataset_key_count": 54,
+    "field_files": [
+      "H",
+      "M1",
+      "M2",
+      "M3",
+      "alp",
+      "betax",
+      "betay",
+      "betaz",
+      "dens",
+      "eps",
+      "gxx",
+      "gxy",
+      "gxz",
+      "gyy",
+      "gyz",
+      "gzz",
+      "kxx",
+      "kxy",
+      "kxz",
+      "kyy",
+      "kyz",
+      "kzz",
+      "press",
+      "rho",
+      "vel[0]",
+      "vel[1]",
+      "vel[2]"
+    ],
+    "previously_omitted_fields": [
+      "alp",
+      "betax",
+      "betay",
+      "betaz",
+      "dens"
+    ],
+    "additional_ml_bssn_fields": [],
+    "limitation": "Exhaustive only for archived .xyz.h5 field files; no claim about other archive members."
+  },
+  "result": {
+    "run": 45999762355,
+    "job": 140508099643,
+    "result_artifact": 15197637160,
+    "result_artifact_zip_sha256": "48d877100b5d160c2e188bbeba5a941d0586e8706a9ff63da6b0c32f66049703",
+    "candidate_solver_run": false,
+    "iteration_128_trim4": {
+      "all_valid": {
+        "points": 123039,
+        "raw_relative_mismatch": 1.0516727612265737,
+        "bssn_metric_gamma_raw_relative_mismatch": 1.0533332316435824,
+        "bssn_metric_gamma_best_scaled_mismatch": 0.9688730338831147,
+        "matter_term_best_fit_coefficient": 0.9990864575618504
+      },
+      "dense": {
+        "points": 8708,
+        "raw_relative_mismatch": 1.0076363712646774,
+        "bssn_metric_gamma_raw_relative_mismatch": 1.0146772299759017,
+        "bssn_metric_gamma_best_scaled_mismatch": 0.9273164861719772,
+        "matter_term_best_fit_coefficient": 0.9990864391519213
+      },
+      "near_surface": {
+        "points": 1401,
+        "raw_relative_mismatch": 1.9868630005186512,
+        "bssn_metric_gamma_raw_relative_mismatch": 1.8902984738536128,
+        "bssn_metric_gamma_best_scaled_mismatch": 1.8272256855808344,
+        "matter_term_best_fit_coefficient": 36.886207048561076
+      },
+      "far_atmosphere": {
+        "points": 112930,
+        "raw_relative_mismatch": 4.644045393899158,
+        "bssn_metric_gamma_raw_relative_mismatch": 4.459212654036407,
+        "bssn_metric_gamma_best_scaled_mismatch": 4.453180021311499,
+        "matter_term_best_fit_coefficient": -80810.40434216218
+      }
+    }
+  },
+  "tests": {
+    "core_run": 45999762396,
+    "ubuntu": {
+      "job": 140508099806,
+      "status": "success"
+    },
+    "windows": {
+      "job": 140508100584,
+      "status": "success"
+    },
+    "archive_audit_run": 45999762355,
+    "status": "success"
+  },
+  "status": {
+    "archive_HDF5_field_inventory": "PASS",
+    "native_H_exact_reproduction": "NOT_ESTABLISHED",
+    "candidate_solver_or_evolution": "NOT_RUN",
+    "dynamical_stability": "NOT_ESTABLISHED",
+    "EOS_Bayes": "NOT_RUN"
+  }
+}
