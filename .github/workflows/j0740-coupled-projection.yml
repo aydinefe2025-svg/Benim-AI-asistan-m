@@ -101,7 +101,7 @@ jobs:
                               provenance_walk(val,prefix+'['+str(index)+']')
                   provenance_walk(obj)
                   provenance_metadata['formaline_jar']={'member':fm.filename,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'source_identity_fields':found}
-                    binary_candidates=[]
+          binary_candidates=[]
           with zipfile.ZipFile('source.zip') as zb:
               for item in members:
                   with zb.open(item) as stream:
