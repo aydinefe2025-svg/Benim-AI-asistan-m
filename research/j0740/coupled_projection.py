@@ -114,6 +114,25 @@ def bssn_reconstructed_ricci_scalar(geo):
     grad2=sum(ci[...,i,j]*dphi[i]*dphi[j] for i in range(3) for j in range(3))
     rphi=-2*hess-2*conformal*lapphi[...,None,None]+4*np.einsum('...i,...j->...ij',np.stack(dphi,axis=-1),np.stack(dphi,axis=-1))-4*conformal*grad2[...,None,None]
     return np.exp(-4*phi)*contract(ci,rbar+rphi)
+def bssn_general_metric_equivalence_controls():
+    # Independent identity check: conformal BSSN Ricci vs direct physical
+    # metric Ricci for a smooth, non-conformally-flat unit-determinant metric.
+    errors=[]
+    for n in (17,33):
+        h=2*np.pi/n;c=np.arange(n)*h
+        zz,yy,xx=np.meshgrid(c,c,c,indexing='ij')
+        u=.025*np.sin(xx)*np.cos(yy)
+        phi=.018*np.cos(zz)+.007*np.sin(xx+yy)
+        cb=np.zeros(u.shape+(3,3))
+        cb[...,0,0]=np.exp(2*u);cb[...,1,1]=np.exp(-2*u);cb[...,2,2]=1.
+        gp=np.exp(4*phi)[...,None,None]*cb
+        geo=Geometry(gp,[h]*3)
+        direct=ricci_scalar(geo)
+        reconstructed=bssn_reconstructed_ricci_scalar(geo)
+        errors.append(float(np.linalg.norm(reconstructed-direct)/max(np.linalg.norm(direct),1e-30)))
+    ratio=errors[0]/max(errors[1],1e-30)
+    assert errors[1]<errors[0] and ratio>3,(errors,ratio)
+    print('BSSN_GENERAL_METRIC_EQUIVALENCE',json.dumps({'relative_errors_n17_n33':errors,'refinement_ratio':ratio}),flush=True)
 def bssn_scalar_controls():
     errs=[]
     for n in (17,33):
