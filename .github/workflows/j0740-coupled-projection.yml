@@ -49,23 +49,24 @@ jobs:
                           datasets=[]
                           h.visititems(lambda k,o: datasets.append({'key':k,'shape':list(o.shape),'dtype':str(o.dtype)}) if isinstance(o,h5py.Dataset) else None)
                       detail.append({'name':i.filename,'datasets':datasets})
-          source_tar=next((i for i in members if pathlib.PurePosixPath(i.filename).name=='Cactus-source-ML_BSSN.tar.gz'),None)
-          source_scan={'found':source_tar is not None,'archive_member':source_tar.filename if source_tar else None,'uncompressed_bytes':source_tar.file_size if source_tar else None,'matching_source_files':[]}
-          if source_tar and source_tar.file_size<=200_000_000:
-              with z.open(source_tar) as packed:
-                  with tarfile.open(fileobj=packed,mode='r|gz') as tar:
-                      for member in tar:
-                          if not member.isfile() or member.size>8_000_000 or pathlib.PurePosixPath(member.name).suffix.lower() not in ('.c','.cc','.cpp','.h','.f','.f90','.inc','.m4'):
-                              continue
-                          stream=tar.extractfile(member)
-                          raw=stream.read() if stream else b''
-                          text=raw.decode('utf-8','replace')
-                          hits=[]
-                          for no,line in enumerate(text.splitlines(),1):
-                              if re.search(r'(?i)hamiltonian|ml_ham|constraint',line):
-                                  hits.append({'line':no,'text':line.strip()[:240]})
-                                  if len(hits)>=4:break
-                          if hits:source_scan['matching_source_files'].append({'path':member.name,'bytes':member.size,'sha256':hashlib.sha256(raw).hexdigest(),'matches':hits})
+          with zipfile.ZipFile('source.zip') as zsource:
+              source_tar=next((i for i in members if pathlib.PurePosixPath(i.filename).name=='Cactus-source-ML_BSSN.tar.gz'),None)
+              source_scan={'found':source_tar is not None,'archive_member':source_tar.filename if source_tar else None,'uncompressed_bytes':source_tar.file_size if source_tar else None,'matching_source_files':[]}
+              if source_tar and source_tar.file_size<=200_000_000:
+                  with zsource.open(source_tar) as packed:
+                      with tarfile.open(fileobj=packed,mode='r|gz') as tar:
+                          for member in tar:
+                              if not member.isfile() or member.size>8_000_000 or pathlib.PurePosixPath(member.name).suffix.lower() not in ('.c','.cc','.cpp','.h','.f','.f90','.inc','.m4'):
+                                  continue
+                              stream=tar.extractfile(member)
+                              raw=stream.read() if stream else b''
+                              text=raw.decode('utf-8','replace')
+                              hits=[]
+                              for no,line in enumerate(text.splitlines(),1):
+                                  if re.search(r'(?i)hamiltonian|ml_ham|constraint',line):
+                                      hits.append({'line':no,'text':line.strip()[:240]})
+                                      if len(hits)>=4:break
+                              if hits:source_scan['matching_source_files'].append({'path':member.name,'bytes':member.size,'sha256':hashlib.sha256(raw).hexdigest(),'matches':hits})
           result={'archive_member_count':len(members),'xyz_hdf5_member_count':len(xyz),'non_xyz_hdf5_member_count':len(non_xyz),'non_xyz_hdf5_suffix_counts':dict(sorted(suffixes.items())),'non_xyz_hdf5_names_matching_gamma_bssn_checkpoint_restart':interesting,'additional_hdf5_member_count':len(extra_h5),'additional_hdf5_uncompressed_bytes':sum(i['bytes'] for i in extra_h5),'additional_hdf5_members':extra_h5,'additional_hdf5_dataset_metadata_inspected':len(detail)==len(extra_h5),'additional_hdf5_dataset_metadata':detail,'bundled_ml_bssn_source_scan':source_scan}
           pathlib.Path('evidence/source_zip_inventory.json').write_text(json.dumps(result,indent=2))
           print('SOURCE_ZIP_MEMBER_INVENTORY',json.dumps(result,sort_keys=True),flush=True)
