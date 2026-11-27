@@ -192,17 +192,43 @@ def main():
         E,S,q,v2=source(g,rho,eps,press,v)
         R=ricci_scalar(geo);H=R+geo.hterm(K)-16*np.pi*E
         stencil_audit={}
-        for trim,vm0 in valid_by_trim.items():
-            vm=vm0&(z>=-1e-10)
-            regions={'all_valid':vm,'dense':vm&dense,'near_surface':vm&near&~dense,'far_atmosphere':vm&~near}
-            stencil_audit[str(trim)]={}
-            for region,mm in regions.items():
-                hn=float(np.sqrt(np.mean(Hnative[mm]**2))) if np.any(mm) else None
-                hi=float(np.sqrt(np.mean(H[mm]**2))) if np.any(mm) else None
-                rel=float(np.linalg.norm((H-Hnative)[mm])/max(np.linalg.norm(Hnative[mm]),1e-30)) if np.any(mm) else None
-                stencil_audit[str(trim)][region]={'points':int(mm.sum()),'independent_H_rms':hi,'archived_native_H_rms':hn,'relative_mismatch':rel}
+        for t,gt,Kt in ((0,geo0,K0),(128,geo,K)):
+            rt,et,pt=[get(f,t) for f in ('rho','eps','press')]
+            vt=np.stack([get(f'vel[{i}]',t) for i in range(3)],axis=-1)
+            Et,_,_,_=source(gt.g,rt,et,pt,vt)
+            Ht=ricci_scalar(gt)+gt.hterm(Kt)-16*np.pi*Et
+            Hnt=get('H',t)
+            snapshots={}
+            for trim in ((3,4,5) if t==128 else (4,5)):
+                vm=valid_by_trim[trim]&(z>=-1e-10)
+                regions={'all_valid':vm,'dense':vm&dense,'near_surface':vm&near&~dense,'far_atmosphere':vm&~near}
+                snapshots[str(trim)]={}
+                for region,mm in regions.items():
+                    if not np.any(mm):
+                        snapshots[str(trim)][region]={'points':0}
+                        continue
+                    hi=Ht[mm];hn=Hnt[mm]
+                    hi_norm=float(np.linalg.norm(hi));hn_norm=float(np.linalg.norm(hn))
+                    dot=float(np.dot(hi,hn));den=max(hn_norm**2,1e-60)
+                    alpha=dot/den
+                    snapshots[str(trim)][region]={
+                        'points':int(mm.sum()),
+                        'independent_H_rms':float(np.sqrt(np.mean(hi**2))),
+                        'archived_native_H_rms':float(np.sqrt(np.mean(hn**2))),
+                        'raw_relative_mismatch':float(np.linalg.norm(hi-hn)/max(hn_norm,1e-30)),
+                        'best_fit_native_scale':alpha,
+                        'shape_correlation':dot/max(hi_norm*hn_norm,1e-60),
+                        'best_scaled_relative_mismatch':float(np.linalg.norm(hi-alpha*hn)/max(hn_norm,1e-30))}
+            common=valid_by_trim[5]&(z>=-1e-10)
+            hc=Ht[common];nc=Hnt[common];dn=max(float(np.linalg.norm(nc))**2,1e-60)
+            ac=float(np.dot(hc,nc)/dn)
+            snapshots['common_trim5']={'points':int(common.sum()),'best_fit_native_scale':ac,'shape_correlation':float(np.dot(hc,nc)/max(float(np.linalg.norm(hc)*np.linalg.norm(nc)),1e-60)),'raw_relative_mismatch':float(np.linalg.norm(hc-nc)/max(float(np.linalg.norm(nc)),1e-30)),'best_scaled_relative_mismatch':float(np.linalg.norm(hc-ac*nc)/max(float(np.linalg.norm(nc)),1e-30))}
+            stencil_audit[str(t)]=snapshots
         common=valid_by_trim[5]&(z>=-1e-10)
-        stencil_audit['common_trim5']={'points':int(common.sum()),'relative_mismatch':float(np.linalg.norm((H-Hnative)[common])/max(np.linalg.norm(Hnative[common]),1e-30))}
+        stencil_audit['trim3_trim4_contamination_factor']={
+            'trim3_independent_H_rms':stencil_audit['128']['3']['all_valid']['independent_H_rms'],
+            'trim4_independent_H_rms':stencil_audit['128']['4']['all_valid']['independent_H_rms'],
+            'rms_ratio_trim3_to_trim4':stencil_audit['128']['3']['all_valid']['independent_H_rms']/stencil_audit['128']['4']['all_valid']['independent_H_rms']}
         tr=contract(geo.gi,K);A=K-g*tr[...,None,None]/3
         Amix=np.einsum('...ij,...jk->...ik',geo.gi,A);A2=np.einsum('...ij,...ji->...',Amix,Amix)
         C=-6*geo.mom(A)-32*np.pi*S/(1-v2)[...,None]
