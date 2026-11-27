@@ -97,8 +97,38 @@ def scalar_controls():
         errors.append(float(np.linalg.norm(R-exact)/np.linalg.norm(exact)))
     assert errors[1]<errors[0]/8,errors
     print('COUPLED_SCALAR_CONTROLS',errors,flush=True)
+def dd(a,i,j,h):
+    if i!=j:return d(d(a,i,h),j,h)
+    ax=2-i
+    return (-np.roll(a,-2,ax)+16*np.roll(a,-1,ax)-30*a+16*np.roll(a,1,ax)-np.roll(a,2,ax))/(12*h[i]**2)
+def direct_ricci(geo):
+    g,gi,ch,h=geo.g,geo.gi,geo.ch,geo.h
+    dg=[d(g,i,h) for i in range(3)]
+    di=[-np.einsum('...ia,...ab,...bj->...ij',gi,q,gi) for q in dg]
+    low=np.einsum('...lk,...kij->...lij',g,ch)
+    r=np.zeros(g.shape)
+    for i in range(3):
+        for j in range(3):
+            for k in range(3):
+                for l in range(3):
+                    r[...,i,j]+=di[k][...,k,l]*low[...,l,i,j]-di[j][...,k,l]*low[...,l,i,k]
+                    r[...,i,j]+=.5*gi[...,k,l]*(dd(g[...,l,j],k,i,h)+dd(g[...,l,i],k,j,h)-dd(g[...,i,j],k,l,h)-dd(g[...,l,k],j,i,h)-dd(g[...,l,i],j,k,h)+dd(g[...,i,k],j,l,h))
+    r+=np.einsum('...l,...lij->...ij',geo.tc,ch)-np.einsum('...kjl,...lik->...ij',ch,ch)
+    return contract(gi,r)
+def ricci_controls():
+    errors=[]
+    for n in (17,33):
+        h=2*np.pi/n;c=np.arange(n)*h
+        z,y,x=np.meshgrid(c,c,c,indexing='ij');u=.01*np.sin(x)*np.cos(y)*np.cos(z)
+        g=np.exp(4*u)[...,None,None]*np.eye(3)
+        du2=.0001*(np.cos(x)**2*np.cos(y)**2*np.cos(z)**2+np.sin(x)**2*np.sin(y)**2*np.cos(z)**2+np.sin(x)**2*np.cos(y)**2*np.sin(z)**2)
+        exact=np.exp(-4*u)*(24*u-8*du2)
+        v=direct_ricci(Geometry(g,[h]*3))
+        errors.append(float(np.linalg.norm(v-exact)/np.linalg.norm(exact)))
+    assert errors[1]<errors[0]/8,errors
+    print('DIRECT_RICCI_CONTROLS',errors,flush=True)
 def main():
-    tests();scalar_controls()
+    tests();scalar_controls();ricci_controls()
     expected={'gxx','gxy','gxz','gyy','gyz','gzz','kxx','kxy','kxz','kyy','kyz','kzz','rho','eps','press','vel[0]','vel[1]','vel[2]','H','M1','M2','M3'}
     fields={}
     for path in pathlib.Path('source').rglob('*.xyz.h5'):
@@ -112,7 +142,7 @@ def main():
                 k=(n,int(m[1]),m[2]);assert k not in fields,k
                 fields[k]=(obj[...],np.array(obj.attrs['origin'],float),np.array(obj.attrs['delta'],float))
             f.visititems(visit)
-    report={'scope':'offline coupled conformal metric and longitudinal curvature correction, no evolution or certification','artifact':15177726961,'patches':[]}
+    report={'scope':'archived native Hamiltonian compared with nested and direct fourth-order ADM curvature operators; no projection or certification','artifact':15177726961,'patches':[]}
     for patch in sorted({p for _,_,p in fields}):
         if not all((n,t,patch) in fields for n in expected for t in (0,128)):continue
         r0,o,h=fields['rho',0,patch];shape=r0.shape
@@ -139,110 +169,23 @@ def main():
         for ax in range(3):near|=np.roll(dense,1,ax)|np.roll(dense,-1,ax)
         masks={'inner':valid&dense&(r0>.5*r0.max()),'outer_fluid':valid&dense&(r0<=.5*r0.max()),'surface_atmosphere':valid&near&~dense,'far_atmosphere':valid&~near}
         assert all(np.any(m) for m in masks.values())
-        # Force reflection symmetry and compact support of the vector potential.
-        active=np.zeros(shape,bool);active[5:-5,5:-5,5:-5]=True
-        # Include equatorial plane when ghost depth is <5, but never upper/lateral boundaries.
-        active[:,:,:]=False;active[:,5:-5,5:-5]=True;active[-5:]=False
-        active&=(z>=-1e-10)&(rad<11.5)
-        taper=np.clip((11.5-rad)/1.5,0,1)
-        parity=np.array([1.,1.,-1.])
-        zline=z[:,0,0];pairs=[]
-        for iz in np.where(zline< -1e-10)[0]:
-            j=int(round((-zline[iz]-o[2])/h[2]))
-            if 0<=j<len(zline) and abs(zline[j]+zline[iz])<1e-9:pairs.append((iz,j))
-        assert pairs and active.sum()>0
-        eq=abs(z)<1e-10
-        def extend(a):
-            X=np.zeros(shape+(3,));X[active]=a.reshape((-1,3))*taper[active,None];X[...,2][eq]=0
-            for i,j in pairs:X[i]=X[j]*parity
-            return X
-        def restrict(X):
-            X=X.copy()
-            for i,j in pairs:X[j]+=X[i]*parity
-            X[...,2][eq]=0
-            return (X[active]*taper[active,None]).ravel()
-        N=int(active.sum())*3;Q=int(active.sum());P=int(valid.sum())
-        def extend_scalar(a):
-            u=np.zeros(shape);u[active]=a*taper[active]
-            for i,j in pairs:u[i]=u[j]
-            return u
-        def restrict_scalar(u):
-            u=u.copy()
-            for i,j in pairs:u[j]+=u[i]
-            return u[active]*taper[active]
-        Hnative=get('H',128)
-        rho,eps,press=[get(f,128) for f in ('rho','eps','press')]
-        v=np.stack([get(f'vel[{i}]',128) for i in range(3)],axis=-1)
-        g=geo.g
-        E,S,q,v2=source(g,rho,eps,press,v)
-        R=ricci_scalar(geo);H=R+geo.hterm(K)-16*np.pi*E
-        tr=contract(geo.gi,K);A=K-g*tr[...,None,None]/3
-        Amix=np.einsum('...ij,...jk->...ik',geo.gi,A);A2=np.einsum('...ij,...ji->...',Amix,Amix)
-        C=-6*geo.mom(A)-32*np.pi*S/(1-v2)[...,None]
-        V=-4*R+12*A2-64*np.pi*q*v2/(1-v2)
-        grad=geo.hgrad(K);lap,lapadj=lap_ops(geo)
-        def rms(a,m):return np.sqrt(np.mean(a[m]**2,axis=0))
-        wm=np.zeros(shape+(3,));wh=np.zeros(shape)
-        base={}
-        for name,m in masks.items():
-            n=int(m.sum())
-            b={'points':n,'initial_M_rms':rms(M0,m).tolist(),'pre_M_rms':rms(M,m).tolist(),'pre_H_rms':float(rms(H,m)),'pre_native_H_rms':float(rms(Hnative,m)),'native_H_relative_mismatch':float(np.linalg.norm((H-Hnative)[m])/max(np.linalg.norm(Hnative[m]),1e-30))}
-            base[name]=b
-            wm[m]=1/(np.sqrt(n)*np.maximum(b['initial_M_rms'],3e-7))
-            wh[m]=1/(np.sqrt(n)*max(b['pre_H_rms'],1e-7))
-        def op(lam):
-            def forward(a):
-                dk=geo.long(extend(a[:N]));u=extend_scalar(a[N:])
-                mv=geo.mom(dk)+C*u[...,None]
-                hv=contract(grad,dk)-8*lap(u)+V*u
-                return np.r_[(wm*mv)[valid].ravel(),(lam*wh*hv)[valid]]
-            def adjoint(a):
-                mm=np.zeros(shape+(3,));hh=np.zeros(shape)
-                mm[valid]=a[:3*P].reshape(-1,3);hh[valid]=a[3*P:]
-                mm*=wm;hh*=lam*wh
-                xv=restrict(geo.long_adj(geo.mom_adj(mm)+hh[...,None,None]*grad))
-                uv=restrict_scalar(np.sum(C*mm,axis=-1)-8*lapadj(hh)+V*hh)
-                return np.r_[xv,uv]
-            return LinearOperator((4*P,N+Q),matvec=forward,rmatvec=adjoint,dtype=float)
-        rng=np.random.default_rng(69)
-        O=op(10.);a=rng.normal(size=N+Q);b=rng.normal(size=4*P)
-        err=check_adj(np.dot(O@a,b),np.dot(a,O.rmatvec(b)),'coupled actual adjoint')
-        row={'patch':patch,'actual_adjoint_error':err,'active_points':Q,'valid_points':P,'baseline':base,'candidates':[]}
-        wt=np.where(abs(z)<1e-10,1.,2.)*np.prod(h)
-        def mass_j(g,sourceS,sourcev2):
-            sg=np.sqrt(np.linalg.det(g))
-            D=sg*rho/np.sqrt(1-sourcev2)
-            J=sg*(x*sourceS[...,1]-y*sourceS[...,0])
-            return float(np.sum(wt[valid]*D[valid])),float(np.sum(wt[valid]*J[valid]))
-        mass0,j0=mass_j(g,S,v2)
-        for lam in (10.,100.):
-            O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
-            sol=lsmr(O,target,damp=.01,atol=1e-7,btol=1e-7,maxiter=160)
-            dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
-            for scale in (1.,.5,.25):
-                uu=scale*u;aa=A+scale*dk
-                if np.max(abs(uu))>.05:
-                    row['candidates'].append({'lambda_H':lam,'scale':scale,'rejected':'conformal perturbation exceeds bound'});continue
-                G=g*np.exp(4*uu)[...,None,None]
-                Kp=np.exp(-2*uu)[...,None,None]*aa+G*tr[...,None,None]/3
-                gp=Geometry(G,h)
-                Ep,Sp,qp,vp2=source(G,rho,eps,press,v)
-                Hp=ricci_scalar(gp)+gp.hterm(Kp)-16*np.pi*Ep
-                Mp=gp.mom(Kp)-8*np.pi*Sp
-                Hpnative_est=Hnative+Hp-H
-                mass,j=mass_j(G,Sp,vp2)
-                reg={}
+        row={'patch':patch,'times':{}}
+        for t,G,C in [(0,geo0,K0),(128,geo,K)]:
+            v=np.stack([get(f'vel[{i}]',t) for i in range(3)],axis=-1)
+            E,_,_,_=source(G.g,get('rho',t),get('eps',t),get('press',t),v)
+            R0=ricci_scalar(G);R1=direct_ricci(G)
+            h0=R0+G.hterm(C)-16*np.pi*E;h1=R1+G.hterm(C)-16*np.pi*E;native=get('H',t)
+            out={}
+            for trim in (4,6):
+                inside=np.zeros(shape,bool);inside[trim:-trim,trim:-trim,trim:-trim]=True
                 for name,m in masks.items():
-                    b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
-                    reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30)}
-                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'residual_norm':float(sol[3]),'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
-                row['candidates'].append(candidate)
-                print('COUPLED_CANDIDATE',json.dumps(candidate,allow_nan=False),flush=True)
-        row['any_coupled_improvement']=any(c.get('all_M_improved') and c.get('all_H_improved') for c in row['candidates'])
-        row['any_initial_M_and_H_gate']=any(c.get('all_M_below_initial') and c.get('all_H_improved') for c in row['candidates'])
+                    m=m&inside
+                    if not m.any():continue
+                    def rms(a):return float(np.sqrt(np.mean(a[m]**2)))
+                    out[f'{name}_trim{trim}']={'points':int(m.sum()),'native_H':rms(native),'nested_H':rms(h0),'direct_H':rms(h1),'nested_error':rms(h0-native),'direct_error':rms(h1-native),'ricci_difference':rms(R1-R0)}
+            row['times'][str(t)]=out
         report['patches'].append(row)
     assert report['patches']
-    report['physical_stability_certified']=False
-    pathlib.Path('evidence/coupled_projection.json').write_text(json.dumps(report,indent=2,allow_nan=False))
-    print('COUPLED_RESULT',json.dumps(report,allow_nan=False),flush=True)
+    pathlib.Path('evidence/hamiltonian_operator_audit.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+    print('HAMILTONIAN_OPERATOR_AUDIT',json.dumps(report,allow_nan=False),flush=True)
 if __name__=='__main__':main()
