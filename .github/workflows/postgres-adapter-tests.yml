@@ -24,6 +24,16 @@ on:
       - "scripts/check_postgres_task_store.py"
       - "tests/test_postgres_memory.py"
       - "tests/test_postgres_smoke_safety.py"
+      - "scripts/check_cano_restricted_snapshot_role.py"
+      - "scripts/check_cano_snapshot_rls.py"
+      - "scripts/check_cano_memory_task_rls.py"
+      - "scripts/check_cano_authorized_queue_rls.py"
+      - "scripts/check_cano_local_grant_rls.py"
+      - "scripts/cano_owner_rls_candidate.sql"
+      - "scripts/check_cano_production_role_matrix.py"
+      - "scripts/cano_local_grant_owner_resolver.sql"
+      - "scripts/provision_ci_local_grant_resolver.py"
+      - "core/postgres_local_grant.py"
       - "requirements-persistence.txt"
       - ".github/workflows/postgres-adapter-tests.yml"
   workflow_dispatch:
@@ -88,6 +98,35 @@ jobs:
           CANO_CI_ALLOW_DISPOSABLE_DB: "1"
         run: python -m scripts.check_cano_pg_backup_roundtrip
 
+      - name: Verify real restricted snapshot runtime without schema CREATE
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_restricted_snapshot_role
+      - name: Verify actual snapshot adapter under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_snapshot_rls
+      - name: Verify actual memory and task adapters under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_memory_task_rls
+      - name: Verify actual authorized queue under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_authorized_queue_rls
+      - name: Provision narrow local capability resolver in disposable CI
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.provision_ci_local_grant_resolver
+      - name: Verify local HTTP capability under synthetic queue RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_local_grant_rls
+      - name: Verify candidate production role matrix with dedicated synthetic logins
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_production_role_matrix
+
   pg18-backup-restore:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -123,3 +162,32 @@ jobs:
           CANO_CI_ALLOW_DISPOSABLE_DB: "1"
           CANO_CI_PG_MAJOR: "18"
         run: python -m scripts.check_cano_pg_backup_roundtrip
+
+      - name: Verify real restricted snapshot runtime without schema CREATE
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_restricted_snapshot_role
+      - name: Verify actual snapshot adapter under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_snapshot_rls
+      - name: Verify actual memory and task adapters under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_memory_task_rls
+      - name: Verify actual authorized queue under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_authorized_queue_rls
+      - name: Provision narrow local capability resolver in disposable CI
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.provision_ci_local_grant_resolver
+      - name: Verify local HTTP capability under synthetic queue RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_local_grant_rls
+      - name: Verify candidate production role matrix with dedicated synthetic logins
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_production_role_matrix
