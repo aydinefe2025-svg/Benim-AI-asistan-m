@@ -1,0 +1,121 @@
+name: J0740 native projection handoff checkpoint identity
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-native-projection-handoff.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  checkpoint-identity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '2'
+    steps:
+      - name: Verify three immutable source artifacts and prepare isolated native engine
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/checkpoints evidence/run source engine candidate
+          gh api repos/${{ github.repository }}/actions/artifacts/15177726961/zip > source.zip
+          gh api repos/${{ github.repository }}/actions/artifacts/15222698787/zip > engine.zip
+          gh api repos/${{ github.repository }}/actions/artifacts/15234986640/zip > candidate.zip
+          printf '%s\n' 'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073  source.zip' '659f80b0c12d13a322abe97d2724eda394dc0219e4f20f816b94c21e02f16f6a  engine.zip' 'd440b5e93f6206d61bb3dc0fe8476b9bea96c24d3949507a672a8ef03e77f9b4  candidate.zip' > evidence/input.sha256
+          sha256sum -c evidence/input.sha256
+          unzip -tq source.zip
+          unzip -tq engine.zip
+          unzip -tq candidate.zip
+          unzip -q source.zip 'run/*.xyz.h5' -d source
+          unzip -q source.zip control.par model_rnsid_crust.rns mpa1_eos_omni_fixed.dat image-digest.txt -d evidence
+          unzip -q engine.zip -d engine
+          (cd engine && sha256sum -c SHA256SUMS)
+          cmp evidence/image-digest.txt engine/image-digest.txt
+          cmp evidence/model_rnsid_crust.rns engine/model_rnsid_crust.rns
+          cmp evidence/mpa1_eos_omni_fixed.dat engine/mpa1_eos_omni_fixed.dat
+          cp engine/cactus_sim evidence/cactus_sim
+          chmod +x evidence/cactus_sim
+          unzip -q candidate.zip mixture_0.31863476.npz coupled_projection.json -d candidate
+          python3 -m pip install numpy h5py
+          python3 - <<'PY'
+          import pathlib, re, json, numpy as np
+          d=pathlib.Path('evidence');p=(d/'control.par').read_text()
+          a=np.load('candidate/mixture_0.31863476.npz',allow_pickle=False)
+          r=json.loads(pathlib.Path('candidate/coupled_projection.json').read_text())
+          assert r['patches'][0]['any_interior_mixture_passes_residual_gate']
+          assert int(a['iteration'])==128 and a['vector'].shape==(4*int(a['active'].sum()),)
+          assert np.isfinite(a['vector']).all() and np.isfinite(a['taper']).all()
+          vals={'Cactus::cctk_final_time':'0.09375','IO::out_dir':'"/evidence/run"','CarpetIOHDF5::out3D_every':'128','ML_BSSN::other_timelevels':'3','CarpetIOHDF5::checkpoint':'yes','IO::checkpoint_on_terminate':'yes','IO::checkpoint_dir':'"/evidence/checkpoints"','IO::checkpoint_file':'"checkpoint"','IO::recover':'"no"','IO::recover_and_remove':'no','IO::checkpoint_keep':'2'}
+          for key,val in vals.items():
+              p,n=re.subn(r'^\s*'+re.escape(key)+r'\s*=.*$',lambda _:key+' = '+val,p,flags=re.M)
+              assert n<=1,(key,n)
+              if n==0:p+='\n'+key+' = '+val+'\n'
+          (d/'checkpoint.par').write_text(p)
+          (d/'candidate_grid.json').write_text(json.dumps({'iteration':128,'shape':a['shape'].tolist(),'origin':a['origin'].tolist(),'delta':a['delta'].tolist(),'active_points':int(a['active'].sum()),'vector_length':int(a['vector'].size)},indent=2))
+          PY
+      - name: Reproduce the original fine-grid state at iteration 128 and write native checkpoint
+        run: |
+          set -euo pipefail
+          docker pull "$(cat evidence/image-digest.txt)"
+          docker run --rm --user 0:0 --entrypoint /bin/bash -v "$PWD/evidence:/evidence" "$(cat evidence/image-digest.txt)" -c 'set -euo pipefail; export OMP_NUM_THREADS=2 OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1; cd /evidence; ldd ./cactus_sim | tee executable-ldd.txt; ! grep -q "not found" executable-ldd.txt; ./cactus_sim /evidence/checkpoint.par 2>&1 | tee native.log'
+          test -s evidence/checkpoints/checkpoint.it_128.h5
+          grep -F 'Dumping termination checkpoint at iteration 128, simulation time' evidence/native.log
+          sha256sum evidence/checkpoints/checkpoint.it_128.h5 > evidence/checkpoint.sha256
+      - name: Require source field identity and inventory actual checkpoint transfer interfaces
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,re,json,numpy as np,h5py
+          d=pathlib.Path('evidence');a=np.load('candidate/mixture_0.31863476.npz',allow_pickle=False)
+          def load(root):
+              fields={}
+              for f in sorted(root.rglob('*.xyz.h5')):
+                  with h5py.File(f,'r') as h:
+                      def visit(n,o):
+                          if not isinstance(o,h5py.Dataset) or o.ndim!=3 or not re.search(r'\bit=128\b.*\brl=2\b',n):return
+                          if tuple(o.shape)!=tuple(a['shape']):return
+                          if not np.array_equal(o.attrs['origin'],a['origin']) or not np.array_equal(o.attrs['delta'],a['delta']):return
+                          assert n not in fields,n
+                          fields[n]=o[...]
+                      h.visititems(visit)
+              return fields
+          old=load(pathlib.Path('source'));new=load(d/'run')
+          pairs=[]
+          for n,v in sorted(old.items()):
+              if n not in new:continue
+              w=new[n];assert np.isfinite(v).all() and np.isfinite(w).all()
+              diff=float(np.max(abs(w-v)));scale=max(float(np.max(abs(v))),1e-15)
+              pairs.append({'name':n,'max_abs_difference':diff,'normalized_max_difference':diff/scale})
+          names=[]
+          with h5py.File(d/'checkpoints/checkpoint.it_128.h5','r') as f:
+              def visit(n,o):
+                  if isinstance(o,h5py.Dataset):
+                      names.append({'name':n,'shape':list(o.shape),'dtype':str(o.dtype),'attrs':{k:np.asarray(v).tolist() for k,v in o.attrs.items() if k in ('origin','delta','iorigin','level','time','timestep')}})
+              f.visititems(visit)
+          constraint=[q for q in names if re.search(r'::(H|M[123])(\s|$|\[)',q['name'],re.I)]
+          matched={p['name'] for p in pairs}
+          mx=max((p['normalized_max_difference'] for p in pairs),default=None)
+          report={'scope':'unmodified fine-grid checkpoint identity only; candidate is NOT applied; no physical acceptance','reference_artifact':15177726961,'candidate_artifact':15234986640,'old_field_count':len(old),'new_field_count':len(new),'matched_count':len(pairs),'missing':sorted(set(old)-matched),'extra':sorted(set(new)-matched),'max_normalized_difference':mx,'exact_match':bool(pairs) and all(p['max_abs_difference']==0 for p in pairs),'pairs':pairs,'checkpoint_datasets':len(names),'checkpoint_constraints':len(constraint),'transfer_identity_gate':len(old)==27 and set(old)==set(new) and mx is not None and mx<=1e-10 and len(constraint)==36}
+          (d/'checkpoint_inventory.json').write_text(json.dumps(names,indent=2,default=str))
+          (d/'handoff_identity.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+          print('NATIVE_HANDOFF_IDENTITY',json.dumps(report,allow_nan=False),flush=True)
+          assert report['transfer_identity_gate'],'native handoff identity not proven; do not apply candidate'
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-native-projection-handoff
+          path: |
+            evidence/input.sha256
+            evidence/candidate_grid.json
+            evidence/checkpoint.par
+            evidence/native.log
+            evidence/checkpoint.sha256
+            evidence/checkpoints/
+            evidence/checkpoint_inventory.json
+            evidence/handoff_identity.json
+            evidence/executable-ldd.txt
+          if-no-files-found: error
