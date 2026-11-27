@@ -1,0 +1,201 @@
+name: J0740 support-floor and expanded constraint correction
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-coupled-projection.yml','research/j0740/coupled_projection.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  coupled:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 85
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify immutable archive and coupled operator controls
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p source evidence
+          python3 -m pip install numpy scipy h5py
+          PYTHONPATH=research/j0740 python3 -c 'from coupled_projection import tests,scalar_controls,bssn_scalar_controls,bssn_general_metric_equivalence_controls,stencil_domain_controls; tests();scalar_controls();bssn_scalar_controls();bssn_general_metric_equivalence_controls();stencil_domain_controls()'
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15177726961/zip > source.zip
+          echo 'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073  source.zip' | sha256sum -c -
+          sha256sum source.zip > evidence/source.sha256
+          unzip -tq source.zip
+          python3 - <<'PY'
+          import hashlib, json, pathlib, re, tarfile, zipfile, h5py, urllib.parse, urllib.request
+          with zipfile.ZipFile('source.zip') as z:
+              members=sorted((i for i in z.infolist() if not i.is_dir()),key=lambda i:i.filename)
+              xyz=[i for i in members if i.filename.endswith('.xyz.h5')]
+              extra=[i for i in members if i.filename.endswith('.h5') and not i.filename.endswith('.xyz.h5')]
+              non_xyz=[i for i in members if i not in xyz]
+              interesting=[i.filename for i in non_xyz if any(k in pathlib.PurePosixPath(i.filename).name.lower() for k in ('gamma','bssn','checkpoint','restart','chkpt'))]
+              suffixes={}
+              for i in non_xyz:
+                  suffix=pathlib.PurePosixPath(i.filename).suffix.lower() or '<none>'
+                  suffixes[suffix]=suffixes.get(suffix,0)+1
+              extra_h5=[{'name':i.filename,'bytes':i.file_size,'compressed_bytes':i.compress_size} for i in extra]
+              detail=[]
+              if sum(i.file_size for i in extra)<=500_000_000:
+                  for i in extra:
+                      p=z.extract(i,'source_extra')
+                      with h5py.File(p,'r') as h:
+                          datasets=[]
+                          h.visititems(lambda k,o: datasets.append({'key':k,'shape':list(o.shape),'dtype':str(o.dtype)}) if isinstance(o,h5py.Dataset) else None)
+                      detail.append({'name':i.filename,'datasets':datasets})
+          with zipfile.ZipFile('source.zip') as zsource:
+              source_tar=next((i for i in members if pathlib.PurePosixPath(i.filename).name=='Cactus-source-ML_BSSN.tar.gz'),None)
+              source_scan={'found':source_tar is not None,'archive_member':source_tar.filename if source_tar else None,'uncompressed_bytes':source_tar.file_size if source_tar else None,'tarball_sha256':hashlib.sha256(zsource.read(source_tar)).hexdigest() if source_tar else None,'matching_source_files':[],'native_h_source_lines':[]}
+              if source_tar and source_tar.file_size<=200_000_000:
+                  with zsource.open(source_tar) as packed:
+                      with tarfile.open(fileobj=packed,mode='r|gz') as tar:
+                          for member in tar:
+                              if not member.isfile() or member.size>8_000_000:
+                                  continue
+                              stream=tar.extractfile(member)
+                              raw=stream.read() if stream else b''
+                              text=raw.decode('utf-8','replace')
+                              if pathlib.PurePosixPath(member.name).name=='ML_BSSN_ConstraintsInterior.cc':
+                                  src_lines=text.splitlines()
+                                  selected=[n for n,line in enumerate(src_lines,1) if re.search(r'(?i)ML_Ham|ML_cons_Gamma|ML_Gamma',line)]
+                                  source_scan['native_h_source_lines']=[{'line':n,'text':src_lines[n-1].strip()[:280]} for n in selected]
+                                  source_scan['native_h_source_file_sha256']=hashlib.sha256(raw).hexdigest()
+                              hits=[]
+                              for no,line in enumerate(text.splitlines(),1):
+                                  if re.search(r'(?i)hamilton|ml_ham|ricci|gamma',line) or re.search(r'\\bH\\s*=',line):
+                                      hits.append({'line':no,'text':line.strip()[:240]})
+                                      if len(hits)>=16:break
+                              if hits:source_scan['matching_source_files'].append({'path':member.name,'bytes':member.size,'sha256':hashlib.sha256(raw).hexdigest(),'matches':hits})
+          operational=[]
+          runtime=[]
+          for item in members:
+              name=pathlib.PurePosixPath(item.filename).name
+              suffix=pathlib.PurePosixPath(name).suffix.lower()
+              if suffix in ('.par','.sh','.log','.dat','.json','.txt','.rns','.exe') or not suffix:
+                  operational.append({'name':item.filename,'bytes':item.file_size})
+              if name.lower() in ('cactus','cactus_sim','cactus.exe','simulation.exe','thornlist'):
+                  runtime.append({'name':item.filename,'bytes':item.file_size})
+          source_package_members=[{'name':i.filename,'bytes':i.file_size} for i in members if i.filename.startswith('run/cactus-source/')]
+          provenance_metadata={'formaline_jar':None,'source_package_count':len(source_package_members),'source_package_total_bytes':sum(x['bytes'] for x in source_package_members),'source_package_names':[x['name'] for x in source_package_members]}
+          with zipfile.ZipFile('source.zip') as zp:
+              fm=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='formaline-jar.json'),None)
+              if fm:
+                  raw=zp.read(fm)
+                  obj=json.loads(raw)
+                  found={}
+                  def provenance_walk(value,prefix=''):
+                      if isinstance(value,dict):
+                          for key,val in value.items():
+                              name=(prefix+'.' if prefix else '')+str(key)
+                              if re.search(r'(?i)git|commit|revision|branch|repository|source|version|image',str(key)) and isinstance(val,(str,int,float,bool)):
+                                  found[name]=str(val)[:300]
+                              provenance_walk(val,name)
+                      elif isinstance(value,list):
+                          for index,val in enumerate(value[:100]):
+                              provenance_walk(val,prefix+'['+str(index)+']')
+                  provenance_walk(obj)
+                  provenance_metadata['formaline_jar']={'member':fm.filename,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'source_identity_fields':found}
+          binary_candidates=[]
+          with zipfile.ZipFile('source.zip') as zb:
+              for item in members:
+                  with zb.open(item) as stream:
+                      magic=stream.read(4)
+                  kind='ELF' if magic==bytes([127])+b'ELF' else ('PE' if magic[:2]==b'MZ' else ('Mach-O' if magic in (bytes([254,237,250,206]),bytes([206,250,237,254]),bytes([254,237,250,207]),bytes([207,250,237,254])) else None))
+                  if kind:binary_candidates.append({'name':item.filename,'bytes':item.file_size,'format':kind})
+          runtime_metadata={'image_file':None,'image_file_sha256':None,'image_identity_fields':{},'image_digest_file_sha256':None,'image_digest_value':None,'executable_path_basename':None,'launcher_sha256':None,'launcher_engine_lines':[],'execute_script_present':False,'rebuild_log_present':False}
+          with zipfile.ZipFile('source.zip') as zdiag:
+              digest_member=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='image-digest.txt'),None)
+              if digest_member:
+                  digest_raw=zdiag.read(digest_member)
+                  runtime_metadata['image_digest_file_sha256']=hashlib.sha256(digest_raw).hexdigest()
+                  runtime_metadata['image_digest_value']=digest_raw.decode('utf-8','replace').strip()[:256]
+                  runtime_metadata['image_manifest_probe']={}
+                  try:
+                      ref=runtime_metadata['image_digest_value']
+                      match=re.fullmatch(r'([a-z0-9._/-]+)@sha256:([0-9a-f]{64})',ref)
+                      if not match:raise ValueError('digest_reference_unrecognized')
+                      repo,digest=match.groups()
+                      query=urllib.parse.urlencode({'service':'registry.docker.io','scope':'repository:'+repo+':pull'})
+                      token_doc=json.loads(urllib.request.urlopen('https://auth.docker.io/token?'+query,timeout=15).read())
+                      token=token_doc['token']
+                      accept=', '.join(['application/vnd.oci.image.index.v1+json','application/vnd.docker.distribution.manifest.list.v2+json','application/vnd.oci.image.manifest.v1+json','application/vnd.docker.distribution.manifest.v2+json'])
+                      def manifest_for(target):
+                          req=urllib.request.Request('https://registry-1.docker.io/v2/'+repo+'/manifests/'+target,headers={'Authorization':'Bearer '+token,'Accept':accept})
+                          with urllib.request.urlopen(req,timeout=20) as response:return json.loads(response.read()),response.headers.get('Docker-Content-Digest'),response.headers.get('Content-Type','')
+                      manifest,actual_digest,media=manifest_for('sha256:'+digest)
+                      probe={'requested':ref,'root_digest':actual_digest,'media_type':media}
+                      manifests=manifest.get('manifests',[])
+                      if manifests:
+                          amd=next((x for x in manifests if x.get('platform',{}).get('os')=='linux' and x.get('platform',{}).get('architecture')=='amd64'),None)
+                          if amd:
+                              manifest,platform_digest,media=manifest_for(amd['digest'])
+                              probe['platform']='linux/amd64'
+                              probe['platform_digest']=platform_digest
+                              probe['media_type']=media
+                      probe['layer_count']=len(manifest.get('layers',[]))
+                      probe['compressed_layer_bytes']=sum(int(x.get('size',0)) for x in manifest.get('layers',[]))
+                      probe['config_digest']=manifest.get('config',{}).get('digest')
+                      runtime_metadata['image_manifest_probe']=probe
+                  except Exception as exc:
+                      runtime_metadata['image_manifest_probe']={'status':'not_retrieved','error_type':type(exc).__name__}
+              launcher=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='execute.sh'),None)
+              if launcher:
+                  launcher_raw=zdiag.read(launcher)
+                  launcher_text=launcher_raw.decode('utf-8','replace')
+                  runtime_metadata['launcher_sha256']=hashlib.sha256(launcher_raw).hexdigest()
+                  runtime_metadata['launcher_engine_lines']=[line.strip()[:240] for line in launcher_text.splitlines() if re.search(r'(?i)docker|podman|singularity|apptainer|cactus_sim|formaline|image-digest',line)][:20]
+                  runtime_metadata['launcher_execution_lines']=[line.strip()[:240] for line in launcher_text.splitlines() if not re.search(r'(?i)token|password|secret|authorization|api[_-]?key',line) and re.search(r'(?i)cactus_sim|mpirun|srun|exe|\\.par|formaline|cctk|num_procs',line)][:40]
+              build_log=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='rebuild.log'),None)
+              if build_log:
+                  build_raw=zdiag.read(build_log)
+                  build_lines=build_raw.decode('utf-8','replace').splitlines()
+                  runtime_metadata['rebuild_log_sha256']=hashlib.sha256(build_raw).hexdigest()
+                  runtime_metadata['rebuild_log_bytes']=len(build_raw)
+                  selected=[]
+                  for no,line in enumerate(build_lines,1):
+                      if re.search(r'(?i)token|password|secret|authorization|api[_-]?key',line):continue
+                      if re.search(r'(?i)cactus_sim|\\blink(ed|ing)?\\b|\\bcompile(d|r)?\\b|\\bbuild\\b|\\bmake\\b|\\berror\\b|\\bfatal\\b|\\bsuccess\\b',line):
+                          selected.append({'line':no,'text':line.strip()[:240]})
+                          if len(selected)>=30:break
+                  runtime_metadata['rebuild_log_summary']={'line_count':len(build_lines),'selected_lines':selected}
+          with zipfile.ZipFile('source.zip') as zmeta:
+              image_member=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='image.json'),None)
+              if image_member:
+                  image_raw=zmeta.read(image_member)
+                  meta_json=json.loads(image_raw)
+                  runtime_metadata['image_file']=image_member.filename
+                  runtime_metadata['image_file_sha256']=hashlib.sha256(image_raw).hexdigest()
+                  def collect_keys(obj):
+                      if isinstance(obj,dict):
+                          for k,v in obj.items():
+                              if re.search(r'(?i)image|digest|repository|tag',str(k)) and isinstance(v,(str,int,float,bool)):runtime_metadata['image_identity_fields'][str(k)]=v
+                              collect_keys(v)
+                      elif isinstance(obj,list):
+                          for v in obj:collect_keys(v)
+                  collect_keys(meta_json)
+              ep=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='executable-path.txt'),None)
+              if ep:
+                  executable=zmeta.read(ep).decode('utf-8','replace').strip()
+                  runtime_metadata['executable_path_basename']=pathlib.PurePosixPath(executable.replace('\\\\','/')).name
+              runtime_metadata['execute_script_present']=any(pathlib.PurePosixPath(x.filename).name=='execute.sh' for x in members)
+              runtime_metadata['rebuild_log_present']=any(pathlib.PurePosixPath(x.filename).name=='rebuild.log' for x in members)
+          result={'archive_member_count':len(members),'xyz_hdf5_member_count':len(xyz),'non_xyz_hdf5_member_count':len(non_xyz),'non_xyz_hdf5_suffix_counts':dict(sorted(suffixes.items())),'non_xyz_hdf5_names_matching_gamma_bssn_checkpoint_restart':interesting,'additional_hdf5_member_count':len(extra_h5),'additional_hdf5_uncompressed_bytes':sum(i['bytes'] for i in extra_h5),'additional_hdf5_members':extra_h5,'additional_hdf5_dataset_metadata_inspected':len(detail)==len(extra_h5),'additional_hdf5_dataset_metadata':detail,'bundled_ml_bssn_source_scan':source_scan,'operational_members':operational,'candidate_runtime_binaries':runtime,'source_package_provenance':provenance_metadata,'binary_candidates':binary_candidates,'runtime_metadata':runtime_metadata}
+          pathlib.Path('evidence/source_zip_inventory.json').write_text(json.dumps(result,indent=2))
+          print('SOURCE_ZIP_MEMBER_INVENTORY',json.dumps(result,sort_keys=True),flush=True)
+          PY
+
+          unzip -q source.zip '*.xyz.h5' -d source
+      - name: Reconstruct BSSN Hamiltonian from archived ADM snapshots
+        run: python3 research/j0740/coupled_projection.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-coupled-projection
+          path: evidence/
+          if-no-files-found: error
