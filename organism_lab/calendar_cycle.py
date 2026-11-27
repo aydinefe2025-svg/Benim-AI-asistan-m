@@ -89,14 +89,15 @@ def run_day(root: str | Path, *, day: str):
     root.mkdir(parents=True, exist_ok=True)
     checkpoint = root / "genome-state.json"
     report_file = root / "daily" / f"{day}.json"
-    # V1 stays the default; only explicitly migrated V2 state dispatches.
-    if checkpoint.exists():
-        raw_state = json.loads(checkpoint.read_text(encoding="utf-8"))
-        if isinstance(raw_state, dict) and raw_state.get("schema") == "genome-replay-checkpoint-v2":
-            from .versioned_calendar import inspect_checkpoint, run_day_v2
-            anchor = inspect_checkpoint(checkpoint)["anchor"]
-            return run_day_v2(root, day=day, expected_anchor_sha=anchor["sha256"])
     with _exclusive_lock(root / "calendar-cycle"):
+        # Select the schema only while holding the common calendar lock.
+        # The internal V2 entry point must not reacquire this non-reentrant lock.
+        if checkpoint.exists():
+            raw_state = json.loads(checkpoint.read_text(encoding="utf-8"))
+            if isinstance(raw_state, dict) and raw_state.get("schema") == "genome-replay-checkpoint-v2":
+                from .versioned_calendar import inspect_checkpoint, _run_day_v2_locked
+                anchor = inspect_checkpoint(checkpoint)["anchor"]
+                return _run_day_v2_locked(root, day=day, expected_anchor_sha=anchor["sha256"])
         if not checkpoint.exists():
             try:
                 initialize_checkpoint(

@@ -165,8 +165,14 @@ def _save_checkpoint(path, doc):
 
 
 def migrate_checkpoint(path, *, expected_anchor_sha):
-    """Only explicit, pinned migration can alter the checkpoint file."""
+    """Explicit migration serializes with both calendar versions."""
     path = Path(path)
+    with _exclusive_lock(path.parent / "calendar-cycle"):
+        return _migrate_checkpoint_locked(path, expected_anchor_sha=expected_anchor_sha)
+
+
+def _migrate_checkpoint_locked(path, *, expected_anchor_sha):
+    """Caller holds calendar lock; acquire checkpoint lock second."""
     with _exclusive_lock(path):
         existing = inspect_checkpoint(path)
         anchor = existing["anchor"] if existing["schema"] == V2 else existing
@@ -181,6 +187,12 @@ def migrate_checkpoint(path, *, expected_anchor_sha):
 
 def advance_checkpoint_v2(path, *, target_tick):
     path = Path(path)
+    with _exclusive_lock(path.parent / "calendar-cycle"):
+        return _advance_checkpoint_v2_locked(path, target_tick=target_tick)
+
+
+def _advance_checkpoint_v2_locked(path, *, target_tick):
+    """Caller holds calendar lock; acquire checkpoint lock second."""
     with _exclusive_lock(path):
         current = inspect_checkpoint(path)
         if current["schema"] != V2:
@@ -238,38 +250,43 @@ def inspect_day_v2(root, *, day):
 
 def run_day_v2(root, *, day, expected_anchor_sha):
     """Opt-in, cross-process locked calendar transition with atomic daily writes."""
-    _, tick = _day_and_tick(day)
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
+    with _exclusive_lock(root / "calendar-cycle"):
+        return _run_day_v2_locked(root, day=day, expected_anchor_sha=expected_anchor_sha)
+
+
+def _run_day_v2_locked(root, *, day, expected_anchor_sha):
+    """Caller holds the calendar lock; do not reacquire it."""
+    _, tick = _day_and_tick(day)
     checkpoint = root / "genome-state.json"
     report_file = root / "daily" / f"{day}.json"
-    with _exclusive_lock(root / "calendar-cycle"):
-        current = inspect_checkpoint(checkpoint)
-        anchor = current["anchor"] if current["schema"] == V2 else current
-        if anchor["sha256"] != expected_anchor_sha:
-            raise ValueError("Explicit pinned V1 anchor required")
-        if tick <= anchor["ticks"]:
-            raise ValueError("Refusing to rewrite historical V1 day")
-        expected = _report_v2(anchor, day=day)
-        # Check for conflicting reports BEFORE migration or advancing state.
-        if report_file.is_symlink():
-            raise ValueError("Unsafe symlink report")
-        if report_file.exists():
-            if json.loads(report_file.read_bytes()) != expected:
-                raise ValueError("Existing report mismatch; no write")
-        if current["schema"] == V1:
-            current = migrate_checkpoint(checkpoint, expected_anchor_sha=expected_anchor_sha)
-        if current["ticks"] < tick:
-            advance_checkpoint_v2(checkpoint, target_tick=tick)
-        if not report_file.exists():
-            _atomic_create_report(report_file, expected)
+    current = inspect_checkpoint(checkpoint)
+    anchor = current["anchor"] if current["schema"] == V2 else current
+    if anchor["sha256"] != expected_anchor_sha:
+        raise ValueError("Explicit pinned V1 anchor required")
+    if tick <= anchor["ticks"]:
+        raise ValueError("Refusing to rewrite historical V1 day")
+    expected = _report_v2(anchor, day=day)
+    # Check for conflicting reports BEFORE migration or advancing state.
+    if report_file.is_symlink():
+        raise ValueError("Unsafe symlink report")
+    if report_file.exists():
         if json.loads(report_file.read_bytes()) != expected:
-            raise ValueError("V2 report readback failed")
-        # Exact current target for watchdog; later historical reruns can validate
-        # previously persisted reports without rewriting any checkpoint.
-        if inspect_checkpoint(checkpoint)["ticks"] == tick:
-            inspect_day_v2(root, day=day)
-        return expected
+            raise ValueError("Existing report mismatch; no write")
+    if current["schema"] == V1:
+        current = _migrate_checkpoint_locked(checkpoint, expected_anchor_sha=expected_anchor_sha)
+    if current["ticks"] < tick:
+        _advance_checkpoint_v2_locked(checkpoint, target_tick=tick)
+    if not report_file.exists():
+        _atomic_create_report(report_file, expected)
+    if json.loads(report_file.read_bytes()) != expected:
+        raise ValueError("V2 report readback failed")
+    # Exact current target for watchdog; later historical reruns can validate
+    # previously persisted reports without rewriting any checkpoint.
+    if inspect_checkpoint(checkpoint)["ticks"] == tick:
+        inspect_day_v2(root, day=day)
+    return expected
 
 
 def main(argv=None):
