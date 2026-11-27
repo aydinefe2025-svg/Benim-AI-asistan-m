@@ -646,56 +646,13 @@ jobs:
           pathlib.Path('/evidence/c2p_bracket.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile='GRHydro_Con2Prim.F90',tofile='GRHydro_Con2Prim.F90.bracket')))
           p.write_text(t)
           PY
-          # The unmodified archive proves H and M diagnostics are absent from the checkpoint.
-          # ET developer recovery guidance requires multi-timelevel pseudo-evolved constraints
-          # to be persisted, rather than reconstructed with a different discretization.
-          export NATIVE_ROOT="$root"
-          python3 - <<'PY'
-          import pathlib,os,re,difflib
-          d=pathlib.Path(os.environ['NATIVE_ROOT'])/'arrangements/McLachlan'
-          paths=[p for p in (d/'ML_BSSN_Helper'/'src').rglob('*') if p.is_file() and p.suffix.lower() in ('.c','.cc','.cpp','.cxx','.h')]
-          matches=[]
-          for p in paths:
-              s=p.read_text(errors='replace')
-              if 'ML_BSSN_SetGroupTags' in s and 'checkpoint' in s:
-                  matches.append((p,s))
-          assert len(matches)==1,[str(x[0]) for x in matches]
-          p,s=matches[0]
-          print('NATIVE_GROUP_TAG_SOURCE',p,s,flush=True)
-          # Use the native tag-setting helper and the same treatment as the
-          # existing ADMBase pseudo-evolved fields. Do not alter evolution.
-          ham=[l for l in s.splitlines() if re.search(r'ML_(?:Ham|mom)\b',l,re.I)]
-          print('NATIVE_CONSTRAINT_TAG_LINES',repr(ham),flush=True)
-          # If the source uses a list of pseudo-evolved group names, extend
-          # that exact list with the missing H/M groups. Guard every edit.
-          pat=r'(?m)^([ \t]*)(["\x27]ADMBase::(?:metric|curv|lapse|shift)["\x27])([ \t]*,)[ \t]*$'
-          hits=list(re.finditer(pat,s))
-          if hits and not ham:
-              b=hits[-1]
-              add=b.group(1)+'"ML_BSSN::ML_Ham",\n'+b.group(1)+'"ML_BSSN::ML_mom",'
-              t=s[:b.end()]+'\n'+add+s[b.end():]
-          else:
-              # Native CCTK group tags are set at startup; override the two
-              # specific checkpoint tags after native logic, at function exit.
-              f=re.search(r'\b(?:void)\s+ML_BSSN_SetGroupTags\s*\([^)]*\)\s*\{',s)
-              assert f,'native startup function not found'
-              depth=1;end=f.end()
-              while depth and end<len(s):
-                  depth+=(s[end]=='{')-(s[end]=='}');end+=1
-              assert depth==0
-              assert 'CCTK_GroupTagsTable' in s and 'Util_TableSetString' in s
-              add='\n  // Persist both native pseudo-evolved constraint groups at every stored timelevel.\n'
-              add+='  for (const char* name : {"ML_BSSN::ML_Ham", "ML_BSSN::ML_mom"}) {\n'
-              add+='    const int group = CCTK_GroupIndex(name);\n    if (group < 0) CCTK_ERROR("J0740 constraint group not found");\n'
-              add+='    const int table = CCTK_GroupTagsTableI(group);\n    if (table < 0) CCTK_ERROR("J0740 constraint tag table not found");\n'
-              add+='    if (Util_TableSetString(table, "yes", "checkpoint") < 0) CCTK_ERROR("J0740 checkpoint tag update failed");\n  }\n'
-              # Avoid C++ initializer-list header requirements and support C sources.
-              add=add.replace('  for (const char* name : {"ML_BSSN::ML_Ham", "ML_BSSN::ML_mom"}) {','  const char* const j0740_groups[2] = {"ML_BSSN::ML_Ham", "ML_BSSN::ML_mom"};\n  for (int j0740_i=0; j0740_i<2; ++j0740_i) {\n    const char* name = j0740_groups[j0740_i];')
-              t=s[:end-1]+add+s[end-1:]
-          assert t!=s and t.count('ML_BSSN::ML_Ham')>=1 and t.count('ML_BSSN::ML_mom')>=1
-          pathlib.Path('/evidence/constraint_checkpoint.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile=str(p),tofile=str(p)+'.candidate')))
-          p.write_text(t)
-          PY
+          # Use the actual native runtime parameter, not a speculative C edit.
+          p="$root/arrangements/McLachlan/ML_BSSN_Helper/src/SetGroupTags.c"
+          grep -F 'bool other_global = other_timelevels > 1;' "$p"
+          grep -F 'set_group_tags(other_global, other_global, other_global, "ML_BSSN::ML_Ham");' "$p"
+          grep -F 'set_group_tags(other_global, other_global, other_global, "ML_BSSN::ML_mom");' "$p"
+          grep -in -A8 -B2 'other_timelevels' "$root/arrangements/McLachlan/ML_BSSN/param.ccl" | tee /evidence/other_timelevels_definition.txt
+          test -s /evidence/other_timelevels_definition.txt
           make -C "$root" -j2 sim 2>&1 | tee /evidence/rebuild.log
           test -x "$exe"
           sha256sum "$exe" > /evidence/executable.sha256
@@ -712,6 +669,7 @@ jobs:
               p=base
               vals={'Cactus::cctk_final_time':str(t),'IO::out_dir':'"'+out+'"',
                     'CarpetIOHDF5::out3D_every':'768',
+                    'ML_BSSN::other_timelevels':'3',
                     'CarpetIOHDF5::checkpoint':'yes' if checkpoint else 'no',
                     'IO::checkpoint_on_terminate':'yes' if checkpoint else 'no',
                     'IO::checkpoint_dir':'"/evidence/checkpoints"',
@@ -731,6 +689,10 @@ jobs:
           make('segment2',2.25,'/evidence/segment2','auto',False)
           PY
           mkdir -p /evidence/checkpoints /evidence/segment1 /evidence/segment2
+          mv /evidence/run /evidence/original_reference_run
+          mv /evidence/native.log /evidence/original_reference_native.log
+          mkdir /evidence/run
+          "$exe" /evidence/uninterrupted.par 2>&1 | tee native.log
           "$exe" /evidence/segment1.par 2>&1 | tee segment1.log
           find /evidence/checkpoints -type f -name '*.h5' -print0 | sort -z | xargs -0 -r sha256sum > /evidence/checkpoints.sha256
           test -s /evidence/checkpoints.sha256
