@@ -109,7 +109,58 @@ def check_adj(a,b,label):
     err=abs(a-b)/max(abs(a),abs(b),1e-30)
     assert err<1e-10,(label,a,b,err)
     return err
-def right_preconditioned_lsmr(O,target,damp=.01,maxiter=1280,probes=64):
+def elliptic_filter(active,h):
+    # Positive symmetric restriction of a periodic inverse-symbol filter.
+    # First-derivative composition for longitudinal M, direct second stencil H.
+    from scipy.fft import rfftn,irfftn
+    ids=np.where(active)
+    lo=[int(a.min()) for a in ids];hi=[int(a.max())+1 for a in ids]
+    sl=tuple(slice(a,b) for a,b in zip(lo,hi));mask=active[sl];shape=mask.shape
+    Q=int(mask.sum());N=3*Q
+    theta=[2*np.pi*np.fft.fftfreq(shape[0])[:,None,None],2*np.pi*np.fft.fftfreq(shape[1])[None,:,None],2*np.pi*np.fft.rfftfreq(shape[2])[None,None,:]]
+    dx=list(h)[::-1]
+    sv=sum(((8*np.sin(t)-np.sin(2*t))/(6*a))**2 for t,a in zip(theta,dx))
+    ss=sum((30-32*np.cos(t)+2*np.cos(2*t))/(12*a*a) for t,a in zip(theta,dx))
+    def filt(symbol):
+        floor=max(float(symbol.max())*1e-3,1e-12)
+        return (float(symbol.max())+floor)/(symbol+floor)
+    fv,fs=filt(sv),filt(ss)
+    def apply(a):
+        out=np.empty_like(a);vv=a[:N].reshape(Q,3);oo=out[:N].reshape(Q,3)
+        for c in range(4):
+            x=np.zeros(shape);x[mask]=vv[:,c] if c<3 else a[N:]
+            z=irfftn(rfftn(x)*(fv if c<3 else fs),s=shape,axes=(0,1,2))[mask]
+            if c<3:oo[:,c]=z
+            else:out[N:]=z
+        return out
+    return apply
+def spectral_controls():
+    active=np.ones((10,12,14),bool);active[0,0,0]=False
+    Q=int(active.sum());rng=np.random.default_rng(53)
+    F=elliptic_filter(active,[.7,.8,.9]);x=rng.normal(size=4*Q);y=rng.normal(size=4*Q)
+    err=check_adj(np.dot(F(x),y),np.dot(x,F(y)),'masked elliptic filter')
+    assert np.dot(x,F(x))>0
+    shape=(12,12,12);active=np.ones(shape,bool);Q=int(active.sum());F=elliptic_filter(active,[1]*3)
+    def A(x):
+        out=np.empty_like(x);v=x[:3*Q].reshape(Q,3);o=out[:3*Q].reshape(Q,3)
+        for c in range(4):
+            g=(v[:,c] if c<3 else x[3*Q:]).reshape(shape);z=.001*g
+            for ax in range(3):
+                if c<3:
+                    D=lambda a:(-np.roll(a,-2,ax)+8*np.roll(a,-1,ax)-8*np.roll(a,1,ax)+np.roll(a,2,ax))/12
+                    z-=D(D(g))
+                else:z+=(np.roll(g,-2,ax)-16*np.roll(g,-1,ax)+30*g-16*np.roll(g,1,ax)+np.roll(g,2,ax))/12
+            if c<3:o[:,c]=z.ravel()
+            else:out[3*Q:]=z.ravel()
+        return out
+    n=4*Q;O=LinearOperator((n,n),matvec=A,rmatvec=A);target=rng.normal(size=n);damp=.01
+    red=lsmr(O,target,damp=damp,atol=1e-9,btol=1e-9,maxiter=60)
+    B=LinearOperator((2*n,n),matvec=lambda y:np.r_[A(F(y)),damp*F(y)],rmatvec=lambda z:F(A(z[:n])+damp*z[n:]))
+    green=lsmr(B,np.r_[target,np.zeros(n)],atol=1e-9,btol=1e-9,maxiter=60)
+    v=F(green[0]);nr=np.linalg.norm(A(A(v)-target)+damp*damp*v)/np.linalg.norm(A(target))
+    assert red[1]==7 and green[1]!=7 and nr<1e-7,(red[1],green[1],nr)
+    print('SPECTRAL_CONTROL',json.dumps({'adjoint_error':err,'red_stop':int(red[1]),'green_stop':int(green[1]),'red_iter':int(red[2]),'green_iter':int(green[2]),'green_original_normal_residual':float(nr)}),flush=True)
+def right_preconditioned_lsmr(O,target,damp=.01,maxiter=1280,probes=64,right_filter=None):
     # Estimate diagonal of A^T A using fixed-seed Rademacher row probes.
     # Right scaling changes coordinates only: augment with damp*D rather
     # than damping y, so the original regularized physical objective is unchanged.
@@ -122,20 +173,24 @@ def right_preconditioned_lsmr(O,target,damp=.01,maxiter=1280,probes=64):
     diag=diag/probes+damp*damp
     assert np.isfinite(diag).all() and np.all(diag>0)
     D=1/np.sqrt(diag)
+    def P(y):return D*(y if right_filter is None else right_filter(y))
+    def PT(y):
+        z=D*y
+        return z if right_filter is None else right_filter(z)
     def forward(y):
-        x=D*y
+        x=P(y)
         return np.r_[O@x,damp*x]
     def adjoint(v):
-        return D*(O.rmatvec(v[:m])+damp*v[m:])
+        return PT(O.rmatvec(v[:m])+damp*v[m:])
     B=LinearOperator((m+n,n),matvec=forward,rmatvec=adjoint,dtype=float)
     u=rng.normal(size=n);v=rng.normal(size=m+n)
     adj_error=check_adj(np.dot(B@u,v),np.dot(u,B.rmatvec(v)),'scaled augmented adjoint')
     rhs=np.r_[target,np.zeros(n)]
     raw=lsmr(B,rhs,damp=0.,atol=1e-7,btol=1e-7,maxiter=maxiter)
-    x=D*raw[0]
+    x=P(raw[0])
     residual=O@x-target
     normal=O.rmatvec(residual)+damp*damp*x
-    info={'probes':probes,'adjoint_error':adj_error,'D_min':float(D.min()),'D_max':float(D.max()),'original_objective_norm':float(np.hypot(np.linalg.norm(residual),damp*np.linalg.norm(x))),'original_normal_residual_norm':float(np.linalg.norm(normal)),'original_relative_normal_residual':float(np.linalg.norm(normal)/max(np.linalg.norm(O.rmatvec(target)),1e-30)),'original_solution_norm':float(np.linalg.norm(x))}
+    info={'spectral_filter':right_filter is not None,'probes':probes,'adjoint_error':adj_error,'D_min':float(D.min()),'D_max':float(D.max()),'original_objective_norm':float(np.hypot(np.linalg.norm(residual),damp*np.linalg.norm(x))),'original_normal_residual_norm':float(np.linalg.norm(normal)),'original_relative_normal_residual':float(np.linalg.norm(normal)/max(np.linalg.norm(O.rmatvec(target)),1e-30)),'original_solution_norm':float(np.linalg.norm(x))}
     return (x,*raw[1:]),info
 def preconditioner_controls():
     # A deterministic ill-scaled diagonal system with nonzero damping.
@@ -176,7 +231,7 @@ def support_controls():
     assert np.allclose(floor['minimum_M_ratio_to_initial'],np.sqrt((19**3-9**3)/19**3))
     print('SUPPORT_BOUND_CONTROL',json.dumps(floor),flush=True)
 def tests():
-    preconditioner_controls();support_controls();exact_momentum_controls();exact_hamiltonian_controls()
+    preconditioner_controls();support_controls();exact_momentum_controls();exact_hamiltonian_controls();spectral_controls()
     rng=np.random.default_rng(8615);sh=(9,9,9)
     g=np.broadcast_to(np.eye(3),sh+(3,3)).copy()+.01*sym(rng.normal(size=sh+(3,3)))
     geo=Geometry(g,[.7,.8,.9]);x=rng.normal(size=sh+(3,));y=sym(rng.normal(size=g.shape));v=rng.normal(size=x.shape)
@@ -665,7 +720,7 @@ def main():
         mass0,j0=mass_j(g,S,v2)
         for lam in (10.,):
             O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
-            sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=7680,probes=64)
+            sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=7680,probes=64,right_filter=elliptic_filter(active,h))
             print('RIGHT_PRECONDITIONER_ACTUAL',json.dumps({'lambda_H':lam,'stop':int(sol[1]),'iterations':int(sol[2]),**precondition},allow_nan=False),flush=True)
             dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
             # Save the actual vector for future independent nonlinear replay.
