@@ -1,4 +1,4 @@
-name: J0740 MPA1 geometry stencil correction candidate
+name: J0740 MPA1 conformal representation diagnostic
 on:
   pull_request:
     branches: [main]
@@ -21,12 +21,7 @@ jobs:
             trial: retarget
             solver: HLLC
             fd: '4'
-          - dx: '1.5'
-            finest: '0.375'
-            duration: '0.375'
-            trial: retarget
-            solver: HLLC
-            fd: '6'
+            conformal: '1'
     env:
       DX: ${{ matrix.dx }}
       FINEST: ${{ matrix.finest }}
@@ -34,6 +29,7 @@ jobs:
       SOLVER: ${{ matrix.solver }}
       TRIAL: ${{ matrix.trial }}
       FD: ${{ matrix.fd }}
+      CONFORMAL: ${{ matrix.conformal }}
     steps:
       - name: Obtain official independent solver and pinned tutorial initial data
         env:
@@ -73,11 +69,12 @@ jobs:
               assert n<=1,(key,n)
               if n==0:s+='\n'+key+' = '+value+'\n'
           override('ML_BSSN::fdOrder',os.environ['FD'])
+          override('ML_BSSN::conformalMethod',os.environ['CONFORMAL'])
           override('driver::ghost_size','4')
           for axis in 'xyz':
               for face in ('lower','upper'):
                   override('CoordBase::boundary_size_'+axis+'_'+face,'4')
-          (d/'geometry_stencil.json').write_text(json.dumps({'fd_order':int(os.environ['FD']),'ghost_size':4,'symmetry_boundary_size':4}))
+          (d/'geometry_stencil.json').write_text(json.dumps({'fd_order':int(os.environ['FD']),'conformal_method':int(os.environ['CONFORMAL']),'ghost_size':4,'symmetry_boundary_size':4}))
           setparam('Cactus::cctk_final_time',os.environ['DURATION'])
           for axis in 'xyz': setparam('CoordBase::d'+axis,os.environ['DX'])
           setparam('IO::out_dir','"/evidence/run"')
@@ -805,7 +802,7 @@ jobs:
               expected=[128.,.09375,1.19179895439447e-6,1.19179895439448e-6,4.73204536862074e-7]
               report['first_crossing']=first
               report['reproduces_baseline_first_crossing']=first is not None and bool(np.allclose(first,expected,rtol=1e-5,atol=1e-14))
-              report['candidate_scope']='different ghost layout and possibly native constraint stencil; crossing equality is diagnostic, not required'
+              report['candidate_scope']='same four-ghost FD4 layout as PR1003 control; only phi-to-W conformal representation changed; crossing equality diagnostic'
               files=sorted(run.rglob('*.xyz.h5')); report['hdf5_files']=[str(p.relative_to(run)) for p in files]
               fields={}
               for p in files:
@@ -944,12 +941,20 @@ jobs:
                       row['regions'].setdefault(label,{})[str(order)]={'points':int(m.sum()),'geometry_delta_rms':rms(d[0]),'matter_delta_rms':rms(d[1]),'ADM_residual_delta_rms':rms(d[2]),'native_delta_rms':rms(native),'relative_difference_to_native':float(np.linalg.norm((d[2]-native)[m])/max(np.linalg.norm(native[m]),1e-300))}
               report['patches'].append(row)
           assert report['patches'],'no complete matching patch in archive'
+          ref={'inner':3.4000210338802265e-6,'outer_fluid':1.74469542882178e-5,'surface_atmosphere':1.227266032247323e-5,'far_atmosphere':9.783258072730709e-7}
+          assert len(report['patches'])==1
+          regions=report['patches'][0]['regions']
+          ratios={k:regions[k]['4']['ADM_residual_delta_rms']/v for k,v in ref.items()}
+          report['matched_phi_reference']={'run':45959476857,'job':140373607558,'independent_ADM_delta_rms':ref}
+          report['W_over_phi_independent_ADM_delta_ratios']=ratios
+          report['all_regions_improved']=all(v<1 for v in ratios.values())
+          report['physical_stability_certified']=False
           pathlib.Path('evidence/constraint_budget.json').write_text(json.dumps(report,indent=2,allow_nan=False))
           print('CONSTRAINT_BUDGET',json.dumps(report,allow_nan=False))
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-geometry-fd-${{ matrix.fd }}
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-conformal-W
           path: evidence/
           if-no-files-found: error
