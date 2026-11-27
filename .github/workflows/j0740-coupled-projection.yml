@@ -1,4 +1,4 @@
-name: J0740 joint Hamiltonian and momentum initial-state gate
+name: J0740 complementary correction nonlinear replay
 on:
   pull_request:
     branches: [main]
@@ -191,11 +191,23 @@ jobs:
           PY
 
           unzip -q source.zip '*.xyz.h5' -d source
+      - name: Verify archived PR1038 correction before complementary replay
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p prior
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15232497176/zip > prior.zip
+          echo 'a0befed02d9f4aa7bb5b41c5bece6d0c1eb97a6b88816157823419c70f3d57a4  prior.zip' | sha256sum -c -
+          unzip -tq prior.zip
+          unzip -q prior.zip coupled_correction_vector.npz -d prior
+          test -s prior/coupled_correction_vector.npz
+          sha256sum prior.zip prior/coupled_correction_vector.npz > evidence/prior.sha256
       - name: Reconstruct BSSN Hamiltonian from archived ADM snapshots
         run: python3 research/j0740/coupled_projection.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-coupled-projection
+          name: j0740-complementary-replay
           path: evidence/
           if-no-files-found: error
