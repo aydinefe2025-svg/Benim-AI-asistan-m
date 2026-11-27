@@ -1,0 +1,83 @@
+name: J0740 checkpoint diagnostic source inspection
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-checkpoint-source-inspection.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Inspect exact native source and checkpoint metadata without evolution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15214764448/zip > source.zip
+          echo 'fcbd0489e8a0cac27a179a3a766282265a1608ddc29aa371facf544a86edf830  source.zip' | sha256sum -c -
+          python3 -m pip install h5py numpy
+          python3 - <<'PY'
+          import pathlib,zipfile,tarfile,io,re,json,h5py
+          out=pathlib.Path('evidence')
+          report={}
+          with zipfile.ZipFile('source.zip') as z:
+              names=z.namelist()
+              report['source_archive_names']=[n for n in names if 'cactus-source' in n]
+              selected=[n for n in names if 'cactus-source' in n and re.search(r'(ML_BSSN|CarpetIOScalar|CarpetIOHDF5|CarpetReduce|IOUtil|CarpetLib|Carpet)[^/]*\.(tar\.gz|tgz|tar\.bz2|tar\.xz|tar)$',n,re.I)]
+              snippets=[]
+              seen=set()
+              for n in selected:
+                  if not n.startswith('run/'):continue
+                  with tarfile.open(fileobj=io.BytesIO(z.read(n)),mode='r:*') as t:
+                      for m in t:
+                          if not m.isfile() or m.size>8000000:continue
+                          p=pathlib.PurePosixPath(m.name)
+                          if p.name not in ('param.ccl','schedule.ccl','interface.ccl') and not re.search(r'(EvolutionAnalysis|Checkpoint|Recover|OutputScalar|Reduce|reduce|poison)',p.name,re.I):continue
+                          raw=t.extractfile(m).read().decode(errors='replace')
+                          hits=[i for i,l in enumerate(raw.splitlines()) if re.search(r'ML_Ham|ML_Mom|EvolutionAnalysis|checkpoint\s*=\s*["\x27]?no|recover.*(analysis|checkpoint|scalar|poison)|poison.*(recover|timelevel)|calc_every|calc_offset|CCTK_POST_RECOVER_VARIABLES',l,re.I)]
+                          if not hits:continue
+                          key=(n.rsplit('/',1)[-1],m.name)
+                          if key in seen:continue
+                          seen.add(key)
+                          lines=raw.splitlines()
+                          idx=sorted({j for i in hits for j in range(max(i-3,0),min(i+4,len(lines)))})
+                          item={'archive':n,'file':m.name,'excerpts':[f'{j+1}: {lines[j]}' for j in idx]}
+                          snippets.append(item)
+              report['source_files_with_relevant_lines']=len(snippets)
+              (out/'source_excerpts.json').write_text(json.dumps(snippets,indent=2))
+              for s in snippets:
+                  if 'ML_BSSN' in s['archive'] or 'ML_BSSN' in s['file']:
+                      print('NATIVE_SOURCE',s['archive'],s['file'],'\n'.join(s['excerpts'])[:16000],flush=True)
+              cps=[n for n in names if n.startswith('checkpoints/') and n.endswith('.h5')]
+              assert cps
+              metadata=[]
+              for n in cps:
+                  p=pathlib.Path(z.extract(n,'.'))
+                  with h5py.File(p,'r') as f:
+                      def visit(name,o):
+                          if isinstance(o,h5py.Dataset):
+                              metadata.append({'file':n,'name':name,'shape':o.shape,'dtype':str(o.dtype)})
+                      f.visititems(visit)
+                  p.unlink()
+              report['checkpoint_dataset_count']=len(metadata)
+              report['checkpoint_constraint_datasets']=[m for m in metadata if re.search(r'::(H|M[123]|ML_Ham|ML_Mom)(\s|$|\[)',m['name'],re.I)]
+              (out/'checkpoint_inventory.json').write_text(json.dumps(metadata,indent=2))
+              for name in ('uninterrupted.par','segment1.par','segment2.par'):
+                  if name in names:
+                      report[name]=[l for l in z.read(name).decode().splitlines() if re.search(r'checkpoint|recover|analysis|out.*every|ml_ham|ml_mom',l,re.I)]
+              report['scope']='source/metadata inspection only; no physical or restart acceptance'
+              (out/'source_inspection.json').write_text(json.dumps(report,indent=2))
+              print('CHECKPOINT_SOURCE_INSPECTION',json.dumps({k:v for k,v in report.items() if k!='source_archive_names'}),flush=True)
+              assert metadata
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-checkpoint-native-source-inspection
+          path: evidence/
+          if-no-files-found: error
