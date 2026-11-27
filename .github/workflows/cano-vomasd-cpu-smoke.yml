@@ -22,8 +22,8 @@ jobs:
       OPENBLAS_NUM_THREADS: '1'
       PYTHONHASHSEED: '0'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install CPU PyTorch (no GPU or game simulator)
@@ -55,7 +55,7 @@ jobs:
       - name: Repeat seeded synthetic CPU experiment
         run: python toy_quantizer.py --output toy_results.json
       - name: Upload reproducibility evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: cano-vomasd-cpu-${{ github.run_id }}
