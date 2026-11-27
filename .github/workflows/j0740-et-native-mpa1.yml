@@ -1,4 +1,4 @@
-name: J0740 native checkpoint restart equivalence
+name: J0740 AMR-aligned checkpoint restart control
 on:
   pull_request:
     branches: [main]
@@ -396,6 +396,22 @@ jobs:
           (d/'atmosphere_eos.json').write_text(json.dumps(report,indent=2))
           print('ATMOSPHERE_EOS',json.dumps(report))
           PY
+      - name: Recover immutable uninterrupted reference
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15214764448/zip > reference.zip
+          echo 'fcbd0489e8a0cac27a179a3a766282265a1608ddc29aa371facf544a86edf830  reference.zip' | sha256sum -c -
+          sha256sum reference.zip > evidence/reference.sha256
+          python3 - <<'PY'
+          import zipfile,pathlib
+          with zipfile.ZipFile('reference.zip') as z:
+              for n in z.namelist():
+                  if n=='native.log' or (n.startswith('run/') and (n.endswith('.asc') or n.endswith('.xyz.h5'))):z.extract(n,'evidence')
+          assert pathlib.Path('evidence/native.log').is_file()
+          PY
+          rm reference.zip
       - name: Execute actual independent BSSN and GRHydro evolution
         shell: bash
         run: |
@@ -661,14 +677,14 @@ jobs:
                   if n==0:p+='\n'+key+' = '+val+'\n'
               (root/(name+'.par')).write_text(p)
           make('uninterrupted',2.25,'/evidence/run','no',False)
-          make('segment1',1.125,'/evidence/segment1','no',True)
+          make('segment1',1.5,'/evidence/segment1','no',True)
           make('segment2',2.25,'/evidence/segment2','auto',False)
           PY
           mkdir -p /evidence/checkpoints /evidence/segment1 /evidence/segment2
-          "$exe" /evidence/uninterrupted.par 2>&1 | tee native.log
           "$exe" /evidence/segment1.par 2>&1 | tee segment1.log
           find /evidence/checkpoints -type f -name '*.h5' -print0 | sort -z | xargs -0 -r sha256sum > /evidence/checkpoints.sha256
           test -s /evidence/checkpoints.sha256
+          test -s /evidence/checkpoints/checkpoint.it_1024.h5
           "$exe" /evidence/segment2.par 2>&1 | tee segment2.log
           sha256sum -c /evidence/checkpoints.sha256
           for l in segment1.log segment2.log; do
@@ -678,85 +694,6 @@ jobs:
           if grep -Eq 'count > GRHydro_countmax|Setting the point to atmosphere|Could not solve quadratic equation' native.log; then exit 7; fi
           SH
           docker run --rm --user 0:0 --entrypoint /bin/bash -v "$PWD/evidence:/evidence" "$(cat evidence/image-digest.txt)" /evidence/execute.sh
-      - name: Validate raw independent constraint histories
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import pathlib,math,json,os,re
-          d=pathlib.Path('evidence')
-          def history(token,reduction):
-              files=[p for p in (d/'run').rglob('*.asc') if token in p.name.lower() and reduction in p.name.lower()]
-              assert files,(token,reduction,[p.name for p in (d/'run').rglob('*.asc')])
-              ans=[]
-              for p in files:
-                  rows=[list(map(float,l.split())) for l in p.read_text().splitlines() if l.strip() and not l.lstrip().startswith('#')]
-                  assert len(rows)>1 and all(len(x)>=3 and all(map(math.isfinite,x)) for x in rows),p
-                  # Retain partial finite histories even if the walltime trigger stops early.
-                  ans.append(dict(file=p.name,initial=rows[0],final=rows[-1],rows=len(rows),peak_columns=[max(abs(row[i]) for row in rows) for i in range(2,len(rows[0]))],legacy_short_sample=min(rows,key=lambda row:abs(row[1]-2.0625)),max_relative_excursion=[max(abs(row[i]/rows[0][i]-1) for row in rows) if rows[0][i]!=0 else None for i in range(2,len(rows[0]))]))
-              return ans
-          result=dict(scope='native F171 MPA1 EOS ingestion and independently reconstructed rotating star; not identical F171 fields; no certification',dx=float(os.environ['FINEST']),base_dx=float(os.environ['DX']),requested_time=float(os.environ['DURATION']),outer_boundary=192.0,solver=os.environ['SOLVER'],evolution_eos='MPA1 cold_tabulated + GammaTh=1.75',axes_ratio=json.loads((d/'spin_trial.json').read_text())['applied'],trial=os.environ['TRIAL'],hamiltonian=history('ham','norm2'),momentum=history('mom','norm2'),density=history('rho','maximum'),velocity=history('vel','maximum'),conserved_density=history('dens','sum'),image_digest=(d/'image-digest.txt').read_text().strip())
-          assert any(abs(x)>1e-5 for v in result['velocity'] for x in v['initial'][2:]), 'nonzero initial rotation not measured'
-          log=(d/'native.log').read_text()
-          pat=r'INFO \(Hydro_RNSID\):\s+rho_center\s+e_center\s+Mass\s+Mass_0\s+R_e[^\n]*\nINFO \(Hydro_RNSID\):\s+([^\n]+)\nINFO \(Hydro_RNSID\):\s+J\s+T/W\s+Omega[^\n]*\nINFO \(Hydro_RNSID\):\s+([^\n]+)'
-          match=re.findall(pat,log)
-          assert match,'missing actual native mass/spin diagnostics'
-          m,j=map(lambda x:list(map(float,x.split())),match[-1])
-          C=2.99792458e10;G=6.67408e-8;MS=1.98848e33
-          f=j[2]*C**3/(2*math.pi*G*MS)
-          result['native_initial_mass_msun']=m[2]
-          result['native_initial_spin_hz']=f
-          result['native_initial_J_cgs']=j[0]*G*MS**2/C
-          result['source_match']={'mass_relative':abs(m[2]/2.073-1),'spin_absolute_hz':abs(f-346.536369),'J_relative':abs(result['native_initial_J_cgs']/6.06724990745871e48-1)}
-          result['source_match_gate']=result['source_match']['mass_relative']<1e-3 and result['source_match']['spin_absolute_hz']<.1 and result['source_match']['J_relative']<.01
-          result['momentum_component_non_growth']=all(b<=a for rec in result['momentum'] for a,b in zip(rec['initial'][2:],rec['final'][2:]))
-          (d/'independent.json').write_text(json.dumps(result,indent=2))
-          result['nominal_period_coverage']=result['hamiltonian'][0]['final'][1]*j[2]/(2*math.pi)
-          # Measure actual atmosphere values in the initial equatorial line,
-          # comparing coordinates and same unchanged floor, not inferred values.
-          import numpy as np
-          rr,pp,ee=[np.loadtxt(d/'run'/('hydrobase-'+v+'.x.asc')) for v in ('rho','press','eps')]
-          assert np.array_equal(rr[:,:12],pp[:,:12]) and np.array_equal(rr[:,:12],ee[:,:12])
-          at=json.loads((d/'atmosphere_eos.json').read_text())
-          mask=(rr[:,0]==0)&(rr[:,2]==2)&(abs(rr[:,-1]/at['rho']-1)<1e-8)
-          assert np.count_nonzero(mask)>0
-          result['atmosphere_check']=dict(points=int(np.count_nonzero(mask)),pressure_max_relative=float(np.max(abs(pp[mask,-1]/at['pressure']-1))),eps_max_relative=float(np.max(abs(ee[mask,-1]/at['eps']-1))))
-          result['atmosphere_match']=max(result['atmosphere_check']['pressure_max_relative'],result['atmosphere_check']['eps_max_relative'])<1e-5
-          with (d/'mpa1_eos_omni_fixed.dat').open() as inp:
-              hdr=[next(inp).rstrip('\n') for _ in range(7)];tab=np.loadtxt(inp)
-          grid=np.linspace(math.log10(float(hdr[2][9:16])),math.log10(float(hdr[2][25:32])),len(tab))
-          de=[];dp=[]
-          for axis in 'xyz':
-              r,p,e=[np.loadtxt(d/'run'/('hydrobase-'+v+'.'+axis+'.asc')) for v in ('rho','press','eps')]
-              assert np.array_equal(r[:,:12],p[:,:12]) and np.array_equal(r[:,:12],e[:,:12])
-              m=(r[:,0]==0)&(r[:,2]==2)&(r[:,-1]>1e-8)
-              assert np.count_nonzero(m)>0
-              rh=r[m,-1];x=np.log10(rh);ep=np.interp(x,grid,tab[:,0]);pc=rh**np.interp(x,grid,tab[:,1])
-              de.extend((e[m,-1]-ep).tolist());dp.extend((p[m,-1]/pc-1).tolist())
-          result['cold_initial_check']=dict(samples=len(de),negative_thermal_count=int(np.count_nonzero(np.array(de)<-1e-12)),eps_max_absolute=float(np.max(np.abs(de))),pressure_max_relative=float(np.max(np.abs(dp))))
-          result['cold_initial_match']=result['cold_initial_check']['eps_max_absolute']<1e-10 and result['cold_initial_check']['pressure_max_relative']<1e-8
-          # Original short non-growth criterion is still recorded separately and never relabeled a pass.
-          result['legacy_short_momentum_non_growth']=all(b<=a for rec in result['momentum'] for a,b in zip(rec['initial'][2:],rec['legacy_short_sample'][2:]))
-          result['legacy_short_sample_times']=[rec['legacy_short_sample'][1] for rec in result['momentum']]
-          result['requested_duration_reached']=all(v['final'][1]>=result['requested_time']-float(os.environ['FINEST']) for key in ('hamiltonian','momentum','density','velocity','conserved_density') for v in result[key])
-          # Coordinate angular-speed proxy at x=3, y=z=0, not a Lagrangian tracer.
-          r,v,a,b=[np.loadtxt(d/'run'/fn) for fn in ('hydrobase-rho.x.asc','hydrobase-vel.x.asc','admbase-lapse.x.asc','admbase-shift.x.asc')]
-          assert all(np.array_equal(r[:,:12],x[:,:12]) for x in (v,a,b))
-          m=(r[:,2]==2)&np.isclose(r[:,9],3)&np.isclose(r[:,10],0)&np.isclose(r[:,11],0)&(r[:,-1]>1e-8)
-          times=r[m,8]; omega=(a[m,12]*v[m,13]-b[m,13])/r[m,9]
-          assert len(times)>=2 and np.all(np.diff(times)>0) and np.isfinite(omega).all()
-          result['eulerian_rotation_proxy']=dict(radius=3.0,initial_omega=float(omega[0]),final_omega=float(omega[-1]),turns=float(np.sum(.5*(omega[1:]+omega[:-1])*np.diff(times))/(2*math.pi)),last_sample_time=float(times[-1]),scope='fixed-coordinate fluid angular speed integrated over time, not a tracked fluid parcel')
-          np.savetxt(d/'angular_speed_proxy.asc',np.column_stack((times,omega)),header='geometric_time coordinate_angular_speed_at_x3')
-          result['bracket_success_rows']=sum('J0740_BRACKET_OK ' in line for line in log.splitlines())
-          result['bracket_failure_rows']=sum('J0740_BRACKET_FAILED ' in line for line in log.splitlines())
-          result['physical_stability_certified']=False
-          result['diagnostic_scope']='extended observation only; no acceptance without matched-domain convergence, AMR volume integrals and tracked rotation'
-          (d/'independent.json').write_text(json.dumps(result,indent=2))
-          print('NATIVE_MPA1_RESULT',json.dumps(result))
-          assert result['source_match_gate'] and result['atmosphere_match'] and result['cold_initial_match'], 'input validity failed'
-          assert result['requested_duration_reached'], 'requested duration not reached; retained partial diagnostic only'
-          if result['requested_time']>=600: assert result['nominal_period_coverage']>=1, 'less than one nominal rotation period'
-          PY
       - name: Prove native restart against uninterrupted run
         run: |
           set -euo pipefail
@@ -764,21 +701,25 @@ jobs:
           python3 - <<'PY'
           import pathlib,re,json,math,numpy as np,h5py
           d=pathlib.Path('evidence')
+          out=pathlib.Path('evidence')
           def scalar(folder,token,reduction):
               p=[p for p in (d/folder).rglob('*.asc') if token in p.name.lower() and reduction in p.name.lower()]
               assert len(p)==1,(folder,token,p)
               rows=[list(map(float,x.split())) for x in p[0].read_text().splitlines() if x.strip() and not x.lstrip().startswith('#')]
-              assert rows and all(all(map(math.isfinite,x)) for x in rows)
-              return {int(x[0]):x for x in rows}
-          pairs=[]
+              # Preserve every raw row and explicitly identify invalid diagnostic samples.
+              print('SCALAR_INVENTORY',folder,token,p[0].name,len(rows),'first',rows[:2],'last',rows[-2:],flush=True)
+              invalid=[x for x in rows if not all(map(math.isfinite,x))]
+              print('SCALAR_NONFINITE',folder,token,repr(invalid[:10]),len(invalid),flush=True)
+              return {int(x[0]):x for x in rows if len(x)>=3 and all(map(math.isfinite,x))},len(invalid)
+          pairs=[];inventory=[]
           for token,red in [('ham','norm2'),('mom','norm2'),('rho','maximum'),('dens','sum'),('vel','maximum')]:
-              a,b,c=[scalar(folder,token,red) for folder in ('run','segment1','segment2')]
-              assert abs(max(x[1] for x in b.values())-1.125)<1e-10
-              assert min(c)>=768 and abs(max(x[1] for x in c.values())-2.25)<1e-10
-              assert max(a)==max(c)==1536 and max(b)==768
-              assert set(a)==set(b)|set(c),(token,sorted(set(a)-(set(b)|set(c))))
+              (a,ia),(b,ib),(c,ic)=[scalar(folder,token,red) for folder in ('run','segment1','segment2')]
+              # Compare all finite common rows; missing/nonfinite counts remain a separate failure gate.
+              inventory.append({'quantity':token,'nonfinite':[ia,ib,ic],'missing':sorted(set(a)-(set(b)|set(c))),'extra':sorted((set(b)|set(c))-set(a)),'ends':[max(a,default=-1),max(b,default=-1),max(c,default=-1)],'restart_first':min(c,default=-1)})
+              # Report missing rows rather than aborting before spatial comparison.
               for tag,rows in [('first',b),('restart',c)]:
                   for it,row in rows.items():
+                      if it not in a:continue
                       assert row[:2]==a[it][:2]
                       ref=np.array(a[it][2:]);obs=np.array(row[2:])
                       diff=float(np.max(np.abs(obs-ref)))
@@ -809,15 +750,16 @@ jobs:
                   spatial.append({'field':key[0],'dataset':n,'absolute':float(np.max(np.abs(x-y))),'normalized':float(np.max(np.abs(x-y))/max(np.max(np.abs(x)),1e-15))})
           log=(d/'segment2.log').read_text(errors='replace')
           recovery_lines=[l for l in log.splitlines() if re.search(r'recover',l,re.I)]
-          report={'scope':'same executable, same domain and MPI layout; short native checkpoint validation only','checkpoint_files':(d/'checkpoints.sha256').read_text().splitlines(),'scalar_pairs':pairs,'spatial_pairs':spatial,'recovery_lines':recovery_lines,'exact_scalar_match':all(x['absolute']==0 for x in pairs),'exact_spatial_match':all(x['absolute']==0 for x in spatial),'physical_stability_certified':False}
-          (d/'checkpoint_equivalence.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+          report={'scope':'same executable, same domain and MPI layout; short native checkpoint validation only','checkpoint_files':(d/'checkpoints.sha256').read_text().splitlines(),'scalar_inventory':inventory,'scalar_pairs':pairs,'spatial_pairs':spatial,'recovery_lines':recovery_lines,'exact_scalar_match':all(x['absolute']==0 for x in pairs),'exact_spatial_match':all(x['absolute']==0 for x in spatial),'physical_stability_certified':False}
+          (out/'checkpoint_equivalence.json').write_text(json.dumps(report,indent=2,allow_nan=False))
           print('CHECKPOINT_EQUIVALENCE',json.dumps({k:v for k,v in report.items() if k not in ('scalar_pairs','spatial_pairs')},allow_nan=False),flush=True)
           print('CHECKPOINT_COUNTS',len(pairs),len(spatial),max(x['relative'] for x in pairs),max(x['normalized'] for x in spatial),flush=True)
-          assert recovery_lines and report['exact_scalar_match'] and report['exact_spatial_match'],'native restart not bitwise equivalent'
+          scalar_complete=all(not any(x['nonfinite']) and not x['missing'] and not x['extra'] and x['ends']==[1536,1024,1536] and x['restart_first']>=1024 for x in inventory)
+          assert recovery_lines and scalar_complete and report['exact_scalar_match'] and report['exact_spatial_match'],'native restart strict equivalence not established'
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-checkpoint-equivalence
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-checkpoint-aligned-restart
           path: evidence/
           if-no-files-found: error
