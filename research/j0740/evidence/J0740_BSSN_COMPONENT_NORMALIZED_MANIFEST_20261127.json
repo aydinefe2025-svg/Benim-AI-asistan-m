@@ -1,0 +1,13 @@
+{
+  "evidence_id": "j0740.bssn.component-normalized-candidate-manifest.20261127.v1",
+  "files": [
+    {
+      "path": "J0740_BSSN_COMPONENT_NORMALIZED_CANDIDATE_20261127.json",
+      "bytes_utf8": 17815,
+      "sha256": "811563e6a588b31eb5c07687dfb4438f3041eac933c6af23ec4c608db73833ee",
+      "github_path": "research/j0740/evidence/J0740_BSSN_COMPONENT_NORMALIZED_CANDIDATE_20261127.json",
+      "github_blob_sha": "d8901e1dcb176f24fb0c1687c5d5af4e6bb7bc3f",
+      "github_readback_byte_identical": true
+    }
+  ]
+}
