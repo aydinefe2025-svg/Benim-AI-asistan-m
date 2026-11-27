@@ -51,7 +51,7 @@ jobs:
                       detail.append({'name':i.filename,'datasets':datasets})
           with zipfile.ZipFile('source.zip') as zsource:
               source_tar=next((i for i in members if pathlib.PurePosixPath(i.filename).name=='Cactus-source-ML_BSSN.tar.gz'),None)
-              source_scan={'found':source_tar is not None,'archive_member':source_tar.filename if source_tar else None,'uncompressed_bytes':source_tar.file_size if source_tar else None,'matching_source_files':[]}
+              source_scan={'found':source_tar is not None,'archive_member':source_tar.filename if source_tar else None,'uncompressed_bytes':source_tar.file_size if source_tar else None,'tarball_sha256':hashlib.sha256(zsource.read(source_tar)).hexdigest() if source_tar else None,'matching_source_files':[],'native_h_source_lines':[]}
               if source_tar and source_tar.file_size<=200_000_000:
                   with zsource.open(source_tar) as packed:
                       with tarfile.open(fileobj=packed,mode='r|gz') as tar:
@@ -61,9 +61,14 @@ jobs:
                               stream=tar.extractfile(member)
                               raw=stream.read() if stream else b''
                               text=raw.decode('utf-8','replace')
+                              if pathlib.PurePosixPath(member.name).name=='ML_BSSN_ConstraintsInterior.cc':
+                                  src_lines=text.splitlines()
+                                  selected=[n for n,line in enumerate(src_lines,1) if re.search(r'(?i)ML_Ham|ML_cons_Gamma|ML_Gamma',line)]
+                                  source_scan['native_h_source_lines']=[{'line':n,'text':src_lines[n-1].strip()[:280]} for n in selected]
+                                  source_scan['native_h_source_file_sha256']=hashlib.sha256(raw).hexdigest()
                               hits=[]
                               for no,line in enumerate(text.splitlines(),1):
-                                  if re.search(r'(?i)hamilton|ml_ham|ricci|gamma',line) or re.search(r'\bH\s*=',line):
+                                  if re.search(r'(?i)hamilton|ml_ham|ricci|gamma',line) or re.search(r'\\bH\\s*=',line):
                                       hits.append({'line':no,'text':line.strip()[:240]})
                                       if len(hits)>=16:break
                               if hits:source_scan['matching_source_files'].append({'path':member.name,'bytes':member.size,'sha256':hashlib.sha256(raw).hexdigest(),'matches':hits})
