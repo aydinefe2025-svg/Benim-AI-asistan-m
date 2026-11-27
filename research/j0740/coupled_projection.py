@@ -85,6 +85,50 @@ def stencil_domain_controls():
     e5=float(np.max(np.abs(residual[5:-5])))
     assert e3>1e-3 and e4<1e-10 and e5<1e-10,(e3,e4,e5)
     print('STENCIL_DOMAIN_CONTROL',json.dumps({'radius_each_operator':2,'composed_dependency_radius':4,'trim3_max_abs_error':e3,'trim4_max_abs_error':e4,'trim5_max_abs_error':e5}),flush=True)
+def bssn_reconstructed_ricci_scalar(geo):
+    # Reconstruct phi, conformal metric, and metric-compatible conformal Gamma
+    # from the archived physical ADM metric. This is exact only where the
+    # connection-constraint variable equals its metric-derived value.
+    g=geo.g
+    det=np.linalg.det(g)
+    assert np.all(det>0)
+    phi=np.log(det)/12
+    conformal=g*np.exp(-4*phi)[...,None,None]
+    cg=Geometry(conformal,geo.h)
+    ci=cg.gi
+    dphi=[d(phi,j,geo.h) for j in range(3)]
+    d2phi=[[d(dphi[j],i,geo.h) for j in range(3)] for i in range(3)]
+    hess=np.zeros(g.shape[:-2]+(3,3))
+    rbar=np.zeros_like(hess)
+    for i in range(3):
+        for j in range(3):
+            hess[...,i,j]=d2phi[i][j]-sum(cg.ch[...,k,i,j]*dphi[k] for k in range(3))
+            first=-.5*sum(ci[...,l,m]*d(d(conformal[...,i,j],m,geo.h),l,geo.h) for l in range(3) for m in range(3))
+            second=.5*sum(conformal[...,k,i]*d(cg.tc[...,k],j,geo.h)+conformal[...,k,j]*d(cg.tc[...,k],i,geo.h) for k in range(3))
+            lower=lambda a,b,c:sum(conformal[...,c,n]*cg.ch[...,n,a,b] for n in range(3))
+            third=sum(cg.tc[...,k]*lower(i,j,k) for k in range(3))
+            fourth=sum(ci[...,l,m]*(cg.ch[...,k,l,i]*lower(j,k,m)+cg.ch[...,k,l,j]*lower(i,k,m)) for l in range(3) for m in range(3) for k in range(3))
+            fifth=sum(ci[...,l,m]*cg.ch[...,k,i,m]*lower(l,j,k) for l in range(3) for m in range(3) for k in range(3))
+            rbar[...,i,j]=first+second+third+fourth+fifth
+    lapphi=contract(ci,hess)
+    grad2=sum(ci[...,i,j]*dphi[i]*dphi[j] for i in range(3) for j in range(3))
+    rphi=-2*hess-2*conformal*lapphi[...,None,None]+4*np.einsum('...i,...j->...ij',np.stack(dphi,axis=-1),np.stack(dphi,axis=-1))-4*conformal*grad2[...,None,None]
+    return np.exp(-4*phi)*contract(ci,rbar+rphi)
+def bssn_scalar_controls():
+    errs=[]
+    for n in (17,33):
+        h=2*np.pi/n;c=np.arange(n)*h
+        zz,yy,xx=np.meshgrid(c,c,c,indexing='ij')
+        phi=1e-5*np.sin(xx)*np.cos(yy)*np.cos(zz)
+        gp=np.broadcast_to(np.eye(3),phi.shape+(3,3)).copy()*np.exp(4*phi)[...,None,None]
+        geo=Geometry(gp,[h]*3)
+        analytic=np.exp(-4*phi)*(24*phi-8e-10*(np.cos(xx)**2*np.cos(yy)**2*np.cos(zz)**2+np.sin(xx)**2*np.sin(yy)**2*np.cos(zz)**2+np.sin(xx)**2*np.cos(yy)**2*np.sin(zz)**2))
+        calc=bssn_reconstructed_ricci_scalar(geo)
+        errs.append(float(np.linalg.norm(calc-analytic)/np.linalg.norm(analytic)))
+    assert errs[1]<errs[0]/8,errs
+    flat=Geometry(np.broadcast_to(np.eye(3),(9,9,9,3,3)).copy(),[1,1,1])
+    assert np.max(abs(bssn_reconstructed_ricci_scalar(flat)))==0
+    print('BSSN_RECONSTRUCTED_RICCI_CONTROLS',errs,flush=True)
 def scalar_controls():
     rng=np.random.default_rng(405)
     g=np.broadcast_to(np.eye(3),(9,9,9,3,3)).copy()+.01*sym(rng.normal(size=(9,9,9,3,3)))
@@ -109,7 +153,7 @@ def scalar_controls():
     print('COUPLED_SCALAR_CONTROLS',errors,flush=True)
 def main():
     audit_only='--stencil-audit-only' in sys.argv
-    tests();scalar_controls();stencil_domain_controls()
+    tests();scalar_controls();bssn_scalar_controls();stencil_domain_controls()
     expected={'gxx','gxy','gxz','gyy','gyz','gzz','kxx','kxy','kxz','kyy','kyz','kzz','rho','eps','press','vel[0]','vel[1]','vel[2]','H','M1','M2','M3'}
     fields={};field_inventory=[]
     for path in pathlib.Path('source').rglob('*.xyz.h5'):
@@ -199,6 +243,7 @@ def main():
             vt=np.stack([get(f'vel[{i}]',t) for i in range(3)],axis=-1)
             Et,_,_,_=source(gt.g,rt,et,pt,vt)
             Ht=ricci_scalar(gt)+gt.hterm(Kt)-16*np.pi*Et
+            Hbssn=bssn_reconstructed_ricci_scalar(gt)+gt.hterm(Kt)-16*np.pi*Et
             Hnt=get('H',t)
             snapshots={}
             for trim in ((3,4,5) if t==128 else (4,5)):
@@ -209,10 +254,11 @@ def main():
                     if not np.any(mm):
                         snapshots[str(trim)][region]={'points':0}
                         continue
-                    hi=Ht[mm];hn=Hnt[mm]
+                    hi=Ht[mm];hb=Hbssn[mm];hn=Hnt[mm]
                     hi_norm=float(np.linalg.norm(hi));hn_norm=float(np.linalg.norm(hn))
                     dot=float(np.dot(hi,hn));den=max(hn_norm**2,1e-60)
                     alpha=dot/den
+                    db=float(np.dot(hb,hn));ab=db/den
                     snapshots[str(trim)][region]={
                         'points':int(mm.sum()),
                         'independent_H_rms':float(np.sqrt(np.mean(hi**2))),
@@ -220,7 +266,11 @@ def main():
                         'raw_relative_mismatch':float(np.linalg.norm(hi-hn)/max(hn_norm,1e-30)),
                         'best_fit_native_scale':alpha,
                         'shape_correlation':dot/max(hi_norm*hn_norm,1e-60),
-                        'best_scaled_relative_mismatch':float(np.linalg.norm(hi-alpha*hn)/max(hn_norm,1e-30))}
+                        'best_scaled_relative_mismatch':float(np.linalg.norm(hi-alpha*hn)/max(hn_norm,1e-30)),
+                        'bssn_metric_gamma_reconstruction_H_rms':float(np.sqrt(np.mean(hb**2))),
+                        'bssn_metric_gamma_raw_relative_mismatch':float(np.linalg.norm(hb-hn)/max(hn_norm,1e-30)),
+                        'bssn_metric_gamma_best_scale':ab,
+                        'bssn_metric_gamma_best_scaled_mismatch':float(np.linalg.norm(hb-ab*hn)/max(hn_norm,1e-30))}
             common=valid_by_trim[5]&(z>=-1e-10)
             hc=Ht[common];nc=Hnt[common];dn=max(float(np.linalg.norm(nc))**2,1e-60)
             ac=float(np.dot(hc,nc)/dn)
