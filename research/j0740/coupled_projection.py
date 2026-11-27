@@ -100,6 +100,43 @@ def exact_momentum_controls():
     y=rng.normal(size=pred.shape)
     adj=check_adj(np.sum(pred*y),np.sum(u*T(y)),'exact discrete conformal momentum adjoint')
     print('EXACT_MOMENTUM_CONTROL',json.dumps({'old_relative_error':old_err,'exact_relative_error':err,'adjoint_error':adj}),flush=True)
+def tracefree_tensor_map(g,gi,active,taper,eq,pairs):
+    # Orthonormal coordinates of a symmetric tensor in the Euclidean
+    # Frobenius inner product; project its physical metric trace to zero.
+    components=((0,0),(1,1),(2,2),(0,1),(0,2),(1,2))
+    factors=np.array([1.,1.,1.,1/np.sqrt(2),1/np.sqrt(2),1/np.sqrt(2)])
+    parity=np.outer([1.,1.,-1.],[1.,1.,-1.])
+    def forward(a):
+        q=np.zeros(g.shape);v=a.reshape(-1,6)*taper[active,None]
+        for n,(i,j) in enumerate(components):
+            q[...,i,j][active]=v[:,n]*factors[n]
+            q[...,j,i][active]=v[:,n]*factors[n]
+        q[...,0,2][eq]=q[...,2,0][eq]=0.
+        q[...,1,2][eq]=q[...,2,1][eq]=0.
+        for i,j in pairs:q[i]=q[j]*parity
+        return q-g*(contract(gi,q)/3)[...,None,None]
+    def adjoint(y):
+        q=sym(y)-gi*(contract(g,sym(y))/3)[...,None,None]
+        for i,j in pairs:q[j]+=q[i]*parity
+        q[...,0,2][eq]=q[...,2,0][eq]=0.
+        q[...,1,2][eq]=q[...,2,1][eq]=0.
+        v=np.stack([q[...,i,j][active]*(1. if i==j else np.sqrt(2)) for i,j in components],axis=-1)
+        return (v*taper[active,None]).ravel()
+    return forward,adjoint
+def tensor_map_controls():
+    rng=np.random.default_rng(7406);shape=(7,8,9)
+    zz,yy,xx=np.indices(shape);eq=zz==2;active=(zz>=2)&(zz<6)&(xx>0)&(xx<8)&(yy>0)&(yy<7)
+    taper=np.where(active,.3+.7*rng.random(shape),0.)
+    g=np.broadcast_to(np.eye(3),shape+(3,3)).copy()
+    g[...,0,0]=1.2;g[...,1,1]=1.4;g[...,2,2]=.9;g[...,0,1]=g[...,1,0]=.05
+    gi=np.linalg.inv(g);pairs=[(0,4),(1,3)]
+    F,T=tracefree_tensor_map(g,gi,active,taper,eq,pairs)
+    a=rng.normal(size=6*active.sum());q=F(a);y=rng.normal(size=q.shape)
+    tr=float(np.max(abs(contract(gi,q))))
+    adj=check_adj(np.sum(q*y),np.dot(a,T(y)),'tracefree tensor map adjoint')
+    assert tr<1e-12 and np.max(abs(q[...,0,2][eq]))==0 and np.max(abs(q[...,1,2][eq]))==0
+    assert np.array_equal(q[0],q[4]*np.outer([1.,1.,-1.],[1.,1.,-1.]))
+    print('TRACEFREE_MAP_CONTROL',json.dumps({'max_trace':tr,'adjoint_error':adj}),flush=True)
 def momentum_component_weights(initial_rms,points):
     baseline=np.asarray(initial_rms,dtype=float)
     if points<=0 or baseline.ndim!=1 or not np.isfinite(baseline).all() or np.any(baseline<=0):
@@ -176,7 +213,7 @@ def support_controls():
     assert np.allclose(floor['minimum_M_ratio_to_initial'],np.sqrt((19**3-9**3)/19**3))
     print('SUPPORT_BOUND_CONTROL',json.dumps(floor),flush=True)
 def tests():
-    preconditioner_controls();support_controls();exact_momentum_controls();exact_hamiltonian_controls()
+    preconditioner_controls();support_controls();exact_momentum_controls();exact_hamiltonian_controls();tensor_map_controls()
     rng=np.random.default_rng(8615);sh=(9,9,9)
     g=np.broadcast_to(np.eye(3),sh+(3,3)).copy()+.01*sym(rng.normal(size=sh+(3,3)))
     geo=Geometry(g,[.7,.8,.9]);x=rng.normal(size=sh+(3,));y=sym(rng.normal(size=g.shape));v=rng.normal(size=x.shape)
@@ -494,7 +531,8 @@ def main():
             for i,j in pairs:X[j]+=X[i]*parity
             X[...,2][eq]=0
             return (X[active]*taper[active,None]).ravel()
-        N=int(active.sum())*3;Q=int(active.sum());P=int(valid.sum())
+        Q=int(active.sum());N=6*Q;P=int(valid.sum())
+        tensor_forward,tensor_adjoint=tracefree_tensor_map(geo.g,geo.gi,active,taper,eq,pairs)
         def extend_scalar(a):
             u=np.zeros(shape);u[active]=a*taper[active]
             for i,j in pairs:u[i]=u[j]
@@ -584,17 +622,12 @@ def main():
             base[name]=b
             wm[m]=momentum_component_weights(b['initial_M_rms'],n)
             wh[m]=1/(np.sqrt(n)*max(b['pre_H_rms'],1e-7))
-        # The previous candidate satisfies every M component gate except far Mz.
-        # Increase only that normalized residual's weight, without changing the
-        # measured acceptance criteria or the physical differential operator.
+        # Balanced far-region weights. All gates remain in original units.
         wm_original=wm.copy()
-        wm[masks['far_atmosphere'],2]*=4.
-        assert np.array_equal(wm[...,0:2],wm_original[...,0:2])
-        assert np.array_equal(wm[...,2][~masks['far_atmosphere']],wm_original[...,2][~masks['far_atmosphere']])
-        assert np.allclose(wm[...,2][masks['far_atmosphere']],4*wm_original[...,2][masks['far_atmosphere']])
+        wm[masks['far_atmosphere']]*=2.
         def op(lam):
             def forward(a):
-                dk=geo.long(extend(a[:N]));u=extend_scalar(a[N:])
+                dk=tensor_forward(a[:N]);u=extend_scalar(a[N:])
                 mv=geo.mom(dk)+conformal_mom(u)
                 hv=contract(grad,dk)+ricci_u(u)+Vlocal*u
                 return np.r_[(wm*mv)[valid].ravel(),(lam*wh*hv)[valid]]
@@ -602,14 +635,14 @@ def main():
                 mm=np.zeros(shape+(3,));hh=np.zeros(shape)
                 mm[valid]=a[:3*P].reshape(-1,3);hh[valid]=a[3*P:]
                 mm*=wm;hh*=lam*wh
-                xv=restrict(geo.long_adj(geo.mom_adj(mm)+hh[...,None,None]*grad))
+                xv=tensor_adjoint(geo.mom_adj(mm)+hh[...,None,None]*grad)
                 uv=restrict_scalar(conformal_mom_adj(mm)+ricci_u_adj(hh)+Vlocal*hh)
                 return np.r_[xv,uv]
             return LinearOperator((4*P,N+Q),matvec=forward,rmatvec=adjoint,dtype=float)
         rng=np.random.default_rng(69)
         O=op(10.);a=rng.normal(size=N+Q);b=rng.normal(size=4*P)
         err=check_adj(np.dot(O@a,b),np.dot(a,O.rmatvec(b)),'coupled actual adjoint')
-        row={'patch':patch,'actual_adjoint_error':err,'active_points':Q,'valid_points':P,'baseline':base,'support_floors':floors,'candidates':[]}
+        row={'patch':patch,'parameterization':'independent_symmetric_tracefree; diagnostic only; additional gravitational free data not physically validated','actual_adjoint_error':err,'active_points':Q,'valid_points':P,'baseline':base,'support_floors':floors,'candidates':[]}
         if '--discrete-jacobian-audit' in sys.argv:
             # Same archived state, same discrete nonlinear residual evaluator.
             # Isolate curvature-only, conformal-only and coupled directions;
@@ -667,9 +700,10 @@ def main():
             O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
             sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=7680,probes=64)
             print('RIGHT_PRECONDITIONER_ACTUAL',json.dumps({'lambda_H':lam,'stop':int(sol[1]),'iterations':int(sol[2]),**precondition},allow_nan=False),flush=True)
-            dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
+            dk=tensor_forward(sol[0][:N]);u=extend_scalar(sol[0][N:])
+            assert np.max(abs(contract(geo.gi,dk)))<1e-12
             # Save the actual vector for future independent nonlinear replay.
-            np.savez_compressed('evidence/coupled_correction_vector.npz',vector=sol[0],active=active,taper=taper,shape=shape,origin=o,delta=h,iteration=128,lambda_H=lam,far_Mz_weight=4.)
+            np.savez_compressed('evidence/coupled_correction_vector.npz',vector=sol[0],active=active,taper=taper,shape=shape,origin=o,delta=h,iteration=128,lambda_H=lam,far_M_weight=2.,parameterization='independent_symmetric_tracefree')
             for scale in (1.,.99,.98,.95):
                 uu=scale*u;aa=A+scale*dk
                 if np.max(abs(uu))>.05:
@@ -686,7 +720,7 @@ def main():
                 for name,m in masks.items():
                     b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
                     reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'H_ratio_to_initial':hh/max(b['initial_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30),'native_proxy_H_ratio_to_initial':hn/max(b['initial_native_H_rms'],1e-30)}
-                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':7680,'far_Mz_weight_factor':4.,'unweighted_objective_norm':float(np.sqrt(sum(sum(v*v for v in q['M_ratio_to_initial']) for q in reg.values())+lam*lam*sum(q['H_ratio_to_pre']**2 for q in reg.values()))),'right_preconditioner':precondition,'residual_norm':precondition['original_objective_norm'],'normal_residual_norm':precondition['original_normal_residual_norm'],'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':precondition['original_solution_norm'],'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':7680,'far_M_weight_factor':2.,'parameterization':'independent_symmetric_tracefree','curvature_delta_relative_L2':float(np.linalg.norm((scale*dk)[valid])/max(np.linalg.norm(A[valid]),1e-30)),'curvature_delta_max_abs':float(np.max(abs(scale*dk))),'curvature_gradient_delta_relative_L2':float(np.sqrt(sum(np.linalg.norm(d(scale*dk,k,h)[valid])**2 for k in range(3))/max(sum(np.linalg.norm(d(A,k,h)[valid])**2 for k in range(3)),1e-60))),'unweighted_objective_norm':float(np.sqrt(sum(sum(v*v for v in q['M_ratio_to_initial']) for q in reg.values())+lam*lam*sum(q['H_ratio_to_pre']**2 for q in reg.values()))),'right_preconditioner':precondition,'residual_norm':precondition['original_objective_norm'],'normal_residual_norm':precondition['original_normal_residual_norm'],'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':precondition['original_solution_norm'],'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
                 candidate['all_H_below_initial']=all(q['H_ratio_to_initial']<=1+1e-10 and q['native_proxy_H_ratio_to_initial']<=1+1e-10 for q in reg.values())
                 candidate['all_initial_H_and_M_gate']=candidate['all_M_below_initial'] and candidate['all_H_below_initial'] and candidate['all_H_improved']
                 row['candidates'].append(candidate)
