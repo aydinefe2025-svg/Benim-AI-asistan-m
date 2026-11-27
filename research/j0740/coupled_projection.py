@@ -391,6 +391,7 @@ def main():
         E,S,q,v2=source(g,rho,eps,press,v)
         R=direct_ricci(geo);H=R+geo.hterm(K)-16*np.pi*E
         stencil_audit={}
+        H0=None
         for t,gt,Kt in ((0,geo0,K0),(128,geo,K)):
             rt,et,pt=[get(f,t) for f in ('rho','eps','press')]
             vt=np.stack([get(f'vel[{i}]',t) for i in range(3)],axis=-1)
@@ -398,6 +399,7 @@ def main():
             curvature=direct_ricci(gt)+gt.hterm(Kt)
             matter=16*np.pi*Et
             Ht=curvature-matter
+            if t==0:H0=Ht.copy()
             Hbssn=bssn_reconstructed_ricci_scalar(gt)+gt.hterm(Kt)-matter
             Hnt=get('H',t)
             snapshots={}
@@ -451,14 +453,23 @@ def main():
             report['patches'].append(row)
             print('STENCIL_ARCHIVE_AUDIT',json.dumps(row,allow_nan=False),flush=True)
             continue
+        assert H0 is not None and np.isfinite(H0).all()
         wm=np.zeros(shape+(3,));wh=np.zeros(shape)
         base={}
         for name,m in masks.items():
             n=int(m.sum())
-            b={'points':n,'initial_M_rms':rms(M0,m).tolist(),'pre_M_rms':rms(M,m).tolist(),'pre_H_rms':float(rms(H,m)),'pre_native_H_rms':float(rms(Hnative,m)),'native_H_relative_mismatch':float(np.linalg.norm((H-Hnative)[m])/max(np.linalg.norm(Hnative[m]),1e-30))}
+            b={'points':n,'initial_M_rms':rms(M0,m).tolist(),'pre_M_rms':rms(M,m).tolist(),'initial_H_rms':float(rms(H0,m)),'initial_native_H_rms':float(rms(get('H',0),m)),'pre_H_rms':float(rms(H,m)),'pre_native_H_rms':float(rms(Hnative,m)),'native_H_relative_mismatch':float(np.linalg.norm((H-Hnative)[m])/max(np.linalg.norm(Hnative[m]),1e-30))}
             base[name]=b
             wm[m]=momentum_component_weights(b['initial_M_rms'],n)
             wh[m]=1/(np.sqrt(n)*max(b['pre_H_rms'],1e-7))
+        # The previous candidate satisfies every M component gate except far Mz.
+        # Increase only that normalized residual's weight, without changing the
+        # measured acceptance criteria or the physical differential operator.
+        wm_original=wm.copy()
+        wm[masks['far_atmosphere'],2]*=4.
+        assert np.array_equal(wm[...,0:2],wm_original[...,0:2])
+        assert np.array_equal(wm[...,2][~masks['far_atmosphere']],wm_original[...,2][~masks['far_atmosphere']])
+        assert np.allclose(wm[...,2][masks['far_atmosphere']],4*wm_original[...,2][masks['far_atmosphere']])
         def op(lam):
             def forward(a):
                 dk=geo.long(extend(a[:N]));u=extend_scalar(a[N:])
@@ -486,10 +497,12 @@ def main():
         mass0,j0=mass_j(g,S,v2)
         for lam in (10.,):
             O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
-            sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=3840,probes=64)
+            sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=7680,probes=64)
             print('RIGHT_PRECONDITIONER_ACTUAL',json.dumps({'lambda_H':lam,'stop':int(sol[1]),'iterations':int(sol[2]),**precondition},allow_nan=False),flush=True)
             dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
-            for scale in (1.,.5,.25):
+            # Save the actual vector for future independent nonlinear replay.
+            np.savez_compressed('evidence/coupled_correction_vector.npz',vector=sol[0],active=active,taper=taper,shape=shape,origin=o,delta=h,iteration=128,lambda_H=lam,far_Mz_weight=4.)
+            for scale in (1.,.99,.98,.95):
                 uu=scale*u;aa=A+scale*dk
                 if np.max(abs(uu))>.05:
                     row['candidates'].append({'lambda_H':lam,'scale':scale,'rejected':'conformal perturbation exceeds bound'});continue
@@ -504,12 +517,15 @@ def main():
                 reg={}
                 for name,m in masks.items():
                     b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
-                    reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30)}
-                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':3840,'right_preconditioner':precondition,'residual_norm':precondition['original_objective_norm'],'normal_residual_norm':precondition['original_normal_residual_norm'],'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':precondition['original_solution_norm'],'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                    reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'H_ratio_to_initial':hh/max(b['initial_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30),'native_proxy_H_ratio_to_initial':hn/max(b['initial_native_H_rms'],1e-30)}
+                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':7680,'far_Mz_weight_factor':4.,'unweighted_objective_norm':float(np.sqrt(sum(sum(v*v for v in q['M_ratio_to_initial']) for q in reg.values())+lam*lam*sum(q['H_ratio_to_pre']**2 for q in reg.values()))),'right_preconditioner':precondition,'residual_norm':precondition['original_objective_norm'],'normal_residual_norm':precondition['original_normal_residual_norm'],'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':precondition['original_solution_norm'],'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                candidate['all_H_below_initial']=all(q['H_ratio_to_initial']<=1+1e-10 and q['native_proxy_H_ratio_to_initial']<=1+1e-10 for q in reg.values())
+                candidate['all_initial_H_and_M_gate']=candidate['all_M_below_initial'] and candidate['all_H_below_initial'] and candidate['all_H_improved']
                 row['candidates'].append(candidate)
                 print('COUPLED_CANDIDATE',json.dumps(candidate,allow_nan=False),flush=True)
         row['any_coupled_improvement']=any(c.get('all_M_improved') and c.get('all_H_improved') for c in row['candidates'])
         row['any_initial_M_and_H_gate']=any(c.get('all_M_below_initial') and c.get('all_H_improved') for c in row['candidates'])
+        row['any_all_initial_H_and_M_gate']=any(c.get('all_initial_H_and_M_gate',False) for c in row['candidates'])
         row['all_solver_calls_converged']=bool(row['candidates']) and all(c.get('lsmr_stop') in (1,2,4,5) and c.get('right_preconditioner',{}).get('original_relative_normal_residual',1.)<=1e-7 for c in row['candidates'])
         report['patches'].append(row)
     assert report['patches']
