@@ -1,0 +1,104 @@
+name: J0740 native checkpoint layout and transfer identity audit
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-checkpoint-layout-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  layout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Obtain exact checkpoint and archived source without repeating the simulation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence source native
+          gh api repos/${{ github.repository }}/actions/artifacts/15177726961/zip > source.zip
+          gh api repos/${{ github.repository }}/actions/artifacts/15236058506/zip > native.zip
+          printf '%s\n' 'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073  source.zip' '94ac5249316c8240ea6ef3d4bc9b0ca10abef757566f959d6398a29f44bc31a6  native.zip' > evidence/input.sha256
+          sha256sum -c evidence/input.sha256
+          unzip -q source.zip 'run/*.xyz.h5' -d source
+          unzip -q native.zip -d native
+          python3 -m pip install h5py numpy
+      - name: Identify actual storage conventions and exact ADM field matches
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,re,json,collections,itertools,numpy as np,h5py
+          out=pathlib.Path('evidence')
+          identity=json.loads(pathlib.Path('native/handoff_identity.json').read_text())
+          assert identity['exact_match'] and identity['transfer_identity_gate']
+          grid=json.loads(pathlib.Path('native/candidate_grid.json').read_text())
+          shape=tuple(grid['shape']);origin=np.array(grid['origin']);delta=np.array(grid['delta'])
+          source={}
+          for f in sorted(pathlib.Path('source').rglob('*.xyz.h5')):
+              with h5py.File(f,'r') as h:
+                  def visit(n,x):
+                      if not isinstance(x,h5py.Dataset) or tuple(x.shape)!=shape or not re.search(r'\bit=128\b.*\brl=2\b',n):return
+                      if not np.array_equal(x.attrs.get('origin'),origin) or not np.array_equal(x.attrs.get('delta'),delta):return
+                      key=n.split()[0].lower();assert key not in source
+                      source[key]=x[...]
+                  h.visititems(visit)
+          assert len(source)==27
+          cp=list(pathlib.Path('native').rglob('checkpoint.it_128.h5'));assert len(cp)==1
+          def serial(v):
+              a=np.asarray(v)
+              if a.size>64:return {'shape':list(a.shape),'dtype':str(a.dtype)}
+              return a.tolist()
+          inventory=[];groups=[];matches=[];near=[];selected=[]
+          with h5py.File(cp[0],'r') as h:
+              def visit(n,x):
+                  if isinstance(x,h5py.Group):
+                      groups.append({'name':n,'attrs':{k:serial(v) for k,v in x.attrs.items()}})
+                      return
+                  if not isinstance(x,h5py.Dataset):return
+                  attrs={k:serial(v) for k,v in x.attrs.items()}
+                  inventory.append({'name':n,'shape':list(x.shape),'dtype':str(x.dtype),'attrs':attrs})
+                  leaf=n.rsplit('/',1)[-1]
+                  key=leaf.split()[0].lower()
+                  if key.startswith(('admbase::','ml_bssn::','grhydro::','hydrobase::')) and x.ndim==3:
+                      selected.append({'name':n,'shape':list(x.shape),'attrs':attrs})
+                  if key not in source or x.ndim!=3:return
+                  a=x[...];b=source[key]
+                  if not np.isfinite(a).all():return
+                  # Check identity in all six axis orders, then only bounded
+                  # small ghost-cell offsets for shapes that plausibly match.
+                  # Never equate an arbitrary array based on shape alone.
+                  for perm in itertools.permutations(range(3)):
+                      w=a.transpose(perm)
+                      diff=np.array(w.shape)-np.array(b.shape)
+                      if np.any(diff<0) or np.any(diff>8):continue
+                      for offs in itertools.product(*(range(int(k)+1) for k in diff)):
+                          sl=tuple(slice(i,i+n) for i,n in zip(offs,b.shape))
+                          p=w[sl]
+                          if not np.array_equal(p[::8,::8,::8],b[::8,::8,::8]):continue
+                          if np.array_equal(p,b):
+                              matches.append({'source_field':key,'checkpoint_dataset':n,'axis_permutation':list(perm),'crop_offset':list(offs),'exact':True})
+                  if a.shape==b.shape:
+                      e=float(np.max(abs(a-b))/max(float(np.max(abs(b))),1e-15))
+                      near.append({'source_field':key,'checkpoint_dataset':n,'normalized_difference':e})
+              h.visititems(visit)
+              rootattrs={k:serial(v) for k,v in h.attrs.items()}
+          def dump(path,data):
+              path.write_text(json.dumps(data,indent=2,default=lambda v:v.decode(errors='replace') if isinstance(v,bytes) else str(v),allow_nan=False))
+          dump(out/'checkpoint_complete_inventory.json',{'root_attrs':rootattrs,'groups':groups,'datasets':inventory})
+          dump(out/'checkpoint_exact_matches.json',matches)
+          counts=collections.Counter(q['source_field'] for q in matches)
+          # Report actual schema, not a guessed filter. Constant fields can
+          # match multiple times, so unique mapping is deliberately not assumed.
+          result={'shape':list(shape),'source_fields':len(source),'dataset_count':len(inventory),'three_dimensional_fields':len(selected),'unique_source_fields_with_exact_array_match':len(counts),'exact_match_counts':dict(counts),'unmatched':sorted(set(source)-set(counts)),'native_field_examples':[q for q in selected if 'tl=0' in q['name'] and 'rl=2' in q['name']][:50],'first_examples':selected[:12],'best_same_shape_comparisons':sorted(near,key=lambda q:q['normalized_difference'])[:30],'restart_ready':False,'scope':'read-only storage identity audit; no modification of native checkpoint'}
+          dump(out/'layout_report.json',result)
+          print('CHECKPOINT_LAYOUT',json.dumps(result,default=str,allow_nan=False),flush=True)
+          assert len(inventory)==860
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-checkpoint-layout-audit
+          path: evidence/
+          if-no-files-found: error
