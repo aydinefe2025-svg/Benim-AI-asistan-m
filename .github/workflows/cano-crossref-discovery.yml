@@ -34,8 +34,8 @@ jobs:
       run:
         working-directory: cano/research_cycle
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Security and idempotence tests (no network)
@@ -50,8 +50,8 @@ jobs:
       run:
         working-directory: cano/research_cycle
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Fetch one bounded topic (5 DOI metadata max; no full text)
@@ -63,7 +63,7 @@ jobs:
         run: python github_review_sink.py crossref_pending_review.json
       - name: Archive reviewable metadata without secrets
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: cano-crossref-${{ github.run_id }}
           retention-days: 14

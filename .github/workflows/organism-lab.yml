@@ -21,8 +21,8 @@ jobs:
       matrix:
         python-version: ['3.11', '3.12']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Streamlit for UI interaction tests
@@ -130,7 +130,7 @@ jobs:
           python -m organism_lab.genome_checkpoint advance organism_checkpoint_output/state.json --target-tick 120
           python -m organism_lab.genome_checkpoint verify organism_checkpoint_output/state.json
       - name: Upload research evidence artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: organism-lab-research-python-${{ matrix.python-version }}
           path: |
