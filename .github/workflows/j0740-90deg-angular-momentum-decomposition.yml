@@ -43,8 +43,8 @@ jobs:
               with h5py.File(path,'r') as h:
                   def visit(name,obj):
                       if not isinstance(obj,h5py.Dataset) or obj.ndim!=3:return
-                      m=re.search(r'\\bit=(0|98304)\\s+(.*)',name)
-                      if not m or not re.search(r'\\brl=2\\b',m[2]) or not re.search(r'\\btl=0\\b',m[2]):return
+                      m=re.search(r'\bit=(0|98304)\s+(.*)',name)
+                      if not m or not re.search(r'\brl=2\b',m[2]) or not re.search(r'\btl=0\b',m[2]):return
                       key=(int(m[1]),m[2]);assert (field,key) not in fields
                       fields[field,key]=(obj[...],np.array(obj.attrs['origin'],float),np.array(obj.attrs['delta'],float))
                   h.visititems(visit)
