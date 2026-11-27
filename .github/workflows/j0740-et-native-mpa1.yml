@@ -1,0 +1,769 @@
+name: J0740 MPA1 rotation stages 5 and 15 degrees
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-et-native-mpa1.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  independent-bssn:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dx: '3'
+            finest: '0.75'
+            duration: '24.5625'
+            trial: retarget
+            solver: HLLC
+    env:
+      DX: ${{ matrix.dx }}
+      FINEST: ${{ matrix.finest }}
+      DURATION: ${{ matrix.duration }}
+      SOLVER: ${{ matrix.solver }}
+      TRIAL: ${{ matrix.trial }}
+    steps:
+      - name: Obtain official independent solver and pinned tutorial initial data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          gh api repos/${{ github.repository }}/actions/artifacts/15138872722/zip > bridge.zip
+          echo 'f233fcc59c19a0556e0cf370d67dac2d0eb2c3b082d2b08c293c7f51587834cf  bridge.zip' | sha256sum -c -
+          unzip -tq bridge.zip
+          unzip -j bridge.zip '*/model.rns' '*/mpa1_eos_omni.dat' '*/bridge.json' -d evidence || unzip -jo bridge.zip model.rns mpa1_eos_omni.dat bridge.json -d evidence
+          echo 'bd9cda6359f4e68d4de3a27b3a0e80bd830d0fb3936f91dfea59517e403c090d  evidence/model.rns' | sha256sum -c -
+          echo '7d745c1791d46bc1d54267ee75db61e6e2367aed96e5785068485196096193d2  evidence/mpa1_eos_omni.dat' | sha256sum -c -
+          curl --fail --retry 3 -L 'https://raw.githubusercontent.com/einsteintoolkit/jupyter-et/0a3b5797e70b79509e5729c86065eca635882521/tutorial-server/notebooks/CactusTutorial.ipynb' -o evidence/source.ipynb
+          sha256sum evidence/source.ipynb > evidence/source.sha256
+          python3 - <<'PY'
+          import json,pathlib,os,re
+          d=pathlib.Path('evidence')
+          nb=json.loads((d/'source.ipynb').read_text())
+          cells=[''.join(c['source']) for c in nb['cells']]
+          src=[s for s in cells if s.startswith('%%writefile par/tov_ET.par')]
+          assert len(src)==1
+          s=src[0].split('\n',1)[1]
+          (d/'original.par').write_text(s)
+          assert 'TOVSolver::TOV_Rho_Central[0] = 1.28e-3' in s
+          assert 'TOVSolver::TOV_Gamma          = 2' in s
+          assert 'TOVSolver::TOV_K              = 100' in s
+          def setparam(key,value):
+              global s
+              s,n=re.subn(r'^\s*'+re.escape(key)+r'\s*=.*$',key+' = '+value,s,flags=re.M)
+              assert n==1,(key,n)
+          setparam('Cactus::cctk_final_time',os.environ['DURATION'])
+          for axis in 'xyz': setparam('CoordBase::d'+axis,os.environ['DX'])
+          setparam('IO::out_dir','"/evidence/run"')
+          setparam('IOScalar::outScalar_every','1')
+          setparam('IOBasic::outInfo_every','8192')
+          setparam('IOASCII::out1D_every','1')
+          setparam('CarpetIOHDF5::out2D_every','1024')
+          setparam('TerminationTrigger::max_walltime','5')
+          setparam('TerminationTrigger::on_remaining_walltime','10')
+          setparam('CarpetRegrid2::num_levels_1','3')
+          setparam('CarpetRegrid2::radius_1[1]','24.0')
+          s+='\nCarpetRegrid2::radius_1[2] = 12.0\n'
+          for axis in 'xyz': setparam('CoordBase::'+axis+'max','48.0')
+          assert float(os.environ['DX'])/4==float(os.environ['FINEST'])
+          # Initial and sparse later 3D snapshots support independent AMR mass and angular-momentum integrals.
+          s+='\nCarpetIOHDF5::out3D_every = 4096\nCarpetIOHDF5::out3D_vars = "GRHydro::dens ADMBase::metric ADMBase::curv ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::press HydroBase::eps HydroBase::vel"\n'
+          s,n=re.subn(r'(IOASCII::out1D_vars\s*=\s*"[^\"]*?ADMBase::lapse)',r'\1\n ADMBase::shift',s,flags=re.S); assert n==1
+          # Rigid rotation breaks x/y mirror symmetry. Keep equatorial z symmetry only.
+          for axis in 'xy':
+              setparam('CoordBase::'+axis+'min','-48.0')
+              setparam('CoordBase::boundary_shiftout_'+axis+'_lower','0')
+              setparam('ReflectionSymmetry::reflection_'+axis,'"no"')
+          setparam('GRHydro::riemann_solver','"'+os.environ['SOLVER']+'"')
+          # Both solvers evolve the same Gamma=2 ideal-fluid EOS, initialized
+          # with identical cold RNS polytropic data. Polytype omits energy evolution.
+          setparam('GRHydro::GRHydro_eos_type','"General"')
+          setparam('GRHydro::GRHydro_eos_table','"cold_tabulated"')
+          setparam('NaNChecker::check_every','1')
+          setparam('GRHydro::rho_abs_min','1e-12')
+          assert s.count('ActiveThorns = "TOVSolver"')==1
+          s=s.replace('ActiveThorns = "TOVSolver"','ActiveThorns = "Hydro_RNSID"')
+          for key in ('HydroBase::initial_hydro','ADMBase::initial_data','ADMBase::initial_lapse','ADMBase::initial_shift'):
+              setparam(key,'"hydro_rnsid"')
+          s,n=re.subn(r'^TOVSolver::.*\n','',s,flags=re.M)
+          assert n==3
+          bridge=json.loads((d/'bridge.json').read_text())
+          s+='\nHydro_RNSID::rho_central = '+str(bridge['central_density'])+'\nHydro_RNSID::axes_ratio = '+str(bridge['axes_ratio'])+'\nHydro_RNSID::rotation_type = "uniform"\nHydro_RNSID::accuracy = 1e-10\nHydro_RNSID::eos_type = "tab"\nHydro_RNSID::eos_file = "/evidence/model.rns"\nHydro_RNSID::rns_rho_min = 1e-12\nEOS_Omni::coldeos_read_table = "yes"\nEOS_Omni::coldeos_table_name = "/evidence/mpa1_eos_omni.dat"\nEOS_Omni::coldeos_use_thermal_gamma_law = "yes"\n'
+          assert 'TOVSolver::' not in s
+          (d/'control.par').write_text(s)
+          PY
+          docker pull einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66
+          docker image inspect einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66 > evidence/image.json
+          docker image inspect --format '{{index .RepoDigests 0}}' einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66 > evidence/image-digest.txt
+          test -s evidence/image-digest.txt
+      - name: Re-encode fixed-field native EOS header and independently verify thermodynamics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install numpy
+          python3 - <<'PY'
+          import numpy as np, pathlib, json, hashlib, math
+          d=pathlib.Path('evidence')
+          original=d/'mpa1_eos_omni.dat'
+          lines=original.read_text().splitlines()
+          N=int(lines[1].split()[2])
+          lo,hi=map(float,(lines[2].split()[2],lines[2].split()[5]))
+          # Published EOS_Omni reader uses A16,A16 for density fields;
+          # documented integer line places NYe at column 15 and NT at 27.
+          # This is a candidate contract, verified finally by the pinned binary.
+          def compact_inside(x,lower):
+              candidates=set()
+              for digits in range(1,17):
+                  scale=10.**(math.floor(math.log10(x))-digits+1)
+                  n=x/scale
+                  for k in (math.floor(n),math.ceil(n),round(n)):
+                      y=k*scale
+                      for fmt in (f'.{digits}g',f'.{digits}e',f'.{digits}f'):
+                          t=format(y,fmt)
+                          if 'e' in t:
+                              mant,ex=t.split('e')
+                              t=mant.rstrip('0').rstrip('.')+'e'+str(int(ex)) if '.' in mant else mant+'e'+str(int(ex))
+                          elif '.' in t:
+                              t=t.rstrip('0').rstrip('.')
+                          for s in (t,t.lstrip('0') if t.startswith('0.') else t):
+                              if not s or len(s)>7: continue
+                              v=float(s)
+                              if v>0 and ((v>=x if lower else v<=x) or abs(v-x)<=math.ulp(x)): candidates.add(s)
+              assert candidates,(x,lower)
+              return min(candidates,key=lambda s:(abs(float(s)/x-1),len(s),s))
+          l,h=compact_inside(lo,True),compact_inside(hi,False)
+          L,H=float(l),float(h)
+          assert max(abs(L/lo-1),abs(H/hi-1))<1e-3,(lo,hi,L,H)
+          assert L<H
+          # One floating-point ULP is decimal serialization roundoff, not EOS extrapolation.
+          assert L>=lo or lo-L<=math.ulp(lo)
+          assert H<=hi or H-hi<=math.ulp(hi)
+          assert float(compact_inside(1.0000000000000002e-14,True))==1e-14
+          assert float(compact_inside(0.0027219588509891255,False))<=0.0027219588509891255
+          # Recompute the EOS at the actual serialized grid; never reinterpret
+          # unchanged rows at shifted densities or extrapolate above source max.
+          a=np.loadtxt(d/'model.rns',skiprows=1)
+          C=2.99792458e10; MB=1.66e-24; G=6.67408e-8; MS=1.98848e33
+          conv=(G*MS/C**2)**3/MS
+          E,P,enthalpy,n=a[:,0]*C*C,a[:,1],a[:,2]/C**2,a[:,3]
+          slope=np.diff(E)/np.diff(P)
+          assert np.all(slope>=1-1e-10) and np.all(np.diff(n)>0)
+          assert np.max(abs((E+P)*np.exp(-enthalpy)/(MB*C*C*n)-1))<1e-12
+          def cold(rho):
+              q=rho/(MB*conv)
+              i=np.clip(np.searchsorted(n,q,side='right')-1,0,len(slope)-1)
+              delta=(E[i]+P[i])/(1+slope[i])*np.expm1((1+slope[i])/slope[i]*np.log(q/n[i]))
+              p=P[i]+delta; e=E[i]+slope[i]*delta; cs2=1/slope[i]
+              low=q<n[0]; y=np.cbrt(q[low]/n[0]); aa=P[0]/E[0]; t=y/(1+aa-aa*y)
+              p[low]=P[0]*t**4; e[low]=E[0]*t**3; cs2[low]=4*p[low]/(3*e[low])
+              return p/C**2*conv,e/(q*MB*C*C)-1,np.sqrt(cs2)
+          rho=np.geomspace(L,H,N); p,eps,cs=cold(rho)
+          assert np.all(np.isfinite([p,eps,cs])) and np.all(p>0) and np.all((cs>0)&(cs<=1+1e-10))
+          assert np.all(rho<1)
+          gamma=np.log(p)/np.log(rho)
+          fields=[f'Nrho = {N}','NYe = 1','NT = 1']
+          widths=[14,12,12]
+          assert all(len(x)<=w for x,w in zip(fields,widths))
+          intline=''.join(x.ljust(w) for x,w in zip(fields,widths))
+          rhofields=['RhoMin = '+l,'RhoMax = '+h]
+          assert all(len(x)<=16 for x in rhofields)
+          rhobounds=''.join(x.ljust(16) for x in rhofields)
+          dest=d/'mpa1_eos_omni_fixed.dat'
+          with dest.open('w') as out:
+              out.write('\n'.join([lines[0],intline,rhobounds,*lines[3:7]])+'\n')
+              np.savetxt(out,np.c_[eps,gamma,cs],fmt='%.17e')
+          # Read serialized fixed-width fields, not the in-memory originals.
+          with dest.open() as inp:
+              first=[next(inp).rstrip('\n') for _ in range(7)]
+              v=np.loadtxt(inp)
+          assert [int(first[1][7:14]),int(first[1][20:26]),int(first[1][31:38])]==[N,1,1]
+          assert [float(first[2][9:16]),float(first[2][25:32])]==[L,H]
+          assert v.shape==(N,3)
+          knots=n*MB*conv
+          mid=np.sqrt(knots[:-1]*knots[1:])
+          z=np.sort(np.r_[knots[(knots>=L)&(knots<=H)],mid[(mid>=L)&(mid<=H)],np.geomspace(L,H,100003)])
+          pz,ez,cz=cold(z); x=np.log10(z); grid=np.log10(rho)
+          p2=z**np.interp(x,grid,v[:,1]); e2=np.interp(x,grid,v[:,0]); c2=np.interp(x,grid,v[:,2])
+          plinear=np.interp(x,grid,rho**v[:,1])
+          err=dict(pressure_max_relative=float(np.max(abs(p2/pz-1))),pressure_linear_logrho_max_relative=float(np.max(abs(plinear/pz-1))),energy_max_relative=float(np.max(abs(e2-ez)/(1+abs(ez)))),sound_speed_max_absolute=float(np.max(abs(c2-cz))))
+          assert max(err['pressure_max_relative'],err['pressure_linear_logrho_max_relative'])<1e-3,err
+          assert err['energy_max_relative']<1e-4,err
+          assert np.all((c2>0)&(c2<=1+1e-10))
+          assert np.max(abs(z**(np.interp(x,grid,v[:,1])+.01)/pz-1))>1e-3
+          center=json.loads((d/'bridge.json').read_text())['central_density']
+          assert L<center<H,(L,center,H)
+          report=dict(scope='fixed-field candidate, independent native read still required',source_sha256=hashlib.sha256(original.read_bytes()).hexdigest(),fixed_sha256=hashlib.sha256(dest.read_bytes()).hexdigest(),source_range=[lo,hi],native_range=[L,H],original_knots_outside_native_range=int(np.count_nonzero((knots<L)|(knots>H))),original_rows=N,errors=err,central_density=center)
+          (d/'fixed_header.json').write_text(json.dumps(report,indent=2));print('FIXED_HEADER',json.dumps(report))
+          par=d/'control.par'
+          s=par.read_text()
+          assert s.count('/evidence/mpa1_eos_omni.dat')==1
+          par.write_text(s.replace('/evidence/mpa1_eos_omni.dat','/evidence/mpa1_eos_omni_fixed.dat'))
+          PY
+          # Preserve the original failed input and validate the candidate with
+          # a compiled fixed-field reader before invoking the actual solver.
+          cat > evidence/header_probe.f90 <<'F90'
+          program probe
+          implicit none
+          character(len=256) :: b1,b2,b3
+          integer :: n,ny,nt
+          real(8) :: lo,hi
+          read(*,'(A)') b1
+          read(*,'(A14,A12,A12)') b1,b2,b3
+          read(b1(8:),*) n
+          read(b2(7:),*) ny
+          read(b3(6:),*) nt
+          read(*,'(A16,A16)') b1,b2
+          read(b1(10:),*) lo
+          read(b2(10:),*) hi
+          if (n<=0.or.ny/=1.or.nt/=1.or.lo<=0.or.hi<=lo) stop 1
+          print *,n,ny,nt,lo,hi
+          end program
+          F90
+          gfortran evidence/header_probe.f90 -o /tmp/header_probe
+          if /tmp/header_probe < evidence/mpa1_eos_omni.dat > evidence/original_header_probe.log 2>&1; then
+            echo 'Expected original fixed-field probe failure did not occur' >&2; exit 6
+          fi
+          /tmp/header_probe < evidence/mpa1_eos_omni_fixed.dat | tee evidence/fixed_header_probe.log
+      - name: Extend RNSID low-density support using the archived analytic crust
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib, numpy as np, json, hashlib
+          d=pathlib.Path('evidence')
+          original=d/'model.rns'
+          a=np.loadtxt(original,skiprows=1)
+          assert int(original.read_text().splitlines()[0])==len(a)
+          C=2.99792458e10; MB=1.66e-24
+          rho0,p0,h0,n0=a[0]
+          alpha=p0/(rho0*C*C)
+          assert alpha>0 and np.all(a>0)
+          assert abs(h0/C**2/(4*np.log1p(alpha))-1)<1e-9, 'F171 analytic crust anchor mismatch'
+          # F164 used an exact crust adapter and EOS-consistent surface.
+          # The unpatched legacy RNS interpolator cannot assume that continuation.
+          # Cover both legacy RNS surface defaults (7.8 g/cm3 and 1.01e8 dyn/cm2),
+          # including a safety interval below each. No high-density extrapolation.
+          tmin=min((1.01e6/p0)**.25,(.078/rho0)**(1/3))
+          if tmin>=1:
+              raise SystemExit('Original already covers conservative low-pressure/density bounds; do not duplicate evolution')
+          t=np.geomspace(tmin,1.,129)[:-1]
+          rho=rho0*t**3; p=p0*t**4
+          H=4*np.log1p(alpha*t)
+          n=n0*(t*(1+alpha)/(1+alpha*t))**3
+          extension=np.column_stack([rho,p,H*C*C,n])
+          b=np.vstack([extension,a])
+          assert np.all(np.isfinite(b)) and np.all(b>0)
+          assert np.all(np.diff(b,axis=0)>0)
+          assert np.array_equal(b[len(extension):],a)
+          assert b[0,0]<7.8<b[-1,0] and b[0,1]<1.01e8<b[-1,1]
+          E=b[:,0]*C*C; P=b[:,1]; h=b[:,2]/C**2
+          firstlaw=np.max(abs((E+P)*np.exp(-h)/(MB*C*C*b[:,3])-1))
+          assert firstlaw<1e-10,firstlaw
+          assert np.all(np.diff(E)>=np.diff(P)*(1-1e-10))
+          # Original EOS bytes remain archived. Preserve each original text row
+          # exactly in the native input, append no new high-density rows.
+          dest=d/'model_rnsid_crust.rns'
+          with dest.open('w') as out:
+              out.write(str(len(b))+'\n')
+              np.savetxt(out,extension,fmt='%.17e')
+              out.write(original.read_text().split('\n',1)[1])
+          got=np.loadtxt(dest,skiprows=1)
+          assert np.array_equal(got[len(extension):],a)
+          assert np.array_equal(got[:len(extension)],extension)
+          result=dict(scope='legacy RNSID low-density continuation candidate, not stability',old_rows=len(a),added_rows=len(extension),old_min=a[0].tolist(),new_min=b[0].tolist(),surface_pressure_covered=True,surface_density_covered=True,first_law_max_relative=float(firstlaw),old_sha256=hashlib.sha256(original.read_bytes()).hexdigest(),new_sha256=hashlib.sha256(dest.read_bytes()).hexdigest())
+          (d/'rnsid_crust.json').write_text(json.dumps(result,indent=2))
+          print('RNSID_CRUST',json.dumps(result))
+          par=d/'control.par'
+          s=par.read_text()
+          assert s.count('Hydro_RNSID::eos_file = "/evidence/model.rns"')==1
+          par.write_text(s.replace('Hydro_RNSID::eos_file = "/evidence/model.rns"','Hydro_RNSID::eos_file = "/evidence/model_rnsid_crust.rns"'))
+          PY
+      - name: Enable documented bracketed C2P fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp evidence/control.par evidence/control_before_c2p.par
+          python3 - <<'PY'
+          import pathlib,re
+          p=pathlib.Path('evidence/control.par')
+          s=p.read_text()
+          key='GRHydro::c2p_resort_to_bisection'
+          pattern=r'^\s*'+re.escape(key)+r'\s*=.*$'
+          s,n=re.subn(pattern,key+' = "yes"',s,flags=re.M|re.I)
+          assert n<=1
+          if not n: s+='\n'+key+' = "yes"\n'
+          p.write_text(s)
+          assert len(re.findall(pattern,s,flags=re.M|re.I))==1
+          PY
+      - name: Correct F171 energy-density to RNSID baryon-density transfer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,json,math,numpy as np,re
+          d=pathlib.Path('evidence')
+          b=json.loads((d/'bridge.json').read_text())
+          a=np.loadtxt(d/'model.rns',skiprows=1)
+          C=2.99792458e10; MB=1.66e-24; G=6.67408e-8; MS=1.98848e33
+          conv=(G*MS/C**2)**3/MS
+          E,P,H,n=a[:,0]*C*C,a[:,1],a[:,2]/C**2,a[:,3]
+          # F171 export.py passes retarget_rho with RNS -e (total
+          # energy density/c^2); Hydro_RNSID rho_central is baryon density.
+          old=float(b['central_density']); Etarget=old*C*C/conv
+          i=int(np.searchsorted(E,Etarget,side='right')-1)
+          assert 0<=i<len(E)-1
+          slope=(E[i+1]-E[i])/(P[i+1]-P[i])
+          delta=(Etarget-E[i])/slope
+          Pc=P[i]+delta
+          hc=H[i]+math.log1p((1+slope)*delta/(E[i]+P[i]))/(1+slope)
+          nc=(Etarget+Pc)*math.exp(-hc)/(MB*C*C)
+          new=nc*MB*conv
+          assert 0<new<old and abs(new/old-1)>1e-3
+          # Independently invert the original cold interpolant to recover E.
+          dp=(E[i]+P[i])/(1+slope)*math.expm1((1+slope)/slope*math.log(nc/n[i]))
+          back=E[i]+slope*dp
+          assert abs(back/Etarget-1)<1e-12
+          report=dict(scope='correct central-density variable, not retarget or stability claim',old_wrong_baryon_input=old,new_baryon_input=new,target_energy_density_geometric=old,source_energy_density_cgs=Etarget,roundtrip_relative=abs(back/Etarget-1),axes_ratio=b['axes_ratio'])
+          (d/'density_transfer.json').write_text(json.dumps(report,indent=2))
+          print('DENSITY_TRANSFER',json.dumps(report))
+          par=d/'control.par';s=par.read_text()
+          s,k=re.subn(r'^Hydro_RNSID::rho_central\s*=.*$',f'Hydro_RNSID::rho_central = {new:.17e}',s,flags=re.M)
+          assert k==1
+          par.write_text(s)
+          PY
+      - name: Apply isolated spin retarget candidate from measured successful equilibrium
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,re,pathlib
+          d=pathlib.Path('evidence')
+          p=d/'control.par'
+          s=p.read_text()
+          original=json.loads((d/'bridge.json').read_text())['axes_ratio']
+          target=346.536369
+          measured=347.1647363180208
+          # Slow-rotation first-order estimate: flattening proportional to omega^2.
+          # This is a candidate; actual native frequency, M and J are the gates.
+          trial=os.environ['TRIAL']
+          assert trial in ('original','retarget')
+          q=1-(1-original)*(target/measured)**2 if trial=='retarget' else original
+          assert original<=q<1 and q-original<0.001
+          s,n=re.subn(r'^Hydro_RNSID::axes_ratio\s*=.*$',f'Hydro_RNSID::axes_ratio = {q:.17e}',s,flags=re.M)
+          assert n==1
+          p.write_text(s)
+          (d/'spin_trial.json').write_text(json.dumps(dict(trial=trial,original=original,applied=q,target_hz=target,baseline_hz=measured,scope='candidate retarget, measured native match required'),indent=2))
+          PY
+      - name: Match atmosphere thermodynamics to active MPA1 at unchanged floor
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,math,numpy as np,re,json
+          d=pathlib.Path('evidence')
+          p=d/'control.par'; s=p.read_text()
+          floor=1e-12
+          for key in ('GRHydro::rho_abs_min','Hydro_RNSID::rns_rho_min'):
+              m=re.findall(r'^'+re.escape(key)+r'\s*=\s*([0-9.eE+-]+)',s,re.M|re.I)
+              assert len(m)==1 and float(m[0])==floor,(key,m)
+          with (d/'mpa1_eos_omni_fixed.dat').open() as inp:
+              header=[next(inp).rstrip('\n') for _ in range(7)]
+              tab=np.loadtxt(inp)
+          lo,hi=float(header[2][9:16]),float(header[2][25:32])
+          x=np.linspace(math.log10(lo),math.log10(hi),len(tab))
+          eps,g=np.interp(math.log10(floor),x,tab[:,0]),np.interp(math.log10(floor),x,tab[:,1])
+          pressure=floor**g
+          assert 0<eps and 0<pressure
+          # GRHydro's general C2P uses a separate polytrope for atmosphere.
+          # Match both p and epsilon exactly at the existing density floor;
+          # do not replace the active cold_tabulated evolution EOS.
+          gamma=1+pressure/(floor*eps)
+          k=pressure/floor**gamma
+          assert abs(k*floor**gamma/pressure-1)<1e-12
+          assert abs(k*floor**(gamma-1)/(gamma-1)/eps-1)<1e-12
+          assert pressure/(100*floor**2)>1e5
+          for key,val in [('EOS_Omni::poly_gamma',gamma),('EOS_Omni::poly_k',k)]:
+              s,n=re.subn(r'^'+re.escape(key)+r'\s*=.*$',f'{key} = {val:.17e}',s,flags=re.M)
+              assert n==1,(key,n)
+          p.write_text(s)
+          report=dict(rho=floor,pressure=pressure,eps=eps,poly_gamma=gamma,poly_k=k,old_pressure=100*floor**2,old_eps=100*floor,scope='matched atmosphere closure at fixed floor; not a momentum repair claim')
+          (d/'atmosphere_eos.json').write_text(json.dumps(report,indent=2))
+          print('ATMOSPHERE_EOS',json.dumps(report))
+          PY
+      - name: Execute actual independent BSSN and GRHydro evolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > evidence/execute.sh <<'SH'
+          set -euo pipefail
+          export OMP_NUM_THREADS=2 OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+          mkdir -p /tmp/et-control /evidence/run
+          # Official base.docker sets etuser home to /usr/etuser; its
+          # build-cactus-tarball.sh leaves Cactus.tar.gz in that home.
+          archive=/usr/etuser/Cactus.tar.gz
+          if [[ ! -s "$archive" ]]; then
+            archive=$(find /usr/etuser /home /opt /root -type f -name Cactus.tar.gz -print -quit 2>/dev/null || true)
+          fi
+          if [[ -z "$archive" || ! -s "$archive" ]]; then
+            echo 'Cactus archive unavailable' >&2
+            exit 2
+          fi
+          printf '%s\n' "$archive" | tee /evidence/archive-path.txt
+          sha256sum "$archive" > /evidence/archive.sha256
+          tar -xzf "$archive" -C /tmp/et-control
+          exe=$(find /tmp/et-control -type f -name cactus_sim -executable -print -quit)
+          if [[ -z "$exe" ]]; then echo 'Extracted Cactus executable unavailable' >&2; exit 3; fi
+          printf '%s\n' "$exe" | tee /evidence/executable-path.txt
+          ldd "$exe" | tee /evidence/executable-ldd.txt
+          if grep -q 'not found' /evidence/executable-ldd.txt; then exit 4; fi
+          sha256sum "$exe" > /evidence/executable.sha256
+          # Exact archived native source revealed 3 identical divide-by-self
+          # interpolation bugs; equal cs2 knots cause 0/0 before HLLC fluxes.
+          root=$(dirname "$(dirname "$exe")")
+          test -f "$root/Makefile"
+          src="$root/arrangements/EinsteinEOS/EOS_Omni/src"
+          export EOS_SRC="$src"
+          cp /evidence/executable.sha256 /evidence/original-executable.sha256
+          python3 - <<'PY'
+          import pathlib,hashlib,os,re,difflib,json
+          p=pathlib.Path(os.environ['EOS_SRC'])
+          d=pathlib.Path('/evidence')
+          specs={'EOS_Omni_SingleVarCalls.F90':('e54835fd72b0d77228bc6dba82682de501dd43c4037982057c0a62ac40b93b25',2),'EOS_Omni_MultiVarCalls.F90':('5ccd9836a23f0e6c360fb65ef3753b7c4dd5f1d6399acdbbc80b17978aca6b82',1)}
+          old='(coldeos_cs2(ir) - coldeos_cs2(ir-1)) * &'
+          new='(coldeos_logrho(ir) - coldeos_logrho(ir-1)) * &'
+          report={}
+          for fn,(expected,n) in specs.items():
+              q=p/fn; raw=q.read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==expected,fn
+              s=raw.decode()
+              assert s.count(old)==n,(fn,s.count(old))
+              t=s.replace(old,new)
+              assert t.count(old)==0
+              assert len(s.splitlines())==len(t.splitlines())
+              (d/(fn+'.patch')).write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile=fn,tofile=fn+'.fixed')))
+              q.write_text(t)
+              report[fn]={'original_sha256':expected,'patched_sha256':hashlib.sha256(q.read_bytes()).hexdigest(),'corrected_denominators':n}
+          (d/'eos_cs2_source_fix.json').write_text(json.dumps(report,indent=2))
+          print('EOS_CS2_SOURCE_FIX',json.dumps(report))
+          PY
+          # Formaline pushes only to the extracted local archive in this disposable container.
+          test -d "$root/cactusjar.git/.git"
+          git config --global --add safe.directory "$root/cactusjar.git/.git"
+          git config --global --get-all safe.directory > /evidence/formaline-safe-directory.txt
+          # Match the RNSID tabulated-atmosphere initialization too. Exact
+          # archived source hash from the successful baseline, no interior change.
+          export RNS_SRC="$root/arrangements/EinsteinInitialData/Hydro_RNSID/src/rnsid.c"
+          python3 - <<'PY'
+          import pathlib,hashlib,os,json,difflib
+          d=pathlib.Path('/evidence')
+          p=pathlib.Path(os.environ['RNS_SRC'])
+          raw=p.read_bytes()
+          assert hashlib.sha256(raw).hexdigest()=='5b6618eb2bf5565a835c68e1fa9380785ca0e4b37452a5ba4dbf567664b4d72d'
+          s=raw.decode()
+          v=json.loads((d/'atmosphere_eos.json').read_text())
+          old='p_atm = eos_k*pow(rho_0_atm,eos_ideal_fluid_gamma);'
+          new=old+('\n       if(strcmp(eos_type,"tab")==0) {\n'
+                   +f'         p_atm = {v["pressure"]:.17e};\n'
+                   +f'         e_atm = rho_0_atm*(1.0+{v["eps"]:.17e});\n'
+                   +'       }')
+          assert s.count(old)==1
+          t=s.replace(old,new)
+          old='energy_ijk  = e_atm + 1.e-20;'
+          assert t.count(old)==1
+          t=t.replace(old,'energy_ijk  = strcmp(eos_type,"tab")==0 ? e_atm : e_atm + 1.e-20;')
+          (d/'rnsid_atmosphere.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile='rnsid.c',tofile='rnsid.c.fixed')))
+          p.write_text(t)
+          PY
+          # Preserve density, geometry, rotation; reconstruct cold energy and pressure
+          # from the same serialized evolution EOS instead of independent interpolants.
+          cat > /evidence/cold_reproject.h <<'COLD'
+          struct j0740_cold { int n; double xmin,xmax,dx; double *eps,*gam; };
+          static struct j0740_cold j0740_read(const char *path) {
+            struct j0740_cold t={0}; char b[256]; double lo,hi,cs; int ny,nt;
+            FILE *f=fopen(path,"r"); if(!f) abort();
+            if(!fgets(b,sizeof b,f)||!fgets(b,sizeof b,f)||sscanf(b,"Nrho = %d NYe = %d NT = %d",&t.n,&ny,&nt)!=3||t.n<2||ny!=1||nt!=1) abort();
+            if(!fgets(b,sizeof b,f)||sscanf(b,"RhoMin = %lf RhoMax = %lf",&lo,&hi)!=2||!(lo>0&&hi>lo)) abort();
+            for(int i=0;i<4;i++) if(!fgets(b,sizeof b,f)) abort();
+            t.xmin=log10(lo);t.xmax=log10(hi);t.dx=(t.xmax-t.xmin)/(t.n-1);
+            t.eps=malloc((size_t)t.n*sizeof(double));t.gam=malloc((size_t)t.n*sizeof(double));if(!t.eps||!t.gam)abort();
+            for(int i=0;i<t.n;i++) if(fscanf(f,"%lf%lf%lf",&t.eps[i],&t.gam[i],&cs)!=3||!isfinite(t.eps[i])||!isfinite(t.gam[i]))abort();
+            fclose(f);return t;
+          }
+          static void j0740_eval(const struct j0740_cold *t,double rho,double *e,double *p) {
+            double x=log10(rho);if(!isfinite(x)||x<t->xmin||x>t->xmax)abort();
+            int i=(int)((x-t->xmin)/t->dx);if(i>=t->n-1)i=t->n-2;if(i<0)i=0;
+            double w=(x-(t->xmin+i*t->dx))/t->dx;
+            double eps=t->eps[i]+w*(t->eps[i+1]-t->eps[i]);
+            double g=t->gam[i]+w*(t->gam[i+1]-t->gam[i]);
+            *e=rho*(1+eps);*p=pow(rho,g);if(!isfinite(*e)||!isfinite(*p)||*p<=0)abort();
+          }
+          COLD
+          python3 - <<'PY'
+          import pathlib,os,difflib
+          d=pathlib.Path('/evidence');p=pathlib.Path(os.environ['RNS_SRC']);s=p.read_text()
+          def once(t,old,new):
+              assert t.count(old)==1,(old,t.count(old))
+              return t.replace(old,new)
+          t=once(s,'#include "hdf5_save.h"','#include "hdf5_save.h"\n'+(d/'cold_reproject.h').read_text())
+          t=once(t,'#pragma omp for collapse (3)','struct j0740_cold cold={0};\n      if(strcmp(eos_type,"tab")==0) cold=j0740_read("/evidence/mpa1_eos_omni_fixed.dat");\n#pragma omp for collapse (3)')
+          t=once(t,'              exp_nu_ijk = exp(nu_ijk);','              if(strcmp(eos_type,"tab")==0 && rho_0_ijk>=rho_0_atm)\n                j0740_eval(&cold,rho_0_ijk,&energy_ijk,&pressure_ijk);\n              exp_nu_ijk = exp(nu_ijk);')
+          t=once(t,'           } /* END FOR LOOP OF LINE 525 */','           } /* END FOR LOOP OF LINE 525 */\n      free(cold.eps);free(cold.gam);')
+          (d/'rnsid_cold_projection.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile='rnsid.c',tofile='rnsid.c.cold')))
+          p.write_text(t)
+          PY
+          export C2P_SRC="$root/arrangements/EinsteinEvolve/GRHydro/src/GRHydro_Con2Prim.F90"
+          python3 - <<'PY'
+          import pathlib,os,hashlib,difflib
+          p=pathlib.Path(os.environ['C2P_SRC']); raw=p.read_bytes()
+          assert hashlib.sha256(raw).hexdigest()=='b746c04821d1df8f1611da878b41a7ff7b64a3da608a88c6eb616628f0eacc9c'
+          s=raw.decode(); start=s.index('subroutine Con2Prim_pt('); end=s.index('end subroutine Con2Prim_pt',start)
+          q=s[start:end]
+          def once(t,old,new):
+              assert t.count(old)==1,(old,t.count(old))
+              return t.replace(old,new)
+          q=once(q,'  implicit none','  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite\n  implicit none')
+          q=once(q,'  logical epsnegative, mustbisect','''  logical epsnegative, mustbisect, br_ok, br_found
+          CCTK_REAL br_lo,br_hi,br_p,br_f,br_rho,br_eps,br_w,br_wm,br_q,br_b,br_t
+          CCTK_INT br_i''')
+          old='  mustbisect = .false.\n'
+          candidate=r'''
+          ! Low-density pre-solve: bracket the actual EOS residual before the
+          ! legacy absolute 1e-10 initial offset. Never overwrite conserved data.
+          br_found=.false.
+          if (udens.gt.0d0.and.udens.le.100d0*GRHydro_rho_min.and.pmin.gt.0d0.and. &
+              s2.ge.0d0.and.GRHydro_C2P_failed.eq.0d0) then
+            br_lo=max(pmin,sqrt(s2)-utau-udens)
+            br_hi=max(2d0*br_lo,xpress)
+            call J0740PressureEval(handle,udens,utau,s2,br_lo,br_rho,br_eps,br_w,br_f,br_ok)
+            if (br_ok.and.br_f.le.0d0) then
+              do br_i=1,64
+                call J0740PressureEval(handle,udens,utau,s2,br_hi,br_rho,br_eps,br_w,br_f,br_ok)
+                if (.not.br_ok.or.br_f.ge.0d0) exit
+                br_hi=2d0*br_hi
+              enddo
+              if (br_ok.and.br_f.ge.0d0) then
+                do br_i=1,64
+                  br_p=br_lo+(br_hi-br_lo)*0.5d0
+                  call J0740PressureEval(handle,udens,utau,s2,br_p,br_rho,br_eps,br_w,br_f,br_ok)
+                  if (.not.br_ok) exit
+                  if (abs(br_f).le.1d-9*br_p) then
+                    br_q=udens+utau+br_p
+                    br_b=sqrt(br_q*br_q-s2)
+                    br_wm=s2/(br_b*(br_q+br_b))
+                    br_t=br_rho*br_eps*br_w**2+br_rho*br_w*br_wm+br_p*br_wm*(br_w+1d0)
+                    if (br_rho.ge.GRHydro_rho_min.and.br_eps.ge.0d0.and. &
+                        abs(br_rho*br_w-udens).le.1d-10*udens.and. &
+                        abs(br_t-utau).le.1d-8*max(abs(utau),udens*1d-12)) br_found=.true.
+                    exit
+                  endif
+                  if (br_f.gt.0d0) then
+                    br_hi=br_p
+                  else
+                    br_lo=br_p
+                  endif
+                enddo
+              endif
+            endif
+            if (br_found) then
+              rho=br_rho
+              epsilon=br_eps
+              w_lorentz=br_w
+              pnew=br_p
+              if (abs(r-24d0).lt.1d-6.and.cctk_iteration.eq.1) then
+          !$OMP CRITICAL (j0740_bracket_log)
+                write(*,*) 'J0740_BRACKET_OK ',cctk_iteration,GRHydro_reflevel,x,y,z, &
+                           udens,utau,s2,pmin,br_p,br_f
+          !$OMP END CRITICAL (j0740_bracket_log)
+              endif
+              goto 52
+            endif
+          endif
+          '''
+          # There is another mustbisect reset in the iteration; insert only at
+          # the exact initialization marker together with its next comment.
+          marker=old+'\n!!$  Check that the variables have a chance of being physical'
+          q=once(q,marker,old+candidate+'\n!!$  Check that the variables have a chance of being physical')
+          q=once(q,'!!$  Calculate primitive variables from root','52 continue\n!!$  Calculate primitive variables from root')
+          q=once(q,'      GRHydro_C2P_failed = 1\n\n      !$OMP CRITICAL','''      if (abs(r-24d0).lt.1d-6) then
+          !$OMP CRITICAL (j0740_bracket_log)
+              write(*,*) 'J0740_BRACKET_FAILED ',cctk_iteration,GRHydro_reflevel,x,y,z, &
+                         udens,utau,s2,pmin,pold,pnew,f,df
+          !$OMP END CRITICAL (j0740_bracket_log)
+            endif
+            GRHydro_C2P_failed = 1
+
+            !$OMP CRITICAL''')
+          helper=r'''
+          subroutine J0740PressureEval(handle,d,tau,s2,p,rho,eps,w,f,ok)
+            use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+            implicit none
+            DECLARE_CCTK_PARAMETERS
+            CCTK_INT handle,n,keytemp,keyerr,anyerr
+            CCTK_REAL d,tau,s2,p,rho,eps,w,f,q,b,wm,xpress,xtemp,xye
+            logical ok
+            ok=.false.
+            f=0d0
+            q=d+tau+p
+            if (.not.ieee_is_finite(q).or.q.le.0d0.or.q*q.le.s2) return
+            b=sqrt(q*q-s2)
+            w=q/b
+            wm=s2/(b*(q+b))
+            rho=d/w
+            eps=(tau-s2/(q+b)-p*wm)/d
+            if (.not.ieee_is_finite(rho).or..not.ieee_is_finite(eps).or.rho.le.0d0) return
+            n=1; keytemp=0; keyerr=0; anyerr=0; xtemp=0d0; xye=0d0
+            call EOS_Omni_press(handle,keytemp,GRHydro_eos_rf_prec,n, &
+                 rho,eps,xtemp,xye,xpress,keyerr,anyerr)
+            if (keyerr.ne.0.or.anyerr.ne.0.or..not.ieee_is_finite(xpress)) return
+            f=p-xpress
+            ok=ieee_is_finite(f)
+          end subroutine J0740PressureEval
+          '''
+          tail='end subroutine Con2Prim_pt'
+          t=s[:start]+q+tail+helper+s[end+len(tail):]
+          pathlib.Path('/evidence/c2p_bracket.patch').write_text(''.join(difflib.unified_diff(s.splitlines(True),t.splitlines(True),fromfile='GRHydro_Con2Prim.F90',tofile='GRHydro_Con2Prim.F90.bracket')))
+          p.write_text(t)
+          PY
+          make -C "$root" -j2 sim 2>&1 | tee /evidence/rebuild.log
+          test -x "$exe"
+          sha256sum "$exe" > /evidence/executable.sha256
+          test "$(cut -d' ' -f1 /evidence/original-executable.sha256)" != "$(cut -d' ' -f1 /evidence/executable.sha256)"
+          ldd "$exe" | tee /evidence/patched-executable-ldd.txt
+          if grep -q 'not found' /evidence/patched-executable-ldd.txt; then exit 4; fi
+          cd /evidence
+          "$exe" /evidence/control.par 2>&1 | tee native.log
+          if grep -Eq 'NaN/Inf value\(s\) found|scheduling graceful termination of Cactus' native.log; then exit 5; fi
+          if grep -Eq 'count > GRHydro_countmax|Setting the point to atmosphere|Could not solve quadratic equation' native.log; then exit 7; fi
+          SH
+          docker run --rm --user 0:0 --entrypoint /bin/bash -v "$PWD/evidence:/evidence" "$(cat evidence/image-digest.txt)" /evidence/execute.sh
+      - name: Validate raw independent constraint histories
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,math,json,os,re
+          d=pathlib.Path('evidence')
+          def history(token,reduction):
+              files=[p for p in (d/'run').rglob('*.asc') if token in p.name.lower() and reduction in p.name.lower()]
+              assert files,(token,reduction,[p.name for p in (d/'run').rglob('*.asc')])
+              ans=[]
+              for p in files:
+                  rows=[list(map(float,l.split())) for l in p.read_text().splitlines() if l.strip() and not l.lstrip().startswith('#')]
+                  assert len(rows)>1 and all(len(x)>=3 and all(map(math.isfinite,x)) for x in rows),p
+                  # Retain partial finite histories even if the walltime trigger stops early.
+                  ans.append(dict(file=p.name,initial=rows[0],final=rows[-1],rows=len(rows),peak_columns=[max(abs(row[i]) for row in rows) for i in range(2,len(rows[0]))],legacy_short_sample=min(rows,key=lambda row:abs(row[1]-2.0625)),max_relative_excursion=[max(abs(row[i]/rows[0][i]-1) for row in rows) if rows[0][i]!=0 else None for i in range(2,len(rows[0]))]))
+              return ans
+          result=dict(scope='native F171 MPA1 EOS ingestion and independently reconstructed rotating star; not identical F171 fields; no certification',dx=float(os.environ['FINEST']),base_dx=float(os.environ['DX']),requested_time=float(os.environ['DURATION']),outer_boundary=48.0,solver=os.environ['SOLVER'],evolution_eos='MPA1 cold_tabulated + GammaTh=1.75',axes_ratio=json.loads((d/'spin_trial.json').read_text())['applied'],trial=os.environ['TRIAL'],hamiltonian=history('ham','norm2'),momentum=history('mom','norm2'),density=history('rho','maximum'),velocity=history('vel','maximum'),conserved_density=history('dens','sum'),image_digest=(d/'image-digest.txt').read_text().strip())
+          assert any(abs(x)>1e-5 for v in result['velocity'] for x in v['initial'][2:]), 'nonzero initial rotation not measured'
+          log=(d/'native.log').read_text()
+          pat=r'INFO \(Hydro_RNSID\):\s+rho_center\s+e_center\s+Mass\s+Mass_0\s+R_e[^\n]*\nINFO \(Hydro_RNSID\):\s+([^\n]+)\nINFO \(Hydro_RNSID\):\s+J\s+T/W\s+Omega[^\n]*\nINFO \(Hydro_RNSID\):\s+([^\n]+)'
+          match=re.findall(pat,log)
+          assert match,'missing actual native mass/spin diagnostics'
+          m,j=map(lambda x:list(map(float,x.split())),match[-1])
+          C=2.99792458e10;G=6.67408e-8;MS=1.98848e33
+          f=j[2]*C**3/(2*math.pi*G*MS)
+          result['native_initial_mass_msun']=m[2]
+          result['native_initial_spin_hz']=f
+          result['native_initial_J_cgs']=j[0]*G*MS**2/C
+          result['source_match']={'mass_relative':abs(m[2]/2.073-1),'spin_absolute_hz':abs(f-346.536369),'J_relative':abs(result['native_initial_J_cgs']/6.06724990745871e48-1)}
+          result['source_match_gate']=result['source_match']['mass_relative']<1e-3 and result['source_match']['spin_absolute_hz']<.1 and result['source_match']['J_relative']<.01
+          result['momentum_component_non_growth']=all(b<=a for rec in result['momentum'] for a,b in zip(rec['initial'][2:],rec['final'][2:]))
+          (d/'independent.json').write_text(json.dumps(result,indent=2))
+          result['nominal_period_coverage']=result['hamiltonian'][0]['final'][1]*j[2]/(2*math.pi)
+          # Measure actual atmosphere values in the initial equatorial line,
+          # comparing coordinates and same unchanged floor, not inferred values.
+          import numpy as np
+          rr,pp,ee=[np.loadtxt(d/'run'/('hydrobase-'+v+'.x.asc')) for v in ('rho','press','eps')]
+          assert np.array_equal(rr[:,:12],pp[:,:12]) and np.array_equal(rr[:,:12],ee[:,:12])
+          at=json.loads((d/'atmosphere_eos.json').read_text())
+          mask=(rr[:,0]==0)&(rr[:,2]==2)&(abs(rr[:,-1]/at['rho']-1)<1e-8)
+          assert np.count_nonzero(mask)>0
+          result['atmosphere_check']=dict(points=int(np.count_nonzero(mask)),pressure_max_relative=float(np.max(abs(pp[mask,-1]/at['pressure']-1))),eps_max_relative=float(np.max(abs(ee[mask,-1]/at['eps']-1))))
+          result['atmosphere_match']=max(result['atmosphere_check']['pressure_max_relative'],result['atmosphere_check']['eps_max_relative'])<1e-5
+          with (d/'mpa1_eos_omni_fixed.dat').open() as inp:
+              hdr=[next(inp).rstrip('\n') for _ in range(7)];tab=np.loadtxt(inp)
+          grid=np.linspace(math.log10(float(hdr[2][9:16])),math.log10(float(hdr[2][25:32])),len(tab))
+          de=[];dp=[]
+          for axis in 'xyz':
+              r,p,e=[np.loadtxt(d/'run'/('hydrobase-'+v+'.'+axis+'.asc')) for v in ('rho','press','eps')]
+              assert np.array_equal(r[:,:12],p[:,:12]) and np.array_equal(r[:,:12],e[:,:12])
+              m=(r[:,0]==0)&(r[:,2]==2)&(r[:,-1]>1e-8)
+              assert np.count_nonzero(m)>0
+              rh=r[m,-1];x=np.log10(rh);ep=np.interp(x,grid,tab[:,0]);pc=rh**np.interp(x,grid,tab[:,1])
+              de.extend((e[m,-1]-ep).tolist());dp.extend((p[m,-1]/pc-1).tolist())
+          result['cold_initial_check']=dict(samples=len(de),negative_thermal_count=int(np.count_nonzero(np.array(de)<-1e-12)),eps_max_absolute=float(np.max(np.abs(de))),pressure_max_relative=float(np.max(np.abs(dp))))
+          result['cold_initial_match']=result['cold_initial_check']['eps_max_absolute']<1e-10 and result['cold_initial_check']['pressure_max_relative']<1e-8
+          # Original short non-growth criterion is still recorded separately and never relabeled a pass.
+          result['legacy_short_momentum_non_growth']=all(b<=a for rec in result['momentum'] for a,b in zip(rec['initial'][2:],rec['legacy_short_sample'][2:]))
+          result['legacy_short_sample_times']=[rec['legacy_short_sample'][1] for rec in result['momentum']]
+          result['requested_duration_reached']=all(v['final'][1]>=result['requested_time']-float(os.environ['FINEST']) for key in ('hamiltonian','momentum','density','velocity','conserved_density') for v in result[key])
+          # Coordinate angular-speed proxy at x=3, y=z=0, not a Lagrangian tracer.
+          r,v,a,b=[np.loadtxt(d/'run'/fn) for fn in ('hydrobase-rho.x.asc','hydrobase-vel.x.asc','admbase-lapse.x.asc','admbase-shift.x.asc')]
+          assert all(np.array_equal(r[:,:12],x[:,:12]) for x in (v,a,b))
+          m=(r[:,2]==2)&np.isclose(r[:,9],3)&np.isclose(r[:,10],0)&np.isclose(r[:,11],0)&(r[:,-1]>1e-8)
+          times=r[m,8]; omega=(a[m,12]*v[m,13]-b[m,13])/r[m,9]
+          assert len(times)>=2 and np.all(np.diff(times)>0) and np.isfinite(omega).all()
+          result['eulerian_rotation_proxy']=dict(radius=3.0,initial_omega=float(omega[0]),final_omega=float(omega[-1]),turns=float(np.sum(.5*(omega[1:]+omega[:-1])*np.diff(times))/(2*math.pi)),last_sample_time=float(times[-1]),scope='fixed-coordinate fluid angular speed integrated over time, not a tracked fluid parcel')
+          np.savetxt(d/'angular_speed_proxy.asc',np.column_stack((times,omega)),header='geometric_time coordinate_angular_speed_at_x3')
+          result['bracket_success_rows']=sum('J0740_BRACKET_OK ' in line for line in log.splitlines())
+          result['bracket_failure_rows']=sum('J0740_BRACKET_FAILED ' in line for line in log.splitlines())
+          result['physical_stability_certified']=False
+          result['diagnostic_scope']='extended observation only; no acceptance without matched-domain convergence, AMR volume integrals and tracked rotation'
+          (d/'independent.json').write_text(json.dumps(result,indent=2))
+          print('NATIVE_MPA1_RESULT',json.dumps(result))
+          assert result['source_match_gate'] and result['atmosphere_match'] and result['cold_initial_match'], 'input validity failed'
+          assert result['requested_duration_reached'], 'requested duration not reached; retained partial diagnostic only'
+          if result['requested_time']>=600: assert result['nominal_period_coverage']>=1, 'less than one nominal rotation period'
+          PY
+      - name: Preserve measured rotation stages even on evolution failure
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,pathlib,math,re
+          d=pathlib.Path('evidence')
+          log=(d/'native.log').read_text(errors='replace') if (d/'native.log').exists() else ''
+          omega0=0.01072470762421574
+          result={'scope':'nominal initial angular frequency markers, not Lagrangian rotation or physical certification','omega0':omega0,'target_degrees':[5,15],'stages':{},'histories':{},'first_threshold_crossings':{},'c2p_warnings':sum('count > GRHydro_countmax' in l for l in log.splitlines()),'fatal_c2p':sum('Con2Prim failed; stopping' in l for l in log.splitlines()),'termination_lines':[l for l in log.splitlines() if 'Terminating due to' in l]}
+          specs={'H':('ham','norm2'),'M':('mom','norm2'),'rho_max':('rho','maximum'),'dens_sum':('dens','sum'),'velocity_max':('vel','maximum')}
+          for key,(token,reduction) in specs.items():
+              paths=sorted(p for p in (d/'run').rglob('*.asc') if token in p.name.lower() and reduction in p.name.lower())
+              if len(paths)!=1:
+                  result['histories'][key]={'missing_or_ambiguous':[str(p) for p in paths]}
+                  continue
+              rows=[]
+              malformed=0
+              for line in paths[0].read_text().splitlines():
+                  if not line.strip() or line.lstrip().startswith('#'):continue
+                  try:
+                      v=list(map(float,line.split()))
+                      if len(v)<3 or not all(map(math.isfinite,v)):raise ValueError()
+                      rows.append(v)
+                  except ValueError:malformed+=1
+              if not rows:continue
+              result['histories'][key]={'initial':rows[0],'last':rows[-1],'rows':len(rows),'malformed_or_nonfinite':malformed}
+              for deg in (5,15):
+                  target=math.radians(deg)/omega0
+                  hit=next((r for r in rows if r[1]>=target),None)
+                  result['stages'].setdefault(str(deg),{})[key]={'target_time':target,'reached':hit is not None,'first_at_or_after':hit,'nominal_degrees':math.degrees(hit[1]*omega0) if hit else None}
+              if key in ('H','M','rho_max','dens_sum'):
+                  for i,v in enumerate(rows[0][2:],2):
+                      if not v:continue
+                      for threshold in (.01,.1,1.):
+                          hit=next((r for r in rows[1:] if abs(r[i]/v-1)>=threshold),None)
+                          result['first_threshold_crossings'][f'{key}_{i-2}_{threshold}']={'row':hit,'nominal_degrees':math.degrees(hit[1]*omega0) if hit else None}
+          (d/'rotation_stages.json').write_text(json.dumps(result,indent=2,allow_nan=False))
+          print('ROTATION_STAGES',json.dumps(result,allow_nan=False))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-rotation-stages-15deg
+          path: evidence/
+          if-no-files-found: error
