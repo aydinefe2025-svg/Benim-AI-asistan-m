@@ -1,0 +1,194 @@
+{
+  "evidence_id": "j0740.bssn.archive-exhaustive-field-inventory.20261127.v1",
+  "date": "2026-11-27",
+  "source": {
+    "repository": "aydinefe2025-svg/Benim-AI-asistan-m",
+    "pr": 1015,
+    "branch": "science/j0740-coupled-conformal-constraint-candidate-20261127",
+    "archive_artifact": 15177726961,
+    "archive_sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073",
+    "source_tar_member": "run/cactus-source/Cactus-source-ML_BSSN.tar.gz",
+    "source_tar_uncompressed_bytes": 164340,
+    "source_tar_sha256": "a415ccf644327a2aa0584f4cba09b32f9463e434320f5bba4fc209363f6c514c",
+    "constraint_interior_source": "arrangements/McLachlan/ML_BSSN/src/ML_BSSN_ConstraintsInterior.cc",
+    "constraint_interior_source_sha256": "7ab41ed2d18936214542d4b26771626ab57c38b4c24b03e611edb933ad34e832"
+  },
+  "exhaustive_archive": {
+    "zip_members": 522,
+    "xyz_hdf5_files": 27,
+    "xyz_hdf5_snapshots": 54,
+    "additional_planar_hdf5_files": 60,
+    "additional_planar_hdf5_uncompressed_bytes": 18684200,
+    "all_additional_hdf5_metadata_inspected": true,
+    "extra_hdf5_unique_dataset_families": [
+      "ADMBASE::alp",
+      "ADMBASE::beta[xyz]",
+      "ADMBASE::g[xx,xy,xz,yy,yz,zz]",
+      "HYDROBASE::eps",
+      "HYDROBASE::rho",
+      "HYDROBASE::vel[0..2]",
+      "HYDROBASE::w_lorentz",
+      "ML_BSSN::H",
+      "ML_BSSN::M1",
+      "ML_BSSN::M2",
+      "ML_BSSN::M3"
+    ],
+    "missing_evolved_fields": [
+      "ML_BSSN::ML_Gamma",
+      "ML_BSSN::ML_Gammarhs",
+      "ML_BSSN::ML_cons_Gamma"
+    ],
+    "non_hdf5_checkpoint_or_restart_found": false
+  },
+  "native_reconstruction": {
+    "iteration": 128,
+    "trim": 4,
+    "all_valid_raw_relative_mismatch": 1.0533332316435824,
+    "dense_raw_relative_mismatch": 1.0146772299759017,
+    "all_valid_best_scaled_mismatch": 0.9688730338831147,
+    "dense_best_scaled_mismatch": 0.9273164861719772,
+    "matter_term_fitted_coefficient": 0.9990864575618504,
+    "candidate_solver_run": false,
+    "stencil_composition_note": "The trim-3 diagnostic is invalid for composed radius-2 derivatives; trim-4 is the minimum uncontaminated interior. Common trim-5 confirms residual persists."
+  },
+  "test_status": {
+    "archive_inventory_workflow": {
+      "run": 46004697934,
+      "conclusion": "success"
+    },
+    "core_previous_code_baseline": {
+      "run": 45999762396,
+      "linux": "success",
+      "windows": "success"
+    },
+    "core_latest_commit": {
+      "run": 46004697963,
+      "linux": "success",
+      "windows": "in_progress"
+    }
+  },
+  "scientific_status": {
+    "archive_HDF5_field_inventory": "PASS",
+    "exact_native_H_reproduction": "NOT_ESTABLISHED",
+    "original_ML_Gamma_recovery": "NOT_AVAILABLE_IN_ARCHIVE",
+    "new_native_simulation": "NOT_RUN",
+    "dynamical_stability": "NOT_ESTABLISHED",
+    "EOS_Bayes": "NOT_RUN"
+  },
+  "interpretation": "The original archive includes auxiliary planar HDF5 slices and the pinned ML_BSSN source package, but no archived evolved contracted conformal connection data or restart checkpoint. Therefore the native H discrepancy cannot be exactly reconstructed from the saved fields alone; the source snapshot and parameter files permit a fresh native rerun with ML_Gamma output, but no rerun is claimed here.",
+  "native_replay_inputs": {
+    "archive_members": 522,
+    "runtime_binary_members": [],
+    "checkpoint_or_restart_members": [],
+    "input_decks": [
+      "original.par",
+      "control.par",
+      "control_before_c2p.par",
+      "run/control.par"
+    ],
+    "launcher": "execute.sh",
+    "rebuild_log": "rebuild.log",
+    "executable_path_metadata": "executable-path.txt",
+    "image_metadata": "image.json",
+    "interpretation": "Launcher, build log, parameter decks and image metadata are present, but no executable or restart checkpoint file appears in the ZIP member inventory."
+  },
+  "followup_verification_20261127": {
+    "archive_inventory_run": 46008283238,
+    "archive_inventory_conclusion": "success",
+    "archive_artifact_id": 15201689677,
+    "archive_artifact_sha256": "d311031236ee6980eff790cb24a443adb11d16e04b033dae8274e74fbbc45f82",
+    "core_run": 46008283251,
+    "core_linux": "success",
+    "core_windows": "success",
+    "source_prior_run": 46008283193,
+    "source_prior": "success",
+    "public_research_run": 46008283309,
+    "public_research": "success",
+    "archive_binary_signature_scan": {
+      "formats_scanned": [
+        "ELF",
+        "PE",
+        "Mach-O"
+      ],
+      "candidate_count": 0,
+      "conclusion": "no matching executable magic in any archived member"
+    },
+    "runtime": {
+      "image_digest": "einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66",
+      "image_digest_file_sha256": "68d5aed7baab05a9312ffa6007455fe58b420fdd1d173cb6fe538c71b6aa2697",
+      "oci_manifest_media_type": "application/vnd.docker.distribution.manifest.v2+json",
+      "manifest_sha256": "sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66",
+      "compressed_layer_bytes": 4059388528,
+      "layers": 33,
+      "config_digest": "sha256:635d2d64c6c629417ff4351ec114a1304002ae7d31f86b4caaebc088ac9f4b57",
+      "executable_path_basename": "cactus_sim",
+      "launcher_sha256": "6a375b83f948e21a4b3756c907b22929fa65c73be592dbd63c16a207ded4128f",
+      "launcher_present": true,
+      "rebuild_log_present": true
+    },
+    "exact_native_rerun": "NOT_RUN; rebuild feasibility evidenced but solver not built or run",
+    "hamiltonian_mismatch": "UNCHANGED; trim3 is boundary contaminated, trim4/5 retain order-unity residual",
+    "physical_stability": "NOT_ESTABLISHED",
+    "eos_bayes": "NOT_RUN",
+    "latest_archive_source_runtime_check": {
+      "source_inventory_run": 46010382936,
+      "source_inventory_conclusion": "success",
+      "workflow_artifact_id": 15204341122,
+      "workflow_artifact_bytes": 16226,
+      "workflow_artifact_sha256": "cb472b094f0683d482819d45212471bde065e83c5498cbab1bcb03219c5a0d29",
+      "formaline_jar_member": "run/formaline-jar.json",
+      "formaline_jar_bytes": 42473,
+      "formaline_jar_sha256": "bbd5fd835b1096bdce218c9b785c5608b0ccbd086eed084fac2798b27019e7a2",
+      "cactus_version": "4.20.0",
+      "source_package_count": 320,
+      "source_package_total_bytes": 170756769,
+      "source_git_revision": "NOT_PRESENT_IN_FORMALINE_IDENTITY_FIELDS",
+      "launcher_sha256": "6a375b83f948e21a4b3756c907b22929fa65c73be592dbd63c16a207ded4128f",
+      "rebuild_log_sha256": "2cbaec287ab49c5b2c1a5bbbc0cb4018a193ece66fa23795fd93a6abe85290a1",
+      "rebuild_log_claim": "creating cactus_sim; Done creating cactus_sim",
+      "image_smoke_run": 46009618112,
+      "pinned_image_digest": "einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66",
+      "image_smoke": {
+        "cactus_sim_in_image": "absent",
+        "gcc": "/usr/bin/gcc",
+        "mpirun": "/usr/bin/mpirun"
+      },
+      "interpretation": "Image provides compiler and MPI but not prebuilt solver at expected path; source/build metadata exists. Native rebuild/replay was not executed."
+    },
+    "stencil_composition_audit": {
+      "run": 46010382936,
+      "core_run": 46010383032,
+      "core_linux": "success",
+      "core_windows": "success",
+      "control": "4th-order centered first derivative has radius 2; composed derivative requires trim>=4",
+      "trim3_independent_H_rms": 0.005175258939273008,
+      "trim4_independent_H_rms": 0.000273520398368558,
+      "trim5_independent_H_rms": 0.00027772828559583234,
+      "trim3_to_trim4_H_rms_ratio": 18.92092498454009,
+      "trim4_raw_relative_mismatch": 1.0516727612265737,
+      "trim5_raw_relative_mismatch": 1.0685061800639344,
+      "trim4_best_scaled_mismatch": 0.9695607952247668,
+      "trim5_best_scaled_mismatch": 0.9795910091303658,
+      "trim4_to_trim5_shape_change": "small relative to order-unity mismatch; exact parity still fails",
+      "candidate_solver_run": false,
+      "native_H_parity": "NOT_ESTABLISHED"
+    },
+    "local_no_redownload_search": {
+      "root": "D:\\PSR_J0740+6620\\work",
+      "search_scope": "all immediate child directories except pydeps",
+      "patterns": [
+        "cactus_sim",
+        "cactus_sim.exe",
+        "source.zip",
+        "execute.sh",
+        "formaline-jar.json",
+        "image-digest.txt",
+        "rebuild.log"
+      ],
+      "matches": 0,
+      "conclusion": "No local Cactus runtime or BSSN source archive found in scanned research directories",
+      "excluded": "pydeps",
+      "excluded_reason": "Windows ACL denied read; permissions were not changed or bypassed"
+    }
+  }
+}

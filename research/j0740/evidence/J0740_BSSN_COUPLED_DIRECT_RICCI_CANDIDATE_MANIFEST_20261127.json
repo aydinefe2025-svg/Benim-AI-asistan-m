@@ -1,0 +1,13 @@
+{
+  "evidence_id": "j0740.bssn.coupled-direct-ricci-candidate-manifest.20261127.v1",
+  "files": [
+    {
+      "path": "J0740_BSSN_COUPLED_DIRECT_RICCI_CANDIDATE_20261127.json",
+      "bytes_utf8": 16548,
+      "sha256": "4e488e542ba2432d243a5c0e572a5337b418952ed87346aeff7f146eb6b19ea1",
+      "github_path": "research/j0740/evidence/J0740_BSSN_COUPLED_DIRECT_RICCI_CANDIDATE_20261127.json",
+      "github_blob_sha": "052154d2422c65e200212014bbca36dd36791df7",
+      "github_readback_byte_identical": true
+    }
+  ]
+}

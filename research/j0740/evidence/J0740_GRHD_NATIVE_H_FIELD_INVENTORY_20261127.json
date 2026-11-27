@@ -1,0 +1,81 @@
+{
+  "title": "J0740 native Hamiltonian reconstruction field inventory",
+  "unique_key": "j0740.gr.native-h-variables-inventory.20261127.v1",
+  "date": "2026-11-27",
+  "status": "NATIVE_OPERATOR_RECONSTRUCTION_NOT_ESTABLISHED",
+  "source_archive": {
+    "artifact_id": 15177726961,
+    "sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073"
+  },
+  "code": {
+    "commit": "8464d7e9852cfc590640b5119fc690cd188467e3",
+    "source_path": "research/j0740/coupled_projection.py",
+    "source_bytes": 19030,
+    "source_sha256": "a00c3775a50f968feb565b03ddb1ecb613827ea40341ba4b289ac36d7466d879",
+    "source_blob_sha": "a405aff94675cf423d251ebfb79a19098cd24a32",
+    "workflow_path": ".github/workflows/j0740-coupled-projection.yml",
+    "workflow_bytes": 1633,
+    "workflow_sha256": "1f7e5e9b904c0e089dd4839eba37fe54f784162a8b87b2d113445fb98f7506df",
+    "workflow_blob_sha": "b6944a8bd94d98351c33f9aef0cc8f64a5bc7b1b"
+  },
+  "test": {
+    "run": 45988834359,
+    "job": 140471197003,
+    "conclusion": "success",
+    "core_linux_windows": "PASS",
+    "research_tests": "PASS",
+    "source_prior_tests": "PASS",
+    "artifact_id": 15192931384,
+    "artifact_bytes": 2813,
+    "artifact_sha256": "1c6563ec8493f4eece8cbf3ac4c2ec84441ff5a71997d3659666c3d51478c0ad"
+  },
+  "inventory": {
+    "snapshot_times": [
+      0,
+      128
+    ],
+    "refinement_level": 2,
+    "dataset_key_count": 44,
+    "field_names": [
+      "H",
+      "M1",
+      "M2",
+      "M3",
+      "eps",
+      "gxx",
+      "gxy",
+      "gxz",
+      "gyy",
+      "gyz",
+      "gzz",
+      "kxx",
+      "kxy",
+      "kxz",
+      "kyy",
+      "kyz",
+      "kzz",
+      "press",
+      "rho",
+      "vel[0]",
+      "vel[1]",
+      "vel[2]"
+    ],
+    "native_mclachlan_keys": [
+      "ML_BSSN::H it=0 tl=0 rl=2",
+      "ML_BSSN::H it=128 tl=0 rl=2",
+      "ML_BSSN::M1 it=0 tl=0 rl=2",
+      "ML_BSSN::M1 it=128 tl=0 rl=2",
+      "ML_BSSN::M2 it=0 tl=0 rl=2",
+      "ML_BSSN::M2 it=128 tl=0 rl=2",
+      "ML_BSSN::M3 it=0 tl=0 rl=2",
+      "ML_BSSN::M3 it=128 tl=0 rl=2"
+    ],
+    "missing_for_exact_reconstruction": [
+      "ML_BSSN conformal metric components",
+      "ML_BSSN log-conformal factor or W",
+      "evolved ML_BSSN conformal connection functions",
+      "ML_BSSN conformal trace-free curvature components"
+    ]
+  },
+  "conclusion": "Archived HDF5 supplies ADM metric/curvature, matter, and native ML_BSSN H/M1/M2/M3 diagnostics, but not the evolved conformal BSSN fields. The independent physical-metric 4th-order Ricci calculation cannot be expected to reproduce the native discrete operator from the available fields alone. Native parity and the coupled correction remain rejected/unresolved. No evolution or optimizer was run."
+}
