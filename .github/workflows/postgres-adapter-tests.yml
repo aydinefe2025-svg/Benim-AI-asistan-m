@@ -26,6 +26,7 @@ on:
       - "tests/test_postgres_smoke_safety.py"
       - "scripts/check_cano_restricted_snapshot_role.py"
       - "scripts/check_cano_snapshot_rls.py"
+      - "scripts/check_cano_memory_task_rls.py"
       - "requirements-persistence.txt"
       - ".github/workflows/postgres-adapter-tests.yml"
   workflow_dispatch:
@@ -98,6 +99,10 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
         run: python -m scripts.check_cano_snapshot_rls
+      - name: Verify actual memory and task adapters under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_memory_task_rls
 
   pg18-backup-restore:
     runs-on: ubuntu-latest
@@ -143,3 +148,7 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
         run: python -m scripts.check_cano_snapshot_rls
+      - name: Verify actual memory and task adapters under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_memory_task_rls
