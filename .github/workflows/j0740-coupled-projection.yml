@@ -56,7 +56,7 @@ jobs:
                   with zsource.open(source_tar) as packed:
                       with tarfile.open(fileobj=packed,mode='r|gz') as tar:
                           for member in tar:
-                              if not member.isfile() or member.size>8_000_000 or pathlib.PurePosixPath(member.name).suffix.lower() not in ('.c','.cc','.cpp','.h','.f','.f90','.inc','.m4'):
+                              if not member.isfile() or member.size>8_000_000:
                                   continue
                               stream=tar.extractfile(member)
                               raw=stream.read() if stream else b''
