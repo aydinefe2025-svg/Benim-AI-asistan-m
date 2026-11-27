@@ -49,7 +49,7 @@ jobs:
           export UTC_DAY="$(date -u +%F)"
           python -m organism_lab.calendar_cycle --state-dir "$STATE_DIR" --day "$UTC_DAY"
           python -m organism_lab.calendar_cycle --state-dir "$STATE_DIR" --day "$UTC_DAY"
-          python -m organism_lab.genome_checkpoint verify "$STATE_DIR/genome-state.json"
+          python -m organism_lab.versioned_calendar inspect --state-dir "$STATE_DIR" > /dev/null
           python -m organism_lab.calendar_health --state-dir "$STATE_DIR" --day "$UTC_DAY"
           echo "Source trigger: $GITHUB_EVENT_NAME; expected UTC day: $UTC_DAY" >> "$GITHUB_STEP_SUMMARY"
       - name: Persist only changed evidence to dedicated simulation state branch
