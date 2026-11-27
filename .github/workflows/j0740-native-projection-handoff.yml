@@ -34,8 +34,12 @@ jobs:
           unzip -q engine.zip -d engine
           (cd engine && sha256sum -c SHA256SUMS)
           cmp evidence/image-digest.txt engine/image-digest.txt
-          cmp evidence/model_rnsid_crust.rns engine/model_rnsid_crust.rns
-          cmp evidence/mpa1_eos_omni_fixed.dat engine/mpa1_eos_omni_fixed.dat
+          # The executable is reused, NOT the engine's initial data. The
+          # immutable first-step source determines the actual runtime EOS.
+          sha256sum evidence/model_rnsid_crust.rns evidence/mpa1_eos_omni_fixed.dat engine/model_rnsid_crust.rns engine/mpa1_eos_omni_fixed.dat > evidence/eos_input_comparison.sha256
+          for f in model_rnsid_crust.rns mpa1_eos_omni_fixed.dat; do
+              if cmp -s "evidence/$f" "engine/$f"; then echo "$f: identical"; else echo "$f: different; using original fine-grid source bytes"; fi
+          done | tee evidence/eos_input_selection.txt
           cp engine/cactus_sim evidence/cactus_sim
           chmod +x evidence/cactus_sim
           unzip -q candidate.zip mixture_0.31863476.npz coupled_projection.json -d candidate
@@ -110,6 +114,8 @@ jobs:
           name: j0740-native-projection-handoff
           path: |
             evidence/input.sha256
+            evidence/eos_input_comparison.sha256
+            evidence/eos_input_selection.txt
             evidence/candidate_grid.json
             evidence/checkpoint.par
             evidence/native.log
