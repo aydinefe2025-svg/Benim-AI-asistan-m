@@ -39,7 +39,7 @@ jobs:
               suffix=pathlib.PurePosixPath(n).suffix.lower() or '<none>'
               suffixes[suffix]=suffixes.get(suffix,0)+1
           result={'archive_member_count':len(members),'xyz_hdf5_member_count':len(members)-len(non_hdf),'non_xyz_hdf5_member_count':len(non_hdf),'non_xyz_hdf5_suffix_counts':dict(sorted(suffixes.items())),'non_xyz_hdf5_names_matching_gamma_bssn_checkpoint_restart':interesting}
-          pathlib.Path('evidence/source_zip_inventory.json').write_text(json.dumps(result,indent=2)+'\\n')
+          pathlib.Path('evidence/source_zip_inventory.json').write_text(json.dumps(result,indent=2))
           print('SOURCE_ZIP_MEMBER_INVENTORY',json.dumps(result,sort_keys=True),flush=True)
           PY
           unzip -q source.zip '*.xyz.h5' -d source
