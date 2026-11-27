@@ -872,6 +872,9 @@ jobs:
           stage=int(os.environ['STAGE'])
           histories={}
           previous=json.loads((d/'incoming/stage.json').read_text()) if stage>1 else None
+          if previous:
+              assert previous['stage']==stage-1 and previous['end_iteration']==start and previous['end_time']==t0
+              assert previous['constraint_checkpoint_counts']=={q:9 for q in ('H','M1','M2','M3')}
           for token,red in [('ham','norm2'),('mom','norm2'),('rho','maximum'),('dens','sum'),('vel','maximum')]:
               files=[p for p in (d/'run').rglob('*.asc') if token in p.name.lower() and red in p.name.lower()]
               assert len(files)==1,(token,files)
@@ -895,7 +898,14 @@ jobs:
                   if isinstance(o,h5py.Dataset):names.append(n)
               f.visititems(visit)
           groups={q:[n for n in names if re.search(r'::'+q+r'(\s|$|\[)',n,re.I)] for q in ('H','M1','M2','M3')}
-          assert all(groups.values()),{q:len(v) for q,v in groups.items()}
+          expected={(end,tl,rl) for tl in range(3) for rl in range(3)}
+          for q,ns in groups.items():
+              actual=set()
+              for name in ns:
+                  m=re.search(r'\bit=(\d+)\s+tl=(\d+)\s+rl=(\d+)\b',name)
+                  assert m,(q,name)
+                  actual.add(tuple(map(int,m.groups())))
+              assert actual==expected and len(ns)==9,(q,expected-actual,actual-expected,len(ns))
           initial=previous['initial'] if previous else {k:v['first'] for k,v in histories.items()}
           summary={'stage':stage,'start_time':t0,'end_time':t1,'start_iteration':start,'end_iteration':end,'nominal_initial_frequency_degrees':math.degrees(t1*.01072470762421574),'histories':histories,'initial':initial,'checkpoint_dataset_count':len(names),'constraint_checkpoint_counts':{q:len(v) for q,v in groups.items()},'hamiltonian_non_growth':all(b<=a for a,b in zip(initial['ham'][2:],histories['ham']['last'][2:])),'momentum_non_growth':all(b<=a for a,b in zip(initial['mom'][2:],histories['mom']['last'][2:])),'physical_stability_certified':False,'scope':'nominal elapsed-time rotation, not tracked fluid rotation; research-only, no physical acceptance'}
           (d/'stage.json').write_text(json.dumps(summary,indent=2,allow_nan=False))
@@ -913,6 +923,19 @@ jobs:
           name: j0740-360-handoff-1
           path: handoff/
           if-no-files-found: error
+      - name: Preserve unaccepted checkpoint separately on failure
+        if: failure()
+        run: |
+          mkdir -p recovery
+          find evidence/checkpoints -maxdepth 1 -type f -name '*.h5' -exec cp -p {} recovery/ \; 2>/dev/null || true
+          (cd recovery && find . -type f -name '*.h5' -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS)
+          printf '%s\n' 'UNACCEPTED: manual investigation only; never an automatic handoff.' > recovery/STATUS.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: failure()
+        with:
+          name: j0740-360-recovery-1
+          path: recovery/
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -1002,6 +1025,9 @@ jobs:
           stage=int(os.environ['STAGE'])
           histories={}
           previous=json.loads((d/'incoming/stage.json').read_text()) if stage>1 else None
+          if previous:
+              assert previous['stage']==stage-1 and previous['end_iteration']==start and previous['end_time']==t0
+              assert previous['constraint_checkpoint_counts']=={q:9 for q in ('H','M1','M2','M3')}
           for token,red in [('ham','norm2'),('mom','norm2'),('rho','maximum'),('dens','sum'),('vel','maximum')]:
               files=[p for p in (d/'run').rglob('*.asc') if token in p.name.lower() and red in p.name.lower()]
               assert len(files)==1,(token,files)
@@ -1025,7 +1051,14 @@ jobs:
                   if isinstance(o,h5py.Dataset):names.append(n)
               f.visititems(visit)
           groups={q:[n for n in names if re.search(r'::'+q+r'(\s|$|\[)',n,re.I)] for q in ('H','M1','M2','M3')}
-          assert all(groups.values()),{q:len(v) for q,v in groups.items()}
+          expected={(end,tl,rl) for tl in range(3) for rl in range(3)}
+          for q,ns in groups.items():
+              actual=set()
+              for name in ns:
+                  m=re.search(r'\bit=(\d+)\s+tl=(\d+)\s+rl=(\d+)\b',name)
+                  assert m,(q,name)
+                  actual.add(tuple(map(int,m.groups())))
+              assert actual==expected and len(ns)==9,(q,expected-actual,actual-expected,len(ns))
           initial=previous['initial'] if previous else {k:v['first'] for k,v in histories.items()}
           summary={'stage':stage,'start_time':t0,'end_time':t1,'start_iteration':start,'end_iteration':end,'nominal_initial_frequency_degrees':math.degrees(t1*.01072470762421574),'histories':histories,'initial':initial,'checkpoint_dataset_count':len(names),'constraint_checkpoint_counts':{q:len(v) for q,v in groups.items()},'hamiltonian_non_growth':all(b<=a for a,b in zip(initial['ham'][2:],histories['ham']['last'][2:])),'momentum_non_growth':all(b<=a for a,b in zip(initial['mom'][2:],histories['mom']['last'][2:])),'physical_stability_certified':False,'scope':'nominal elapsed-time rotation, not tracked fluid rotation; research-only, no physical acceptance'}
           (d/'stage.json').write_text(json.dumps(summary,indent=2,allow_nan=False))
@@ -1043,6 +1076,19 @@ jobs:
           name: j0740-360-handoff-2
           path: handoff/
           if-no-files-found: error
+      - name: Preserve unaccepted checkpoint separately on failure
+        if: failure()
+        run: |
+          mkdir -p recovery
+          find evidence/checkpoints -maxdepth 1 -type f -name '*.h5' -exec cp -p {} recovery/ \; 2>/dev/null || true
+          (cd recovery && find . -type f -name '*.h5' -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS)
+          printf '%s\n' 'UNACCEPTED: manual investigation only; never an automatic handoff.' > recovery/STATUS.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: failure()
+        with:
+          name: j0740-360-recovery-2
+          path: recovery/
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -1132,6 +1178,9 @@ jobs:
           stage=int(os.environ['STAGE'])
           histories={}
           previous=json.loads((d/'incoming/stage.json').read_text()) if stage>1 else None
+          if previous:
+              assert previous['stage']==stage-1 and previous['end_iteration']==start and previous['end_time']==t0
+              assert previous['constraint_checkpoint_counts']=={q:9 for q in ('H','M1','M2','M3')}
           for token,red in [('ham','norm2'),('mom','norm2'),('rho','maximum'),('dens','sum'),('vel','maximum')]:
               files=[p for p in (d/'run').rglob('*.asc') if token in p.name.lower() and red in p.name.lower()]
               assert len(files)==1,(token,files)
@@ -1155,7 +1204,14 @@ jobs:
                   if isinstance(o,h5py.Dataset):names.append(n)
               f.visititems(visit)
           groups={q:[n for n in names if re.search(r'::'+q+r'(\s|$|\[)',n,re.I)] for q in ('H','M1','M2','M3')}
-          assert all(groups.values()),{q:len(v) for q,v in groups.items()}
+          expected={(end,tl,rl) for tl in range(3) for rl in range(3)}
+          for q,ns in groups.items():
+              actual=set()
+              for name in ns:
+                  m=re.search(r'\bit=(\d+)\s+tl=(\d+)\s+rl=(\d+)\b',name)
+                  assert m,(q,name)
+                  actual.add(tuple(map(int,m.groups())))
+              assert actual==expected and len(ns)==9,(q,expected-actual,actual-expected,len(ns))
           initial=previous['initial'] if previous else {k:v['first'] for k,v in histories.items()}
           summary={'stage':stage,'start_time':t0,'end_time':t1,'start_iteration':start,'end_iteration':end,'nominal_initial_frequency_degrees':math.degrees(t1*.01072470762421574),'histories':histories,'initial':initial,'checkpoint_dataset_count':len(names),'constraint_checkpoint_counts':{q:len(v) for q,v in groups.items()},'hamiltonian_non_growth':all(b<=a for a,b in zip(initial['ham'][2:],histories['ham']['last'][2:])),'momentum_non_growth':all(b<=a for a,b in zip(initial['mom'][2:],histories['mom']['last'][2:])),'physical_stability_certified':False,'scope':'nominal elapsed-time rotation, not tracked fluid rotation; research-only, no physical acceptance'}
           (d/'stage.json').write_text(json.dumps(summary,indent=2,allow_nan=False))
@@ -1173,6 +1229,19 @@ jobs:
           name: j0740-360-handoff-3
           path: handoff/
           if-no-files-found: error
+      - name: Preserve unaccepted checkpoint separately on failure
+        if: failure()
+        run: |
+          mkdir -p recovery
+          find evidence/checkpoints -maxdepth 1 -type f -name '*.h5' -exec cp -p {} recovery/ \; 2>/dev/null || true
+          (cd recovery && find . -type f -name '*.h5' -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS)
+          printf '%s\n' 'UNACCEPTED: manual investigation only; never an automatic handoff.' > recovery/STATUS.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: failure()
+        with:
+          name: j0740-360-recovery-3
+          path: recovery/
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -1262,6 +1331,9 @@ jobs:
           stage=int(os.environ['STAGE'])
           histories={}
           previous=json.loads((d/'incoming/stage.json').read_text()) if stage>1 else None
+          if previous:
+              assert previous['stage']==stage-1 and previous['end_iteration']==start and previous['end_time']==t0
+              assert previous['constraint_checkpoint_counts']=={q:9 for q in ('H','M1','M2','M3')}
           for token,red in [('ham','norm2'),('mom','norm2'),('rho','maximum'),('dens','sum'),('vel','maximum')]:
               files=[p for p in (d/'run').rglob('*.asc') if token in p.name.lower() and red in p.name.lower()]
               assert len(files)==1,(token,files)
@@ -1285,7 +1357,14 @@ jobs:
                   if isinstance(o,h5py.Dataset):names.append(n)
               f.visititems(visit)
           groups={q:[n for n in names if re.search(r'::'+q+r'(\s|$|\[)',n,re.I)] for q in ('H','M1','M2','M3')}
-          assert all(groups.values()),{q:len(v) for q,v in groups.items()}
+          expected={(end,tl,rl) for tl in range(3) for rl in range(3)}
+          for q,ns in groups.items():
+              actual=set()
+              for name in ns:
+                  m=re.search(r'\bit=(\d+)\s+tl=(\d+)\s+rl=(\d+)\b',name)
+                  assert m,(q,name)
+                  actual.add(tuple(map(int,m.groups())))
+              assert actual==expected and len(ns)==9,(q,expected-actual,actual-expected,len(ns))
           initial=previous['initial'] if previous else {k:v['first'] for k,v in histories.items()}
           summary={'stage':stage,'start_time':t0,'end_time':t1,'start_iteration':start,'end_iteration':end,'nominal_initial_frequency_degrees':math.degrees(t1*.01072470762421574),'histories':histories,'initial':initial,'checkpoint_dataset_count':len(names),'constraint_checkpoint_counts':{q:len(v) for q,v in groups.items()},'hamiltonian_non_growth':all(b<=a for a,b in zip(initial['ham'][2:],histories['ham']['last'][2:])),'momentum_non_growth':all(b<=a for a,b in zip(initial['mom'][2:],histories['mom']['last'][2:])),'physical_stability_certified':False,'scope':'nominal elapsed-time rotation, not tracked fluid rotation; research-only, no physical acceptance'}
           (d/'stage.json').write_text(json.dumps(summary,indent=2,allow_nan=False))
@@ -1303,6 +1382,19 @@ jobs:
           name: j0740-360-handoff-4
           path: handoff/
           if-no-files-found: error
+      - name: Preserve unaccepted checkpoint separately on failure
+        if: failure()
+        run: |
+          mkdir -p recovery
+          find evidence/checkpoints -maxdepth 1 -type f -name '*.h5' -exec cp -p {} recovery/ \; 2>/dev/null || true
+          (cd recovery && find . -type f -name '*.h5' -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS)
+          printf '%s\n' 'UNACCEPTED: manual investigation only; never an automatic handoff.' > recovery/STATUS.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: failure()
+        with:
+          name: j0740-360-recovery-4
+          path: recovery/
+          if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
