@@ -55,7 +55,22 @@
   "archive_inventory": {
     "unique_field_names": ["H", "M1", "M2", "M3", "eps", "gxx", "gxy", "gxz", "gyy", "gyz", "gzz", "kxx", "kxy", "kxz", "kyy", "kyz", "kzz", "press", "rho", "vel[0]", "vel[1]", "vel[2]"],
     "required_native_bssn_fields_not_saved": ["ML_log_confac or phi/W", "ML_metric", "ML_Gamma", "ML_curv", "ML_trace_curv"],
-    "conclusion": "The exact native discrete ML_BSSN H operator cannot be independently replayed from this archive: only ADM metric/extrinsic-curvature, matter, and H/M constraint snapshots are present. To close parity, an archived run must emit the conformal BSSN fields and pinned solver/source parameters at matching times."
+    "public_implementation_reference": {
+      "repository": "stevenrbrandt/einsteintoolkit (public mirror of Einstein Toolkit component source)",
+      "commit": "cd8708302f8982c9b16a8d0c91db457a21e15542",
+      "path": "repos/mclachlan/ML_BSSN/src/ML_BSSN_ConstraintsInterior.cc",
+      "file_git_blob_sha1": "b01bb4ec2002a3f7b0b7caebb07c31f7539f71cd",
+      "pinned_source_url": "https://github.com/stevenrbrandt/einsteintoolkit/blob/cd8708302f8982c9b16a8d0c91db457a21e15542/repos/mclachlan/ML_BSSN/src/ML_BSSN_ConstraintsInterior.cc",
+      "observations": {
+        "evolved_ML_Gamma_is_loaded": "line 280 loads Xt1/Xt2/Xt3 from ML_Gamma",
+        "metric_derived_contracted_connection_is_separate": "line 1752 onward constructs Xtn1/Xtn2/Xtn3 from conformal metric Christoffels",
+        "connection_constraint_is_the_difference": "line 1901 onward sets cXt_i = Xtn_i - Xt_i",
+        "Ricci_curvature_uses_evolved_connection_derivatives": "line 1761 onward includes JacPDstandardNth1Xt1 etc. in Rt11 and corresponding tensor components",
+        "Hamiltonian_expression": "line 1899 sets H from trR + 2/3 K^2 - A_ij A^ij - 16 pi rho"
+      },
+      "scope_caveat": "This pinned public source snapshot demonstrates why ML_Gamma is needed for exact native-operator replay if the run uses this implementation. The archived simulation's actual McLachlan/Einstein Toolkit revision and parameters have not been identified, so equivalence to the original runtime is NOT_ESTABLISHED."
+    },
+    "conclusion": "The exact native discrete ML_BSSN H operator cannot be independently replayed from this archive: only ADM metric/extrinsic-curvature, matter, and H/M constraint snapshots are present. The pinned public implementation explicitly uses evolved ML_Gamma separately from its metric-derived connection; the missing field is therefore essential for exact replay under that implementation. To close parity, an archived run must emit the conformal BSSN fields and pinned solver/source parameters at matching times."
   },
   "verification": {
     "actions_run": 45992281841,
