@@ -1,4 +1,4 @@
-name: J0740 archived composite AMR and reconstructed tracers
+name: J0740 180-degree composite AMR and reconstructed tracers
 on:
   pull_request:
     branches: [main]
@@ -10,37 +10,20 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Reuse completed exact-code scientific evidence
-        id: receipt
+      - name: Recover independently verified 90-degree reference results
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [ "$(git hash-object research/j0740/amr_tracer_90deg.py)" != "bd01b167ecdf4c004cfe7204ac91e49fa6eea6ac" ]; then
-            echo 'reused=false' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          mkdir -p evidence
-          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15189503772/zip > verified-result.zip
-          echo '762f933028af8a00fb0a25bac22a159333ccd85505b95ae781c358c6dd1284cb  verified-result.zip' | sha256sum -c -
-          unzip -tq verified-result.zip
-          unzip -q verified-result.zip -d evidence
-          python3 - <<'PY'
-          import pathlib,json
-          p=pathlib.Path('evidence/amr_tracer.json')
-          a=json.loads(p.read_text())
-          assert len(a['snapshots'])==7 and len(a['reconstructed_tracers'])==12
-          assert all(t['full']['all_sampled_rhs_in_fluid'] for t in a['reconstructed_tracers'])
-          assert not a['physical_stability_certified']
-          assert max(s['cases']['trim3_available']['volume_relative_error'] for s in a['snapshots'])<1e-12
-          print('EXACT_CODE_ARCHIVED_RESULT_REUSE_PASS')
-          PY
-          echo 'reused=true' >> "$GITHUB_OUTPUT"
-      - name: Verify and recover immutable 90-degree spatial fields
-        if: steps.receipt.outputs.reused != 'true'
+          mkdir -p reference
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15189503772/zip > reference.zip
+          echo '762f933028af8a00fb0a25bac22a159333ccd85505b95ae781c358c6dd1284cb  reference.zip' | sha256sum -c -
+          unzip -tq reference.zip
+          unzip -q reference.zip -d reference
+      - name: Verify and recover immutable 180-degree spatial fields
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -48,8 +31,8 @@ jobs:
           mkdir -p evidence source
           python3 -m pip install numpy scipy h5py
           PYTHONPATH=research/j0740 python3 -c 'from amr_tracer_90deg import controls; controls()'
-          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15185720482/zip > source.zip
-          echo 'd3adfe19aa62bd691aed4a2eb2888d11285a9011ff1b6d73a63c8ed3b323be89  source.zip' | sha256sum -c -
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15208830686/zip > source.zip
+          echo '1dbd9401096df834d50e7396a9523519ea27087199a547acb0147936e0919471  source.zip' | sha256sum -c -
           sha256sum source.zip > evidence/source.sha256
           unzip -tq source.zip
           python3 - <<'PY'
@@ -62,11 +45,10 @@ jobs:
               for n in ns:z.extract(n,'source')
           PY
       - name: Composite mass and matter angular momentum with reconstructed tracers
-        if: steps.receipt.outputs.reused != 'true'
         run: python3 research/j0740/amr_tracer_90deg.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-90deg-composite-amr-tracers
+          name: j0740-180deg-composite-amr-tracers
           path: evidence/
           if-no-files-found: error
