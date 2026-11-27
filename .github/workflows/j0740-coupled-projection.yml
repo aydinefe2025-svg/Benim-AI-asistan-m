@@ -192,7 +192,7 @@ jobs:
 
           unzip -q source.zip '*.xyz.h5' -d source
       - name: Reconstruct BSSN Hamiltonian from archived ADM snapshots
-        run: python3 research/j0740/coupled_projection.py --stencil-audit-only
+        run: python3 research/j0740/coupled_projection.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
