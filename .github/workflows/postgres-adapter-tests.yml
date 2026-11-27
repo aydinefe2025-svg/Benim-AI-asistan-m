@@ -34,6 +34,8 @@ on:
       - "scripts/cano_local_grant_owner_resolver.sql"
       - "scripts/provision_ci_local_grant_resolver.py"
       - "core/postgres_local_grant.py"
+      - "core/postgres_owner_proof.py"
+      - "scripts/check_cano_signed_owner_adapters.py"
       - "requirements-persistence.txt"
       - ".github/workflows/postgres-adapter-tests.yml"
   workflow_dispatch:
@@ -126,6 +128,10 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
         run: python -m scripts.check_cano_production_role_matrix
+      - name: Verify signed owner proof with direct login and real adapters
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_signed_owner_adapters
 
   pg18-backup-restore:
     runs-on: ubuntu-latest
@@ -191,3 +197,7 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
         run: python -m scripts.check_cano_production_role_matrix
+      - name: Verify signed owner proof with direct login and real adapters
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_signed_owner_adapters
