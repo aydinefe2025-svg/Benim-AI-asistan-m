@@ -47,7 +47,48 @@ def check_adj(a,b,label):
     err=abs(a-b)/max(abs(a),abs(b),1e-30)
     assert err<1e-10,(label,a,b,err)
     return err
+def right_preconditioned_lsmr(O,target,damp=.01,maxiter=1280,probes=64):
+    # Estimate diagonal of A^T A using fixed-seed Rademacher row probes.
+    # Right scaling changes coordinates only: augment with damp*D rather
+    # than damping y, so the original regularized physical objective is unchanged.
+    m,n=O.shape
+    rng=np.random.default_rng(2740)
+    diag=np.zeros(n)
+    for _ in range(probes):
+        z=rng.choice([-1.,1.],size=m)
+        diag+=O.rmatvec(z)**2
+    diag=diag/probes+damp*damp
+    assert np.isfinite(diag).all() and np.all(diag>0)
+    D=1/np.sqrt(diag)
+    def forward(y):
+        x=D*y
+        return np.r_[O@x,damp*x]
+    def adjoint(v):
+        return D*(O.rmatvec(v[:m])+damp*v[m:])
+    B=LinearOperator((m+n,n),matvec=forward,rmatvec=adjoint,dtype=float)
+    u=rng.normal(size=n);v=rng.normal(size=m+n)
+    adj_error=check_adj(np.dot(B@u,v),np.dot(u,B.rmatvec(v)),'scaled augmented adjoint')
+    rhs=np.r_[target,np.zeros(n)]
+    raw=lsmr(B,rhs,damp=0.,atol=1e-7,btol=1e-7,maxiter=maxiter)
+    x=D*raw[0]
+    residual=O@x-target
+    normal=O.rmatvec(residual)+damp*damp*x
+    info={'probes':probes,'adjoint_error':adj_error,'D_min':float(D.min()),'D_max':float(D.max()),'original_objective_norm':float(np.hypot(np.linalg.norm(residual),damp*np.linalg.norm(x))),'original_normal_residual_norm':float(np.linalg.norm(normal)),'original_relative_normal_residual':float(np.linalg.norm(normal)/max(np.linalg.norm(O.rmatvec(target)),1e-30)),'original_solution_norm':float(np.linalg.norm(x))}
+    return (x,*raw[1:]),info
+def preconditioner_controls():
+    # A deterministic ill-scaled diagonal system with nonzero damping.
+    # One obtains the same original-coordinate regularized optimum.
+    diag=np.geomspace(1e-3,1e4,48)
+    O=LinearOperator((48,48),matvec=lambda x:diag*x,rmatvec=lambda x:diag*x,dtype=float)
+    rhs=np.ones(48)
+    red=lsmr(O,rhs,damp=.01,atol=1e-7,btol=1e-7,maxiter=24)
+    assert red[1]==7,(red[1],red[2])
+    green,info=right_preconditioned_lsmr(O,rhs,maxiter=24,probes=8)
+    expected=diag*rhs/(diag**2+.01**2)
+    assert green[1]!=7 and np.allclose(green[0],expected,rtol=1e-8,atol=1e-10),(green[1],green[2],np.max(np.abs(green[0]-expected)))
+    print('RIGHT_PRECONDITIONER_CONTROL',json.dumps({'unscaled_stop':int(red[1]),'unscaled_iterations':int(red[2]),'scaled_stop':int(green[1]),'scaled_iterations':int(green[2]),'max_absolute_solution_error':float(np.max(np.abs(green[0]-expected))),**info}),flush=True)
 def tests():
+    preconditioner_controls()
     rng=np.random.default_rng(8615);sh=(9,9,9)
     g=np.broadcast_to(np.eye(3),sh+(3,3)).copy()+.01*sym(rng.normal(size=sh+(3,3)))
     geo=Geometry(g,[.7,.8,.9]);x=rng.normal(size=sh+(3,));y=sym(rng.normal(size=g.shape));v=rng.normal(size=x.shape)
@@ -405,7 +446,8 @@ def main():
         mass0,j0=mass_j(g,S,v2)
         for lam in (10.,100.):
             O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
-            sol=lsmr(O,target,damp=.01,atol=1e-7,btol=1e-7,maxiter=1280)
+            sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=1280,probes=64)
+            print('RIGHT_PRECONDITIONER_ACTUAL',json.dumps({'lambda_H':lam,'stop':int(sol[1]),'iterations':int(sol[2]),**precondition},allow_nan=False),flush=True)
             dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
             for scale in (1.,.5,.25):
                 uu=scale*u;aa=A+scale*dk
@@ -423,11 +465,12 @@ def main():
                 for name,m in masks.items():
                     b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
                     reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30)}
-                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':1280,'residual_norm':float(sol[3]),'normal_residual_norm':float(sol[4]),'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':float(sol[7]),'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':1280,'right_preconditioner':precondition,'residual_norm':precondition['original_objective_norm'],'normal_residual_norm':precondition['original_normal_residual_norm'],'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':precondition['original_solution_norm'],'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
                 row['candidates'].append(candidate)
                 print('COUPLED_CANDIDATE',json.dumps(candidate,allow_nan=False),flush=True)
         row['any_coupled_improvement']=any(c.get('all_M_improved') and c.get('all_H_improved') for c in row['candidates'])
         row['any_initial_M_and_H_gate']=any(c.get('all_M_below_initial') and c.get('all_H_improved') for c in row['candidates'])
+        row['all_solver_calls_converged']=all(c.get('lsmr_stop') in (1,2,4,5) for c in row['candidates'] if 'lsmr_stop' in c)
         report['patches'].append(row)
     assert report['patches']
     report['physical_stability_certified']=False
