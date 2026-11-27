@@ -480,6 +480,25 @@ class AgentColony:
             raise RuntimeError("Empty model response")
         if len(output) > 12000:
             raise RuntimeError("Model response exceeds review storage limit")
+        # Only render a fully matched, arithmetically consistent integer
+        # equation for an explicit integer-only request. This checks the
+        # equation, not the truth or relevance of its operands to the task.
+        if short_contract and re.search(
+                r"(?:\b(?:yalnızca|yalnız|yalnizca|yalniz|sadece)\s+"
+                r"(?:tam\s+)?(?:sayı|sayi)(?:\s+olarak)?\s+yaz"
+                r"|\b(?:return|write|answer)\s+only\s+(?:the\s+)?(?:integer|number))"
+                r"\s*[.!?]?\s*$", task, re.IGNORECASE):
+            equation = re.fullmatch(
+                r"\s*([+-]?[0-9]{1,18})\s*([+*×−-])\s*"
+                r"([+-]?[0-9]{1,18})\s*=\s*([+-]?[0-9]{1,36})\s*",
+                output)
+            if equation:
+                left, op, right, claimed = equation.groups()
+                a, b, result = int(left), int(right), int(claimed)
+                calculated = (a + b if op == "+" else
+                              a - b if op in ("-", "−") else a * b)
+                if calculated == result:
+                    output = str(result)
         return {"agent_id": agent_id, "output": output, "status": "draft_unverified",
                 "lessons_used": len(lessons), "model": model}
 
