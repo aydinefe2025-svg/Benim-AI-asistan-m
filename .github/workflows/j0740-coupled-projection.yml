@@ -130,6 +130,20 @@ jobs:
                   launcher_text=launcher_raw.decode('utf-8','replace')
                   runtime_metadata['launcher_sha256']=hashlib.sha256(launcher_raw).hexdigest()
                   runtime_metadata['launcher_engine_lines']=[line.strip()[:240] for line in launcher_text.splitlines() if re.search(r'(?i)docker|podman|singularity|apptainer|cactus_sim|formaline|image-digest',line)][:20]
+                  runtime_metadata['launcher_execution_lines']=[re.sub(r'(?i)(token|password|secret|authorization|api[_-]?key)(\\s*[:=]\\s*)[^\\s]+',r'\\1\\2[REDACTED]',line.strip())[:240] for line in launcher_text.splitlines() if not re.search(r'(?i)token|password|secret|authorization|api[_-]?key',line) and re.search(r'(?i)cactus_sim|mpirun|srun|(^|\\s)exec\\s|(^|\\s)timeout\\s|\\.par(\\s|$)|formaline',line)][:24]
+              build_log=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='rebuild.log'),None)
+              if build_log:
+                  build_raw=zdiag.read(build_log)
+                  build_lines=build_raw.decode('utf-8','replace').splitlines()
+                  runtime_metadata['rebuild_log_sha256']=hashlib.sha256(build_raw).hexdigest()
+                  runtime_metadata['rebuild_log_bytes']=len(build_raw)
+                  selected=[]
+                  for no,line in enumerate(build_lines,1):
+                      if re.search(r'(?i)token|password|secret|authorization|api[_-]?key',line):continue
+                      if re.search(r'(?i)cactus_sim|\\blink(ed|ing)?\\b|\\bcompile(d|r)?\\b|\\bbuild\\b|\\bmake\\b|\\berror\\b|\\bfatal\\b|\\bsuccess\\b',line):
+                          selected.append({'line':no,'text':line.strip()[:240]})
+                          if len(selected)>=30:break
+                  runtime_metadata['rebuild_log_summary']={'line_count':len(build_lines),'selected_lines':selected}
           with zipfile.ZipFile('source.zip') as zmeta:
               image_member=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='image.json'),None)
               if image_member:
