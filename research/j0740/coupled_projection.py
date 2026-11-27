@@ -1,0 +1,248 @@
+import pathlib,re,json,math
+import numpy as np,h5py
+from scipy.sparse.linalg import LinearOperator,lsmr
+def d(a,j,h):
+    ax=2-j
+    return (-np.roll(a,-2,ax)+8*np.roll(a,-1,ax)-8*np.roll(a,1,ax)+np.roll(a,2,ax))/(12*h[j])
+def sym(a):return (a+np.swapaxes(a,-1,-2))/2
+def contract(a,b):return np.einsum('...ij,...ij->...',a,b)
+class Geometry:
+    def __init__(self,g,h):
+        self.g=g;self.h=h;self.gi=np.linalg.inv(g)
+        dg=[d(g,j,h) for j in range(3)]
+        ch=np.zeros(g.shape[:-2]+(3,3,3))
+        for i in range(3):
+            for j in range(3):
+                for k in range(3):
+                    for l in range(3):ch[...,i,j,k]+=.5*self.gi[...,i,l]*(dg[j][...,l,k]+dg[k][...,l,j]-dg[l][...,j,k])
+        self.ch=ch;self.tc=np.einsum('...jjl->...l',ch)
+    def long(self,x):
+        t=np.stack([d(x,j,self.h) for j in range(3)],axis=-2)-np.einsum('...kij,...k->...ij',self.ch,x)
+        q=t+np.swapaxes(t,-1,-2)
+        return q-self.g*(contract(self.gi,q)/3)[...,None,None]
+    def long_adj(self,y):
+        a=y-self.gi*(contract(self.g,y)/3)[...,None,None];a=a+np.swapaxes(a,-1,-2)
+        return -sum(d(a[...,j,:],j,self.h) for j in range(3))-np.einsum('...kij,...ij->...k',self.ch,a)
+    def mom(self,K):
+        q=np.einsum('...ij,...jk->...ik',self.gi,K);tr=np.trace(q,axis1=-2,axis2=-1)
+        return sum(d(q[...,j,:],j,self.h) for j in range(3))-np.stack([d(tr,j,self.h) for j in range(3)],axis=-1)+np.einsum('...l,...li->...i',self.tc,q)-np.einsum('...lji,...jl->...i',self.ch,q)
+    def mom_adj(self,y):
+        a=-np.stack([d(y,j,self.h) for j in range(3)],axis=-2)
+        div=sum(d(y[...,j],j,self.h) for j in range(3))
+        a+=div[...,None,None]*np.eye(3)
+        a+=self.tc[..., :,None]*y[...,None,:]-np.einsum('...lji,...i->...jl',self.ch,y)
+        return sym(np.einsum('...ij,...jk->...ik',self.gi,a))
+    def hterm(self,K):
+        q=np.einsum('...ij,...jk->...ik',self.gi,K)
+        return np.trace(q,axis1=-2,axis2=-1)**2-np.einsum('...ij,...ji->...',q,q)
+    def hgrad(self,K):
+        q=np.einsum('...ij,...jk->...ik',self.gi,K)
+        return 2*(np.trace(q,axis1=-2,axis2=-1)[...,None,None]*self.gi-np.einsum('...ij,...jk->...ik',q,self.gi))
+def check_adj(a,b,label):
+    err=abs(a-b)/max(abs(a),abs(b),1e-30)
+    assert err<1e-10,(label,a,b,err)
+    return err
+def tests():
+    rng=np.random.default_rng(8615);sh=(9,9,9)
+    g=np.broadcast_to(np.eye(3),sh+(3,3)).copy()+.01*sym(rng.normal(size=sh+(3,3)))
+    geo=Geometry(g,[.7,.8,.9]);x=rng.normal(size=sh+(3,));y=sym(rng.normal(size=g.shape));v=rng.normal(size=x.shape)
+    l=geo.long(x);assert np.max(abs(contract(geo.gi,l)))<1e-12
+    e1=check_adj(np.sum(l*y),np.sum(x*geo.long_adj(y)),'long')
+    e2=check_adj(np.sum(geo.mom(y)*v),np.sum(y*geo.mom_adj(v)),'mom')
+    K=.01*y;z=.01*sym(rng.normal(size=y.shape));ep=1e-5
+    diff=(geo.hterm(K+ep*z)-geo.hterm(K-ep*z))/(2*ep)
+    assert np.max(abs(diff-contract(geo.hgrad(K),z)))<1e-11
+    # Exact zero for constant vector on flat space.
+    flat=Geometry(np.broadcast_to(np.eye(3),g.shape).copy(),[1]*3)
+    assert np.max(abs(flat.long(np.ones(x.shape))))==0
+    print('PROJECTION_CONTROLS',e1,e2,flush=True)
+def ricci_scalar(geo):
+    ch=geo.ch;h=geo.h
+    ric=sum(d(ch[...,k,:,:],k,h) for k in range(3))
+    ric-=np.stack([d(geo.tc,j,h) for j in range(3)],axis=-1)
+    ric+=np.einsum('...l,...lij->...ij',geo.tc,ch)-np.einsum('...kjl,...lik->...ij',ch,ch)
+    return contract(geo.gi,ric)
+def lap_ops(geo):
+    c=np.einsum('...ij,...kij->...k',geo.gi,geo.ch)
+    def lap(u):
+        du=[d(u,i,geo.h) for i in range(3)]
+        return sum(geo.gi[...,i,j]*d(du[j],i,geo.h) for i in range(3) for j in range(3))-sum(c[...,i]*du[i] for i in range(3))
+    def adj(y):
+        return sum(d(d(geo.gi[...,i,j]*y,i,geo.h),j,geo.h) for i in range(3) for j in range(3))+sum(d(c[...,i]*y,i,geo.h) for i in range(3))
+    return lap,adj
+def source(g,rho,eps,p,v):
+    vc=np.einsum('...ij,...j->...i',g,v);v2=np.einsum('...i,...i->...',v,vc)
+    assert np.all(v2<1) and np.all(v2>=-1e-13)
+    q=(rho*(1+eps)+p)/(1-v2)
+    return q-p,q[...,None]*vc,q,v2
+def scalar_controls():
+    rng=np.random.default_rng(405)
+    g=np.broadcast_to(np.eye(3),(9,9,9,3,3)).copy()+.01*sym(rng.normal(size=(9,9,9,3,3)))
+    geo=Geometry(g,[.7,.8,.9]);lap,adj=lap_ops(geo)
+    a=rng.normal(size=(9,9,9));b=rng.normal(size=a.shape)
+    check_adj(np.sum(lap(a)*b),np.sum(a*adj(b)),'scalar covariant laplacian')
+    flat=Geometry(np.broadcast_to(np.eye(3),g.shape).copy(),[1]*3)
+    assert np.max(abs(ricci_scalar(flat)))==0
+    assert np.max(abs(lap_ops(flat)[0](np.ones(a.shape))))==0
+    # Continuum conformal H variation on flat periodic low-frequency field:
+    # residual converges toward the analytical linear expression with refinement.
+    errors=[]
+    for n in (17,33):
+        h=2*np.pi/n;c=np.arange(n)*h
+        zz,yy,xx=np.meshgrid(c,c,c,indexing='ij')
+        u=1e-5*np.sin(xx)*np.cos(yy)*np.cos(zz)
+        gp=np.broadcast_to(np.eye(3),u.shape+(3,3)).copy()*np.exp(4*u)[...,None,None]
+        exact=np.exp(-4*u)*(24*u-8*1e-10*(np.cos(xx)**2*np.cos(yy)**2*np.cos(zz)**2+np.sin(xx)**2*np.sin(yy)**2*np.cos(zz)**2+np.sin(xx)**2*np.cos(yy)**2*np.sin(zz)**2))
+        R=ricci_scalar(Geometry(gp,[h]*3))
+        errors.append(float(np.linalg.norm(R-exact)/np.linalg.norm(exact)))
+    assert errors[1]<errors[0]/8,errors
+    print('COUPLED_SCALAR_CONTROLS',errors,flush=True)
+def main():
+    tests();scalar_controls()
+    expected={'gxx','gxy','gxz','gyy','gyz','gzz','kxx','kxy','kxz','kyy','kyz','kzz','rho','eps','press','vel[0]','vel[1]','vel[2]','H','M1','M2','M3'}
+    fields={}
+    for path in pathlib.Path('source').rglob('*.xyz.h5'):
+        n=path.name.removesuffix('.xyz.h5')
+        if n not in expected:continue
+        with h5py.File(path,'r') as f:
+            def visit(key,obj):
+                if not isinstance(obj,h5py.Dataset) or obj.ndim!=3:return
+                m=re.search(r'\bit=(0|128)\s+(.*)',key)
+                if not m or not re.search(r'\brl=2\b',m[2]):return
+                k=(n,int(m[1]),m[2]);assert k not in fields,k
+                fields[k]=(obj[...],np.array(obj.attrs['origin'],float),np.array(obj.attrs['delta'],float))
+            f.visititems(visit)
+    report={'scope':'offline coupled conformal metric and longitudinal curvature correction, no evolution or certification','artifact':15177726961,'patches':[]}
+    for patch in sorted({p for _,_,p in fields}):
+        if not all((n,t,patch) in fields for n in expected for t in (0,128)):continue
+        r0,o,h=fields['rho',0,patch];shape=r0.shape
+        for n in expected:
+            for t in (0,128):
+                a,oo,hh=fields[n,t,patch];assert a.shape==shape and np.array_equal(o,oo) and np.array_equal(h,hh) and np.isfinite(a).all()
+        def get(n,t):return fields[n,t,patch][0]
+        def tensor(prefix,t):
+            q=np.zeros(shape+(3,3))
+            for i,j in ((0,0),(0,1),(0,2),(1,1),(1,2),(2,2)):q[...,i,j]=q[...,j,i]=get(prefix+'xyz'[i]+'xyz'[j],t)
+            return q
+        def baseline(t):
+            g=tensor('g',t);K=tensor('k',t);geo=Geometry(g,h)
+            v=np.stack([get(f'vel[{i}]',t) for i in range(3)],axis=-1)
+            vc=np.einsum('...ij,...j->...i',g,v);v2=np.einsum('...i,...i->...',v,vc)
+            assert np.all(v2<1) and np.all(v2>=-1e-13)
+            S=(get('rho',t)*(1+get('eps',t))+get('press',t))/(1-v2)
+            return geo,K,geo.mom(K)-8*np.pi*S[...,None]*vc,np.stack([get(f'M{i}',t) for i in (1,2,3)],axis=-1)
+        geo0,K0,M0,native0=baseline(0)
+        geo,K,M,native=baseline(128)
+        zz,yy,xx=np.indices(shape);x=o[0]+h[0]*xx;y=o[1]+h[1]*yy;z=o[2]+h[2]*zz;rad=np.sqrt(x*x+y*y+z*z)
+        valid=np.zeros(shape,bool);valid[3:-3,3:-3,3:-3]=True;valid&=(z>=-1e-10)
+        dense=r0>1e-8;near=dense.copy()
+        for ax in range(3):near|=np.roll(dense,1,ax)|np.roll(dense,-1,ax)
+        masks={'inner':valid&dense&(r0>.5*r0.max()),'outer_fluid':valid&dense&(r0<=.5*r0.max()),'surface_atmosphere':valid&near&~dense,'far_atmosphere':valid&~near}
+        assert all(np.any(m) for m in masks.values())
+        # Force reflection symmetry and compact support of the vector potential.
+        active=np.zeros(shape,bool);active[5:-5,5:-5,5:-5]=True
+        # Include equatorial plane when ghost depth is <5, but never upper/lateral boundaries.
+        active[:,:,:]=False;active[:,5:-5,5:-5]=True;active[-5:]=False
+        active&=(z>=-1e-10)&(rad<11.5)
+        taper=np.clip((11.5-rad)/1.5,0,1)
+        parity=np.array([1.,1.,-1.])
+        zline=z[:,0,0];pairs=[]
+        for iz in np.where(zline< -1e-10)[0]:
+            j=int(round((-zline[iz]-o[2])/h[2]))
+            if 0<=j<len(zline) and abs(zline[j]+zline[iz])<1e-9:pairs.append((iz,j))
+        assert pairs and active.sum()>0
+        eq=abs(z)<1e-10
+        def extend(a):
+            X=np.zeros(shape+(3,));X[active]=a.reshape((-1,3))*taper[active,None];X[...,2][eq]=0
+            for i,j in pairs:X[i]=X[j]*parity
+            return X
+        def restrict(X):
+            X=X.copy()
+            for i,j in pairs:X[j]+=X[i]*parity
+            X[...,2][eq]=0
+            return (X[active]*taper[active,None]).ravel()
+        N=int(active.sum())*3;Q=int(active.sum());P=int(valid.sum())
+        def extend_scalar(a):
+            u=np.zeros(shape);u[active]=a*taper[active]
+            for i,j in pairs:u[i]=u[j]
+            return u
+        def restrict_scalar(u):
+            u=u.copy()
+            for i,j in pairs:u[j]+=u[i]
+            return u[active]*taper[active]
+        Hnative=get('H',128)
+        rho,eps,press=[get(f,128) for f in ('rho','eps','press')]
+        v=np.stack([get(f'vel[{i}]',128) for i in range(3)],axis=-1)
+        g=geo.g
+        E,S,q,v2=source(g,rho,eps,press,v)
+        R=ricci_scalar(geo);H=R+geo.hterm(K)-16*np.pi*E
+        tr=contract(geo.gi,K);A=K-g*tr[...,None,None]/3
+        Amix=np.einsum('...ij,...jk->...ik',geo.gi,A);A2=np.einsum('...ij,...ji->...',Amix,Amix)
+        C=-6*geo.mom(A)-32*np.pi*S/(1-v2)[...,None]
+        V=-4*R+12*A2-64*np.pi*q*v2/(1-v2)
+        grad=geo.hgrad(K);lap,lapadj=lap_ops(geo)
+        def rms(a,m):return np.sqrt(np.mean(a[m]**2,axis=0))
+        wm=np.zeros(shape+(3,));wh=np.zeros(shape)
+        base={}
+        for name,m in masks.items():
+            n=int(m.sum())
+            b={'points':n,'initial_M_rms':rms(M0,m).tolist(),'pre_M_rms':rms(M,m).tolist(),'pre_H_rms':float(rms(H,m)),'pre_native_H_rms':float(rms(Hnative,m)),'native_H_relative_mismatch':float(np.linalg.norm((H-Hnative)[m])/max(np.linalg.norm(Hnative[m]),1e-30))}
+            base[name]=b
+            wm[m]=1/(np.sqrt(n)*np.maximum(b['initial_M_rms'],3e-7))
+            wh[m]=1/(np.sqrt(n)*max(b['pre_H_rms'],1e-7))
+        def op(lam):
+            def forward(a):
+                dk=geo.long(extend(a[:N]));u=extend_scalar(a[N:])
+                mv=geo.mom(dk)+C*u[...,None]
+                hv=contract(grad,dk)-8*lap(u)+V*u
+                return np.r_[(wm*mv)[valid].ravel(),(lam*wh*hv)[valid]]
+            def adjoint(a):
+                mm=np.zeros(shape+(3,));hh=np.zeros(shape)
+                mm[valid]=a[:3*P].reshape(-1,3);hh[valid]=a[3*P:]
+                mm*=wm;hh*=lam*wh
+                xv=restrict(geo.long_adj(geo.mom_adj(mm)+hh[...,None,None]*grad))
+                uv=restrict_scalar(np.sum(C*mm,axis=-1)-8*lapadj(hh)+V*hh)
+                return np.r_[xv,uv]
+            return LinearOperator((4*P,N+Q),matvec=forward,rmatvec=adjoint,dtype=float)
+        rng=np.random.default_rng(69)
+        O=op(10.);a=rng.normal(size=N+Q);b=rng.normal(size=4*P)
+        err=check_adj(np.dot(O@a,b),np.dot(a,O.rmatvec(b)),'coupled actual adjoint')
+        row={'patch':patch,'actual_adjoint_error':err,'active_points':Q,'valid_points':P,'baseline':base,'candidates':[]}
+        wt=np.where(abs(z)<1e-10,1.,2.)*np.prod(h)
+        def mass_j(g,sourceS,sourcev2):
+            sg=np.sqrt(np.linalg.det(g))
+            D=sg*rho/np.sqrt(1-sourcev2)
+            J=sg*(x*sourceS[...,1]-y*sourceS[...,0])
+            return float(np.sum(wt[valid]*D[valid])),float(np.sum(wt[valid]*J[valid]))
+        mass0,j0=mass_j(g,S,v2)
+        for lam in (10.,100.):
+            O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
+            sol=lsmr(O,target,damp=.01,atol=1e-7,btol=1e-7,maxiter=160)
+            dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
+            for scale in (1.,.5,.25):
+                uu=scale*u;aa=A+scale*dk
+                if np.max(abs(uu))>.05:
+                    row['candidates'].append({'lambda_H':lam,'scale':scale,'rejected':'conformal perturbation exceeds bound'});continue
+                G=g*np.exp(4*uu)[...,None,None]
+                Kp=np.exp(-2*uu)[...,None,None]*aa+G*tr[...,None,None]/3
+                gp=Geometry(G,h)
+                Ep,Sp,qp,vp2=source(G,rho,eps,press,v)
+                Hp=ricci_scalar(gp)+gp.hterm(Kp)-16*np.pi*Ep
+                Mp=gp.mom(Kp)-8*np.pi*Sp
+                Hpnative_est=Hnative+Hp-H
+                mass,j=mass_j(G,Sp,vp2)
+                reg={}
+                for name,m in masks.items():
+                    b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
+                    reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30)}
+                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'residual_norm':float(sol[3]),'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                row['candidates'].append(candidate)
+                print('COUPLED_CANDIDATE',json.dumps(candidate,allow_nan=False),flush=True)
+        row['any_coupled_improvement']=any(c.get('all_M_improved') and c.get('all_H_improved') for c in row['candidates'])
+        row['any_initial_M_and_H_gate']=any(c.get('all_M_below_initial') and c.get('all_H_improved') for c in row['candidates'])
+        report['patches'].append(row)
+    assert report['patches']
+    report['physical_stability_certified']=False
+    pathlib.Path('evidence/coupled_projection.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+    print('COUPLED_RESULT',json.dumps(report,allow_nan=False),flush=True)
+if __name__=='__main__':main()
