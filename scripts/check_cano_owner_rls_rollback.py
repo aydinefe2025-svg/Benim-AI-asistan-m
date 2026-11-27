@@ -39,8 +39,9 @@ def digest(conn):
     return rows
 
 
-def apply(conn):
-    conn.execute((ROOT/"cano_local_grant_owner_resolver.sql").read_text())
+def apply(conn, *, resolver_preinstalled=False):
+    if not resolver_preinstalled:
+        conn.execute((ROOT/"cano_local_grant_owner_resolver.sql").read_text())
     candidate = (ROOT/"cano_owner_rls_candidate.sql").read_text()
     role_pattern = r"\b(?:" + "|".join(map(re.escape, ROLES)) + r")\b"
     conn.execute(re.sub(role_pattern, lambda m: fixture_role(m.group()), candidate))
@@ -122,6 +123,29 @@ def main():
         assert metadata(conn) == active and digest(conn) == baseline_data
     verify_scope(True)
     print("OWNER_RLS_ROLLBACK_PASS: eight nonempty tables, exact catalog and row digest recovery, interrupted rollback atomic, unrelated policy preserved, reapply default deny")
+    # Live metadata now shows an already-installed narrow resolver. Test
+    # that alternate pre-cutover baseline separately without losing its ACL.
+    with psycopg.connect(TARGET) as conn:
+        conn.execute((ROOT/"cano_owner_rls_rollback_candidate.sql").read_text())
+        conn.execute((ROOT/"cano_local_grant_owner_resolver.sql").read_text())
+        conn.execute(f"GRANT EXECUTE ON FUNCTION public.cano_resolve_local_grant_owner(text,text) TO {fixture_role('agent_task_app')}")
+        staged_baseline = metadata(conn)
+        resolver_before = conn.execute("SELECT pg_get_functiondef(oid), proacl::text FROM pg_proc WHERE oid='public.cano_resolve_local_grant_owner(text,text)'::regprocedure").fetchone()
+        assert staged_baseline[2] and digest(conn) == baseline_data
+        apply(conn, resolver_preinstalled=True)
+    verify_scope(True)
+    with psycopg.connect(TARGET) as conn:
+        conn.execute((ROOT/"cano_owner_rls_rollback_keep_resolver.sql").read_text())
+        assert metadata(conn) == staged_baseline and digest(conn) == baseline_data
+        assert conn.execute("SELECT pg_get_functiondef(oid), proacl::text FROM pg_proc WHERE oid='public.cano_resolve_local_grant_owner(text,text)'::regprocedure").fetchone() == resolver_before
+    verify_scope(False)
+    assert len(q.list()) == 1
+    with psycopg.connect(TARGET) as conn:
+        apply(conn, resolver_preinstalled=True)
+        assert digest(conn) == baseline_data
+    verify_scope(True)
+    print("PREINSTALLED_RESOLVER_ROLLBACK_PASS: existing function and ACL retained; all eight digests unchanged; reapply passed")
+
     print("LIMIT: isolated synthetic database only; no live rollback or activation")
 
 if __name__ == "__main__":

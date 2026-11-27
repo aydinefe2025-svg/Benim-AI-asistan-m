@@ -33,6 +33,7 @@ on:
       - "scripts/check_cano_production_role_matrix.py"
       - "scripts/check_cano_owner_rls_rollback.py"
       - "scripts/cano_owner_rls_rollback_candidate.sql"
+      - "scripts/cano_owner_rls_rollback_keep_resolver.sql"
       - "scripts/cano_local_grant_owner_resolver.sql"
       - "scripts/provision_ci_local_grant_resolver.py"
       - "core/postgres_local_grant.py"
