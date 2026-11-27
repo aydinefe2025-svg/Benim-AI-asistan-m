@@ -1,0 +1,17 @@
+name: EPS operating simulator
+on:
+  pull_request:
+    paths:
+      - research/eps_lab_v4/CANO_EPS_operating_simulator.html
+      - research/eps_lab_v4/test_operating_simulator.cjs
+      - .github/workflows/eps-operating-simulator.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: node research/eps_lab_v4/test_operating_simulator.cjs
