@@ -111,7 +111,7 @@ def main():
     audit_only='--stencil-audit-only' in sys.argv
     tests();scalar_controls();stencil_domain_controls()
     expected={'gxx','gxy','gxz','gyy','gyz','gzz','kxx','kxy','kxz','kyy','kyz','kzz','rho','eps','press','vel[0]','vel[1]','vel[2]','H','M1','M2','M3'}
-    fields={}
+    fields={};field_inventory=[]
     for path in pathlib.Path('source').rglob('*.xyz.h5'):
         n=path.name.removesuffix('.xyz.h5')
         if n not in expected:continue
@@ -120,10 +120,12 @@ def main():
                 if not isinstance(obj,h5py.Dataset) or obj.ndim!=3:return
                 m=re.search(r'\bit=(0|128)\s+(.*)',key)
                 if not m or not re.search(r'\brl=2\b',m[2]):return
+                field_inventory.append({'field_file':n,'dataset_key':key,'iteration':int(m[1])})
+                if n not in expected:return
                 k=(n,int(m[1]),m[2]);assert k not in fields,k
                 fields[k]=(obj[...],np.array(obj.attrs['origin'],float),np.array(obj.attrs['delta'],float))
             f.visititems(visit)
-    report={'scope':'immutable archived HDF5 stencil-domain audit; no evolution, optimization, or physical certification','artifact':15177726961,'source_archive_sha256':'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073','patches':[]}
+    report={'scope':'immutable archived HDF5 stencil-domain and native-variable inventory; no evolution, optimization, or physical certification','artifact':15177726961,'source_archive_sha256':'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073','available_hdf5_field_files_and_keys':sorted(field_inventory,key=lambda q:(q['field_file'],q['iteration'],q['dataset_key'])),'patches':[]}
     for patch in sorted({p for _,_,p in fields}):
         if not all((n,t,patch) in fields for n in expected for t in (0,128)):continue
         r0,o,h=fields['rho',0,patch];shape=r0.shape
