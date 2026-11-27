@@ -82,25 +82,25 @@ jobs:
               if name.lower() in ('cactus','cactus_sim','cactus.exe','simulation.exe','thornlist'):
                   runtime.append({'name':item.filename,'bytes':item.file_size})
           binary_candidates=[]
-with zipfile.ZipFile('source.zip') as zb:
-    for item in members:
-        with zb.open(item) as stream:
-            magic=stream.read(4)
-        kind='ELF' if magic==bytes([127])+b'ELF' else ('PE' if magic[:2]==b'MZ' else ('Mach-O' if magic in (bytes([254,237,250,206]),bytes([206,250,237,254]),bytes([254,237,250,207]),bytes([207,250,237,254])) else None))
-        if kind:binary_candidates.append({'name':item.filename,'bytes':item.file_size,'format':kind})
-runtime_metadata={'image_file':None,'image_file_sha256':None,'image_identity_fields':{},'image_digest_file_sha256':None,'image_digest_value':None,'executable_path_basename':None,'launcher_sha256':None,'launcher_engine_lines':[],'execute_script_present':False,'rebuild_log_present':False}
-with zipfile.ZipFile('source.zip') as zdiag:
-    digest_member=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='image-digest.txt'),None)
-    if digest_member:
-        digest_raw=zdiag.read(digest_member)
-        runtime_metadata['image_digest_file_sha256']=hashlib.sha256(digest_raw).hexdigest()
-        runtime_metadata['image_digest_value']=digest_raw.decode('utf-8','replace').strip()[:256]
-    launcher=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='execute.sh'),None)
-    if launcher:
-        launcher_raw=zdiag.read(launcher)
-        launcher_text=launcher_raw.decode('utf-8','replace')
-        runtime_metadata['launcher_sha256']=hashlib.sha256(launcher_raw).hexdigest()
-        runtime_metadata['launcher_engine_lines']=[line.strip()[:240] for line in launcher_text.splitlines() if re.search(r'(?i)docker|podman|singularity|apptainer|cactus_sim|formaline|image-digest',line)][:20]
+          with zipfile.ZipFile('source.zip') as zb:
+              for item in members:
+                  with zb.open(item) as stream:
+                      magic=stream.read(4)
+                  kind='ELF' if magic==bytes([127])+b'ELF' else ('PE' if magic[:2]==b'MZ' else ('Mach-O' if magic in (bytes([254,237,250,206]),bytes([206,250,237,254]),bytes([254,237,250,207]),bytes([207,250,237,254])) else None))
+                  if kind:binary_candidates.append({'name':item.filename,'bytes':item.file_size,'format':kind})
+          runtime_metadata={'image_file':None,'image_file_sha256':None,'image_identity_fields':{},'image_digest_file_sha256':None,'image_digest_value':None,'executable_path_basename':None,'launcher_sha256':None,'launcher_engine_lines':[],'execute_script_present':False,'rebuild_log_present':False}
+          with zipfile.ZipFile('source.zip') as zdiag:
+              digest_member=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='image-digest.txt'),None)
+              if digest_member:
+                  digest_raw=zdiag.read(digest_member)
+                  runtime_metadata['image_digest_file_sha256']=hashlib.sha256(digest_raw).hexdigest()
+                  runtime_metadata['image_digest_value']=digest_raw.decode('utf-8','replace').strip()[:256]
+              launcher=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='execute.sh'),None)
+              if launcher:
+                  launcher_raw=zdiag.read(launcher)
+                  launcher_text=launcher_raw.decode('utf-8','replace')
+                  runtime_metadata['launcher_sha256']=hashlib.sha256(launcher_raw).hexdigest()
+                  runtime_metadata['launcher_engine_lines']=[line.strip()[:240] for line in launcher_text.splitlines() if re.search(r'(?i)docker|podman|singularity|apptainer|cactus_sim|formaline|image-digest',line)][:20]
           with zipfile.ZipFile('source.zip') as zmeta:
               image_member=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='image.json'),None)
               if image_member:
