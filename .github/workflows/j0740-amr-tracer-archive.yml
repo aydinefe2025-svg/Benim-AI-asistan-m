@@ -1,0 +1,54 @@
+name: J0740 180-degree composite AMR and reconstructed tracers
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-amr-tracer-archive.yml','research/j0740/amr_tracer_90deg.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Recover independently verified 90-degree reference results
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p reference
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15189503772/zip > reference.zip
+          echo '762f933028af8a00fb0a25bac22a159333ccd85505b95ae781c358c6dd1284cb  reference.zip' | sha256sum -c -
+          unzip -tq reference.zip
+          unzip -q reference.zip -d reference
+      - name: Verify and recover immutable 180-degree spatial fields
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence source
+          python3 -m pip install numpy scipy h5py
+          PYTHONPATH=research/j0740 python3 -c 'from amr_tracer_90deg import controls; controls()'
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15208830686/zip > source.zip
+          echo '1dbd9401096df834d50e7396a9523519ea27087199a547acb0147936e0919471  source.zip' | sha256sum -c -
+          sha256sum source.zip > evidence/source.sha256
+          unzip -tq source.zip
+          python3 - <<'PY'
+          import zipfile,pathlib,json
+          fields={'gxx','gxy','gxz','gyy','gyz','gzz','rho','eps','press','vel[0]','vel[1]','vel[2]','dens','alp','betax','betay','betaz'}
+          with zipfile.ZipFile('source.zip') as z:
+              ns=[n for n in z.namelist() if n.endswith('.xyz.h5') and pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') in fields]
+              pathlib.Path('evidence/inventory.json').write_text(json.dumps(ns,indent=2))
+              assert len(ns)==len(fields) and {pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') for n in ns}==fields,ns
+              for n in ns:z.extract(n,'source')
+          PY
+      - name: Composite mass and matter angular momentum with reconstructed tracers
+        run: python3 research/j0740/amr_tracer_90deg.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-180deg-composite-amr-tracers
+          path: evidence/
+          if-no-files-found: error
