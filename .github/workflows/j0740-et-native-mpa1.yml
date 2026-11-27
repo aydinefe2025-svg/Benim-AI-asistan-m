@@ -1,4 +1,4 @@
-name: J0740 MPA1 first-step spatial momentum diagnostic
+name: J0740 MPA1 first-step geometry dissipation isolation
 on:
   pull_request:
     branches: [main]
@@ -59,6 +59,8 @@ jobs:
               s,n=re.subn(r'^\s*'+re.escape(key)+r'\s*=.*$',key+' = '+value,s,flags=re.M)
               assert n==1,(key,n)
           setparam('Cactus::cctk_final_time',os.environ['DURATION'])
+          assert re.search(r'^Dissipation::epsdis\s*=\s*0\.01\s*$',s,re.M)
+          setparam('Dissipation::epsdis','0.0') # short causal control only
           for axis in 'xyz': setparam('CoordBase::d'+axis,os.environ['DX'])
           setparam('IO::out_dir','"/evidence/run"')
           setparam('IOScalar::outScalar_every','1')
@@ -785,7 +787,13 @@ jobs:
               expected=[128.,.09375,1.19179895439447e-6,1.19179895439448e-6,4.73204536862074e-7]
               report['first_crossing']=first
               report['reproduces_baseline_first_crossing']=first is not None and bool(np.allclose(first,expected,rtol=1e-5,atol=1e-14))
-              assert report['reproduces_baseline_first_crossing'], 'first crossing differs from archived baseline'
+              m=stage['histories']['M']; h=stage['histories']['H']
+              ref0=[1.12154656085568e-6,1.12154656085569e-6,1.13469784474736e-7]
+              ref_end=[1.5532203960721e-6,1.55322039607206e-6,1.1173982050229e-6]
+              assert np.allclose(m['initial'][2:],ref0,rtol=1e-10,atol=1e-15), 'initial constraints differ'
+              assert np.isclose(h['initial'][2],1.97697290815372e-5,rtol=1e-10,atol=1e-15)
+              assert m['last'][1]==.375 and h['last'][1]==.375
+              report['controlled_change']={'baseline_epsdis':.01,'candidate_epsdis':0.,'reference_run':45952796258,'terminal_momentum_ratios':(np.array(m['last'][2:])/ref_end).tolist(),'terminal_hamiltonian_ratio':h['last'][2]/2.06588912508977e-5,'strict_non_growth':all(b<=a for a,b in zip(m['initial'][2:],m['last'][2:])),'physical_stability_certified':False}
               files=sorted(run.rglob('*.xyz.h5')); report['hdf5_files']=[str(p.relative_to(run)) for p in files]
               fields={}
               for p in files:
@@ -829,6 +837,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-first-step-localization
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-first-step-ko-isolation
           path: evidence/
           if-no-files-found: error
