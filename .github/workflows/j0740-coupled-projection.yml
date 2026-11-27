@@ -28,6 +28,20 @@ jobs:
           echo 'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073  source.zip' | sha256sum -c -
           sha256sum source.zip > evidence/source.sha256
           unzip -tq source.zip
+          python3 - <<'PY'
+          import json, pathlib, zipfile
+          with zipfile.ZipFile('source.zip') as z:
+              members=sorted(n for n in z.namelist() if not n.endswith('/'))
+          non_hdf=[n for n in members if not n.endswith('.xyz.h5')]
+          interesting=[n for n in non_hdf if any(k in pathlib.PurePosixPath(n).name.lower() for k in ('gamma','bssn','checkpoint','restart','chkpt'))]
+          suffixes={}
+          for n in non_hdf:
+              suffix=pathlib.PurePosixPath(n).suffix.lower() or '<none>'
+              suffixes[suffix]=suffixes.get(suffix,0)+1
+          result={'archive_member_count':len(members),'xyz_hdf5_member_count':len(members)-len(non_hdf),'non_xyz_hdf5_member_count':len(non_hdf),'non_xyz_hdf5_suffix_counts':dict(sorted(suffixes.items())),'non_xyz_hdf5_names_matching_gamma_bssn_checkpoint_restart':interesting}
+          pathlib.Path('evidence/source_zip_inventory.json').write_text(json.dumps(result,indent=2)+'\\n')
+          print('SOURCE_ZIP_MEMBER_INVENTORY',json.dumps(result,sort_keys=True),flush=True)
+          PY
           unzip -q source.zip '*.xyz.h5' -d source
       - name: Reconstruct BSSN Hamiltonian from archived ADM snapshots
         run: python3 research/j0740/coupled_projection.py --stencil-audit-only
