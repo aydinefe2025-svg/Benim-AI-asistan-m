@@ -48,7 +48,8 @@
     "all_valid_best_scaled_mismatch": 0.9688730338831147,
     "dense_best_scaled_mismatch": 0.9273164861719772,
     "matter_term_fitted_coefficient": 0.9990864575618504,
-    "candidate_solver_run": false
+    "candidate_solver_run": false,
+    "stencil_composition_note": "The trim-3 diagnostic is invalid for composed radius-2 derivatives; trim-4 is the minimum uncontaminated interior. Common trim-5 confirms residual persists."
   },
   "test_status": {
     "archive_inventory_workflow": {
@@ -125,9 +126,52 @@
       "launcher_present": true,
       "rebuild_log_present": true
     },
-    "exact_native_rerun": "NOT_RUN; exact pinned public image identified but image layers not pulled",
-    "hamiltonian_mismatch": "UNCHANGED",
+    "exact_native_rerun": "NOT_RUN; rebuild feasibility evidenced but solver not built or run",
+    "hamiltonian_mismatch": "UNCHANGED; trim3 is boundary contaminated, trim4/5 retain order-unity residual",
     "physical_stability": "NOT_ESTABLISHED",
-    "eos_bayes": "NOT_RUN"
+    "eos_bayes": "NOT_RUN",
+    "latest_archive_source_runtime_check": {
+      "source_inventory_run": 46010382936,
+      "source_inventory_conclusion": "success",
+      "workflow_artifact_id": 15204341122,
+      "workflow_artifact_bytes": 16226,
+      "workflow_artifact_sha256": "cb472b094f0683d482819d45212471bde065e83c5498cbab1bcb03219c5a0d29",
+      "formaline_jar_member": "run/formaline-jar.json",
+      "formaline_jar_bytes": 42473,
+      "formaline_jar_sha256": "bbd5fd835b1096bdce218c9b785c5608b0ccbd086eed084fac2798b27019e7a2",
+      "cactus_version": "4.20.0",
+      "source_package_count": 320,
+      "source_package_total_bytes": 170756769,
+      "source_git_revision": "NOT_PRESENT_IN_FORMALINE_IDENTITY_FIELDS",
+      "launcher_sha256": "6a375b83f948e21a4b3756c907b22929fa65c73be592dbd63c16a207ded4128f",
+      "rebuild_log_sha256": "2cbaec287ab49c5b2c1a5bbbc0cb4018a193ece66fa23795fd93a6abe85290a1",
+      "rebuild_log_claim": "creating cactus_sim; Done creating cactus_sim",
+      "image_smoke_run": 46009618112,
+      "pinned_image_digest": "einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66",
+      "image_smoke": {
+        "cactus_sim_in_image": "absent",
+        "gcc": "/usr/bin/gcc",
+        "mpirun": "/usr/bin/mpirun"
+      },
+      "interpretation": "Image provides compiler and MPI but not prebuilt solver at expected path; source/build metadata exists. Native rebuild/replay was not executed."
+    },
+    "stencil_composition_audit": {
+      "run": 46010382936,
+      "core_run": 46010383032,
+      "core_linux": "success",
+      "core_windows": "success",
+      "control": "4th-order centered first derivative has radius 2; composed derivative requires trim>=4",
+      "trim3_independent_H_rms": 0.005175258939273008,
+      "trim4_independent_H_rms": 0.000273520398368558,
+      "trim5_independent_H_rms": 0.00027772828559583234,
+      "trim3_to_trim4_H_rms_ratio": 18.92092498454009,
+      "trim4_raw_relative_mismatch": 1.0516727612265737,
+      "trim5_raw_relative_mismatch": 1.0685061800639344,
+      "trim4_best_scaled_mismatch": 0.9695607952247668,
+      "trim5_best_scaled_mismatch": 0.9795910091303658,
+      "trim4_to_trim5_shape_change": "small relative to order-unity mismatch; exact parity still fails",
+      "candidate_solver_run": false,
+      "native_H_parity": "NOT_ESTABLISHED"
+    }
   }
 }
