@@ -1,4 +1,4 @@
-name: J0740 discrete constraint Jacobian audit
+name: J0740 exact discrete joint constraint solve
 on:
   pull_request:
     branches: [main]
@@ -10,7 +10,7 @@ permissions:
 jobs:
   coupled:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 150
     env:
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
@@ -191,11 +191,16 @@ jobs:
           PY
 
           unzip -q source.zip '*.xyz.h5' -d source
-      - name: Reconstruct BSSN Hamiltonian from archived ADM snapshots
-        run: python3 research/j0740/coupled_projection.py --discrete-jacobian-audit
+      - name: Require both exact discrete directional derivative gates before solve
+        run: |
+          set -euo pipefail
+          python3 research/j0740/coupled_projection.py --discrete-jacobian-audit
+          cp evidence/coupled_projection.json evidence/discrete_jacobian_accepted.json
+      - name: Solve with both verified discrete tangents and independently evaluate nonlinear H and M
+        run: python3 research/j0740/coupled_projection.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-discrete-jacobian-audit
+          name: j0740-exact-discrete-joint-solve
           path: evidence/
           if-no-files-found: error
