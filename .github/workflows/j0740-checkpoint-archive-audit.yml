@@ -1,0 +1,100 @@
+name: J0740 archived checkpoint equivalence diagnostics
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-checkpoint-archive-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Recover exact completed checkpoint experiment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p source evidence
+          gh api repos/${{ github.repository }}/actions/artifacts/15214764448/zip > source.zip
+          echo 'fcbd0489e8a0cac27a179a3a766282265a1608ddc29aa371facf544a86edf830  source.zip' | sha256sum -c -
+          sha256sum source.zip > evidence/source.sha256
+          python3 - <<'PY'
+          import zipfile,pathlib,json
+          with zipfile.ZipFile('source.zip') as z:
+              names=z.namelist()
+              pathlib.Path('evidence/inventory.json').write_text(json.dumps(names,indent=2))
+              for n in names:
+                  if n in ('checkpoints.sha256','segment2.log') or (n.startswith(('run/','segment1/','segment2/')) and (n.endswith('.asc') or n.endswith('.xyz.h5'))):z.extract(n,'source')
+          PY
+      - name: Prove native restart against uninterrupted run
+        run: |
+          set -euo pipefail
+          python3 -m pip install h5py numpy
+          python3 - <<'PY'
+          import pathlib,re,json,math,numpy as np,h5py
+          d=pathlib.Path('source')
+          out=pathlib.Path('evidence')
+          def scalar(folder,token,reduction):
+              p=[p for p in (d/folder).rglob('*.asc') if token in p.name.lower() and reduction in p.name.lower()]
+              assert len(p)==1,(folder,token,p)
+              rows=[list(map(float,x.split())) for x in p[0].read_text().splitlines() if x.strip() and not x.lstrip().startswith('#')]
+              # Preserve every raw row and explicitly identify invalid diagnostic samples.
+              print('SCALAR_INVENTORY',folder,token,p[0].name,len(rows),'first',rows[:2],'last',rows[-2:],flush=True)
+              invalid=[x for x in rows if not all(map(math.isfinite,x))]
+              print('SCALAR_NONFINITE',folder,token,repr(invalid[:10]),len(invalid),flush=True)
+              return {int(x[0]):x for x in rows if len(x)>=3 and all(map(math.isfinite,x))},len(invalid)
+          pairs=[];inventory=[]
+          for token,red in [('ham','norm2'),('mom','norm2'),('rho','maximum'),('dens','sum'),('vel','maximum')]:
+              (a,ia),(b,ib),(c,ic)=[scalar(folder,token,red) for folder in ('run','segment1','segment2')]
+              # Compare all finite common rows; missing/nonfinite counts remain a separate failure gate.
+              inventory.append({'quantity':token,'nonfinite':[ia,ib,ic],'missing':sorted(set(a)-(set(b)|set(c))),'extra':sorted((set(b)|set(c))-set(a)),'ends':[max(a,default=-1),max(b,default=-1),max(c,default=-1)],'restart_first':min(c,default=-1)})
+              # Report missing rows rather than aborting before spatial comparison.
+              for tag,rows in [('first',b),('restart',c)]:
+                  for it,row in rows.items():
+                      if it not in a:continue
+                      assert row[:2]==a[it][:2]
+                      ref=np.array(a[it][2:]);obs=np.array(row[2:])
+                      diff=float(np.max(np.abs(obs-ref)))
+                      rel=float(np.max(np.abs(obs-ref)/np.maximum(np.abs(ref),1e-15)))
+                      pairs.append({'quantity':token,'segment':tag,'iteration':it,'absolute':diff,'relative':rel})
+          fields={'gxx','gxy','gxz','gyy','gyz','gzz','kxx','kxy','kxz','kyy','kyz','kzz','rho','eps','press','vel[0]','vel[1]','vel[2]','dens','alp','betax','betay','betaz'}
+          def index(folder):
+              result={}
+              for p in (d/folder).rglob('*.xyz.h5'):
+                  field=p.name.removesuffix('.xyz.h5')
+                  if field not in fields:continue
+                  with h5py.File(p,'r') as f:
+                      def visit(n,o):
+                          if isinstance(o,h5py.Dataset) and o.ndim==3 and re.search(r'\bit=1536\b',n) and re.search(r'\btl=0\b',n):
+                              key=(field,n);assert key not in result
+                              result[key]=(p,n)
+                      f.visititems(visit)
+              return result
+          a,c=index('run'),index('segment2')
+          assert a and set(a)==set(c) and {k[0] for k in a}==fields,(set(a)^set(c))
+          spatial=[]
+          for key,(p,n) in sorted(a.items()):
+              q,m=c[key]
+              with h5py.File(p,'r') as f,h5py.File(q,'r') as g:
+                  x,y=f[n][...],g[m][...]
+                  assert x.shape==y.shape and np.isfinite(x).all() and np.isfinite(y).all()
+                  for att in ('origin','delta'):assert np.array_equal(f[n].attrs[att],g[m].attrs[att])
+                  spatial.append({'field':key[0],'dataset':n,'absolute':float(np.max(np.abs(x-y))),'normalized':float(np.max(np.abs(x-y))/max(np.max(np.abs(x)),1e-15))})
+          log=(d/'segment2.log').read_text(errors='replace')
+          recovery_lines=[l for l in log.splitlines() if re.search(r'recover',l,re.I)]
+          report={'scope':'same executable, same domain and MPI layout; short native checkpoint validation only','checkpoint_files':(d/'checkpoints.sha256').read_text().splitlines(),'scalar_inventory':inventory,'scalar_pairs':pairs,'spatial_pairs':spatial,'recovery_lines':recovery_lines,'exact_scalar_match':all(x['absolute']==0 for x in pairs),'exact_spatial_match':all(x['absolute']==0 for x in spatial),'physical_stability_certified':False}
+          (out/'checkpoint_equivalence.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+          print('CHECKPOINT_EQUIVALENCE',json.dumps({k:v for k,v in report.items() if k not in ('scalar_pairs','spatial_pairs')},allow_nan=False),flush=True)
+          print('CHECKPOINT_COUNTS',len(pairs),len(spatial),max(x['relative'] for x in pairs),max(x['normalized'] for x in spatial),flush=True)
+          scalar_complete=all(not any(x['nonfinite']) and not x['missing'] and not x['extra'] and x['ends']==[1536,768,1536] and x['restart_first']>=768 for x in inventory)
+          assert recovery_lines and scalar_complete and report['exact_scalar_match'] and report['exact_spatial_match'],'native restart strict equivalence not established'
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-checkpoint-archive-equivalence-diagnostics
+          path: evidence/
+          if-no-files-found: error
