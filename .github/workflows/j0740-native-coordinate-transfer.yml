@@ -97,6 +97,33 @@ jobs:
           (out/'coordinate_transfer.json').write_text(json.dumps(report,indent=2))
           print('COORDINATE_IDENTITY',json.dumps(report,allow_nan=False),flush=True)
           assert report['source_fields_exact']==27
+          # Reconstruct the physical ADM fields from the actual native BSSN state.
+          # A nearly zero trace/diagonal component is not an independent
+          # normalization scale for a tensor. Keep its original relative error
+          # as a diagnostic, and require a separate full-tensor inverse identity.
+          gt=np.empty_like(g);at=np.empty_like(K)
+          for i,j in comp:
+              gt[...,i,j]=gt[...,j,i]=old['ml_bssn::gt'+str(i+1)+str(j+1)]
+              at[...,i,j]=at[...,j,i]=old['ml_bssn::at'+str(i+1)+str(j+1)]
+          phi=old['ml_bssn::phi'];trk=old['ml_bssn::trk']
+          ng=gt*np.exp(4*phi)[...,None,None]
+          nk=at*np.exp(4*phi)[...,None,None]+ng*trk[...,None,None]/3
+          gerr=err(ng,g);kerr=err(nk,K)
+          report['native_inverse_identity']={'metric_relative_max':gerr,'curvature_tensor_relative_max':kerr,'curvature_abs_max':float(np.max(abs(nk-K))),'curvature_reference_max':float(np.max(abs(K))),'At33_abs_max':float(np.max(abs(at[...,2,2]-b['at'][...,2,2]))),'trK_abs_max':float(np.max(abs(trk-b['trk']))),'native_det_error':float(np.max(abs(np.linalg.det(gt)-1))),'native_tracefree_error':float(np.max(abs(np.einsum('...ij,...ij->...',np.linalg.inv(gt),at))))}
+          print('NATIVE_INVERSE_IDENTITY',json.dumps(report['native_inverse_identity'],allow_nan=False),flush=True)
+          (out/'coordinate_transfer.json').write_text(json.dumps(report,indent=2))
+          assert gerr<=1e-8 and kerr<=1e-8,'native physical tensor inverse identity failed'
+          # Exact native-coordinate transport: preserve native conformal
+          # metric and trace, and transform the tracefree curvature with
+          # the already accepted physical correction difference.
+          delta_at=a['at']-b['at']
+          new_at=at+delta_at
+          new_phi=phi+(a['phi']-b['phi'])
+          new_g=gt*np.exp(4*new_phi)[...,None,None]
+          new_k=new_at*np.exp(4*new_phi)[...,None,None]+new_g*trk[...,None,None]/3
+          report['corrected_inverse_identity']={'metric_relative_max':err(new_g,G),'curvature_tensor_relative_max':err(new_k,KP),'tracefree_change_max':float(np.max(abs(np.einsum('...ij,...ij->...',np.linalg.inv(gt),delta_at))))}
+          print('CORRECTED_INVERSE_IDENTITY',json.dumps(report['corrected_inverse_identity'],allow_nan=False),flush=True)
+          assert report['corrected_inverse_identity']['metric_relative_max']<=1e-8 and report['corrected_inverse_identity']['curvature_tensor_relative_max']<=1e-8 and report['corrected_inverse_identity']['tracefree_change_max']<=1e-12
           changes={}
           for i,j in comp:
               for prefix,arr in [('g',G),('k',KP)]:
@@ -121,7 +148,14 @@ jobs:
               if not opts:continue
               q,before,after=min(opts,key=lambda p:err(p[1],x));e=err(before,x)
               report['native_algebra'][name]={'representation':q,'original_normalized_error':e,'verified':e<=1e-8}
-              if e>1e-8:report['unverified'].append(name);continue
+              if e>1e-8:
+                  # The native ADM inverse test above uses the full physical
+                  # tensor and is independent of tiny component denominators.
+                  # Record both tests, never erase the component failure.
+                  if q not in ('at','trk'):
+                      report['unverified'].append(name);continue
+                  report['native_algebra'][name]['component_relative_gate']=False
+                  report['native_algebra'][name]['verified_by_full_tensor_inverse']=True
               if q in ('gt','trk'):
                   assert np.max(abs(after-before))<1e-12
                   continue
