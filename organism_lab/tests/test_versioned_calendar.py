@@ -202,3 +202,33 @@ class AtomicDailyPublicationTests(unittest.TestCase):
         with self.assertRaises(ValueError):run_day_v2(self.root,day='2026-11-27',expected_anchor_sha=EXPECTED_ANCHOR)
         self.assertEqual(self.state.read_bytes(),before)
         self.assertEqual(outside.read_bytes(),payload)
+
+class CalendarDispatchRaceTests(unittest.TestCase):
+    setUp = CalendarMigrationTests.setUp
+    def test_dispatch_rechecks_schema_after_calendar_lock_acquisition(self):
+        from contextlib import contextmanager
+        from unittest.mock import patch
+        from organism_lab import calendar_cycle as c
+        from organism_lab.audit_store import _exclusive_lock as real_lock
+
+        @contextmanager
+        def migrate_before_acquiring(path):
+            # Model a migration winning the lock just before this scheduled run.
+            migrate_checkpoint(self.state, expected_anchor_sha=EXPECTED_ANCHOR)
+            with real_lock(path):
+                yield
+
+        with patch.object(c, "_exclusive_lock", migrate_before_acquiring):
+            report = c.run_day(self.root, day="2026-11-27")
+        self.assertEqual(report["schema"], "cano-calendar-digital-cycle-v2")
+        self.assertEqual(inspect_day_v2(self.root, day="2026-11-27")["status"], "verified")
+        self.assertEqual(self.day26.read_bytes(), self.day26_bytes)
+
+    def test_explicit_migration_serializes_with_calendar_writer(self):
+        from unittest.mock import patch
+        from organism_lab import versioned_calendar as v
+        from organism_lab.audit_store import _exclusive_lock as real_lock
+        with patch.object(v, "_exclusive_lock", wraps=real_lock) as observed:
+            migrate_checkpoint(self.state, expected_anchor_sha=EXPECTED_ANCHOR)
+        paths = [call.args[0] for call in observed.call_args_list]
+        self.assertEqual(paths, [self.root / "calendar-cycle", self.state])
