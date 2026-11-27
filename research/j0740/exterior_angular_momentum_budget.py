@@ -36,10 +36,12 @@ def budget(g,K,c,h,order,rho,eps,p,v,native):
     assert np.all(v2>=-1e-13) and np.all(v2<1)
     S=sg*(rho*(1+eps)+p)/(1-v2)*(-y*vc[...,0]+x*vc[...,1])
     M=(div-geo)/(8*np.pi)-S
-    N=sg*(-y*native[...,0]+x*native[...,1])/(8*np.pi)
+    N=None if native is None else sg*(-y*native[...,0]+x*native[...,1])/(8*np.pi)
     G=(geo+rot)/(8*np.pi)
     D=sum(d(F[...,j],j,h,order) for j in range(3))
-    return F,dict(matter=S,independent_constraint=M,native_constraint=N,non_killing=G,flux_divergence=D,discrete_product_defect=D-(S+M+G))
+    out=dict(matter=S,independent_constraint=M,non_killing=G,flux_divergence=D,discrete_product_defect=D-(S+M+G))
+    if N is not None:out['native_constraint']=N
+    return F,out
 
 def controls():
     c=[np.arange(-3,3.01,.25),np.arange(-3,3.01,.25),np.arange(-.75,3.01,.25)]
@@ -67,6 +69,11 @@ def main():
     controls()
     required={s+i+j for s in 'gk' for i,j in ('xx','xy','xz','yy','yz','zz')}|{'rho','eps','press','vel[0]','vel[1]','vel[2]','M1','M2','M3'}
     files={p.name.removesuffix('.xyz.h5'):p for p in pathlib.Path('source').rglob('*.xyz.h5')}
+    native_fields={'M1','M2','M3'}
+    required-=native_fields
+    present=native_fields & set(files)
+    assert present in (set(),native_fields),present
+    required|=present
     assert set(files)==required
     meta={}
     for f,p in files.items():
@@ -93,7 +100,7 @@ def main():
         for i,j in [(0,0),(0,1),(0,2),(1,1),(1,2),(2,2)]:
             q='xyz'[i]+'xyz'[j];g[...,i,j]=g[...,j,i]=data.pop('g'+q);K[...,i,j]=K[...,j,i]=data.pop('k'+q)
         v=np.stack([data.pop('vel[%d]'%i) for i in range(3)],axis=-1)
-        N=np.stack([data.pop('M%d'%(i+1)) for i in range(3)],axis=-1)
+        N=np.stack([data.pop('M%d'%(i+1)) for i in range(3)],axis=-1) if present else None
         row={'iteration':it,'time':it*.75/512,'orders':{}}
         for order in (2,4):
             F,b=budget(g,K,c,h,order,data['rho'],data['eps'],data['press'],v,N)
@@ -103,12 +110,13 @@ def main():
             out=[]
             for lo,hi in zip(radii[:-1],radii[1:]):
                 s=surf[hi]-surf[lo];q={k:vol[hi][k]-vol[lo][k] for k in b}
-                q.update(inner=lo,outer=hi,surface_difference=s,surface_minus_volume_divergence=s-q['flux_divergence'],native_constraint_disagreement=q['independent_constraint']-q['native_constraint'],native_budget_residual=s-q['matter']-q['native_constraint']-q['non_killing'])
+                q.update(inner=lo,outer=hi,surface_difference=s,surface_minus_volume_divergence=s-q['flux_divergence'],independent_budget_residual=s-q['matter']-q['independent_constraint']-q['non_killing'])
+                if present:q.update(native_constraint_disagreement=q['independent_constraint']-q['native_constraint'],native_budget_residual=s-q['matter']-q['native_constraint']-q['non_killing'])
                 out.append(q)
             row['orders'][str(order)]={'surfaces':surf,'shells':out}
             del F,b
         rows.append(row)
         print('EXTERIOR_SNAPSHOT',json.dumps(row,allow_nan=False),flush=True)
-    report={'scope':'coarse-grid finite-radius axial flux identity, independent constraint and native comparison, non-Killing term, matter and numerical closure; no causal or physical certification','source_artifact':15208830686,'snapshots':rows,'physical_stability_certified':False}
+    report={'scope':'coarse-grid finite-radius axial flux identity, independent constraint and native comparison, non-Killing term, matter and numerical closure; no causal or physical certification','source_artifact':15208830686,'native_3d_constraint_available':bool(present),'native_comparison_status':'computed' if present else 'unavailable: no native 3D M1/M2/M3 in source archive','snapshots':rows,'physical_stability_certified':False}
     pathlib.Path('evidence/exterior_budget.json').write_text(json.dumps(report,indent=2,allow_nan=False))
 if __name__=='__main__':main()
