@@ -108,7 +108,7 @@ def bssn_reconstructed_ricci_scalar(geo):
             lower=lambda a,b,c:sum(conformal[...,c,n]*cg.ch[...,n,a,b] for n in range(3))
             third=sum(cg.tc[...,k]*lower(i,j,k) for k in range(3))
             fourth=sum(ci[...,l,m]*(cg.ch[...,k,l,i]*lower(j,k,m)+cg.ch[...,k,l,j]*lower(i,k,m)) for l in range(3) for m in range(3) for k in range(3))
-            fifth=sum(ci[...,l,m]*cg.ch[...,k,i,m]*lower(l,j,k) for l in range(3) for m in range(3) for k in range(3))
+            fifth=sum(ci[...,l,m]*cg.ch[...,k,i,m]*lower(k,l,j) for l in range(3) for m in range(3) for k in range(3))
             rbar[...,i,j]=first+second+third+fourth+fifth
     lapphi=contract(ci,hess)
     grad2=sum(ci[...,i,j]*dphi[i]*dphi[j] for i in range(3) for j in range(3))
