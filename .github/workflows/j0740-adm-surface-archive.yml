@@ -1,8 +1,8 @@
-name: J0740 archived finite radius ADM surface audit
+name: J0740 exterior angular momentum budget 180 degrees
 on:
   pull_request:
     branches: [main]
-    paths: ['.github/workflows/j0740-adm-surface-archive.yml','research/j0740/adm_surface_audit.py']
+    paths: ['.github/workflows/j0740-adm-surface-archive.yml','research/j0740/adm_surface_audit.py','research/j0740/exterior_angular_momentum_budget.py']
   workflow_dispatch:
 permissions:
   contents: read
@@ -10,7 +10,7 @@ permissions:
 jobs:
   surfaces:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 50
     env:
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
@@ -23,28 +23,24 @@ jobs:
           set -euo pipefail
           mkdir -p source prior evidence
           python3 -m pip install numpy h5py
-          PYTHONPATH=research/j0740 python3 -c 'from adm_surface_audit import controls; controls()'
-          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15185720482/zip > source.zip
-          echo 'd3adfe19aa62bd691aed4a2eb2888d11285a9011ff1b6d73a63c8ed3b323be89  source.zip' | sha256sum -c -
-          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15189503772/zip > prior.zip
-          echo '762f933028af8a00fb0a25bac22a159333ccd85505b95ae781c358c6dd1284cb  prior.zip' | sha256sum -c -
-          sha256sum source.zip prior.zip > evidence/source.sha256
+          PYTHONPATH=research/j0740 python3 -c 'from exterior_angular_momentum_budget import controls; controls()'
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15208830686/zip > source.zip
+          echo '1dbd9401096df834d50e7396a9523519ea27087199a547acb0147936e0919471  source.zip' | sha256sum -c -
+          sha256sum source.zip > evidence/source.sha256
           unzip -tq source.zip
-          unzip -tq prior.zip
-          unzip -q prior.zip -d prior
           python3 - <<'PY'
           import pathlib,zipfile
-          wanted={s+i+j for s in 'gk' for i,j in ('xx','xy','xz','yy','yz','zz')}
+          wanted={s+i+j for s in 'gk' for i,j in ('xx','xy','xz','yy','yz','zz')}|{'rho','eps','press','vel[0]','vel[1]','vel[2]','M1','M2','M3'}
           with zipfile.ZipFile('source.zip') as z:
               ns=[n for n in z.namelist() if n.endswith('.xyz.h5') and pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') in wanted]
               assert len(ns)==len(wanted) and {pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') for n in ns}==wanted,ns
               for n in ns:z.extract(n,'source')
           PY
-      - name: Independent finite radius mass and geometric angular momentum
-        run: python3 research/j0740/adm_surface_audit.py
+      - name: Exterior volume and surface angular momentum balance
+        run: python3 research/j0740/exterior_angular_momentum_budget.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-90deg-adm-surfaces
+          name: j0740-180deg-exterior-J-budget
           path: evidence/
           if-no-files-found: error
