@@ -1,0 +1,128 @@
+name: J0740 90 degree angular momentum decomposition
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-90deg-angular-momentum-decomposition.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  decompose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Verify immutable completed trajectory archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence source
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15185720482/zip > source.zip
+          echo 'd3adfe19aa62bd691aed4a2eb2888d11285a9011ff1b6d73a63c8ed3b323be89  source.zip' | sha256sum -c -
+          unzip -tq source.zip
+          python3 -m pip install numpy h5py
+          python3 - <<'PY'
+          import pathlib,zipfile,json
+          wanted={'gxx','gxy','gxz','gyy','gyz','gzz','rho','eps','press','vel[0]','vel[1]','vel[2]'}
+          with zipfile.ZipFile('source.zip') as z:
+              names=[n for n in z.namelist() if pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') in wanted and n.endswith('.xyz.h5')]
+              assert {pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') for n in names}==wanted,names
+              assert len(names)==len(wanted),names
+              for n in names:z.extract(n,'source')
+              pathlib.Path('evidence/inventory.json').write_text(json.dumps(names,indent=2))
+          PY
+      - name: Decompose fixed-volume matter angular momentum change
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,re,json,numpy as np,h5py
+          meta={}
+          for path in pathlib.Path('source').rglob('*.xyz.h5'):
+              field=path.name.removesuffix('.xyz.h5')
+              with h5py.File(path,'r') as h:
+                  def visit(name,obj):
+                      if not isinstance(obj,h5py.Dataset) or obj.ndim!=3:return
+                      m=re.search(r'\bit=(\d+)\s+(.*)',name)
+                      if not m or int(m[1]) not in (0,98304) or not re.search(r'\btl=0\b',m[2]):return
+                      level=re.search(r'\brl=(\d+)\b',m[2])
+                      if not level or int(level[1])!=2:return
+                      key=(field,int(m[1]),2)
+                      assert key not in meta,('duplicate dataset',key,name)
+                      meta[key]=(obj[...],np.array(obj.attrs['origin'],float),np.array(obj.attrs['delta'],float),m[2])
+                  h.visititems(visit)
+          required={'gxx','gxy','gxz','gyy','gyz','gzz','rho','eps','press','vel[0]','vel[1]','vel[2]'}
+          present={f for f,t,l in meta}
+          assert present==required,{'missing':sorted(required-present),'extra':sorted(present-required)}
+          for t in (0,98304):
+              present_t={f for f,tt,l in meta if tt==t}
+              assert present_t==required,{'iteration':t,'missing':sorted(required-present_t),'extra':sorted(present_t-required)}
+          patches={meta['rho',t,2][3] for t in (0,98304)}
+          assert len(patches)==1,patches
+          patch=next(iter(patches));snap={}
+          for t in (0,98304):
+              row={}
+              for f in required:
+                  a,o,h,description=meta[f,t,2]
+                  assert description==patch,(f,t,description,patch)
+                  if not row:shape=a.shape;origin=o;spacing=h
+                  assert a.shape==shape and np.array_equal(o,origin) and np.array_equal(h,spacing),(f,t)
+                  assert np.isfinite(a).all(),(f,t)
+                  row[f]=a
+              snap[t]=row
+          assert np.allclose(spacing,.75)
+          g={};vel={}
+          for t in (0,98304):
+              a=np.zeros(shape+(3,3))
+              for i,j in [(0,0),(0,1),(0,2),(1,1),(1,2),(2,2)]:
+                  field_name='g'+'xyz'[i]+'xyz'[j]
+                  a[...,i,j]=a[...,j,i]=snap[t][field_name]
+              g[t]=a
+              vel[t]=np.stack([snap[t][f'vel[{i}]'] for i in range(3)],axis=-1)
+          zz,yy,xx=np.indices(shape);x=origin[0]+spacing[0]*xx;y=origin[1]+spacing[1]*yy;z=origin[2]+spacing[2]*zz
+          radius=np.sqrt(x*x+y*y+z*z)
+          valid=np.zeros(shape,bool);valid[3:-3,3:-3,3:-3]=True;valid &= z>=-1e-12
+          assert np.any(valid & (abs(z)<1e-12))
+          factors={}
+          for t in (0,98304):
+              det=np.linalg.det(g[t]);assert np.all(det[valid]>0)
+              vc=np.einsum('...ij,...j->...i',g[t],vel[t])
+              v2=np.einsum('...i,...i->...',vel[t],vc)
+              assert np.all((v2[valid]>=-1e-13)&(v2[valid]<1))
+              A=np.sqrt(det)
+              B=(snap[t]['rho']*(1+snap[t]['eps'])+snap[t]['press'])/(1-v2)
+              C=x*vc[...,1]-y*vc[...,0]
+              factors[t]=(A,B,C)
+          # Exact three-factor Shapley attribution: contributions sum to delta(A*B*C).
+          A0,B0,C0=(v[valid] for v in factors[0]);A1,B1,C1=(v[valid] for v in factors[98304])
+          dA=A1-A0;dB=B1-B0;dC=C1-C0
+          phiA=dA*(2*B0*C0+B1*C0+B0*C1+2*B1*C1)/6
+          phiB=dB*(2*A0*C0+A1*C0+A0*C1+2*A1*C1)/6
+          phiC=dC*(2*A0*B0+A1*B0+A0*B1+2*A1*B1)/6
+          J0=A0*B0*C0;J1=A1*B1*C1
+          assert np.allclose(phiA+phiB+phiC,J1-J0,rtol=2e-12,atol=1e-18)
+          rv=radius[valid];w=np.where(abs(z[valid])<1e-12,1.,2.)*np.prod(spacing)
+          report={'scope':'same-coordinate finest-level matter Jz from initial to last archived 3D snapshot (t=144); Shapley factors are sqrt(det(gamma)), fluid inertia rho(1+eps)+p over (1-v^2), and covariant velocity lever x v_y-y v_x. Not global ADM J, composite AMR, endpoint at nominal 90 degrees, or stability certification.','artifact_id':15185720482,'source_sha256':'d3adfe19aa62bd691aed4a2eb2888d11285a9011ff1b6d73a63c8ed3b323be89','analytic_identity':'PASS: three Shapley attributions sum to exact pointwise product change','snapshots':[0,98304],'time_interval':[0.0,144.0],'regions':{}}
+          masks={'r<=4':rv<=4,'4<r<=6':(rv>4)&(rv<=6),'6<r<=8':(rv>6)&(rv<=8),'8<r<=10':(rv>8)&(rv<=10),'r<=8':rv<=8,'r<=10':rv<=10}
+          for name,m in masks.items():
+              assert np.any(m),name
+              sums={'initial_Jz':float(np.sum(w[m]*J0[m])),'final_Jz':float(np.sum(w[m]*J1[m])),'delta_Jz':float(np.sum(w[m]*(J1[m]-J0[m]))),'delta_from_volume_factor':float(np.sum(w[m]*phiA[m])),'delta_from_fluid_inertia':float(np.sum(w[m]*phiB[m])),'delta_from_velocity_lever':float(np.sum(w[m]*phiC[m])),'points':int(m.sum())}
+              # A vacuum shell may have exactly zero initial matter Jz. Relative change is undefined, not zero.
+              def relative(delta,initial):
+                  return delta/initial if initial!=0 else None
+              assert relative(1.,0.) is None and relative(0.,0.) is None and relative(-.5,2.)==-.25
+              sums['relative_delta_Jz']=relative(sums['delta_Jz'],sums['initial_Jz'])
+              sums['relative_to_total_initial_Jz']=relative(sums['delta_Jz'],float(np.sum(w[rv<=10]*J0[rv<=10])))
+              assert np.isclose(sums['delta_Jz'],sums['delta_from_volume_factor']+sums['delta_from_fluid_inertia']+sums['delta_from_velocity_lever'],rtol=2e-12,atol=1e-15),name
+              report['regions'][name]=sums
+          # Retain the exact endpoint caveat: the available last 3D data is not 146.625.
+          report['physical_stability_certified']=False
+          pathlib.Path('evidence/angular_momentum_decomposition.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+          print('ANGULAR_MOMENTUM_DECOMPOSITION',json.dumps(report,allow_nan=False))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-90deg-angular-momentum-decomposition
+          path: evidence/
+          if-no-files-found: error
