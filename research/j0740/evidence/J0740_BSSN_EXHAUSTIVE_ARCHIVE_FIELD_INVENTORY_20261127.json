@@ -172,6 +172,23 @@
       "trim4_to_trim5_shape_change": "small relative to order-unity mismatch; exact parity still fails",
       "candidate_solver_run": false,
       "native_H_parity": "NOT_ESTABLISHED"
+    },
+    "local_no_redownload_search": {
+      "root": "D:\\PSR_J0740+6620\\work",
+      "search_scope": "all immediate child directories except pydeps",
+      "patterns": [
+        "cactus_sim",
+        "cactus_sim.exe",
+        "source.zip",
+        "execute.sh",
+        "formaline-jar.json",
+        "image-digest.txt",
+        "rebuild.log"
+      ],
+      "matches": 0,
+      "conclusion": "No local Cactus runtime or BSSN source archive found in scanned research directories",
+      "excluded": "pydeps",
+      "excluded_reason": "Windows ACL denied read; permissions were not changed or bypassed"
     }
   }
 }
