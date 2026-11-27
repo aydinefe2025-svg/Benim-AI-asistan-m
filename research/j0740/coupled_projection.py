@@ -192,7 +192,7 @@ def main():
                 fields[k]=(obj[...],np.array(obj.attrs['origin'],float),np.array(obj.attrs['delta'],float))
             f.visititems(visit)
     archive_field_names=sorted({item['field_file'] for item in field_inventory})
-    report={'scope':'exhaustive immutable archived HDF5 field inventory and stencil-domain audit; no evolution, optimization, or physical certification','inventory_exhaustive_over_all_xyz_h5_files':True,'archive_field_file_count':len(archive_field_names),'archive_field_files':archive_field_names,'non_expected_field_files':sorted(set(archive_field_names)-expected),'artifact':15177726961,'source_archive_sha256':'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073','available_hdf5_field_files_and_keys':sorted(field_inventory,key=lambda q:(q['field_file'],q['iteration'],q['dataset_key'])),'patches':[]}
+    report={'scope':'exhaustive archived HDF5 inventory, stencil-domain audit, and exploratory coupled constraint projection on a fixed background; no evolution or physical certification','candidate_solver_run':not audit_only,'inventory_exhaustive_over_all_xyz_h5_files':True,'archive_field_file_count':len(archive_field_names),'archive_field_files':archive_field_names,'non_expected_field_files':sorted(set(archive_field_names)-expected),'artifact':15177726961,'source_archive_sha256':'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073','available_hdf5_field_files_and_keys':sorted(field_inventory,key=lambda q:(q['field_file'],q['iteration'],q['dataset_key'])),'patches':[]}
     for patch in sorted({p for _,_,p in fields}):
         if not all((n,t,patch) in fields for n in expected for t in (0,128)):continue
         r0,o,h=fields['rho',0,patch];shape=r0.shape
@@ -356,7 +356,7 @@ def main():
         mass0,j0=mass_j(g,S,v2)
         for lam in (10.,100.):
             O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
-            sol=lsmr(O,target,damp=.01,atol=1e-7,btol=1e-7,maxiter=160)
+            sol=lsmr(O,target,damp=.01,atol=1e-7,btol=1e-7,maxiter=640)
             dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
             for scale in (1.,.5,.25):
                 uu=scale*u;aa=A+scale*dk
@@ -374,7 +374,7 @@ def main():
                 for name,m in masks.items():
                     b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
                     reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30)}
-                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'residual_norm':float(sol[3]),'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':640,'residual_norm':float(sol[3]),'normal_residual_norm':float(sol[4]),'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':float(sol[7]),'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
                 row['candidates'].append(candidate)
                 print('COUPLED_CANDIDATE',json.dumps(candidate,allow_nan=False),flush=True)
         row['any_coupled_improvement']=any(c.get('all_M_improved') and c.get('all_H_improved') for c in row['candidates'])
