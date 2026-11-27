@@ -109,7 +109,7 @@ def check_adj(a,b,label):
     err=abs(a-b)/max(abs(a),abs(b),1e-30)
     assert err<1e-10,(label,a,b,err)
     return err
-def right_preconditioned_lsmr(O,target,damp=.01,maxiter=1280,probes=64):
+def right_preconditioned_lsmr(O,target,damp=.01,maxiter=1280,probes=64,x0=None):
     # Estimate diagonal of A^T A using fixed-seed Rademacher row probes.
     # Right scaling changes coordinates only: augment with damp*D rather
     # than damping y, so the original regularized physical objective is unchanged.
@@ -130,9 +130,11 @@ def right_preconditioned_lsmr(O,target,damp=.01,maxiter=1280,probes=64):
     B=LinearOperator((m+n,n),matvec=forward,rmatvec=adjoint,dtype=float)
     u=rng.normal(size=n);v=rng.normal(size=m+n)
     adj_error=check_adj(np.dot(B@u,v),np.dot(u,B.rmatvec(v)),'scaled augmented adjoint')
-    rhs=np.r_[target,np.zeros(n)]
+    x0=np.zeros(n) if x0 is None else np.asarray(x0,dtype=float)
+    assert x0.shape==(n,) and np.isfinite(x0).all()
+    rhs=np.r_[target-O@x0,-damp*x0]
     raw=lsmr(B,rhs,damp=0.,atol=1e-7,btol=1e-7,maxiter=maxiter)
-    x=D*raw[0]
+    x=x0+D*raw[0]
     residual=O@x-target
     normal=O.rmatvec(residual)+damp*damp*x
     info={'probes':probes,'adjoint_error':adj_error,'D_min':float(D.min()),'D_max':float(D.max()),'original_objective_norm':float(np.hypot(np.linalg.norm(residual),damp*np.linalg.norm(x))),'original_normal_residual_norm':float(np.linalg.norm(normal)),'original_relative_normal_residual':float(np.linalg.norm(normal)/max(np.linalg.norm(O.rmatvec(target)),1e-30)),'original_solution_norm':float(np.linalg.norm(x))}
@@ -148,6 +150,9 @@ def preconditioner_controls():
     green,info=right_preconditioned_lsmr(O,rhs,maxiter=24,probes=8)
     expected=diag*rhs/(diag**2+.01**2)
     assert green[1]!=7 and np.allclose(green[0],expected,rtol=1e-8,atol=1e-10),(green[1],green[2],np.max(np.abs(green[0]-expected)))
+    warm,winfo=right_preconditioned_lsmr(O,rhs,maxiter=24,probes=8,x0=np.linspace(-.1,.1,48))
+    assert np.allclose(warm[0],expected,rtol=1e-8,atol=1e-10) and winfo['original_relative_normal_residual']<1e-7
+    print('AFFINE_WARM_START_CONTROL',json.dumps({'max_solution_difference':float(np.max(abs(warm[0]-expected))),'normal_relative':winfo['original_relative_normal_residual']}),flush=True)
     print('RIGHT_PRECONDITIONER_CONTROL',json.dumps({'unscaled_stop':int(red[1]),'unscaled_iterations':int(red[2]),'scaled_stop':int(green[1]),'scaled_iterations':int(green[2]),'max_absolute_solution_error':float(np.max(np.abs(green[0]-expected))),**info}),flush=True)
 def support_envelope(active,pairs,width=4):
     # The nonlinear momentum evaluation depends on up to two successive
@@ -584,14 +589,14 @@ def main():
             base[name]=b
             wm[m]=momentum_component_weights(b['initial_M_rms'],n)
             wh[m]=1/(np.sqrt(n)*max(b['pre_H_rms'],1e-7))
-        # The previous candidate satisfies every M component gate except far Mz.
-        # Increase only that normalized residual's weight, without changing the
-        # measured acceptance criteria or the physical differential operator.
-        wm_original=wm.copy()
-        wm[masks['far_atmosphere'],2]*=4.
-        assert np.array_equal(wm[...,0:2],wm_original[...,0:2])
-        assert np.array_equal(wm[...,2][~masks['far_atmosphere']],wm_original[...,2][~masks['far_atmosphere']])
-        assert np.allclose(wm[...,2][masks['far_atmosphere']],4*wm_original[...,2][masks['far_atmosphere']])
+        wm_original=wm.copy();wh_original=wh.copy()
+        mf={name:np.ones(3) for name in masks};hf={name:1. for name in masks}
+        mf['far_atmosphere'][:]=2.
+        def apply_weights():
+            for name,m in masks.items():
+                wm[m]=wm_original[m]*mf[name];wh[m]=wh_original[m]*hf[name]
+            assert np.isfinite(wm).all() and np.isfinite(wh).all()
+        apply_weights()
         def op(lam):
             def forward(a):
                 dk=geo.long(extend(a[:N]));u=extend_scalar(a[N:])
@@ -663,13 +668,24 @@ def main():
             J=sg*(x*sourceS[...,1]-y*sourceS[...,0])
             return float(np.sum(wt[valid]*D[valid])),float(np.sum(wt[valid]*J[valid]))
         mass0,j0=mass_j(g,S,v2)
-        for lam in (10.,):
+        prior=np.load('prior/coupled_correction_vector.npz',allow_pickle=False)
+        assert int(prior['iteration'])==128 and np.array_equal(prior['active'],active) and np.array_equal(prior['taper'],taper)
+        assert np.array_equal(prior['shape'],shape) and np.array_equal(prior['origin'],o) and np.array_equal(prior['delta'],h)
+        x0=prior['vector'].copy();assert x0.shape==(N+Q,) and np.isfinite(x0).all()
+        row['warm_start_artifact']=15232497176
+        row['rounds']=[]
+        for round_id in range(3):
+            lam=10.
+            apply_weights()
             O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
-            sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=7680,probes=64)
+            sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=4096,probes=64,x0=x0)
+            x0=sol[0].copy()
+            round_record={'round':round_id,'M_weights':{k:v.tolist() for k,v in mf.items()},'H_weights':hf.copy(),'candidate_start':len(row['candidates'])}
+            row['rounds'].append(round_record)
             print('RIGHT_PRECONDITIONER_ACTUAL',json.dumps({'lambda_H':lam,'stop':int(sol[1]),'iterations':int(sol[2]),**precondition},allow_nan=False),flush=True)
             dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
             # Save the actual vector for future independent nonlinear replay.
-            np.savez_compressed('evidence/coupled_correction_vector.npz',vector=sol[0],active=active,taper=taper,shape=shape,origin=o,delta=h,iteration=128,lambda_H=lam,far_Mz_weight=4.)
+            np.savez_compressed(f'evidence/coupled_correction_round{round_id}.npz',vector=sol[0],active=active,taper=taper,shape=shape,origin=o,delta=h,iteration=128,lambda_H=lam,far_M_weights=mf['far_atmosphere'])
             for scale in (1.,.99,.98,.95):
                 uu=scale*u;aa=A+scale*dk
                 if np.max(abs(uu))>.05:
@@ -686,14 +702,33 @@ def main():
                 for name,m in masks.items():
                     b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
                     reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'H_ratio_to_initial':hh/max(b['initial_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30),'native_proxy_H_ratio_to_initial':hn/max(b['initial_native_H_rms'],1e-30)}
-                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':7680,'far_Mz_weight_factor':4.,'unweighted_objective_norm':float(np.sqrt(sum(sum(v*v for v in q['M_ratio_to_initial']) for q in reg.values())+lam*lam*sum(q['H_ratio_to_pre']**2 for q in reg.values()))),'right_preconditioner':precondition,'residual_norm':precondition['original_objective_norm'],'normal_residual_norm':precondition['original_normal_residual_norm'],'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':precondition['original_solution_norm'],'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':4096,'round':round_id,'far_M_weights':mf['far_atmosphere'].tolist(),'unweighted_objective_norm':float(np.sqrt(sum(sum(v*v for v in q['M_ratio_to_initial']) for q in reg.values())+lam*lam*sum(q['H_ratio_to_pre']**2 for q in reg.values()))),'right_preconditioner':precondition,'residual_norm':precondition['original_objective_norm'],'normal_residual_norm':precondition['original_normal_residual_norm'],'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':precondition['original_solution_norm'],'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
                 candidate['all_H_below_initial']=all(q['H_ratio_to_initial']<=1+1e-10 and q['native_proxy_H_ratio_to_initial']<=1+1e-10 for q in reg.values())
                 candidate['all_initial_H_and_M_gate']=candidate['all_M_below_initial'] and candidate['all_H_below_initial'] and candidate['all_H_improved']
                 row['candidates'].append(candidate)
                 print('COUPLED_CANDIDATE',json.dumps(candidate,allow_nan=False),flush=True)
+            current=row['candidates'][round_record['candidate_start']:]
+            assert current
+            full=next((c for c in current if c.get('scale')==1. and 'regions' in c),None)
+            assert full is not None
+            round_record['worst_M_ratio']=max(max(q['M_ratio_to_initial']) for q in full['regions'].values())
+            round_record['worst_H_ratio']=max(max(q['H_ratio_to_initial'],q['native_proxy_H_ratio_to_initial']) for q in full['regions'].values())
+            round_record['feasible']=full['all_initial_H_and_M_gate']
+            round_record['normal_relative']=precondition['original_relative_normal_residual']
+            print('BALANCED_ROUND',json.dumps(round_record,allow_nan=False),flush=True)
+            pathlib.Path(f'evidence/balanced_round{round_id}.json').write_text(json.dumps(row,indent=2,allow_nan=False))
+            if full['all_initial_H_and_M_gate'] and int(sol[1]) in (1,2,4,5) and precondition['original_relative_normal_residual']<=1e-7:break
+            # Increase penalty only for measured near/over-limit regions.
+            # Do not change the independent initial-state acceptance test.
+            for name,q in full['regions'].items():
+                ratios=np.asarray(q['M_ratio_to_initial'])
+                mf[name]*=np.clip(np.sqrt(ratios/.85),1.,2.)
+                hr=max(q['H_ratio_to_initial'],q['native_proxy_H_ratio_to_initial'])
+                hf[name]*=float(np.clip(np.sqrt(hr/.85),1.,2.))
         row['any_coupled_improvement']=any(c.get('all_M_improved') and c.get('all_H_improved') for c in row['candidates'])
         row['any_initial_M_and_H_gate']=any(c.get('all_M_below_initial') and c.get('all_H_improved') for c in row['candidates'])
         row['any_all_initial_H_and_M_gate']=any(c.get('all_initial_H_and_M_gate',False) for c in row['candidates'])
+        row['any_feasible_and_converged']=any(c.get('all_initial_H_and_M_gate',False) and c.get('lsmr_stop') in (1,2,4,5) and c.get('right_preconditioner',{}).get('original_relative_normal_residual',1.)<=1e-7 for c in row['candidates'])
         row['all_solver_calls_converged']=bool(row['candidates']) and all(c.get('lsmr_stop') in (1,2,4,5) and c.get('right_preconditioner',{}).get('original_relative_normal_residual',1.)<=1e-7 for c in row['candidates'])
         report['patches'].append(row)
     assert report['patches']
