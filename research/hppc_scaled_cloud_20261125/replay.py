@@ -139,6 +139,29 @@ def stable_gate(t,i,v,legacy,cut):
            "smooth_rest":metrics(blended,test&(i>=-3)),
            "ramp_points":int(np.sum(test&(w>0)&(w<1))),
            "max_smooth_minus_hard_mV":float(1000*np.max(abs(blended[test]-hard[test])))}
+
+    # Separate open-loop accuracy from a voltage-feedback predictor.
+    # At k, only v[k-h] and earlier may be used; measured current through k
+    # is available (conditional prediction, not unknown future current).
+    if cut==5.:
+        peak=int(np.flatnonzero(test)[np.argmax(abs(blended[test]-v[test]))])
+        ix=np.arange(max(0,peak-8),min(len(t),peak+9))
+        phase["peak"]={"index":peak,"t_s":float(t[peak]),"relative_V":float(v[peak]),"I_A":float(i[peak]),"signed_error_mV":float(1000*(blended[peak]-v[peak])),"window":[{"t_s":float(t[k]),"I_A":float(i[k]),"V":float(v[k]),"legacy_V":float(reference[k]),"candidate_V":float(pred[k]),"blend_V":float(blended[k])} for k in ix]}
+        phase["open_loop_diagnostic"]={"stable":metrics(pred,test),"legacy":metrics(reference,test),"blend":metrics(blended,test)}
+        # Exact last-observation residual correction, using a single
+        # continuous base for the increment rather than a model switch.
+        phase["conditional_feedback"]={}
+        for h in (1,5,50):
+            mask=test.copy();mask[:h]=False
+            k=np.flatnonzero(mask);j=k-h
+            assert np.all(j<k)
+            pp={"persistence":v[j],"legacy_increment":v[j]+reference[k]-reference[j],"stable_increment":v[j]+pred[k]-pred[j],"blend_increment":v[j]+blended[k]-blended[j],"ohmic_increment":v[j]+FROZEN[0]*(i[k]-i[j])}
+            dd={}
+            for name,yhat in pp.items():
+                err=1000*(yhat-v[k]);ae=abs(err);m=int(np.argmax(ae))
+                dd[name]={"MAE_mV":float(ae.mean()),"RMSE_mV":float(np.sqrt(np.mean(err*err))),"max_mV":float(ae[m]),"peak_t_s":float(t[k[m]]),"peak_I_A":float(i[k[m]]),"points":len(k),"over_50mV":int(np.sum(ae>50))}
+            phase["conditional_feedback"][str(h)]=dd
+
     assert abs(phase["smooth_rest"]["MAE_mV"]-metrics(reference,test&(i>=-3))["MAE_mV"])<1e-12
     return {"phase_guard":phase,"choice":choice,"scores_V":scores,"params":params.tolist(),"cut_s":float(start+cut),"legacy":metrics(reference,test),"candidate":metrics(pred,test),
             "legacy_remaining_discharge":metrics(reference,test&(i<-3)),"candidate_remaining_discharge":metrics(pred,test&(i<-3)),
@@ -184,7 +207,16 @@ def main():
     summary["phase_guard_5s"]["max_smooth_minus_hard_mV"]=max(r["phase_guard"]["max_smooth_minus_hard_mV"] for r in phase)
     assert abs(summary["phase_guard_5s"]["hard"]["mean_mV"]-2.4796307575231014)<1e-5
     assert summary["phase_guard_5s"]["smooth_rest"]["worsened"]==0
-    report={"goal_key":"battery-20261126-hppc-phase-guard-v1","archive_sha256":"36a8bd0904a27fd90e44820c5cf938c8e7ed3e01acb6d2232c759b9f07e811cf","scope":"same previously observed 24 low-voltage source files; no independent cell or temperature certification","summary":summary,"results":results}
+    peaks=[{"member":r["member"],**r["stable_5s"]["phase_guard"]["peak"]} for r in results]
+    summary["peak_diagnosis"]={"worst":max(peaks,key=lambda x:abs(x["signed_error_mV"])),"files":len(peaks)}
+    summary["conditional_feedback"]={}
+    for h in ("1","5","50"):
+        rows=[r["stable_5s"]["phase_guard"]["conditional_feedback"][h] for r in results]
+        names=rows[0].keys()
+        summary["conditional_feedback"][h]={name:{"mean_MAE_mV":statistics.mean(r[name]["MAE_mV"] for r in rows),"max_mV":max(r[name]["max_mV"] for r in rows),"total_points":sum(r[name]["points"] for r in rows),"over_50mV":sum(r[name]["over_50mV"] for r in rows),"improved_vs_persistence":sum(r[name]["MAE_mV"]<r["persistence"]["MAE_mV"] for r in rows)} for name in names}
+    assert abs(abs(summary["peak_diagnosis"]["worst"]["signed_error_mV"])-272.61496143139027)<1e-5
+
+    report={"goal_key":"battery-20261127-hppc-peak-localization-feedback-v1","archive_sha256":"36a8bd0904a27fd90e44820c5cf938c8e7ed3e01acb6d2232c759b9f07e811cf","scope":"same previously observed 24 low-voltage source files; no independent cell or temperature certification","summary":summary,"results":results}
     OUT.mkdir(parents=True,exist_ok=True)
     (OUT/"result.json").write_text(json.dumps(report,indent=2,allow_nan=False),encoding="utf-8")
     print("SUMMARY",json.dumps(summary),flush=True)
