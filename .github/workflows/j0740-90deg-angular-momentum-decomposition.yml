@@ -71,6 +71,14 @@ jobs:
                   row[f]=a
               snap[t]=row
           assert np.allclose(spacing,.75)
+          g={};vel={}
+          for t in (0,98304):
+              a=np.zeros(shape+(3,3))
+              for i,j in [(0,0),(0,1),(0,2),(1,1),(1,2),(2,2)]:
+                  field_name='g'+'xyz'[i]+'xyz'[j]
+                  a[...,i,j]=a[...,j,i]=snap[t][field_name]
+              g[t]=a
+              vel[t]=np.stack([snap[t][f'vel[{i}]'] for i in range(3)],axis=-1)
           zz,yy,xx=np.indices(shape);x=origin[0]+spacing[0]*xx;y=origin[1]+spacing[1]*yy;z=origin[2]+spacing[2]*zz
           radius=np.sqrt(x*x+y*y+z*z)
           valid=np.zeros(shape,bool);valid[3:-3,3:-3,3:-3]=True;valid &= z>=-1e-12
