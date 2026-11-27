@@ -176,7 +176,7 @@ def support_controls():
     assert np.allclose(floor['minimum_M_ratio_to_initial'],np.sqrt((19**3-9**3)/19**3))
     print('SUPPORT_BOUND_CONTROL',json.dumps(floor),flush=True)
 def tests():
-    preconditioner_controls();support_controls();exact_momentum_controls()
+    preconditioner_controls();support_controls();exact_momentum_controls();exact_hamiltonian_controls()
     rng=np.random.default_rng(8615);sh=(9,9,9)
     g=np.broadcast_to(np.eye(3),sh+(3,3)).copy()+.01*sym(rng.normal(size=sh+(3,3)))
     geo=Geometry(g,[.7,.8,.9]);x=rng.normal(size=sh+(3,));y=sym(rng.normal(size=g.shape));v=rng.normal(size=x.shape)
@@ -219,6 +219,64 @@ def direct_ricci(geo):
                     r[...,i,j]+=.5*gi[...,k,l]*(dd(g[...,l,j],k,i,h)+dd(g[...,l,i],k,j,h)-dd(g[...,i,j],k,l,h)-dd(g[...,l,k],j,i,h)-dd(g[...,l,i],j,k,h)+dd(g[...,i,k],j,l,h))
     r+=np.einsum('...l,...lij->...ij',geo.tc,ch)-np.einsum('...kjl,...lik->...ij',ch,ch)
     return contract(gi,r)
+def discrete_ricci_conformal_ops(geo,R):
+    """Exact tangent and transpose of direct_ricci under g'=exp(4u)g.
+    Homogeneous constant scaling supplies -4u R; the remaining first and
+    second derivative terms are exact stencil differences, not continuum
+    product rules. Cache scalar coefficients for all affected offsets.
+    """
+    g,I,ch,h=geo.g,geo.gi,geo.ch,geo.h
+    D=np.stack([d(g,a,h) for a in range(3)],axis=-3)
+    P=-np.einsum('...ik,...akl,...lj->...aij',I,D,I)
+    L=np.einsum('...lk,...kij->...lij',g,ch)
+    gp=-np.einsum('...ia,...lik->...akl',I,L)
+    for a in range(3):gp[...,a,a,:]+=np.einsum('...ij,...lij->...l',I,L)
+    gl=np.einsum('...ij,...l->...lij',I,np.einsum('...kkl->...l',P))-np.einsum('...ia,...ajl->...lij',I,P)
+    gc=np.einsum('...l,...ij->...lij',geo.tc,I)-2*np.einsum('...ai,...jal->...lij',I,ch)
+    cc=np.einsum('...ab,...jab->...j',I,ch)
+    for a in range(3):gc[...,a,a,:]+=cc
+    gl+=np.einsum('...kl,...kij->...lij',I,gc)
+    gd=-np.einsum('...ik,...akl,...lj->...aij',I,gp,I)
+    gd+=.5*(np.swapaxes(gl,-3,-2)+np.moveaxis(gl,-1,-3)-gl)
+    coeff={};axes=(0,1,2);st=((-2,-1),(-1,8),(1,-8),(2,1))
+    def add(off,c):
+        if off in coeff:coeff[off]+=c
+        else:coeff[off]=c.copy()
+    for a in range(3):
+        for k,w in st:
+            off=[0]*3;off[2-a]=k;off=tuple(off)
+            add(off,4*w/(12*h[a])*contract(gd[...,a,:,:],np.roll(g,off,axes)))
+    for a in range(3):
+        for b in range(a,3):
+            B=np.einsum('...i,...j->...ij',I[...,a,:],I[...,b,:])-I[...,a,b,None,None]*I
+            if a==b:
+                for k,w in ((-2,-1),(-1,16),(1,16),(2,-1)):
+                    off=[0]*3;off[2-a]=k;off=tuple(off)
+                    add(off,4*w/(12*h[a]**2)*contract(B,np.roll(g,off,axes)))
+            else:
+                for k,w in st:
+                    for l,v in st:
+                        off=[0]*3;off[2-a]=k;off[2-b]=l;off=tuple(off)
+                        add(off,8*w*v/(144*h[a]*h[b])*contract(B,np.roll(g,off,axes)))
+    center=-4*R-sum(coeff.values())
+    def forward(u):return center*u+sum(c*np.roll(u,o,axes) for o,c in coeff.items())
+    def adjoint(y):return center*y+sum(np.roll(c*y,tuple(-k for k in o),axes) for o,c in coeff.items())
+    return forward,adjoint
+def exact_hamiltonian_controls():
+    rng=np.random.default_rng(3);sh=(7,8,9)
+    m=rng.normal(size=sh+(3,3));g=np.eye(3)+.03*(m+m.swapaxes(-1,-2))
+    geo=Geometry(g,[.7,.8,.9]);R=direct_ricci(geo)
+    u=.01*rng.normal(size=sh);F,T=discrete_ricci_conformal_ops(geo,R)
+    delta=1e-4
+    fd=(direct_ricci(Geometry(g*np.exp(4*delta*u)[...,None,None],geo.h))-direct_ricci(Geometry(g*np.exp(-4*delta*u)[...,None,None],geo.h)))/(2*delta)
+    lap,_=lap_ops(geo)
+    old=-4*R*u-8*lap(u)
+    red=float(np.linalg.norm(old-fd)/np.linalg.norm(fd))
+    green=float(np.linalg.norm(F(u)-fd)/np.linalg.norm(fd))
+    assert red>1e-4 and green<1e-7,(red,green)
+    assert np.allclose(F(np.ones(sh)),-4*R,rtol=1e-10,atol=1e-10)
+    y=rng.normal(size=sh);adj=check_adj(np.sum(F(u)*y),np.sum(u*T(y)),'exact discrete Ricci adjoint')
+    print('EXACT_RICCI_CONTROL',json.dumps({'old_relative_error':red,'new_relative_error':green,'adjoint_error':adj}),flush=True)
 def direct_ricci_controls():
     errors=[]
     for n in (17,33):
@@ -509,6 +567,8 @@ def main():
         V=-4*R+12*A2-64*np.pi*q*v2/(1-v2)
         grad=geo.hgrad(K);lap,lapadj=lap_ops(geo)
         conformal_mom,conformal_mom_adj=discrete_conformal_momentum_ops(geo,K,A,S,v2)
+        ricci_u,ricci_u_adj=discrete_ricci_conformal_ops(geo,R)
+        Vlocal=12*A2-64*np.pi*q*v2/(1-v2)
         def rms(a,m):return np.sqrt(np.mean(a[m]**2,axis=0))
         if audit_only:
             row={'patch':patch,'mask_used_for_candidate_analysis':'trim4','stencil_domain_audit':stencil_audit,'candidate_solver_run':False}
@@ -536,14 +596,14 @@ def main():
             def forward(a):
                 dk=geo.long(extend(a[:N]));u=extend_scalar(a[N:])
                 mv=geo.mom(dk)+conformal_mom(u)
-                hv=contract(grad,dk)-8*lap(u)+V*u
+                hv=contract(grad,dk)+ricci_u(u)+Vlocal*u
                 return np.r_[(wm*mv)[valid].ravel(),(lam*wh*hv)[valid]]
             def adjoint(a):
                 mm=np.zeros(shape+(3,));hh=np.zeros(shape)
                 mm[valid]=a[:3*P].reshape(-1,3);hh[valid]=a[3*P:]
                 mm*=wm;hh*=lam*wh
                 xv=restrict(geo.long_adj(geo.mom_adj(mm)+hh[...,None,None]*grad))
-                uv=restrict_scalar(conformal_mom_adj(mm)-8*lapadj(hh)+V*hh)
+                uv=restrict_scalar(conformal_mom_adj(mm)+ricci_u_adj(hh)+Vlocal*hh)
                 return np.r_[xv,uv]
             return LinearOperator((4*P,N+Q),matvec=forward,rmatvec=adjoint,dtype=float)
         rng=np.random.default_rng(69)
@@ -573,7 +633,8 @@ def main():
                 for label,dk,u in [('curvature',kdir,np.zeros_like(udir)),('conformal',np.zeros_like(kdir),udir),('coupled',kdir,udir)]:
                     predM=geo.mom(dk)+conformal_mom(u)
                     oldM=geo.mom(dk)+C*u[...,None]
-                    predH=contract(grad,dk)-8*lap(u)+V*u
+                    predH=contract(grad,dk)+ricci_u(u)+Vlocal*u
+                    oldH=contract(grad,dk)-8*lap(u)+V*u
                     prev=None
                     for step in (.01,.005,.0025):
                         mp,hp=nonlinear(dk,u,step);mm,hm=nonlinear(dk,u,-step)
@@ -581,7 +642,7 @@ def main():
                         regions={}
                         for name,m in masks.items():
                             def rel(a,b):return float(np.linalg.norm(a-b)/max(np.linalg.norm(b),1e-30))
-                            regions[name]={'old_M_relative_derivative_error':rel(oldM[m],dm[m]),'M_relative_derivative_error':rel(predM[m],dm[m]),'H_relative_derivative_error':rel(predH[m],dh[m]),'Mz_relative_derivative_error':rel(predM[...,2][m],dm[...,2][m]),'M_fd_norm':float(np.linalg.norm(dm[m])),'H_fd_norm':float(np.linalg.norm(dh[m]))}
+                            regions[name]={'old_M_relative_derivative_error':rel(oldM[m],dm[m]),'M_relative_derivative_error':rel(predM[m],dm[m]),'old_H_relative_derivative_error':rel(oldH[m],dh[m]),'H_relative_derivative_error':rel(predH[m],dh[m]),'Mz_relative_derivative_error':rel(predM[...,2][m],dm[...,2][m]),'M_fd_norm':float(np.linalg.norm(dm[m])),'H_fd_norm':float(np.linalg.norm(dh[m]))}
                         convergence=None if prev is None else {'M_fd_change':float(np.linalg.norm((dm-prev[0])[valid])/max(np.linalg.norm(dm[valid]),1e-30)),'H_fd_change':float(np.linalg.norm((dh-prev[1])[valid])/max(np.linalg.norm(dh[valid]),1e-30))}
                         case={'wavelength':wavelength,'direction':label,'step':step,'regions':regions,'finite_difference_self_change':convergence}
                         cases.append(case);print('DISCRETE_JACOBIAN_CASE',json.dumps(case,allow_nan=False),flush=True)
@@ -590,6 +651,7 @@ def main():
             last=[c for c in cases if c['step']==.0025 and c['direction']=='conformal']
             assert len(last)==2
             assert max(r['M_relative_derivative_error'] for c in last for r in c['regions'].values())<1e-5,'exact discrete conformal tangent failed archive check'
+            assert max(r['H_relative_derivative_error'] for c in last for r in c['regions'].values())<1e-6,'exact discrete Hamiltonian tangent failed archive check'
             row['discrete_jacobian_cases']=cases
             row['candidate_solver_run']=False
             report['patches'].append(row)
