@@ -2,6 +2,8 @@
 import json
 import os
 import secrets
+from pathlib import Path
+from scripts.check_postgres_authorized_queue import provision_synthetic_schema
 import psycopg
 from scripts.check_cano_production_role_matrix import ADMIN, MATRIX, PRIVS, SEQUENCES
 from core.postgres_memory import PostgresMemoryStore
@@ -18,8 +20,14 @@ def url(role):
 def main():
     if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("TEST_DATABASE_URL") != ADMIN:
         raise SystemExit("Disposable CI database required")
+    # Fresh service per version: no roles or policies inherited from other tests.
+    PostgresMemoryStore(ADMIN).initialize()
+    PostgresTaskStore(ADMIN, "ci-signed-fixture").initialize()
+    ColonySnapshotStore(ADMIN).initialize()
+    provision_synthetic_schema(ADMIN)
     keys = {role: secrets.token_hex(32) for role in ROLES}
     with psycopg.connect(ADMIN) as conn:
+        conn.execute(Path(__file__).with_name("cano_local_grant_owner_resolver.sql").read_text())
         conn.execute("CREATE SCHEMA cano_context_proof_test")
         conn.execute("CREATE EXTENSION pgcrypto WITH SCHEMA cano_context_proof_test")
         conn.execute("CREATE TABLE cano_context_proof_test.signing_key (role_name text PRIMARY KEY, secret bytea NOT NULL)")
@@ -51,6 +59,7 @@ END $function$
         for table, roles in MATRIX.items():
             for role, letters in roles.items():
                 conn.execute(f"GRANT {','.join(PRIVS[x] for x in letters)} ON public.{table} TO {role}")
+            conn.execute(f"ALTER TABLE public.{table} ENABLE ROW LEVEL SECURITY")
             rolelist = ",".join(roles)
             conn.execute(f"CREATE POLICY ci_signed_scope ON public.{table} FOR ALL TO {rolelist} USING (owner_key=(SELECT cano_context_proof_test.verified_owner())) WITH CHECK (owner_key=(SELECT cano_context_proof_test.verified_owner()))")
             conn.execute(f"CREATE POLICY ci_signed_restrictive ON public.{table} AS RESTRICTIVE FOR ALL TO {rolelist} USING (owner_key=(SELECT cano_context_proof_test.verified_owner())) WITH CHECK (owner_key=(SELECT cano_context_proof_test.verified_owner()))")
