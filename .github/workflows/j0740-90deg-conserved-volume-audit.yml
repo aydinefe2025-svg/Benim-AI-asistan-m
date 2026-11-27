@@ -1,0 +1,140 @@
+name: J0740 archived 90 degree conserved volume audit
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-90deg-conserved-volume-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  volume:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Verify immutable completed 90 degree archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence source
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15185720482/zip > source.zip
+          echo 'd3adfe19aa62bd691aed4a2eb2888d11285a9011ff1b6d73a63c8ed3b323be89  source.zip' | sha256sum -c -
+          sha256sum source.zip > evidence/source.sha256
+          unzip -tq source.zip
+          python3 -m pip install numpy h5py
+          python3 - <<'PY'
+          import pathlib,zipfile,json
+          wanted={'gxx','gxy','gxz','gyy','gyz','gzz','rho','eps','press','vel[0]','vel[1]','vel[2]','dens'}
+          with zipfile.ZipFile('source.zip') as z:
+              names=[n for n in z.namelist() if pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') in wanted and n.endswith('.xyz.h5')]
+              assert {pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') for n in names}==wanted,names
+              assert len(names)==len(wanted),names
+              for n in names:z.extract(n,'source')
+              pathlib.Path('evidence/inventory.json').write_text(json.dumps(names,indent=2))
+          PY
+      - name: Fixed-domain independent volume quadrature
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,re,json,math,numpy as np,h5py
+          def currents(g,rho,eps,p,v):
+              det=np.linalg.det(g);assert np.all(det>0)
+              vc=np.einsum('...ij,...j->...i',g,v)
+              v2=np.einsum('...i,...i->...',v,vc)
+              assert np.all(v2>=-1e-13) and np.all(v2<1)
+              W=1/np.sqrt(1-v2);sg=np.sqrt(det)
+              return sg*rho*W,sg[...,None]*(rho*(1+eps)+p)[...,None]*(W*W)[...,None]*vc
+          # Analytic flat-space static and boosted perfect-fluid controls.
+          g=np.broadcast_to(np.eye(3),(2,3,3)).copy();rho=np.array([2.,3.]);eps=np.array([.1,.2]);p=np.array([.3,.4]);v=np.zeros((2,3))
+          D,S=currents(g,rho,eps,p,v);assert np.allclose(D,rho) and np.all(S==0)
+          v[:,1]=.6;D,S=currents(g,rho,eps,p,v)
+          assert np.allclose(D,rho/0.8)
+          assert np.allclose(S[:,1],(rho*(1+eps)+p)*.6/.64)
+          try:
+              currents(g,rho,eps,p,np.ones((2,3)));raise RuntimeError('superluminal input accepted')
+          except AssertionError:pass
+          z=np.arange(5)*.75
+          assert np.sum(np.where(z==0,1.,2.))==9
+          required={'gxx','gxy','gxz','gyy','gyz','gzz','rho','eps','press','vel[0]','vel[1]','vel[2]','dens'}
+          files={p.name.removesuffix('.xyz.h5'):p for p in pathlib.Path('source').rglob('*.xyz.h5')}
+          assert set(files)==required
+          # Store only dataset paths, shapes and metadata; never load the whole archive into RAM.
+          datasets={}
+          for field,path in files.items():
+              with h5py.File(path,'r') as h:
+                  def visit(n,o):
+                      if not isinstance(o,h5py.Dataset) or o.ndim!=3:return
+                      m=re.search(r'\bit=(\d+)\s+(.*)',n)
+                      if not m or not re.search(r'\btl=0\b',m[2]):return
+                      rl=re.search(r'\brl=(\d+)\b',m[2])
+                      if not rl:return
+                      key=(field,int(m[1]),int(rl[1]),m[2])
+                      assert key not in datasets,key
+                      datasets[key]=(n,tuple(o.shape),np.array(o.attrs['origin'],float),np.array(o.attrs['delta'],float))
+                  h.visititems(visit)
+          times=sorted({t for field,t,rl,patch in datasets if field=='rho' and rl==2})
+          assert len(times)>=2 and times[0]==0
+          report={'scope':'fixed-coordinate finest-level spherical volume sums on archived snapshots; not composite AMR, global ADM J or a full stability certificate','source_artifact':15185720482,'analytic_controls':'PASS','dense_threshold':1e-8,'snapshots':[]}
+          for it in times:
+              patches=sorted({p for f,t,rl,p in datasets if f=='rho' and t==it and rl==2})
+              assert len(patches)==1,('unsupported multiple finest patches',it,patches)
+              patch=patches[0];data={}
+              _,shape,o,h=datasets['rho',it,2,patch];assert np.allclose(h,.75)
+              for field in required:
+                  n,ss,oo,hh=datasets[field,it,2,patch]
+                  assert ss==shape and np.array_equal(o,oo) and np.array_equal(h,hh)
+                  with h5py.File(files[field],'r') as f:data[field]=f[n][...]
+                  assert np.isfinite(data[field]).all(),(field,it)
+              zz,yy,xx=np.indices(shape)
+              x=o[0]+h[0]*xx;y=o[1]+h[1]*yy;z=o[2]+h[2]*zz
+              rad=np.sqrt(x*x+y*y+z*z)
+              valid=np.zeros(shape,bool);valid[3:-3,3:-3,3:-3]=True;valid&=z>=-1e-12
+              assert np.any(valid & (abs(z)<1e-12)),('equatorial plane absent',it)
+              assert np.allclose(np.min(x[valid]),-np.max(x[valid])) and np.allclose(np.min(y[valid]),-np.max(y[valid]))
+              g=np.zeros(shape+(3,3))
+              for i,j in [(0,0),(0,1),(0,2),(1,1),(1,2),(2,2)]:g[...,i,j]=g[...,j,i]=data['g'+'xyz'[i]+'xyz'[j]]
+              v=np.stack([data['vel[%d]'%i] for i in range(3)],axis=-1)
+              # Evaluate physical cells only; don't interpret ghost zones.
+              D,S=currents(g[valid],data['rho'][valid],data['eps'][valid],data['press'][valid],v[valid])
+              w=np.where(abs(z[valid])<1e-12,1.,2.)*np.prod(h)
+              rv=rad[valid];rho=data['rho'][valid];dens=data['dens'][valid]
+              J=x[valid]*S[:,1]-y[valid]*S[:,0]
+              row={'iteration':it,'geometric_time':it*0.75/512,'spacing':h.tolist(),'valid_points':int(valid.sum()),'spheres':{}}
+              max_radius=min(np.max(x[valid]),-np.min(x[valid]),np.max(y[valid]),-np.min(y[valid]),np.max(z[valid]))
+              for radius in (8,9,10,11):
+                  if radius>max_radius:continue
+                  m=rv<=radius
+                  fluid=m&(rho>1e-8)
+                  assert np.any(fluid)
+                  mass=float(np.sum(w[m]*dens[m]));primitive=float(np.sum(w[m]*D[m]))
+                  row['spheres'][str(radius)]={'baryon_from_dens':mass,'baryon_from_primitives':primitive,'baryon_dense_only':float(np.sum(w[fluid]*dens[fluid])),'matter_Jz':float(np.sum(w[m]*J[m])),'matter_Jz_dense_only':float(np.sum(w[fluid]*J[fluid])),'primitive_dens_relative_L1':float(np.sum(w[m]*abs(D[m]-dens[m]))/max(abs(mass),1e-300)),'dense_points_outside_in_valid_fine':int(np.count_nonzero((rho>1e-8)&~m))}
+              assert '10' in row['spheres'],('r=10 not contained in valid finest grid',it,max_radius)
+              # Coarser grids: conservative screening only, no double-counted summation.
+              outside=[]
+              for (field,t,rl,p),(n,ss,oo,hh) in datasets.items():
+                  if field!='rho' or t!=it or rl>=2:continue
+                  with h5py.File(files['rho'],'r') as f:a=f[n][...]
+                  zz,yy,xx=np.indices(a.shape)
+                  radc=np.sqrt((oo[0]+hh[0]*xx)**2+(oo[1]+hh[1]*yy)**2+(oo[2]+hh[2]*zz)**2)
+                  m=np.zeros(a.shape,bool);m[3:-3,3:-3,3:-3]=True;m&=(oo[2]+hh[2]*zz>=-1e-12)&(radc>10)
+                  outside.append({'rl':rl,'patch':p,'dense_points_r_gt_10':int(np.count_nonzero(m&(a>1e-8))),'max_rho_r_gt_10':float(np.max(a[m])) if np.any(m) else None})
+              row['coarse_outside_screen']=outside
+              report['snapshots'].append(row)
+              print('VOLUME_SNAPSHOT',json.dumps(row,allow_nan=False))
+          initial=report['snapshots'][0]['spheres']['10']
+          for row in report['snapshots']:
+              v=row['spheres']['10']
+              row['relative_change_r10']={k:v[k]/initial[k]-1 for k in ('baryon_from_dens','baryon_from_primitives','matter_Jz')}
+          report['max_abs_sampled_relative_change_r10']={k:max(abs(v['relative_change_r10'][k]) for v in report['snapshots']) for k in ('baryon_from_dens','baryon_from_primitives','matter_Jz')}
+          report['last_sample_is_not_90deg_endpoint']=report['snapshots'][-1]['geometric_time']!=146.625
+          report['physical_stability_certified']=False
+          pathlib.Path('evidence/volume_audit.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+          print('VOLUME_AUDIT',json.dumps({k:v for k,v in report.items() if k!='snapshots'},allow_nan=False))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-90deg-independent-volume-audit
+          path: evidence/
+          if-no-files-found: error
