@@ -1,0 +1,77 @@
+{
+  "schema": "j0740.grhd.bssn-ricci-reconstruction-diagnostic.v1",
+  "created_utc": "2026-11-27",
+  "status": {
+    "bssn_formula_reconstruction": "PASS_ANALYTIC_AND_GENERAL_METRIC_CONTROLS",
+    "native_ml_bssn_hamiltonian_parity": "NOT_ESTABLISHED",
+    "physical_stability_certified": false,
+    "EOS_Bayes": "NOT_RUN"
+  },
+  "source": {
+    "repository": "aydinefe2025-svg/Benim-AI-asistan-m",
+    "pull_request": 1015,
+    "branch": "science/j0740-coupled-conformal-constraint-candidate-20261127",
+    "commit": "26e9c8ba25e7c30ffe9b78d005982b0e346add03",
+    "code_path": "research/j0740/coupled_projection.py",
+    "code_bytes": 23723,
+    "code_sha256": "5cd71fbe4d45a9af4604843e4b245488d34d1d565e5a648c46dad2d49d204bf0",
+    "workflow_path": ".github/workflows/j0740-coupled-projection.yml",
+    "workflow_bytes": 1756,
+    "workflow_sha256": "31ccedf11f54a41a199c25e84218f8673fdb8c3adfb1c0e04eb038ac92534c72"
+  },
+  "archived_input": {
+    "actions_run": 45987360255,
+    "artifact_id": 15177726961,
+    "zip_sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073"
+  },
+  "method": {
+    "description": "Reconstruct conformal factor and determinant-one conformal metric from ADM spatial metric; use contracted conformal Gamma^i = gamma_tilde^{jk} Gamma_tilde^i_jk in BSSN Ricci formula; independently compare reconstructed scalar Ricci with direct metric Ricci on periodic non-conformally-flat analytic controls and archived snapshots.",
+    "bug_found_and_fixed": "The first reconstruction used Gamma^j_j_i (the connection trace) instead of the BSSN contracted conformal connection gamma_tilde^{jk} Gamma^i_jk. These are different contractions. The contracted connection and Christoffel index placement are now explicit in source.",
+    "controls": {
+      "flat_and_conformally_flat": "PASS",
+      "non_conformally_flat_relative_errors_n17_n33": [0.0005333536693004019, 0.0000397911809096993],
+      "non_conformally_flat_error_reduction_factor": 13.403816049359676,
+      "stencil_dependency_radius": 4,
+      "trim3_polynomial_max_error": 580.0069444444441,
+      "trim4_polynomial_max_error": 0.0,
+      "trim5_polynomial_max_error": 0.0
+    },
+    "matter_source_diagnostic": {
+      "t0_trim4_dense_16piE_best_fit_coefficient": 0.9990819091062995,
+      "t128_trim4_dense_16piE_best_fit_coefficient": 0.9990864391519211,
+      "interpretation": "Dense-region matter-source normalization is consistent with coefficient one; it does not explain the archived-H mismatch."
+    },
+    "archived_native_H_comparison": {
+      "domain": "t=0 and t=128, tl=0, rl=2, trim4",
+      "t0_all_valid_reconstructed_BSSN_H_raw_relative_mismatch": 1.0567356058464192,
+      "t0_all_valid_best_scaled_mismatch": 0.9716897697730529,
+      "t128_all_valid_reconstructed_BSSN_H_raw_relative_mismatch": 1.053333231643572,
+      "t128_all_valid_best_scaled_mismatch": 0.9688730338831004,
+      "t128_dense_reconstructed_BSSN_H_raw_relative_mismatch": 1.0146772299758924,
+      "t128_dense_best_scaled_mismatch": 0.9273164861719626,
+      "interpretation": "The corrected independent geometry reconstruction does not make the saved native H agree; the discrepancy remains material."
+    }
+  },
+  "archive_inventory": {
+    "unique_field_names": ["H", "M1", "M2", "M3", "eps", "gxx", "gxy", "gxz", "gyy", "gyz", "gzz", "kxx", "kxy", "kxz", "kyy", "kyz", "kzz", "press", "rho", "vel[0]", "vel[1]", "vel[2]"],
+    "required_native_bssn_fields_not_saved": ["ML_log_confac or phi/W", "ML_metric", "ML_Gamma", "ML_curv", "ML_trace_curv"],
+    "conclusion": "The exact native discrete ML_BSSN H operator cannot be independently replayed from this archive: only ADM metric/extrinsic-curvature, matter, and H/M constraint snapshots are present. To close parity, an archived run must emit the conformal BSSN fields and pinned solver/source parameters at matching times."
+  },
+  "verification": {
+    "actions_run": 45992281841,
+    "artifact_id": 15195005378,
+    "artifact_bytes": 4409,
+    "artifact_zip_sha256": "fdcd3a0cc8f716749ddf8144756445289f0680445a4103748424369f220c7573",
+    "checks": {
+      "coupled_archive_audit": "SUCCESS",
+      "research_tests": "SUCCESS",
+      "source_prior_tests": "SUCCESS",
+      "unittest_ubuntu": "SUCCESS",
+      "unittest_windows": "SUCCESS"
+    },
+    "links": {
+      "actions": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/45992281841",
+      "pull_request": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/pull/1015"
+    }
+  }
+}
