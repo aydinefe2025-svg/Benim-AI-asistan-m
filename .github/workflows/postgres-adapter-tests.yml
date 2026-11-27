@@ -29,6 +29,8 @@ on:
       - "scripts/check_cano_memory_task_rls.py"
       - "scripts/check_cano_authorized_queue_rls.py"
       - "scripts/check_cano_local_grant_rls.py"
+      - "scripts/cano_owner_rls_candidate.sql"
+      - "scripts/check_cano_production_role_matrix.py"
       - "scripts/cano_local_grant_owner_resolver.sql"
       - "scripts/provision_ci_local_grant_resolver.py"
       - "core/postgres_local_grant.py"
@@ -120,6 +122,10 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
         run: python -m scripts.check_cano_local_grant_rls
+      - name: Verify candidate production role matrix with dedicated synthetic logins
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_production_role_matrix
 
   pg18-backup-restore:
     runs-on: ubuntu-latest
@@ -181,3 +187,7 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
         run: python -m scripts.check_cano_local_grant_rls
+      - name: Verify candidate production role matrix with dedicated synthetic logins
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_production_role_matrix
