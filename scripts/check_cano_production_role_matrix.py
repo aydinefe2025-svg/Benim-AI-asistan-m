@@ -1,5 +1,6 @@
 """Disposable CI: reproduce observed production role/table DML matrix, then test candidate RLS."""
 import os
+import re
 from pathlib import Path
 import psycopg
 from core.postgres_memory import PostgresMemoryStore
@@ -62,8 +63,13 @@ SEQUENCES = {
     "private_colony_snapshot_revisions_revision_seq": MATRIX["private_colony_snapshot_revisions"],
 }
 
+def fixture_role(role):
+    assert role in ROLES
+    return "ci_matrix_" + role
+
+
 def url(role):
-    return f"postgresql://{role}:synthetic-role-only@localhost:5432/ci_persistence"
+    return f"postgresql://{fixture_role(role)}:synthetic-role-only@localhost:5432/ci_persistence"
 
 def main():
     if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("TEST_DATABASE_URL") != ADMIN:
@@ -71,26 +77,30 @@ def main():
     with psycopg.connect(ADMIN) as conn:
         for role in ROLES:
             login = "NOLOGIN" if role in ("cano_snapshot_runtime", "cano_autodev_worker") else "LOGIN PASSWORD 'synthetic-role-only'"
-            conn.execute(f"CREATE ROLE {role} {login} NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB")
-            conn.execute(f"GRANT USAGE ON SCHEMA public TO {role}")
+            conn.execute(f"CREATE ROLE {fixture_role(role)} {login} NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB")
+            conn.execute(f"GRANT USAGE ON SCHEMA public TO {fixture_role(role)}")
         for table, roles in MATRIX.items():
             for role, letters in roles.items():
-                conn.execute(f"GRANT {','.join(PRIVS[x] for x in letters)} ON public.{table} TO {role}")
+                conn.execute(f"GRANT {','.join(PRIVS[x] for x in letters)} ON public.{table} TO {fixture_role(role)}")
         for seq, roles in SEQUENCES.items():
             for role in roles:
-                conn.execute(f"GRANT USAGE ON SEQUENCE public.{seq} TO {role}")
-        conn.execute(Path(__file__).with_name("cano_owner_rls_candidate.sql").read_text())
+                conn.execute(f"GRANT USAGE ON SEQUENCE public.{seq} TO {fixture_role(role)}")
+        candidate = Path(__file__).with_name("cano_owner_rls_candidate.sql").read_text()
+        # Rename only whole allowlisted role identifiers for disposable CI.
+        # Production candidate SQL remains byte-for-byte unchanged.
+        role_pattern = r"\b(?:" + "|".join(map(re.escape, ROLES)) + r")\b"
+        conn.execute(re.sub(role_pattern, lambda match: fixture_role(match.group()), candidate))
         checks = 0
         for table, roles in MATRIX.items():
             for role in ROLES:
                 for letter, priv in PRIVS.items():
-                    actual = conn.execute("SELECT has_table_privilege(%s,%s,%s)", (role, "public."+table, priv)).fetchone()[0]
+                    actual = conn.execute("SELECT has_table_privilege(%s,%s,%s)", (fixture_role(role), "public."+table, priv)).fetchone()[0]
                     assert actual == (letter in roles.get(role, "")), (table, role, priv)
                     checks += 1
         assert checks == 224
     for role in ROLES:
         with psycopg.connect(ADMIN) as conn:
-            conn.execute(f"SET LOCAL ROLE {role}")
+            conn.execute(f"SET LOCAL ROLE {fixture_role(role)}")
             for table, roles in MATRIX.items():
                 if "S" in roles.get(role, ""):
                     assert conn.execute("SELECT row_security_active(%s::regclass)", ("public."+table,)).fetchone()[0]
