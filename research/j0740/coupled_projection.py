@@ -1,4 +1,4 @@
-import pathlib,re,json,math
+import pathlib,re,json,math,sys
 import numpy as np,h5py
 from scipy.sparse.linalg import LinearOperator,lsmr
 def d(a,j,h):
@@ -75,6 +75,16 @@ def source(g,rho,eps,p,v):
     assert np.all(v2<1) and np.all(v2>=-1e-13)
     q=(rho*(1+eps)+p)/(1-v2)
     return q-p,q[...,None]*vc,q,v2
+def stencil_domain_controls():
+    x=np.arange(17,dtype=float)
+    a=x**4
+    def D(v):return (-np.roll(v,-2)+8*np.roll(v,-1)-8*np.roll(v,1)+np.roll(v,2))/12
+    residual=D(D(a))-12*x**2
+    e3=float(np.max(np.abs(residual[3:-3])))
+    e4=float(np.max(np.abs(residual[4:-4])))
+    e5=float(np.max(np.abs(residual[5:-5])))
+    assert e3>1e-3 and e4<1e-10 and e5<1e-10,(e3,e4,e5)
+    print('STENCIL_DOMAIN_CONTROL',json.dumps({'radius_each_operator':2,'composed_dependency_radius':4,'trim3_max_abs_error':e3,'trim4_max_abs_error':e4,'trim5_max_abs_error':e5}),flush=True)
 def scalar_controls():
     rng=np.random.default_rng(405)
     g=np.broadcast_to(np.eye(3),(9,9,9,3,3)).copy()+.01*sym(rng.normal(size=(9,9,9,3,3)))
@@ -98,7 +108,8 @@ def scalar_controls():
     assert errors[1]<errors[0]/8,errors
     print('COUPLED_SCALAR_CONTROLS',errors,flush=True)
 def main():
-    tests();scalar_controls()
+    audit_only='--stencil-audit-only' in sys.argv
+    tests();scalar_controls();stencil_domain_controls()
     expected={'gxx','gxy','gxz','gyy','gyz','gzz','kxx','kxy','kxz','kyy','kyz','kzz','rho','eps','press','vel[0]','vel[1]','vel[2]','H','M1','M2','M3'}
     fields={}
     for path in pathlib.Path('source').rglob('*.xyz.h5'):
@@ -112,7 +123,7 @@ def main():
                 k=(n,int(m[1]),m[2]);assert k not in fields,k
                 fields[k]=(obj[...],np.array(obj.attrs['origin'],float),np.array(obj.attrs['delta'],float))
             f.visititems(visit)
-    report={'scope':'offline coupled conformal metric and longitudinal curvature correction, no evolution or certification','artifact':15177726961,'patches':[]}
+    report={'scope':'immutable archived HDF5 stencil-domain audit; no evolution, optimization, or physical certification','artifact':15177726961,'source_archive_sha256':'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073','patches':[]}
     for patch in sorted({p for _,_,p in fields}):
         if not all((n,t,patch) in fields for n in expected for t in (0,128)):continue
         r0,o,h=fields['rho',0,patch];shape=r0.shape
@@ -134,7 +145,11 @@ def main():
         geo0,K0,M0,native0=baseline(0)
         geo,K,M,native=baseline(128)
         zz,yy,xx=np.indices(shape);x=o[0]+h[0]*xx;y=o[1]+h[1]*yy;z=o[2]+h[2]*zz;rad=np.sqrt(x*x+y*y+z*z)
-        valid=np.zeros(shape,bool);valid[3:-3,3:-3,3:-3]=True;valid&=(z>=-1e-10)
+        valid_by_trim={}
+        for trim in (3,4,5):
+            vm=np.zeros(shape,bool);vm[trim:-trim,trim:-trim,trim:-trim]=True;vm&=(z>=-1e-10)
+            valid_by_trim[trim]=vm
+        valid=valid_by_trim[4]
         dense=r0>1e-8;near=dense.copy()
         for ax in range(3):near|=np.roll(dense,1,ax)|np.roll(dense,-1,ax)
         masks={'inner':valid&dense&(r0>.5*r0.max()),'outer_fluid':valid&dense&(r0<=.5*r0.max()),'surface_atmosphere':valid&near&~dense,'far_atmosphere':valid&~near}
@@ -176,12 +191,29 @@ def main():
         g=geo.g
         E,S,q,v2=source(g,rho,eps,press,v)
         R=ricci_scalar(geo);H=R+geo.hterm(K)-16*np.pi*E
+        stencil_audit={}
+        for trim,vm0 in valid_by_trim.items():
+            vm=vm0&(z>=-1e-10)
+            regions={'all_valid':vm,'dense':vm&dense,'near_surface':vm&near&~dense,'far_atmosphere':vm&~near}
+            stencil_audit[str(trim)]={}
+            for region,mm in regions.items():
+                hn=float(np.sqrt(np.mean(Hnative[mm]**2))) if np.any(mm) else None
+                hi=float(np.sqrt(np.mean(H[mm]**2))) if np.any(mm) else None
+                rel=float(np.linalg.norm((H-Hnative)[mm])/max(np.linalg.norm(Hnative[mm]),1e-30)) if np.any(mm) else None
+                stencil_audit[str(trim)][region]={'points':int(mm.sum()),'independent_H_rms':hi,'archived_native_H_rms':hn,'relative_mismatch':rel}
+        common=valid_by_trim[5]&(z>=-1e-10)
+        stencil_audit['common_trim5']={'points':int(common.sum()),'relative_mismatch':float(np.linalg.norm((H-Hnative)[common])/max(np.linalg.norm(Hnative[common]),1e-30))}
         tr=contract(geo.gi,K);A=K-g*tr[...,None,None]/3
         Amix=np.einsum('...ij,...jk->...ik',geo.gi,A);A2=np.einsum('...ij,...ji->...',Amix,Amix)
         C=-6*geo.mom(A)-32*np.pi*S/(1-v2)[...,None]
         V=-4*R+12*A2-64*np.pi*q*v2/(1-v2)
         grad=geo.hgrad(K);lap,lapadj=lap_ops(geo)
         def rms(a,m):return np.sqrt(np.mean(a[m]**2,axis=0))
+        if audit_only:
+            row={'patch':patch,'mask_used_for_candidate_analysis':'trim4','stencil_domain_audit':stencil_audit,'candidate_solver_run':False}
+            report['patches'].append(row)
+            print('STENCIL_ARCHIVE_AUDIT',json.dumps(row,allow_nan=False),flush=True)
+            continue
         wm=np.zeros(shape+(3,));wh=np.zeros(shape)
         base={}
         for name,m in masks.items():
