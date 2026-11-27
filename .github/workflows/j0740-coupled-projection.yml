@@ -171,6 +171,13 @@ jobs:
           PY
 
           unzip -q source.zip '*.xyz.h5' -d source
+      - name: Probe exact pinned Einstein Toolkit runtime image
+        run: |
+          set -euo pipefail
+          image='einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66'
+          docker pull "$image"
+          docker image inspect "$image" --format 'ETK_IMAGE_DIGEST={{index .RepoDigests 0}}'
+          docker run --rm --entrypoint sh "$image" -lc 'if [ -x /tmp/et-control/Cactus/exe/cactus_sim ]; then echo CACTUS_SIM_IN_IMAGE=present; else echo CACTUS_SIM_IN_IMAGE=absent; fi; command -v gcc || true; command -v mpirun || true; uname -m'
       - name: Reconstruct BSSN Hamiltonian from archived ADM snapshots
         run: python3 research/j0740/coupled_projection.py --stencil-audit-only
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
