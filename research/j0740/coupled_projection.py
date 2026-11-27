@@ -39,6 +39,67 @@ class Geometry:
     def hgrad(self,K):
         q=np.einsum('...ij,...jk->...ik',self.gi,K)
         return 2*(np.trace(q,axis1=-2,axis2=-1)[...,None,None]*self.gi-np.einsum('...ij,...jk->...ik',q,self.gi))
+def discrete_conformal_momentum_ops(geo,K,A,S,v2):
+    """Exact tangent of the finite-difference momentum operator for g'=e^(4u)g,
+    K'=e^(-2u)A+g' tr(K)/3, with the same fixed primitive matter.
+    Cache the 12 off-center stencil coefficient vectors and their exact adjoint.
+    No continuum product rule is applied to discrete derivatives.
+    """
+    g,gi,h=geo.g,geo.gi,geo.h
+    Q=np.einsum('...ij,...jk->...ik',gi,K)
+    B=-6*np.einsum('...ij,...jk->...ik',gi,A)
+    trB=np.trace(B,axis1=-2,axis2=-1)
+    def connection(q):
+        return np.einsum('...l,...li->...i',geo.tc,q)-np.einsum('...lji,...jl->...i',geo.ch,q)
+    center=connection(B)-4*connection(Q)-32*np.pi*S/(1-v2)[...,None]
+    terms=[]
+    Qgi=np.einsum('...ij,...jk->...ik',Q,gi)
+    for a in range(3):
+        axis=2-a
+        for shift,weight in ((-2,-1),(-1,8),(1,-8),(2,1)):
+            gs=np.roll(g,shift,axis=axis)
+            bs=np.roll(B,shift,axis=axis)
+            ts=np.roll(trB,shift,axis=axis)
+            tr_g=contract(gi,gs)
+            # Contract delta Gamma exactly before storing stencil coefficients.
+            c=bs[...,a,:].copy()
+            c[...,a]-=ts
+            c+=2*tr_g[...,None]*Q[...,a,:]
+            c-=2*np.einsum('...b,...bi->...i',Qgi[...,a,:],gs)
+            c+=2*np.einsum('...j,...ji->...i',Qgi[...,:,a],gs)
+            c[...,a]-=2*contract(Qgi,gs)
+            c*=weight/(12*h[a])
+            terms.append((axis,shift,c))
+    def forward(u):
+        out=center*u[...,None]
+        for axis,shift,c in terms:out+=c*np.roll(u,shift,axis=axis)[...,None]
+        return out
+    def adjoint(y):
+        out=np.sum(center*y,axis=-1)
+        for axis,shift,c in terms:out+=np.roll(np.sum(c*y,axis=-1),-shift,axis=axis)
+        return out
+    return forward,adjoint
+def exact_momentum_controls():
+    rng=np.random.default_rng(3740)
+    sh=(11,10,9);g=np.broadcast_to(np.eye(3),sh+(3,3)).copy()+.02*sym(rng.normal(size=sh+(3,3)))
+    geo=Geometry(g,[.7,.8,.9]);K=.02*sym(rng.normal(size=g.shape))
+    tr=contract(geo.gi,K);A=K-g*tr[...,None,None]/3
+    rho=np.full(sh,.001);eps=np.full(sh,.1);p=np.full(sh,.0001);v=.02*rng.normal(size=sh+(3,))
+    _,S,_,v2=source(g,rho,eps,p,v);u=.01*rng.normal(size=sh)
+    F,T=discrete_conformal_momentum_ops(geo,K,A,S,v2)
+    def nonlinear(t):
+        G=g*np.exp(4*t*u)[...,None,None]
+        KK=np.exp(-2*t*u)[...,None,None]*A+G*tr[...,None,None]/3
+        _,SS,_,_=source(G,rho,eps,p,v)
+        return Geometry(G,geo.h).mom(KK)-8*np.pi*SS
+    delta=1e-4;fd=(nonlinear(delta)-nonlinear(-delta))/(2*delta)
+    pred=F(u);err=float(np.linalg.norm(pred-fd)/np.linalg.norm(fd))
+    old=(-6*geo.mom(A)-32*np.pi*S/(1-v2)[...,None])*u[...,None]
+    old_err=float(np.linalg.norm(old-fd)/np.linalg.norm(fd))
+    assert old_err>1e-3 and err<1e-7,(old_err,err)
+    y=rng.normal(size=pred.shape)
+    adj=check_adj(np.sum(pred*y),np.sum(u*T(y)),'exact discrete conformal momentum adjoint')
+    print('EXACT_MOMENTUM_CONTROL',json.dumps({'old_relative_error':old_err,'exact_relative_error':err,'adjoint_error':adj}),flush=True)
 def momentum_component_weights(initial_rms,points):
     baseline=np.asarray(initial_rms,dtype=float)
     if points<=0 or baseline.ndim!=1 or not np.isfinite(baseline).all() or np.any(baseline<=0):
@@ -115,7 +176,7 @@ def support_controls():
     assert np.allclose(floor['minimum_M_ratio_to_initial'],np.sqrt((19**3-9**3)/19**3))
     print('SUPPORT_BOUND_CONTROL',json.dumps(floor),flush=True)
 def tests():
-    preconditioner_controls();support_controls()
+    preconditioner_controls();support_controls();exact_momentum_controls()
     rng=np.random.default_rng(8615);sh=(9,9,9)
     g=np.broadcast_to(np.eye(3),sh+(3,3)).copy()+.01*sym(rng.normal(size=sh+(3,3)))
     geo=Geometry(g,[.7,.8,.9]);x=rng.normal(size=sh+(3,));y=sym(rng.normal(size=g.shape));v=rng.normal(size=x.shape)
@@ -447,6 +508,7 @@ def main():
         C=-6*geo.mom(A)-32*np.pi*S/(1-v2)[...,None]
         V=-4*R+12*A2-64*np.pi*q*v2/(1-v2)
         grad=geo.hgrad(K);lap,lapadj=lap_ops(geo)
+        conformal_mom,conformal_mom_adj=discrete_conformal_momentum_ops(geo,K,A,S,v2)
         def rms(a,m):return np.sqrt(np.mean(a[m]**2,axis=0))
         if audit_only:
             row={'patch':patch,'mask_used_for_candidate_analysis':'trim4','stencil_domain_audit':stencil_audit,'candidate_solver_run':False}
@@ -473,7 +535,7 @@ def main():
         def op(lam):
             def forward(a):
                 dk=geo.long(extend(a[:N]));u=extend_scalar(a[N:])
-                mv=geo.mom(dk)+C*u[...,None]
+                mv=geo.mom(dk)+conformal_mom(u)
                 hv=contract(grad,dk)-8*lap(u)+V*u
                 return np.r_[(wm*mv)[valid].ravel(),(lam*wh*hv)[valid]]
             def adjoint(a):
@@ -481,7 +543,7 @@ def main():
                 mm[valid]=a[:3*P].reshape(-1,3);hh[valid]=a[3*P:]
                 mm*=wm;hh*=lam*wh
                 xv=restrict(geo.long_adj(geo.mom_adj(mm)+hh[...,None,None]*grad))
-                uv=restrict_scalar(np.sum(C*mm,axis=-1)-8*lapadj(hh)+V*hh)
+                uv=restrict_scalar(conformal_mom_adj(mm)-8*lapadj(hh)+V*hh)
                 return np.r_[xv,uv]
             return LinearOperator((4*P,N+Q),matvec=forward,rmatvec=adjoint,dtype=float)
         rng=np.random.default_rng(69)
@@ -509,7 +571,8 @@ def main():
                 udir=extend_scalar((np.cos(phase*x)*np.cos(phase*y)*np.cos(phase*z))[active])
                 udir*=.001/max(np.max(np.abs(udir)),1e-30)
                 for label,dk,u in [('curvature',kdir,np.zeros_like(udir)),('conformal',np.zeros_like(kdir),udir),('coupled',kdir,udir)]:
-                    predM=geo.mom(dk)+C*u[...,None]
+                    predM=geo.mom(dk)+conformal_mom(u)
+                    oldM=geo.mom(dk)+C*u[...,None]
                     predH=contract(grad,dk)-8*lap(u)+V*u
                     prev=None
                     for step in (.01,.005,.0025):
@@ -518,12 +581,15 @@ def main():
                         regions={}
                         for name,m in masks.items():
                             def rel(a,b):return float(np.linalg.norm(a-b)/max(np.linalg.norm(b),1e-30))
-                            regions[name]={'M_relative_derivative_error':rel(predM[m],dm[m]),'H_relative_derivative_error':rel(predH[m],dh[m]),'Mz_relative_derivative_error':rel(predM[...,2][m],dm[...,2][m]),'M_fd_norm':float(np.linalg.norm(dm[m])),'H_fd_norm':float(np.linalg.norm(dh[m]))}
+                            regions[name]={'old_M_relative_derivative_error':rel(oldM[m],dm[m]),'M_relative_derivative_error':rel(predM[m],dm[m]),'H_relative_derivative_error':rel(predH[m],dh[m]),'Mz_relative_derivative_error':rel(predM[...,2][m],dm[...,2][m]),'M_fd_norm':float(np.linalg.norm(dm[m])),'H_fd_norm':float(np.linalg.norm(dh[m]))}
                         convergence=None if prev is None else {'M_fd_change':float(np.linalg.norm((dm-prev[0])[valid])/max(np.linalg.norm(dm[valid]),1e-30)),'H_fd_change':float(np.linalg.norm((dh-prev[1])[valid])/max(np.linalg.norm(dh[valid]),1e-30))}
                         case={'wavelength':wavelength,'direction':label,'step':step,'regions':regions,'finite_difference_self_change':convergence}
                         cases.append(case);print('DISCRETE_JACOBIAN_CASE',json.dumps(case,allow_nan=False),flush=True)
                         prev=(dm,dh)
             assert len(cases)==18
+            last=[c for c in cases if c['step']==.0025 and c['direction']=='conformal']
+            assert len(last)==2
+            assert max(r['M_relative_derivative_error'] for c in last for r in c['regions'].values())<1e-5,'exact discrete conformal tangent failed archive check'
             row['discrete_jacobian_cases']=cases
             row['candidate_solver_run']=False
             report['patches'].append(row)
