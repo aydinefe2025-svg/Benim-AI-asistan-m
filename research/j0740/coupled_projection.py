@@ -62,13 +62,52 @@ def ricci_scalar(geo):
     ric-=np.stack([d(geo.tc,j,h) for j in range(3)],axis=-1)
     ric+=np.einsum('...l,...lij->...ij',geo.tc,ch)-np.einsum('...kjl,...lik->...ij',ch,ch)
     return contract(geo.gi,ric)
+def dd(a,i,j,h):
+    if i!=j:return d(d(a,i,h),j,h)
+    ax=2-i
+    return (-np.roll(a,-2,ax)+16*np.roll(a,-1,ax)-30*a+16*np.roll(a,1,ax)-np.roll(a,2,ax))/(12*h[i]**2)
+def direct_ricci(geo):
+    g,gi,ch,h=geo.g,geo.gi,geo.ch,geo.h
+    dg=[d(g,i,h) for i in range(3)]
+    di=[-np.einsum('...ia,...ab,...bj->...ij',gi,q,gi) for q in dg]
+    low=np.einsum('...lk,...kij->...lij',g,ch)
+    r=np.zeros(g.shape)
+    for i in range(3):
+        for j in range(3):
+            for k in range(3):
+                for l in range(3):
+                    r[...,i,j]+=di[k][...,k,l]*low[...,l,i,j]-di[j][...,k,l]*low[...,l,i,k]
+                    r[...,i,j]+=.5*gi[...,k,l]*(dd(g[...,l,j],k,i,h)+dd(g[...,l,i],k,j,h)-dd(g[...,i,j],k,l,h)-dd(g[...,l,k],j,i,h)-dd(g[...,l,i],j,k,h)+dd(g[...,i,k],j,l,h))
+    r+=np.einsum('...l,...lij->...ij',geo.tc,ch)-np.einsum('...kjl,...lik->...ij',ch,ch)
+    return contract(gi,r)
+def direct_ricci_controls():
+    errors=[]
+    for n in (17,33):
+        h=2*np.pi/n;c=np.arange(n)*h
+        z,y,x=np.meshgrid(c,c,c,indexing='ij');u=.01*np.sin(x)*np.cos(y)*np.cos(z)
+        g=np.exp(4*u)[...,None,None]*np.eye(3)
+        du2=.0001*(np.cos(x)**2*np.cos(y)**2*np.cos(z)**2+np.sin(x)**2*np.sin(y)**2*np.cos(z)**2+np.sin(x)**2*np.cos(y)**2*np.sin(z)**2)
+        exact=np.exp(-4*u)*(24*u-8*du2)
+        v=direct_ricci(Geometry(g,[h]*3))
+        errors.append(float(np.linalg.norm(v-exact)/np.linalg.norm(exact)))
+    assert errors[1]<errors[0]/8,errors
+    print('DIRECT_RICCI_CONTROLS',json.dumps({'relative_errors_n17_n33':errors,'refinement_ratio':errors[0]/errors[1]}),flush=True)
 def lap_ops(geo):
     c=np.einsum('...ij,...kij->...k',geo.gi,geo.ch)
     def lap(u):
-        du=[d(u,i,geo.h) for i in range(3)]
-        return sum(geo.gi[...,i,j]*d(du[j],i,geo.h) for i in range(3) for j in range(3))-sum(c[...,i]*du[i] for i in range(3))
+        total=np.zeros_like(u)
+        for i in range(3):
+            for j in range(3):
+                second=dd(u,i,i,geo.h) if i==j else d(d(u,j,geo.h),i,geo.h)
+                total+=geo.gi[...,i,j]*second
+        return total-sum(c[...,i]*d(u,i,geo.h) for i in range(3))
     def adj(y):
-        return sum(d(d(geo.gi[...,i,j]*y,i,geo.h),j,geo.h) for i in range(3) for j in range(3))+sum(d(c[...,i]*y,i,geo.h) for i in range(3))
+        total=np.zeros_like(y)
+        for i in range(3):
+            for j in range(3):
+                weighted=geo.gi[...,i,j]*y
+                total+=dd(weighted,i,i,geo.h) if i==j else d(d(weighted,i,geo.h),j,geo.h)
+        return total+sum(d(c[...,i]*y,i,geo.h) for i in range(3))
     return lap,adj
 def source(g,rho,eps,p,v):
     vc=np.einsum('...ij,...j->...i',g,v);v2=np.einsum('...i,...i->...',v,vc)
@@ -173,7 +212,7 @@ def scalar_controls():
     print('COUPLED_SCALAR_CONTROLS',errors,flush=True)
 def main():
     audit_only='--stencil-audit-only' in sys.argv
-    tests();scalar_controls();bssn_scalar_controls();stencil_domain_controls()
+    tests();scalar_controls();bssn_scalar_controls();direct_ricci_controls();stencil_domain_controls()
     expected={'gxx','gxy','gxz','gyy','gyz','gzz','kxx','kxy','kxz','kyy','kyz','kzz','rho','eps','press','vel[0]','vel[1]','vel[2]','H','M1','M2','M3'}
     fields={};field_inventory=[]
     # Inventory every HDF5 field file before selecting the ADM/matter fields
@@ -259,13 +298,13 @@ def main():
         v=np.stack([get(f'vel[{i}]',128) for i in range(3)],axis=-1)
         g=geo.g
         E,S,q,v2=source(g,rho,eps,press,v)
-        R=ricci_scalar(geo);H=R+geo.hterm(K)-16*np.pi*E
+        R=direct_ricci(geo);H=R+geo.hterm(K)-16*np.pi*E
         stencil_audit={}
         for t,gt,Kt in ((0,geo0,K0),(128,geo,K)):
             rt,et,pt=[get(f,t) for f in ('rho','eps','press')]
             vt=np.stack([get(f'vel[{i}]',t) for i in range(3)],axis=-1)
             Et,_,_,_=source(gt.g,rt,et,pt,vt)
-            curvature=ricci_scalar(gt)+gt.hterm(Kt)
+            curvature=direct_ricci(gt)+gt.hterm(Kt)
             matter=16*np.pi*Et
             Ht=curvature-matter
             Hbssn=bssn_reconstructed_ricci_scalar(gt)+gt.hterm(Kt)-matter
@@ -366,7 +405,7 @@ def main():
                 Kp=np.exp(-2*uu)[...,None,None]*aa+G*tr[...,None,None]/3
                 gp=Geometry(G,h)
                 Ep,Sp,qp,vp2=source(G,rho,eps,press,v)
-                Hp=ricci_scalar(gp)+gp.hterm(Kp)-16*np.pi*Ep
+                Hp=direct_ricci(gp)+gp.hterm(Kp)-16*np.pi*Ep
                 Mp=gp.mom(Kp)-8*np.pi*Sp
                 Hpnative_est=Hnative+Hp-H
                 mass,j=mass_j(G,Sp,vp2)
