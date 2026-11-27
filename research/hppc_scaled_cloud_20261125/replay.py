@@ -140,6 +140,30 @@ def stable_gate(t,i,v,legacy,cut):
            "ramp_points":int(np.sum(test&(w>0)&(w<1))),
            "max_smooth_minus_hard_mV":float(1000*np.max(abs(blended[test]-hard[test])))}
 
+    # Continuous polarization-memory candidates. Fix instantaneous negative
+    # current resistance to the independent Batch19 calibration, and keep
+    # extra discharge polarization in states that decay rather than vanish.
+    if cut==5.:
+        neg=np.minimum(i,0.);pos=np.maximum(i,0.)
+        q=integral(t,i);dq=integral(t,-neg)
+        fixed=FROZEN[0]*neg
+        mats={}
+        for fast in (.1,.5,1.):
+            for slow in (2.562132249982305,10.,30.):
+                mats[(fast,slow)]=np.column_stack([pos,q,rc(t,i,TAUS[0]),rc(t,i,TAUS[1]),rc(t,neg,fast),rc(t,neg*dq,slow)])
+        scores_mem={}
+        for key,A in mats.items():
+            b,ok,_=solve(A[pre],v[pre]-fixed[pre],True)
+            if ok:scores_mem[key]=float(np.mean(abs(fixed[val]+A[val]@b-v[val])))
+        assert scores_mem
+        key=min(scores_mem,key=scores_mem.get);A=mats[key]
+        b,ok,diag=solve(A[fit],v[fit]-fixed[fit],True)
+        assert ok
+        memory=fixed+A@b
+        # Causal diagnostic: prefix objective is blind to holdout voltage.
+        phase["memory_open_loop"]={"fast_s":key[0],"slow_s":key[1],"params":b.tolist(),"validation_MAE_mV":1000*scores_mem[key],"rank":diag["rank"],"all":metrics(memory,test),"discharge":metrics(memory,test&(i<-3)),"rest":metrics(memory,test&(i>=-3))}
+        phase["memory_open_loop"]["peak_at_blend_mV"]=float(1000*(memory[np.flatnonzero(test)[np.argmax(abs(blended[test]-v[test]))]]-v[np.flatnonzero(test)[np.argmax(abs(blended[test]-v[test]))]]))
+
     # Separate open-loop accuracy from a voltage-feedback predictor.
     # At k, only v[k-h] and earlier may be used; measured current through k
     # is available (conditional prediction, not unknown future current).
@@ -216,7 +240,13 @@ def main():
         summary["conditional_feedback"][h]={name:{"mean_MAE_mV":statistics.mean(r[name]["MAE_mV"] for r in rows),"max_mV":max(r[name]["max_mV"] for r in rows),"total_points":sum(r[name]["points"] for r in rows),"over_50mV":sum(r[name]["over_50mV"] for r in rows),"improved_vs_persistence":sum(r[name]["MAE_mV"]<r["persistence"]["MAE_mV"] for r in rows)} for name in names}
     assert abs(abs(summary["peak_diagnosis"]["worst"]["signed_error_mV"])-272.61496143139027)<1e-5
 
-    report={"goal_key":"battery-20261127-hppc-peak-localization-feedback-v1","archive_sha256":"36a8bd0904a27fd90e44820c5cf938c8e7ed3e01acb6d2232c759b9f07e811cf","scope":"same previously observed 24 low-voltage source files; no independent cell or temperature certification","summary":summary,"results":results}
+    summary["memory_open_loop"]={}
+    for name,base in (("all","smooth"),("discharge","smooth_discharge"),("rest","smooth_rest")):
+        a=[r["stable_5s"]["phase_guard"]["memory_open_loop"][name] for r in results]
+        b=[r["stable_5s"]["phase_guard"][base] for r in results]
+        summary["memory_open_loop"][name]={"mean_MAE_mV":statistics.mean(x["MAE_mV"] for x in a),"baseline_mean_MAE_mV":statistics.mean(x["MAE_mV"] for x in b),"max_mV":max(x["max_mV"] for x in a),"baseline_max_mV":max(x["max_mV"] for x in b),"improved":sum(x["MAE_mV"]<y["MAE_mV"]-1e-8 for x,y in zip(a,b)),"worsened":sum(x["MAE_mV"]>y["MAE_mV"]+1e-8 for x,y in zip(a,b))}
+
+    report={"goal_key":"battery-20261127-hppc-continuous-polarization-memory-v1","archive_sha256":"36a8bd0904a27fd90e44820c5cf938c8e7ed3e01acb6d2232c759b9f07e811cf","scope":"same previously observed 24 low-voltage source files; no independent cell or temperature certification","summary":summary,"results":results}
     OUT.mkdir(parents=True,exist_ok=True)
     (OUT/"result.json").write_text(json.dumps(report,indent=2,allow_nan=False),encoding="utf-8")
     print("SUMMARY",json.dumps(summary),flush=True)
