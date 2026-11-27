@@ -19,12 +19,14 @@ def explicit_calculation_reply(message):
         ch.isdigit() and ch not in "0123456789" for ch in command
     ):
         return _ERROR
-    rest = unicodedata.normalize("NFKD", command[prefix.end():].casefold())
-    rest = "".join(ch for ch in rest if not unicodedata.combining(ch)).replace("ı", "i")
-    parsed = re.fullmatch(r"[ \t]*(topla|cikar|carp|bol)[ \t]+(-?[0-9]{1,7})[ \t]+(-?[0-9]{1,7})[ \t]*", rest)
+    parsed = re.fullmatch(r"[ \t]*([^ \t]+)[ \t]+(-?[0-9]{1,7})[ \t]+(-?[0-9]{1,7})[ \t]*", command[prefix.end():])
     if parsed is None:
         return _ERROR
     op, left, right = parsed.groups()
+    op = unicodedata.normalize("NFKD", op.casefold())
+    op = "".join(ch for ch in op if not unicodedata.combining(ch)).replace("ı", "i")
+    if op not in ("topla", "cikar", "carp", "bol"):
+        return _ERROR
     a, b = int(left), int(right)
     if abs(a) > 10**6 or abs(b) > 10**6:
         return _ERROR
