@@ -92,34 +92,42 @@
     "interpretation": "Launcher, build log, parameter decks and image metadata are present, but no executable or restart checkpoint file appears in the ZIP member inventory."
   },
   "followup_verification_20261127": {
-    "tested_commit": "db9abfcbe43a017a03c8b926b4770ccd0c6a30dc",
-    "coupled_workflow_run": 46006738218,
-    "coupled_workflow": "success",
-    "artifact_id": 15200823438,
-    "artifact_sha256": "5a7ac58084720abd8757f78eb0159d366e7620e2fb5be3c5eb0812f84cb78692",
-    "core_run": 46006738224,
+    "archive_inventory_run": 46008283238,
+    "archive_inventory_conclusion": "success",
+    "archive_artifact_id": 15201689677,
+    "archive_artifact_sha256": "d311031236ee6980eff790cb24a443adb11d16e04b033dae8274e74fbbc45f82",
+    "core_run": 46008283251,
     "core_linux": "success",
     "core_windows": "success",
-    "source_prior_run": 46006738345,
+    "source_prior_run": 46008283193,
     "source_prior": "success",
-    "public_research_run": 46006738279,
+    "public_research_run": 46008283309,
     "public_research": "success",
-    "runtime_metadata": {
-      "image_json_sha256": "c4cb91f6ae67f14879be3e523e18af0c95b3aea55b35351572be6807477f28c2",
-      "image_identity": "OCI base metadata names ubuntu 22.04; Image field empty",
-      "executable_path_basename": "cactus_sim",
-      "launcher_present": true,
-      "rebuild_log_present": true,
-      "exact_executable_presence": "not established by filename scan",
-      "image_digest_file_value": "not inspected by this passing run"
+    "archive_binary_signature_scan": {
+      "formats_scanned": [
+        "ELF",
+        "PE",
+        "Mach-O"
+      ],
+      "candidate_count": 0,
+      "conclusion": "no matching executable magic in any archived member"
     },
-    "remaining_validation": {
-      "archive_binary_magic_scan": "NOT_RUN",
-      "latest_workflow_code_commit": "b3bf21e68c260fab6999df816e491b237e7c3c05",
-      "latest_workflow_ci": "pending/not observed",
-      "hamiltonian_mismatch": "UNCHANGED",
-      "physical_stability": "NOT_ESTABLISHED",
-      "eos_bayes": "NOT_RUN"
-    }
+    "runtime": {
+      "image_digest": "einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66",
+      "image_digest_file_sha256": "68d5aed7baab05a9312ffa6007455fe58b420fdd1d173cb6fe538c71b6aa2697",
+      "oci_manifest_media_type": "application/vnd.docker.distribution.manifest.v2+json",
+      "manifest_sha256": "sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66",
+      "compressed_layer_bytes": 4059388528,
+      "layers": 33,
+      "config_digest": "sha256:635d2d64c6c629417ff4351ec114a1304002ae7d31f86b4caaebc088ac9f4b57",
+      "executable_path_basename": "cactus_sim",
+      "launcher_sha256": "6a375b83f948e21a4b3756c907b22929fa65c73be592dbd63c16a207ded4128f",
+      "launcher_present": true,
+      "rebuild_log_present": true
+    },
+    "exact_native_rerun": "NOT_RUN; exact pinned public image identified but image layers not pulled",
+    "hamiltonian_mismatch": "UNCHANGED",
+    "physical_stability": "NOT_ESTABLISHED",
+    "eos_bayes": "NOT_RUN"
   }
 }
