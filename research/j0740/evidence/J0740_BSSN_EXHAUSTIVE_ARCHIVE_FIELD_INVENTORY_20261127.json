@@ -90,5 +90,36 @@
     "executable_path_metadata": "executable-path.txt",
     "image_metadata": "image.json",
     "interpretation": "Launcher, build log, parameter decks and image metadata are present, but no executable or restart checkpoint file appears in the ZIP member inventory."
+  },
+  "followup_verification_20261127": {
+    "tested_commit": "db9abfcbe43a017a03c8b926b4770ccd0c6a30dc",
+    "coupled_workflow_run": 46006738218,
+    "coupled_workflow": "success",
+    "artifact_id": 15200823438,
+    "artifact_sha256": "5a7ac58084720abd8757f78eb0159d366e7620e2fb5be3c5eb0812f84cb78692",
+    "core_run": 46006738224,
+    "core_linux": "success",
+    "core_windows": "success",
+    "source_prior_run": 46006738345,
+    "source_prior": "success",
+    "public_research_run": 46006738279,
+    "public_research": "success",
+    "runtime_metadata": {
+      "image_json_sha256": "c4cb91f6ae67f14879be3e523e18af0c95b3aea55b35351572be6807477f28c2",
+      "image_identity": "OCI base metadata names ubuntu 22.04; Image field empty",
+      "executable_path_basename": "cactus_sim",
+      "launcher_present": true,
+      "rebuild_log_present": true,
+      "exact_executable_presence": "not established by filename scan",
+      "image_digest_file_value": "not inspected by this passing run"
+    },
+    "remaining_validation": {
+      "archive_binary_magic_scan": "NOT_RUN",
+      "latest_workflow_code_commit": "b3bf21e68c260fab6999df816e491b237e7c3c05",
+      "latest_workflow_ci": "pending/not observed",
+      "hamiltonian_mismatch": "UNCHANGED",
+      "physical_stability": "NOT_ESTABLISHED",
+      "eos_bayes": "NOT_RUN"
+    }
   }
 }
