@@ -26,6 +26,11 @@ def inspect_day(root: str | Path, *, day: str) -> dict:
     root = Path(root)
     state_file = root / "genome-state.json"
     report_file = root / "daily" / f"{day}.json"
+    if state_file.exists():
+        raw_state = json.loads(state_file.read_text(encoding="utf-8"))
+        if isinstance(raw_state, dict) and raw_state.get("schema") == "genome-replay-checkpoint-v2":
+            from .versioned_calendar import inspect_day_v2
+            return inspect_day_v2(root, day=day)
     checkpoint = read_checkpoint(state_file)
     if checkpoint["ticks"] != expected_tick:
         raise ValueError("Stale or future checkpoint; expected tick %s" % expected_tick)
