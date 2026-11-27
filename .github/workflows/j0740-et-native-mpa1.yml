@@ -74,7 +74,9 @@ jobs:
               if n==0:s+='\n'+key+' = '+value+'\n'
           override('ML_BSSN::fdOrder',os.environ['FD'])
           override('driver::ghost_size','4')
-          override('CoordBase::boundary_size_z_lower','4')
+          for axis in 'xyz':
+              for face in ('lower','upper'):
+                  override('CoordBase::boundary_size_'+axis+'_'+face,'4')
           (d/'geometry_stencil.json').write_text(json.dumps({'fd_order':int(os.environ['FD']),'ghost_size':4,'symmetry_boundary_size':4}))
           setparam('Cactus::cctk_final_time',os.environ['DURATION'])
           for axis in 'xyz': setparam('CoordBase::d'+axis,os.environ['DX'])
