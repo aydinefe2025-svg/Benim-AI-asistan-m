@@ -29,7 +29,7 @@ jobs:
           sha256sum source.zip > evidence/source.sha256
           unzip -tq source.zip
           python3 - <<'PY'
-          import hashlib, json, pathlib, re, tarfile, zipfile, h5py
+          import hashlib, json, pathlib, re, tarfile, zipfile, h5py, urllib.parse, urllib.request
           with zipfile.ZipFile('source.zip') as z:
               members=sorted((i for i in z.infolist() if not i.is_dir()),key=lambda i:i.filename)
               xyz=[i for i in members if i.filename.endswith('.xyz.h5')]
@@ -95,6 +95,35 @@ jobs:
                   digest_raw=zdiag.read(digest_member)
                   runtime_metadata['image_digest_file_sha256']=hashlib.sha256(digest_raw).hexdigest()
                   runtime_metadata['image_digest_value']=digest_raw.decode('utf-8','replace').strip()[:256]
+                  runtime_metadata['image_manifest_probe']={}
+                  try:
+                      ref=runtime_metadata['image_digest_value']
+                      match=re.fullmatch(r'([a-z0-9._/-]+)@sha256:([0-9a-f]{64})',ref)
+                      if not match:raise ValueError('digest_reference_unrecognized')
+                      repo,digest=match.groups()
+                      query=urllib.parse.urlencode({'service':'registry.docker.io','scope':'repository:'+repo+':pull'})
+                      token_doc=json.loads(urllib.request.urlopen('https://auth.docker.io/token?'+query,timeout=15).read())
+                      token=token_doc['token']
+                      accept=', '.join(['application/vnd.oci.image.index.v1+json','application/vnd.docker.distribution.manifest.list.v2+json','application/vnd.oci.image.manifest.v1+json','application/vnd.docker.distribution.manifest.v2+json'])
+                      def manifest_for(target):
+                          req=urllib.request.Request('https://registry-1.docker.io/v2/'+repo+'/manifests/'+target,headers={'Authorization':'Bearer '+token,'Accept':accept})
+                          with urllib.request.urlopen(req,timeout=20) as response:return json.loads(response.read()),response.headers.get('Docker-Content-Digest'),response.headers.get('Content-Type','')
+                      manifest,actual_digest,media=manifest_for('sha256:'+digest)
+                      probe={'requested':ref,'root_digest':actual_digest,'media_type':media}
+                      manifests=manifest.get('manifests',[])
+                      if manifests:
+                          amd=next((x for x in manifests if x.get('platform',{}).get('os')=='linux' and x.get('platform',{}).get('architecture')=='amd64'),None)
+                          if amd:
+                              manifest,platform_digest,media=manifest_for(amd['digest'])
+                              probe['platform']='linux/amd64'
+                              probe['platform_digest']=platform_digest
+                              probe['media_type']=media
+                      probe['layer_count']=len(manifest.get('layers',[]))
+                      probe['compressed_layer_bytes']=sum(int(x.get('size',0)) for x in manifest.get('layers',[]))
+                      probe['config_digest']=manifest.get('config',{}).get('digest')
+                      runtime_metadata['image_manifest_probe']=probe
+                  except Exception as exc:
+                      runtime_metadata['image_manifest_probe']={'status':'not_retrieved','error_type':type(exc).__name__}
               launcher=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='execute.sh'),None)
               if launcher:
                   launcher_raw=zdiag.read(launcher)
