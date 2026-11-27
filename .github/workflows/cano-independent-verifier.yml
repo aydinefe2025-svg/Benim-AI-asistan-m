@@ -38,6 +38,8 @@ jobs:
     steps:
       - name: Fetch reviewed source
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
@@ -45,10 +47,10 @@ jobs:
       - name: Test fail-closed owner-independent acceptance logic
         run: python -m unittest discover -s tests -p 'test_cano_continuous_verifier.py' -v
       - name: Install free HTTP client for live public sources
-        if: github.event_name != 'pull_request'
+        if: (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'diagnostic/cano-live-weather-20261128'))
         run: python -m pip install "requests>=2.32,<3"
       - name: Independently test live CANO and real Open-Meteo weather route
-        if: github.event_name != 'pull_request'
+        if: (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'diagnostic/cano-live-weather-20261128'))
         env:
           CANO_RECEIPT_PATH: ${{ runner.temp }}/cano-independent-verification.json
         shell: bash
@@ -56,7 +58,7 @@ jobs:
           set -euo pipefail
           python -m scripts.cano_independent_verifier --output "$CANO_RECEIPT_PATH"
       - name: Preserve bounded public receipt in Actions summary
-        if: always() && github.event_name != 'pull_request'
+        if: always() && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'diagnostic/cano-live-weather-20261128'))
         env:
           CANO_RECEIPT_PATH: ${{ runner.temp }}/cano-independent-verification.json
         shell: bash
