@@ -63,9 +63,9 @@ jobs:
                               text=raw.decode('utf-8','replace')
                               hits=[]
                               for no,line in enumerate(text.splitlines(),1):
-                                  if re.search(r'(?i)hamiltonian|ml_ham|constraint',line):
+                                  if re.search(r'(?i)hamilton|ml_ham|ricci|gamma',line) or re.search(r'\\bH\\s*=',line):
                                       hits.append({'line':no,'text':line.strip()[:240]})
-                                      if len(hits)>=4:break
+                                      if len(hits)>=16:break
                               if hits:source_scan['matching_source_files'].append({'path':member.name,'bytes':member.size,'sha256':hashlib.sha256(raw).hexdigest(),'matches':hits})
           result={'archive_member_count':len(members),'xyz_hdf5_member_count':len(xyz),'non_xyz_hdf5_member_count':len(non_xyz),'non_xyz_hdf5_suffix_counts':dict(sorted(suffixes.items())),'non_xyz_hdf5_names_matching_gamma_bssn_checkpoint_restart':interesting,'additional_hdf5_member_count':len(extra_h5),'additional_hdf5_uncompressed_bytes':sum(i['bytes'] for i in extra_h5),'additional_hdf5_members':extra_h5,'additional_hdf5_dataset_metadata_inspected':len(detail)==len(extra_h5),'additional_hdf5_dataset_metadata':detail,'bundled_ml_bssn_source_scan':source_scan}
           pathlib.Path('evidence/source_zip_inventory.json').write_text(json.dumps(result,indent=2))
