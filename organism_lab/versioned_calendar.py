@@ -10,6 +10,8 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
+import tempfile
 from pathlib import Path
 
 from .audit_store import _exclusive_lock
@@ -132,6 +134,28 @@ def inspect_checkpoint(path):
     return document
 
 
+def _atomic_create_report(path, doc):
+    """Durably stage a report and publish without replacing an existing name.
+
+    Hard-link publication is atomic on the same volume. If unsupported, fail
+    closed rather than risk clobbering any pre-existing report.
+    """
+    path = Path(path)
+    if path.is_symlink() or path.exists():
+        raise FileExistsError("Refusing to overwrite existing daily report")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=".daily-stage-", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(_serialize(doc))
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
 def _save_checkpoint(path, doc):
     path = Path(path)
     _atomic_bytes(path, _serialize(doc))
@@ -197,7 +221,10 @@ def inspect_day_v2(root, *, day):
     if expected_tick != current["ticks"]:
         raise ValueError("Stale or future V2 checkpoint")
     expected = _report_v2(current["anchor"], day=day)
-    report = json.loads((root / "daily" / f"{day}.json").read_bytes())
+    report_file = root / "daily" / f"{day}.json"
+    if report_file.is_symlink():
+        raise ValueError("Unsafe symlink report")
+    report = json.loads(report_file.read_bytes())
     if report != expected or _hash(current["state"]) != report["state_sha256"]:
         raise ValueError("Daily V2 report does not match deterministic replay")
     if report["division_disabled_control"]["births"] != 0:
@@ -225,6 +252,8 @@ def run_day_v2(root, *, day, expected_anchor_sha):
             raise ValueError("Refusing to rewrite historical V1 day")
         expected = _report_v2(anchor, day=day)
         # Check for conflicting reports BEFORE migration or advancing state.
+        if report_file.is_symlink():
+            raise ValueError("Unsafe symlink report")
         if report_file.exists():
             if json.loads(report_file.read_bytes()) != expected:
                 raise ValueError("Existing report mismatch; no write")
@@ -233,8 +262,7 @@ def run_day_v2(root, *, day, expected_anchor_sha):
         if current["ticks"] < tick:
             advance_checkpoint_v2(checkpoint, target_tick=tick)
         if not report_file.exists():
-            report_file.parent.mkdir(parents=True, exist_ok=True)
-            _atomic_bytes(report_file, _serialize(expected))
+            _atomic_create_report(report_file, expected)
         if json.loads(report_file.read_bytes()) != expected:
             raise ValueError("V2 report readback failed")
         # Exact current target for watchdog; later historical reruns can validate

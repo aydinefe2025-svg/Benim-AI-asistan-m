@@ -143,10 +143,9 @@ class LegacyDispatchTests(unittest.TestCase):
         self.assertEqual(day,run_day(self.root,day='2026-11-27'))
         self.assertEqual(self.state.read_bytes(),self.state.read_bytes())
 
-
 class RealV1Tick168AnchorCompatibility(unittest.TestCase):
     def test_27_nov_real_v1_digest_to_28_nov_hypothetical_v2(self):
-        """The 28-Nov result is hypothetical local replay, not a scheduled run."""
+        """Do not call this a real 28-Nov scheduled run: it is local replay."""
         from organism_lab.genome_checkpoint import _replay, _snapshot, _serialize
         from organism_lab.calendar_cycle import _report_for_day
         parameters={"seed":17,"capacity":24,"resources_per_tick":12,
@@ -170,3 +169,36 @@ class RealV1Tick168AnchorCompatibility(unittest.TestCase):
             self.assertEqual(report["division_disabled_control"]["births"],0)
             self.assertEqual(old.read_bytes(),old_bytes)
             self.assertEqual(inspect_day_v2(root,day="2026-11-28")["status"],"verified")
+
+class AtomicDailyPublicationTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
+        self.root=Path(self.tmp.name);self.state=self.root/'genome-state.json'
+        (self.root/'daily').mkdir()
+        shutil.copy2(FIX/'v1_checkpoint_2026-11-26.json',self.state)
+
+    def test_mid_write_failure_retries_without_creating_partial_report(self):
+        from unittest.mock import patch
+        from organism_lab import versioned_calendar as v
+        with patch.object(v,'_atomic_create_report',side_effect=OSError('injected interrupted report write')):
+            with self.assertRaises(OSError):
+                run_day_v2(self.root,day='2026-11-27',expected_anchor_sha=EXPECTED_ANCHOR)
+        self.assertFalse((self.root/'daily'/'2026-11-27.json').exists())
+        self.assertEqual(inspect_checkpoint(self.state)['ticks'],168)
+        day=run_day_v2(self.root,day='2026-11-27',expected_anchor_sha=EXPECTED_ANCHOR)
+        self.assertEqual(day['tick'],168)
+        self.assertEqual(inspect_day_v2(self.root,day='2026-11-27')['status'],'verified')
+
+    def test_symlink_report_never_accepted_even_if_contents_are_valid(self):
+        from organism_lab.versioned_calendar import _report_v2
+        from organism_lab.genome_checkpoint import _serialize
+        anchor=inspect_checkpoint(self.state)
+        payload=_serialize(_report_v2(anchor,day='2026-11-27'))
+        outside=self.root/'outside.json';outside.write_bytes(payload)
+        link=self.root/'daily'/'2026-11-27.json'
+        try:link.symlink_to(outside)
+        except OSError:self.skipTest('symlink not permitted on this OS')
+        before=self.state.read_bytes()
+        with self.assertRaises(ValueError):run_day_v2(self.root,day='2026-11-27',expected_anchor_sha=EXPECTED_ANCHOR)
+        self.assertEqual(self.state.read_bytes(),before)
+        self.assertEqual(outside.read_bytes(),payload)
