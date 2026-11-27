@@ -81,7 +81,27 @@ jobs:
                   operational.append({'name':item.filename,'bytes':item.file_size})
               if name.lower() in ('cactus','cactus_sim','cactus.exe','simulation.exe','thornlist'):
                   runtime.append({'name':item.filename,'bytes':item.file_size})
-          binary_candidates=[]
+          source_package_members=[{'name':i.filename,'bytes':i.file_size} for i in members if i.filename.startswith('run/cactus-source/')]
+          provenance_metadata={'formaline_jar':None,'source_package_count':len(source_package_members),'source_package_total_bytes':sum(x['bytes'] for x in source_package_members),'source_package_names':[x['name'] for x in source_package_members]}
+          with zipfile.ZipFile('source.zip') as zp:
+              fm=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='formaline-jar.json'),None)
+              if fm:
+                  raw=zp.read(fm)
+                  obj=json.loads(raw)
+                  found={}
+                  def provenance_walk(value,prefix=''):
+                      if isinstance(value,dict):
+                          for key,val in value.items():
+                              name=(prefix+'.' if prefix else '')+str(key)
+                              if re.search(r'(?i)git|commit|revision|branch|repository|source|version|image',str(key)) and isinstance(val,(str,int,float,bool)):
+                                  found[name]=str(val)[:300]
+                              provenance_walk(val,name)
+                      elif isinstance(value,list):
+                          for index,val in enumerate(value[:100]):
+                              provenance_walk(val,prefix+'['+str(index)+']')
+                  provenance_walk(obj)
+                  provenance_metadata['formaline_jar']={'member':fm.filename,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'source_identity_fields':found}
+                    binary_candidates=[]
           with zipfile.ZipFile('source.zip') as zb:
               for item in members:
                   with zb.open(item) as stream:
@@ -130,7 +150,7 @@ jobs:
                   launcher_text=launcher_raw.decode('utf-8','replace')
                   runtime_metadata['launcher_sha256']=hashlib.sha256(launcher_raw).hexdigest()
                   runtime_metadata['launcher_engine_lines']=[line.strip()[:240] for line in launcher_text.splitlines() if re.search(r'(?i)docker|podman|singularity|apptainer|cactus_sim|formaline|image-digest',line)][:20]
-                  runtime_metadata['launcher_execution_lines']=[re.sub(r'(?i)(token|password|secret|authorization|api[_-]?key)(\\s*[:=]\\s*)[^\\s]+',r'\\1\\2[REDACTED]',line.strip())[:240] for line in launcher_text.splitlines() if not re.search(r'(?i)token|password|secret|authorization|api[_-]?key',line) and re.search(r'(?i)cactus_sim|mpirun|srun|(^|\\s)exec\\s|(^|\\s)timeout\\s|\\.par(\\s|$)|formaline',line)][:24]
+                  runtime_metadata['launcher_execution_lines']=[line.strip()[:240] for line in launcher_text.splitlines() if not re.search(r'(?i)token|password|secret|authorization|api[_-]?key',line) and re.search(r'(?i)cactus_sim|mpirun|srun|exe|\\.par|formaline|cctk|num_procs',line)][:40]
               build_log=next((x for x in members if pathlib.PurePosixPath(x.filename).name=='rebuild.log'),None)
               if build_log:
                   build_raw=zdiag.read(build_log)
@@ -165,19 +185,12 @@ jobs:
                   runtime_metadata['executable_path_basename']=pathlib.PurePosixPath(executable.replace('\\\\','/')).name
               runtime_metadata['execute_script_present']=any(pathlib.PurePosixPath(x.filename).name=='execute.sh' for x in members)
               runtime_metadata['rebuild_log_present']=any(pathlib.PurePosixPath(x.filename).name=='rebuild.log' for x in members)
-          result={'archive_member_count':len(members),'xyz_hdf5_member_count':len(xyz),'non_xyz_hdf5_member_count':len(non_xyz),'non_xyz_hdf5_suffix_counts':dict(sorted(suffixes.items())),'non_xyz_hdf5_names_matching_gamma_bssn_checkpoint_restart':interesting,'additional_hdf5_member_count':len(extra_h5),'additional_hdf5_uncompressed_bytes':sum(i['bytes'] for i in extra_h5),'additional_hdf5_members':extra_h5,'additional_hdf5_dataset_metadata_inspected':len(detail)==len(extra_h5),'additional_hdf5_dataset_metadata':detail,'bundled_ml_bssn_source_scan':source_scan,'operational_members':operational,'candidate_runtime_binaries':runtime,'binary_candidates':binary_candidates,'runtime_metadata':runtime_metadata}
+          result={'archive_member_count':len(members),'xyz_hdf5_member_count':len(xyz),'non_xyz_hdf5_member_count':len(non_xyz),'non_xyz_hdf5_suffix_counts':dict(sorted(suffixes.items())),'non_xyz_hdf5_names_matching_gamma_bssn_checkpoint_restart':interesting,'additional_hdf5_member_count':len(extra_h5),'additional_hdf5_uncompressed_bytes':sum(i['bytes'] for i in extra_h5),'additional_hdf5_members':extra_h5,'additional_hdf5_dataset_metadata_inspected':len(detail)==len(extra_h5),'additional_hdf5_dataset_metadata':detail,'bundled_ml_bssn_source_scan':source_scan,'operational_members':operational,'candidate_runtime_binaries':runtime,'source_package_provenance':provenance_metadata,'binary_candidates':binary_candidates,'runtime_metadata':runtime_metadata}
           pathlib.Path('evidence/source_zip_inventory.json').write_text(json.dumps(result,indent=2))
           print('SOURCE_ZIP_MEMBER_INVENTORY',json.dumps(result,sort_keys=True),flush=True)
           PY
 
           unzip -q source.zip '*.xyz.h5' -d source
-      - name: Probe exact pinned Einstein Toolkit runtime image
-        run: |
-          set -euo pipefail
-          image='einsteintoolkit/et-notebook@sha256:3bdd9860d69aaa7b6c42f3ac5094772edb50587b5462744913257bbb1caebd66'
-          docker pull "$image"
-          docker image inspect "$image" --format 'ETK_IMAGE_DIGEST={{index .RepoDigests 0}}'
-          docker run --rm --entrypoint sh "$image" -lc 'if [ -x /tmp/et-control/Cactus/exe/cactus_sim ]; then echo CACTUS_SIM_IN_IMAGE=present; else echo CACTUS_SIM_IN_IMAGE=absent; fi; command -v gcc || true; command -v mpirun || true; uname -m'
       - name: Reconstruct BSSN Hamiltonian from archived ADM snapshots
         run: python3 research/j0740/coupled_projection.py --stencil-audit-only
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
