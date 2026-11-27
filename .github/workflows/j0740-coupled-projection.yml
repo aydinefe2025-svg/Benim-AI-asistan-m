@@ -1,4 +1,4 @@
-name: J0740 archived coupled constraint correction
+name: J0740 support-floor and expanded constraint correction
 on:
   pull_request:
     branches: [main]
@@ -10,7 +10,7 @@ permissions:
 jobs:
   coupled:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 85
     env:
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
