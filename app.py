@@ -692,6 +692,14 @@ def asistani_calistir(kullanici_mesaji, *, approved=False):
     if safe_response is not None:
         return safe_response
 
+    # Explicit arithmetic is calculated from the user's operands, not a model guess.
+    from core.cano_explicit_calculation import explicit_calculation_reply
+    calculation = explicit_calculation_reply(kullanici_mesaji)
+    if calculation is not None:
+        st.session_state.pop("last_provider_used", None)
+        st.session_state.pop("last_model_used", None)
+        return calculation
+
     from core.cano_work_inventory import work_inventory_reply
     from core.cano_code_jobs import CodeJobStore
     _inventory_owner = globals().get("_OWNER_KEY")
