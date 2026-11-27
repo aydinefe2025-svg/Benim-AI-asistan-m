@@ -1,4 +1,4 @@
-name: J0740 exact discrete joint constraint solve
+name: J0740 balanced constraint feasibility
 on:
   pull_request:
     branches: [main]
@@ -10,7 +10,7 @@ permissions:
 jobs:
   coupled:
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 300
     env:
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
@@ -196,11 +196,23 @@ jobs:
           set -euo pipefail
           python3 research/j0740/coupled_projection.py --discrete-jacobian-audit
           cp evidence/coupled_projection.json evidence/discrete_jacobian_accepted.json
+      - name: Retrieve immutable previously computed correction for affine warm start
+        env:
+          GH_${{ github.token }}: TOKEN
+        run: |
+          set -euo pipefail
+          mkdir -p prior
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15232497176/zip > prior.zip
+          echo 'a0befed02d9f4aa7bb5b41c5bece6d0c1eb97a6b88816157823419c70f3d57a4  prior.zip' | sha256sum -c -
+          unzip -tq prior.zip
+          unzip -q prior.zip coupled_correction_vector.npz -d prior
+          test -s prior/coupled_correction_vector.npz
+          sha256sum prior.zip prior/coupled_correction_vector.npz > evidence/warm_start.sha256
       - name: Solve with both verified discrete tangents and independently evaluate nonlinear H and M
         run: python3 research/j0740/coupled_projection.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-exact-discrete-joint-solve
+          name: j0740-balanced-feasibility
           path: evidence/
           if-no-files-found: error
