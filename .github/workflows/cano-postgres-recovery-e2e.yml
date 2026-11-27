@@ -38,8 +38,8 @@ jobs:
     env:
       CANO_TEST_POSTGRES_DSN: postgresql://cano_test:local_ci_only@127.0.0.1:5432/cano_recovery
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install application dependencies
