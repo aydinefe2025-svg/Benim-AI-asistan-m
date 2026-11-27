@@ -96,6 +96,7 @@ def bssn_reconstructed_ricci_scalar(geo):
     conformal=g*np.exp(-4*phi)[...,None,None]
     cg=Geometry(conformal,geo.h)
     ci=cg.gi
+    gamma=np.einsum('...lm,...klm->...k',ci,cg.ch)
     dphi=[d(phi,j,geo.h) for j in range(3)]
     d2phi=[[d(dphi[j],i,geo.h) for j in range(3)] for i in range(3)]
     hess=np.zeros(g.shape[:-2]+(3,3))
@@ -104,9 +105,9 @@ def bssn_reconstructed_ricci_scalar(geo):
         for j in range(3):
             hess[...,i,j]=d2phi[i][j]-sum(cg.ch[...,k,i,j]*dphi[k] for k in range(3))
             first=-.5*sum(ci[...,l,m]*d(d(conformal[...,i,j],m,geo.h),l,geo.h) for l in range(3) for m in range(3))
-            second=.5*sum(conformal[...,k,i]*d(cg.tc[...,k],j,geo.h)+conformal[...,k,j]*d(cg.tc[...,k],i,geo.h) for k in range(3))
-            lower=lambda a,b,c:sum(conformal[...,a,n]*cg.ch[...,n,b,c] for n in range(3))
-            third=sum(.5*cg.tc[...,k]*(lower(i,j,k)+lower(j,i,k)) for k in range(3))
+            second=.5*sum(conformal[...,k,i]*d(gamma[...,k],j,geo.h)+conformal[...,k,j]*d(gamma[...,k],i,geo.h) for k in range(3))
+            lower=lambda a,b,c:sum(conformal[...,c,n]*cg.ch[...,n,a,b] for n in range(3))
+            third=sum(gamma[...,k]*lower(i,j,k) for k in range(3))
             fourth=sum(ci[...,l,m]*(cg.ch[...,k,l,i]*lower(j,k,m)+cg.ch[...,k,l,j]*lower(i,k,m)) for l in range(3) for m in range(3) for k in range(3))
             fifth=sum(ci[...,l,m]*cg.ch[...,k,i,m]*lower(k,l,j) for l in range(3) for m in range(3) for k in range(3))
             rbar[...,i,j]=first+second+third+fourth+fifth
