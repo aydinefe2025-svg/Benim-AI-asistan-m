@@ -1,0 +1,264 @@
+{
+  "title": "PSR J0740 archived Hamiltonian stencil-domain and native parity audit",
+  "status": "PARTIAL_ROOT_CAUSE_CONFIRMED_NATIVE_PARITY_NOT_ESTABLISHED",
+  "date": "2026-11-27",
+  "source_archive": {
+    "artifact_id": 15177726961,
+    "sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073"
+  },
+  "code": {
+    "repository": "aydinefe2025-svg/Benim-AI-asistan-m",
+    "commit": "50a1d5bb7b6c2e01fe2b58e580b520a70bdf21c3",
+    "python_blob_sha": "5ff759b048905a03cb53844dc7ac9c4a626de148",
+    "workflow_blob_sha": "c95e25b3260cff698ba8b443fcb3535e44cf9b1b"
+  },
+  "verification": {
+    "workflow_run": 45987360255,
+    "job": 140466290220,
+    "conclusion": "success",
+    "artifact_id": 15191923412,
+    "artifact_bytes": 2398,
+    "artifact_sha256": "09e8497b181c19aab10c2eddebd2e648f0e7a53180c068d9fb65efb2589ddb07",
+    "checks": "archived stencil audit and source controls passed; Windows Core test was still in progress at evidence capture"
+  },
+  "analytic_control": {
+    "trim3_max_abs_error": 580.0069444444441,
+    "trim4_max_abs_error": 0,
+    "trim5_max_abs_error": 0,
+    "composed_stencil_dependency_radius": 4
+  },
+  "archived_result": {
+    "scope": "immutable archived HDF5 stencil-domain audit; no evolution, optimization, or physical certification",
+    "artifact": 15177726961,
+    "source_archive_sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073",
+    "patches": [
+      {
+        "patch": "tl=0 rl=2",
+        "mask_used_for_candidate_analysis": "trim4",
+        "stencil_domain_audit": {
+          "0": {
+            "4": {
+              "all_valid": {
+                "points": 123039,
+                "independent_H_rms": 0.00027452945385847454,
+                "archived_native_H_rms": 0.00016033596423262604,
+                "raw_relative_mismatch": 1.0551557471920685,
+                "best_fit_native_scale": 1.4091612578849906,
+                "shape_correlation": 0.8230054220656645,
+                "best_scaled_relative_mismatch": 0.9725948364444598
+              },
+              "dense": {
+                "points": 8708,
+                "independent_H_rms": 0.0010024672398224535,
+                "archived_native_H_rms": 0.0005960262807953295,
+                "raw_relative_mismatch": 1.0103583568829058,
+                "best_fit_native_scale": 1.4040118198269889,
+                "shape_correlation": 0.8347683694006528,
+                "best_scaled_relative_mismatch": 0.9260661200817196
+              },
+              "near_surface": {
+                "points": 1401,
+                "independent_H_rms": 0.0005558243568022679,
+                "archived_native_H_rms": 0.0002166260672432177,
+                "raw_relative_mismatch": 2.068333952209552,
+                "best_fit_native_scale": 1.6527236647487247,
+                "shape_correlation": 0.6441297927173775,
+                "best_scaled_relative_mismatch": 1.9626403530295053
+              },
+              "far_atmosphere": {
+                "points": 112930,
+                "independent_H_rms": 0.000028098427671639216,
+                "archived_native_H_rms": 0.000005802151856863052,
+                "raw_relative_mismatch": 4.655935660713495,
+                "best_fit_native_scale": 1.387292723211754,
+                "shape_correlation": 0.2864673833020243,
+                "best_scaled_relative_mismatch": 4.639799696457903
+              }
+            },
+            "5": {
+              "all_valid": {
+                "points": 107909,
+                "independent_H_rms": 0.00027875638049499945,
+                "archived_native_H_rms": 0.0001607674028990665,
+                "raw_relative_mismatch": 1.0720249737634049,
+                "best_fit_native_scale": 1.42860503699666,
+                "shape_correlation": 0.8239205902969388,
+                "best_scaled_relative_mismatch": 0.9826165409932391
+              },
+              "dense": {
+                "points": 7855,
+                "independent_H_rms": 0.0010041826318370843,
+                "archived_native_H_rms": 0.0005890669900987022,
+                "raw_relative_mismatch": 1.0275535752119478,
+                "best_fit_native_scale": 1.4250682572839992,
+                "shape_correlation": 0.8359641387819582,
+                "best_scaled_relative_mismatch": 0.9355123337403951
+              },
+              "near_surface": {
+                "points": 1305,
+                "independent_H_rms": 0.0005414854796689096,
+                "archived_native_H_rms": 0.0002141057021161487,
+                "raw_relative_mismatch": 2.050619996034911,
+                "best_fit_native_scale": 1.5955429389141744,
+                "shape_correlation": 0.6308845832792458,
+                "best_scaled_relative_mismatch": 1.9622362182081157
+              },
+              "far_atmosphere": {
+                "points": 98749,
+                "independent_H_rms": 0.000028746205911543196,
+                "archived_native_H_rms": 0.000005975380468655251,
+                "raw_relative_mismatch": 4.634966706553368,
+                "best_fit_native_scale": 1.3303157890265809,
+                "shape_correlation": 0.2765284228240049,
+                "best_scaled_relative_mismatch": 4.623181572291741
+              }
+            },
+            "common_trim5": {
+              "points": 107909,
+              "best_fit_native_scale": 1.42860503699666,
+              "shape_correlation": 0.8239205902969388,
+              "raw_relative_mismatch": 1.0720249737634049,
+              "best_scaled_relative_mismatch": 0.9826165409932391
+            }
+          },
+          "128": {
+            "3": {
+              "all_valid": {
+                "points": 139425,
+                "independent_H_rms": 0.005175258939273008,
+                "archived_native_H_rms": 0.00015567587041826527,
+                "raw_relative_mismatch": 33.222493497690174,
+                "best_fit_native_scale": 1.2083892516937769,
+                "shape_correlation": 0.03634930170043444,
+                "best_scaled_relative_mismatch": 33.22183992682893
+              },
+              "dense": {
+                "points": 9561,
+                "independent_H_rms": 0.005031223212048526,
+                "archived_native_H_rms": 0.0005872829945456064,
+                "raw_relative_mismatch": 8.445635256919148,
+                "best_fit_native_scale": 1.5319264794473453,
+                "shape_correlation": 0.1788182182255499,
+                "best_scaled_relative_mismatch": 8.428867605638288
+              },
+              "near_surface": {
+                "points": 1497,
+                "independent_H_rms": 0.0035547542120715277,
+                "archived_native_H_rms": 0.00022517397846137313,
+                "raw_relative_mismatch": 15.96443872418457,
+                "best_fit_native_scale": -2.321691785336356,
+                "shape_correlation": -0.1470663075072703,
+                "best_scaled_relative_mismatch": 15.615046188259353
+              },
+              "far_atmosphere": {
+                "points": 128367,
+                "independent_H_rms": 0.005201709474512302,
+                "archived_native_H_rms": 0.000006520199557830319,
+                "raw_relative_mismatch": 797.9663855796434,
+                "best_fit_native_scale": -145.19339383735436,
+                "shape_correlation": -0.18199592017525357,
+                "best_scaled_relative_mismatch": 784.4602246853287
+              }
+            },
+            "4": {
+              "all_valid": {
+                "points": 123039,
+                "independent_H_rms": 0.000273520398368558,
+                "archived_native_H_rms": 0.00016004384727295455,
+                "raw_relative_mismatch": 1.0516727612265737,
+                "best_fit_native_scale": 1.407391041959744,
+                "shape_correlation": 0.8235008369255947,
+                "best_scaled_relative_mismatch": 0.9695607952247668
+              },
+              "dense": {
+                "points": 8708,
+                "independent_H_rms": 0.0009984529805701816,
+                "archived_native_H_rms": 0.0005944910303989257,
+                "raw_relative_mismatch": 1.0076363712646774,
+                "best_fit_native_scale": 1.4027095556695381,
+                "shape_correlation": 0.8351903047294151,
+                "best_scaled_relative_mismatch": 0.9236644793797636
+              },
+              "near_surface": {
+                "points": 1401,
+                "independent_H_rms": 0.0005562043357322658,
+                "archived_native_H_rms": 0.00022358038774634685,
+                "raw_relative_mismatch": 1.9868630005186512,
+                "best_fit_native_scale": 1.6205512414429037,
+                "shape_correlation": 0.6514215219980521,
+                "best_scaled_relative_mismatch": 1.8874694009635355
+              },
+              "far_atmosphere": {
+                "points": 112930,
+                "independent_H_rms": 0.000028304154565039396,
+                "archived_native_H_rms": 0.000005887016155619556,
+                "raw_relative_mismatch": 4.644045393899158,
+                "best_fit_native_scale": 1.274347559359329,
+                "shape_correlation": 0.26505312683280563,
+                "best_scaled_relative_mismatch": 4.635934753344738
+              }
+            },
+            "5": {
+              "all_valid": {
+                "points": 107909,
+                "independent_H_rms": 0.00027772828559583234,
+                "archived_native_H_rms": 0.00016047532866037977,
+                "raw_relative_mismatch": 1.0685061800639344,
+                "best_fit_native_scale": 1.426739864162902,
+                "shape_correlation": 0.8243904581890493,
+                "best_scaled_relative_mismatch": 0.9795910091303658
+              },
+              "dense": {
+                "points": 7855,
+                "independent_H_rms": 0.0010001508045517514,
+                "archived_native_H_rms": 0.0005875389262334988,
+                "raw_relative_mismatch": 1.024806211654125,
+                "best_fit_native_scale": 1.4237503463613241,
+                "shape_correlation": 0.8363826194196902,
+                "best_scaled_relative_mismatch": 0.9330934655239729
+              },
+              "near_surface": {
+                "points": 1305,
+                "independent_H_rms": 0.0005418797804398083,
+                "archived_native_H_rms": 0.00022097081913500057,
+                "raw_relative_mismatch": 1.970298049138714,
+                "best_fit_native_scale": 1.5657732107632552,
+                "shape_correlation": 0.6384999061621727,
+                "best_scaled_relative_mismatch": 1.887319548042265
+              },
+              "far_atmosphere": {
+                "points": 98749,
+                "independent_H_rms": 0.00002895382796923907,
+                "archived_native_H_rms": 0.00000605964433655041,
+                "raw_relative_mismatch": 4.62520219296434,
+                "best_fit_native_scale": 1.219062461817175,
+                "shape_correlation": 0.2551332746226088,
+                "best_scaled_relative_mismatch": 4.620011576135361
+              }
+            },
+            "common_trim5": {
+              "points": 107909,
+              "best_fit_native_scale": 1.426739864162902,
+              "shape_correlation": 0.8243904581890493,
+              "raw_relative_mismatch": 1.0685061800639344,
+              "best_scaled_relative_mismatch": 0.9795910091303658
+            }
+          },
+          "trim3_trim4_contamination_factor": {
+            "trim3_independent_H_rms": 0.005175258939273008,
+            "trim4_independent_H_rms": 0.000273520398368558,
+            "rms_ratio_trim3_to_trim4": 18.92092498454009
+          }
+        },
+        "candidate_solver_run": false
+      }
+    ],
+    "physical_stability_certified": false
+  },
+  "interpretation": {
+    "fixed": true,
+    "finding": "trim=3 admits periodic wrap contamination from composed radius-2 stencils; switching to trim=4 lowers t=128 all-valid independent-H RMS by factor 18.9209",
+    "unresolved": "At trims 4 and 5 the native-H relative mismatch remains about 1.05-1.07, with best scalar fits leaving about 0.97-0.98 residual; surface and atmosphere are worse. This is not removable by a single normalization factor.",
+    "consequence": "Old coupled correction remains rejected. No candidate optimization, evolution, physical stability claim, or EOS Bayes run was performed."
+  }
+}
