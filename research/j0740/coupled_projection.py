@@ -309,7 +309,7 @@ def main():
                 fields[k]=(obj[...],np.array(obj.attrs['origin'],float),np.array(obj.attrs['delta'],float))
             f.visititems(visit)
     archive_field_names=sorted({item['field_file'] for item in field_inventory})
-    report={'scope':'exhaustive archived HDF5 inventory, stencil-domain audit, and exploratory coupled constraint projection on a fixed background; no evolution or physical certification','candidate_solver_run':not audit_only,'inventory_exhaustive_over_all_xyz_h5_files':True,'archive_field_file_count':len(archive_field_names),'archive_field_files':archive_field_names,'non_expected_field_files':sorted(set(archive_field_names)-expected),'artifact':15177726961,'source_archive_sha256':'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073','available_hdf5_field_files_and_keys':sorted(field_inventory,key=lambda q:(q['field_file'],q['iteration'],q['dataset_key'])),'patches':[]}
+    report={'scope':'exhaustive archived HDF5 inventory, stencil-domain audit, and exploratory coupled constraint projection on a fixed background; no evolution or physical certification','candidate_solver_run':not audit_only and '--discrete-jacobian-audit' not in sys.argv,'inventory_exhaustive_over_all_xyz_h5_files':True,'archive_field_file_count':len(archive_field_names),'archive_field_files':archive_field_names,'non_expected_field_files':sorted(set(archive_field_names)-expected),'artifact':15177726961,'source_archive_sha256':'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073','available_hdf5_field_files_and_keys':sorted(field_inventory,key=lambda q:(q['field_file'],q['iteration'],q['dataset_key'])),'patches':[]}
     for patch in sorted({p for _,_,p in fields}):
         if not all((n,t,patch) in fields for n in expected for t in (0,128)):continue
         r0,o,h=fields['rho',0,patch];shape=r0.shape
@@ -488,6 +488,46 @@ def main():
         O=op(10.);a=rng.normal(size=N+Q);b=rng.normal(size=4*P)
         err=check_adj(np.dot(O@a,b),np.dot(a,O.rmatvec(b)),'coupled actual adjoint')
         row={'patch':patch,'actual_adjoint_error':err,'active_points':Q,'valid_points':P,'baseline':base,'support_floors':floors,'candidates':[]}
+        if '--discrete-jacobian-audit' in sys.argv:
+            # Same archived state, same discrete nonlinear residual evaluator.
+            # Isolate curvature-only, conformal-only and coupled directions;
+            # the adjoint identity alone cannot establish derivative accuracy.
+            cases=[]
+            def nonlinear(dk,u,step):
+                G=g*np.exp(4*step*u)[...,None,None]
+                Kp=np.exp(-2*step*u)[...,None,None]*(A+step*dk)+G*tr[...,None,None]/3
+                gp=Geometry(G,h)
+                Ep,Sp,_,_=source(G,rho,eps,press,v)
+                return gp.mom(Kp)-8*np.pi*Sp,direct_ricci(gp)+gp.hterm(Kp)-16*np.pi*Ep
+            for wavelength in (8.,2.):
+                # Smooth and near-grid-scale directions, with exact parity and
+                # the same compact support as the candidate parameterization.
+                phase=2*np.pi/wavelength
+                vdir=np.stack([np.cos(phase*x)*np.sin(phase*y),np.sin(phase*x)*np.cos(phase*y),np.sin(phase*z)*np.cos(phase*x)],axis=-1)
+                kdir=geo.long(extend(vdir[active].ravel()))
+                kdir*=max(np.max(np.abs(A)),1e-10)*.01/max(np.max(np.abs(kdir)),1e-30)
+                udir=extend_scalar((np.cos(phase*x)*np.cos(phase*y)*np.cos(phase*z))[active])
+                udir*=.001/max(np.max(np.abs(udir)),1e-30)
+                for label,dk,u in [('curvature',kdir,np.zeros_like(udir)),('conformal',np.zeros_like(kdir),udir),('coupled',kdir,udir)]:
+                    predM=geo.mom(dk)+C*u[...,None]
+                    predH=contract(grad,dk)-8*lap(u)+V*u
+                    prev=None
+                    for step in (.01,.005,.0025):
+                        mp,hp=nonlinear(dk,u,step);mm,hm=nonlinear(dk,u,-step)
+                        dm=(mp-mm)/(2*step);dh=(hp-hm)/(2*step)
+                        regions={}
+                        for name,m in masks.items():
+                            def rel(a,b):return float(np.linalg.norm(a-b)/max(np.linalg.norm(b),1e-30))
+                            regions[name]={'M_relative_derivative_error':rel(predM[m],dm[m]),'H_relative_derivative_error':rel(predH[m],dh[m]),'Mz_relative_derivative_error':rel(predM[...,2][m],dm[...,2][m]),'M_fd_norm':float(np.linalg.norm(dm[m])),'H_fd_norm':float(np.linalg.norm(dh[m]))}
+                        convergence=None if prev is None else {'M_fd_change':float(np.linalg.norm((dm-prev[0])[valid])/max(np.linalg.norm(dm[valid]),1e-30)),'H_fd_change':float(np.linalg.norm((dh-prev[1])[valid])/max(np.linalg.norm(dh[valid]),1e-30))}
+                        case={'wavelength':wavelength,'direction':label,'step':step,'regions':regions,'finite_difference_self_change':convergence}
+                        cases.append(case);print('DISCRETE_JACOBIAN_CASE',json.dumps(case,allow_nan=False),flush=True)
+                        prev=(dm,dh)
+            assert len(cases)==18
+            row['discrete_jacobian_cases']=cases
+            row['candidate_solver_run']=False
+            report['patches'].append(row)
+            continue
         wt=np.where(abs(z)<1e-10,1.,2.)*np.prod(h)
         def mass_j(g,sourceS,sourcev2):
             sg=np.sqrt(np.linalg.det(g))
