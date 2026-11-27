@@ -38,6 +38,11 @@ class Geometry:
     def hgrad(self,K):
         q=np.einsum('...ij,...jk->...ik',self.gi,K)
         return 2*(np.trace(q,axis1=-2,axis2=-1)[...,None,None]*self.gi-np.einsum('...ij,...jk->...ik',q,self.gi))
+def momentum_component_weights(initial_rms,points):
+    baseline=np.asarray(initial_rms,dtype=float)
+    if points<=0 or baseline.ndim!=1 or not np.isfinite(baseline).all() or np.any(baseline<=0):
+        raise ValueError("momentum baseline RMS must be finite and strictly positive for every component")
+    return 1/(np.sqrt(points)*baseline)
 def check_adj(a,b,label):
     err=abs(a-b)/max(abs(a),abs(b),1e-30)
     assert err<1e-10,(label,a,b,err)
@@ -46,6 +51,11 @@ def tests():
     rng=np.random.default_rng(8615);sh=(9,9,9)
     g=np.broadcast_to(np.eye(3),sh+(3,3)).copy()+.01*sym(rng.normal(size=sh+(3,3)))
     geo=Geometry(g,[.7,.8,.9]);x=rng.normal(size=sh+(3,));y=sym(rng.normal(size=g.shape));v=rng.normal(size=x.shape)
+    baseline=np.array([2.,1.,.25]);weights=momentum_component_weights(baseline,4)
+    assert np.allclose(weights*baseline,.5)
+    try:momentum_component_weights([1.,0.,2.],4)
+    except ValueError:pass
+    else:raise AssertionError("zero baseline must not be silently normalized")
     l=geo.long(x);assert np.max(abs(contract(geo.gi,l)))<1e-12
     e1=check_adj(np.sum(l*y),np.sum(x*geo.long_adj(y)),'long')
     e2=check_adj(np.sum(geo.mom(y)*v),np.sum(y*geo.mom_adj(v)),'mom')
@@ -366,7 +376,7 @@ def main():
             n=int(m.sum())
             b={'points':n,'initial_M_rms':rms(M0,m).tolist(),'pre_M_rms':rms(M,m).tolist(),'pre_H_rms':float(rms(H,m)),'pre_native_H_rms':float(rms(Hnative,m)),'native_H_relative_mismatch':float(np.linalg.norm((H-Hnative)[m])/max(np.linalg.norm(Hnative[m]),1e-30))}
             base[name]=b
-            wm[m]=1/(np.sqrt(n)*np.maximum(b['initial_M_rms'],3e-7))
+            wm[m]=momentum_component_weights(b['initial_M_rms'],n)
             wh[m]=1/(np.sqrt(n)*max(b['pre_H_rms'],1e-7))
         def op(lam):
             def forward(a):
@@ -395,7 +405,7 @@ def main():
         mass0,j0=mass_j(g,S,v2)
         for lam in (10.,100.):
             O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
-            sol=lsmr(O,target,damp=.01,atol=1e-7,btol=1e-7,maxiter=640)
+            sol=lsmr(O,target,damp=.01,atol=1e-7,btol=1e-7,maxiter=1280)
             dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
             for scale in (1.,.5,.25):
                 uu=scale*u;aa=A+scale*dk
@@ -413,7 +423,7 @@ def main():
                 for name,m in masks.items():
                     b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
                     reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30)}
-                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':640,'residual_norm':float(sol[3]),'normal_residual_norm':float(sol[4]),'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':float(sol[7]),'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':1280,'residual_norm':float(sol[3]),'normal_residual_norm':float(sol[4]),'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':float(sol[7]),'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
                 row['candidates'].append(candidate)
                 print('COUPLED_CANDIDATE',json.dumps(candidate,allow_nan=False),flush=True)
         row['any_coupled_improvement']=any(c.get('all_M_improved') and c.get('all_H_improved') for c in row['candidates'])
