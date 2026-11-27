@@ -86,7 +86,7 @@ with zipfile.ZipFile('source.zip') as zb:
     for item in members:
         with zb.open(item) as stream:
             magic=stream.read(4)
-        kind='ELF' if magic==b'\\x7fELF' else ('PE' if magic[:2]==b'MZ' else ('Mach-O' if magic in (b'\\xfe\\xed\\xfa\\xce',b'\\xce\\xfa\\xed\\xfe',b'\\xfe\\xed\\xfa\\xcf',b'\\xcf\\xfa\\xed\\xfe') else None))
+        kind='ELF' if magic==bytes([127])+b'ELF' else ('PE' if magic[:2]==b'MZ' else ('Mach-O' if magic in (bytes([254,237,250,206]),bytes([206,250,237,254]),bytes([254,237,250,207]),bytes([207,250,237,254])) else None))
         if kind:binary_candidates.append({'name':item.filename,'bytes':item.file_size,'format':kind})
 runtime_metadata={'image_file':None,'image_file_sha256':None,'image_identity_fields':{},'image_digest_file_sha256':None,'image_digest_value':None,'executable_path_basename':None,'launcher_sha256':None,'launcher_engine_lines':[],'execute_script_present':False,'rebuild_log_present':False}
 with zipfile.ZipFile('source.zip') as zdiag:
