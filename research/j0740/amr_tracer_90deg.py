@@ -89,7 +89,7 @@ def main():
                 meta[key]=(n,tuple(o.shape),np.array(o.attrs['origin'],float),np.array(o.attrs['delta'],float),m[2])
             h.visititems(visit)
     times=sorted({t for f,t,l in meta if f=='rho' and l==2})
-    assert times==[0,16384,32768,49152,65536,81920,98304],times
+    assert times==list(range(0,196608+1,16384)),times
     physical=[(-192.,192.),(-192.,192.),(0.,192.)]
     geo={}
     for l in range(3):
@@ -104,7 +104,7 @@ def main():
         assert volume(d)>0
         for l in (1,2):
             assert intersection(geo[l,trim][2],geo[l-1,trim][2])==geo[l,trim][2]
-    report={'scope':'composite nodal control-volume quadrature, nested aligned patches, no double counting; matter Jz not global ADM J; reconstructed tracers from sparse Eulerian snapshots not native tracked particles','artifact':15185720482,'analytic_controls':'PASS','domains':{name:{'box':d,'volume':volume(d),'full_physical':d==physical} for name,trim,d in cases},'levels':{str(l):{'shape':meta['rho',0,l][1],'origin':meta['rho',0,l][2].tolist(),'delta':meta['rho',0,l][3].tolist(),'trim3_box':geo[l,3][2],'trim4_box':geo[l,4][2]} for l in range(3)},'snapshots':[]}
+    report={'scope':'composite nodal control-volume quadrature, nested aligned patches, no double counting; matter Jz not global ADM J; reconstructed tracers from sparse Eulerian snapshots not native tracked particles','artifact':15208830686,'analytic_controls':'PASS','domains':{name:{'box':d,'volume':volume(d),'full_physical':d==physical} for name,trim,d in cases},'levels':{str(l):{'shape':meta['rho',0,l][1],'origin':meta['rho',0,l][2].tolist(),'delta':meta['rho',0,l][3].tolist(),'trim3_box':geo[l,3][2],'trim4_box':geo[l,4][2]} for l in range(3)},'snapshots':[]}
     tracers=[]
     for it in times:
         totals={name:dict(baryon=0.,primitive_baryon=0.,dense_baryon=0.,matter_Jz=0.,dense_matter_Jz=0.,volume=0.,dens_error_L1=0.,levels=[]) for name,_,_ in cases}
@@ -178,6 +178,22 @@ def main():
                     result.append({'seed':seed,'full':b,'max_step_difference_degrees':abs(a['angle_degrees']-b['angle_degrees']),'temporal_subsampling_difference_degrees':abs(c['angle_degrees']-b['angle_degrees']),'position_step_difference':float(np.linalg.norm(np.array(a['last_position'])-b['last_position']))})
                 except ValueError as e:result.append({'seed':seed,'failure':str(e)})
     report['reconstructed_tracers']=result
+    # Compare all seven common-time spatial diagnostics to the preserved independent 90-degree receipt.
+    previous=json.loads(pathlib.Path('reference/amr_tracer.json').read_text())
+    assert previous['artifact']==15185720482
+    assert len(previous['snapshots'])==7
+    paired=[]
+    for a,b in zip(previous['snapshots'],report['snapshots'][:7]):
+        assert a['iteration']==b['iteration'] and a['time']==b['time']
+        for name,_,_ in cases:
+            for key in ('baryon','primitive_baryon','dense_baryon','matter_Jz','dense_matter_Jz','volume'):
+                x,y=a['cases'][name][key],b['cases'][name][key]
+                paired.append({'iteration':a['iteration'],'case':name,'quantity':key,'relative_difference':abs(y-x)/max(abs(x),1e-30)})
+    report['paired_90deg_spatial_comparison']={'comparisons':len(paired),'max_relative_difference':max(x['relative_difference'] for x in paired),'all_within_1e_6':all(x['relative_difference']<=1e-6 for x in paired),'rows':paired}
+    # Last spatial output is 288, not the final scalar endpoint 293.25.
+    report['last_spatial_time']=report['snapshots'][-1]['time']
+    report['native_scalar_endpoint']=293.25
+    report['tracer_failures']=sum('failure' in t or not t['full']['all_sampled_rhs_in_fluid'] for t in result)
     report['physical_stability_certified']=False
     pathlib.Path('evidence/amr_tracer.json').write_text(json.dumps(report,indent=2,allow_nan=False))
     print('AMR_TRACER_RESULT',json.dumps({k:v for k,v in report.items() if k not in ('snapshots',)},allow_nan=False),flush=True)
