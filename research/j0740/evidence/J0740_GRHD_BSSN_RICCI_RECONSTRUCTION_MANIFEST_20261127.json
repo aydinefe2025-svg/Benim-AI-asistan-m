@@ -1,0 +1,10 @@
+{
+  "schema": "j0740.evidence-manifest.v1",
+  "files": [
+    {
+      "path": "J0740_GRHD_BSSN_RICCI_RECONSTRUCTION_DIAGNOSTIC_20261127.json",
+      "bytes": 4515,
+      "sha256": "09d3b5109c6eff397da0259a9e3b829a72d35cd72e2291089ac29deeb863b6a3"
+    }
+  ]
+}
