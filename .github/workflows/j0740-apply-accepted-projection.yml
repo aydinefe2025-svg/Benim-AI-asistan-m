@@ -1,0 +1,171 @@
+name: J0740 apply accepted projection to isolated native state
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-apply-accepted-projection.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - name: Verify immutable candidate, exact native checkpoint and original source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence source native candidate
+          for pair in '15177726961 source' '15236058506 native' '15234986640 candidate'; do
+              read -r id name <<< "$pair"
+              gh api repos/${{ github.repository }}/actions/artifacts/"$id"/zip > "$name.zip"
+          done
+          printf '%s\n' 'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073  source.zip' '94ac5249316c8240ea6ef3d4bc9b0ca10abef757566f959d6398a29f44bc31a6  native.zip' 'd440b5e93f6206d61bb3dc0fe8476b9bea96c24d3949507a672a8ef03e77f9b4  candidate.zip' > evidence/input.sha256
+          sha256sum -c evidence/input.sha256
+          unzip -q source.zip 'run/*.xyz.h5' -d source
+          unzip -q native.zip -d native
+          unzip -q candidate.zip mixture_0.31863476.npz coupled_projection.json -d candidate
+          gh api 'repos/${{ github.repository }}/contents/research/j0740/coupled_projection.py?ref=c74027380a27e52d11c4a9dc23bc119083e45cab' --jq .content | base64 -d > coupled_projection.py
+          sha256sum coupled_projection.py > evidence/operator.sha256
+          python3 -m pip install numpy scipy h5py
+      - name: Apply actual saved vector and validate nonlinear ADM and native-variable transformations
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,re,json,math,numpy as np,h5py
+          from coupled_projection import Geometry,contract,direct_ricci,source
+          out=pathlib.Path('evidence')
+          a=np.load('candidate/mixture_0.31863476.npz',allow_pickle=False)
+          ref=json.loads(pathlib.Path('candidate/coupled_projection.json').read_text())['patches'][0]
+          accepted=[c for c in ref['candidates'] if c.get('all_initial_H_and_M_gate') and abs(c.get('mix_PR1038_fraction',-1)-.3186347558277136)<1e-12]
+          assert len(accepted)==1
+          identity=json.loads(pathlib.Path('native/handoff_identity.json').read_text())
+          assert identity['transfer_identity_gate'] and identity['exact_match']
+          shape=tuple(a['shape']);o=a['origin'];h=a['delta'];active=a['active'];taper=a['taper']
+          v0=a['vector'];N=3*int(active.sum())
+          assert v0.shape==(N+int(active.sum()),) and int(a['iteration'])==128
+          fields={};native_fields={}
+          for f in sorted(pathlib.Path('source').rglob('*.xyz.h5')):
+              with h5py.File(f,'r') as z:
+                  def visit(n,x):
+                      if not isinstance(x,h5py.Dataset) or x.ndim!=3 or tuple(x.shape)!=shape:return
+                      m=re.search(r'\bit=(0|128)\b.*\brl=2\b',n)
+                      if not m or not np.array_equal(x.attrs['origin'],o) or not np.array_equal(x.attrs['delta'],h):return
+                      name=n.split()[0].lower();key=(name,int(m[1]))
+                      assert key not in fields,key
+                      fields[key]=x[...]
+                  z.visititems(visit)
+          assert len(fields)==54,len(fields)
+          def get(n,t=128):return fields[n,t]
+          def tensor(prefix,t=128):
+              q=np.empty(shape+(3,3))
+              for i,j in ((0,0),(0,1),(0,2),(1,1),(1,2),(2,2)):q[...,i,j]=q[...,j,i]=get('admbase::'+prefix+'xyz'[i]+'xyz'[j],t)
+              return q
+          g=tensor('g');K=tensor('k');geo=Geometry(g,h);tr=contract(geo.gi,K);A=K-g*tr[...,None,None]/3
+          zz,yy,xx=np.indices(shape);z=o[2]+h[2]*zz
+          X=np.zeros(shape+(3,));X[active]=v0[:N].reshape((-1,3))*taper[active,None];X[...,2][abs(z)<1e-10]=0
+          u=np.zeros(shape);u[active]=v0[N:]*taper[active]
+          for iz in np.where(z[:,0,0]<-1e-10)[0]:
+              j=int(round((-z[iz,0,0]-o[2])/h[2]))
+              if 0<=j<shape[0] and abs(z[j,0,0]+z[iz,0,0])<1e-9:
+                  X[iz]=X[j]*np.array([1,1,-1]);u[iz]=u[j]
+          dk=geo.long(X);G=g*np.exp(4*u)[...,None,None]
+          Kp=np.exp(-2*u)[...,None,None]*(A+dk)+G*tr[...,None,None]/3
+          gp=Geometry(G,h)
+          rho,eps,p=[get('hydrobase::'+q) for q in ('rho','eps','press')]
+          vel=np.stack([get(f'hydrobase::vel[{i}]') for i in range(3)],axis=-1)
+          def quantities(metric,curv,t):
+              ge=Geometry(metric,h)
+              rr,ee,pp=[get('hydrobase::'+q,t) for q in ('rho','eps','press')]
+              vv=np.stack([get(f'hydrobase::vel[{i}]',t) for i in range(3)],axis=-1)
+              E,S,_,_=source(metric,rr,ee,pp,vv)
+              return direct_ricci(ge)+ge.hterm(curv)-16*np.pi*E,ge.mom(curv)-8*np.pi*S
+          H0,M0=quantities(tensor('g',0),tensor('k',0),0)
+          H1,M1=quantities(g,K,128)
+          Hp,Mp=quantities(G,Kp,128)
+          valid=np.zeros(shape,bool);valid[4:-4,4:-4,4:-4]=True;valid&=z>=-1e-10
+          r0=get('hydrobase::rho',0);dense=r0>1e-8;near=dense.copy()
+          for axis in range(3):near|=np.roll(dense,1,axis)|np.roll(dense,-1,axis)
+          masks={'inner':valid&dense&(r0>.5*r0.max()),'outer_fluid':valid&dense&(r0<=.5*r0.max()),'surface_atmosphere':valid&near&~dense,'far_atmosphere':valid&~near}
+          Hn=get('ml_bssn::h');Hn0=get('ml_bssn::h',0)
+          def rms(x,m):return np.sqrt(np.mean(x[m]**2,axis=0))
+          ratios={}
+          for name,m in masks.items():
+              q={'M_ratio_to_initial':(rms(Mp,m)/rms(M0,m)).tolist(),'H_ratio_to_initial':float(rms(Hp,m)/rms(H0,m)),'native_proxy_H_ratio_to_initial':float(rms(Hn+Hp-H1,m)/rms(Hn0,m))}
+              for key,val in q.items():assert np.allclose(val,accepted[0]['regions'][name][key],rtol=1e-8,atol=1e-10),(name,key,val,accepted[0]['regions'][name][key])
+              assert max(q['M_ratio_to_initial'])<=1 and q['H_ratio_to_initial']<=1 and q['native_proxy_H_ratio_to_initial']<=1
+              ratios[name]=q
+          def algebra(metric,curv,rr,ee,pp,vv):
+              det=np.linalg.det(metric);assert np.all(det>0)
+              phi=np.log(det)/12;chi=np.exp(-4*phi)
+              gi=np.linalg.inv(metric);trace=contract(gi,curv)
+              gt=metric*chi[...,None,None];at=(curv-metric*trace[...,None,None]/3)*chi[...,None,None]
+              vc=np.einsum('...ij,...j->...i',metric,vv);speed=contract(vv[...,None,:],vc[...,None,:]);assert np.all(speed<1)
+              W=1/np.sqrt(1-speed);sqrtg=np.sqrt(det)
+              enthalpy=rr*(1+ee)+pp
+              D=sqrtg*rr*W;S=sqrtg[...,None]*(enthalpy*W**2)[...,None]*vc
+              tau=sqrtg*(enthalpy*W**2-pp-rr*W)
+              return dict(phi=phi,chi=chi,w=np.sqrt(chi),gt=gt,at=at,trk=trace,dens=D,scon=S,tau=tau)
+          before=algebra(g,K,rho,eps,p,vel);after=algebra(G,Kp,rho,eps,p,vel)
+          assert np.max(abs(after['gt']-before['gt']))<1e-12
+          assert np.max(abs(after['trk']-before['trk']))<1e-12
+          assert np.max(abs(np.linalg.det(after['gt'])-1))<1e-12
+          assert np.max(abs(contract(np.linalg.inv(after['gt']),after['at'])))<1e-12
+          assert np.max(abs(after['phi']-before['phi']-u))<1e-12
+          def normdiff(x,y):return float(np.max(abs(x-y))/max(float(np.max(abs(y))),1e-15))
+          assert normdiff(before['dens'],get('grhydro::dens'))<=1e-8
+          # Discover actual checkpoint variable names and verify original-state
+          # algebra before exposing a mapped replacement. Never overwrite the checkpoint.
+          checkpoint=list(pathlib.Path('native').rglob('checkpoint.it_128.h5'));assert len(checkpoint)==1
+          with h5py.File(checkpoint[0],'r') as f:
+              def visit(n,x):
+                  if not isinstance(x,h5py.Dataset) or tuple(x.shape)!=shape or not re.search(r'\bit=128\b.*\btl=0\b.*\brl=2\b',n):return
+                  if not np.array_equal(x.attrs.get('origin'),o) or not np.array_equal(x.attrs.get('delta'),h):return
+                  native_fields[n]=x[...]
+              f.visititems(visit)
+          mappings={};unmapped=[];mapped_data={}
+          for n,x in native_fields.items():
+              name=n.split()[0].lower();leaf=name.split('::')[-1];options=[]
+              if name.startswith('ml_bssn::'):
+                  if leaf in ('phi','chi','w'):options=[(q,before[q],after[q]) for q in ('phi','chi','w')]
+                  elif leaf in ('trk','k'):options=[('trk',before['trk'],after['trk'])]
+                  else:
+                      m=re.fullmatch(r'(gt|at)([123])([123])',leaf)
+                      if m:
+                          q=m[1];i=int(m[2])-1;j=int(m[3])-1;options=[(q,before[q][...,i,j],after[q][...,i,j])]
+              if name.startswith('grhydro::'):
+                  if leaf in ('dens','tau'):options=[(leaf,before[leaf],after[leaf])]
+                  m=re.fullmatch(r'scon\[([012])\]',leaf)
+                  if m:
+                      i=int(m[1]);options=[('scon',before['scon'][...,i],after['scon'][...,i])]
+              if options:
+                  best=min(options,key=lambda q:normdiff(q[1],x));err=normdiff(best[1],x)
+                  mappings[n]={'representation':best[0],'original_normalized_error':err,'verified':err<=1e-8}
+                  if err<=1e-8:mapped_data[n]=best[2]
+                  else:unmapped.append(n)
+          report={'scope':'actual corrected fine-grid current-time state export; NOT a restartable multilevel/multitimelevel checkpoint','source_identity':True,'nonlinear_archive_gate':True,'ratios':ratios,'metric_change_max':float(np.max(abs(G-g))),'curvature_change_max':float(np.max(abs(Kp-K))),'density_mapping_error':normdiff(before['dens'],get('grhydro::dens')),'native_matching_fields':sorted(native_fields),'native_algebra_mappings':mappings,'native_unverified_mappings':unmapped,'native_replacement_count':len(mapped_data),'native_restart_ready':False}
+          assert report['metric_change_max']>0 and report['curvature_change_max']>0
+          with h5py.File(out/'corrected_native_state.h5','w') as f:
+              f.attrs['restartable']=False;f.attrs['iteration']=128;f.attrs['origin_xyz']=o;f.attrs['delta_xyz']=h
+              for name,x in [('metric',G),('curvature',Kp),('rho',rho),('eps',eps),('press',p),('vel',vel),('conformal_perturbation',u),('independent_H',Hp),('independent_M',Mp)]:f.create_dataset('corrected/'+name,data=x,compression='gzip')
+              for name,x in after.items():f.create_dataset('algebra/'+name,data=x,compression='gzip')
+              for n,x in mapped_data.items():f.create_dataset('verified_native_replacements/'+n,data=x,compression='gzip')
+          with h5py.File(out/'corrected_native_state.h5','r') as f:
+              assert np.array_equal(f['corrected/metric'][...],G) and np.array_equal(f['corrected/curvature'][...],Kp)
+              assert not f.attrs['restartable']
+          (out/'application.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+          print('NATIVE_PROJECTION_APPLIED',json.dumps(report,allow_nan=False),flush=True)
+          PY
+          sha256sum evidence/corrected_native_state.h5 evidence/application.json > evidence/output.sha256
+          sha256sum -c evidence/output.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-corrected-native-state
+          path: evidence/
+          if-no-files-found: error
