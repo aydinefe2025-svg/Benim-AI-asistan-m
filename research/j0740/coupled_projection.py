@@ -462,14 +462,8 @@ def main():
             base[name]=b
             wm[m]=momentum_component_weights(b['initial_M_rms'],n)
             wh[m]=1/(np.sqrt(n)*max(b['pre_H_rms'],1e-7))
-        # The previous candidate satisfies every M component gate except far Mz.
-        # Increase only that normalized residual's weight, without changing the
-        # measured acceptance criteria or the physical differential operator.
+        # Reproduce PR1034's unmodified weights to recover its missing vector.
         wm_original=wm.copy()
-        wm[masks['far_atmosphere'],2]*=4.
-        assert np.array_equal(wm[...,0:2],wm_original[...,0:2])
-        assert np.array_equal(wm[...,2][~masks['far_atmosphere']],wm_original[...,2][~masks['far_atmosphere']])
-        assert np.allclose(wm[...,2][masks['far_atmosphere']],4*wm_original[...,2][masks['far_atmosphere']])
         def op(lam):
             def forward(a):
                 dk=geo.long(extend(a[:N]));u=extend_scalar(a[N:])
@@ -497,13 +491,24 @@ def main():
         mass0,j0=mass_j(g,S,v2)
         for lam in (10.,):
             O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
-            sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=7680,probes=64)
+            sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=3840,probes=64)
             print('RIGHT_PRECONDITIONER_ACTUAL',json.dumps({'lambda_H':lam,'stop':int(sol[1]),'iterations':int(sol[2]),**precondition},allow_nan=False),flush=True)
-            dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
-            # Save the actual vector for future independent nonlinear replay.
-            np.savez_compressed('evidence/coupled_correction_vector.npz',vector=sol[0],active=active,taper=taper,shape=shape,origin=o,delta=h,iteration=128,lambda_H=lam,far_Mz_weight=4.)
-            for scale in (1.,.99,.98,.95):
-                uu=scale*u;aa=A+scale*dk
+            left=sol[0]
+            rightdata=np.load('prior/coupled_correction_vector.npz',allow_pickle=False)
+            assert int(rightdata['iteration'])==128 and float(rightdata['far_Mz_weight'])==4.
+            for name,ref in (('active',active),('taper',taper),('shape',shape),('origin',o),('delta',h)):
+                assert np.array_equal(rightdata[name],ref),name
+            right=rightdata['vector'];assert right.shape==left.shape and np.isfinite(right).all()
+            np.savez_compressed('evidence/complementary_vectors.npz',left=left,right=right,active=active,taper=taper,shape=shape,origin=o,delta=h,iteration=128)
+            # Evaluate original nonlinear equations for the endpoints before any
+            # interior mixture. Endpoint reproduction is a strict evidence gate.
+            expected={0.:[.5850624722924452,.5850313536487705,1.2400844963273054],1.:[1.7050210450658358,1.7048689492867841,.30432876909184264]}
+            endpoint={}
+            scale=1.
+            for mix in (0.,1.,.3186347558277136,.25,.30,.35,.40):
+                vec=(1-mix)*left+mix*right
+                dk=geo.long(extend(vec[:N]));u=extend_scalar(vec[N:])
+                uu=u;aa=A+dk
                 if np.max(abs(uu))>.05:
                     row['candidates'].append({'lambda_H':lam,'scale':scale,'rejected':'conformal perturbation exceeds bound'});continue
                 G=g*np.exp(4*uu)[...,None,None]
@@ -518,14 +523,29 @@ def main():
                 for name,m in masks.items():
                     b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
                     reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'H_ratio_to_initial':hh/max(b['initial_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30),'native_proxy_H_ratio_to_initial':hn/max(b['initial_native_H_rms'],1e-30)}
-                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':7680,'far_Mz_weight_factor':4.,'unweighted_objective_norm':float(np.sqrt(sum(sum(v*v for v in q['M_ratio_to_initial']) for q in reg.values())+lam*lam*sum(q['H_ratio_to_pre']**2 for q in reg.values()))),'right_preconditioner':precondition,'residual_norm':precondition['original_objective_norm'],'normal_residual_norm':precondition['original_normal_residual_norm'],'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':precondition['original_solution_norm'],'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':3840,'mix_PR1038_fraction':mix,'solver_convergence_of_mixture_certified':False,'unweighted_objective_norm':float(np.sqrt(sum(sum(v*v for v in q['M_ratio_to_initial']) for q in reg.values())+lam*lam*sum(q['H_ratio_to_pre']**2 for q in reg.values()))),'right_preconditioner':precondition,'residual_norm':precondition['original_objective_norm'],'normal_residual_norm':precondition['original_normal_residual_norm'],'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':precondition['original_solution_norm'],'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
                 candidate['all_H_below_initial']=all(q['H_ratio_to_initial']<=1+1e-10 and q['native_proxy_H_ratio_to_initial']<=1+1e-10 for q in reg.values())
                 candidate['all_initial_H_and_M_gate']=candidate['all_M_below_initial'] and candidate['all_H_below_initial'] and candidate['all_H_improved']
+                if mix in expected:
+                    got=reg['far_atmosphere']['M_ratio_to_initial']
+                    assert np.allclose(got,expected[mix],rtol=3e-3,atol=1e-6),('endpoint replay mismatch',mix,got,expected[mix])
+                    endpoint[mix]=(Mp.copy(),Hp.copy())
+                else:
+                    assert set(endpoint)=={0.,1.}
+                    linearM=(1-mix)*endpoint[0.][0]+mix*endpoint[1.][0]
+                    linearH=(1-mix)*endpoint[0.][1]+mix*endpoint[1.][1]
+                    candidate['nonlinear_remainder']={name:{'M_rms_over_initial':(rms(Mp-linearM,m)/np.asarray(base[name]['initial_M_rms'])).tolist(),'H_rms_over_initial':float(rms(Hp-linearH,m))/base[name]['initial_H_rms']} for name,m in masks.items()}
+                    candidate['worst_M_initial_ratio']=max(max(q['M_ratio_to_initial']) for q in reg.values())
+                    candidate['worst_H_initial_ratio']=max(max(q['H_ratio_to_initial'],q['native_proxy_H_ratio_to_initial']) for q in reg.values())
+                    np.savez_compressed(f'evidence/mixture_{mix:.8f}.npz',vector=vec,active=active,taper=taper,shape=shape,origin=o,delta=h,iteration=128)
                 row['candidates'].append(candidate)
                 print('COUPLED_CANDIDATE',json.dumps(candidate,allow_nan=False),flush=True)
+                pathlib.Path('evidence/mixture_progress.json').write_text(json.dumps(row,indent=2,allow_nan=False))
         row['any_coupled_improvement']=any(c.get('all_M_improved') and c.get('all_H_improved') for c in row['candidates'])
         row['any_initial_M_and_H_gate']=any(c.get('all_M_below_initial') and c.get('all_H_improved') for c in row['candidates'])
         row['any_all_initial_H_and_M_gate']=any(c.get('all_initial_H_and_M_gate',False) for c in row['candidates'])
+        row['both_endpoints_reproduced']=set(endpoint)=={0.,1.}
+        row['any_interior_mixture_passes_residual_gate']=any(c.get('all_initial_H_and_M_gate',False) and 0<c.get('mix_PR1038_fraction',0)<1 for c in row['candidates'])
         row['all_solver_calls_converged']=bool(row['candidates']) and all(c.get('lsmr_stop') in (1,2,4,5) and c.get('right_preconditioner',{}).get('original_relative_normal_residual',1.)<=1e-7 for c in row['candidates'])
         report['patches'].append(row)
     assert report['patches']
