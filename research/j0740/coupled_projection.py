@@ -242,8 +242,10 @@ def main():
             rt,et,pt=[get(f,t) for f in ('rho','eps','press')]
             vt=np.stack([get(f'vel[{i}]',t) for i in range(3)],axis=-1)
             Et,_,_,_=source(gt.g,rt,et,pt,vt)
-            Ht=ricci_scalar(gt)+gt.hterm(Kt)-16*np.pi*Et
-            Hbssn=bssn_reconstructed_ricci_scalar(gt)+gt.hterm(Kt)-16*np.pi*Et
+            curvature=ricci_scalar(gt)+gt.hterm(Kt)
+            matter=16*np.pi*Et
+            Ht=curvature-matter
+            Hbssn=bssn_reconstructed_ricci_scalar(gt)+gt.hterm(Kt)-matter
             Hnt=get('H',t)
             snapshots={}
             for trim in ((3,4,5) if t==128 else (4,5)):
@@ -259,6 +261,8 @@ def main():
                     dot=float(np.dot(hi,hn));den=max(hn_norm**2,1e-60)
                     alpha=dot/den
                     db=float(np.dot(hb,hn));ab=db/den
+                    em=matter[mm];curv=curvature[mm];em2=max(float(np.dot(em,em)),1e-60)
+                    cm=float(np.dot(curv-hn,em)/em2)
                     snapshots[str(trim)][region]={
                         'points':int(mm.sum()),
                         'independent_H_rms':float(np.sqrt(np.mean(hi**2))),
@@ -270,7 +274,9 @@ def main():
                         'bssn_metric_gamma_reconstruction_H_rms':float(np.sqrt(np.mean(hb**2))),
                         'bssn_metric_gamma_raw_relative_mismatch':float(np.linalg.norm(hb-hn)/max(hn_norm,1e-30)),
                         'bssn_metric_gamma_best_scale':ab,
-                        'bssn_metric_gamma_best_scaled_mismatch':float(np.linalg.norm(hb-ab*hn)/max(hn_norm,1e-30))}
+                        'bssn_metric_gamma_best_scaled_mismatch':float(np.linalg.norm(hb-ab*hn)/max(hn_norm,1e-30)),
+                        'matter_term_best_fit_coefficient_expected_one':cm,
+                        'matter_term_best_fit_residual_relative_to_native':float(np.linalg.norm(curv-cm*em-hn)/max(hn_norm,1e-30))}
             common=valid_by_trim[5]&(z>=-1e-10)
             hc=Ht[common];nc=Hnt[common];dn=max(float(np.linalg.norm(nc))**2,1e-60)
             ac=float(np.dot(hc,nc)/dn)
