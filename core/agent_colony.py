@@ -15,6 +15,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.cano_remaining_count import remaining_count
+
 
 def now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -432,6 +434,13 @@ class AgentColony:
                 not internal_review or not isinstance(final_owner_task, str)
                 or not final_owner_task.strip() or len(final_owner_task) > 3000):
             raise ValueError("Final revision requires a bounded original owner task")
+        if not internal_review:
+            calculated = remaining_count(task)
+            if calculated is not None:
+                return {"agent_id": agent_id, "output": str(calculated),
+                        "status": "draft_unverified", "lessons_used": 0,
+                        "model": model, "execution_mode": "deterministic_arithmetic",
+                        "model_called": False}
         memory_task = final_owner_task if final_owner_task is not None else task
         lessons = self.lessons(agent_id, task=memory_task) if include_lessons else []
         if additional_lessons:
