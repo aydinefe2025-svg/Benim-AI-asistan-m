@@ -1,0 +1,160 @@
+name: J0740 archived spatial momentum localization
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-archived-momentum-localization.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  archived-slices:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Inspect immutable artifacts without rerunning stellar simulations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir evidence
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15150369185/zip > coarse.zip
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15150063940/zip > fine.zip
+          echo 'c18c6cdad9207f0dc876521f96ff00c4edb124e799125dabee9689ba909d9dc5  coarse.zip' | sha256sum -c -
+          echo 'aa10e16a74bc6c49fe0037a69fbcb18288f3daf13b126a5e92eb479044e577d8  fine.zip' | sha256sum -c -
+          python3 -m pip install numpy h5py
+          python3 - <<'PY'
+          import zipfile,pathlib,json,re,h5py,numpy as np,io
+          d=pathlib.Path('evidence'); results={}
+          for label in ('coarse','fine'):
+              data={}; inventory=[]
+              with zipfile.ZipFile(label+'.zip') as z:
+                  assert z.testzip() is None
+                  names=[p for p in z.namelist() if p.endswith('.h5') and re.search(r'(?:^|/)(?:m[123]|rho)\.(?:xy|xz|yz)\.h5]
+                  for p in names:
+                      plane=re.search(r'\.(xy|xz|yz)\.',p.lower())
+                      if not plane:continue
+                      with h5py.File(io.BytesIO(z.read(p)),'r') as f:
+                          def visit(name,obj):
+                              if not isinstance(obj,h5py.Dataset):return
+                              m=re.search(r'(?:^|/)(?:ML_BSSN::M([123])|HYDROBASE::(rho))\s+(.+)$',name,re.I)
+                              if not m:return
+                              var='m'+m[1] if m[1] else 'rho'
+                              tags=dict(re.findall(r'(\w+)=(-?\d+)',m[3]))
+                              if 'it' not in tags or int(tags.get('tl','0'))!=0:return
+                              k=(plane[1],int(tags['it']),int(tags.get('rl','0')),int(tags.get('c','0')),int(tags.get('m','0')))
+                              arr=np.asarray(obj,dtype=float).squeeze()
+                              if arr.ndim!=2:return
+                              attrs={x:np.asarray(obj.attrs[x]).tolist() for x in ('origin','delta','time','iorigin','cctk_nghostzones') if x in obj.attrs}
+                              inventory.append(dict(file=p,dataset=name,shape=arr.shape,attrs=attrs))
+                              bucket=data.setdefault(k,{})
+                              if var in bucket:assert np.array_equal(bucket[var][0],arr,equal_nan=True),(k,var)
+                              else:bucket[var]=(arr,attrs)
+                          f.visititems(visit)
+              (d/(label+'-inventory.json')).write_text(json.dumps(inventory,indent=2))
+              records=[]
+              for k,b in sorted(data.items()):
+                  if set(b)!={'rho','m1','m2','m3'}:continue
+                  rho,attr=b['rho']; m=[b[x][0] for x in ('m1','m2','m3')]
+                  assert all(x.shape==rho.shape for x in m)
+                  assert all(b[x][1].get('origin')==attr.get('origin') and b[x][1].get('delta')==attr.get('delta') for x in ('m1','m2','m3'))
+                  assert np.isfinite(rho).all() and all(np.isfinite(x).all() for x in m)
+                  norm2=sum(x*x for x in m)
+                  masks={'dense_core':rho>=.000145,'intermediate':(rho>=1.45e-6)&(rho<.000145),'low_density':(rho>1e-10)&(rho<1.45e-6),'near_atmosphere':rho<=1e-10}
+                  assert np.all(sum(v.astype(int) for v in masks.values())==1)
+                  total=float(norm2.sum()); regions={}
+                  for name,mask in masks.items():
+                      regions[name]=dict(cells=int(mask.sum()),sum_m_squared=float(norm2[mask].sum()),fraction=float(norm2[mask].sum()/total) if total else None,component_sums=[float((x[mask]**2).sum()) for x in m])
+                  idx=np.unravel_index(np.argmax(norm2),rho.shape)
+                  records.append(dict(plane=k[0],iteration=k[1],level=k[2],patch=k[3],map=k[4],time=attr.get('time'),attrs=attr,shape=rho.shape,regions=regions,peak_index=list(map(int,idx)),peak_density=float(rho[idx]),peak_components=[float(x[idx]) for x in m]))
+              # Matched-time difference on fixed initial density masks, no ghost layers.
+              growth=[]
+              for plane,rl,patch,mapid in sorted(set((k[0],k[2],k[3],k[4]) for k in data)):
+                  keys=sorted(k for k in data if (k[0],k[2],k[3],k[4])==(plane,rl,patch,mapid) and set(data[k])=={'rho','m1','m2','m3'})
+                  if len(keys)<2:continue
+                  first,last=data[keys[0]],data[keys[-1]]
+                  rho,at=first['rho']; endrho,bt=last['rho']
+                  assert rho.shape==endrho.shape and at['origin']==bt['origin'] and at['delta']==bt['delta']
+                  assert all(v[1]['origin']==at['origin'] and v[1]['delta']==at['delta'] for v in list(first.values())+list(last.values()))
+                  assert all(np.isfinite(v[0]).all() for v in list(first.values())+list(last.values()))
+                  initial=sum(first[x][0]**2 for x in ('m1','m2','m3'))
+                  final=sum(last[x][0]**2 for x in ('m1','m2','m3'))
+                  g=at['cctk_nghostzones']; active=np.zeros(rho.shape,bool)
+                  active[g[1]:rho.shape[0]-g[1],g[0]:rho.shape[1]-g[0]]=True
+                  change=final-initial; pos=np.maximum(change,0); total=pos[active].sum()
+                  masks={'core':rho>=.000145,'intermediate':(rho>=1.45e-6)&(rho<.000145),'low':(rho>1e-10)&(rho<1.45e-6),'atmosphere':rho<=1e-10}
+                  assert np.all(sum(v.astype(int) for v in masks.values())==1)
+                  idx=np.unravel_index(np.argmax(np.where(active,pos,-1)),rho.shape)
+                  rec=dict(plane=plane,level=rl,patch=patch,map=mapid,initial_time=at['time'],final_time=bt['time'],net_growth=float(change[active].sum()),positive_growth_fractions={n:float(pos[active&m].sum()/total) if total else None for n,m in masks.items()},peak_initial_density=float(rho[idx]),peak_coordinates=(np.asarray(at['origin'])+np.asarray(at['delta'])*np.asarray(idx[::-1])).tolist())
+                  growth.append(rec); print('FIXED_MASK_GROWTH',label,json.dumps(rec))
+              assert len(growth)>=6,('incomplete matched growth slices',label,len(growth))
+              (d/(label+'-growth.json')).write_text(json.dumps(growth,indent=2))
+              assert records,('no matched archived 2D slices',label,len(inventory),names[:10])
+              results[label]=dict(records=records,available_iterations=sorted(set(x['iteration'] for x in records)),scope='per-patch raw 2D samples including any ghost points; not volume integral or causal attribution')
+              print('SPATIAL_RECORDS',label,len(records),results[label]['available_iterations'])
+              for plane in sorted(set(x['plane'] for x in records)):
+                  subset=[x for x in records if x['plane']==plane]
+                  for it in sorted(set(x['iteration'] for x in subset))[:1]+sorted(set(x['iteration'] for x in subset))[-1:]:
+                      for x in subset:
+                          if x['iteration']==it:print('SLICE',label,json.dumps(x))
+          (d/'spatial-localization.json').write_text(json.dumps(results,indent=2))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: archived-momentum-localization
+          path: evidence/
+          if-no-files-found: error
+,p.lower())]
+                  for p in names:
+                      plane=re.search(r'\.(xy|xz|yz)\.',p.lower())
+                      if not plane:continue
+                      with h5py.File(io.BytesIO(z.read(p)),'r') as f:
+                          def visit(name,obj):
+                              if not isinstance(obj,h5py.Dataset):return
+                              m=re.search(r'(?:^|/)(?:ML_BSSN::M([123])|HYDROBASE::(rho))\s+(.+)$',name,re.I)
+                              if not m:return
+                              var='m'+m[1] if m[1] else 'rho'
+                              tags=dict(re.findall(r'(\w+)=(-?\d+)',m[3]))
+                              if 'it' not in tags or int(tags.get('tl','0'))!=0:return
+                              k=(plane[1],int(tags['it']),int(tags.get('rl','0')),int(tags.get('c','0')),int(tags.get('m','0')))
+                              arr=np.asarray(obj,dtype=float).squeeze()
+                              if arr.ndim!=2:return
+                              attrs={x:np.asarray(obj.attrs[x]).tolist() for x in ('origin','delta','time','iorigin','ghostzones') if x in obj.attrs}
+                              inventory.append(dict(file=p,dataset=name,shape=arr.shape,attrs=attrs))
+                              bucket=data.setdefault(k,{})
+                              if var in bucket:assert np.array_equal(bucket[var][0],arr,equal_nan=True),(k,var)
+                              else:bucket[var]=(arr,attrs)
+                          f.visititems(visit)
+              (d/(label+'-inventory.json')).write_text(json.dumps(inventory,indent=2))
+              records=[]
+              for k,b in sorted(data.items()):
+                  if set(b)!={'rho','m1','m2','m3'}:continue
+                  rho,attr=b['rho']; m=[b[x][0] for x in ('m1','m2','m3')]
+                  assert all(x.shape==rho.shape for x in m)
+                  assert all(b[x][1].get('origin')==attr.get('origin') and b[x][1].get('delta')==attr.get('delta') for x in ('m1','m2','m3'))
+                  assert np.isfinite(rho).all() and all(np.isfinite(x).all() for x in m)
+                  norm2=sum(x*x for x in m)
+                  masks={'dense_core':rho>=.000145,'intermediate':(rho>=1.45e-6)&(rho<.000145),'low_density':(rho>1e-10)&(rho<1.45e-6),'near_atmosphere':rho<=1e-10}
+                  assert np.all(sum(v.astype(int) for v in masks.values())==1)
+                  total=float(norm2.sum()); regions={}
+                  for name,mask in masks.items():
+                      regions[name]=dict(cells=int(mask.sum()),sum_m_squared=float(norm2[mask].sum()),fraction=float(norm2[mask].sum()/total) if total else None,component_sums=[float((x[mask]**2).sum()) for x in m])
+                  idx=np.unravel_index(np.argmax(norm2),rho.shape)
+                  records.append(dict(plane=k[0],iteration=k[1],level=k[2],patch=k[3],map=k[4],time=attr.get('time'),attrs=attr,shape=rho.shape,regions=regions,peak_index=list(map(int,idx)),peak_density=float(rho[idx]),peak_components=[float(x[idx]) for x in m]))
+              assert records,('no matched archived 2D slices',label,len(inventory),names[:10])
+              results[label]=dict(records=records,available_iterations=sorted(set(x['iteration'] for x in records)),scope='per-patch raw 2D samples including any ghost points; not volume integral or causal attribution')
+              print('SPATIAL_RECORDS',label,len(records),results[label]['available_iterations'])
+              for plane in sorted(set(x['plane'] for x in records)):
+                  subset=[x for x in records if x['plane']==plane]
+                  for it in sorted(set(x['iteration'] for x in subset))[:1]+sorted(set(x['iteration'] for x in subset))[-1:]:
+                      for x in subset:
+                          if x['iteration']==it:print('SLICE',label,json.dumps(x))
+          (d/'spatial-localization.json').write_text(json.dumps(results,indent=2))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: archived-momentum-localization
+          path: evidence/
+          if-no-files-found: error
