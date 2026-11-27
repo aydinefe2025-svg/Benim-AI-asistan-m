@@ -1,6 +1,7 @@
 import pathlib,re,json,math,sys
 import numpy as np,h5py
 from scipy.sparse.linalg import LinearOperator,lsmr
+from scipy.ndimage import maximum_filter
 def d(a,j,h):
     ax=2-j
     return (-np.roll(a,-2,ax)+8*np.roll(a,-1,ax)-8*np.roll(a,1,ax)+np.roll(a,2,ax))/(12*h[j])
@@ -87,8 +88,34 @@ def preconditioner_controls():
     expected=diag*rhs/(diag**2+.01**2)
     assert green[1]!=7 and np.allclose(green[0],expected,rtol=1e-8,atol=1e-10),(green[1],green[2],np.max(np.abs(green[0]-expected)))
     print('RIGHT_PRECONDITIONER_CONTROL',json.dumps({'unscaled_stop':int(red[1]),'unscaled_iterations':int(red[2]),'scaled_stop':int(green[1]),'scaled_iterations':int(green[2]),'max_absolute_solution_error':float(np.max(np.abs(green[0]-expected))),**info}),flush=True)
+def support_envelope(active,pairs,width=4):
+    # The nonlinear momentum evaluation depends on up to two successive
+    # radius-two derivative stencils. A conservative Chebyshev envelope
+    # bounds every potentially modified momentum grid point.
+    support=active.copy()
+    for i,j in pairs:support[i]=support[j]
+    return maximum_filter(support.astype(np.uint8),size=2*width+1,mode='wrap')>0
+def unreachable_floor(M,M0,masks,envelope):
+    result={}
+    for name,m in masks.items():
+        outside=m&~envelope
+        initial=np.linalg.norm(M0[m],axis=0)
+        assert np.all(initial>0)
+        result[name]={'points':int(m.sum()),'unreachable_points':int(outside.sum()),'minimum_M_ratio_to_initial':(np.linalg.norm(M[outside],axis=0)/initial).tolist()}
+    return result
+def support_controls():
+    a=np.zeros((19,19,19),bool);a[9,9,9]=True
+    env=support_envelope(a,[])
+    x=a.astype(float)
+    y=d(d(x,0,[1,1,1]),1,[1,1,1])
+    assert not np.any(y[~env]) and not env[9,9,14]
+    m=np.ones(a.shape,bool);v=np.ones(a.shape+(3,))
+    floor=unreachable_floor(v,v,{'all':m},env)['all']
+    assert floor['unreachable_points']==19**3-9**3
+    assert np.allclose(floor['minimum_M_ratio_to_initial'],np.sqrt((19**3-9**3)/19**3))
+    print('SUPPORT_BOUND_CONTROL',json.dumps(floor),flush=True)
 def tests():
-    preconditioner_controls()
+    preconditioner_controls();support_controls()
     rng=np.random.default_rng(8615);sh=(9,9,9)
     g=np.broadcast_to(np.eye(3),sh+(3,3)).copy()+.01*sym(rng.normal(size=sh+(3,3)))
     geo=Geometry(g,[.7,.8,.9]);x=rng.normal(size=sh+(3,));y=sym(rng.normal(size=g.shape));v=rng.normal(size=x.shape)
@@ -317,14 +344,27 @@ def main():
         active=np.zeros(shape,bool);active[5:-5,5:-5,5:-5]=True
         # Include equatorial plane when ghost depth is <5, but never upper/lateral boundaries.
         active[:,:,:]=False;active[:,5:-5,5:-5]=True;active[-5:]=False
-        active&=(z>=-1e-10)&(rad<11.5)
-        taper=np.clip((11.5-rad)/1.5,0,1)
+        active&=(z>=-1e-10)
+        old_active=active&(rad<11.5)
+        old_taper=np.clip((11.5-rad)/1.5,0,1)
+        # Smooth compact support to the patch's lateral and upper boundaries;
+        # leave the equatorial reflection and five-point boundary guard intact.
+        distance=np.minimum(np.minimum(xx-4,shape[2]-5-xx),np.minimum(yy-4,shape[1]-5-yy))
+        distance=np.minimum(distance,shape[0]-5-zz)
+        q=np.clip(distance/5.,0.,1.)
+        taper=q*q*(3-2*q)
+        active&=taper>0
         parity=np.array([1.,1.,-1.])
         zline=z[:,0,0];pairs=[]
         for iz in np.where(zline< -1e-10)[0]:
             j=int(round((-zline[iz]-o[2])/h[2]))
             if 0<=j<len(zline) and abs(zline[j]+zline[iz])<1e-9:pairs.append((iz,j))
         assert pairs and active.sum()>0
+        old_envelope=support_envelope(old_active&(old_taper>0),pairs)
+        new_envelope=support_envelope(active,pairs)
+        assert np.all(new_envelope[old_envelope])
+        floors={'old':unreachable_floor(M,M0,masks,old_envelope),'expanded':unreachable_floor(M,M0,masks,new_envelope)}
+        print('SUPPORT_FLOOR',json.dumps(floors,allow_nan=False),flush=True)
         eq=abs(z)<1e-10
         def extend(a):
             X=np.zeros(shape+(3,));X[active]=a.reshape((-1,3))*taper[active,None];X[...,2][eq]=0
@@ -436,7 +476,7 @@ def main():
         rng=np.random.default_rng(69)
         O=op(10.);a=rng.normal(size=N+Q);b=rng.normal(size=4*P)
         err=check_adj(np.dot(O@a,b),np.dot(a,O.rmatvec(b)),'coupled actual adjoint')
-        row={'patch':patch,'actual_adjoint_error':err,'active_points':Q,'valid_points':P,'baseline':base,'candidates':[]}
+        row={'patch':patch,'actual_adjoint_error':err,'active_points':Q,'valid_points':P,'baseline':base,'support_floors':floors,'candidates':[]}
         wt=np.where(abs(z)<1e-10,1.,2.)*np.prod(h)
         def mass_j(g,sourceS,sourcev2):
             sg=np.sqrt(np.linalg.det(g))
@@ -444,9 +484,9 @@ def main():
             J=sg*(x*sourceS[...,1]-y*sourceS[...,0])
             return float(np.sum(wt[valid]*D[valid])),float(np.sum(wt[valid]*J[valid]))
         mass0,j0=mass_j(g,S,v2)
-        for lam in (10.,100.):
+        for lam in (10.,):
             O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
-            sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=1280,probes=64)
+            sol,precondition=right_preconditioned_lsmr(O,target,damp=.01,maxiter=3840,probes=64)
             print('RIGHT_PRECONDITIONER_ACTUAL',json.dumps({'lambda_H':lam,'stop':int(sol[1]),'iterations':int(sol[2]),**precondition},allow_nan=False),flush=True)
             dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
             for scale in (1.,.5,.25):
@@ -465,12 +505,12 @@ def main():
                 for name,m in masks.items():
                     b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
                     reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30)}
-                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':1280,'right_preconditioner':precondition,'residual_norm':precondition['original_objective_norm'],'normal_residual_norm':precondition['original_normal_residual_norm'],'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':precondition['original_solution_norm'],'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':3840,'right_preconditioner':precondition,'residual_norm':precondition['original_objective_norm'],'normal_residual_norm':precondition['original_normal_residual_norm'],'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':precondition['original_solution_norm'],'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
                 row['candidates'].append(candidate)
                 print('COUPLED_CANDIDATE',json.dumps(candidate,allow_nan=False),flush=True)
         row['any_coupled_improvement']=any(c.get('all_M_improved') and c.get('all_H_improved') for c in row['candidates'])
         row['any_initial_M_and_H_gate']=any(c.get('all_M_below_initial') and c.get('all_H_improved') for c in row['candidates'])
-        row['all_solver_calls_converged']=all(c.get('lsmr_stop') in (1,2,4,5) for c in row['candidates'] if 'lsmr_stop' in c)
+        row['all_solver_calls_converged']=bool(row['candidates']) and all(c.get('lsmr_stop') in (1,2,4,5) and c.get('right_preconditioner',{}).get('original_relative_normal_residual',1.)<=1e-7 for c in row['candidates'])
         report['patches'].append(row)
     assert report['patches']
     report['physical_stability_certified']=False
