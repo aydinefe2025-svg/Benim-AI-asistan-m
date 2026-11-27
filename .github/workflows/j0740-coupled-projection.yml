@@ -63,7 +63,7 @@ jobs:
                               text=raw.decode('utf-8','replace')
                               hits=[]
                               for no,line in enumerate(text.splitlines(),1):
-                                  if re.search(r'(?i)hamilton|ml_ham|ricci|gamma',line) or re.search(r'\\bH\\s*=',line):
+                                  if re.search(r'(?i)hamilton|ml_ham|ricci|gamma',line) or re.search(r'\bH\s*=',line):
                                       hits.append({'line':no,'text':line.strip()[:240]})
                                       if len(hits)>=16:break
                               if hits:source_scan['matching_source_files'].append({'path':member.name,'bytes':member.size,'sha256':hashlib.sha256(raw).hexdigest(),'matches':hits})
