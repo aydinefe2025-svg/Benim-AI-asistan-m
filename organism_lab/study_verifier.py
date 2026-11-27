@@ -5,6 +5,7 @@ verification for a synthetic numerical model, not external scientific validation
 """
 import argparse
 import csv
+from contextlib import closing
 import hashlib
 import json
 import sqlite3
@@ -45,7 +46,7 @@ def verify_saved_study(saved):
         if rows != [{name: str(value) for name, value in row.items()}
                     for row in expected["observations"]]:
             raise ValueError("CSV observations differ from recomputed experiment")
-        with sqlite3.connect(f"file:{database_path.resolve().as_posix()}?mode=ro", uri=True) as conn:
+        with closing(sqlite3.connect(f"file:{database_path.resolve().as_posix()}?mode=ro", uri=True)) as conn:
             db_rows = conn.execute(
                 "SELECT created_at, report_json, commentary_json FROM studies WHERE study_id=?",
                 (identifier,)).fetchall()
