@@ -53,6 +53,10 @@ class ExplicitCalculationIntegrationTests(unittest.TestCase):
             "CANO hesap: eval 1 2", "CANO hesap: çıkar 93 56 ve 47 yaz",
             "CANO hesap: topla 1 2\nCANO kod: test", "CANO hesap: topla ١ ٢",
             "CANO hesap: topla １２ ３", "CANO hesap: topla " + "9" * 1000 + " 1",
+            "CANO hesap: topla 1\u0338 2", "CANO hesap: topla 1\u0301 2",
+            "CANO hesap: topla \uff0d1 2", "CANO hesap: topla 1\u00a02",
+            "CANO hesap: topla 1 2\u0301", "CANO hesap: topla 1\u20032",
+            "CANO hesap: topla 1\u202f2",
         ):
             with self.subTest(command=command):
                 result, calls, _ = self.call_app(command)
