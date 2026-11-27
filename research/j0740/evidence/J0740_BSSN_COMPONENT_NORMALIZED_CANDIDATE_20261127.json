@@ -1,0 +1,569 @@
+{
+  "evidence_id": "j0740.bssn.component-normalized-projection.20261127.v1",
+  "date": "2026-11-27",
+  "source": {
+    "repository": "aydinefe2025-svg/Benim-AI-asistan-m",
+    "pr": 1015,
+    "branch": "science/j0740-coupled-conformal-constraint-candidate-20261127",
+    "code_commit": "441aeb017d2362ecd2b0516e31e3a5414d49d9e3",
+    "code_sha256": "2c3e790c893bc6a5f00cb5cf46671c95297e69da",
+    "archive_artifact": 15177726961,
+    "archive_sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073",
+    "source_tar_sha256": "a415ccf644327a2aa0584f4cba09b32f9463e434320f5bba4fc209363f6c514c",
+    "evolution_source": {
+      "archive_path": "arrangements/McLachlan/ML_BSSN/src/ML_BSSN_EvolutionInterior.cc",
+      "bytes": 333332,
+      "sha256": "1637e62c750164b79dbebd78d516c363924edde1b14a2273bb9469af91fe41f0",
+      "matches_pinned_public_source_commit": "cd8708302f8982c9b16a8d0c91db457a21e15542",
+      "pinned_file_git_blob_sha": "0afe08460b3af103bd39e72a2b54791dd969197d",
+      "independent_content_sha256": "1637e62c750164b79dbebd78d516c363924edde1b14a2273bb9469af91fe41f0",
+      "exact_content_match": true
+    }
+  },
+  "runs": {
+    "projection": {
+      "id": 46024332973,
+      "job_id": 140591704413,
+      "conclusion": "success",
+      "artifact_id": 15211299147,
+      "artifact_sha256": "b0d136a68e6466160b22376ba8304462d95d595b82211d67f1385043faa054bf"
+    },
+    "core": {
+      "id": 46024333043,
+      "linux": "success",
+      "windows": "success"
+    },
+    "source_prior": {
+      "id": 46024332974,
+      "conclusion": "success"
+    },
+    "public_research": {
+      "id": 46024332968,
+      "conclusion": "success"
+    }
+  },
+  "method": {
+    "independent_region_component_normalization": "w_i = 1/(sqrt(N_region) * RMS(M_i, initial)) for every momentum component",
+    "zero_initial_component": "fails closed; no arbitrary floor or ratio is substituted",
+    "acceptance_thresholds": "unchanged",
+    "max_lsmr_iterations": 1280,
+    "direct_ricci_control": {
+      "relative_errors_n17_n33": [
+        0.00021370549402563818,
+        0.000015228364107612627
+      ],
+      "refinement_ratio": 14.033384841304606
+    }
+  },
+  "baseline": {
+    "inner": {
+      "points": 4192,
+      "initial_M_rms": [
+        2.7382970479172487e-7,
+        2.738297047917522e-7,
+        3.452894756754559e-8
+      ],
+      "pre_M_rms": [
+        0.000003950132308611721,
+        0.000003950132308611922,
+        0.0000036037613055928687
+      ],
+      "pre_H_rms": 0.00012215969281723755,
+      "pre_native_H_rms": 0.00012307923705008917,
+      "native_H_relative_mismatch": 0.05330186550102653
+    },
+    "outer_fluid": {
+      "points": 4516,
+      "initial_M_rms": [
+        0.00004545237500453577,
+        0.00004545237500453572,
+        0.000004634931843728082
+      ],
+      "pre_M_rms": [
+        0.00004771592992496566,
+        0.000047715929924965976,
+        0.000018580532724645052
+      ],
+      "pre_H_rms": 0.000815752285304769,
+      "pre_native_H_rms": 0.0008169586551389378,
+      "native_H_relative_mismatch": 0.042133130165807754
+    },
+    "surface_atmosphere": {
+      "points": 1401,
+      "initial_M_rms": [
+        0.000017916826587951924,
+        0.000017916826587951944,
+        0.000002784757055032507
+      ],
+      "pre_M_rms": [
+        0.00002223689718547144,
+        0.00002223689718547035,
+        0.000012940748864670922
+      ],
+      "pre_H_rms": 0.00022758017584317996,
+      "pre_native_H_rms": 0.00022358038774634685,
+      "native_H_relative_mismatch": 0.0820365175894685
+    },
+    "far_atmosphere": {
+      "points": 112930,
+      "initial_M_rms": [
+        1.5919174024205557e-7,
+        1.5919174024205565e-7,
+        1.856485225978981e-8
+      ],
+      "pre_M_rms": [
+        5.508066476167852e-7,
+        5.508066476170104e-7,
+        5.160533907066246e-7
+      ],
+      "pre_H_rms": 0.0000058321249734614605,
+      "pre_native_H_rms": 0.000005887016155619556,
+      "native_H_relative_mismatch": 0.1140874911403548
+    }
+  },
+  "candidates": [
+    {
+      "lambda_H": 10,
+      "scale": 1,
+      "lsmr_stop": 7,
+      "iterations": 1280,
+      "residual_norm": 6.9791951242056856,
+      "normal_residual_norm": 12483.632177243408,
+      "operator_norm_estimate": 197565366.6205554,
+      "condition_number_estimate": 30.499422635446603,
+      "all_M_improved": true,
+      "all_H_improved": true,
+      "all_M_below_initial": false,
+      "regions": {
+        "inner": {
+          "M_ratio_to_pre": [
+            0.0020876792468547765,
+            0.002087675907074299,
+            0.00007108001638068415
+          ],
+          "M_ratio_to_initial": [
+            0.03011583147741994,
+            0.03011578329939199,
+            0.0074185699443206354
+          ],
+          "H_ratio_to_pre": 0.06448413154590472,
+          "native_plus_independent_delta_H_ratio": 0.08234155768444879
+        },
+        "outer_fluid": {
+          "M_ratio_to_pre": [
+            0.8628089726020084,
+            0.862808972590953,
+            0.11224534940544674
+          ],
+          "M_ratio_to_initial": [
+            0.9057773652356044,
+            0.9057773652240053,
+            0.44996959138445447
+          ],
+          "H_ratio_to_pre": 0.08551928135043492,
+          "native_plus_independent_delta_H_ratio": 0.09500431521670044
+        },
+        "surface_atmosphere": {
+          "M_ratio_to_pre": [
+            0.4032691616491433,
+            0.40326916165240656,
+            0.03259431321485977
+          ],
+          "M_ratio_to_initial": [
+            0.5005046424735382,
+            0.5005046424775633,
+            0.15146557254165974
+          ],
+          "H_ratio_to_pre": 0.0072613564390237376,
+          "native_plus_independent_delta_H_ratio": 0.08200393099913367
+        },
+        "far_atmosphere": {
+          "M_ratio_to_pre": [
+            0.21867175925908858,
+            0.21867175926123383,
+            0.16193033757312386
+          ],
+          "M_ratio_to_initial": [
+            0.7566087189123125,
+            0.7566087189200441,
+            4.501231606559794
+          ],
+          "H_ratio_to_pre": 0.4876916602983759,
+          "native_plus_independent_delta_H_ratio": 0.4896582340781092
+        }
+      }
+    },
+    {
+      "lambda_H": 10,
+      "scale": 0.5,
+      "lsmr_stop": 7,
+      "iterations": 1280,
+      "residual_norm": 6.9791951242056856,
+      "normal_residual_norm": 12483.632177243408,
+      "operator_norm_estimate": 197565366.6205554,
+      "condition_number_estimate": 30.499422635446603,
+      "all_M_improved": true,
+      "all_H_improved": true,
+      "all_M_below_initial": false,
+      "regions": {
+        "inner": {
+          "M_ratio_to_pre": [
+            0.5000277793700346,
+            0.5000277796679482,
+            0.49999991275385314
+          ],
+          "M_ratio_to_initial": [
+            7.213154204710069,
+            7.213154209007272,
+            52.184629573702026
+          ],
+          "H_ratio_to_pre": 0.5061359346984098,
+          "native_plus_independent_delta_H_ratio": 0.5110236536737396
+        },
+        "outer_fluid": {
+          "M_ratio_to_pre": [
+            0.9253394138380001,
+            0.9253394138341788,
+            0.5033873823443314
+          ],
+          "M_ratio_to_initial": [
+            0.9714218591018987,
+            0.9714218590978947,
+            2.01798128778935
+          ],
+          "H_ratio_to_pre": 0.5065202946880603,
+          "native_plus_independent_delta_H_ratio": 0.5080827336018596
+        },
+        "surface_atmosphere": {
+          "M_ratio_to_pre": [
+            0.6554863241334464,
+            0.6554863241362324,
+            0.5053279022514346
+          ],
+          "M_ratio_to_initial": [
+            0.8135359196945958,
+            0.8135359196980129,
+            2.348255646046099
+          ],
+          "H_ratio_to_pre": 0.5000082248041948,
+          "native_plus_independent_delta_H_ratio": 0.4942861832861744
+        },
+        "far_atmosphere": {
+          "M_ratio_to_pre": [
+            0.5216574507810409,
+            0.5216574507793574,
+            0.5198708333018595
+          ],
+          "M_ratio_to_initial": [
+            1.8049453522659291,
+            1.8049453522608414,
+            14.451022959982362
+          ],
+          "H_ratio_to_pre": 0.6547109642724485,
+          "native_plus_independent_delta_H_ratio": 0.658133106969086
+        }
+      }
+    },
+    {
+      "lambda_H": 10,
+      "scale": 0.25,
+      "lsmr_stop": 7,
+      "iterations": 1280,
+      "residual_norm": 6.9791951242056856,
+      "normal_residual_norm": 12483.632177243408,
+      "operator_norm_estimate": 197565366.6205554,
+      "condition_number_estimate": 30.499422635446603,
+      "all_M_improved": true,
+      "all_H_improved": true,
+      "all_M_below_initial": false,
+      "regions": {
+        "inner": {
+          "M_ratio_to_pre": [
+            0.7500134782072938,
+            0.750013478357418,
+            0.750000089640602
+          ],
+          "M_ratio_to_initial": [
+            10.819324639794942,
+            10.819324641960034,
+            78.27696737500385
+          ],
+          "H_ratio_to_pre": 0.7527350076530832,
+          "native_plus_independent_delta_H_ratio": 0.754990695021349
+        },
+        "outer_fluid": {
+          "M_ratio_to_pre": [
+            0.9613193388370429,
+            0.9613193388355225,
+            0.7506486289316785
+          ],
+          "M_ratio_to_initial": [
+            1.0091936054581347,
+            1.0091936054565462,
+            3.0092031306670597
+          ],
+          "H_ratio_to_pre": 0.752666119415282,
+          "native_plus_independent_delta_H_ratio": 0.7533134802328214
+        },
+        "surface_atmosphere": {
+          "M_ratio_to_pre": [
+            0.822750715736761,
+            0.8227507157382247,
+            0.7525862815074812
+          ],
+          "M_ratio_to_initial": [
+            1.0211307781152525,
+            1.021130778117018,
+            3.4972638099200943
+          ],
+          "H_ratio_to_pre": 0.7499992054381621,
+          "native_plus_independent_delta_H_ratio": 0.7465907481930363
+        },
+        "far_atmosphere": {
+          "M_ratio_to_pre": [
+            0.7570453635639414,
+            0.7570453635629788,
+            0.7579062441105247
+          ],
+          "M_ratio_to_initial": [
+            2.619392301161143,
+            2.619392301158882,
+            21.067772672670177
+          ],
+          "H_ratio_to_pre": 0.8165503287327687,
+          "native_plus_independent_delta_H_ratio": 0.818464257226061
+        }
+      }
+    },
+    {
+      "lambda_H": 100,
+      "scale": 1,
+      "lsmr_stop": 7,
+      "iterations": 1280,
+      "residual_norm": 49.07208297459035,
+      "normal_residual_norm": 119039.2165459354,
+      "operator_norm_estimate": 744814924.1030225,
+      "condition_number_estimate": 26.554569153334622,
+      "all_M_improved": true,
+      "all_H_improved": true,
+      "all_M_below_initial": false,
+      "regions": {
+        "inner": {
+          "M_ratio_to_pre": [
+            0.020669549224694047,
+            0.020669549224686744,
+            0.00017758507488422858
+          ],
+          "M_ratio_to_initial": [
+            0.298168725920387,
+            0.29816872592026716,
+            0.018534425935417702
+          ],
+          "H_ratio_to_pre": 0.006413478032843722,
+          "native_plus_independent_delta_H_ratio": 0.05354700952791343
+        },
+        "outer_fluid": {
+          "M_ratio_to_pre": [
+            0.9782216921830901,
+            0.9782216921830859,
+            0.3888372572463578
+          ],
+          "M_ratio_to_initial": [
+            1.0269377059093545,
+            1.026937705909358,
+            1.5587723026830846
+          ],
+          "H_ratio_to_pre": 0.029523939533093943,
+          "native_plus_independent_delta_H_ratio": 0.051060395554916184
+        },
+        "surface_atmosphere": {
+          "M_ratio_to_pre": [
+            0.8707218546984504,
+            0.8707218546985134,
+            0.13485699252069036
+          ],
+          "M_ratio_to_initial": [
+            1.0806686253855033,
+            1.0806686253855275,
+            0.6266796127516004
+          ],
+          "H_ratio_to_pre": 0.002400198579111905,
+          "native_plus_independent_delta_H_ratio": 0.08183877446972486
+        },
+        "far_atmosphere": {
+          "M_ratio_to_pre": [
+            0.20200411794554637,
+            0.2020041179475658,
+            0.16956584982607784
+          ],
+          "M_ratio_to_initial": [
+            0.6989383421601533,
+            0.6989383421674259,
+            4.713478487535699
+          ],
+          "H_ratio_to_pre": 0.4866552846238937,
+          "native_plus_independent_delta_H_ratio": 0.4887091979423705
+        }
+      }
+    },
+    {
+      "lambda_H": 100,
+      "scale": 0.5,
+      "lsmr_stop": 7,
+      "iterations": 1280,
+      "residual_norm": 49.07208297459035,
+      "normal_residual_norm": 119039.2165459354,
+      "operator_norm_estimate": 744814924.1030225,
+      "condition_number_estimate": 26.554569153334622,
+      "all_M_improved": true,
+      "all_H_improved": true,
+      "all_M_below_initial": false,
+      "regions": {
+        "inner": {
+          "M_ratio_to_pre": [
+            0.5005760891231413,
+            0.5005760891231403,
+            0.5000046020794537
+          ],
+          "M_ratio_to_initial": [
+            7.221063850862305,
+            7.221063850861939,
+            52.18511899522626
+          ],
+          "H_ratio_to_pre": 0.5010065051137224,
+          "native_plus_independent_delta_H_ratio": 0.5060903375753686
+        },
+        "outer_fluid": {
+          "M_ratio_to_pre": [
+            0.9882731711658794,
+            0.988273171165877,
+            0.6531481838018038
+          ],
+          "M_ratio_to_initial": [
+            1.0374897544378898,
+            1.0374897544378952,
+            2.618342968644497
+          ],
+          "H_ratio_to_pre": 0.49977355732802115,
+          "native_plus_independent_delta_H_ratio": 0.5013790929453179
+        },
+        "surface_atmosphere": {
+          "M_ratio_to_pre": [
+            0.9305286358945113,
+            0.9305286358945412,
+            0.5224512227651332
+          ],
+          "M_ratio_to_initial": [
+            1.1548959020699296,
+            1.1548959020699088,
+            2.4278276108954544
+          ],
+          "H_ratio_to_pre": 0.5004250478638647,
+          "native_plus_independent_delta_H_ratio": 0.49473397863185287
+        },
+        "far_atmosphere": {
+          "M_ratio_to_pre": [
+            0.5225850107847564,
+            0.5225850107849571,
+            0.5214591460657354
+          ],
+          "M_ratio_to_initial": [
+            1.8081547286778779,
+            1.808154728679311,
+            14.495173819673075
+          ],
+          "H_ratio_to_pre": 0.653983016516624,
+          "native_plus_independent_delta_H_ratio": 0.6574461625318101
+        }
+      }
+    },
+    {
+      "lambda_H": 100,
+      "scale": 0.25,
+      "lsmr_stop": 7,
+      "iterations": 1280,
+      "residual_norm": 49.07208297459035,
+      "normal_residual_norm": 119039.2165459354,
+      "operator_norm_estimate": 744814924.1030225,
+      "condition_number_estimate": 26.554569153334622,
+      "all_M_improved": true,
+      "all_H_improved": true,
+      "all_M_below_initial": false,
+      "regions": {
+        "inner": {
+          "M_ratio_to_pre": [
+            0.7502524678439866,
+            0.7502524678439874,
+            0.7500024270730733
+          ],
+          "M_ratio_to_initial": [
+            10.822772186459177,
+            10.822772186458662,
+            78.27721133114174
+          ],
+          "H_ratio_to_pre": 0.7504996949564182,
+          "native_plus_independent_delta_H_ratio": 0.7528190138720515
+        },
+        "outer_fluid": {
+          "M_ratio_to_pre": [
+            0.9939306750406816,
+            0.9939306750406753,
+            0.8222238010141859
+          ],
+          "M_ratio_to_initial": [
+            1.043429005322213,
+            1.0434290053222146,
+            3.29613395769761
+          ],
+          "H_ratio_to_pre": 0.7498128441435977,
+          "native_plus_independent_delta_H_ratio": 0.7504717909718299
+        },
+        "surface_atmosphere": {
+          "M_ratio_to_pre": [
+            0.964180019389823,
+            0.9641800193898417,
+            0.7598979243888443
+          ],
+          "M_ratio_to_initial": [
+            1.1966612421127534,
+            1.1966612421127165,
+            3.53124096930816
+          ],
+          "H_ratio_to_pre": 0.7502115016814767,
+          "native_plus_independent_delta_H_ratio": 0.7468153368978697
+        },
+        "far_atmosphere": {
+          "M_ratio_to_pre": [
+            0.7581031919675708,
+            0.7581031919675937,
+            0.7585156054689599
+          ],
+          "M_ratio_to_initial": [
+            2.623052408876977,
+            2.623052408878127,
+            21.08471129360751
+          ],
+          "H_ratio_to_pre": 0.8161900261615456,
+          "native_plus_independent_delta_H_ratio": 0.8181210165842955
+        }
+      }
+    }
+  ],
+  "inference": {
+    "previous_floor": "3e-7 applied identically to components below the floor",
+    "far_atmosphere_M3_initial_RMS": 1.856485225978981e-8,
+    "old_downweight_factor": 16.15956840388002,
+    "far_M3_initial_ratio_before_exact_normalization": 5.251642513613311,
+    "far_M3_initial_ratio_after_best_candidate": 4.501231606559794,
+    "status": "component-normalization defect is verified and corrected; candidate remains statistically unconverged and fails the pre-existing initial-M gate."
+  },
+  "gates": {
+    "any_MH_improved": true,
+    "any_initial_M_and_H_gate": false,
+    "lsmr_converged": false,
+    "physical_stability": "NOT_ESTABLISHED",
+    "full_360_simulation": "NOT_RUN",
+    "checkpoint_restart_equivalence": "NOT_RUN",
+    "EOS_Bayes": "NOT_RUN"
+  }
+}
