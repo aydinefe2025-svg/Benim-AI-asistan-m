@@ -1,4 +1,4 @@
-name: J0740 MPA1 rotation stage 90 degrees
+name: J0740 MPA1 rotation stage 180 degrees
 on:
   pull_request:
     branches: [main]
@@ -17,7 +17,7 @@ jobs:
         include:
           - dx: '3'
             finest: '0.75'
-            duration: '146.625'
+            duration: '293.25'
             trial: retarget
             solver: HLLC
     env:
@@ -65,7 +65,7 @@ jobs:
           setparam('IOBasic::outInfo_every','8192')
           setparam('IOASCII::out1D_every','1')
           setparam('CarpetIOHDF5::out2D_every','1024')
-          setparam('TerminationTrigger::max_walltime','5')
+          setparam('TerminationTrigger::max_walltime','5.5')
           setparam('TerminationTrigger::on_remaining_walltime','10')
           setparam('CarpetRegrid2::num_levels_1','3')
           setparam('CarpetRegrid2::radius_1[1]','24.0')
@@ -730,7 +730,7 @@ jobs:
           d=pathlib.Path('evidence')
           log=(d/'native.log').read_text(errors='replace') if (d/'native.log').exists() else ''
           omega0=0.01072470762421574
-          result={'scope':'nominal initial angular frequency markers, not Lagrangian rotation or physical certification','omega0':omega0,'target_degrees':[5,15,45,90],'stages':{},'histories':{},'first_threshold_crossings':{},'c2p_warnings':sum('count > GRHydro_countmax' in l for l in log.splitlines()),'fatal_c2p':sum('Con2Prim failed; stopping' in l for l in log.splitlines()),'termination_lines':[l for l in log.splitlines() if 'Terminating due to' in l]}
+          result={'scope':'nominal initial angular frequency markers, not Lagrangian rotation or physical certification','omega0':omega0,'target_degrees':[5,15,45,90,180],'stages':{},'histories':{},'first_threshold_crossings':{},'c2p_warnings':sum('count > GRHydro_countmax' in l for l in log.splitlines()),'fatal_c2p':sum('Con2Prim failed; stopping' in l for l in log.splitlines()),'termination_lines':[l for l in log.splitlines() if 'Terminating due to' in l]}
           specs={'H':('ham','norm2'),'M':('mom','norm2'),'rho_max':('rho','maximum'),'dens_sum':('dens','sum'),'velocity_max':('vel','maximum')}
           for key,(token,reduction) in specs.items():
               paths=sorted(p for p in (d/'run').rglob('*.asc') if token in p.name.lower() and reduction in p.name.lower())
@@ -748,7 +748,7 @@ jobs:
                   except ValueError:malformed+=1
               if not rows:continue
               result['histories'][key]={'initial':rows[0],'last':rows[-1],'rows':len(rows),'malformed_or_nonfinite':malformed}
-              for deg in (5,15,45,90):
+              for deg in (5,15,45,90,180):
                   target=math.radians(deg)/omega0
                   hit=next((r for r in rows if r[1]>=target),None)
                   result['stages'].setdefault(str(deg),{})[key]={'target_time':target,'reached':hit is not None,'first_at_or_after':hit,'nominal_degrees':math.degrees(hit[1]*omega0) if hit else None}
@@ -758,12 +758,22 @@ jobs:
                       for threshold in (.01,.1,1.):
                           hit=next((r for r in rows[1:] if abs(r[i]/v-1)>=threshold),None)
                           result['first_threshold_crossings'][f'{key}_{i-2}_{threshold}']={'row':hit,'nominal_degrees':math.degrees(hit[1]*omega0) if hit else None}
+          # Match the immutable 90 degree reference without confusing elapsed time with tracked rotation.
+          ref={'H':[5.14387683123721e-5],'M':[8.57428292983682e-7,8.57419671556672e-7,6.95141512471415e-7],'rho_max':[.00144391286847088],'dens_sum':[.0447040252431769]}
+          match={}
+          for k,v in ref.items():
+              rec=result['stages'].get('90',{}).get(k,{})
+              got=rec.get('first_at_or_after')
+              match[k]={'reference':v,'observed':got[2:] if got is not None else None,'relative_delta':[abs(a/b-1) for a,b in zip(got[2:],v)] if got is not None else None,'same_time':got is not None and abs(got[1]-146.625)<1e-9}
+          result['matched_90deg_reference']={'run':45952627191,'artifact':15185720482,'outer_boundary':192.,'checks':match,'all_match_1e_6':all(r['same_time'] and r['relative_delta'] is not None and all(x<=1e-6 for x in r['relative_delta']) for r in match.values())}
+          result['boundary_caution']='same 192 outer domain as reference; longer trajectory does not exclude incoming boundary influence'
+          result['physical_stability_certified']=False
           (d/'rotation_stages.json').write_text(json.dumps(result,indent=2,allow_nan=False))
           print('ROTATION_STAGES',json.dumps(result,allow_nan=False))
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-rotation-stages-90deg
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-rotation-stages-180deg
           path: evidence/
           if-no-files-found: error
