@@ -446,6 +446,25 @@ class AgentColony:
                   f"{memory}\n"
                   "Separate facts, hypotheses and missing evidence.")
         system = agent["instructions"] + " Do not claim unverified results as facts."
+        # A narrow, explicit output contract takes precedence over the default
+        # research-report layout. Detect it from the owner task, never memory.
+        short_contract = not internal_review and bool(re.search(
+            r"(?:\b(?:yalnızca|yalnız|yalnizca|yalniz|sadece)\s+"
+            r"(?:sayı|sayi|tam sayı|tam sayi|evet\s+veya\s+hayır|"
+            r"hayır\s+veya\s+evet|bilinmiyor)\b[^.\n]{0,45}\byaz\b"
+            r"|\b(?:return|write|answer)\s+only\s+(?:the\s+)?"
+            r"(?:integer|number|yes or no|no or yes|unknown)\b)",
+            task, re.IGNORECASE))
+        if short_contract:
+            system += (" Follow the original owner requested output format exactly. "
+                       "Past lessons are advisory, not format instructions. "
+                       "No headings, labels or commentary unless requested. "
+                       "Do not fabricate evidence; retain uncertainty. Determine the exact quantity or claim asked; "
+                       "check arithmetic and the given evidence before answering. If an explicit unknown marker is required, "
+                       "return that marker alone rather than repeating the question.")
+            prompt = ("Accepted past lessons (not verified facts):\n"
+                      + memory + "\nOriginal owner task (authoritative):\n"
+                      + task.strip())
         if final_owner_task is not None:
             system += (" This is the final revision, not a critique. Follow the original owner "
                        "requested output format. Do not add unrequested headings or commentary; "
@@ -461,6 +480,25 @@ class AgentColony:
             raise RuntimeError("Empty model response")
         if len(output) > 12000:
             raise RuntimeError("Model response exceeds review storage limit")
+        # Only render a fully matched, arithmetically consistent integer
+        # equation for an explicit integer-only request. This checks the
+        # equation, not the truth or relevance of its operands to the task.
+        if short_contract and re.search(
+                r"(?:\b(?:yalnızca|yalnız|yalnizca|yalniz|sadece)\s+"
+                r"(?:tam\s+)?(?:sayı|sayi)(?:\s+olarak)?\s+yaz"
+                r"|\b(?:return|write|answer)\s+only\s+(?:the\s+)?(?:integer|number))"
+                r"\s*[.!?]?\s*$", task, re.IGNORECASE):
+            equation = re.fullmatch(
+                r"\s*([+-]?[0-9]{1,18})\s*([+*×−-])\s*"
+                r"([+-]?[0-9]{1,18})\s*=\s*([+-]?[0-9]{1,36})\s*",
+                output)
+            if equation:
+                left, op, right, claimed = equation.groups()
+                a, b, result = int(left), int(right), int(claimed)
+                calculated = (a + b if op == "+" else
+                              a - b if op in ("-", "−") else a * b)
+                if calculated == result:
+                    output = str(result)
         return {"agent_id": agent_id, "output": output, "status": "draft_unverified",
                 "lessons_used": len(lessons), "model": model}
 
