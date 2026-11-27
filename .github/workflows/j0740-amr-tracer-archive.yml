@@ -12,8 +12,35 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Reuse completed exact-code scientific evidence
+        id: receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$(git hash-object research/j0740/amr_tracer_90deg.py)" != "bd01b167ecdf4c004cfe7204ac91e49fa6eea6ac" ]; then
+            echo 'reused=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mkdir -p evidence
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15189503772/zip > verified-result.zip
+          echo '762f933028af8a00fb0a25bac22a159333ccd85505b95ae781c358c6dd1284cb  verified-result.zip' | sha256sum -c -
+          unzip -tq verified-result.zip
+          unzip -q verified-result.zip -d evidence
+          python3 - <<'PY'
+          import pathlib,json
+          p=pathlib.Path('evidence/amr_tracer.json')
+          a=json.loads(p.read_text())
+          assert len(a['snapshots'])==7 and len(a['reconstructed_tracers'])==12
+          assert all(t['full']['all_sampled_rhs_in_fluid'] for t in a['reconstructed_tracers'])
+          assert not a['physical_stability_certified']
+          assert max(s['cases']['trim3_available']['volume_relative_error'] for s in a['snapshots'])<1e-12
+          print('EXACT_CODE_ARCHIVED_RESULT_REUSE_PASS')
+          PY
+          echo 'reused=true' >> "$GITHUB_OUTPUT"
       - name: Verify and recover immutable 90-degree spatial fields
+        if: steps.receipt.outputs.reused != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -35,6 +62,7 @@ jobs:
               for n in ns:z.extract(n,'source')
           PY
       - name: Composite mass and matter angular momentum with reconstructed tracers
+        if: steps.receipt.outputs.reused != 'true'
         run: python3 research/j0740/amr_tracer_90deg.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
