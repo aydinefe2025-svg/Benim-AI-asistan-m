@@ -74,5 +74,21 @@
     "dynamical_stability": "NOT_ESTABLISHED",
     "EOS_Bayes": "NOT_RUN"
   },
-  "interpretation": "The original archive includes auxiliary planar HDF5 slices and the pinned ML_BSSN source package, but no archived evolved contracted conformal connection data or restart checkpoint. Therefore the native H discrepancy cannot be exactly reconstructed from the saved fields alone; the source snapshot and parameter files permit a fresh native rerun with ML_Gamma output, but no rerun is claimed here."
+  "interpretation": "The original archive includes auxiliary planar HDF5 slices and the pinned ML_BSSN source package, but no archived evolved contracted conformal connection data or restart checkpoint. Therefore the native H discrepancy cannot be exactly reconstructed from the saved fields alone; the source snapshot and parameter files permit a fresh native rerun with ML_Gamma output, but no rerun is claimed here.",
+  "native_replay_inputs": {
+    "archive_members": 522,
+    "runtime_binary_members": [],
+    "checkpoint_or_restart_members": [],
+    "input_decks": [
+      "original.par",
+      "control.par",
+      "control_before_c2p.par",
+      "run/control.par"
+    ],
+    "launcher": "execute.sh",
+    "rebuild_log": "rebuild.log",
+    "executable_path_metadata": "executable-path.txt",
+    "image_metadata": "image.json",
+    "interpretation": "Launcher, build log, parameter decks and image metadata are present, but no executable or restart checkpoint file appears in the ZIP member inventory."
+  }
 }
