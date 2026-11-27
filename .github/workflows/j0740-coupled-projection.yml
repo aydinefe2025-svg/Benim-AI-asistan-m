@@ -1,4 +1,4 @@
-name: J0740 archived coupled constraint correction
+name: J0740 archived Hamiltonian operator audit
 on:
   pull_request:
     branches: [main]
@@ -29,11 +29,11 @@ jobs:
           sha256sum source.zip > evidence/source.sha256
           unzip -tq source.zip
           unzip -q source.zip '*.xyz.h5' -d source
-      - name: Test coupled correction and independently recomputed nonlinear residuals
+      - name: Compare native Hamiltonian with independent curvature operators
         run: python3 research/j0740/coupled_projection.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: j0740-coupled-projection
+          name: j0740-hamiltonian-operator-audit
           path: evidence/
           if-no-files-found: error
