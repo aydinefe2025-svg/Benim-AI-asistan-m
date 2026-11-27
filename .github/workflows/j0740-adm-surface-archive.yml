@@ -29,9 +29,15 @@ jobs:
           sha256sum source.zip > evidence/source.sha256
           unzip -tq source.zip
           python3 - <<'PY'
-          import pathlib,zipfile
-          wanted={s+i+j for s in 'gk' for i,j in ('xx','xy','xz','yy','yz','zz')}|{'rho','eps','press','vel[0]','vel[1]','vel[2]','M1','M2','M3'}
+          import pathlib,zipfile,json
+          wanted={s+i+j for s in 'gk' for i,j in ('xx','xy','xz','yy','yz','zz')}|{'rho','eps','press','vel[0]','vel[1]','vel[2]'}
           with zipfile.ZipFile('source.zip') as z:
+              native={'M1','M2','M3'}
+              names={pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') for n in z.namelist() if n.endswith('.xyz.h5')}
+              present=names & native
+              assert present in (set(),native),present
+              wanted |= present
+              pathlib.Path('evidence/inventory.json').write_text(json.dumps({'xyz_fields':sorted(names),'native_3d_constraints_available':bool(present),'missing_native_fields':sorted(native-present)},indent=2))
               ns=[n for n in z.namelist() if n.endswith('.xyz.h5') and pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') in wanted]
               assert len(ns)==len(wanted) and {pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') for n in ns}==wanted,ns
               for n in ns:z.extract(n,'source')
