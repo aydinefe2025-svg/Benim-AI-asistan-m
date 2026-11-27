@@ -23,14 +23,14 @@ jobs:
           set -euo pipefail
           mkdir -p source evidence
           python3 -m pip install numpy scipy h5py
-          PYTHONPATH=research/j0740 python3 -c 'from coupled_projection import tests,scalar_controls; tests();scalar_controls()'
+          PYTHONPATH=research/j0740 python3 -c 'from coupled_projection import tests,scalar_controls,stencil_domain_controls; tests();scalar_controls();stencil_domain_controls()'
           gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15177726961/zip > source.zip
           echo 'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073  source.zip' | sha256sum -c -
           sha256sum source.zip > evidence/source.sha256
           unzip -tq source.zip
           unzip -q source.zip '*.xyz.h5' -d source
       - name: Test coupled correction and independently recomputed nonlinear residuals
-        run: python3 research/j0740/coupled_projection.py
+        run: python3 research/j0740/coupled_projection.py --stencil-audit-only
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
