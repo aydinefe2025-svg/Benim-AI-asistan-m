@@ -107,7 +107,13 @@ jobs:
           for name,m in masks.items():
               assert np.any(m),name
               sums={'initial_Jz':float(np.sum(w[m]*J0[m])),'final_Jz':float(np.sum(w[m]*J1[m])),'delta_Jz':float(np.sum(w[m]*(J1[m]-J0[m]))),'delta_from_volume_factor':float(np.sum(w[m]*phiA[m])),'delta_from_fluid_inertia':float(np.sum(w[m]*phiB[m])),'delta_from_velocity_lever':float(np.sum(w[m]*phiC[m])),'points':int(m.sum())}
-              sums['relative_delta_Jz']=sums['delta_Jz']/sums['initial_Jz']
+              # A vacuum shell may have exactly zero initial matter Jz. Relative change is undefined, not zero.
+              def relative(delta,initial):
+                  return delta/initial if initial!=0 else None
+              assert relative(1.,0.) is None and relative(0.,0.) is None and relative(-.5,2.)==-.25
+              sums['relative_delta_Jz']=relative(sums['delta_Jz'],sums['initial_Jz'])
+              sums['relative_to_total_initial_Jz']=relative(sums['delta_Jz'],float(np.sum(w[rv<=10]*J0[rv<=10])))
+              assert np.isclose(sums['delta_Jz'],sums['delta_from_volume_factor']+sums['delta_from_fluid_inertia']+sums['delta_from_velocity_lever'],rtol=2e-12,atol=1e-15),name
               report['regions'][name]=sums
           # Retain the exact endpoint caveat: the available last 3D data is not 146.625.
           report['physical_stability_certified']=False
