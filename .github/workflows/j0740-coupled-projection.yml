@@ -198,7 +198,7 @@ jobs:
           cp evidence/coupled_projection.json evidence/discrete_jacobian_accepted.json
       - name: Retrieve immutable previously computed correction for affine warm start
         env:
-          GH_${{ github.token }}: TOKEN
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p prior
