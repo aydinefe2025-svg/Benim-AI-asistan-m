@@ -3,112 +3,76 @@
   "date": "2026-11-27",
   "source": {
     "repository": "aydinefe2025-svg/Benim-AI-asistan-m",
-    "pull_request": 1015,
+    "pr": 1015,
     "branch": "science/j0740-coupled-conformal-constraint-candidate-20261127",
-    "commit": "32ec48403a80c2838825eee4ee029404abb67b30",
-    "merge_commit_tested": "3b09ee785bcd420f4ad23911e6e6b3371686d789",
-    "immutable_archive_artifact": 15177726961,
-    "archive_sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073"
+    "archive_artifact": 15177726961,
+    "archive_sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073",
+    "source_tar_member": "run/cactus-source/Cactus-source-ML_BSSN.tar.gz",
+    "source_tar_uncompressed_bytes": 164340,
+    "source_tar_sha256": "a415ccf644327a2aa0584f4cba09b32f9463e434320f5bba4fc209363f6c514c",
+    "constraint_interior_source": "arrangements/McLachlan/ML_BSSN/src/ML_BSSN_ConstraintsInterior.cc",
+    "constraint_interior_source_sha256": "7ab41ed2d18936214542d4b26771626ab57c38b4c24b03e611edb933ad34e832"
   },
-  "method": {
-    "inventory": "all source/**/*.xyz.h5 field files, no expected-name prefilter; keys at iterations 0 and 128, refinement level 2",
-    "exhaustive": true,
-    "field_file_count": 27,
-    "dataset_key_count": 54,
-    "field_files": [
-      "H",
-      "M1",
-      "M2",
-      "M3",
-      "alp",
-      "betax",
-      "betay",
-      "betaz",
-      "dens",
-      "eps",
-      "gxx",
-      "gxy",
-      "gxz",
-      "gyy",
-      "gyz",
-      "gzz",
-      "kxx",
-      "kxy",
-      "kxz",
-      "kyy",
-      "kyz",
-      "kzz",
-      "press",
-      "rho",
-      "vel[0]",
-      "vel[1]",
-      "vel[2]"
+  "exhaustive_archive": {
+    "zip_members": 522,
+    "xyz_hdf5_files": 27,
+    "xyz_hdf5_snapshots": 54,
+    "additional_planar_hdf5_files": 60,
+    "additional_planar_hdf5_uncompressed_bytes": 18684200,
+    "all_additional_hdf5_metadata_inspected": true,
+    "extra_hdf5_unique_dataset_families": [
+      "ADMBASE::alp",
+      "ADMBASE::beta[xyz]",
+      "ADMBASE::g[xx,xy,xz,yy,yz,zz]",
+      "HYDROBASE::eps",
+      "HYDROBASE::rho",
+      "HYDROBASE::vel[0..2]",
+      "HYDROBASE::w_lorentz",
+      "ML_BSSN::H",
+      "ML_BSSN::M1",
+      "ML_BSSN::M2",
+      "ML_BSSN::M3"
     ],
-    "previously_omitted_fields": [
-      "alp",
-      "betax",
-      "betay",
-      "betaz",
-      "dens"
+    "missing_evolved_fields": [
+      "ML_BSSN::ML_Gamma",
+      "ML_BSSN::ML_Gammarhs",
+      "ML_BSSN::ML_cons_Gamma"
     ],
-    "additional_ml_bssn_fields": [],
-    "limitation": "Exhaustive only for archived .xyz.h5 field files; no claim about other archive members."
+    "non_hdf5_checkpoint_or_restart_found": false
   },
-  "result": {
-    "run": 45999762355,
-    "job": 140508099643,
-    "result_artifact": 15197637160,
-    "result_artifact_zip_sha256": "48d877100b5d160c2e188bbeba5a941d0586e8706a9ff63da6b0c32f66049703",
-    "candidate_solver_run": false,
-    "iteration_128_trim4": {
-      "all_valid": {
-        "points": 123039,
-        "raw_relative_mismatch": 1.0516727612265737,
-        "bssn_metric_gamma_raw_relative_mismatch": 1.0533332316435824,
-        "bssn_metric_gamma_best_scaled_mismatch": 0.9688730338831147,
-        "matter_term_best_fit_coefficient": 0.9990864575618504
-      },
-      "dense": {
-        "points": 8708,
-        "raw_relative_mismatch": 1.0076363712646774,
-        "bssn_metric_gamma_raw_relative_mismatch": 1.0146772299759017,
-        "bssn_metric_gamma_best_scaled_mismatch": 0.9273164861719772,
-        "matter_term_best_fit_coefficient": 0.9990864391519213
-      },
-      "near_surface": {
-        "points": 1401,
-        "raw_relative_mismatch": 1.9868630005186512,
-        "bssn_metric_gamma_raw_relative_mismatch": 1.8902984738536128,
-        "bssn_metric_gamma_best_scaled_mismatch": 1.8272256855808344,
-        "matter_term_best_fit_coefficient": 36.886207048561076
-      },
-      "far_atmosphere": {
-        "points": 112930,
-        "raw_relative_mismatch": 4.644045393899158,
-        "bssn_metric_gamma_raw_relative_mismatch": 4.459212654036407,
-        "bssn_metric_gamma_best_scaled_mismatch": 4.453180021311499,
-        "matter_term_best_fit_coefficient": -80810.40434216218
-      }
+  "native_reconstruction": {
+    "iteration": 128,
+    "trim": 4,
+    "all_valid_raw_relative_mismatch": 1.0533332316435824,
+    "dense_raw_relative_mismatch": 1.0146772299759017,
+    "all_valid_best_scaled_mismatch": 0.9688730338831147,
+    "dense_best_scaled_mismatch": 0.9273164861719772,
+    "matter_term_fitted_coefficient": 0.9990864575618504,
+    "candidate_solver_run": false
+  },
+  "test_status": {
+    "archive_inventory_workflow": {
+      "run": 46004697934,
+      "conclusion": "success"
+    },
+    "core_previous_code_baseline": {
+      "run": 45999762396,
+      "linux": "success",
+      "windows": "success"
+    },
+    "core_latest_commit": {
+      "run": 46004697963,
+      "linux": "success",
+      "windows": "in_progress"
     }
   },
-  "tests": {
-    "core_run": 45999762396,
-    "ubuntu": {
-      "job": 140508099806,
-      "status": "success"
-    },
-    "windows": {
-      "job": 140508100584,
-      "status": "success"
-    },
-    "archive_audit_run": 45999762355,
-    "status": "success"
-  },
-  "status": {
+  "scientific_status": {
     "archive_HDF5_field_inventory": "PASS",
-    "native_H_exact_reproduction": "NOT_ESTABLISHED",
-    "candidate_solver_or_evolution": "NOT_RUN",
+    "exact_native_H_reproduction": "NOT_ESTABLISHED",
+    "original_ML_Gamma_recovery": "NOT_AVAILABLE_IN_ARCHIVE",
+    "new_native_simulation": "NOT_RUN",
     "dynamical_stability": "NOT_ESTABLISHED",
     "EOS_Bayes": "NOT_RUN"
-  }
+  },
+  "interpretation": "The original archive includes auxiliary planar HDF5 slices and the pinned ML_BSSN source package, but no archived evolved contracted conformal connection data or restart checkpoint. Therefore the native H discrepancy cannot be exactly reconstructed from the saved fields alone; the source snapshot and parameter files permit a fresh native rerun with ML_Gamma output, but no rerun is claimed here."
 }
