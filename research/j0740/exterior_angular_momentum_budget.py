@@ -54,7 +54,13 @@ def controls():
         assert abs(integral(b['independent_constraint'],c,h,2)-f)<1e-12
         assert abs(integral(b['native_constraint'],c,h,2)-f)<1e-12
         assert abs(integral(b['non_killing'],c,h,2))<1e-12
-        assert abs(integral(b['discrete_product_defect'],c,h,2))<1e-12
+        # Centered FD2 differentiates x^3/2 with an exact +h^2/2 defect;
+        # FD4 is exact for this cubic. Test the known defect, not zero for FD2.
+        expected_defect=(h[0]**2/2 if order==2 else 0.)*64/(8*np.pi)
+        measured_defect=integral(b['discrete_product_defect'],c,h,2)
+        assert abs(measured_defect-expected_defect)<1e-12
+        assert abs(integral(b['flux_divergence'],c,h,2)-f-expected_defect)<1e-12
+        print('POLYNOMIAL_PRODUCT_CONTROL',order,measured_defect,expected_defect,flush=True)
     print('EXTERIOR_BUDGET_ANALYTIC_CONTROLS_PASS',flush=True)
 
 def main():
