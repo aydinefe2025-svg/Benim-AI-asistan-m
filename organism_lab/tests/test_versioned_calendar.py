@@ -142,3 +142,31 @@ class LegacyDispatchTests(unittest.TestCase):
         self.assertEqual(inspect_day(self.root,day='2026-11-27')['status'],'verified')
         self.assertEqual(day,run_day(self.root,day='2026-11-27'))
         self.assertEqual(self.state.read_bytes(),self.state.read_bytes())
+
+
+class RealV1Tick168AnchorCompatibility(unittest.TestCase):
+    def test_27_nov_real_v1_digest_to_28_nov_hypothetical_v2(self):
+        """The 28-Nov result is hypothetical local replay, not a scheduled run."""
+        from organism_lab.genome_checkpoint import _replay, _snapshot, _serialize
+        from organism_lab.calendar_cycle import _report_for_day
+        parameters={"seed":17,"capacity":24,"resources_per_tick":12,
+                    "mutation_rate":0.02,"allow_replication":True}
+        original={"schema":"genome-replay-checkpoint-v1","parameters":parameters,
+                  "ticks":168,"state":_snapshot(_replay(parameters,168))}
+        original["sha256"]=_hash(original)
+        self.assertEqual(original["sha256"],
+             "39ef30ef9ffefec545c9030062c0f994c26e9936ba09981a7aa269bcfac5fc34")
+        report27=_report_for_day("2026-11-27",168,parameters)
+        self.assertEqual(report27["sha256"],
+             "14a2f3bdd6b14843ebc99155d710b7c2b83217c22fca9f54feef724e0530c4de")
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/"daily").mkdir()
+            state=root/"genome-state.json";state.write_bytes(_serialize(original))
+            old=root/"daily"/"2026-11-27.json";old.write_bytes(_serialize(report27))
+            old_bytes=old.read_bytes()
+            report=run_day_v2(root,day="2026-11-28",expected_anchor_sha=original["sha256"])
+            self.assertEqual(report["schema"],"cano-calendar-digital-cycle-v2")
+            self.assertEqual((report["observed"]["births"],report["observed"]["deaths"],report["observed"]["population"]),(241,230,12))
+            self.assertEqual(report["division_disabled_control"]["births"],0)
+            self.assertEqual(old.read_bytes(),old_bytes)
+            self.assertEqual(inspect_day_v2(root,day="2026-11-28")["status"],"verified")
