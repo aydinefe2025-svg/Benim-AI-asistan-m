@@ -145,3 +145,15 @@ jobs:
             organism_checkpoint_output/state.json
           if-no-files-found: error
           retention-days: 30
+
+  checkpoint-v2-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify atomic no-clobber V2 report and Windows restart
+        run: python -m unittest organism_lab.tests.test_versioned_calendar organism_lab.tests.test_versioned_calendar_workflows -v
