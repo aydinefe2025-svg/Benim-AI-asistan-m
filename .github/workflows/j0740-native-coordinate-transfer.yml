@@ -1,0 +1,194 @@
+name: J0740 native coordinate-mapped corrected state
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-native-coordinate-transfer.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  transfer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - name: Verify original source, exact checkpoint, and already corrected state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence source native corrected
+          for pair in '15177726961 source' '15236058506 native' '15236490701 corrected'; do
+              read -r id name <<< "$pair"
+              gh api repos/${{ github.repository }}/actions/artifacts/"$id"/zip > "$name.zip"
+          done
+          printf '%s\n' 'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073  source.zip' '94ac5249316c8240ea6ef3d4bc9b0ca10abef757566f959d6398a29f44bc31a6  native.zip' '8168aabb0ccb494b642718ba9e4aa0ed76c2eb260162147051bc0894d95e6d3c  corrected.zip' > evidence/input.sha256
+          sha256sum -c evidence/input.sha256
+          unzip -q source.zip 'run/*.xyz.h5' -d source
+          unzip -q native.zip -d native
+          unzip -q corrected.zip -d corrected
+          python3 -m pip install numpy h5py
+      - name: Resolve coordinate crops, verify all 27 original arrays, and construct native-sized replacements
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,re,json,numpy as np,h5py
+          out=pathlib.Path('evidence')
+          grid=json.loads(pathlib.Path('native/candidate_grid.json').read_text())
+          identity=json.loads(pathlib.Path('native/handoff_identity.json').read_text())
+          app=json.loads(pathlib.Path('corrected/application.json').read_text())
+          assert identity['exact_match'] and identity['transfer_identity_gate'] and app['nonlinear_archive_gate']
+          shape=tuple(grid['shape']);o=np.array(grid['origin']);h=np.array(grid['delta'])
+          def crop(fullshape,origin,delta):
+              assert np.array_equal(delta,h),(delta,h)
+              offset=(o-origin)/delta
+              assert np.allclose(offset,np.rint(offset),rtol=0,atol=1e-10),offset
+              off=np.rint(offset).astype(int)[::-1]
+              assert np.all(off>=0) and np.all(off+shape<=np.array(fullshape)),(off,shape,fullshape)
+              return tuple(slice(int(i),int(i+n)) for i,n in zip(off,shape)),off.tolist()
+          fields={}
+          for f in sorted(pathlib.Path('source').rglob('*.xyz.h5')):
+              with h5py.File(f,'r') as z:
+                  def visit(n,x):
+                      if not isinstance(x,h5py.Dataset) or tuple(x.shape)!=shape or not re.search(r'\bit=128\b.*\brl=2\b',n):return
+                      if not np.array_equal(x.attrs.get('origin'),o) or not np.array_equal(x.attrs.get('delta'),h):return
+                      name=n.split()[0].lower();assert name not in fields
+                      fields[name]=x[...]
+                  z.visititems(visit)
+          assert len(fields)==27
+          comp=((0,0),(0,1),(0,2),(1,1),(1,2),(2,2))
+          def tensor(prefix):
+              q=np.empty(shape+(3,3))
+              for i,j in comp:q[...,i,j]=q[...,j,i]=fields['admbase::'+prefix+'xyz'[i]+'xyz'[j]]
+              return q
+          g=tensor('g');K=tensor('k')
+          rho,eps,p=[fields['hydrobase::'+q] for q in ('rho','eps','press')]
+          v=np.stack([fields[f'hydrobase::vel[{i}]'] for i in range(3)],axis=-1)
+          with h5py.File('corrected/corrected_native_state.h5','r') as f:
+              assert not f.attrs['restartable'] and np.array_equal(f.attrs['origin_xyz'],o) and np.array_equal(f.attrs['delta_xyz'],h)
+              G=f['corrected/metric'][...];KP=f['corrected/curvature'][...]
+              assert np.array_equal(rho,f['corrected/rho'][...]) and np.array_equal(v,f['corrected/vel'][...])
+          def algebra(metric,curv):
+              det=np.linalg.det(metric);assert np.all(det>0)
+              phi=np.log(det)/12;chi=np.exp(-4*phi)
+              tr=np.einsum('...ij,...ij->...',np.linalg.inv(metric),curv)
+              gt=metric*chi[...,None,None]
+              at=(curv-metric*tr[...,None,None]/3)*chi[...,None,None]
+              vc=np.einsum('...ij,...j->...i',metric,v);speed=np.einsum('...i,...i->...',v,vc);assert np.all(speed<1)
+              W=1/np.sqrt(1-speed);sg=np.sqrt(det);q=(rho*(1+eps)+p)*W**2
+              return dict(phi=phi,chi=chi,w=np.sqrt(chi),gt=gt,at=at,trk=tr,w_lorentz=W,dens=sg*rho*W,scon=sg[...,None]*q[...,None]*vc,tau=sg*(q-p-rho*W))
+          b=algebra(g,K);a=algebra(G,KP)
+          def err(x,y):return float(np.max(abs(x-y))/max(float(np.max(abs(y))),1e-15))
+          cp=list(pathlib.Path('native').rglob('checkpoint.it_128.h5'));assert len(cp)==1
+          old={};locations={}
+          with h5py.File(cp[0],'r') as f:
+              def visit(n,x):
+                  if not isinstance(x,h5py.Dataset) or x.ndim!=3 or not re.search(r'\bit=128\b.*\btl=0\b.*\brl=2\b',n):return
+                  name=n.split()[0].lower();assert name not in old
+                  sl,off=crop(x.shape,np.asarray(x.attrs['origin']),np.asarray(x.attrs['delta']))
+                  old[name]=x[sl]
+                  locations[name]=(n,sl,off,list(x.shape))
+              f.visititems(visit)
+          matches={name:err(old[name],x) for name,x in fields.items()}
+          report={'scope':'coordinate matched native current time fine-grid replacements only; not restartable','source_shape':list(shape),'source_origin':o.tolist(),'native_shape':locations['admbase::gxx'][3],'offset_zyx':locations['admbase::gxx'][2],'source_field_errors':matches,'source_fields_exact':sum(np.array_equal(old[name],x) for name,x in fields.items()),'native_algebra':{},'unverified':[],'replacement_names':[],'native_restart_ready':False}
+          (out/'coordinate_transfer.json').write_text(json.dumps(report,indent=2))
+          print('COORDINATE_IDENTITY',json.dumps(report,allow_nan=False),flush=True)
+          assert report['source_fields_exact']==27
+          # Reconstruct the physical ADM fields from the actual native BSSN state.
+          # A nearly zero trace/diagonal component is not an independent
+          # normalization scale for a tensor. Keep its original relative error
+          # as a diagnostic, and require a separate full-tensor inverse identity.
+          gt=np.empty_like(g);at=np.empty_like(K)
+          for i,j in comp:
+              gt[...,i,j]=gt[...,j,i]=old['ml_bssn::gt'+str(i+1)+str(j+1)]
+              at[...,i,j]=at[...,j,i]=old['ml_bssn::at'+str(i+1)+str(j+1)]
+          phi=old['ml_bssn::phi'];trk=old['ml_bssn::trk']
+          ng=gt*np.exp(4*phi)[...,None,None]
+          nk=at*np.exp(4*phi)[...,None,None]+ng*trk[...,None,None]/3
+          gerr=err(ng,g);kerr=err(nk,K)
+          report['native_inverse_identity']={'metric_relative_max':gerr,'curvature_tensor_relative_max':kerr,'curvature_abs_max':float(np.max(abs(nk-K))),'curvature_reference_max':float(np.max(abs(K))),'At33_abs_max':float(np.max(abs(at[...,2,2]-b['at'][...,2,2]))),'trK_abs_max':float(np.max(abs(trk-b['trk']))),'native_det_error':float(np.max(abs(np.linalg.det(gt)-1))),'native_tracefree_error':float(np.max(abs(np.einsum('...ij,...ij->...',np.linalg.inv(gt),at))))}
+          print('NATIVE_INVERSE_IDENTITY',json.dumps(report['native_inverse_identity'],allow_nan=False),flush=True)
+          (out/'coordinate_transfer.json').write_text(json.dumps(report,indent=2))
+          assert gerr<=1e-8 and kerr<=1e-8,'native physical tensor inverse identity failed'
+          # Exact native-coordinate transport: preserve native conformal
+          # metric and trace, and transform the tracefree curvature with
+          # the already accepted physical correction difference.
+          delta_at=a['at']-b['at']
+          new_at=at+delta_at
+          new_phi=phi+(a['phi']-b['phi'])
+          new_g=gt*np.exp(4*new_phi)[...,None,None]
+          new_k=new_at*np.exp(4*new_phi)[...,None,None]+new_g*trk[...,None,None]/3
+          report['corrected_inverse_identity']={'metric_relative_max':err(new_g,G),'curvature_tensor_relative_max':err(new_k,KP),'tracefree_change_max':float(np.max(abs(np.einsum('...ij,...ij->...',np.linalg.inv(gt),delta_at))))}
+          print('CORRECTED_INVERSE_IDENTITY',json.dumps(report['corrected_inverse_identity'],allow_nan=False),flush=True)
+          assert report['corrected_inverse_identity']['metric_relative_max']<=1e-8 and report['corrected_inverse_identity']['curvature_tensor_relative_max']<=1e-8 and report['corrected_inverse_identity']['tracefree_change_max']<=1e-12
+          changes={}
+          for i,j in comp:
+              for prefix,arr in [('g',G),('k',KP)]:
+                  name='admbase::'+prefix+'xyz'[i]+'xyz'[j]
+                  changes[name]=arr[...,i,j]
+          for name,x in old.items():
+              leaf=name.split('::')[-1]
+              opts=[]
+              if name.startswith('ml_bssn::'):
+                  if leaf in ('phi','chi','w','cf'):opts=[(k,b[k],a[k]) for k in ('phi','chi','w')]
+                  elif leaf in ('trk','k'):opts=[('trk',b['trk'],a['trk'])]
+                  else:
+                      m=re.fullmatch(r'(gt|at)([123])([123])',leaf)
+                      if m:
+                          q=m[1];i=int(m[2])-1;j=int(m[3])-1;opts=[(q,b[q][...,i,j],a[q][...,i,j])]
+              elif name.startswith('grhydro::'):
+                  if leaf in ('dens','tau'):opts=[(leaf,b[leaf],a[leaf])]
+                  m=re.fullmatch(r'scon\[([012])\]',leaf)
+                  if m:
+                      i=int(m[1]);opts=[('scon',b['scon'][...,i],a['scon'][...,i])]
+              elif name=='hydrobase::w_lorentz':opts=[(leaf,b[leaf],a[leaf])]
+              if not opts:continue
+              q,before,after=min(opts,key=lambda p:err(p[1],x));e=err(before,x)
+              report['native_algebra'][name]={'representation':q,'original_normalized_error':e,'verified':e<=1e-8}
+              if e>1e-8:
+                  # The native ADM inverse test above uses the full physical
+                  # tensor and is independent of tiny component denominators.
+                  # Record both tests, never erase the component failure.
+                  if q not in ('at','trk'):
+                      report['unverified'].append(name);continue
+                  report['native_algebra'][name]['component_relative_gate']=False
+                  report['native_algebra'][name]['verified_by_full_tensor_inverse']=True
+              if q in ('gt','trk'):
+                  assert np.max(abs(after-before))<1e-12
+                  continue
+              changes[name]=x+(after-before)
+          # Keep the native storage extent and untouched cells bit-exact.
+          # Do not export a misleading runnable checkpoint or change stored H/M.
+          with h5py.File(cp[0],'r') as src,h5py.File(out/'native_replacement_fields.h5','w') as dst:
+              dst.attrs['restartable']=False;dst.attrs['scope']='rl2 tl0 only'
+              for name,x in changes.items():
+                  n,sl,off,sh=locations[name];raw=src[n][...];full=raw.copy();full[sl]=x
+                  d=dst.create_dataset(n,data=full,compression='gzip')
+                  for key,val in src[n].attrs.items():d.attrs[key]=val
+                  mask=np.ones(raw.shape,bool);mask[sl]=False
+                  assert np.array_equal(full[mask],raw[mask])
+                  report['replacement_names'].append(name)
+          with h5py.File(out/'native_replacement_fields.h5','r') as f:
+              for name,x in changes.items():
+                  n,sl,_,_=locations[name];assert np.array_equal(f[n][sl],x)
+          report['replacement_count']=len(changes)
+          required=['grhydro::dens','grhydro::tau','grhydro::scon[0]','grhydro::scon[1]','grhydro::scon[2]','hydrobase::w_lorentz']+['ml_bssn::at'+str(i+1)+str(j+1) for i,j in comp]
+          report['required_missing']=sorted(set(required)-set(changes))
+          report['conformal_replacement_present']=any(q['representation'] in ('phi','chi','w') and n in changes for n,q in report['native_algebra'].items())
+          report['current_time_mapping_gate']=not report['required_missing'] and report['conformal_replacement_present'] and not report['unverified']
+          report['unmapped_native_variables']=sorted(set(old)-set(changes)-set(report['native_algebra']))
+          (out/'coordinate_transfer.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+          print('NATIVE_COORDINATE_TRANSFER',json.dumps(report,allow_nan=False),flush=True)
+          assert report['current_time_mapping_gate'],'native current-time mapping incomplete'
+          PY
+          sha256sum evidence/native_replacement_fields.h5 evidence/coordinate_transfer.json > evidence/output.sha256
+          sha256sum -c evidence/output.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-native-coordinate-transfer
+          path: evidence/
+          if-no-files-found: error
