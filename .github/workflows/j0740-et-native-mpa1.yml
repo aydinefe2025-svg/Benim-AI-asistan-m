@@ -1,4 +1,4 @@
-name: J0740 MPA1 fine-grid 15 degree convergence diagnostic
+name: J0740 MPA1 first-step spatial momentum diagnostic
 on:
   pull_request:
     branches: [main]
@@ -17,7 +17,7 @@ jobs:
         include:
           - dx: '1.5'
             finest: '0.375'
-            duration: '24.5625'
+            duration: '0.375'
             trial: retarget
             solver: HLLC
     env:
@@ -64,7 +64,7 @@ jobs:
           setparam('IOScalar::outScalar_every','1')
           setparam('IOBasic::outInfo_every','8192')
           setparam('IOASCII::out1D_every','1')
-          setparam('CarpetIOHDF5::out2D_every','2048')
+          setparam('CarpetIOHDF5::out2D_every','128')
           setparam('TerminationTrigger::max_walltime','5')
           setparam('TerminationTrigger::on_remaining_walltime','10')
           setparam('CarpetRegrid2::num_levels_1','3')
@@ -73,7 +73,7 @@ jobs:
           for axis in 'xyz': setparam('CoordBase::'+axis+'max','48.0')
           assert float(os.environ['DX'])/4==float(os.environ['FINEST'])
           # Initial and sparse later 3D snapshots support independent AMR mass and angular-momentum integrals.
-          s+='\nCarpetIOHDF5::out3D_every = 16384\nCarpetIOHDF5::out3D_vars = "GRHydro::dens ADMBase::metric ADMBase::curv ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::press HydroBase::eps HydroBase::vel"\n'
+          s+='\nCarpetIOHDF5::out3D_every = 128\nCarpetIOHDF5::out3D_vars = "GRHydro::dens ADMBase::metric ADMBase::curv ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::press HydroBase::eps HydroBase::vel ML_BSSN::H ML_BSSN::M1 ML_BSSN::M2 ML_BSSN::M3"\n'
           s,n=re.subn(r'(IOASCII::out1D_vars\s*=\s*"[^\"]*?ADMBase::lapse)',r'\1\n ADMBase::shift',s,flags=re.S); assert n==1
           # Rigid rotation breaks x/y mirror symmetry. Keep equatorial z symmetry only.
           for axis in 'xy':
@@ -766,9 +766,69 @@ jobs:
           (d/'rotation_stages.json').write_text(json.dumps(result,indent=2,allow_nan=False))
           print('ROTATION_STAGES',json.dumps(result,allow_nan=False))
           PY
+      - name: Localize first measured momentum excursion on native grid patches
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install h5py numpy
+          python3 - <<'PY'
+          import pathlib, re, json, numpy as np, h5py
+          d=pathlib.Path('evidence'); run=d/'run'
+          report={'scope':'raw patch-local snapshots, not ghost-excluded composite AMR norms or RK-stage causality','baseline_run':45906191179,'patches':[]}
+          def save():
+              (d/'first_step_spatial.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+              print('FIRST_STEP_SPATIAL',json.dumps(report,allow_nan=False))
+          try:
+              stage=json.loads((d/'rotation_stages.json').read_text())
+              first=stage['first_threshold_crossings']['M_2_0.01']['row']
+              expected=[128.,.09375,1.19179895439447e-6,1.19179895439448e-6,4.73204536862074e-7]
+              report['first_crossing']=first
+              report['reproduces_baseline_first_crossing']=first is not None and bool(np.allclose(first,expected,rtol=1e-5,atol=1e-14))
+              assert report['reproduces_baseline_first_crossing'], 'first crossing differs from archived baseline'
+              files=sorted(run.rglob('*.xyz.h5')); report['hdf5_files']=[str(p.relative_to(run)) for p in files]
+              fields={}
+              for p in files:
+                  with h5py.File(p,'r') as h:
+                      def visit(name,obj):
+                          if not isinstance(obj,h5py.Dataset) or obj.ndim!=3:return
+                          leaf=name.rsplit('/',1)[-1]
+                          m=re.match(r'(?i)(?:ML_BSSN::M3|HYDROBASE::rho)\s+it=(\d+)\s+(.*)',leaf)
+                          if not m:return
+                          it=int(m.group(1)); key=m.group(2); var=leaf.split()[0].lower()
+                          if it not in (0,128):return
+                          assert (var,it,key) not in fields,(var,it,key)
+                          fields[var,it,key]=(obj[...],np.asarray(obj.attrs['origin'],float),np.asarray(obj.attrs['delta'],float))
+                      h.visititems(visit)
+              for var,it,key in sorted(fields):
+                  if var!='ml_bssn::m3' or it!=128:continue
+                  keys=[('ml_bssn::m3',0,key),('hydrobase::rho',0,key),('hydrobase::rho',128,key)]
+                  if not all(k in fields for k in keys):continue
+                  a,o,dx=fields[var,it,key]; b,ob,db=fields[keys[0]]; rho,orr,dr=fields[keys[1]]; r1,o1,d1=fields[keys[2]]
+                  assert a.shape==b.shape==rho.shape==r1.shape
+                  assert all(np.array_equal(o,v) for v in (ob,orr,o1)) and all(np.array_equal(dx,v) for v in (db,dr,d1))
+                  assert all(np.isfinite(v).all() for v in (a,b,rho,r1))
+                  change=a-b; dense=rho>1e-8
+                  near=dense.copy()
+                  for axis in range(3):
+                      lo=[slice(None)]*3;hi=lo.copy();lo[axis]=slice(None,-1);hi[axis]=slice(1,None)
+                      near[tuple(lo)] |= dense[tuple(hi)]; near[tuple(hi)] |= dense[tuple(lo)]
+                  masks={'initial_dense':dense,'adjacent_atmosphere':near & ~dense,'other_atmosphere':~near}
+                  row={'patch':key,'origin_xyz':o.tolist(),'delta_xyz':dx.tolist(),'shape_zyx':list(a.shape),'regions':{}}
+                  for label,mask in masks.items():
+                      if not np.any(mask):continue
+                      idx=np.unravel_index(np.argmax(np.where(mask,abs(change),-1)),a.shape)
+                      row['regions'][label]={'points':int(mask.sum()),'rms_change':float(np.sqrt(np.mean(change[mask]**2))),'peak_abs_change':float(abs(change[idx])),'peak_xyz':(o+dx*np.array(idx[::-1])).tolist(),'M3_initial':float(b[idx]),'M3_first':float(a[idx]),'rho_initial':float(rho[idx]),'rho_first':float(r1[idx])}
+                  report['patches'].append(row)
+              assert report['patches'], 'no matching native M3/rho snapshots at iteration 0 and 128'
+              report['localized']=True
+          except Exception as e:
+              report['localized']=False; report['error']=str(e); save(); raise
+          save()
+          PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-fine-rotation-stages-15deg
+          name: independent-et-native-mpa1-${{ matrix.solver }}-dx-${{ matrix.dx }}-${{ matrix.trial }}-first-step-localization
           path: evidence/
           if-no-files-found: error
