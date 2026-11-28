@@ -90,9 +90,9 @@ def tests():
     check_adj(np.dot(aug@z,y),np.dot(z,aug.rmatvec(y)),"right-preconditioned augmented operator")
     target=np.r_[np.ones(3),np.zeros(3)]
     sol=lsmr(aug,target,atol=1e-10,btol=1e-10,maxiter=20)
-    x=scale*sol[0]
+    recovered=scale*sol[0]
     exact=(dense.T@np.ones(3))/(np.diag(dense)**2+.01**2)
-    assert np.allclose(x,exact,rtol=1e-8,atol=1e-10),(x,exact,sol[1:3])
+    assert np.allclose(recovered,exact,rtol=1e-8,atol=1e-10),(recovered,exact,sol[1:3])
     l=geo.long(x);assert np.max(abs(contract(geo.gi,l)))<1e-12
     e1=check_adj(np.sum(l*y),np.sum(x*geo.long_adj(y)),'long')
     e2=check_adj(np.sum(geo.mom(y)*v),np.sum(y*geo.mom_adj(v)),'mom')
