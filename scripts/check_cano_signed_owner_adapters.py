@@ -32,17 +32,20 @@ def main():
             login_clause = "NOLOGIN" if role == "cano_snapshot_runtime" else "LOGIN PASSWORD 'synthetic-role-only'"
             conn.execute(f"CREATE ROLE {role} {login_clause} NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB")
             conn.execute(f"GRANT USAGE ON SCHEMA public TO {role}")
+        conn.execute("GRANT cano_snapshot_runtime TO cano_snapshot_app")
         provision_sql = Path(__file__).with_name("cano_owner_proof_provision_candidate.sql").read_text()
         conn.execute(provision_sql)
         # Existing schema/table/extension/function state must validate safely on a second run.
         conn.execute(provision_sql)
         assert conn.execute("SELECT NOT rolcanlogin FROM pg_roles WHERE rolname='cano_snapshot_runtime'").fetchone()[0]
-        assert conn.execute("SELECT cano_context_proof.constant_time_equal(decode(%s,'hex'),decode(%s,'hex'))",
+        assert conn.execute("SELECT cano_context_proof.fixed_work_equal(decode(%s,'hex'),decode(%s,'hex'))",
                             ("ab"*32,"ab"*32)).fetchone()[0]
-        assert not conn.execute("SELECT cano_context_proof.constant_time_equal(decode(%s,'hex'),decode(%s,'hex'))",
+        assert not conn.execute("SELECT cano_context_proof.fixed_work_equal(decode(%s,'hex'),decode(%s,'hex'))",
                                 ("ab"*32,"ac"+"ab"*31)).fetchone()[0]
-        assert not conn.execute("SELECT cano_context_proof.constant_time_equal(decode(%s,'hex'),decode(%s,'hex'))",
+        assert not conn.execute("SELECT cano_context_proof.fixed_work_equal(decode(%s,'hex'),decode(%s,'hex'))",
                                 ("ab"*32,"ab"*31)).fetchone()[0]
+        assert not conn.execute("SELECT cano_context_proof.fixed_work_equal(decode(%s,'hex'),decode(%s,'hex'))",
+                                ("ab"*31,"ab"*31+"ac")).fetchone()[0]
         for role in ROLES:
             conn.execute("INSERT INTO cano_context_proof.signing_key VALUES (%s,%s)", (role, bytes.fromhex(keys[role])))
         for table, roles in MATRIX.items():
@@ -92,6 +95,11 @@ def main():
     assert grant["id"] == job["id"]
     assert PostgresLocalGrant(url("agent_task_app")).take(grant["grant"])["job_id"] == job["id"]
     assert PostgresLocalGrant.revoke(queue, job["id"], approved=True)["status"] == "blocked"
+
+    with psycopg.connect(url("cano_snapshot_app")) as role_conn:
+        role_conn.execute("SET ROLE cano_snapshot_runtime")
+        assert role_conn.execute("SELECT current_user").fetchone()[0] == "cano_snapshot_runtime"
+        role_conn.execute("RESET ROLE")
 
     print("SIGNED_REAL_ADAPTERS_PASS: dedicated direct login, memory, task, snapshot, queue, local capability, default deny")
 
