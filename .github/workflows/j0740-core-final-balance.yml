@@ -1,0 +1,251 @@
+name: J0740 measured central shape feasibility
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-core-final-balance.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [core_016, core_024, core_030]
+    env:
+      MODE: ${{ matrix.mode }}
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '2'
+    steps:
+      - name: Obtain immutable native checkpoint, accepted replacements and executable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence native replacement engine prior quarter accepted extended zero
+          for pair in '15177726961 source' '15236058506 native' '15237233815 replacement' '15222698787 engine'; do
+              read -r id name <<< "$pair"
+              gh api repos/${{ github.repository }}/actions/artifacts/"$id"/zip > "$name.zip"
+          done
+          printf '%s\n' 'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073  source.zip' '94ac5249316c8240ea6ef3d4bc9b0ca10abef757566f959d6398a29f44bc31a6  native.zip' '0c05f52399c460cbcd56959cd1b162ade7db6224fc1f8aaf45e0f55f314b5da0  replacement.zip' '659f80b0c12d13a322abe97d2724eda394dc0219e4f20f816b94c21e02f16f6a  engine.zip' > evidence/input.sha256
+          sha256sum -c evidence/input.sha256
+          unzip -q source.zip control.par model_rnsid_crust.rns mpa1_eos_omni_fixed.dat image-digest.txt -d evidence
+          unzip -q native.zip -d native
+          unzip -q replacement.zip -d replacement
+          unzip -q engine.zip -d engine
+          gh api repos/${{ github.repository }}/actions/artifacts/15255565963/zip > prior.zip
+          echo '219e8282a853b595f936e143d7ecdf0277e5873ee621d06ce7831f491993c806  prior.zip' | sha256sum -c -
+          unzip -q prior.zip -d prior
+          gh api repos/${{ github.repository }}/actions/artifacts/15255749034/zip > quarter.zip
+          echo 'b0fe21f8c8bf18095141b3c244563843c9f566b60b5b6017af5766d8e17fe8c2  quarter.zip' | sha256sum -c -
+          unzip -q quarter.zip -d quarter
+          gh api repos/${{ github.repository }}/actions/artifacts/15257007179/zip > accepted.zip
+          echo 'e9ddcebec7062fafd18cecadf910ef9116887f0969d4d0d14e1a743c1ff12443  accepted.zip' | sha256sum -c -
+          unzip -q accepted.zip -d accepted
+          gh api repos/${{ github.repository }}/actions/artifacts/15256449551/zip > extended.zip
+          echo 'b8e55f23e4de185619dc5bf5b7d187231fc75dc88641755fa7c3a2f705040405  extended.zip' | sha256sum -c -
+          python3 - <<'PY'
+          import zipfile,pathlib
+          with zipfile.ZipFile('extended.zip') as z:
+              n=[n for n in z.namelist() if pathlib.PurePosixPath(n).name=='extended_result.json'];assert len(n)==1
+              z.extract(n[0],'extended')
+          PY
+          rm extended.zip
+          gh api repos/${{ github.repository }}/actions/artifacts/15258134867/zip > zero.zip
+          echo '88961e5376e221190392b9b30fa6690f24ccd186ebbda176f70b49eb3d0ff383  zero.zip' | sha256sum -c -
+          python3 - <<'PY'
+          import zipfile,pathlib
+          with zipfile.ZipFile('zero.zip') as z:
+              n=[n for n in z.namelist() if pathlib.PurePosixPath(n).name=='extended_result.json'];assert len(n)==1
+              z.extract(n[0],'zero')
+          PY
+          rm zero.zip
+          (cd engine && sha256sum -c SHA256SUMS)
+          cmp evidence/image-digest.txt engine/image-digest.txt
+          cp engine/cactus_sim evidence/cactus_sim
+          chmod +x evidence/cactus_sim
+          python3 -m pip install numpy h5py
+      - name: Reconstruct consistent native ADM and hydro fields with separated correction components
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,json,re,shutil,os,numpy as np,h5py
+          mode=os.environ['MODE'];sp=.025;plane=mixed=0.;inner,outer=-.024,0.;core={'core_016':.016,'core_024':.024,'core_030':.030}[mode]
+          d=pathlib.Path('evidence');report=json.loads(pathlib.Path('replacement/coordinate_transfer.json').read_text())
+          assert report['current_time_mapping_gate'] and report['source_fields_exact']==27 and report['replacement_count']==25
+          orig=list(pathlib.Path('native').rglob('checkpoint.it_128.h5'));assert len(orig)==1
+          for label in ('baseline','corrected'):
+              folder=d/label/'incoming';folder.mkdir(parents=True)
+              shutil.copyfile(orig[0],folder/'checkpoint.it_128.h5')
+              (d/label/'run').mkdir()
+          comp=((0,0),(0,1),(0,2),(1,1),(1,2),(2,2))
+          phi_name='ml_bssn::phi'
+          at_names=['ml_bssn::at'+str(i+1)+str(j+1) for i,j in comp]
+          def identity(n):
+              m=re.fullmatch(r'(.+) it=128 tl=(\d+) rl=(\d+)',n)
+              return (m[1].lower(),int(m[2]),int(m[3])) if m else None
+          rows=[];changed_names=[]
+          with h5py.File(orig[0],'r') as src,h5py.File('replacement/native_replacement_fields.h5','r') as rep,h5py.File(d/'corrected/incoming/checkpoint.it_128.h5','r+') as dst:
+              idx={identity(n):n for n in src if identity(n) and isinstance(src[n],h5py.Dataset) and src[n].ndim==3}
+              def native(name,tl,rl):return src[idx[name,tl,rl]]
+              def raw(name,tl,rl):return native(name,tl,rl)[...]
+              def write(name,tl,rl,a):
+                  n=idx[name,tl,rl];assert a.shape==src[n].shape
+                  assert np.isfinite(a).all(),n
+                  dst[n][...]=a
+                  assert np.array_equal(dst[n][...],a),n
+                  changed_names.append(n)
+              fine=native(phi_name,0,2)
+              origin=np.array(fine.attrs['origin']);spacing=np.array(fine.attrs['delta'])
+              dp=rep[idx[phi_name,0,2]][...]-fine[...]
+              da=np.zeros(dp.shape+(3,3))
+              for (i,j),name in zip(comp,at_names):da[...,i,j]=da[...,j,i]=rep[idx[name,0,2]][...]-raw(name,0,2)
+              # Use only the already isolated native current fine-grid region.
+              for rl in (0,1,2):
+                  for tl in (0,1,2):
+                      if (tl,rl)!=(0,2):continue
+                      target=native(phi_name,tl,rl)
+                      zz,yy,xx=np.ogrid[:dp.shape[0],:dp.shape[1],:dp.shape[2]]
+                      radius=np.sqrt((origin[0]+spacing[0]*xx)**2+(origin[1]+spacing[1]*yy)**2+(origin[2]+spacing[2]*zz)**2)
+                      q=np.clip((radius-6.)/4.,0.,1.)
+                      w=q*q*(3-2*q)
+                      # Smooth complementary radial partition, no hard interface or symmetry break.
+                      assert np.all((w>=0)&(w<=1))
+                      qcore=np.clip((radius-2.)/3.,0.,1.)
+                      core_weight=1-qcore*qcore*(3-2*qcore)
+                      du=(sp+inner*(1-w)+outer*w+core*core_weight)*dp
+                      dA=plane*da.copy()
+                      for i in (0,1):dA[...,i,2]=dA[...,2,i]=mixed*da[...,i,2]
+                      mask=(du!=0)|np.any(dA!=0,axis=(-1,-2))
+                      assert mask.any()
+                      gt=np.empty(target.shape+(3,3));at=np.empty_like(gt)
+                      for (i,j),name in zip(comp,at_names):
+                          gt[...,i,j]=gt[...,j,i]=raw('ml_bssn::gt'+str(i+1)+str(j+1),tl,rl)
+                          at[...,i,j]=at[...,j,i]=raw(name,tl,rl)
+                      gm=gt[mask];gi=np.linalg.inv(gm);am=at[mask]
+                      dd=dA[mask];dd-=gm*(np.einsum('...ij,...ij->...',gi,dd)/3)[...,None,None]
+                      tr=raw('ml_bssn::trk',tl,rl)[mask];p0=target[...][mask];p1=p0+du[mask]
+                      g0=gm*np.exp(4*p0)[...,None,None];g1=gm*np.exp(4*p1)[...,None,None]
+                      k0=am*np.exp(4*p0)[...,None,None]+g0*tr[...,None,None]/3
+                      k1=(am+dd)*np.exp(4*p1)[...,None,None]+g1*tr[...,None,None]/3
+                      def rel(a,b):return float(np.max(abs(a-b))/max(float(np.max(abs(b))),1e-15))
+                      maxg=max(rel(g0[...,i,j],raw('admbase::g'+'xyz'[i]+'xyz'[j],tl,rl)[mask]) for i,j in comp if i==j)
+                      actual_k=np.stack([raw('admbase::k'+'xyz'[i]+'xyz'[j],tl,rl)[mask] for i,j in comp],axis=-1)
+                      reconstructed_k=np.stack([k0[...,i,j] for i,j in comp],axis=-1)
+                      maxk=rel(reconstructed_k,actual_k)
+                      row={'rl':rl,'tl':tl,'mode':mode,'phi_scale':sp,'inner_phi_delta':inner,'outer_phi_delta':outer,'radial_transition':[6.,10.],'core_delta':core,'core_transition':[2.,5.],'points':int(mask.sum()),'original_metric_error':maxg,'original_curvature_error':maxk}
+                      rows.append(row);print('TRANSFER_LEVEL',json.dumps(row),flush=True)
+                      (d/'transfer.json').write_text(json.dumps(rows,indent=2))
+                      assert maxg<=1e-8 and maxk<=1e-8,('history ADM representation mismatch',row)
+                      rho,eps,press=[raw('hydrobase::'+q,tl,rl)[mask] for q in ('rho','eps','press')]
+                      vel=np.stack([raw(f'hydrobase::vel[{i}]',tl,rl)[mask] for i in range(3)],axis=-1)
+                      def matter(g):
+                          cov=np.einsum('...ij,...j->...i',g,vel);speed=np.einsum('...i,...i->...',vel,cov)
+                          assert np.all(speed<1) and np.all(np.linalg.det(g)>0)
+                          W=1/np.sqrt(1-speed);sqrtg=np.sqrt(np.linalg.det(g));q=(rho*(1+eps)+press)*W**2
+                          S=sqrtg[...,None]*q[...,None]*cov
+                          return {'grhydro::dens':sqrtg*rho*W,'grhydro::tau':sqrtg*(q-press-rho*W),'hydrobase::w_lorentz':W,**{f'grhydro::scon[{i}]':S[...,i] for i in range(3)}}
+                      m0,m1=matter(g0),matter(g1)
+                      row['hydro_errors']={n:rel(v,raw(n,tl,rl)[mask]) for n,v in m0.items()}
+                      row['delta_tracefree_error']=float(np.max(np.abs(np.einsum('...ij,...ij->...',gi,dd))))
+                      assert row['delta_tracefree_error']<1e-12
+                      # Zero conformal correction must preserve the original metric and matter.
+                      if sp==0:assert np.array_equal(g0,g1) and all(np.array_equal(m0[n],m1[n]) for n in m0)
+                      if plane==0 and mixed==0:assert not np.any(dd)
+                      (d/'transfer.json').write_text(json.dumps(rows,indent=2))
+                      assert max(row['hydro_errors'].values())<=1e-8,('history primitive/conservative mismatch',row)
+                      changes={phi_name:p1}
+                      for (i,j),n in zip(comp,at_names):
+                          changes[n]=(am+dd)[...,i,j]
+                          changes['admbase::g'+'xyz'[i]+'xyz'[j]]=raw('admbase::g'+'xyz'[i]+'xyz'[j],tl,rl)[mask]+(g1-g0)[...,i,j]
+                          changes['admbase::k'+'xyz'[i]+'xyz'[j]]=raw('admbase::k'+'xyz'[i]+'xyz'[j],tl,rl)[mask]+(k1-k0)[...,i,j]
+                      for n,v in m1.items():changes[n]=raw(n,tl,rl)[mask]+(v-m0[n])
+                      for n,v in changes.items():
+                          full=raw(n,tl,rl);full[mask]=v;write(n,tl,rl,full)
+                      row['count']=len(changes)
+              # Do not forge constraints, stress-energy or connection diagnostics.
+              # Native recovery/evolution must recompute derived quantities.
+              for n in changed_names:assert not re.search(r'::(H|M[123])\b',n,re.I)
+              assert len(changed_names)==len(set(changed_names))==25
+          (d/'transfer.json').write_text(json.dumps({'levels':rows,'changed_count':len(changed_names),'changed_names':changed_names,'history_choice':'unchanged past timelevels, diagnostic discontinuity only','mode':mode,'restart_candidate_only':True},indent=2))
+          print('MULTILEVEL_TRANSFER',json.dumps({'levels':rows,'changed_count':len(changed_names)}),flush=True)
+          # Same executable and physical source in both controls. The native
+          # solver handles recovered fields; no diagnostic seam is accepted as new evidence.
+          base=(d/'control.par').read_text()
+          for label in ('baseline','corrected'):
+              p=base
+              vals={'Cactus::cctk_final_time':'1.5','ML_BSSN::other_timelevels':'3','IO::out_dir':'"/evidence/'+label+'/run"','CarpetIOHDF5::out3D_every':'512','CarpetIOHDF5::checkpoint':'yes','IO::checkpoint_on_terminate':'yes','IO::checkpoint_dir':'"/evidence/'+label+'/checkpoints"','IO::checkpoint_file':'"checkpoint"','IO::checkpoint_keep':'2','IO::recover_dir':'"/evidence/'+label+'/incoming"','IO::recover_file':'"checkpoint"','IO::recover':'"auto"','IO::recover_and_remove':'no'}
+              for k,v in vals.items():
+                  p,n=re.subn(r'^\s*'+re.escape(k)+r'\s*=.*$',lambda _:k+' = '+v,p,flags=re.M);assert n<=1
+                  if n==0:p+='\n'+k+' = '+v+'\n'
+              (d/(label+'.par')).write_text(p)
+          PY
+          sha256sum evidence/baseline/incoming/checkpoint.it_128.h5 evidence/corrected/incoming/checkpoint.it_128.h5 > evidence/checkpoint_inputs.sha256
+      - name: Run paired native restart without touching long-turn evolution
+        run: |
+          set -euo pipefail
+          docker pull "$(cat evidence/image-digest.txt)"
+          for label in corrected; do
+              mkdir -p "evidence/$label/checkpoints"
+              docker run --rm --user 0:0 --entrypoint /bin/bash -v "$PWD/evidence:/evidence" "$(cat evidence/image-digest.txt)" -c 'set -euo pipefail; export OMP_NUM_THREADS=2 OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1; cd /evidence; ./cactus_sim "/evidence/$1.par" 2>&1 | tee "/evidence/$1/native.log"' _ "$label"
+              grep -F 'Recovering parameters from checkpoint file' "evidence/$label/native.log"
+              test -s "evidence/$label/checkpoints/checkpoint.it_2048.h5"
+              if grep -Eq 'NaN/Inf value\(s\) found|scheduling graceful termination of Cactus|count > GRHydro_countmax|Setting the point to atmosphere|Could not solve quadratic equation' "evidence/$label/native.log"; then exit 8; fi
+          done
+          sha256sum -c evidence/checkpoint_inputs.sha256
+      - name: Compare against immutable extended baseline and reject any transverse regression
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,json,numpy as np,h5py,os,re
+          d=pathlib.Path('evidence');out={}
+          f=list(pathlib.Path('extended').rglob('extended_result.json'));assert len(f)==1
+          prior=json.loads(f[0].read_text());assert not prior['extended_pointwise_non_growth']
+          assert prior['histories']['mom']['first_worse_iteration']==[768,768,None]
+          z=list(pathlib.Path('zero').rglob('extended_result.json'));assert len(z)==1
+          zero=json.loads(z[0].read_text());assert zero['candidate']=={'phi_scale':.025,'curvature_scale':0}
+          for token,red in [('ham','norm2'),('mom','norm2'),('rho','maximum'),('dens','sum')]:
+              files=[p for p in (d/'corrected/run').rglob('*.asc') if token in p.name.lower() and red in p.name.lower()]
+              assert len(files)==1,(token,files)
+              c=np.array([list(map(float,l.split())) for l in files[0].read_text().splitlines() if l.strip() and not l.lstrip().startswith('#')])
+              c=c[c[:,0]>128];assert np.isfinite(c).all() and c[:,0].tolist()==list(range(256,2049,128))
+              b=np.asarray(prior['histories'][token]['baseline']);old=np.asarray(prior['histories'][token]['corrected'])
+              assert np.array_equal(c[:,:2],b[:,:2]) and np.array_equal(c[:,:2],old[:,:2])
+              ratio=abs(c[:,2:])/np.maximum(abs(b[:,2:]),1e-30)
+              out[token]={'baseline':b.tolist(),'corrected':c.tolist(),'worst_pointwise_relative':np.max(ratio,axis=0).tolist(),'last_relative':ratio[-1].tolist(),'first_worse_iteration':[int(b[k[0],0]) if len(k:=np.flatnonzero(ratio[:,i]>1)) else None for i in range(ratio.shape[1])],'worst_relative_to_quarter':np.max(abs(c[:,2:])/np.maximum(abs(old[:,2:]),1e-30),axis=0).tolist()}
+          for token in ('ham','mom'):
+              base=np.asarray(out[token]['baseline']);ref=np.asarray(zero['histories'][token]['corrected']);c=np.asarray(out[token]['corrected'])
+              assert np.array_equal(ref[:,:2],c[:,:2])
+              out[token]['relative_delta_from_zero_A']=((c[:,2:]-ref[:,2:])/np.maximum(abs(base[:,2:]),1e-30)).tolist()
+          p=d/'corrected/checkpoints/checkpoint.it_2048.h5';names=[]
+          with h5py.File(p,'r') as h:
+              h.visititems(lambda n,o:names.append(n) if isinstance(o,h5py.Dataset) else None)
+          groups={q:sum(bool(re.search(r'::'+q+r'(\s|$|\[)',n,re.I)) for n in names) for q in ('H','M1','M2','M3')}
+          assert len(names)==860 and groups=={'H':9,'M1':9,'M2':9,'M3':9},groups
+          mode=os.environ['MODE'];inner,outer=-.024,0.;core={'core_016':.016,'core_024':.024,'core_030':.030}[mode]
+          gate=all(max(out[k]['worst_pointwise_relative'])<=1 for k in ('ham','mom'))
+          result={'scope':'matched extended native candidate vs immutable baseline; not full stability','candidate':{'phi_scale':.025,'inner_phi_delta':inner,'outer_phi_delta':outer,'radial_transition':[6.,10.],'core_delta':core,'core_transition':[2.,5.]},'histories':out,'checkpoint_inventory':{'datasets':len(names),'constraints':groups},'extended_pointwise_non_growth':gate,'physical_stability_certified':False}
+          (d/'extended_result.json').write_text(json.dumps(result,indent=2,allow_nan=False))
+          print('CORE_FINAL_BALANCE',json.dumps(result,allow_nan=False),flush=True)
+          assert gate,'at least one of 60 evolved H/M comparisons exceeds the original baseline'
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-core-final-balance-${{ matrix.mode }}
+          path: |
+            evidence/input.sha256
+            evidence/transfer.json
+            evidence/checkpoint_inputs.sha256
+            evidence/baseline.par
+            evidence/corrected.par
+            evidence/baseline/native.log
+            evidence/corrected/native.log
+            evidence/baseline/run/*.asc
+            evidence/corrected/run/*.asc
+            evidence/extended_result.json
+            evidence/corrected/checkpoints/checkpoint.it_2048.h5
+          if-no-files-found: error
