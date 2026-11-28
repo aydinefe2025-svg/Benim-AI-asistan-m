@@ -28,52 +28,31 @@ def main():
     keys = {role: secrets.token_hex(32) for role in ROLES}
     with psycopg.connect(ADMIN) as conn:
         conn.execute(Path(__file__).with_name("cano_local_grant_owner_resolver.sql").read_text())
-        conn.execute("CREATE SCHEMA cano_context_proof_test")
-        conn.execute("CREATE EXTENSION pgcrypto WITH SCHEMA cano_context_proof_test")
-        conn.execute("CREATE TABLE cano_context_proof_test.signing_key (role_name text PRIMARY KEY, secret bytea NOT NULL)")
-        conn.execute("""CREATE OR REPLACE FUNCTION cano_context_proof_test.verified_owner()
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'pg_catalog', 'pg_temp'
-AS $function$
-DECLARE caller text; scoped_owner text; supplied text; signing_secret bytea; expected bytea; 
-BEGIN
-caller := CASE WHEN current_setting('role',true) IS NULL OR current_setting('role',true)='none' THEN session_user::text ELSE current_setting('role',true) END;
-scoped_owner := current_setting('cano.owner_key',true);
-supplied := current_setting('cano.owner_proof',true);
-IF scoped_owner IS NULL OR scoped_owner !~ '^[a-zA-Z0-9_-]{1,128}$' OR supplied IS NULL OR supplied !~ '^[0-9a-f]{64}$' THEN RETURN NULL; END IF;
-SELECT secret INTO signing_secret FROM cano_context_proof_test.signing_key WHERE role_name=caller;
-IF signing_secret IS NULL THEN RETURN NULL; END IF;
-expected := cano_context_proof_test.hmac(convert_to(caller||':'||scoped_owner||':'||pg_current_xact_id()::text||':'||pg_backend_pid()::text,'UTF8'),signing_secret,'sha256');
-IF cano_context_proof_test.hmac(expected,signing_secret,'sha256') = cano_context_proof_test.hmac(decode(supplied,'hex'),signing_secret,'sha256') THEN RETURN scoped_owner; END IF;
-RETURN NULL;
-END $function$
-""")
-        conn.execute("REVOKE ALL ON FUNCTION cano_context_proof_test.verified_owner() FROM PUBLIC")
         for role in ROLES:
             conn.execute(f"CREATE ROLE {role} LOGIN PASSWORD 'synthetic-role-only' NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB")
-            conn.execute(f"GRANT USAGE ON SCHEMA public,cano_context_proof_test TO {role}")
-            conn.execute(f"GRANT EXECUTE ON FUNCTION cano_context_proof_test.verified_owner() TO {role}")
-            conn.execute("INSERT INTO cano_context_proof_test.signing_key VALUES (%s,%s)", (role, bytes.fromhex(keys[role])))
+            conn.execute(f"GRANT USAGE ON SCHEMA public TO {role}")
+        conn.execute(Path(__file__).with_name("cano_owner_proof_provision_candidate.sql").read_text())
+        for role in ROLES:
+            conn.execute("INSERT INTO cano_context_proof.signing_key VALUES (%s,%s)", (role, bytes.fromhex(keys[role])))
         for table, roles in MATRIX.items():
             for role, letters in roles.items():
                 conn.execute(f"GRANT {','.join(PRIVS[x] for x in letters)} ON public.{table} TO {role}")
-            conn.execute(f"ALTER TABLE public.{table} ENABLE ROW LEVEL SECURITY")
-            rolelist = ",".join(roles)
-            conn.execute(f"CREATE POLICY ci_signed_scope ON public.{table} FOR ALL TO {rolelist} USING (owner_key=(SELECT cano_context_proof_test.verified_owner())) WITH CHECK (owner_key=(SELECT cano_context_proof_test.verified_owner()))")
-            conn.execute(f"CREATE POLICY ci_signed_restrictive ON public.{table} AS RESTRICTIVE FOR ALL TO {rolelist} USING (owner_key=(SELECT cano_context_proof_test.verified_owner())) WITH CHECK (owner_key=(SELECT cano_context_proof_test.verified_owner()))")
         for seq, roles in SEQUENCES.items():
             for role in roles:
                 conn.execute(f"GRANT USAGE ON SEQUENCE public.{seq} TO {role}")
-        conn.execute("GRANT EXECUTE ON FUNCTION public.cano_resolve_local_grant_owner(text,text) TO agent_task_app")
+        conn.execute(Path(__file__).with_name("cano_signed_owner_cutover_candidate.sql").read_text())
+        conn.execute(Path(__file__).with_name("cano_signed_owner_rollback_candidate.sql").read_text())
+        assert conn.execute("SELECT count(*) FROM pg_policies WHERE policyname IN ('cano_owner_scope_v1','cano_owner_proof_v1')").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM cano_context_proof.signing_key").fetchone()[0] == 6
+        conn.execute(Path(__file__).with_name("cano_signed_owner_cutover_candidate.sql").read_text())
+        assert conn.execute("SELECT count(*) FROM pg_policies WHERE policyname IN ('cano_owner_scope_v1','cano_owner_proof_v1')").fetchone()[0] == 16
     with psycopg.connect(ADMIN) as conn:
         conn.execute("INSERT INTO private_memory_entries(owner_key,entry_id,payload) VALUES (%s,%s,%s::jsonb)", ("ci-unsigned-target","proof-seed",'{"id":"proof-seed","text":"synthetic"}'))
     with psycopg.connect(url("memory_runtime_app")) as conn:
         assert conn.execute("SELECT current_user=session_user").fetchone()[0]
         conn.execute("SELECT set_config('cano.owner_key',%s,true)",("ci-unsigned-target",))
         assert conn.execute("SELECT count(*) FROM private_memory_entries WHERE owner_key=%s",("ci-unsigned-target",)).fetchone()[0]==0
-        assert not conn.execute("SELECT has_table_privilege(current_user,'cano_context_proof_test.signing_key','SELECT')").fetchone()[0]
+        assert not conn.execute("SELECT has_table_privilege(current_user,'cano_context_proof.signing_key','SELECT')").fetchone()[0]
     os.environ["CANO_OWNER_PROOF_MODE"]="required"
     os.environ["CANO_OWNER_PROOF_KEYS_JSON"]=json.dumps(keys)
     owner = "ci-signed-owner-a"
@@ -138,7 +117,7 @@ END $function$
         assert visible(conn) == 0
     new_key = secrets.token_hex(32)
     with psycopg.connect(ADMIN) as conn:
-        conn.execute("UPDATE cano_context_proof_test.signing_key SET secret=%s WHERE role_name=%s", (bytes.fromhex(new_key), role))
+        conn.execute("UPDATE cano_context_proof.signing_key SET secret=%s WHERE role_name=%s", (bytes.fromhex(new_key), role))
     new_env = {"CANO_OWNER_PROOF_MODE": "required",
                "CANO_OWNER_PROOF_KEYS_JSON": json.dumps({**keys, role: new_key})}
     with psycopg.connect(url(role)) as conn:

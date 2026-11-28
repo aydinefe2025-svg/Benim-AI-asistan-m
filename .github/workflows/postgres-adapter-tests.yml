@@ -39,6 +39,9 @@ on:
       - "core/postgres_local_grant.py"
       - "core/postgres_owner_proof.py"
       - "scripts/check_cano_signed_owner_adapters.py"
+      - "scripts/cano_owner_proof_provision_candidate.sql"
+      - "scripts/cano_signed_owner_cutover_candidate.sql"
+      - "scripts/cano_signed_owner_rollback_candidate.sql"
       - "requirements-persistence.txt"
       - ".github/workflows/postgres-adapter-tests.yml"
   workflow_dispatch:
