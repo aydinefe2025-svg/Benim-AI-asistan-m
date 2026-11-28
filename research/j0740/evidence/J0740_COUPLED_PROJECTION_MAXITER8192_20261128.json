@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "title": "J0740 archived coupled constraint projection, maxiter 8192",
+  "date_utc": "2026-11-28",
+  "commit": "c2feec79fec46fe2e285e9dcb216c908e5211b7d",
+  "workflow_run": 46135088771,
+  "workflow_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/46135088771",
+  "job_id": 140948475326,
+  "workflow_conclusion": "success",
+  "archive_artifact_id": 15177726961,
+  "source_archive_sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073",
+  "output_artifact_id": 15260324686,
+  "output_artifact_bytes": 15463,
+  "output_artifact_sha256": "f7cfa3ef6bdc8eb18becbe2da9760aab7516233b5dce14007a72eb81640a0c89",
+  "method": {
+    "scope": "fixed-background archived-snapshot projection; not live evolution",
+    "solver": "SciPy LSMR with 8-probe diagonal right scaling, exact .01 augmented quadratic damping",
+    "lambda_H": 10,
+    "maxiter": 8192,
+    "atol": 1e-7,
+    "btol": 1e-7,
+    "stop_code": 7,
+    "iterations": 8192,
+    "active_columns": 457667,
+    "null_columns": 3721,
+    "residual_norm": 2.3991943920298797,
+    "normal_residual_norm": 0.0001675857653085745,
+    "condition_number_estimate": 151.85042876213893
+  },
+  "best_full_step": {
+    "scale": 1,
+    "max_abs_log_conformal": 0.0003527964046016688,
+    "far_atmosphere_M_ratio_to_initial": [
+      0.5810412779100868,
+      0.5811085660015042,
+      1.2321096557864957
+    ],
+    "far_atmosphere_H_ratio_to_pre": 0.18668122962888967,
+    "far_atmosphere_native_plus_independent_delta_H_ratio": 0.21467461440671415,
+    "baryon_relative_change_fixed_patch": -0.000014937361479172573,
+    "matter_J_relative_change_fixed_patch": -0.000022789678509327338,
+    "all_M_improved": true,
+    "all_H_improved": true,
+    "all_M_below_initial": false
+  },
+  "diagnosis": {
+    "accepted_thresholds_changed": false,
+    "observed": "Expanded support improves all regional momentum/H metrics against the pre-candidate snapshot, but far-atmosphere M3 RMS remains 1.23211 times its very small initial RMS (1.856485225978981e-8); candidate RMS is approximately 2.287e-8. LSMR remains iteration-limited (stop code 7), so available data do not distinguish remaining solver truncation from a true objective trade-off.",
+    "status": "FAIL_GATE",
+    "physical_stability": "NOT_ESTABLISHED",
+    "live_360_degree_evolution": "NOT_RUN",
+    "checkpoint_restart_equivalence": "NOT_RUN",
+    "mass_angular_momentum_global_conservation": "NOT_ESTABLISHED"
+  }
+}

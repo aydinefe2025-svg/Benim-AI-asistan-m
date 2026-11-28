@@ -1,0 +1,125 @@
+{
+  "schema": "j0740-coupled-projection-evidence-v1",
+  "created_utc": "2026-11-28T10:19:40Z",
+  "status": "RESEARCH_GATE_FAIL",
+  "scope": "fixed-background correction of archived ADM snapshots; not a live ML_BSSN evolution, checkpoint/restart test, or physical-stability certification",
+  "source": {
+    "repository": "aydinefe2025-svg/Benim-AI-asistan-m",
+    "branch": "science/j0740-coupled-conformal-constraint-candidate-20261127",
+    "commit": "687982d932fc5db6c09d0e70fa770d7ee48dd155",
+    "workflow_run": 46130468799,
+    "job": 140934247820,
+    "artifact": 15258719655,
+    "artifact_bytes": 16830,
+    "artifact_sha256": "a44e4cada4c9574660228c5bc781d7922d371297b09db8c54e241c030cac52a9"
+  },
+  "method": {
+    "support": "full stencil-safe interior with 1.5-coordinate-unit outer taper",
+    "support_radius": 19.48557158514987,
+    "active_points": 115347,
+    "solver": "SciPy LSMR; 8-probe diagonal right scaling; unchanged .01 quadratic damping; atol=btol=1e-7",
+    "maxiter": 4096,
+    "predeclared_acceptance_thresholds_changed": false
+  },
+  "solver": {
+    "lambda_H_10": {
+      "stop_code": 7,
+      "iterations": 4096,
+      "residual_norm": 2.424231106294212,
+      "normal_residual_norm": 0.00048175861351060836,
+      "condition_estimate": 108.40640991739177
+    },
+    "lambda_H_100": {
+      "stop_code": 7,
+      "iterations": 4096,
+      "residual_norm": 18.79059513554141,
+      "normal_residual_norm": 0.001375459050744692,
+      "condition_estimate": 75.90175700935787
+    }
+  },
+  "best_candidate": {
+    "lambda_H": 10,
+    "step_scale": 1,
+    "max_abs_log_conformal": 0.00030111092954819194,
+    "baryon_relative_change_fixed_patch": -0.0000067587635333987706,
+    "matter_J_relative_change_fixed_patch": -0.00001900626523709814,
+    "all_M_improved_vs_pre": true,
+    "all_H_improved_vs_pre": true,
+    "all_M_below_initial": false,
+    "regions": {
+      "far_atmosphere": {
+        "points": 112930,
+        "M_ratio_to_pre": [
+          0.17029285114904807,
+          0.1703171142650414,
+          0.044870358964988095
+        ],
+        "M_ratio_to_initial": [
+          0.5892167163440024,
+          0.5893006672173268,
+          1.247276334983754
+        ],
+        "H_ratio_to_pre": 0.18691365275905877,
+        "native_plus_independent_delta_H_ratio": 0.21487873191260207
+      },
+      "inner": {
+        "points": 4192,
+        "M_ratio_to_pre": [
+          0.0020305723622578253,
+          0.0020292973056588023,
+          0.000058106118710545926
+        ],
+        "M_ratio_to_initial": [
+          0.02929203571697768,
+          0.029273642379149957,
+          0.006064493619958193
+        ],
+        "H_ratio_to_pre": 0.0018948581427664125,
+        "native_plus_independent_delta_H_ratio": 0.05355105959859635
+      },
+      "outer_fluid": {
+        "points": 4516,
+        "M_ratio_to_pre": [
+          0.208575112031485,
+          0.20904298968329524,
+          0.033253111296716764
+        ],
+        "M_ratio_to_initial": [
+          0.21896227488207243,
+          0.2194534531152249,
+          0.13330520134422022
+        ],
+        "H_ratio_to_pre": 0.011945438838954665,
+        "native_plus_independent_delta_H_ratio": 0.04371134669990149
+      },
+      "surface_atmosphere": {
+        "points": 1401,
+        "M_ratio_to_pre": [
+          0.03485295447376003,
+          0.03507107173518511,
+          0.008009870104621099
+        ],
+        "M_ratio_to_initial": [
+          0.04325663149321754,
+          0.04352734076714157,
+          0.037221816989463405
+        ],
+        "H_ratio_to_pre": 0.0014530151090530613,
+        "native_plus_independent_delta_H_ratio": 0.08184167393455974
+      }
+    }
+  },
+  "comparisons": {
+    "previous_maxiter_2560_best_far_M3_ratio_to_initial": 1.255351,
+    "latest_4096_far_M3_ratio_to_initial": 1.247276334983754,
+    "change_in_ratio": -0.008074665016246
+  },
+  "interpretation": "Expanded support reduces the residual, but the best candidate misses the initial far-atmosphere M3 gate and both LSMR solves stop at the iteration cap. The old radial cutoff was not the sole cause.",
+  "other_acceptance": {
+    "native_H_exact_parity": "NOT_ESTABLISHED",
+    "live_360_degree_evolution": "NOT_RUN",
+    "checkpoint_restart_equivalence": "NOT_RUN",
+    "mass_angular_momentum_global_conservation": "NOT_ESTABLISHED",
+    "physical_stability": "NOT_ESTABLISHED"
+  }
+}

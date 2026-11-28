@@ -1,0 +1,234 @@
+{
+  "schema": "j0740.bssn.coupled-preconditioned-candidate.v1",
+  "date": "2026-11-28",
+  "status": "CANDIDATE_IMPROVES_PRE_RESIDUALS_BUT_INITIAL_MOMENTUM_GATE_FAILS",
+  "scope": "exhaustive archived HDF5 inventory, stencil-domain audit, and exploratory coupled constraint projection on a fixed background; no evolution or physical certification",
+  "source": {
+    "archive_artifact_id": 15177726961,
+    "sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073",
+    "evolved_ml_bssn_field_available": false
+  },
+  "code": {
+    "path": "research/j0740/coupled_projection.py",
+    "github_blob_sha": "dc2d46a8f63fe1cf369f27e6ee5ab75ea5486f2a",
+    "commit": "d39db5e446fdc8959751c5d797997833e9be882c"
+  },
+  "run": {
+    "workflow_id": 46125695218,
+    "job_id": 140919686195,
+    "url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/46125695218",
+    "conclusion": "success",
+    "artifact": {
+      "id": 15256306154,
+      "bytes": 16673,
+      "sha256": "a5a1888f12473b3a73bf29ba7e4c61de817bcac9580d1a9225101f2cd189c1ba"
+    },
+    "tests": {
+      "core_run": 46125695187,
+      "core": "Linux+Windows PASS",
+      "public_run": 46125695154,
+      "public": "PASS",
+      "source_prior_run": 46125695152,
+      "source_prior": "PASS"
+    }
+  },
+  "numerical_controls": {
+    "adjoint_error": 3.0117666041089748e-15,
+    "direct_ricci_relative_errors_n17_n33": [
+      0.00021370549402563818,
+      0.000015228364107612627
+    ],
+    "direct_ricci_refinement_ratio": 14.033384841304606,
+    "composed_stencil_dependency_radius": 4,
+    "trim3_analytic_error": 580.0069444444441,
+    "trim4_and_trim5_analytic_error": 0,
+    "status": "PASS"
+  },
+  "candidate": {
+    "method": "8-probe diagonal right preconditioning; augmented rows preserve exact original 0.01 quadratic damping",
+    "probe_count": 8,
+    "iteration_cap": 1280,
+    "atol": 1e-7,
+    "btol": 1e-7,
+    "active_points": 61835,
+    "valid_points": 123039,
+    "far_atmosphere_initial_M_rms": [
+      1.5919174024205557e-7,
+      1.5919174024205565e-7,
+      1.856485225978981e-8
+    ],
+    "far_atmosphere_pre_M_rms": [
+      5.508066476167852e-7,
+      5.508066476170104e-7,
+      5.160533907066246e-7
+    ],
+    "far_atmosphere_pre_H_rms": 0.0000058321249734614605,
+    "cases": [
+      {
+        "lambda_H": 10,
+        "step_scale": 1,
+        "lsmr_stop": 7,
+        "iterations": 1280,
+        "condition_estimate": 57.66659263424839,
+        "normal_residual_norm": 0.0028241153052043977,
+        "far_M_ratio_to_pre": [
+          0.2221101464813815,
+          0.22208854197044411,
+          0.1607859244526308
+        ],
+        "far_M_ratio_to_initial": [
+          0.7685056083881097,
+          0.7684308563427161,
+          4.469419973322143
+        ],
+        "far_H_ratio_to_pre": 0.4861734117572298,
+        "native_plus_independent_delta_H_ratio": 0.48821986266651857,
+        "all_M_improved": true,
+        "all_H_improved": true,
+        "all_M_below_initial": false,
+        "baryon_relative_change": -9.416558871544467e-7,
+        "matter_J_relative_change": -0.000005833119624432115
+      },
+      {
+        "lambda_H": 10,
+        "step_scale": 0.5,
+        "lsmr_stop": 7,
+        "iterations": 1280,
+        "condition_estimate": 57.66659263424839,
+        "normal_residual_norm": 0.0028241153052043977,
+        "far_M_ratio_to_pre": [
+          0.5213013112116927,
+          0.5212958834731669,
+          0.5195388587864014
+        ],
+        "far_M_ratio_to_initial": [
+          1.8037131021380135,
+          1.8036943220534454,
+          14.441794953643663
+        ],
+        "far_H_ratio_to_pre": 0.6537347900078485,
+        "native_plus_independent_delta_H_ratio": 0.6571969806096243,
+        "all_M_improved": true,
+        "all_H_improved": true,
+        "all_M_below_initial": false,
+        "baryon_relative_change": -4.709040327677272e-7,
+        "matter_J_relative_change": -0.0000029168031173698594
+      },
+      {
+        "lambda_H": 10,
+        "step_scale": 0.25,
+        "lsmr_stop": 7,
+        "iterations": 1280,
+        "condition_estimate": 57.66659263424839,
+        "normal_residual_norm": 0.0028241153052043977,
+        "far_M_ratio_to_pre": [
+          0.7567362090672206,
+          0.7567341854187666,
+          0.7577659199168836
+        ],
+        "far_M_ratio_to_initial": [
+          2.618322620336777,
+          2.6183156184731815,
+          21.063872034253386
+        ],
+        "far_H_ratio_to_pre": 0.8160767642436886,
+        "native_plus_independent_delta_H_ratio": 0.8180073662947728,
+        "all_M_improved": true,
+        "all_H_improved": true,
+        "all_M_below_initial": false,
+        "baryon_relative_change": -2.3547103888965637e-7,
+        "matter_J_relative_change": -0.00000145846238930325
+      },
+      {
+        "lambda_H": 100,
+        "step_scale": 1,
+        "lsmr_stop": 7,
+        "iterations": 1280,
+        "condition_estimate": 62.397200886010985,
+        "normal_residual_norm": 0.010108471007870486,
+        "far_M_ratio_to_pre": [
+          0.22202458862548083,
+          0.22197406948639165,
+          0.16080091921867
+        ],
+        "far_M_ratio_to_initial": [
+          0.7682095764726707,
+          0.7680347792278516,
+          4.469836787835349
+        ],
+        "far_H_ratio_to_pre": 0.48617793654643154,
+        "native_plus_independent_delta_H_ratio": 0.48822629117565947,
+        "all_M_improved": true,
+        "all_H_improved": true,
+        "all_M_below_initial": false,
+        "baryon_relative_change": -0.0000010313186615817926,
+        "matter_J_relative_change": -0.000006019823310499106
+      },
+      {
+        "lambda_H": 100,
+        "step_scale": 0.5,
+        "lsmr_stop": 7,
+        "iterations": 1280,
+        "condition_estimate": 62.397200886010985,
+        "normal_residual_norm": 0.010108471007870486,
+        "far_M_ratio_to_pre": [
+          0.5212989252473842,
+          0.5213000454403025,
+          0.5195426577394052
+        ],
+        "far_M_ratio_to_initial": [
+          1.8037048466531491,
+          1.8037087225440862,
+          14.44190055440748
+        ],
+        "far_H_ratio_to_pre": 0.6537377246263569,
+        "native_plus_independent_delta_H_ratio": 0.6572005931883709,
+        "all_M_improved": true,
+        "all_H_improved": true,
+        "all_M_below_initial": false,
+        "baryon_relative_change": -5.15735494088787e-7,
+        "matter_J_relative_change": -0.000003010156355176541
+      },
+      {
+        "lambda_H": 100,
+        "step_scale": 0.25,
+        "lsmr_stop": 7,
+        "iterations": 1280,
+        "condition_estimate": 62.397200886010985,
+        "normal_residual_norm": 0.010108471007870486,
+        "far_M_ratio_to_pre": [
+          0.7567381004130672,
+          0.7567405347278142,
+          0.757767474473565
+        ],
+        "far_M_ratio_to_initial": [
+          2.6183291644317386,
+          2.6183375872111694,
+          21.063915246783992
+        ],
+        "far_H_ratio_to_pre": 0.8160781911349241,
+        "native_plus_independent_delta_H_ratio": 0.8180090641898885,
+        "all_M_improved": true,
+        "all_H_improved": true,
+        "all_M_below_initial": false,
+        "baryon_relative_change": -2.5788678792437736e-7,
+        "matter_J_relative_change": -0.000001505139357038665
+      }
+    ],
+    "summary": {
+      "any_coupled_improvement": true,
+      "any_initial_M_and_H_gate": false,
+      "physical_stability_certified": false
+    }
+  },
+  "diagnosis": {
+    "confirmed": "Changing the toy augmented-system RHS variable name fixed a tensor-variable shadowing test failure. Prior baseline weighting uses a shared 3e-7 floor; far-atmosphere M3 initial RMS is 1.856485225978981e-8, so it was downweighted by approximately 16.16x versus its true baseline.",
+    "observed": "Preconditioned full-step candidates improve every region's M and H relative to the pre-candidate snapshot, but all six LSMR solves stop at the 1280 iteration cap. Far-atmosphere M3 remains about 4.47x the t=0 RMS; the predeclared initial-M gate still fails.",
+    "unresolved": "The contribution of the radial support cutoff (r<11.5), finite iteration limit, and archived constraint/evolution-field mismatch has not been separated by a spatially stratified residual audit. No native evolution or restart equivalence was run."
+  },
+  "native_evolution": "NOT_RUN",
+  "checkpoint_restart": "NOT_RUN",
+  "physical_stability": "NOT_ESTABLISHED",
+  "pr1007": "Untouched; remained open at head 66dbeb98801a9faa4c93f4de8e222742fffaae8f"
+}
+

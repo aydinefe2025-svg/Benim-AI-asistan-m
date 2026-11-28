@@ -1,0 +1,22 @@
+{
+  "schema": "j0740.sha256-manifest.v1",
+  "date": "2026-11-28",
+  "files": [
+    {
+      "path": "records/A01.01.51/PSR_J0740+6620/J0740_BSSN_COMPONENT_PRECONDITIONED_CANDIDATE_20261128.json",
+      "bytes": 8512,
+      "sha256": "7e1d70b7e124464ad5fae737a0881f849462e89cc90a79d3501721e0f46e5bb5"
+    }
+  ],
+  "github_artifact": {
+    "id": 15256306154,
+    "bytes": 16673,
+    "sha256": "a5a1888f12473b3a73bf29ba7e4c61de817bcac9580d1a9225101f2cd189c1ba"
+  },
+  "source_archive": {
+    "artifact_id": 15177726961,
+    "sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073"
+  },
+  "code_commit": "d39db5e446fdc8959751c5d797997833e9be882c"
+}
+
