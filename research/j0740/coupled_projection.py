@@ -448,7 +448,7 @@ def main():
             J=sg*(x*sourceS[...,1]-y*sourceS[...,0])
             return float(np.sum(wt[valid]*D[valid])),float(np.sum(wt[valid]*J[valid]))
         mass0,j0=mass_j(g,S,v2)
-        for lam in (10.,)
+        for lam in (10.,):
             O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
             column_scale,column_active=estimate_column_scaling(O,n_probes=8,seed=6901+int(lam))
             Oscaled=right_preconditioned_augmented(O,column_scale,.01)
