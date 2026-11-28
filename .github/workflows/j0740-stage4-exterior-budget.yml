@@ -1,0 +1,52 @@
+name: J0740 stage4 exterior angular momentum budget
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-stage4-exterior-budget.yml','research/j0740/adm_surface_audit.py','research/j0740/stage4_exterior_budget.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  surfaces:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify exact metric curvature and matter audit sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p source prior evidence
+          python3 -m pip install numpy h5py
+          PYTHONPATH=research/j0740 python3 -c 'from stage4_exterior_budget import controls; controls()'
+          gh api repos/aydinefe2025-svg/Benim-AI-asistan-m/actions/artifacts/15262477685/zip > source.zip
+          echo '1f0a3cbf6ed1694489b5f1c59140cd7005725d432104b7fca4e63bf0ce83c766  source.zip' | sha256sum -c -
+          sha256sum source.zip > evidence/source.sha256
+          unzip -tq source.zip
+          python3 - <<'PY'
+          import pathlib,zipfile,json
+          wanted={s+i+j for s in 'gk' for i,j in ('xx','xy','xz','yy','yz','zz')}|{'rho','eps','press','vel[0]','vel[1]','vel[2]'}
+          with zipfile.ZipFile('source.zip') as z:
+              native={'M1','M2','M3'}
+              names={pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') for n in z.namelist() if n.endswith('.xyz.h5')}
+              present=names & native
+              assert present in (set(),native),present
+              wanted |= present
+              pathlib.Path('evidence/inventory.json').write_text(json.dumps({'xyz_fields':sorted(names),'native_3d_constraints_available':bool(present),'missing_native_fields':sorted(native-present)},indent=2))
+              ns=[n for n in z.namelist() if n.endswith('.xyz.h5') and pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') in wanted]
+              assert len(ns)==len(wanted) and {pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') for n in ns}==wanted,ns
+              for n in ns:z.extract(n,'source')
+          PY
+      - name: Exterior volume and surface angular momentum balance
+        run: python3 research/j0740/stage4_exterior_budget.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-stage4-exterior-J-budget
+          path: evidence/
+          if-no-files-found: error
