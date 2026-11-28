@@ -16,10 +16,10 @@ IF scoped_owner IS NULL OR scoped_owner !~ '^[a-zA-Z0-9_-]{1,128}$' OR supplied 
 SELECT k.secret, k.previous_secret, k.previous_valid_until INTO signing_secret, previous_secret, previous_valid_until FROM cano_context_proof.signing_key k WHERE k.role_name=caller;
 IF signing_secret IS NULL THEN RETURN NULL; END IF;
 expected := cano_context_proof.hmac(convert_to(caller||':'||scoped_owner||':'||pg_current_xact_id()::text||':'||pg_backend_pid()::text,'UTF8'),signing_secret,'sha256');
-IF cano_context_proof.hmac(expected,signing_secret,'sha256') = cano_context_proof.hmac(decode(supplied,'hex'),signing_secret,'sha256') THEN RETURN scoped_owner; END IF;
+IF cano_context_proof.constant_time_equal(expected,decode(supplied,'hex')) THEN RETURN scoped_owner; END IF;
 IF previous_secret IS NOT NULL AND previous_valid_until > statement_timestamp() THEN
 expected := cano_context_proof.hmac(convert_to(caller||':'||scoped_owner||':'||pg_current_xact_id()::text||':'||pg_backend_pid()::text,'UTF8'),previous_secret,'sha256');
-IF cano_context_proof.hmac(expected,previous_secret,'sha256') = cano_context_proof.hmac(decode(supplied,'hex'),previous_secret,'sha256') THEN RETURN scoped_owner; END IF;
+IF cano_context_proof.constant_time_equal(expected,decode(supplied,'hex')) THEN RETURN scoped_owner; END IF;
 END IF;
 RETURN NULL;
 END $function$;
