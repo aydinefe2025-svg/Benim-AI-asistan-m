@@ -1,0 +1,135 @@
+name: J0740 native continuation from 252 accepted comparisons
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-core-native-t24.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  continuation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '2'
+    steps:
+      - name: Recover exact accepted corrected and matched baseline endpoint checkpoints
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/baseline/incoming evidence/corrected/incoming engine
+          for pair in '15177726961 source' '15222698787 engine' '15263727885 previous'; do
+              read -r id name <<< "$pair"
+              gh api repos/${{ github.repository }}/actions/artifacts/"$id"/zip > "$name.zip"
+          done
+          printf '%s\n' 'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073  source.zip' '659f80b0c12d13a322abe97d2724eda394dc0219e4f20f816b94c21e02f16f6a  engine.zip' '299f1076fc513693803f0e6672831fa267cda3c7959c3fa4524328635e82fa8b  previous.zip' > evidence/input.sha256
+          sha256sum -c evidence/input.sha256
+          unzip -q source.zip control.par model_rnsid_crust.rns mpa1_eos_omni_fixed.dat image-digest.txt -d evidence
+          unzip -q engine.zip -d engine
+          (cd engine && sha256sum -c SHA256SUMS)
+          cmp evidence/image-digest.txt engine/image-digest.txt
+          cp engine/cactus_sim evidence/cactus_sim
+          chmod +x evidence/cactus_sim
+          python3 -m pip install numpy h5py
+          python3 - <<'PY'
+          import zipfile,pathlib,shutil,json,re,h5py
+          d=pathlib.Path('evidence')
+          for label in ('baseline','corrected'):
+              with zipfile.ZipFile('previous.zip') as z:
+                  n=[n for n in z.namelist() if n.endswith(label+'/checkpoints/checkpoint.it_8192.h5')]
+                  assert len(n)==1,(label,n)
+                  dst=d/label/'incoming/checkpoint.it_8192.h5'
+                  with z.open(n[0]) as r,dst.open('wb') as w:shutil.copyfileobj(r,w,1024*1024)
+                  f=[n for n in z.namelist() if pathlib.PurePosixPath(n).name=='continuation_result.json'];assert len(f)==1
+                  (d/label/'previous.json').write_bytes(z.read(f[0]))
+                  par=[n for n in z.namelist() if pathlib.PurePosixPath(n).name==label+'.par'];assert len(par)==1
+                  (d/label/'previous.par').write_bytes(z.read(par[0]))
+              names=[]
+              with h5py.File(dst,'r') as h:
+                  h.visititems(lambda n,o:names.append(n) if isinstance(o,h5py.Dataset) else None)
+              assert len(names)==860 and all(sum(bool(re.search(r'::'+q+r'(\s|$|\[)',n,re.I)) for n in names)==9 for q in ('H','M1','M2','M3'))
+          c=json.loads((d/'corrected/previous.json').read_text());b=json.loads((d/'baseline/previous.json').read_text())
+          assert c['continued_pointwise_non_growth'] and c['candidate']['core_delta']==.03
+          assert all(c['histories'][k]['baseline']==b['histories'][k]['baseline'] for k in ('ham','mom','rho','dens'))
+          for label in ('baseline','corrected'):
+              s=(d/label/'previous.par').read_text()
+              vals={'Cactus::cctk_final_time':'24.0','IO::out_dir':'"/evidence/'+label+'/run"','IO::checkpoint_dir':'"/evidence/'+label+'/checkpoints"','IO::recover_dir':'"/evidence/'+label+'/incoming"','IO::recover':'"auto"','IO::recover_and_remove':'no'}
+              for k,v in vals.items():
+                  s,n=re.subn(r'^\s*'+re.escape(k)+r'\s*=.*$',lambda _:k+' = '+v,s,flags=re.M);assert n==1,(label,k,n)
+              (d/(label+'.par')).write_text(s)
+              (d/label/'run').mkdir()
+              (d/label/'checkpoints').mkdir()
+          PY
+          sha256sum evidence/{baseline,corrected}/incoming/checkpoint.it_8192.h5 > evidence/checkpoint_inputs.sha256
+          rm source.zip engine.zip previous.zip
+      - name: Continue both native states without replaying the accepted prefix
+        run: |
+          set -euo pipefail
+          docker pull "$(cat evidence/image-digest.txt)"
+          for label in baseline corrected; do
+              docker run --rm --user 0:0 --entrypoint /bin/bash -v "$PWD/evidence:/evidence" "$(cat evidence/image-digest.txt)" -c 'set -euo pipefail; export OMP_NUM_THREADS=2 OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1; cd /evidence; ./cactus_sim "/evidence/$1.par" 2>&1 | tee "/evidence/$1/native.log"' _ "$label"
+              grep -F 'Recovering parameters from checkpoint file' "evidence/$label/native.log"
+              grep -F 'checkpoint.it_8192.h5' "evidence/$label/native.log"
+              test -s "evidence/$label/checkpoints/checkpoint.it_32768.h5"
+              if grep -Eq 'NaN/Inf value\(s\) found|scheduling graceful termination of Cactus|count > GRHydro_countmax|Setting the point to atmosphere|Could not solve quadratic equation' "evidence/$label/native.log"; then exit 8; fi
+          done
+          sha256sum -c evidence/checkpoint_inputs.sha256
+      - name: Verify exact checkpoint seam and all newly evolved pointwise constraints
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,json,numpy as np,h5py,re
+          d=pathlib.Path('evidence');out={}
+          old=json.loads((d/'corrected/previous.json').read_text())
+          for token,red in [('ham','norm2'),('mom','norm2'),('rho','maximum'),('dens','sum')]:
+              hist={};seams={}
+              for label in ('baseline','corrected'):
+                  files=[p for p in (d/label/'run').rglob('*.asc') if token in p.name.lower() and red in p.name.lower()]
+                  assert len(files)==1,(label,token,files)
+                  a=np.array([list(map(float,l.split())) for l in files[0].read_text().splitlines() if l.strip() and not l.lstrip().startswith('#')])
+                  assert np.isfinite(a).all() and a[:,0].tolist()==list(range(8192,32769,128)),(label,token,a[:,0])
+                  p=np.asarray(old['histories'][token][label][-1])
+                  assert np.array_equal(p[:2],a[0,:2]) and a[-1,1]==24.
+                  seam=float(np.max(abs(p[2:]-a[0,2:])/np.maximum(abs(p[2:]),1e-30)))
+                  assert seam<=1e-10,(label,token,seam)
+                  seams[label]=seam;hist[label]=a[1:]
+              b,c=hist['baseline'],hist['corrected'];assert np.array_equal(b[:,:2],c[:,:2])
+              ratio=abs(c[:,2:])/np.maximum(abs(b[:,2:]),1e-30)
+              out[token]={'baseline':b.tolist(),'corrected':c.tolist(),'seam_relative':seams,'worst_pointwise_relative':np.max(ratio,axis=0).tolist(),'final_relative':ratio[-1].tolist(),'first_worse_iteration':[int(b[idx[0],0]) if len(idx:=np.flatnonzero(ratio[:,i]>1)) else None for i in range(ratio.shape[1])],'passing_count':int(np.count_nonzero(ratio<=1)),'comparison_count':int(ratio.size)}
+          inventory={}
+          for label in ('baseline','corrected'):
+              p=d/label/'checkpoints/checkpoint.it_32768.h5';names=[]
+              with h5py.File(p,'r') as h:
+                  h.visititems(lambda n,o:names.append(n) if isinstance(o,h5py.Dataset) else None)
+              groups={q:sum(bool(re.search(r'::'+q+r'(\s|$|\[)',n,re.I)) for n in names) for q in ('H','M1','M2','M3')}
+              assert len(names)==860 and groups=={'H':9,'M1':9,'M2':9,'M3':9},(label,len(names),groups)
+              inventory[label]={'datasets':len(names),'constraints':groups}
+          count=sum(out[k]['passing_count'] for k in ('ham','mom'));total=sum(out[k]['comparison_count'] for k in ('ham','mom'))
+          assert total==768
+          result={'scope':'matched native continuation from t6 to t24, not full dynamical stability or full rotation','candidate':old['candidate'],'passing_count':count,'comparison_count':total,'continued_pointwise_non_growth':count==total,'histories':out,'checkpoint_inventory':inventory,'physical_stability_certified':False}
+          (d/'continuation_result.json').write_text(json.dumps(result,indent=2,allow_nan=False))
+          print('CORE_T24_RESULT',json.dumps(result,allow_nan=False),flush=True)
+          assert count==total,'new native constraint regression'
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-core-native-t24
+          path: |
+            evidence/input.sha256
+            evidence/checkpoint_inputs.sha256
+            evidence/baseline/previous.json
+            evidence/corrected/previous.json
+            evidence/baseline.par
+            evidence/corrected.par
+            evidence/baseline/native.log
+            evidence/corrected/native.log
+            evidence/baseline/run/*.asc
+            evidence/corrected/run/*.asc
+            evidence/continuation_result.json
+            evidence/baseline/checkpoints/checkpoint.it_32768.h5
+            evidence/corrected/checkpoints/checkpoint.it_32768.h5
+          if-no-files-found: error
