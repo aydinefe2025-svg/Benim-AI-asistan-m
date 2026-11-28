@@ -310,11 +310,19 @@ def main():
         masks={'inner':valid&dense&(r0>.5*r0.max()),'outer_fluid':valid&dense&(r0<=.5*r0.max()),'surface_atmosphere':valid&near&~dense,'far_atmosphere':valid&~near}
         assert all(np.any(m) for m in masks.values())
         # Force reflection symmetry and compact support of the vector potential.
-        active=np.zeros(shape,bool);active[5:-5,5:-5,5:-5]=True
-        # Include equatorial plane when ghost depth is <5, but never upper/lateral boundaries.
-        active[:,:,:]=False;active[:,5:-5,5:-5]=True;active[-5:]=False
-        active&=(z>=-1e-10)&(rad<11.5)
-        taper=np.clip((11.5-rad)/1.5,0,1)
+        # Expand the correction support to the entire stencil-safe interior.
+        # Keep a 1.5-coordinate-unit taper only at the outer boundary; the
+        # previous r<11.5 compact support left much of the vacuum unconstrained.
+        active=np.zeros(shape,bool)
+        active[:,5:-5,5:-5]=True
+        active[-5:]=False
+        active&=(z>=-1e-10)
+        support_radius=float(np.max(rad[active]))
+        active&=(rad<support_radius)
+        taper_width=1.5
+        taper=np.clip((support_radius-rad)/taper_width,0,1)
+        correction_support={'kind':'full stencil-safe interior with outer radial taper','previous_radial_cutoff':11.5,'support_radius':support_radius,'taper_width':taper_width,'active_points':int(active.sum())}
+        active_points_by_region={name:int(np.count_nonzero(active&m)) for name,m in masks.items()}
         parity=np.array([1.,1.,-1.])
         zline=z[:,0,0];pairs=[]
         for iz in np.where(zline< -1e-10)[0]:
@@ -432,7 +440,7 @@ def main():
         rng=np.random.default_rng(69)
         O=op(10.);a=rng.normal(size=N+Q);b=rng.normal(size=4*P)
         err=check_adj(np.dot(O@a,b),np.dot(a,O.rmatvec(b)),'coupled actual adjoint')
-        row={'patch':patch,'actual_adjoint_error':err,'active_points':Q,'valid_points':P,'baseline':base,'candidates':[]}
+        row={'patch':patch,'actual_adjoint_error':err,'active_points':Q,'valid_points':P,'correction_support':correction_support,'active_points_by_region':active_points_by_region,'baseline':base,'candidates':[]}
         wt=np.where(abs(z)<1e-10,1.,2.)*np.prod(h)
         def mass_j(g,sourceS,sourcev2):
             sg=np.sqrt(np.linalg.det(g))
@@ -445,7 +453,7 @@ def main():
             column_scale,column_active=estimate_column_scaling(O,n_probes=8,seed=6901+int(lam))
             Oscaled=right_preconditioned_augmented(O,column_scale,.01)
             augmented_target=np.r_[target,np.zeros(N+Q)]
-            sol=lsmr(Oscaled,augmented_target,damp=0.,atol=1e-7,btol=1e-7,maxiter=1280)
+            sol=lsmr(Oscaled,augmented_target,damp=0.,atol=1e-7,btol=1e-7,maxiter=2560)
             solution=column_scale*sol[0]
             dk=geo.long(extend(solution[:N]));u=extend_scalar(solution[N:])
             for scale in (1.,.5,.25):
@@ -464,7 +472,7 @@ def main():
                 for name,m in masks.items():
                     b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
                     reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30)}
-                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':1280,'preconditioner':'8-probe diagonal right scaling; exact original .01 quadratic damping represented as augmented rows','preconditioner_seed':6901+int(lam),'preconditioner_active_columns':int(column_active.sum()),'preconditioner_null_columns':int((~column_active).sum()),'preconditioner_scale_min_nonzero':float(np.min(column_scale[column_active])),'preconditioner_scale_max':float(np.max(column_scale)),'residual_norm':float(sol[3]),'normal_residual_norm':float(sol[4]),'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':float(sol[7]),'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':2560,'preconditioner':'8-probe diagonal right scaling; exact original .01 quadratic damping represented as augmented rows','preconditioner_seed':6901+int(lam),'preconditioner_active_columns':int(column_active.sum()),'preconditioner_null_columns':int((~column_active).sum()),'preconditioner_scale_min_nonzero':float(np.min(column_scale[column_active])),'preconditioner_scale_max':float(np.max(column_scale)),'residual_norm':float(sol[3]),'normal_residual_norm':float(sol[4]),'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':float(sol[7]),'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
                 row['candidates'].append(candidate)
                 print('COUPLED_CANDIDATE',json.dumps(candidate,allow_nan=False),flush=True)
         row['any_coupled_improvement']=any(c.get('all_M_improved') and c.get('all_H_improved') for c in row['candidates'])
