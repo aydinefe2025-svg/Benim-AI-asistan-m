@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "title": "J0740 coupled projection convergence, maxiter 16384",
+  "date_utc": "2026-11-28",
+  "code_commit": "3c06be5d67b9d2e405df7dc82833ae12ff54d11c",
+  "workflow_run": 46139257633,
+  "workflow_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/46139257633",
+  "job_id": 140961338729,
+  "workflow_conclusion": "success",
+  "source_archive_artifact_id": 15177726961,
+  "source_archive_sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073",
+  "output_artifact_id": 15263246005,
+  "output_artifact_bytes": 15480,
+  "output_artifact_sha256": "96effd8e86e31f604a98f2995ed7f2520d24cea72accaf5cf1346c5d9cb00c6f",
+  "solver": {
+    "name": "SciPy LSMR",
+    "lambda_H": 10,
+    "reported_maxiter": 16384,
+    "stop_code": 2,
+    "iterations": 11376,
+    "atol": 1e-7,
+    "btol": 1e-7,
+    "preconditioner": "8-probe diagonal right scaling; exact .01 augmented quadratic damping",
+    "active_columns": 457667,
+    "null_columns": 3721,
+    "residual_norm": 2.3932101536650943,
+    "normal_residual_norm": 0.00010788841148422656,
+    "condition_number_estimate": 173.0290579433861
+  },
+  "full_step": {
+    "scale": 1,
+    "max_abs_log_conformal": 0.00039604042396370926,
+    "far_atmosphere_M_ratio_to_initial": [
+      0.5789544329568298,
+      0.5790493638783629,
+      1.2278096481810779
+    ],
+    "far_atmosphere_H_ratio_to_pre": 0.18663350112367938,
+    "far_atmosphere_native_plus_independent_delta_H_ratio": 0.21463156264373784,
+    "baryon_relative_change_fixed_patch": -0.00002442695501614356,
+    "matter_J_relative_change_fixed_patch": -0.000030156547012549773,
+    "all_M_improved": true,
+    "all_H_improved": true,
+    "all_M_below_initial": false
+  },
+  "validation": {
+    "core_linux": "PASS",
+    "core_windows": "PASS",
+    "public_research": "PASS",
+    "source_prior": "PASS",
+    "coupled_workflow_execution": "PASS",
+    "scientific_acceptance": "FAIL"
+  },
+  "conclusion": {
+    "iteration_cap": "RESOLVED_FOR_THIS_LINEAR_SOLVE",
+    "all_component_acceptance": "FAIL_GATE",
+    "likely_remaining_issue": "weighted least-squares stationary solution does not satisfy the strict componentwise baseline gate; group trade-off/incompatibility remains to be tested without threshold changes",
+    "native_h_parity": "NOT_ESTABLISHED",
+    "physical_stability": "NOT_ESTABLISHED",
+    "live_360_degree_evolution": "NOT_RUN",
+    "checkpoint_restart_equivalence": "NOT_RUN",
+    "global_mass_and_angular_momentum_conservation": "NOT_ESTABLISHED"
+  }
+}
