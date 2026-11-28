@@ -1,0 +1,95 @@
+name: J0740 full-turn composite AMR conservation audit
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-full-turn-amr-conservation.yml','research/j0740/full_turn_amr_conservation.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  segment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - stage: 4
+            artifact: 15262477685
+            digest: 1f0a3cbf6ed1694489b5f1c59140cd7005725d432104b7fca4e63bf0ce83c766
+    env:
+      STAGE: ${{ matrix.stage }}
+      ARTIFACT: ${{ matrix.artifact }}
+      DIGEST: ${{ matrix.digest }}
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify and extract only required immutable spatial fields
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence source
+          python3 -m pip install numpy scipy h5py
+          gh api repos/${{ github.repository }}/actions/artifacts/"$ARTIFACT"/zip > source.zip
+          printf '%s  source.zip\n' "$DIGEST" > evidence/source.sha256
+          sha256sum -c evidence/source.sha256
+          python3 - <<'PY'
+          import zipfile,pathlib,json
+          fields={'gxx','gxy','gxz','gyy','gyz','gzz','rho','eps','press','vel[0]','vel[1]','vel[2]','dens','alp','betax','betay','betaz'}
+          with zipfile.ZipFile('source.zip') as z:
+              ns=[n for n in z.namelist() if n.endswith('.xyz.h5') and pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') in fields]
+              pathlib.Path('evidence/inventory.json').write_text(json.dumps(ns,indent=2))
+              assert len(ns)==len(fields) and {pathlib.PurePosixPath(n).name.removesuffix('.xyz.h5') for n in ns}==fields,ns
+              for n in ns:z.extract(n,'source')
+          PY
+          rm source.zip
+      - name: Compute composite baryon and matter angular momentum without double counting
+        run: python3 research/j0740/full_turn_amr_conservation.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-staged-amr-${{ matrix.stage }}
+          path: evidence/
+          if-no-files-found: error
+  combined:
+    needs: segment
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Compare all completed segments to the same initial snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence segments
+          for pair in '1 15255437733 af4b3b706393bc7d963b87a5ce0eb7ea78fcb8204e700505fa2808e0015312ce' '2 15255720154 a07f50779ec643944124cb0132947fb0058f74437b4efcb6341fa29c90399ab9' '3 15255242194 de28278237c648af696881e80c25994a97856dd5bc0ad355fa9caff6ff83f865'; do
+              read -r stage id digest <<< "$pair"
+              gh api repos/${{ github.repository }}/actions/artifacts/"$id"/zip > "$stage.zip"
+              echo "$digest  $stage.zip" | sha256sum -c -
+              unzip -q "$stage.zip" -d "segments/$stage"
+          done
+          gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -n "j0740-staged-amr-4" -D "segments/4"
+          python3 - <<'PY'
+          import pathlib,json,math
+          reports=[json.loads(pathlib.Path(f'segments/{i}/amr_tracer.json').read_text()) for i in (1,2,3,4)]
+          assert all(r['domains']==reports[0]['domains'] and r['levels']==reports[0]['levels'] for r in reports)
+          rows=[s for r in reports for s in r['snapshots']]
+          assert [r['iteration'] for r in rows]==list(range(0,400384+1,16384))
+          keys=('baryon','dense_baryon','matter_Jz','dense_matter_Jz')
+          changes={}
+          for name in reports[0]['domains']:
+              changes[name]={}
+              for k in keys:
+                  b=rows[0]['cases'][name][k];assert b!=0
+                  v=[r['cases'][name][k]/b-1 for r in rows]
+                  changes[name][k]={'initial':b,'last':rows[-1]['cases'][name][k],'last_relative':v[-1],'max_abs_relative':max(map(abs,v))}
+          result={'scope':'completed staged 240-domain composite AMR quadrature; matter Jz not ADM J; not a full-turn trajectory or physical stability certificate','snapshot_count':len(rows),'first_time':rows[0]['time'],'last_spatial_time':rows[-1]['time'],'native_stage4_endpoint':586.5,'changes':changes,'max_trim_sensitivity_common':{k:max(r['max_trim_sensitivity_common'][k] for r in reports) for k in keys},'physical_stability_certified':False}
+          pathlib.Path('evidence/combined.json').write_text(json.dumps(result,indent=2,allow_nan=False))
+          print('FULL_TURN_AMR_CONSERVATION',json.dumps(result,allow_nan=False),flush=True)
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: j0740-full-turn-amr-combined
+          path: evidence/
+          if-no-files-found: error
