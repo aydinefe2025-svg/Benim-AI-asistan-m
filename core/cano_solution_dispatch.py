@@ -10,7 +10,7 @@ import unicodedata
 
 
 _SECRET = re.compile(
-    r"(?:gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{16,}|"
+    r"(?:gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9_-]{16,}|"
     r"postgres(?:ql)?://|-----BEGIN [A-Z ]+PRIVATE KEY)",
     flags=re.IGNORECASE,
 )
@@ -44,6 +44,19 @@ def actionable_solution(answer):
     # Do not turn such generic explanations into executable code jobs.
     if re.search(r"\b(?:degistiremem|gelistiremem|uygulayamam|yapamam|"
                  r"ekleyemem|olusturamam|erisemem|calistiramam)\b", normalized):
+        return False
+    # Follow-up approval needs a specific CANO target or source path.
+    # A generic solution heading or programming example is not a fix.
+    target = re.search(
+        r"\bcano\s+(?:web\s+sohbet\w*|uygulama\w*|gorev\s+kuyrug\w*|kod\w*)\b",
+        normalized
+    )
+    path = re.search(
+        r"\b(?:(?:core|tests|scripts|pages)/[a-z0-9_./-]+\.(?:py|js|ts|yml|yaml)|app\.py)\b",
+        normalized
+    )
+    defect = re.search(r"\b(?:hata|sorun|baglanti|kuyruk|regresyon|eksik|guvenlik)\w*\b", normalized)
+    if not path and not (target and defect):
         return False
     # Match whole imperative words, not prefixes of explanations such as
     # 'ekleyebiliriz' (we can add a memory note) or 'gelistirme' (job status).
@@ -96,6 +109,13 @@ def infer_code_goal(message, history):
     if re.fullmatch(
         r"yap artik su cano'?yu(?: ya)?"
         r"|(?:artik )?cano'?yu (?:gelistir|tamamla|yap(?: artik)?)",
+        normalized.rstrip("!."),
+    ):
+        return SELF_DEVELOPMENT_GOAL
+
+    # Explicit owner self-development phrasing, not an ordinary research request.
+    if re.fullmatch(
+        r"(?:dostum |canom )?(?:su )?cano'?yu istedigim kivama getir(?: artik)?",
         normalized.rstrip("!."),
     ):
         return SELF_DEVELOPMENT_GOAL

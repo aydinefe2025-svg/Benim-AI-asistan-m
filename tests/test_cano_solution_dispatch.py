@@ -199,3 +199,26 @@ class CanoNaturalCodeDispatchTests(unittest.TestCase):
             "CANO bunu uygula", [{"role": "assistant", "content": previous}]
         ))
 
+    def test_generic_assistant_examples_never_become_code_jobs(self):
+        examples = (
+            "Merhaba! Python programlama ve web geliştirme konularında yardımcı olabilirim. Örnek olarak bir uygulama kur ve test et.",
+            "Hangi konuyu öğrenmek istersin? Kod örneği, yazılım ve web tasarımı. Bir örnek uygulama kur veya güncelle.",
+            "Çözüm: Python öğrenmek için bir uygulama kur, test et.",
+            "CANO uygulamasında yeni bir uygulama kur, örnek kod ekle.",
+        )
+        for previous in examples:
+            with self.subTest(previous=previous):
+                self.assertIsNone(infer_code_goal(
+                    "CANO bunu uygula", [{"role": "assistant", "content": previous}]
+                ))
+
+    def test_concrete_cano_fix_remains_actionable(self):
+        for previous in (
+            "Çözüm: CANO uygulamasında görev kuyruğu bağlantısını düzelt, ardından otomatik test ekle.",
+            "CANO web sohbetindeki kod hatasını düzelt ve test et.",
+            "core/cano_solution_dispatch.py dosyasını güncelle ve test et.",
+        ):
+            with self.subTest(previous=previous):
+                self.assertIsNotNone(infer_code_goal(
+                    "CANO bunu uygula", [{"role": "assistant", "content": previous}]
+                ))
