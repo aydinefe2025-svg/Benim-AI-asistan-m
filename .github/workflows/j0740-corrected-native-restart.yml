@@ -1,0 +1,213 @@
+name: J0740 isolated corrected native restart control
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/j0740-corrected-native-restart.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '2'
+    steps:
+      - name: Obtain immutable native checkpoint, accepted replacements and executable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence native replacement engine
+          for pair in '15177726961 source' '15236058506 native' '15237233815 replacement' '15222698787 engine'; do
+              read -r id name <<< "$pair"
+              gh api repos/${{ github.repository }}/actions/artifacts/"$id"/zip > "$name.zip"
+          done
+          printf '%s\n' 'c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073  source.zip' '94ac5249316c8240ea6ef3d4bc9b0ca10abef757566f959d6398a29f44bc31a6  native.zip' '0c05f52399c460cbcd56959cd1b162ade7db6224fc1f8aaf45e0f55f314b5da0  replacement.zip' '659f80b0c12d13a322abe97d2724eda394dc0219e4f20f816b94c21e02f16f6a  engine.zip' > evidence/input.sha256
+          sha256sum -c evidence/input.sha256
+          unzip -q source.zip control.par model_rnsid_crust.rns mpa1_eos_omni_fixed.dat image-digest.txt -d evidence
+          unzip -q native.zip -d native
+          unzip -q replacement.zip -d replacement
+          unzip -q engine.zip -d engine
+          (cd engine && sha256sum -c SHA256SUMS)
+          cmp evidence/image-digest.txt engine/image-digest.txt
+          cp engine/cactus_sim evidence/cactus_sim
+          chmod +x evidence/cactus_sim
+          python3 -m pip install numpy h5py
+      - name: Build isolated checkpoint candidate with explicit spatial restriction and history perturbation
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,json,re,shutil,numpy as np,h5py
+          d=pathlib.Path('evidence');report=json.loads(pathlib.Path('replacement/coordinate_transfer.json').read_text())
+          assert report['current_time_mapping_gate'] and report['source_fields_exact']==27 and report['replacement_count']==25
+          orig=list(pathlib.Path('native').rglob('checkpoint.it_128.h5'));assert len(orig)==1
+          for label in ('baseline','corrected'):
+              folder=d/label/'incoming';folder.mkdir(parents=True)
+              shutil.copyfile(orig[0],folder/'checkpoint.it_128.h5')
+              (d/label/'run').mkdir()
+          comp=((0,0),(0,1),(0,2),(1,1),(1,2),(2,2))
+          phi_name='ml_bssn::phi'
+          at_names=['ml_bssn::at'+str(i+1)+str(j+1) for i,j in comp]
+          def identity(n):
+              m=re.fullmatch(r'(.+) it=128 tl=(\d+) rl=(\d+)',n)
+              return (m[1].lower(),int(m[2]),int(m[3])) if m else None
+          rows=[];changed_names=[]
+          with h5py.File(orig[0],'r') as src,h5py.File('replacement/native_replacement_fields.h5','r') as rep,h5py.File(d/'corrected/incoming/checkpoint.it_128.h5','r+') as dst:
+              idx={identity(n):n for n in src if identity(n) and isinstance(src[n],h5py.Dataset) and src[n].ndim==3}
+              def native(name,tl,rl):return src[idx[name,tl,rl]]
+              def raw(name,tl,rl):return native(name,tl,rl)[...]
+              def write(name,tl,rl,a):
+                  n=idx[name,tl,rl];assert a.shape==src[n].shape
+                  assert np.isfinite(a).all(),n
+                  dst[n][...]=a
+                  assert np.array_equal(dst[n][...],a),n
+                  changed_names.append(n)
+              fine=native(phi_name,0,2)
+              origin=np.array(fine.attrs['origin']);spacing=np.array(fine.attrs['delta'])
+              dp=rep[idx[phi_name,0,2]][...]-fine[...]
+              da=np.zeros(dp.shape+(3,3))
+              for (i,j),name in zip(comp,at_names):da[...,i,j]=da[...,j,i]=rep[idx[name,0,2]][...]-raw(name,0,2)
+              # Vertex-centred aligned restriction: use exact matching physical
+              # coordinates, reflect negative z with tensor parity, zero outside support.
+              # Constant-in-time increments on old timelevels are an explicit
+              # experimental history choice, not a solved time-dependent correction.
+              def sample(arr,target,parity=1):
+                  oo=np.array(target.attrs['origin']);hh=np.array(target.attrs['delta'])
+                  coords=[oo[k]+hh[k]*np.arange(target.shape[2-k]) for k in range(3)]
+                  iz=np.abs(coords[2])
+                  axes=[coords[0],coords[1],iz]
+                  inds=[];valid=[]
+                  for k,c in enumerate(axes):
+                      a=(c-origin[k])/spacing[k]
+                      assert np.max(abs(a-np.rint(a)))<1e-9
+                      a=np.rint(a).astype(int);valid.append((a>=0)&(a<arr.shape[2-k]));inds.append(np.clip(a,0,arr.shape[2-k]-1))
+                  out=arr[np.ix_(inds[2],inds[1],inds[0])].copy()
+                  mask=valid[2][:,None,None]&valid[1][None,:,None]&valid[0][None,None,:]
+                  out[~mask]=0
+                  if parity==-1:out[coords[2]<0]*=-1
+                  return out
+              # Require all expected time/refinement levels to be present.
+              for rl in (0,1,2):
+                  for tl in (0,1,2):
+                      target=native(phi_name,tl,rl)
+                      if (tl,rl)==(0,2):
+                          for n in rep:
+                              key=identity(n);assert key and key[1:]==(0,2) and n in src
+                              write(key[0],0,2,rep[n][...])
+                          rows.append({'rl':rl,'tl':tl,'mode':'25 exact accepted replacements','count':25})
+                          continue
+                      du=sample(dp,target)
+                      dA=np.zeros(target.shape+(3,3))
+                      for i,j in comp:dA[...,i,j]=dA[...,j,i]=sample(da[...,i,j],target,-1 if (i==2)!=(j==2) else 1)
+                      mask=(du!=0)|np.any(dA!=0,axis=(-1,-2))
+                      assert mask.any()
+                      gt=np.empty(target.shape+(3,3));at=np.empty_like(gt)
+                      for (i,j),name in zip(comp,at_names):
+                          gt[...,i,j]=gt[...,j,i]=raw('ml_bssn::gt'+str(i+1)+str(j+1),tl,rl)
+                          at[...,i,j]=at[...,j,i]=raw(name,tl,rl)
+                      gm=gt[mask];gi=np.linalg.inv(gm);am=at[mask]
+                      dd=dA[mask];dd-=gm*(np.einsum('...ij,...ij->...',gi,dd)/3)[...,None,None]
+                      tr=raw('ml_bssn::trk',tl,rl)[mask];p0=target[...][mask];p1=p0+du[mask]
+                      g0=gm*np.exp(4*p0)[...,None,None];g1=gm*np.exp(4*p1)[...,None,None]
+                      k0=am*np.exp(4*p0)[...,None,None]+g0*tr[...,None,None]/3
+                      k1=(am+dd)*np.exp(4*p1)[...,None,None]+g1*tr[...,None,None]/3
+                      def rel(a,b):return float(np.max(abs(a-b))/max(float(np.max(abs(b))),1e-15))
+                      maxg=max(rel(g0[...,i,j],raw('admbase::g'+'xyz'[i]+'xyz'[j],tl,rl)[mask]) for i,j in comp if i==j)
+                      actual_k=np.stack([raw('admbase::k'+'xyz'[i]+'xyz'[j],tl,rl)[mask] for i,j in comp],axis=-1)
+                      reconstructed_k=np.stack([k0[...,i,j] for i,j in comp],axis=-1)
+                      maxk=rel(reconstructed_k,actual_k)
+                      row={'rl':rl,'tl':tl,'mode':'aligned spatial increment, constant history','points':int(mask.sum()),'original_metric_error':maxg,'original_curvature_error':maxk}
+                      rows.append(row);print('TRANSFER_LEVEL',json.dumps(row),flush=True)
+                      (d/'transfer.json').write_text(json.dumps(rows,indent=2))
+                      assert maxg<=1e-8 and maxk<=1e-8,('history ADM representation mismatch',row)
+                      rho,eps,press=[raw('hydrobase::'+q,tl,rl)[mask] for q in ('rho','eps','press')]
+                      vel=np.stack([raw(f'hydrobase::vel[{i}]',tl,rl)[mask] for i in range(3)],axis=-1)
+                      def matter(g):
+                          cov=np.einsum('...ij,...j->...i',g,vel);speed=np.einsum('...i,...i->...',vel,cov)
+                          assert np.all(speed<1) and np.all(np.linalg.det(g)>0)
+                          W=1/np.sqrt(1-speed);sqrtg=np.sqrt(np.linalg.det(g));q=(rho*(1+eps)+press)*W**2
+                          S=sqrtg[...,None]*q[...,None]*cov
+                          return {'grhydro::dens':sqrtg*rho*W,'grhydro::tau':sqrtg*(q-press-rho*W),'hydrobase::w_lorentz':W,**{f'grhydro::scon[{i}]':S[...,i] for i in range(3)}}
+                      m0,m1=matter(g0),matter(g1)
+                      row['hydro_errors']={n:rel(v,raw(n,tl,rl)[mask]) for n,v in m0.items()}
+                      (d/'transfer.json').write_text(json.dumps(rows,indent=2))
+                      assert max(row['hydro_errors'].values())<=1e-8,('history primitive/conservative mismatch',row)
+                      changes={phi_name:p1}
+                      for (i,j),n in zip(comp,at_names):
+                          changes[n]=(am+dd)[...,i,j]
+                          changes['admbase::g'+'xyz'[i]+'xyz'[j]]=g1[...,i,j]
+                          changes['admbase::k'+'xyz'[i]+'xyz'[j]]=k1[...,i,j]
+                      for n,v in m1.items():changes[n]=raw(n,tl,rl)[mask]+(v-m0[n])
+                      for n,v in changes.items():
+                          full=raw(n,tl,rl);full[mask]=v;write(n,tl,rl,full)
+                      row['count']=len(changes)
+              # Do not forge constraints, stress-energy or connection diagnostics.
+              # Native recovery/evolution must recompute derived quantities.
+              for n in changed_names:assert not re.search(r'::(H|M[123])\b',n,re.I)
+              assert len(changed_names)==len(set(changed_names))==225
+          (d/'transfer.json').write_text(json.dumps({'levels':rows,'changed_count':len(changed_names),'changed_names':changed_names,'history_choice':'constant increment, not temporal constraint solve','restart_candidate_only':True},indent=2))
+          print('MULTILEVEL_TRANSFER',json.dumps({'levels':rows,'changed_count':len(changed_names)}),flush=True)
+          # Same executable and physical source in both controls. The native
+          # solver handles recovered fields; no diagnostic seam is accepted as new evidence.
+          base=(d/'control.par').read_text()
+          for label in ('baseline','corrected'):
+              p=base
+              vals={'Cactus::cctk_final_time':'0.375','ML_BSSN::other_timelevels':'3','IO::out_dir':'"/evidence/'+label+'/run"','CarpetIOHDF5::out3D_every':'128','CarpetIOHDF5::checkpoint':'no','IO::checkpoint_on_terminate':'no','IO::recover_dir':'"/evidence/'+label+'/incoming"','IO::recover_file':'"checkpoint"','IO::recover':'"auto"','IO::recover_and_remove':'no'}
+              for k,v in vals.items():
+                  p,n=re.subn(r'^\s*'+re.escape(k)+r'\s*=.*$',lambda _:k+' = '+v,p,flags=re.M);assert n<=1
+                  if n==0:p+='\n'+k+' = '+v+'\n'
+              (d/(label+'.par')).write_text(p)
+          PY
+          sha256sum evidence/baseline/incoming/checkpoint.it_128.h5 evidence/corrected/incoming/checkpoint.it_128.h5 > evidence/checkpoint_inputs.sha256
+      - name: Run paired native restart without touching long-turn evolution
+        run: |
+          set -euo pipefail
+          docker pull "$(cat evidence/image-digest.txt)"
+          for label in baseline corrected; do
+              docker run --rm --user 0:0 --entrypoint /bin/bash -v "$PWD/evidence:/evidence" "$(cat evidence/image-digest.txt)" -c 'set -euo pipefail; export OMP_NUM_THREADS=2 OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1; cd /evidence; ./cactus_sim "/evidence/$1.par" 2>&1 | tee "/evidence/$1/native.log"' _ "$label"
+              grep -F 'Recovering parameters from checkpoint file' "evidence/$label/native.log"
+              if grep -Eq 'NaN/Inf value\(s\) found|scheduling graceful termination of Cactus|count > GRHydro_countmax|Setting the point to atmosphere|Could not solve quadratic equation' "evidence/$label/native.log"; then exit 8; fi
+          done
+          sha256sum -c evidence/checkpoint_inputs.sha256
+      - name: Evaluate actual evolved native constraints, excluding stored restart row
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,json,numpy as np
+          d=pathlib.Path('evidence');out={}
+          for token,red in [('ham','norm2'),('mom','norm2'),('rho','maximum'),('dens','sum')]:
+              histories={}
+              for label in ('baseline','corrected'):
+                  f=[p for p in (d/label/'run').rglob('*.asc') if token in p.name.lower() and red in p.name.lower()]
+                  assert len(f)==1,(label,token,f)
+                  a=np.array([list(map(float,l.split())) for l in f[0].read_text().splitlines() if l.strip() and not l.lstrip().startswith('#')])
+                  a=a[a[:,0]>128];assert len(a)>0 and np.isfinite(a).all()
+                  histories[label]=a
+              b,c=histories['baseline'],histories['corrected']
+              assert np.array_equal(b[:,:2],c[:,:2]) and int(b[-1,0])==512
+              out[token]={'baseline':b.tolist(),'corrected':c.tolist(),'last_relative':(c[-1,2:]/np.maximum(abs(b[-1,2:]),1e-30)).tolist(),'max_relative':(np.max(abs(c[:,2:]),axis=0)/np.maximum(np.max(abs(b[:,2:]),axis=0),1e-30)).tolist()}
+          gate=all(max(out[k]['max_relative'])<=1 for k in ('ham','mom'))
+          report={'scope':'short paired native evolution; stored restart diagnostics excluded; not full physical certification','native_short_non_growth_vs_baseline':gate,'histories':out,'physical_stability_certified':False}
+          (d/'paired_result.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+          print('NATIVE_PAIRED_RESULT',json.dumps(report,allow_nan=False),flush=True)
+          assert gate,'corrected native evolution worsens at least one constraint versus baseline'
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: j0740-corrected-native-restart-control
+          path: |
+            evidence/input.sha256
+            evidence/transfer.json
+            evidence/checkpoint_inputs.sha256
+            evidence/baseline.par
+            evidence/corrected.par
+            evidence/baseline/native.log
+            evidence/corrected/native.log
+            evidence/baseline/run/*.asc
+            evidence/corrected/run/*.asc
+            evidence/paired_result.json
+          if-no-files-found: error
