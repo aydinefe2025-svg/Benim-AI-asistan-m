@@ -43,6 +43,31 @@ def momentum_component_weights(initial_rms,points):
     if points<=0 or baseline.ndim!=1 or not np.isfinite(baseline).all() or np.any(baseline<=0):
         raise ValueError("momentum baseline RMS must be finite and strictly positive for every component")
     return 1/(np.sqrt(points)*baseline)
+def estimate_column_scaling(operator,n_probes=8,seed=6901):
+    rows,cols=operator.shape
+    if n_probes<1:raise ValueError("n_probes must be positive")
+    rng=np.random.default_rng(seed);diag=np.zeros(cols)
+    for _ in range(n_probes):
+        z=rng.choice(np.array([-1.,1.]),size=rows)
+        q=operator.rmatvec(z);diag+=q*q
+    diag/=n_probes
+    if not np.isfinite(diag).all() or np.any(diag<0):
+        raise ValueError("column-norm estimate is invalid")
+    # Exact zero columns are null directions; the unchanged quadratic damping
+    # has its unique minimizer at x_j=0, so remove them from the search space.
+    active=diag>0
+    scale=np.zeros(cols)
+    scale[active]=1/np.sqrt(diag[active])
+    if not active.any():raise ValueError("all operator columns are null")
+    return scale,active
+def right_preconditioned_augmented(operator,scale,damping):
+    rows,cols=operator.shape
+    def forward(z):
+        x=scale*z
+        return np.r_[operator.matvec(x),damping*x]
+    def adjoint(y):
+        return scale*(operator.rmatvec(y[:rows])+damping*y[rows:])
+    return LinearOperator((rows+cols,cols),matvec=forward,rmatvec=adjoint,dtype=float)
 def check_adj(a,b,label):
     err=abs(a-b)/max(abs(a),abs(b),1e-30)
     assert err<1e-10,(label,a,b,err)
@@ -56,6 +81,18 @@ def tests():
     try:momentum_component_weights([1.,0.,2.],4)
     except ValueError:pass
     else:raise AssertionError("zero baseline must not be silently normalized")
+    dense=np.diag([1e-3,1.,1e3])
+    toy=LinearOperator((3,3),matvec=lambda z:dense@z,rmatvec=lambda z:dense.T@z,dtype=float)
+    scale,active=estimate_column_scaling(toy,n_probes=4,seed=8616)
+    assert np.all(active) and np.allclose(scale,[1e3,1.,1e-3])
+    aug=right_preconditioned_augmented(toy,scale,.01)
+    z=rng.normal(size=3);y=rng.normal(size=6)
+    check_adj(np.dot(aug@z,y),np.dot(z,aug.rmatvec(y)),"right-preconditioned augmented operator")
+    target=np.r_[np.ones(3),np.zeros(3)]
+    sol=lsmr(aug,target,atol=1e-10,btol=1e-10,maxiter=20)
+    x=scale*sol[0]
+    exact=(dense.T@np.ones(3))/(np.diag(dense)**2+.01**2)
+    assert np.allclose(x,exact,rtol=1e-8,atol=1e-10),(x,exact,sol[1:3])
     l=geo.long(x);assert np.max(abs(contract(geo.gi,l)))<1e-12
     e1=check_adj(np.sum(l*y),np.sum(x*geo.long_adj(y)),'long')
     e2=check_adj(np.sum(geo.mom(y)*v),np.sum(y*geo.mom_adj(v)),'mom')
@@ -405,8 +442,12 @@ def main():
         mass0,j0=mass_j(g,S,v2)
         for lam in (10.,100.):
             O=op(lam);target=np.r_[-(wm*M)[valid].ravel(),-(lam*wh*H)[valid]]
-            sol=lsmr(O,target,damp=.01,atol=1e-7,btol=1e-7,maxiter=1280)
-            dk=geo.long(extend(sol[0][:N]));u=extend_scalar(sol[0][N:])
+            column_scale,column_active=estimate_column_scaling(O,n_probes=8,seed=6901+int(lam))
+            Oscaled=right_preconditioned_augmented(O,column_scale,.01)
+            augmented_target=np.r_[target,np.zeros(N+Q)]
+            sol=lsmr(Oscaled,augmented_target,damp=0.,atol=1e-7,btol=1e-7,maxiter=1280)
+            solution=column_scale*sol[0]
+            dk=geo.long(extend(solution[:N]));u=extend_scalar(solution[N:])
             for scale in (1.,.5,.25):
                 uu=scale*u;aa=A+scale*dk
                 if np.max(abs(uu))>.05:
@@ -423,7 +464,7 @@ def main():
                 for name,m in masks.items():
                     b=base[name];mm=rms(Mp,m);hh=float(rms(Hp,m));hn=float(rms(Hpnative_est,m))
                     reg[name]={'M_ratio_to_pre':(mm/np.maximum(b['pre_M_rms'],1e-30)).tolist(),'M_ratio_to_initial':(mm/np.maximum(b['initial_M_rms'],1e-30)).tolist(),'H_ratio_to_pre':hh/max(b['pre_H_rms'],1e-30),'native_plus_independent_delta_H_ratio':hn/max(b['pre_native_H_rms'],1e-30)}
-                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':1280,'residual_norm':float(sol[3]),'normal_residual_norm':float(sol[4]),'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':float(sol[7]),'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
+                candidate={'lambda_H':lam,'scale':scale,'lsmr_stop':int(sol[1]),'iterations':int(sol[2]),'reported_maxiter':1280,'preconditioner':'8-probe diagonal right scaling; exact original .01 quadratic damping represented as augmented rows','preconditioner_seed':6901+int(lam),'preconditioner_active_columns':int(column_active.sum()),'preconditioner_null_columns':int((~column_active).sum()),'preconditioner_scale_min_nonzero':float(np.min(column_scale[column_active])),'preconditioner_scale_max':float(np.max(column_scale)),'residual_norm':float(sol[3]),'normal_residual_norm':float(sol[4]),'operator_norm_estimate':float(sol[5]),'condition_number_estimate':float(sol[6]),'solution_norm':float(sol[7]),'max_abs_log_conformal':float(np.max(abs(uu))),'max_trace_difference':float(np.max(abs(contract(gp.gi,Kp)-tr))),'baryon_relative_change_fixed_patch':mass/mass0-1,'matter_J_relative_change_fixed_patch':j/j0-1,'regions':reg,'all_M_improved':all(max(q['M_ratio_to_pre'])<=1+1e-10 for q in reg.values()),'all_H_improved':all(q['H_ratio_to_pre']<=1+1e-10 and q['native_plus_independent_delta_H_ratio']<=1+1e-10 for q in reg.values()),'all_M_below_initial':all(max(q['M_ratio_to_initial'])<=1+1e-10 for q in reg.values())}
                 row['candidates'].append(candidate)
                 print('COUPLED_CANDIDATE',json.dumps(candidate,allow_nan=False),flush=True)
         row['any_coupled_improvement']=any(c.get('all_M_improved') and c.get('all_H_improved') for c in row['candidates'])
