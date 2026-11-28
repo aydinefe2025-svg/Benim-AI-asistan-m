@@ -1,0 +1,18 @@
+{
+  "record_type": "J0740_BSSN_EXPANDED_SUPPORT_MANIFEST",
+  "evidence_file": "J0740_BSSN_EXPANDED_SUPPORT_CANDIDATE_20261128.json",
+  "evidence_bytes": 31930,
+  "evidence_sha256": "eca6e623de20e97a2af98d9cbe84c635e8e7e8520d4dc2bf28570fc18873c52f",
+  "source_archive_artifact_id": 15177726961,
+  "source_archive_sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073",
+  "experiment_commit": "37a18c24e98fa539057df8d2e5a0566510b2506b",
+  "workflow_run_id": 46127458726,
+  "workflow_job_id": 140925115775,
+  "workflow_conclusion": "success",
+  "candidate_acceptance": "failed",
+  "workflow_artifact_id": 15257233106,
+  "workflow_artifact_bytes": 16860,
+  "workflow_artifact_sha256": "25aa92b32e0b25c3d81d4d475fd9daa29d9b07f3fe465a2545f88b66944d446c",
+  "untouched_run": "1007"
+}
+
