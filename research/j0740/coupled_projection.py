@@ -86,8 +86,8 @@ def tests():
     scale,active=estimate_column_scaling(toy,n_probes=4,seed=8616)
     assert np.all(active) and np.allclose(scale,[1e3,1.,1e-3])
     aug=right_preconditioned_augmented(toy,scale,.01)
-    z=rng.normal(size=3);y=rng.normal(size=6)
-    check_adj(np.dot(aug@z,y),np.dot(z,aug.rmatvec(y)),"right-preconditioned augmented operator")
+    z=rng.normal(size=3);toy_rhs=rng.normal(size=6)
+    check_adj(np.dot(aug@z,toy_rhs),np.dot(z,aug.rmatvec(toy_rhs)),"right-preconditioned augmented operator")
     target=np.r_[np.ones(3),np.zeros(3)]
     sol=lsmr(aug,target,atol=1e-10,btol=1e-10,maxiter=20)
     recovered=scale*sol[0]
