@@ -1,0 +1,927 @@
+{
+  "record_type": "J0740_BSSN_EXPANDED_SUPPORT_CANDIDATE",
+  "status": "FAILED_ACCEPTANCE_GATES",
+  "run": {
+    "id": 46127458726,
+    "url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/46127458726",
+    "commit": "37a18c24e98fa539057df8d2e5a0566510b2506b",
+    "branch": "science/j0740-coupled-conformal-constraint-candidate-20261127",
+    "job_id": 140925115775,
+    "job_conclusion": "success",
+    "completed_at_utc": "2026-11-28T09:19:01Z"
+  },
+  "artifact": {
+    "id": 15257233106,
+    "bytes": 16860,
+    "sha256": "25aa92b32e0b25c3d81d4d475fd9daa29d9b07f3fe465a2545f88b66944d446c",
+    "url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/46127458726/artifacts/15257233106"
+  },
+  "interpretation": "Workflow success confirms experiment execution, not scientific gate acceptance.",
+  "result": {
+    "scope": "exhaustive archived HDF5 inventory, stencil-domain audit, and exploratory coupled constraint projection on a fixed background; no evolution or physical certification",
+    "candidate_solver_run": true,
+    "inventory_exhaustive_over_all_xyz_h5_files": true,
+    "archive_field_file_count": 27,
+    "archive_field_files": [
+      "H",
+      "M1",
+      "M2",
+      "M3",
+      "alp",
+      "betax",
+      "betay",
+      "betaz",
+      "dens",
+      "eps",
+      "gxx",
+      "gxy",
+      "gxz",
+      "gyy",
+      "gyz",
+      "gzz",
+      "kxx",
+      "kxy",
+      "kxz",
+      "kyy",
+      "kyz",
+      "kzz",
+      "press",
+      "rho",
+      "vel[0]",
+      "vel[1]",
+      "vel[2]"
+    ],
+    "non_expected_field_files": [
+      "alp",
+      "betax",
+      "betay",
+      "betaz",
+      "dens"
+    ],
+    "artifact": 15177726961,
+    "source_archive_sha256": "c34ef2530dad60bd22e0009b0aa7f298909371023ec94cdde88bfef892d63073",
+    "available_hdf5_field_files_and_keys": [
+      {
+        "field_file": "H",
+        "dataset_key": "ML_BSSN::H it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "H",
+        "dataset_key": "ML_BSSN::H it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "M1",
+        "dataset_key": "ML_BSSN::M1 it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "M1",
+        "dataset_key": "ML_BSSN::M1 it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "M2",
+        "dataset_key": "ML_BSSN::M2 it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "M2",
+        "dataset_key": "ML_BSSN::M2 it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "M3",
+        "dataset_key": "ML_BSSN::M3 it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "M3",
+        "dataset_key": "ML_BSSN::M3 it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "alp",
+        "dataset_key": "ADMBASE::alp it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "alp",
+        "dataset_key": "ADMBASE::alp it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "betax",
+        "dataset_key": "ADMBASE::betax it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "betax",
+        "dataset_key": "ADMBASE::betax it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "betay",
+        "dataset_key": "ADMBASE::betay it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "betay",
+        "dataset_key": "ADMBASE::betay it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "betaz",
+        "dataset_key": "ADMBASE::betaz it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "betaz",
+        "dataset_key": "ADMBASE::betaz it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "dens",
+        "dataset_key": "GRHYDRO::dens it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "dens",
+        "dataset_key": "GRHYDRO::dens it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "eps",
+        "dataset_key": "HYDROBASE::eps it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "eps",
+        "dataset_key": "HYDROBASE::eps it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "gxx",
+        "dataset_key": "ADMBASE::gxx it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "gxx",
+        "dataset_key": "ADMBASE::gxx it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "gxy",
+        "dataset_key": "ADMBASE::gxy it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "gxy",
+        "dataset_key": "ADMBASE::gxy it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "gxz",
+        "dataset_key": "ADMBASE::gxz it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "gxz",
+        "dataset_key": "ADMBASE::gxz it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "gyy",
+        "dataset_key": "ADMBASE::gyy it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "gyy",
+        "dataset_key": "ADMBASE::gyy it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "gyz",
+        "dataset_key": "ADMBASE::gyz it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "gyz",
+        "dataset_key": "ADMBASE::gyz it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "gzz",
+        "dataset_key": "ADMBASE::gzz it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "gzz",
+        "dataset_key": "ADMBASE::gzz it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "kxx",
+        "dataset_key": "ADMBASE::kxx it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "kxx",
+        "dataset_key": "ADMBASE::kxx it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "kxy",
+        "dataset_key": "ADMBASE::kxy it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "kxy",
+        "dataset_key": "ADMBASE::kxy it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "kxz",
+        "dataset_key": "ADMBASE::kxz it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "kxz",
+        "dataset_key": "ADMBASE::kxz it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "kyy",
+        "dataset_key": "ADMBASE::kyy it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "kyy",
+        "dataset_key": "ADMBASE::kyy it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "kyz",
+        "dataset_key": "ADMBASE::kyz it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "kyz",
+        "dataset_key": "ADMBASE::kyz it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "kzz",
+        "dataset_key": "ADMBASE::kzz it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "kzz",
+        "dataset_key": "ADMBASE::kzz it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "press",
+        "dataset_key": "HYDROBASE::press it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "press",
+        "dataset_key": "HYDROBASE::press it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "rho",
+        "dataset_key": "HYDROBASE::rho it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "rho",
+        "dataset_key": "HYDROBASE::rho it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "vel[0]",
+        "dataset_key": "HYDROBASE::vel[0] it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "vel[0]",
+        "dataset_key": "HYDROBASE::vel[0] it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "vel[1]",
+        "dataset_key": "HYDROBASE::vel[1] it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "vel[1]",
+        "dataset_key": "HYDROBASE::vel[1] it=128 tl=0 rl=2",
+        "iteration": 128
+      },
+      {
+        "field_file": "vel[2]",
+        "dataset_key": "HYDROBASE::vel[2] it=0 tl=0 rl=2",
+        "iteration": 0
+      },
+      {
+        "field_file": "vel[2]",
+        "dataset_key": "HYDROBASE::vel[2] it=128 tl=0 rl=2",
+        "iteration": 128
+      }
+    ],
+    "patches": [
+      {
+        "patch": "tl=0 rl=2",
+        "actual_adjoint_error": 1.3001401283307453e-15,
+        "active_points": 115347,
+        "valid_points": 123039,
+        "correction_support": {
+          "kind": "full stencil-safe interior with outer radial taper",
+          "previous_radial_cutoff": 11.5,
+          "support_radius": 19.48557158514987,
+          "taper_width": 1.5,
+          "active_points": 115347
+        },
+        "active_points_by_region": {
+          "inner": 4192,
+          "outer_fluid": 4516,
+          "surface_atmosphere": 1401,
+          "far_atmosphere": 101517
+        },
+        "baseline": {
+          "inner": {
+            "points": 4192,
+            "initial_M_rms": [
+              2.7382970479172487e-7,
+              2.738297047917522e-7,
+              3.452894756754559e-8
+            ],
+            "pre_M_rms": [
+              0.000003950132308611721,
+              0.000003950132308611922,
+              0.0000036037613055928687
+            ],
+            "pre_H_rms": 0.00012215969281723755,
+            "pre_native_H_rms": 0.00012307923705008917,
+            "native_H_relative_mismatch": 0.05330186550102653
+          },
+          "outer_fluid": {
+            "points": 4516,
+            "initial_M_rms": [
+              0.00004545237500453577,
+              0.00004545237500453572,
+              0.000004634931843728082
+            ],
+            "pre_M_rms": [
+              0.00004771592992496566,
+              0.000047715929924965976,
+              0.000018580532724645052
+            ],
+            "pre_H_rms": 0.000815752285304769,
+            "pre_native_H_rms": 0.0008169586551389378,
+            "native_H_relative_mismatch": 0.042133130165807754
+          },
+          "surface_atmosphere": {
+            "points": 1401,
+            "initial_M_rms": [
+              0.000017916826587951924,
+              0.000017916826587951944,
+              0.000002784757055032507
+            ],
+            "pre_M_rms": [
+              0.00002223689718547144,
+              0.00002223689718547035,
+              0.000012940748864670922
+            ],
+            "pre_H_rms": 0.00022758017584317996,
+            "pre_native_H_rms": 0.00022358038774634685,
+            "native_H_relative_mismatch": 0.0820365175894685
+          },
+          "far_atmosphere": {
+            "points": 112930,
+            "initial_M_rms": [
+              1.5919174024205557e-7,
+              1.5919174024205565e-7,
+              1.856485225978981e-8
+            ],
+            "pre_M_rms": [
+              5.508066476167852e-7,
+              5.508066476170104e-7,
+              5.160533907066246e-7
+            ],
+            "pre_H_rms": 0.0000058321249734614605,
+            "pre_native_H_rms": 0.000005887016155619556,
+            "native_H_relative_mismatch": 0.1140874911403548
+          }
+        },
+        "candidates": [
+          {
+            "lambda_H": 10,
+            "scale": 1,
+            "lsmr_stop": 7,
+            "iterations": 2560,
+            "reported_maxiter": 2560,
+            "preconditioner": "8-probe diagonal right scaling; exact original .01 quadratic damping represented as augmented rows",
+            "preconditioner_seed": 6911,
+            "preconditioner_active_columns": 457667,
+            "preconditioner_null_columns": 3721,
+            "preconditioner_scale_min_nonzero": 1.4678247978582393e-7,
+            "preconditioner_scale_max": 0.001219928345734013,
+            "residual_norm": 2.452723078087525,
+            "normal_residual_norm": 0.0010404295522512725,
+            "operator_norm_estimate": 213.16548227509733,
+            "condition_number_estimate": 85.56892613419079,
+            "solution_norm": 300.69334340237555,
+            "max_abs_log_conformal": 0.0002855265870554485,
+            "max_trace_difference": 3.2610768469290563e-18,
+            "baryon_relative_change_fixed_patch": -0.000003521715595034003,
+            "matter_J_relative_change_fixed_patch": -0.000012373939117793498,
+            "regions": {
+              "inner": {
+                "M_ratio_to_pre": [
+                  0.001983978430388262,
+                  0.0019769006074710845,
+                  0.00006590846904619321
+                ],
+                "M_ratio_to_initial": [
+                  0.028619894629131837,
+                  0.02851779344547311,
+                  0.006878819286191752
+                ],
+                "H_ratio_to_pre": 0.0018827415015235886,
+                "native_plus_independent_delta_H_ratio": 0.0535461392402321
+              },
+              "outer_fluid": {
+                "M_ratio_to_pre": [
+                  0.24411241635787656,
+                  0.24404477922926537,
+                  0.05172639043159103
+                ],
+                "M_ratio_to_initial": [
+                  0.25626935779668497,
+                  0.2561983522994205,
+                  0.2073609542808045
+                ],
+                "H_ratio_to_pre": 0.013596725695318166,
+                "native_plus_independent_delta_H_ratio": 0.04428358837417019
+              },
+              "surface_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.04131864059250912,
+                  0.04125445220934344,
+                  0.014351895721337247
+                ],
+                "M_ratio_to_initial": [
+                  0.05128131135214052,
+                  0.05120164599008569,
+                  0.0666931709271143
+                ],
+                "H_ratio_to_pre": 0.0016590639172555006,
+                "native_plus_independent_delta_H_ratio": 0.08175298258657489
+              },
+              "far_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.17429267310767232,
+                  0.17428705583340823,
+                  0.04529237864827246
+                ],
+                "M_ratio_to_initial": [
+                  0.603056181386246,
+                  0.6030367455036917,
+                  1.2590073568877385
+                ],
+                "H_ratio_to_pre": 0.18710976258097706,
+                "native_plus_independent_delta_H_ratio": 0.21505378800249444
+              }
+            },
+            "all_M_improved": true,
+            "all_H_improved": true,
+            "all_M_below_initial": false
+          },
+          {
+            "lambda_H": 10,
+            "scale": 0.5,
+            "lsmr_stop": 7,
+            "iterations": 2560,
+            "reported_maxiter": 2560,
+            "preconditioner": "8-probe diagonal right scaling; exact original .01 quadratic damping represented as augmented rows",
+            "preconditioner_seed": 6911,
+            "preconditioner_active_columns": 457667,
+            "preconditioner_null_columns": 3721,
+            "preconditioner_scale_min_nonzero": 1.4678247978582393e-7,
+            "preconditioner_scale_max": 0.001219928345734013,
+            "residual_norm": 2.452723078087525,
+            "normal_residual_norm": 0.0010404295522512725,
+            "operator_norm_estimate": 213.16548227509733,
+            "condition_number_estimate": 85.56892613419079,
+            "solution_norm": 300.69334340237555,
+            "max_abs_log_conformal": 0.00014276329352772425,
+            "max_trace_difference": 3.004637622147817e-18,
+            "baryon_relative_change_fixed_patch": -0.0000017609474837199102,
+            "matter_J_relative_change_fixed_patch": -0.000006187299510185262,
+            "regions": {
+              "inner": {
+                "M_ratio_to_pre": [
+                  0.5000141758112985,
+                  0.5000143477372788,
+                  0.49999931452306506
+                ],
+                "M_ratio_to_initial": [
+                  7.212957966479024,
+                  7.212960446598096,
+                  52.18456713678698
+                ],
+                "H_ratio_to_pre": 0.5007418334019147,
+                "native_plus_independent_delta_H_ratio": 0.5058504895491409
+              },
+              "outer_fluid": {
+                "M_ratio_to_pre": [
+                  0.5316494684660574,
+                  0.5314517110018572,
+                  0.502141382905958
+                ],
+                "M_ratio_to_initial": [
+                  0.558125923660537,
+                  0.557918317758694,
+                  2.012986320415468
+                ],
+                "H_ratio_to_pre": 0.4998502275129034,
+                "native_plus_independent_delta_H_ratio": 0.5014746405856126
+              },
+              "surface_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.5028090086310844,
+                  0.5027903842624206,
+                  0.49977507788962877
+                ],
+                "M_ratio_to_initial": [
+                  0.6240453449706763,
+                  0.6240222299302062,
+                  2.3224517054740126
+                ],
+                "H_ratio_to_pre": 0.4999357239074911,
+                "native_plus_independent_delta_H_ratio": 0.49421554912571386
+              },
+              "far_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.5074209592384913,
+                  0.5074192564997272,
+                  0.5020867852565185
+                ],
+                "M_ratio_to_initial": [
+                  1.7556868029941315,
+                  1.755680911484215,
+                  13.956673844467687
+                ],
+                "H_ratio_to_pre": 0.5256925478313265,
+                "native_plus_independent_delta_H_ratio": 0.5352081111165582
+              }
+            },
+            "all_M_improved": true,
+            "all_H_improved": true,
+            "all_M_below_initial": false
+          },
+          {
+            "lambda_H": 10,
+            "scale": 0.25,
+            "lsmr_stop": 7,
+            "iterations": 2560,
+            "reported_maxiter": 2560,
+            "preconditioner": "8-probe diagonal right scaling; exact original .01 quadratic damping represented as augmented rows",
+            "preconditioner_seed": 6911,
+            "preconditioner_active_columns": 457667,
+            "preconditioner_null_columns": 3721,
+            "preconditioner_scale_min_nonzero": 1.4678247978582393e-7,
+            "preconditioner_scale_max": 0.001219928345734013,
+            "residual_norm": 2.452723078087525,
+            "normal_residual_norm": 0.0010404295522512725,
+            "operator_norm_estimate": 213.16548227509733,
+            "condition_number_estimate": 85.56892613419079,
+            "solution_norm": 300.69334340237555,
+            "max_abs_log_conformal": 0.00007138164676386213,
+            "max_trace_difference": 2.8619125705354673e-18,
+            "baryon_relative_change_fixed_patch": -8.80496163757627e-7,
+            "matter_J_relative_change_fixed_patch": -0.0000030937322492707864,
+            "regions": {
+              "inner": {
+                "M_ratio_to_pre": [
+                  0.7500067394610617,
+                  0.7500068352151653,
+                  0.7499999681776143
+                ],
+                "M_ratio_to_initial": [
+                  10.81922742996436,
+                  10.81922881126532,
+                  78.27695469799959
+                ],
+                "H_ratio_to_pre": 0.7503703933957219,
+                "native_plus_independent_delta_H_ratio": 0.752698167581297
+              },
+              "outer_fluid": {
+                "M_ratio_to_pre": [
+                  0.7612752712089602,
+                  0.7611744994746403,
+                  0.7508506001750842
+                ],
+                "M_ratio_to_initial": [
+                  0.799187225991844,
+                  0.7990814357660865,
+                  3.01001279376979
+                ],
+                "H_ratio_to_pre": 0.7499090746480813,
+                "native_plus_independent_delta_H_ratio": 0.7505741311309416
+              },
+              "surface_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.7512639469114306,
+                  0.7512549987931285,
+                  0.7498711723247498
+                ],
+                "M_ratio_to_initial": [
+                  0.9324072577592882,
+                  0.9323961520879491,
+                  3.4846467142885764
+                ],
+                "H_ratio_to_pre": 0.7499670027843585,
+                "native_plus_independent_delta_H_ratio": 0.7465589943870347
+              },
+              "far_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.7512055543220434,
+                  0.7512048452629411,
+                  0.7508743165069013
+                ],
+                "M_ratio_to_initial": [
+                  2.599186442827285,
+                  2.5991839894694815,
+                  20.872303835521755
+                ],
+                "H_ratio_to_pre": 0.7601895928101934,
+                "native_plus_independent_delta_H_ratio": 0.7642347540366162
+              }
+            },
+            "all_M_improved": true,
+            "all_H_improved": true,
+            "all_M_below_initial": false
+          },
+          {
+            "lambda_H": 100,
+            "scale": 1,
+            "lsmr_stop": 7,
+            "iterations": 2560,
+            "reported_maxiter": 2560,
+            "preconditioner": "8-probe diagonal right scaling; exact original .01 quadratic damping represented as augmented rows",
+            "preconditioner_seed": 7001,
+            "preconditioner_active_columns": 457667,
+            "preconditioner_null_columns": 3721,
+            "preconditioner_scale_min_nonzero": 3.601351727730652e-8,
+            "preconditioner_scale_max": 0.002159467937519851,
+            "residual_norm": 18.811575593734513,
+            "normal_residual_norm": 0.0029002073244129597,
+            "operator_norm_estimate": 196.75255561489024,
+            "condition_number_estimate": 36.721037375663585,
+            "solution_norm": 1135.392635795148,
+            "max_abs_log_conformal": 0.00028952937344446867,
+            "max_trace_difference": 2.617331807015788e-18,
+            "baryon_relative_change_fixed_patch": -0.000004606811047969117,
+            "matter_J_relative_change_fixed_patch": -0.000015246460659534833,
+            "regions": {
+              "inner": {
+                "M_ratio_to_pre": [
+                  0.002011109352559521,
+                  0.0020120845215654925,
+                  0.00006083897101853632
+                ],
+                "M_ratio_to_initial": [
+                  0.02901127193537637,
+                  0.029025339242644537,
+                  0.006349719440472131
+                ],
+                "H_ratio_to_pre": 0.0017911617621267982,
+                "native_plus_independent_delta_H_ratio": 0.05355239797751458
+              },
+              "outer_fluid": {
+                "M_ratio_to_pre": [
+                  0.24585154240053475,
+                  0.2447484582185502,
+                  0.04461923910324277
+                ],
+                "M_ratio_to_initial": [
+                  0.25809509333578234,
+                  0.2569370749148842,
+                  0.17886977851215244
+                ],
+                "H_ratio_to_pre": 0.012525493748787255,
+                "native_plus_independent_delta_H_ratio": 0.04396137487278489
+              },
+              "surface_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.04215209940620714,
+                  0.04171600273198336,
+                  0.01202788349567351
+                ],
+                "M_ratio_to_initial": [
+                  0.052315732144101,
+                  0.05177448468266675,
+                  0.055893500443691006
+                ],
+                "H_ratio_to_pre": 0.001498068094122328,
+                "native_plus_independent_delta_H_ratio": 0.08176174904084314
+              },
+              "far_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.17325119917157308,
+                  0.1732414202892164,
+                  0.045160825485216986
+                ],
+                "M_ratio_to_initial": [
+                  0.5994526604595268,
+                  0.5994188253286264,
+                  1.2553505297337728
+                ],
+                "H_ratio_to_pre": 0.18704583281609166,
+                "native_plus_independent_delta_H_ratio": 0.21500298336970364
+              }
+            },
+            "all_M_improved": true,
+            "all_H_improved": true,
+            "all_M_below_initial": false
+          },
+          {
+            "lambda_H": 100,
+            "scale": 0.5,
+            "lsmr_stop": 7,
+            "iterations": 2560,
+            "reported_maxiter": 2560,
+            "preconditioner": "8-probe diagonal right scaling; exact original .01 quadratic damping represented as augmented rows",
+            "preconditioner_seed": 7001,
+            "preconditioner_active_columns": 457667,
+            "preconditioner_null_columns": 3721,
+            "preconditioner_scale_min_nonzero": 3.601351727730652e-8,
+            "preconditioner_scale_max": 0.002159467937519851,
+            "residual_norm": 18.811575593734513,
+            "normal_residual_norm": 0.0029002073244129597,
+            "operator_norm_estimate": 196.75255561489024,
+            "condition_number_estimate": 36.721037375663585,
+            "solution_norm": 1135.392635795148,
+            "max_abs_log_conformal": 0.00014476468672223433,
+            "max_trace_difference": 2.5228876333969336e-18,
+            "baryon_relative_change_fixed_patch": -0.000002303505038159237,
+            "matter_J_relative_change_fixed_patch": -0.000007623623546892944,
+            "regions": {
+              "inner": {
+                "M_ratio_to_pre": [
+                  0.5000144436587206,
+                  0.5000153505018055,
+                  0.49999884274347584
+                ],
+                "M_ratio_to_initial": [
+                  7.212961830313873,
+                  7.212974911984741,
+                  52.18451789749218
+                ],
+                "H_ratio_to_pre": 0.5007327707225413,
+                "native_plus_independent_delta_H_ratio": 0.5058421479966692
+              },
+              "outer_fluid": {
+                "M_ratio_to_pre": [
+                  0.5297291275009534,
+                  0.5294964485294241,
+                  0.5016271180892149
+                ],
+                "M_ratio_to_initial": [
+                  0.5561099485896238,
+                  0.5558656820689151,
+                  2.010924733626536
+                ],
+                "H_ratio_to_pre": 0.4998375889166505,
+                "native_plus_independent_delta_H_ratio": 0.5014618379724637
+              },
+              "surface_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.5027743278245453,
+                  0.5028326811257727,
+                  0.4993875735076356
+                ],
+                "M_ratio_to_initial": [
+                  0.6240023019950952,
+                  0.624074725331499,
+                  2.320650975000138
+                ],
+                "H_ratio_to_pre": 0.4999202781682072,
+                "native_plus_independent_delta_H_ratio": 0.49420035379722166
+              },
+              "far_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.5073320435618179,
+                  0.5073340119736376,
+                  0.5020654719500227
+                ],
+                "M_ratio_to_initial": [
+                  1.7553791529507654,
+                  1.7553859636962725,
+                  13.956081391377815
+                ],
+                "H_ratio_to_pre": 0.5256636653757859,
+                "native_plus_independent_delta_H_ratio": 0.5351810300086307
+              }
+            },
+            "all_M_improved": true,
+            "all_H_improved": true,
+            "all_M_below_initial": false
+          },
+          {
+            "lambda_H": 100,
+            "scale": 0.25,
+            "lsmr_stop": 7,
+            "iterations": 2560,
+            "reported_maxiter": 2560,
+            "preconditioner": "8-probe diagonal right scaling; exact original .01 quadratic damping represented as augmented rows",
+            "preconditioner_seed": 7001,
+            "preconditioner_active_columns": 457667,
+            "preconditioner_null_columns": 3721,
+            "preconditioner_scale_min_nonzero": 3.601351727730652e-8,
+            "preconditioner_scale_max": 0.002159467937519851,
+            "residual_norm": 18.811575593734513,
+            "normal_residual_norm": 0.0029002073244129597,
+            "operator_norm_estimate": 196.75255561489024,
+            "condition_number_estimate": 36.721037375663585,
+            "solution_norm": 1135.392635795148,
+            "max_abs_log_conformal": 0.00007238234336111717,
+            "max_trace_difference": 3.0616005878506686e-18,
+            "baryon_relative_change_fixed_patch": -0.0000011517773984559554,
+            "matter_J_relative_change_fixed_patch": -0.0000038119100854716592,
+            "regions": {
+              "inner": {
+                "M_ratio_to_pre": [
+                  0.7500069118794847,
+                  0.7500073682571463,
+                  0.7499997830710772
+                ],
+                "M_ratio_to_initial": [
+                  10.819229917187519,
+                  10.81923650066612,
+                  78.27693537856408
+                ],
+                "H_ratio_to_pre": 0.7503659054576682,
+                "native_plus_independent_delta_H_ratio": 0.7526939269704438
+              },
+              "outer_fluid": {
+                "M_ratio_to_pre": [
+                  0.7602008366269063,
+                  0.7601236927801478,
+                  0.7506498947712256
+                ],
+                "M_ratio_to_initial": [
+                  0.7980592839377461,
+                  0.7979782982822018,
+                  3.0092082051695384
+                ],
+                "H_ratio_to_pre": 0.7499051950291442,
+                "native_plus_independent_delta_H_ratio": 0.7505701894690463
+              },
+              "surface_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.7512407610157775,
+                  0.7512731019949623,
+                  0.7496826682774631
+                ],
+                "M_ratio_to_initial": [
+                  0.9323784813252884,
+                  0.9324186202988195,
+                  3.483770737143101
+                ],
+                "H_ratio_to_pre": 0.749959342603511,
+                "native_plus_independent_delta_H_ratio": 0.7465513504750277
+              },
+              "far_atmosphere": {
+                "M_ratio_to_pre": [
+                  0.7511906340818695,
+                  0.7511919029745764,
+                  0.7508646134580869
+                ],
+                "M_ratio_to_initial": [
+                  2.5991348184938907,
+                  2.599139208889435,
+                  20.87203411663734
+                ],
+                "H_ratio_to_pre": 0.7601765822705601,
+                "native_plus_independent_delta_H_ratio": 0.7642223193516827
+              }
+            },
+            "all_M_improved": true,
+            "all_H_improved": true,
+            "all_M_below_initial": false
+          }
+        ],
+        "any_coupled_improvement": true,
+        "any_initial_M_and_H_gate": false
+      }
+    ],
+    "physical_stability_certified": false
+  }
+}
+
