@@ -4,6 +4,8 @@ Only use after authenticated owner identification; no automatic schema creation.
 """
 from __future__ import annotations
 
+from core.postgres_owner_proof import set_owner_context
+
 import json
 import os
 
@@ -81,7 +83,7 @@ class ColonySnapshotStore:
             raise ValueError("Snapshot exceeds quota")
         with self.connect(self.database_url, connect_timeout=8) as db:
             with db.cursor() as cur:
-                cur.execute("SELECT set_config('cano.owner_key', %s, true)", (owner_key,))
+                set_owner_context(cur, owner_key)
                 cur.execute("""INSERT INTO private_colony_snapshots (owner_key,payload)
                     VALUES (%s,%s::jsonb) ON CONFLICT(owner_key)
                     DO UPDATE SET payload=EXCLUDED.payload, updated_at=now()""",
@@ -124,7 +126,7 @@ class ColonySnapshotStore:
 
         with self.connect(self.database_url, connect_timeout=8) as db:
             with db.cursor() as cur:
-                cur.execute("SELECT set_config('cano.owner_key', %s, true)", (owner_key,))
+                set_owner_context(cur, owner_key)
                 # Serialize concurrent writes from multiple tabs for one owner.
                 cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s)::bigint)",
                             ("cano-colony-backup:" + owner_key,))
@@ -168,7 +170,7 @@ class ColonySnapshotStore:
             raise ValueError("Authenticated owner required")
         with self.connect(self.database_url, connect_timeout=8) as db:
             with db.cursor() as cur:
-                cur.execute("SELECT set_config('cano.owner_key', %s, true)", (owner_key,))
+                set_owner_context(cur, owner_key)
                 cur.execute("SELECT revision, archived_at FROM private_colony_snapshot_revisions "
                             "WHERE owner_key=%s ORDER BY revision DESC", (owner_key,))
                 return [{"revision": row[0], "archived_at": row[1].isoformat()}
@@ -181,7 +183,7 @@ class ColonySnapshotStore:
             raise ValueError("Invalid snapshot revision")
         with self.connect(self.database_url, connect_timeout=8) as db:
             with db.cursor() as cur:
-                cur.execute("SELECT set_config('cano.owner_key', %s, true)", (owner_key,))
+                set_owner_context(cur, owner_key)
                 cur.execute("SELECT payload FROM private_colony_snapshot_revisions "
                             "WHERE owner_key=%s AND revision=%s",
                             (owner_key, revision))
@@ -193,7 +195,7 @@ class ColonySnapshotStore:
             raise ValueError("Authenticated owner required")
         with self.connect(self.database_url, connect_timeout=8) as db:
             with db.cursor() as cur:
-                cur.execute("SELECT set_config('cano.owner_key', %s, true)", (owner_key,))
+                set_owner_context(cur, owner_key)
                 cur.execute("SELECT payload FROM private_colony_snapshots WHERE owner_key=%s",
                             (owner_key,))
                 row = cur.fetchone()

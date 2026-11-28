@@ -37,6 +37,8 @@ on:
       - "scripts/cano_local_grant_owner_resolver.sql"
       - "scripts/provision_ci_local_grant_resolver.py"
       - "core/postgres_local_grant.py"
+      - "core/postgres_owner_proof.py"
+      - "scripts/check_cano_signed_owner_adapters.py"
       - "requirements-persistence.txt"
       - ".github/workflows/postgres-adapter-tests.yml"
   workflow_dispatch:
@@ -63,8 +65,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
       - run: python -m pip install -r requirements-persistence.txt
@@ -152,8 +154,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
       - name: Install test-only PostgreSQL dependencies
@@ -202,3 +204,35 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
         run: python -m scripts.check_cano_owner_rls_rollback
+
+  signed-owner-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [17, 18]
+    services:
+      postgres:
+        image: postgres:${{ matrix.pg }}
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: ci_persistence
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d ci_persistence"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements-persistence.txt
+      - name: Verify signed owner proof with direct login and real adapters
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_signed_owner_adapters
