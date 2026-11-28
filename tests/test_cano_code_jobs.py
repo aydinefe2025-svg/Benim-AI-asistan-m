@@ -205,6 +205,7 @@ class RepeatingSelfDevelopmentTests(unittest.TestCase):
 if __name__=="__main__":
     unittest.main()
 
+
 class SignedCodeJobScopeTests(unittest.TestCase):
     def test_verify_schema_requires_transaction_bound_proof(self):
         import hashlib
