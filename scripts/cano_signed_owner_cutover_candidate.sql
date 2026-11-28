@@ -1,7 +1,54 @@
 -- Review candidate; run in one transaction only after approved protected key provisioning and app deployment.
-DO $$ BEGIN
- IF (SELECT count(*) FROM cano_context_proof.signing_key) <> 6 THEN RAISE EXCEPTION 'Signed owner key registry incomplete'; END IF;
- IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname IN ('agent_research_drafts','agent_research_task_events','agent_research_tasks','cano_authorized_job_events','cano_authorized_jobs','private_colony_snapshot_revisions','private_colony_snapshots','private_memory_entries') AND (c.relrowsecurity OR c.relforcerowsecurity)) THEN RAISE EXCEPTION 'Unexpected pre-cutover RLS state'; END IF;
+DO $$
+DECLARE verifier oid := to_regprocedure('cano_context_proof.verified_owner()');
+BEGIN
+ IF (SELECT count(*) FROM cano_context_proof.signing_key) <> 6
+    OR (SELECT count(DISTINCT secret) FROM cano_context_proof.signing_key) <> 6
+    OR (SELECT count(DISTINCT role_name) FROM cano_context_proof.signing_key) <> 6 THEN
+   RAISE EXCEPTION 'Signed owner key registry incomplete or duplicated';
+ END IF;
+ IF EXISTS (
+   SELECT 1 FROM (VALUES
+     ('agent_task_app',true),('cano_runtime_rw',true),('cano_snapshot_app',true),
+     ('cano_snapshot_runtime',false),('memory_runtime_app',true),('organism_lab_runtime',true)
+   ) AS expected(role_name,can_login)
+   LEFT JOIN pg_roles r ON r.rolname=expected.role_name
+   WHERE r.oid IS NULL OR r.rolcanlogin<>expected.can_login OR r.rolsuper OR r.rolbypassrls
+ ) THEN RAISE EXCEPTION 'Live application role login/bypass matrix differs from reviewed design'; END IF;
+ IF (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+     WHERE n.nspname='public' AND c.relkind='r' AND c.relname IN
+     ('agent_research_drafts','agent_research_task_events','agent_research_tasks','cano_authorized_job_events','cano_authorized_jobs','private_colony_snapshot_revisions','private_colony_snapshots','private_memory_entries')) <> 8 THEN
+   RAISE EXCEPTION 'Owner RLS target table set is incomplete';
+ END IF;
+ IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+     WHERE n.nspname='public' AND c.relname IN
+     ('agent_research_drafts','agent_research_task_events','agent_research_tasks','cano_authorized_job_events','cano_authorized_jobs','private_colony_snapshot_revisions','private_colony_snapshots','private_memory_entries')
+       AND (c.relrowsecurity OR c.relforcerowsecurity OR pg_get_userbyid(c.relowner)<>current_user::text)) THEN
+   RAISE EXCEPTION 'Unexpected pre-cutover RLS or table-owner state';
+ END IF;
+ IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename IN
+     ('agent_research_drafts','agent_research_task_events','agent_research_tasks','cano_authorized_job_events','cano_authorized_jobs','private_colony_snapshot_revisions','private_colony_snapshots','private_memory_entries')) THEN
+   RAISE EXCEPTION 'Unexpected pre-existing policy on owner RLS targets';
+ END IF;
+ IF verifier IS NULL OR NOT EXISTS (
+   SELECT 1 FROM pg_proc p WHERE p.oid=verifier AND p.prosecdef
+     AND p.proowner=(SELECT oid FROM pg_roles WHERE rolname=current_user)
+     AND p.proconfig @> ARRAY['search_path=pg_catalog, pg_temp']
+ ) OR EXISTS (
+   SELECT 1 FROM pg_proc p
+   CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl,acldefault('f',p.proowner))) acl
+   WHERE p.oid=verifier AND acl.grantee=0 AND acl.privilege_type='EXECUTE'
+ ) THEN
+   RAISE EXCEPTION 'Owner verifier security attributes are not as reviewed';
+ END IF;
+ IF EXISTS (
+   SELECT 1 FROM (VALUES ('agent_task_app'),('cano_runtime_rw'),('cano_snapshot_app'),
+     ('cano_snapshot_runtime'),('memory_runtime_app'),('organism_lab_runtime')) AS roles(role_name)
+   WHERE has_table_privilege(role_name,'cano_context_proof.signing_key','SELECT')
+      OR has_table_privilege(role_name,'cano_context_proof.signing_key','INSERT')
+      OR has_table_privilege(role_name,'cano_context_proof.signing_key','UPDATE')
+      OR has_table_privilege(role_name,'cano_context_proof.signing_key','DELETE')
+ ) THEN RAISE EXCEPTION 'Signing registry grants access to an application role'; END IF;
 END $$;
 -- REVIEW CANDIDATE ONLY. Do not execute on production before deployed-code,
 -- role-binding, backup, independent security review and rollback acceptance.
