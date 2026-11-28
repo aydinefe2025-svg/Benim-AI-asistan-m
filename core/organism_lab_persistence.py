@@ -13,6 +13,8 @@ import hmac
 import json
 import re
 
+from core.postgres_owner_proof import set_owner_context
+
 
 class OrganismLabPersistenceError(RuntimeError):
     """A safe, user-presentable persistence failure."""
@@ -59,8 +61,7 @@ class OrganismLabStore:
             # The Neon RLS policies bind all reads/writes in this transaction
             # to the authenticated HMAC owner key.
             with db.cursor() as cur:
-                cur.execute("SELECT set_config('cano.owner_key', %s, true)",
-                            (self.owner_key,))
+                set_owner_context(cur, self.owner_key)
             yield db
 
     def verify_schema(self):
