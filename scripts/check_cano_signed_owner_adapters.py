@@ -162,5 +162,64 @@ def main():
     print("SIGNED_OWNER_BOUNDED_ROTATION_PASS: previous/current accepted, unrelated/expired rejected, registry private")
 
 
+    # The already-RLS-enabled tables need additive restrictive policies, not
+    # the eight-table rollback that disables RLS.
+    with psycopg.connect(ADMIN) as conn:
+        conn.execute("CREATE ROLE cano_autodev_worker NOLOGIN NOBYPASSRLS")
+        conn.execute("CREATE TABLE public.cano_code_jobs (owner_key text NOT NULL,id text PRIMARY KEY,status text NOT NULL)")
+        conn.execute("CREATE TABLE public.organism_lab_records (owner_key text NOT NULL,collection text NOT NULL,record_id text NOT NULL,payload jsonb NOT NULL,PRIMARY KEY(owner_key,collection,record_id))")
+        conn.execute("INSERT INTO public.cano_code_jobs VALUES ('synthetic-a','a','queued'),('synthetic-b','b','queued')")
+        conn.execute("INSERT INTO public.organism_lab_records VALUES ('synthetic-a','simulation','cano-organism-lab-v1-world-a','{}'),('synthetic-b','simulation','cano-organism-lab-v1-world-b','{}'),('synthetic-a','simulation','filesystem_snapshot_v1','{}'),('synthetic-b','simulation','filesystem_snapshot_v1','{}')")
+        conn.execute("ALTER TABLE public.cano_code_jobs ENABLE ROW LEVEL SECURITY")
+        conn.execute("ALTER TABLE public.organism_lab_records ENABLE ROW LEVEL SECURITY")
+        conn.execute("GRANT SELECT,INSERT ON public.cano_code_jobs TO agent_task_app")
+        conn.execute("GRANT SELECT,UPDATE ON public.cano_code_jobs TO cano_autodev_worker")
+        conn.execute("GRANT SELECT,INSERT ON public.organism_lab_records TO cano_snapshot_app,cano_runtime_rw")
+        conn.execute("GRANT SELECT,INSERT,UPDATE ON public.organism_lab_records TO organism_lab_runtime")
+        conn.execute("CREATE POLICY cano_code_jobs_web_read ON public.cano_code_jobs FOR SELECT TO agent_task_app USING (owner_key=current_setting('cano.owner_key',true))")
+        conn.execute("CREATE POLICY cano_code_jobs_web_insert ON public.cano_code_jobs FOR INSERT TO agent_task_app WITH CHECK (owner_key=current_setting('cano.owner_key',true))")
+        conn.execute("CREATE POLICY cano_autodev_worker_select ON public.cano_code_jobs FOR SELECT TO cano_autodev_worker USING (owner_key='synthetic-a')")
+        conn.execute("CREATE POLICY cano_autodev_worker_update ON public.cano_code_jobs FOR UPDATE TO cano_autodev_worker USING (owner_key='synthetic-a' AND status IN ('queued','running')) WITH CHECK (owner_key='synthetic-a' AND status IN ('running','pr_open','blocked'))")
+        for app_role,label in (("cano_snapshot_app","cano_lab"),("cano_runtime_rw","cano_runtime")):
+            pred = "owner_key=current_setting('cano.owner_key',true) AND collection='simulation' AND record_id LIKE 'cano-organism-lab-v1-%'"
+            conn.execute(f"CREATE POLICY organism_lab_records_{label}_select ON public.organism_lab_records FOR SELECT TO {app_role} USING ({pred})")
+            conn.execute(f"CREATE POLICY organism_lab_records_{label}_insert ON public.organism_lab_records FOR INSERT TO {app_role} WITH CHECK ({pred})")
+        pred = "owner_key=current_setting('organism.owner_key',true) AND collection='simulation' AND record_id='filesystem_snapshot_v1'"
+        conn.execute(f"CREATE POLICY organism_lab_runtime_snapshot_select ON public.organism_lab_records FOR SELECT TO organism_lab_runtime USING ({pred})")
+        conn.execute(f"CREATE POLICY organism_lab_runtime_snapshot_insert ON public.organism_lab_records FOR INSERT TO organism_lab_runtime WITH CHECK ({pred})")
+        conn.execute(f"CREATE POLICY organism_lab_runtime_snapshot_update ON public.organism_lab_records FOR UPDATE TO organism_lab_runtime USING ({pred}) WITH CHECK ({pred})")
+    specs = (("agent_task_app","cano_code_jobs","cano.owner_key"),("cano_runtime_rw","organism_lab_records","cano.owner_key"),("cano_snapshot_app","organism_lab_records","cano.owner_key"),("organism_lab_runtime","organism_lab_records","organism.owner_key"))
+    def check_extra(signed):
+        for app_role,table,guc in specs:
+            with psycopg.connect(url(app_role)) as conn, conn.cursor() as cur:
+                cur.execute("SELECT set_config(%s,%s,true)",(guc,"synthetic-a"))
+                cur.execute(f"SELECT count(*) FROM public.{table}")
+                assert cur.fetchone()[0] == (0 if signed else 1)
+                if signed:
+                    set_owner_context(cur,"synthetic-a",environment=old_env)
+                    cur.execute(f"SELECT owner_key FROM public.{table}")
+                    assert cur.fetchall() == [("synthetic-a",)]
+                    cur.execute("SELECT set_config(%s,%s,true)",(guc,"synthetic-b"))
+                    cur.execute(f"SELECT count(*) FROM public.{table}")
+                    assert cur.fetchone()[0] == 0
+    check_extra(False)
+    with psycopg.connect(ADMIN) as conn:
+        conn.execute(Path(__file__).with_name("cano_remaining_signed_scope_candidate.sql").read_text())
+    check_extra(True)
+    with psycopg.connect(ADMIN) as conn:
+        conn.execute("SET LOCAL ROLE cano_autodev_worker")
+        assert conn.execute("SELECT owner_key FROM public.cano_code_jobs").fetchall() == [("synthetic-a",)]
+        assert conn.execute("UPDATE public.cano_code_jobs SET status='running' WHERE id='a'").rowcount == 1
+        assert conn.execute("UPDATE public.cano_code_jobs SET status='running' WHERE id='b'").rowcount == 0
+        conn.execute("RESET ROLE")
+        conn.execute(Path(__file__).with_name("cano_remaining_signed_scope_rollback.sql").read_text())
+        assert conn.execute("SELECT count(*) FROM pg_class WHERE oid IN ('public.cano_code_jobs'::regclass,'public.organism_lab_records'::regclass) AND relrowsecurity").fetchone()[0] == 2
+    check_extra(False)
+    with psycopg.connect(ADMIN) as conn:
+        conn.execute(Path(__file__).with_name("cano_remaining_signed_scope_candidate.sql").read_text())
+    check_extra(True)
+    print("SIGNED_REMAINING_TABLES_PASS: four direct login roles, worker fixed scope, rollback preserves original RLS")
+
+
 if __name__=="__main__":
     main()
