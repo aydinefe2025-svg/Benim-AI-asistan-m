@@ -29,9 +29,20 @@ def main():
     with psycopg.connect(ADMIN) as conn:
         conn.execute(Path(__file__).with_name("cano_local_grant_owner_resolver.sql").read_text())
         for role in ROLES:
-            conn.execute(f"CREATE ROLE {role} LOGIN PASSWORD 'synthetic-role-only' NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB")
+            login_clause = "NOLOGIN" if role == "cano_snapshot_runtime" else "LOGIN PASSWORD 'synthetic-role-only'"
+            conn.execute(f"CREATE ROLE {role} {login_clause} NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB")
             conn.execute(f"GRANT USAGE ON SCHEMA public TO {role}")
-        conn.execute(Path(__file__).with_name("cano_owner_proof_provision_candidate.sql").read_text())
+        provision_sql = Path(__file__).with_name("cano_owner_proof_provision_candidate.sql").read_text()
+        conn.execute(provision_sql)
+        # Existing schema/table/extension/function state must validate safely on a second run.
+        conn.execute(provision_sql)
+        assert conn.execute("SELECT NOT rolcanlogin FROM pg_roles WHERE rolname='cano_snapshot_runtime'").fetchone()[0]
+        assert conn.execute("SELECT cano_context_proof.constant_time_equal(decode(%s,'hex'),decode(%s,'hex'))",
+                            ("ab"*32,"ab"*32)).fetchone()[0]
+        assert not conn.execute("SELECT cano_context_proof.constant_time_equal(decode(%s,'hex'),decode(%s,'hex'))",
+                                ("ab"*32,"ac"+"ab"*31)).fetchone()[0]
+        assert not conn.execute("SELECT cano_context_proof.constant_time_equal(decode(%s,'hex'),decode(%s,'hex'))",
+                                ("ab"*32,"ab"*31)).fetchone()[0]
         for role in ROLES:
             conn.execute("INSERT INTO cano_context_proof.signing_key VALUES (%s,%s)", (role, bytes.fromhex(keys[role])))
         for table, roles in MATRIX.items():
