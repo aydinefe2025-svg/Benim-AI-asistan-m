@@ -258,5 +258,51 @@ class OrganismLabPersistenceTests(unittest.TestCase):
             store.save_verified("world", b"x" * (store.MAX_RECORD_BYTES + 1))
 
 
+class SignedOrganismScopeTests(unittest.TestCase):
+    def test_required_mode_signs_each_read_transaction(self):
+        from unittest.mock import patch
+        import hmac
+        owner = OrganismLabPersistenceTests.OWNER
+        class Cursor(FakeCursor):
+            def execute(self, sql, params=None):
+                if "pg_current_xact_id()" in sql:
+                    self.row = ("cano_runtime_rw", "321", "654")
+                elif "cano.owner_proof" in sql:
+                    self.database.proofs.append(params)
+                    super().execute(sql, params)
+                else:
+                    super().execute(sql, params)
+        class Connection(FakeConnection):
+            def cursor(self):
+                return Cursor(self.database)
+        db = FakeDatabase()
+        db.proofs = []
+        with patch.dict("os.environ", {"CANO_OWNER_PROOF_MODE":"required",
+                         "CANO_OWNER_PROOF_KEYS_JSON":'{"cano_runtime_rw":"' + "ab"*32 + '"}'}):
+            store = OrganismLabStore(owner, "postgresql://test", connect=lambda *a, **k: Connection(db))
+            store.list_recent()
+        expected = hmac.new(bytes.fromhex("ab"*32),
+            f"cano_runtime_rw:{owner}:321:654".encode(), hashlib.sha256).hexdigest()
+        self.assertEqual(db.proofs, [(owner, expected)])
+    def test_missing_key_prevents_write(self):
+        from unittest.mock import patch
+        class Cursor(FakeCursor):
+            def execute(self, sql, params=None):
+                if "pg_current_xact_id()" in sql:
+                    self.row = ("cano_runtime_rw", "321", "654")
+                else:
+                    super().execute(sql, params)
+        class Connection(FakeConnection):
+            def cursor(self):
+                return Cursor(self.database)
+        db = FakeDatabase()
+        with patch.dict("os.environ", {"CANO_OWNER_PROOF_MODE":"required",
+                         "CANO_OWNER_PROOF_KEYS_JSON":"{}"}):
+            store = OrganismLabStore(OrganismLabPersistenceTests.OWNER,
+                "postgresql://test", connect=lambda *a, **k: Connection(db))
+            with self.assertRaises(PermissionError):
+                store.save_verified("world", b'{"steps":1}')
+        self.assertEqual(db.records, {})
+
 if __name__ == "__main__":
     unittest.main()

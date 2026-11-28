@@ -6,6 +6,8 @@ provenance and never restore a verified status.
 """
 from __future__ import annotations
 
+from core.postgres_owner_proof import set_owner_context
+
 import json
 import os
 import uuid
@@ -136,6 +138,7 @@ class PostgresTaskStore:
             raise ValueError("Task title cannot be empty")
         task_id, now = str(uuid.uuid4()), datetime.now(timezone.utc)
         with self._connection() as conn, conn.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             cur.execute(f"""INSERT INTO agent_research_tasks
                 (owner_key,id,title,goal,status,created_at,updated_at)
                 VALUES (%s,%s,%s,%s,'planned',%s,%s)""",
@@ -153,6 +156,7 @@ class PostgresTaskStore:
 
     def get(self, task_id: str) -> dict[str, Any]:
         with self._connection() as conn, conn.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             row = self._select_one(cur, task_id)
         if row is None:
             raise KeyError(f"Unknown task: {task_id}")
@@ -162,6 +166,7 @@ class PostgresTaskStore:
         if status is not None and status not in STATUSES:
             raise ValueError(f"Invalid status: {status}")
         with self._connection() as conn, conn.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             if status:
                 cur.execute(f"SELECT {_COLUMNS} FROM agent_research_tasks "
                             "WHERE owner_key=%s AND status=%s ORDER BY created_at,id",
@@ -181,6 +186,7 @@ class PostgresTaskStore:
             raise ValueError("Verified status requires independent evidence review")
         now = datetime.now(timezone.utc)
         with self._connection() as conn, conn.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             cur.execute("""SELECT status,evidence,blockers FROM agent_research_tasks
                 WHERE owner_key=%s AND id=%s FOR UPDATE""", (self.owner_key, task_id))
             row = cur.fetchone()
@@ -208,6 +214,7 @@ class PostgresTaskStore:
             raise ValueError("Draft is empty")
         now = datetime.now(timezone.utc)
         with self._connection() as conn, conn.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             cur.execute("SELECT status FROM agent_research_tasks WHERE owner_key=%s AND id=%s FOR UPDATE",
                         (self.owner_key, task_id))
             row = cur.fetchone()
@@ -231,6 +238,7 @@ class PostgresTaskStore:
 
     def load_draft(self, task_id: str) -> str | None:
         with self._connection() as conn, conn.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             cur.execute("""SELECT d.content FROM agent_research_drafts d
                 JOIN agent_research_tasks t ON t.owner_key=d.owner_key AND t.id=d.task_id
                 WHERE d.owner_key=%s AND d.task_id=%s""", (self.owner_key, task_id))
@@ -240,6 +248,7 @@ class PostgresTaskStore:
     def touch_running(self, task_id: str) -> bool:
         """Refresh a running task heartbeat without crossing owner boundaries."""
         with self._connection() as conn, conn.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             cur.execute("""UPDATE agent_research_tasks SET updated_at=now()
                 WHERE owner_key=%s AND id=%s AND status='running'""",
                 (self.owner_key, task_id))
@@ -248,6 +257,7 @@ class PostgresTaskStore:
     def history(self, task_id: str) -> list[dict[str, Any]]:
         self.get(task_id)
         with self._connection() as conn, conn.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             cur.execute("""SELECT event_id,task_id,at,old_status,new_status,note
                 FROM agent_research_task_events WHERE owner_key=%s AND task_id=%s
                 ORDER BY event_id""", (self.owner_key, task_id))
@@ -265,6 +275,7 @@ class PostgresTaskStore:
         threshold = now.astimezone(timezone.utc) - timedelta(seconds=stale_after_seconds)
         recovered = []
         with self._connection() as conn, conn.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             cur.execute("""SELECT id,status FROM agent_research_tasks
                 WHERE owner_key=%s AND status='running' AND updated_at <= %s
                 ORDER BY id FOR UPDATE""", (self.owner_key, threshold))
@@ -287,6 +298,7 @@ class PostgresTaskStore:
         """Import validated exports as new planned tasks, never restoring status."""
         now = datetime.now(timezone.utc)
         with self._connection() as conn, conn.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             for title, goal, draft, provenance in validated:
                 task_id = str(uuid.uuid4())
                 cur.execute("""INSERT INTO agent_research_tasks

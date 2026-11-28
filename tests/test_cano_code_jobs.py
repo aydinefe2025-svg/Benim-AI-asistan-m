@@ -204,3 +204,35 @@ class RepeatingSelfDevelopmentTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+
+class SignedCodeJobScopeTests(unittest.TestCase):
+    def test_verify_schema_requires_transaction_bound_proof(self):
+        import hashlib
+        import hmac
+        from unittest.mock import patch
+        class ProofCursor(FakeCursor):
+            def fetchone(self):
+                if "pg_current_xact_id()" in self.last:
+                    return ("agent_task_app", "123", "456")
+                return super().fetchone()
+        cur = ProofCursor()
+        key = "ab" * 32
+        with patch.dict("os.environ", {"CANO_OWNER_PROOF_MODE": "required",
+                         "CANO_OWNER_PROOF_KEYS_JSON": '{"agent_task_app":"' + key + '"}'}):
+            CodeJobStore(DB_URL, OWNER, connect=lambda _: FakeConnection(cur)).verify_schema()
+        expected = hmac.new(bytes.fromhex(key),
+                            f"agent_task_app:{OWNER}:123:456".encode(), hashlib.sha256).hexdigest()
+        self.assertTrue(any("cano.owner_proof" in sql and params == (OWNER, expected)
+                            for sql, params in cur.queries), "Missing signed owner proof")
+    def test_required_mode_without_key_rejects_before_database_read(self):
+        from unittest.mock import patch
+        class ProofCursor(FakeCursor):
+            def fetchone(self):
+                return ("agent_task_app", "123", "456")
+        cur = ProofCursor()
+        with patch.dict("os.environ", {"CANO_OWNER_PROOF_MODE": "required",
+                         "CANO_OWNER_PROOF_KEYS_JSON": "{}"}):
+            with self.assertRaises(PermissionError):
+                CodeJobStore(DB_URL, OWNER, connect=lambda _: FakeConnection(cur)).verify_schema()
+        self.assertFalse(any("FROM public.cano_code_jobs" in sql for sql, _ in cur.queries))

@@ -7,6 +7,8 @@ than replay work that may already have caused an external side effect.
 """
 from __future__ import annotations
 
+from core.postgres_owner_proof import set_owner_context
+
 import hashlib
 import math
 import logging
@@ -158,6 +160,7 @@ class PostgresAuthorizedQueue:
         if type(max_calls) is not int or not 1 <= max_calls <= 3:
             raise ValueError("Call budget must be between 1 and 3")
         with self._db() as db, db.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             # Serializes a single owner's quota and idempotent enqueue even
             # across multiple distinct hosts and connections.
             cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s)::bigint)",
@@ -187,6 +190,7 @@ class PostgresAuthorizedQueue:
 
     def get(self, task_id: str):
         with self._db() as db, db.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             cur.execute("SELECT * FROM cano_authorized_jobs "
                         "WHERE owner_key=%s AND id=%s",
                         (self.owner_key, task_id))
@@ -197,6 +201,7 @@ class PostgresAuthorizedQueue:
 
     def list(self):
         with self._db() as db, db.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             cur.execute("SELECT * FROM cano_authorized_jobs WHERE owner_key=%s "
                         "ORDER BY created_at,id", (self.owner_key,))
             return [self._public(row) for row in cur.fetchall()]
@@ -204,6 +209,7 @@ class PostgresAuthorizedQueue:
     def events(self, task_id: str):
         self.get(task_id)
         with self._db() as db, db.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             cur.execute("SELECT event_id,at,state,code FROM cano_authorized_job_events "
                         "WHERE owner_key=%s AND job_id=%s ORDER BY event_id",
                         (self.owner_key, task_id))
@@ -219,6 +225,7 @@ class PostgresAuthorizedQueue:
             raise ValueError("Invalid lease duration")
         when = self._override(now)
         with self._db() as db, db.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             if when is None:
                 when = self._server_clock(cur)
             cur.execute("SELECT * FROM cano_authorized_jobs "
@@ -266,6 +273,7 @@ class PostgresAuthorizedQueue:
         when = self._override(now)
         clean = draft.strip()[:12000]
         with self._db() as db, db.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             _, when = self._require_lease(cur, task_id, lease_token, when)
             cur.execute("UPDATE cano_authorized_jobs "
                         "SET state='review_pending',lease_token=NULL,worker_id=NULL,"
@@ -282,6 +290,7 @@ class PostgresAuthorizedQueue:
         if type(lease_seconds) is not int or not 1 <= lease_seconds <= 3600:
             raise ValueError("Invalid lease duration")
         with self._db() as db, db.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             self._require_lease(cur, task_id, lease_token, None)
             # Keep the expiry predicate in the write as well as the locked read:
             # the server clock is authoritative even at the expiry boundary.
@@ -297,6 +306,7 @@ class PostgresAuthorizedQueue:
     def fail(self, task_id, lease_token, *, now: float | None = None):
         when = self._override(now)
         with self._db() as db, db.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             row, when = self._require_lease(cur, task_id, lease_token, when)
             if row["attempts"] < row["max_calls"]:
                 state, eligible, code, outcome = (
@@ -317,6 +327,7 @@ class PostgresAuthorizedQueue:
         """Block expired work; external side effects must never be replayed blindly."""
         when = self._override(now)
         with self._db() as db, db.cursor() as cur:
+            set_owner_context(cur, self.owner_key)
             if when is None:
                 # Evaluate expiry at the server, never from a client clock.
                 cur.execute("SELECT id FROM cano_authorized_jobs "

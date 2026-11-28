@@ -24,6 +24,24 @@ on:
       - "scripts/check_postgres_task_store.py"
       - "tests/test_postgres_memory.py"
       - "tests/test_postgres_smoke_safety.py"
+      - "scripts/check_cano_restricted_snapshot_role.py"
+      - "scripts/check_cano_snapshot_rls.py"
+      - "scripts/check_cano_memory_task_rls.py"
+      - "scripts/check_cano_authorized_queue_rls.py"
+      - "scripts/check_cano_local_grant_rls.py"
+      - "scripts/cano_owner_rls_candidate.sql"
+      - "scripts/check_cano_production_role_matrix.py"
+      - "scripts/check_cano_owner_rls_rollback.py"
+      - "scripts/cano_owner_rls_rollback_candidate.sql"
+      - "scripts/cano_owner_rls_rollback_keep_resolver.sql"
+      - "scripts/cano_local_grant_owner_resolver.sql"
+      - "scripts/provision_ci_local_grant_resolver.py"
+      - "core/postgres_local_grant.py"
+      - "core/postgres_owner_proof.py"
+      - "scripts/check_cano_signed_owner_adapters.py"
+      - "scripts/cano_owner_proof_provision_candidate.sql"
+      - "scripts/cano_signed_owner_cutover_candidate.sql"
+      - "scripts/cano_signed_owner_rollback_candidate.sql"
       - "requirements-persistence.txt"
       - ".github/workflows/postgres-adapter-tests.yml"
   workflow_dispatch:
@@ -50,8 +68,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
       - run: python -m pip install -r requirements-persistence.txt
@@ -88,6 +106,39 @@ jobs:
           CANO_CI_ALLOW_DISPOSABLE_DB: "1"
         run: python -m scripts.check_cano_pg_backup_roundtrip
 
+      - name: Verify real restricted snapshot runtime without schema CREATE
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_restricted_snapshot_role
+      - name: Verify actual snapshot adapter under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_snapshot_rls
+      - name: Verify actual memory and task adapters under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_memory_task_rls
+      - name: Verify actual authorized queue under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_authorized_queue_rls
+      - name: Provision narrow local capability resolver in disposable CI
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.provision_ci_local_grant_resolver
+      - name: Verify local HTTP capability under synthetic queue RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_local_grant_rls
+      - name: Verify candidate production role matrix with dedicated synthetic logins
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_production_role_matrix
+      - name: Rehearse owner RLS rollback and reapply in separate disposable database
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_owner_rls_rollback
+
   pg18-backup-restore:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -106,8 +157,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
       - name: Install test-only PostgreSQL dependencies
@@ -123,3 +174,68 @@ jobs:
           CANO_CI_ALLOW_DISPOSABLE_DB: "1"
           CANO_CI_PG_MAJOR: "18"
         run: python -m scripts.check_cano_pg_backup_roundtrip
+
+      - name: Verify real restricted snapshot runtime without schema CREATE
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_restricted_snapshot_role
+      - name: Verify actual snapshot adapter under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_snapshot_rls
+      - name: Verify actual memory and task adapters under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_memory_task_rls
+      - name: Verify actual authorized queue under synthetic owner RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_authorized_queue_rls
+      - name: Provision narrow local capability resolver in disposable CI
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.provision_ci_local_grant_resolver
+      - name: Verify local HTTP capability under synthetic queue RLS
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_local_grant_rls
+      - name: Verify candidate production role matrix with dedicated synthetic logins
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_production_role_matrix
+      - name: Rehearse owner RLS rollback and reapply in separate disposable database
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_owner_rls_rollback
+
+  signed-owner-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [17, 18]
+    services:
+      postgres:
+        image: postgres:${{ matrix.pg }}
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: ci_persistence
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d ci_persistence"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements-persistence.txt
+      - name: Verify signed owner proof with direct login and real adapters
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:synthetic-ci-only@localhost:5432/ci_persistence
+        run: python -m scripts.check_cano_signed_owner_adapters

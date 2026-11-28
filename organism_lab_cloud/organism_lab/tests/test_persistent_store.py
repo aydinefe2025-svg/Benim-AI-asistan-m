@@ -89,7 +89,75 @@ class PersistentStoreTests(unittest.TestCase):
         store = PostgresArchive("a" * 64, "postgresql://private", connect=lambda *a, **k: Connection())
         with self.assertRaises(PersistenceConflict):
             store.save(b"next", expected_digest="stale")
-        self.assertIn("WHERE public.organism_lab_records.payload->>'sha256'=%s", statements[0][0])
+        self.assertIn("WHERE public.organism_lab_records.payload->>'sha256'=%s", next(sql for sql, _ in statements if "ON CONFLICT (owner_key" in sql))
+
+
+
+class ArchiveScopeTests(unittest.TestCase):
+    def test_legacy_scope_is_set_before_archive_read(self):
+        from unittest.mock import patch
+        calls = []
+        class Cursor:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def execute(self, sql, params=None): calls.append((sql, params))
+            def fetchone(self): return None
+        class Connection:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def cursor(self): return Cursor()
+        with patch.dict("os.environ", {"CANO_OWNER_PROOF_MODE":"off"}):
+            store = PostgresArchive("a"*64, "postgresql://test", connect=lambda *a, **k: Connection())
+            self.assertEqual(store.load(), (None, None))
+        self.assertIn("set_config('organism.owner_key'", calls[0][0])
+        self.assertEqual(calls[0][1], ("a"*64,))
+    def test_required_mode_rejects_missing_key_before_archive_read(self):
+        from unittest.mock import patch
+        calls = []
+        class Cursor:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def execute(self, sql, params=None): calls.append((sql, params))
+            def fetchone(self): return ("cano_snapshot_app", "123", "456") if "pg_current_xact_id()" in calls[-1][0] else None
+        class Connection:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def cursor(self): return Cursor()
+        with patch.dict("os.environ", {"CANO_OWNER_PROOF_MODE":"required",
+                                        "CANO_OWNER_PROOF_KEYS_JSON":"{}"}):
+            store = PostgresArchive("a"*64, "postgresql://test", connect=lambda *a, **k: Connection())
+            with self.assertRaises(PermissionError):
+                store.load()
+        self.assertFalse(any("SELECT payload FROM" in sql for sql, _ in calls))
+
+
+    def test_required_mode_checks_database_verifier_before_loading(self):
+        from unittest.mock import patch
+        for verified in ("a"*64, None):
+            calls = []
+            class Cursor:
+                def __enter__(self): return self
+                def __exit__(self, *args): return False
+                def execute(self, sql, params=None): calls.append((sql, params))
+                def fetchone(self):
+                    sql = calls[-1][0]
+                    if "pg_current_xact_id()" in sql: return ("cano_snapshot_app", "123", "456")
+                    if "verified_owner()" in sql: return (verified,)
+                    return None
+            class Connection:
+                def __enter__(self): return self
+                def __exit__(self, *args): return False
+                def cursor(self): return Cursor()
+            with patch.dict("os.environ", {"CANO_OWNER_PROOF_MODE":"required",
+                                            "CANO_OWNER_PROOF_KEYS_JSON":json.dumps({"cano_snapshot_app":"ab"*32})}):
+                store = PostgresArchive("a"*64, "postgresql://test", connect=lambda *a, **k: Connection())
+                if verified is None:
+                    with self.assertRaises(PermissionError): store.load()
+                    self.assertFalse(any("SELECT payload FROM" in sql for sql, _ in calls))
+                else:
+                    self.assertEqual(store.load(), (None, None))
+                    self.assertIn("cano.owner_proof", calls[1][0])
+                    self.assertIn("organism.owner_key", calls[3][0])
 
 
 if __name__ == "__main__":

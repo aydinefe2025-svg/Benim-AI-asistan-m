@@ -7,6 +7,8 @@ and expire with the existing server-clock lease. No new schema or DB
 credential is distributed. A lost response is manual-review territory,
 not permission to repeat inference. This module does not expose an HTTP API.
 """
+from core.postgres_owner_proof import set_owner_context
+
 import hashlib
 import re
 import secrets
@@ -65,6 +67,18 @@ class PostgresLocalGrant:
     def _locked(cur, job_id, worker):
         # An exact id + unguessable capability hash is the only worker lookup.
         # Never accept an owner key or arbitrary job id as worker authority.
+        # Legacy databases without active RLS retain the existing exact
+        # capability lookup. An RLS database must provision the narrow
+        # resolver; missing resolver or denied capability fails closed.
+        cur.execute("SELECT pg_catalog.row_security_active("
+                    "'public.cano_authorized_jobs'::regclass) AS rls_active")
+        if cur.fetchone()["rls_active"]:
+            cur.execute("SELECT public.cano_resolve_local_grant_owner(%s,%s) AS owner_key",
+                        (job_id, worker))
+            owner = cur.fetchone()["owner_key"]
+            if not owner:
+                raise PermissionError("Grant unavailable")
+            set_owner_context(cur, owner)
         cur.execute("SELECT * FROM public.cano_authorized_jobs "
                     "WHERE id=%s AND worker_id=%s AND state='running' FOR UPDATE",
                     (job_id, worker))
@@ -128,6 +142,7 @@ class PostgresLocalGrant:
         if not isinstance(job_id,str) or not re.fullmatch("[0-9a-f]{32}",job_id):
             raise ValueError("Invalid job id")
         with queue._db() as db, db.cursor() as cur:
+            set_owner_context(cur, queue.owner_key)
             cur.execute("SELECT * FROM public.cano_authorized_jobs "
                         "WHERE owner_key=%s AND id=%s AND state='running' FOR UPDATE",
                         (queue.owner_key,job_id))

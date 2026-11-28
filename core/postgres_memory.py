@@ -5,6 +5,8 @@ and never logged. This module does not automatically migrate session memories.
 """
 from __future__ import annotations
 
+from core.postgres_owner_proof import set_owner_context
+
 import json
 import os
 
@@ -64,6 +66,7 @@ class PostgresMemoryStore:
             ))
         with self._connection() as conn:
             with conn.cursor() as cur:
+                set_owner_context(cur, owner_key)
                 cur.executemany("""
                     INSERT INTO private_memory_entries (owner_key, entry_id, payload)
                     VALUES (%s, %s, %s::jsonb)
@@ -76,6 +79,7 @@ class PostgresMemoryStore:
             raise ValueError("owner_key required")
         with self._connection() as conn:
             with conn.cursor() as cur:
+                set_owner_context(cur, owner_key)
                 cur.execute("""
                     SELECT payload FROM private_memory_entries
                     WHERE owner_key=%s ORDER BY updated_at, entry_id
@@ -88,6 +92,7 @@ class PostgresMemoryStore:
             raise ValueError("owner_key and entry_id required")
         with self._connection() as conn:
             with conn.cursor() as cur:
+                set_owner_context(cur, owner_key)
                 cur.execute("""
                     DELETE FROM private_memory_entries
                     WHERE owner_key=%s AND entry_id=%s

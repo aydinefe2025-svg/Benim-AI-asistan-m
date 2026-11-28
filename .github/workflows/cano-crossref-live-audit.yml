@@ -24,8 +24,8 @@ jobs:
       run:
         working-directory: cano/research_cycle
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Deterministic offline tests, resource warnings treated as errors
@@ -44,7 +44,7 @@ jobs:
           PY
       - name: Upload independent, reviewable bibliography result
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: cano-crossref-live-${{ github.run_id }}
           retention-days: 14

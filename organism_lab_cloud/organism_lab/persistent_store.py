@@ -6,6 +6,7 @@ Only an authenticated OIDC issuer/subject pair can be converted to an owner key.
 from __future__ import annotations
 
 import base64
+from contextlib import contextmanager
 import hashlib
 import hmac
 import io
@@ -132,8 +133,19 @@ class PostgresArchive:
             connect = psycopg.connect
         self._connect = connect
 
+    @contextmanager
     def _connection(self):
-        return self._connect(self.database_url, connect_timeout=8)
+        with self._connect(self.database_url, connect_timeout=8) as conn:
+            with conn.cursor() as cur:
+                if os.environ.get("CANO_OWNER_PROOF_MODE", "off") != "off":
+                    from core.postgres_owner_proof import set_owner_context
+                    set_owner_context(cur, self.owner_key)
+                    cur.execute("SELECT cano_context_proof.verified_owner()")
+                    row = cur.fetchone()
+                    if not row or row[0] != self.owner_key:
+                        raise PermissionError("Archive owner proof rejected")
+                cur.execute("SELECT set_config('organism.owner_key', %s, true)", (self.owner_key,))
+            yield conn
 
     def check(self):
         with self._connection() as conn, conn.cursor() as cur:

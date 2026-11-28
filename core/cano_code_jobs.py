@@ -11,6 +11,7 @@ import unicodedata
 from datetime import datetime, timedelta, timezone
 
 from core.cano_solution_dispatch import SELF_DEVELOPMENT_GOAL
+from core.postgres_owner_proof import set_owner_context
 
 
 MAX_ACTIVE_JOBS = 3
@@ -65,7 +66,7 @@ class CodeJobStore:
         return psycopg.connect(self.database_url, connect_timeout=8)
 
     def _scope(self, cursor):
-        cursor.execute("SELECT set_config('cano.owner_key', %s, true)", (self.owner_key,))
+        set_owner_context(cursor, self.owner_key)
 
     def verify_schema(self):
         with self._db() as conn, conn.cursor() as cur:

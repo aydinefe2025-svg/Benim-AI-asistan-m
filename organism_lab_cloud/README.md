@@ -16,6 +16,7 @@ Set these as Render environment secrets on the isolated Organism Lab service:
 - `LAB_OIDC_METADATA_URL`: `https://accounts.google.com/.well-known/openid-configuration`
 - `GROQ_API_KEY`: freshly rotated Groq secret; optional until chat is needed.
 - `ORGANISM_LAB_CLOUD_MODE=1`.
+- Signed-owner cutover only: `CANO_OWNER_PROOF_MODE=required` and a protected `CANO_OWNER_PROOF_KEYS_JSON` for the dedicated role. Keep the stable identity derivation secret separate. Missing or rejected signing proof must stop archive access; do not rotate the identity derivation secret as if it were a transaction signing key.
 
 The startup bootstrap writes only the OIDC TOML into a private temporary file
 and configures Streamlit to read it. No secret is committed or logged. The app

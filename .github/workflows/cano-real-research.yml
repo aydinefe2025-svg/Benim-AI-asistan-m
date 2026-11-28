@@ -30,8 +30,8 @@ jobs:
       OMP_NUM_THREADS: '1'
       PYTHONHASHSEED: '0'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
@@ -44,7 +44,7 @@ jobs:
         run: python ci_smoke.py --output .ci-run > .ci-summary.json
       - name: Upload reviewable outputs (no database, no secrets)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: cano-evidence-${{ github.run_id }}
           retention-days: 14
