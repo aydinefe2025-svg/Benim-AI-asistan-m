@@ -137,5 +137,30 @@ def main():
     print("SIGNED_OWNER_REPLAY_ROTATION_PASS: distinct backend, reused backend after commit, rollback reset, old key rejected, new key accepted, wrong-role key rejected")
 
 
+    # Planned rotation accepts a previous key only during a bounded overlap.
+    # The existing immediate-revocation test above remains mandatory.
+    next_key = secrets.token_hex(32)
+    with psycopg.connect(ADMIN) as conn:
+        conn.execute(Path(__file__).with_name("cano_owner_proof_rotation_candidate.sql").read_text())
+        conn.execute("UPDATE cano_context_proof.signing_key SET previous_secret=secret, previous_valid_until=statement_timestamp()+interval '10 minutes', secret=%s WHERE role_name=%s",
+                     (bytes.fromhex(next_key), role))
+    next_env = {"CANO_OWNER_PROOF_MODE": "required",
+                "CANO_OWNER_PROOF_KEYS_JSON": json.dumps({**keys, role: next_key})}
+    def signed_visible(environment):
+        with psycopg.connect(url(role)) as conn, conn.cursor() as cur:
+            set_owner_context(cur, target, environment=environment)
+            return visible(conn)
+    assert signed_visible(new_env) == 1
+    assert signed_visible(next_env) == 1
+    assert signed_visible(old_env) == 0
+    with psycopg.connect(ADMIN) as conn:
+        conn.execute("UPDATE cano_context_proof.signing_key SET previous_valid_until=statement_timestamp()-interval '1 second' WHERE role_name=%s", (role,))
+    assert signed_visible(new_env) == 0
+    assert signed_visible(next_env) == 1
+    with psycopg.connect(url(role)) as conn:
+        assert not conn.execute("SELECT has_table_privilege(current_user,'cano_context_proof.signing_key','SELECT')").fetchone()[0]
+    print("SIGNED_OWNER_BOUNDED_ROTATION_PASS: previous/current accepted, unrelated/expired rejected, registry private")
+
+
 if __name__=="__main__":
     main()
