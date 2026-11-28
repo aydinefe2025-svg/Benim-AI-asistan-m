@@ -9,6 +9,7 @@ from uuid import uuid4
 
 # Streamlit launches this file directly; ensure repository imports resolve.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 import streamlit as st
 from organism_lab.shared_world import run_shared_world
