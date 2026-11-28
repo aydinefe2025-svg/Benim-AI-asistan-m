@@ -422,6 +422,10 @@ def main():
             b={'points':n,'initial_M_rms':rms(M0,m).tolist(),'pre_M_rms':rms(M,m).tolist(),'pre_H_rms':float(rms(H,m)),'pre_native_H_rms':float(rms(Hnative,m)),'native_H_relative_mismatch':float(np.linalg.norm((H-Hnative)[m])/max(np.linalg.norm(Hnative[m]),1e-30))}
             base[name]=b
             wm[m]=momentum_component_weights(b['initial_M_rms'],n)
+            if name=='far_atmosphere':
+                # p=8 active-group IRLS proxy, seeded only from the converged failing M3 gate in run 46139257633.
+                # Row scale r^3 yields r^6 weighting in the squared objective; acceptance thresholds remain unchanged.
+                wm[m,2]*=1.2278096481810779**3
             wh[m]=1/(np.sqrt(n)*max(b['pre_H_rms'],1e-7))
         def op(lam):
             def forward(a):
