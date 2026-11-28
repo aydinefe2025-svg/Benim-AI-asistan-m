@@ -84,5 +84,58 @@ def main():
 
     print("SIGNED_REAL_ADAPTERS_PASS: dedicated direct login, memory, task, snapshot, queue, local capability, default deny")
 
+    # Exercise real transaction reuse and key rotation with isolated synthetic
+    # keys. Do not print a proof or key; both are sensitive even in diagnostics.
+    from core.postgres_owner_proof import set_owner_context
+    role = "memory_runtime_app"
+    target = "ci-unsigned-target"
+    old_env = {"CANO_OWNER_PROOF_MODE": "required",
+               "CANO_OWNER_PROOF_KEYS_JSON": json.dumps(keys)}
+    def visible(conn):
+        return conn.execute("SELECT count(*) FROM public.private_memory_entries WHERE owner_key=%s", (target,)).fetchone()[0]
+    def replay(conn, proof):
+        conn.execute("SELECT set_config('cano.owner_key',%s,true), set_config('cano.owner_proof',%s,true)", (target, proof))
+    with psycopg.connect(url(role)) as conn:
+        pid = conn.execute("SELECT pg_backend_pid()").fetchone()[0]
+        with conn.cursor() as cur:
+            set_owner_context(cur, target, environment=old_env)
+        assert visible(conn) == 1
+        proof = conn.execute("SELECT current_setting('cano.owner_proof')").fetchone()[0]
+        with psycopg.connect(url(role)) as other_conn:
+            assert other_conn.execute("SELECT pg_backend_pid()").fetchone()[0] != pid
+            replay(other_conn, proof)
+            assert visible(other_conn) == 0
+        conn.commit()
+        assert conn.execute("SELECT pg_backend_pid()").fetchone()[0] == pid
+        assert visible(conn) == 0
+        replay(conn, proof)
+        assert visible(conn) == 0
+        with conn.cursor() as cur:
+            set_owner_context(cur, target, environment=old_env)
+        assert visible(conn) == 1
+        conn.rollback()
+        assert visible(conn) == 0
+    new_key = secrets.token_hex(32)
+    with psycopg.connect(ADMIN) as conn:
+        conn.execute("UPDATE cano_context_proof.signing_key SET secret=%s WHERE role_name=%s", (bytes.fromhex(new_key), role))
+    new_env = {"CANO_OWNER_PROOF_MODE": "required",
+               "CANO_OWNER_PROOF_KEYS_JSON": json.dumps({**keys, role: new_key})}
+    with psycopg.connect(url(role)) as conn:
+        with conn.cursor() as cur:
+            set_owner_context(cur, target, environment=old_env)
+        assert visible(conn) == 0
+        with conn.cursor() as cur:
+            set_owner_context(cur, target, environment=new_env)
+        assert visible(conn) == 1
+        # A role-specific rotation must not grant access to another role's key.
+        with conn.cursor() as cur:
+            set_owner_context(cur, target, environment={
+                "CANO_OWNER_PROOF_MODE": "required",
+                "CANO_OWNER_PROOF_KEYS_JSON": json.dumps({role: keys["agent_task_app"]}),
+            })
+        assert visible(conn) == 0
+    print("SIGNED_OWNER_REPLAY_ROTATION_PASS: distinct backend, reused backend after commit, rollback reset, old key rejected, new key accepted, wrong-role key rejected")
+
+
 if __name__=="__main__":
     main()
