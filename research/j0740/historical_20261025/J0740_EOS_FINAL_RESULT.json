@@ -1,0 +1,135 @@
+{
+  "status": "model_conditional_hierarchical_posterior_update",
+  "base": "Legred et al. 2021 PSR+GW+NICER EOS posterior; replace old J0740 NICER factor with Salmi et al. 2024 NICER+XMM; retain J0030 NICER, J0348 radio mass, GW170817/GW190425.",
+  "primary_method": "KDE-to-KDE likelihood ratio using the full original 1,600,920-row weighted Miller source file, corrected to common Normal(2.08,0.07 Msun) and flat-radius source prior; reweight 10,000 EOS draws by the ratio of new/old source posterior-density integrals over all stable branches, M=1.75–2.45 Msun, step 0.005 Msun.",
+  "primary_kde_kde": {
+    "R14_km": {
+      "q16": 11.6702193,
+      "median": 12.4051369,
+      "q84": 13.0279178
+    },
+    "Lambda14": {
+      "q16": 303.4738,
+      "median": 469.9656,
+      "q84": 603.9763
+    },
+    "R_at_2_073_Msun_km": {
+      "q16": 11.423147,
+      "median": 12.1257951,
+      "q84": 12.7350576
+    },
+    "Mmax_Msun": {
+      "q16": 2.0796513,
+      "median": 2.1951397,
+      "q84": 2.3917976
+    },
+    "importance_ESS": 8884.995,
+    "n_EOS": 10000
+  },
+  "flow_kde_crosscheck": {
+    "R14_km": {
+      "q16": 11.674387,
+      "median": 12.4050587,
+      "q84": 13.0258158
+    },
+    "Lambda14": {
+      "q16": 304.5419,
+      "median": 469.3712,
+      "q84": 603.0209
+    },
+    "R_at_2_073_Msun_km": {
+      "q16": 11.4285333,
+      "median": 12.1186848,
+      "q84": 12.726367
+    },
+    "Mmax_Msun": {
+      "q16": 2.0796825,
+      "median": 2.194418,
+      "q84": 2.3909405
+    },
+    "importance_ESS": 8842.531
+  },
+  "baseline_before_replacing_J0740": {
+    "R14_km": {
+      "q16": 11.8873531,
+      "median": 12.5556951,
+      "q84": 13.1550562
+    },
+    "Lambda14": {
+      "q16": 359.0595,
+      "median": 505.7741,
+      "q84": 646.5831
+    },
+    "R_at_2_073_Msun_km": {
+      "q16": 11.6495075,
+      "median": 12.3709137,
+      "q84": 12.9614449
+    },
+    "Mmax_Msun": {
+      "q16": 2.0821911,
+      "median": 2.2074929,
+      "q84": 2.4272873
+    }
+  },
+  "old_source_prior_correction": {
+    "n_samples": 1600920,
+    "raw_weight_ESS": 555789.5954,
+    "corrected_weight_ESS": 425907.933,
+    "corrected_mass_q16_median_q84": [
+      1.99953,
+      2.07078,
+      2.14061
+    ],
+    "corrected_radius_km_q16_median_q84": [
+      12.56334,
+      14.38621,
+      17.53916
+    ],
+    "factor": "original file weight × N(2.08,0.07)/N(2.08,0.09) × R^2/M"
+  },
+  "robustness": {
+    "KDE_bandwidth_0_12_to_0_20_R14_median_km": [
+      12.3921,
+      12.4201
+    ],
+    "KDE_bandwidth_0_12_to_0_20_Lambda14_median": [
+      466.84,
+      472.96
+    ],
+    "KDE_bandwidth_0_12_to_0_20_R_at_2_073_median_km": [
+      12.0995,
+      12.1441
+    ],
+    "KDE_bandwidth_0_12_to_0_20_Mmax_median_Msun": [
+      2.1935,
+      2.1964
+    ],
+    "compactness_offset_0_to_1_km_change_medians": "<0.001 km for radius medians",
+    "final_ensemble_nonrotating_log10g_range": [
+      14.1693,
+      14.7058
+    ],
+    "final_ensemble_surface_gravity_points_inside_13_7_to_15": 410864,
+    "EOS_branches_in_mass_support": 10009,
+    "EOS_with_multiple_branches": 9
+  },
+  "data_checksums": {
+    "Salmi_2024_MR_archive_md5": "ca8e70eeca81feb71321f1a88a24f2f9",
+    "Legred_PSR_GW_NICER_H5_md5": "64bdad9b43726162a25546d07305747d",
+    "Miller_2021_original_weighted_source_md5": "c28a3995e60f364b34a66c29a37bf79d"
+  },
+  "limitations": [
+    "Conditional on Legred nonparametric GP EOS prior and uniform-in-mass population model.",
+    "Source likelihood densities estimated by weighted KDE and pretrained flow rather than direct event-level X-PSI likelihood; these methods agree closely.",
+    "Exact rotating-star Rpolar and effective-gravity prior-support integral not reconstructed from the full X-PSI sampler; sensitivity tests show negligible impact over the EOS curves used."
+  ],
+  "sources": [
+    "https://arxiv.org/abs/2106.05313",
+    "https://doi.org/10.1103/PhysRevD.104.063003",
+    "https://doi.org/10.3847/1538-4357/ad5f1f",
+    "https://zenodo.org/records/10519473",
+    "https://zenodo.org/records/6502467",
+    "https://zenodo.org/records/4670689",
+    "https://github.com/nuclear-multimessenger-astronomy/jester"
+  ]
+}

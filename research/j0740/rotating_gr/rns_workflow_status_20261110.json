@@ -1,0 +1,57 @@
+{
+  "schema": "j0740-rns-2026-11-10-workflow-status-v1",
+  "date": "2026-11-10",
+  "pr": 317,
+  "branch": "science/j0740-seven-eos-rotating-gr-20261106",
+  "head_commit": "bf1f15d66847c3ad2dfcf2f87d1236883a0e004d",
+  "pinned_sources": {
+    "rns_commit": "97e85d325a33e37f702306414533f6cd77812477",
+    "jester_commit": "e6768650ce992abfd1153a6833857572fe5cd230"
+  },
+  "fixed_spin_mass_root": {
+    "artifact_id": 13766666394,
+    "mass_tolerance_msun": 0.0015,
+    "spin_residual_limit_hz": 0.25,
+    "conclusion": "success",
+    "validated_eos": [
+      "APR4_EPP",
+      "ENG",
+      "MPA1",
+      "MS1",
+      "MS1B",
+      "WFF1",
+      "WFF2"
+    ],
+    "validated_count": 7,
+    "source_static_tov_radius_tolerance_km": 0.25,
+    "target_mass_msun": 2.073,
+    "artifact_digest_sha256": "9ad1477feb34d2b841963239d452bed5bb72a7691a2503f2fdeb7a060e7a0e0b",
+    "workflow_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/42818935747",
+    "target_spin_hz": 346.536369,
+    "workflow_run_id": 42818935747
+  },
+  "spatial_mesh_screen": {
+    "radius_difference_tolerance_km": 0.15,
+    "grids": [
+      "151x301",
+      "201x401"
+    ],
+    "required_pairs": 7,
+    "same_central_density": true,
+    "conclusion": "success",
+    "mass_difference_tolerance_msun": 0.02,
+    "validated_pairs": 7,
+    "artifact_id": 13766088759,
+    "workflow_url": "https://github.com/aydinefe2025-svg/Benim-AI-asistan-m/actions/runs/42818935761",
+    "artifact_digest_sha256": "3ab8ee09224dbe13060c88c3d22b259c5abda62f145ee43f81cb5112170c814f",
+    "workflow_run_id": 42818935761
+  },
+  "limitations": [
+    "The fixed-spin root and static source-TOV checks are finite numerical validations, not a continuous stability proof.",
+    "Two-grid mass/radius screening is not continuum convergence; the screen does not apply an independent delta-spin threshold.",
+    "Original source causality and low-pressure pathologies remain separate; causal-cutoff candidates are not substitutes for source EOS models.",
+    "The workflow uploaded machine-readable scan evidence that retains failed trial rows; per-trial counts are in the artifact, not this compact summary.",
+    "Full M,R nuisance convergence and prior normalization remain open; EOS_Bayes=NOT_RUN."
+  ]
+}
+

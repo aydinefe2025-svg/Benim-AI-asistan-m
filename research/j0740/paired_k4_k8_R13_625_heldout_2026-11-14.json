@@ -1,0 +1,296 @@
+{
+  "schema": "j0740_paired_k4_k8_heldout_recompute_v1",
+  "date": "2026-11-14",
+  "status": "BOTH_METHODS_FAIL_PREDECLARED_GATES",
+  "point_mass_msun_km": [
+    2.0,
+    13.625
+  ],
+  "predeclared_design": {
+    "record_id": "J0740_predeclared_K4K8_new_heldout_point_2026-11-12",
+    "created_utc": "2026-11-12T09:24:12.0451720Z",
+    "status_before_run": "PREDECLARED_NOT_RUN",
+    "bytes": 1172,
+    "sha256": "014fe408a32cea68fe35891d1832c58cfe8f1ef635a221cfbbc16a7b147a33e5"
+  },
+  "design_controls": {
+    "paired_seeds": [
+      197501,
+      197503,
+      197507,
+      197511
+    ],
+    "draws_per_seed": 512,
+    "training_point_msun_km": [
+      2.0,
+      14.0
+    ],
+    "training_seeds_reused": [
+      194501,
+      194503,
+      194507,
+      194511
+    ],
+    "model_sha256": "049a1ac945b09af595d282d958842cd95475e509d6b7e79b45c72d11096de227",
+    "source_prior_likelihood_changed": false,
+    "samples_removed": false,
+    "weight_clipping": false,
+    "EOS_Bayes": "NOT_RUN"
+  },
+  "fixed_thresholds": {
+    "ESS_per_run_min": 100,
+    "max_weight_fraction_max": 0.05,
+    "phase_ESS_each_min": 30,
+    "between_run_logI_spread_max": 0.2,
+    "256_to_512_logI_drift_max": 0.1
+  },
+  "verification": "Independent recomputation from saved NPZ and event JSONL using Python standard library only; no likelihood rerun.",
+  "methods": {
+    "K4": {
+      "status": "FAIL",
+      "proposal_identity_sha256": "8ddc3e4f05831e651f82f7af5bb0b3c2c0421ec96aa5f48b0325dfcdab4b1211",
+      "mixture": {
+        "base": 0.5,
+        "core": 0.25,
+        "tail": 0.25,
+        "tail_covariance_scale": 4.0,
+        "tail_phase_kappa_divisor": 4.0
+      },
+      "new_photon_calls": 1750,
+      "independent_group_metrics": {
+        "mass_radius": [
+          2.0,
+          13.625
+        ],
+        "seeds": [
+          197501,
+          197503,
+          197507,
+          197511
+        ],
+        "ESS_min": 31.589232140271896,
+        "max_weight_max": 0.1663130845382218,
+        "phase_ESS_min": 11.177828817268084,
+        "logI_spread": 0.24291131417703582,
+        "max_256_to_512_drift": 0.22734463944289018
+      },
+      "per_seed": [
+        {
+          "seed": 197501,
+          "ESS": 127.8172965266288,
+          "max_weight_fraction": 0.043927343148307874,
+          "phase_ESS": [
+            57.29635503847631,
+            73.32710551567396
+          ],
+          "log_conditional_integral": -21890.13714019201,
+          "drift_256_to_512": 0.05892358316123136,
+          "npz_bytes": 54629,
+          "npz_sha256": "a39d186ed9472e1ce049466fbeb6a8389a805d0521728eb85d4eedb477b1f169",
+          "evals_bytes": 231122,
+          "evals_sha256": "f1bf2ab935efd7497cc135923a8266fbfb14cd5976caa95e413c1fc6f416aa3d"
+        },
+        {
+          "seed": 197503,
+          "ESS": 153.88505332284717,
+          "max_weight_fraction": 0.02331566581925846,
+          "phase_ESS": [
+            79.05108698307937,
+            74.85626849104325
+          ],
+          "log_conditional_integral": -21890.229000877393,
+          "drift_256_to_512": 0.0024527798050257843,
+          "npz_bytes": 54568,
+          "npz_sha256": "5521a95f582d04c70e49c85f047eedfd93156b5aa34a6eccd5de50f175ba2dda",
+          "evals_bytes": 231174,
+          "evals_sha256": "07d20c792048e988920f4e393223dc90e0582795c96b44b82182b284a002ddaa"
+        },
+        {
+          "seed": 197507,
+          "ESS": 31.589232140271896,
+          "max_weight_fraction": 0.1663130845382218,
+          "phase_ESS": [
+            87.5837740952882,
+            11.177828817268084
+          ],
+          "log_conditional_integral": -21890.01583171761,
+          "drift_256_to_512": 0.22734463944289018,
+          "npz_bytes": 54590,
+          "npz_sha256": "9a55be58429729ba9b151df5c1cdc5bf2cb119c0587a9d5b25c2a7b08a9389e5",
+          "evals_bytes": 231099,
+          "evals_sha256": "1326921bb809912e8162a5bf5e452c242e0c9f5f572e2d89171795be722a23c2"
+        },
+        {
+          "seed": 197511,
+          "ESS": 155.34378967985515,
+          "max_weight_fraction": 0.03440834305391745,
+          "phase_ESS": [
+            67.77667250712678,
+            90.97961298029513
+          ],
+          "log_conditional_integral": -21890.258743031787,
+          "drift_256_to_512": 0.038089223900897196,
+          "npz_bytes": 54596,
+          "npz_sha256": "874de9ddea04f20ce51ec736f71d2c15e03a9a6aa924233f6740daa67346a3a3",
+          "evals_bytes": 231171,
+          "evals_sha256": "fc75aad02f4fb710fbd16311ea0692d0c6c646131e424bbd246594d50ab581aa"
+        }
+      ],
+      "run_manifest_bytes": 14422,
+      "run_manifest_sha256": "fd7db4c52010cba39377365f8be316593c5534a6d26faf62c433325dc3bd9926",
+      "independent_verification_bytes": 3365,
+      "independent_verification_sha256": "7b0d4ae856aafc333f15c63c1b02fd45a7e5135b11fd03aee6fd2dc4f99224b4",
+      "gate_failures": {
+        "ESS_per_run_ge_100": false,
+        "max_weight_per_run_le_0.05": false,
+        "phase_ESS_each_ge_30": false,
+        "between_run_logI_spread_le_0.2": false,
+        "256_to_512_logI_drift_le_0.1": false
+      }
+    },
+    "K8": {
+      "status": "FAIL",
+      "proposal_identity_sha256": "d15f36be5a45b5d3d7c8a875077c8193c3c96ad03622e47b63e34dc00898c403",
+      "mixture": {
+        "base": 0.5,
+        "core": 0.25,
+        "tail": 0.25,
+        "tail_covariance_scale": 4.0,
+        "tail_phase_kappa_divisor": 4.0
+      },
+      "new_photon_calls": 1803,
+      "independent_group_metrics": {
+        "mass_radius": [
+          2.0,
+          13.625
+        ],
+        "seeds": [
+          197501,
+          197503,
+          197507,
+          197511
+        ],
+        "ESS_min": 49.806870808308595,
+        "max_weight_max": 0.12537305871640644,
+        "phase_ESS_min": 16.662185797107416,
+        "logI_spread": 0.17234114246093668,
+        "max_256_to_512_drift": 0.10080102618667297
+      },
+      "per_seed": [
+        {
+          "seed": 197501,
+          "ESS": 129.0235247982546,
+          "max_weight_fraction": 0.04449342554780918,
+          "phase_ESS": [
+            55.75655896026457,
+            76.67967291450238
+          ],
+          "log_conditional_integral": -21890.154491530433,
+          "drift_256_to_512": 0.04550660374661675,
+          "npz_bytes": 54696,
+          "npz_sha256": "a6aa0dbcd07303576f2274415af88ad843bc2c0e115cdb12ffc64dc70a4f1c4a",
+          "evals_bytes": 231318,
+          "evals_sha256": "92f8b0b077ba17b1536b9cf467f87172c92b17fc4870e44b0224e6a54fad7ff6"
+        },
+        {
+          "seed": 197503,
+          "ESS": 158.85201307053492,
+          "max_weight_fraction": 0.021465365417583395,
+          "phase_ESS": [
+            84.5620647478537,
+            74.29668590854718
+          ],
+          "log_conditional_integral": -21890.225649377797,
+          "drift_256_to_512": 0.00850145231015631,
+          "npz_bytes": 54720,
+          "npz_sha256": "0bb0dab40c5a0935701201a82493e28b9c83998c0ad544b469a6842787e874c1",
+          "evals_bytes": 231331,
+          "evals_sha256": "c0023140d248d3e7725261cc924d55b26d02bcdcc6ea68c87379c0a7385a2d8b"
+        },
+        {
+          "seed": 197507,
+          "ESS": 49.806870808308595,
+          "max_weight_fraction": 0.12537305871640644,
+          "phase_ESS": [
+            90.46857679539504,
+            16.662185797107416
+          ],
+          "log_conditional_integral": -21890.095071881387,
+          "drift_256_to_512": 0.10080102618667297,
+          "npz_bytes": 54677,
+          "npz_sha256": "587eda39d4a769b042df2fce903484e23ef08421d298487ae108576a6ab94b58",
+          "evals_bytes": 231282,
+          "evals_sha256": "bcc9547903a22696bfe78406c95487d5b6926ba60adc34d2952a8c37d69a637a"
+        },
+        {
+          "seed": 197511,
+          "ESS": 164.4414073197532,
+          "max_weight_fraction": 0.03070299042367057,
+          "phase_ESS": [
+            73.95125705380464,
+            93.35003515073458
+          ],
+          "log_conditional_integral": -21890.26741302385,
+          "drift_256_to_512": 0.017590957824722864,
+          "npz_bytes": 54626,
+          "npz_sha256": "ffa94b8a0a5b9db92cff0d3ccc280171ad8360ee46dc9ec4b4debb0bbf36a7e5",
+          "evals_bytes": 231325,
+          "evals_sha256": "9419be366db45c40015c34702e703ee51401f0b079735b963d5e69a43f2d4120"
+        }
+      ],
+      "run_manifest_bytes": 14386,
+      "run_manifest_sha256": "4a434e989dd127eed0052caa2694c054177cd25633236857b510a39c25ecf60a",
+      "independent_verification_bytes": 3365,
+      "independent_verification_sha256": "f672e366a2e617f3645dacab7c0377af657c685a237fcf04475bb0676ef7839a",
+      "gate_failures": {
+        "ESS_per_run_ge_100": false,
+        "max_weight_per_run_le_0.05": false,
+        "phase_ESS_each_ge_30": false,
+        "256_to_512_logI_drift_le_0.1": false
+      }
+    }
+  },
+  "paired_logI_K8_minus_K4": {
+    "197501": -0.017351338421576656,
+    "197503": 0.0033514995957375504,
+    "197507": -0.07924016377728549,
+    "197511": -0.008669992061186349
+  },
+  "matched_worst_seed_diagnostic": {
+    "seed": 197507,
+    "same_top_weight_index_both_methods": 260,
+    "top_point_z_identical": true,
+    "saved_photon_logL_identical": true,
+    "model_and_mass_radius_identical": true,
+    "raw_importance_weight_ratio_K4_over_K8_at_that_point": 1.435938245050989,
+    "interpretation": "Same target point; K8 assigns about 1.436x the proposal density of K4 there, reducing but not eliminating the dominant weight. No likelihood was recalculated."
+  },
+  "weighted_physical_coordinate_correlations_seed197507": {
+    "interpretation": "Exploratory posterior-weighted correlations from existing saved draws; physical uniform transforms for spot radii, temperatures and NH are affine. Phase effects are reported as sine/cosine correlations because phase is circular. Poor ESS makes these descriptive, not convergence evidence. No sample or weight was removed.",
+    "K4": {
+      "p_radius_s_radius": 0.5792634565210344,
+      "p_temperature_s_temperature": 0.470605792941108,
+      "p_radius_p_temperature": -0.8248918301859474,
+      "s_radius_s_temperature": -0.8093622286383307,
+      "NH_s_radius": 0.3441699800796783,
+      "NH_s_temperature": -0.37777920995410363,
+      "p_phase_s_radius_sin": -0.5543584371017843,
+      "p_phase_s_temperature_sin": 0.5199440799594532,
+      "s_phase_s_radius_sin": -0.5492315514596283,
+      "s_phase_s_temperature_sin": 0.5173863193483634
+    },
+    "K8": {
+      "p_radius_s_radius": 0.5662699398431029,
+      "p_temperature_s_temperature": 0.46287744404201453,
+      "p_radius_p_temperature": -0.8174222483139191,
+      "s_radius_s_temperature": -0.8098763551123704,
+      "NH_s_radius": 0.36769661820901794,
+      "NH_s_temperature": -0.3876883238123405,
+      "p_phase_s_radius_sin": -0.5432056318075236,
+      "p_phase_s_temperature_sin": 0.5172007933791972,
+      "s_phase_s_radius_sin": -0.5389034564262621,
+      "s_phase_s_temperature_sin": 0.5156015352570319
+    }
+  }
+}
+

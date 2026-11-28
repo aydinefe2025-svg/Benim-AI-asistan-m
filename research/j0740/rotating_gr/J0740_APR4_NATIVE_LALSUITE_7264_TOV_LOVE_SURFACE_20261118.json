@@ -1,0 +1,150 @@
+{
+  "source_table": {
+    "bytes": 72350,
+    "sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+    "tag": "lalsuite-v7.26.4",
+    "tag_commit": "fc92814767cd01523d546a07d325b1dd6759a1a0",
+    "rows": 1447,
+    "official_source_url": "https://git.ligo.org/lscsoft/lalsuite/-/blob/lalsuite-v7.26.4/lalsimulation/lib/LALSimNeutronStarEOS_APR4_EPP.dat",
+    "tabular_code_path": "lalsimulation/lib/LALSimNeutronStarEOSTabular.c",
+    "tabular_code_bytes": 23457,
+    "tabular_code_sha256": "1c84c672e663d853b1ef87f9bb23520e85ab007c2b4e66048d2abc82bc7825df"
+  },
+  "method": {
+    "interpolation": "GSL-compatible natural cubic spline in log(e)-log(P); h from LALSuite linear-integrand quadrature then natural spline",
+    "Q_term": "-6/[r^2(1-2m/r)]",
+    "surface_pressure_geom_m2": 1e-33,
+    "h_extension": "first-law exact integral for e=e0*(P/P0)^(3/5); h=2.5 ln(1+(P0/e0)*(P/P0)^(2/5)); shift table h by delta_h for continuity",
+    "delta_h": 3.916700814412194e-08,
+    "low_pressure_enthalpy_interface": {
+      "native_LAL_extension_dh_dp_over_thermo": 0.4000000000000001,
+      "tabular_right_dh_dp_over_thermo": 0.9933628185253692,
+      "native_derivative_jump_relative": -0.5973273888046329,
+      "firstlaw_matched_extension_dh_dp_over_thermo": 1.0,
+      "matched_extension_vs_table_right_relative": 0.0066815279884178125,
+      "h0_firstlaw": 6.527834633870158e-08,
+      "delta_h": 3.916700814412194e-08
+    }
+  },
+  "solutions": [
+    {
+      "Mg_msun": 2.0729999996002952,
+      "R_km": 10.697719944832103,
+      "k2": 0.026857294988100563,
+      "Lambda": 9.334251115559264,
+      "Mb_conditional_msun": 2.475592195180924,
+      "central_cs2": 0.8824800903072472,
+      "Pc_geom_m2": 5.582473639004558e-10,
+      "ode_steps": 208,
+      "max_step_m": 400.0,
+      "mass_residual_msun": -3.997047137715981e-10
+    },
+    {
+      "Mg_msun": 2.0730000010507292,
+      "R_km": 10.697719940767566,
+      "k2": 0.02685729781655949,
+      "Lambda": 9.334252048202625,
+      "Mb_conditional_msun": 2.475592197400232,
+      "central_cs2": 0.8824800925187845,
+      "Pc_geom_m2": 5.582473656101634e-10,
+      "ode_steps": 221,
+      "max_step_m": 200.0,
+      "mass_residual_msun": 1.0507292813599634e-09
+    },
+    {
+      "Mg_msun": 2.0729999999912785,
+      "R_km": 10.69771993687419,
+      "k2": 0.02685728393161175,
+      "Lambda": 9.334247229356562,
+      "Mb_conditional_msun": 2.475592195764274,
+      "central_cs2": 0.8824800904865295,
+      "Pc_geom_m2": 5.582473640390581e-10,
+      "ode_steps": 255,
+      "max_step_m": 100.0,
+      "mass_residual_msun": -8.72146799224538e-12
+    }
+  ],
+  "checks": {
+    "mass_root_all_below_1e-8": true,
+    "causal_central_cs2_all": true,
+    "lambda_positive": true,
+    "mesh_lambda_delta_below_1e-5": true,
+    "jester_native_replay_below_1e-9": true,
+    "surface_floor_tolerance_pass": true,
+    "native_LAL_h_join_firstlaw_discontinuity_detected": true,
+    "corrected_h_join_residual_below_1percent": true
+  },
+  "jester_replay": {
+    "source_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+    "rows": 865,
+    "e": {
+      "max_abs_relative": 7.327471962526033e-15,
+      "index": 14
+    },
+    "h": {
+      "max_abs_relative": 1.9984014443252818e-15,
+      "index": 418
+    },
+    "dloge": {
+      "max_abs_relative": 3.774758283725532e-15,
+      "index": 243
+    },
+    "cs2": {
+      "max_abs_relative": 1.0547118733938987e-14,
+      "index": 51
+    }
+  },
+  "mesh_deltas": {
+    "delta_R_km_100_vs_200": -3.893376288033323e-09,
+    "delta_Lambda_rel_100_vs_200": -5.162541185654845e-07,
+    "delta_Mb_msun_100_vs_200": -1.6359580357061532e-09
+  },
+  "surface_h_normalization_ablation": {
+    "native_LAL_extension_Mb_msun": 2.4755922932053545,
+    "firstlaw_matched_Mb_msun": 2.475592197400232,
+    "delta_Mb_msun": -9.580512250195738e-08,
+    "relative_delta_Mb": -3.8699879079118205e-08
+  },
+  "surface_floor_scan": [
+    {
+      "P_surface_geom_m2": 1e-27,
+      "Mg_msun": 2.0730000010507292,
+      "R_km": 10.697693669764819,
+      "k2": 0.026857627593871225,
+      "Lambda": 9.334252048157449,
+      "Mb_conditional_msun": 2.475592197400232,
+      "central_cs2": 0.8824800925187845,
+      "Pc_geom_m2": 5.582473656101634e-10,
+      "ode_steps": 203
+    },
+    {
+      "P_surface_geom_m2": 1e-33,
+      "Mg_msun": 2.0730000010507292,
+      "R_km": 10.697719940767566,
+      "k2": 0.02685729781655949,
+      "Lambda": 9.334252048202625,
+      "Mb_conditional_msun": 2.475592197400232,
+      "central_cs2": 0.8824800925187845,
+      "Pc_geom_m2": 5.582473656101634e-10,
+      "ode_steps": 221,
+      "max_step_m": 200.0,
+      "mass_residual_msun": 1.0507292813599634e-09
+    },
+    {
+      "P_surface_geom_m2": 1e-36,
+      "Mg_msun": 2.0730000010507292,
+      "R_km": 10.697720059703142,
+      "k2": 0.02685729632358367,
+      "Lambda": 9.334252048202732,
+      "Mb_conditional_msun": 2.475592197400232,
+      "central_cs2": 0.8824800925187845,
+      "Pc_geom_m2": 5.582473656101634e-10,
+      "ode_steps": 229
+    }
+  ],
+  "surface_floor_delta_1e-33_to_1e-36": {
+    "delta_R_km": 1.1893557605446858e-07,
+    "delta_Lambda_relative": 1.1324274851176597e-14
+  },
+  "status": "PASS_CONDITIONAL_NATIVE_TABLE_TOV_LOVE; APR4_PHYSICAL_EOS_NOT_CERTIFIED; EOS_Bayes=NOT_RUN"
+}

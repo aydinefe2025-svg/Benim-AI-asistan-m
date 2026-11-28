@@ -1,0 +1,213 @@
+{
+  "schema": "j0740-science-followup-evidence-v1",
+  "date": "2026-11-10",
+  "pr": 317,
+  "head_commit": "4df7c53c75ba86331d287bf59674b76c221b39d7",
+  "latest_relevant_runs": [
+    {
+      "id": 42821320754,
+      "name": "seven source-matched rotating GR EOS sequences",
+      "conclusion": "success",
+      "all_seven_fixed_mass_spin_roots": "PASS",
+      "artifact_id": 13767018601,
+      "artifact_bytes": 9493,
+      "artifact_sha256": "6df443d450fecffba2a87ade6531feb462cbf25178c9efa3efe1815e83c01357"
+    },
+    {
+      "id": 42821321123,
+      "name": "RNS 151x301 vs 201x401 spatial grid",
+      "conclusion": "success",
+      "all_seven": "PASS",
+      "mass_tolerance_msun": 0.02,
+      "equatorial_radius_tolerance_km": 0.15,
+      "artifact_id": 13767661615,
+      "artifact_bytes": 2500,
+      "artifact_sha256": "f4070e3e6f1435811cb42986cce6039ff09fb41382ca4f946bef353b29e90ac1"
+    },
+    {
+      "id": 42821320591,
+      "name": "independent continuous PCHIP cs2 source EOS check",
+      "conclusion": "success for tests and evidence generation; physical screen FAILS all seven originals",
+      "artifact_id": 13766347184,
+      "artifact_bytes": 1878,
+      "artifact_sha256": "1be40ac5b10a25d806af9ab9996c8382b6cfc8237a61ffdcfb6bb6bc2f49c328"
+    },
+    {
+      "id": 42821320588,
+      "name": "consistent monotone Steffen thermodynamic candidate unit tests",
+      "conclusion": "success",
+      "tests": "pass in CI; candidate tests only"
+    }
+  ],
+  "original_eos_continuous_physical_screen": {
+    "APR4_EPP": {
+      "negative_energy_slope_intervals": 0,
+      "minimum_dlogE_dlogP": 0.3007238513365163,
+      "continuous_PCHIP_max_cs2_over_c2": 1.0938784550333773,
+      "causal": "FAIL superluminal"
+    },
+    "ENG": {
+      "negative_energy_slope_intervals": 1,
+      "continuous_cs2": "undefined on nonmonotone source segment",
+      "causal": "FAIL"
+    },
+    "MPA1": {
+      "negative_energy_slope_intervals": 1,
+      "continuous_cs2": "undefined on nonmonotone source segment",
+      "causal": "FAIL"
+    },
+    "MS1": {
+      "negative_energy_slope_intervals": 1,
+      "continuous_cs2": "undefined on nonmonotone source segment",
+      "causal": "FAIL"
+    },
+    "MS1B": {
+      "negative_energy_slope_intervals": 1,
+      "continuous_cs2": "undefined on nonmonotone source segment",
+      "causal": "FAIL"
+    },
+    "WFF1": {
+      "negative_energy_slope_intervals": 1,
+      "continuous_cs2": "undefined on nonmonotone source segment",
+      "causal": "FAIL"
+    },
+    "WFF2": {
+      "negative_energy_slope_intervals": 1,
+      "continuous_cs2": "undefined on nonmonotone source segment",
+      "causal": "FAIL"
+    }
+  },
+  "strict_causal_candidate_sequences": [
+    {
+      "model": "ENG",
+      "classification": "strict-causal Steffen cutoff candidate; separate from original source EOS",
+      "source_table_sha256": "e471644d8b7bda5a6a616d1764e4de6ad67b708c04182cd9bf0e92b1cab9629d",
+      "candidate_table_sha256": "c621ab0a3ad751899c9b47cf37edcefc0382fac29fc0ba1fbb392ba236301f04",
+      "sequence_sha256": "f775cb515b121d1201a779dd332e524bd66dab6733372c7ed952d6dbff4ae964",
+      "successful_fixed_spin_grid_points": 16,
+      "failed_fixed_spin_grid_points": 0,
+      "sampled_mass_range_msun": [
+        0.597642628096,
+        2.03755853479
+      ],
+      "target_2p073_root": null,
+      "target_support_conclusion": "sampled max below target"
+    },
+    {
+      "model": "MPA1",
+      "classification": "strict-causal Steffen cutoff candidate; separate from original source EOS",
+      "source_table_sha256": "bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec",
+      "candidate_table_sha256": "03be8d880a0a412e0338a3438b45eb34eb13004bc6b0f0e5c48eff7f5d7021b6",
+      "sequence_sha256": "6f7d502d7c1668e5b557365328a7cc02f0519a9de158742c6f61907240fba793",
+      "successful_fixed_spin_grid_points": 16,
+      "failed_fixed_spin_grid_points": 0,
+      "sampled_mass_range_msun": [
+        0.711639951034,
+        2.47495726384
+      ],
+      "target_2p073_root": {
+        "central_energy_density_g_cm3": 1023057243864175.2,
+        "mass_msun": 2.07299999999,
+        "radius_eq_km": 12.5302983599,
+        "spin_hz_reported": 346.61736514,
+        "requested_spin_hz": 346.536369,
+        "spin_residual_hz": 0.08099614000002475,
+        "allowed_spin_residual_hz": 0.1,
+        "solver_mode": "SETSPIN"
+      },
+      "target_support_conclusion": "root recorded"
+    },
+    {
+      "model": "MS1",
+      "classification": "strict-causal Steffen cutoff candidate; separate from original source EOS",
+      "source_table_sha256": "8f65aeeccd11f974c41d9b4c7cb2042250804702da9ee247d5b8fe91bd547ecb",
+      "candidate_table_sha256": "fa5241f92cb24d59cebb0d63ffe76b7383b151c08eaa4f015ca1c36b1782eb07",
+      "sequence_sha256": "d1f3bbd4ea0b14c869ac8fe4ea79f6960814bdacd04ecd95c790f5fa233449de",
+      "successful_fixed_spin_grid_points": 10,
+      "failed_fixed_spin_grid_points": 6,
+      "sampled_mass_range_msun": [
+        1.57812607632,
+        2.78859838037
+      ],
+      "target_2p073_root": {
+        "central_energy_density_g_cm3": 629205862695521.1,
+        "mass_msun": 2.073,
+        "radius_eq_km": 15.0917866598,
+        "spin_hz_reported": 346.538784397,
+        "requested_spin_hz": 346.536369,
+        "spin_residual_hz": 0.002415396999992936,
+        "allowed_spin_residual_hz": 0.1,
+        "solver_mode": "SETSPIN"
+      },
+      "target_support_conclusion": "root recorded"
+    },
+    {
+      "model": "MS1B",
+      "classification": "strict-causal Steffen cutoff candidate; separate from original source EOS",
+      "source_table_sha256": "818b1bda1e64e35b792613dff1cf27134bbcd97ec0432f48d65e766d6e882aee",
+      "candidate_table_sha256": "d70df8ed10a0e694a50550146460fafffc5734e3e8ce7f3cc10ead3391939b48",
+      "sequence_sha256": "26752f9d403f43d8e7c6b0aa4fa433307551c889b7eea24cdca19797e3d89d10",
+      "successful_fixed_spin_grid_points": 10,
+      "failed_fixed_spin_grid_points": 6,
+      "sampled_mass_range_msun": [
+        1.56508396551,
+        2.79719591075
+      ],
+      "target_2p073_root": {
+        "central_energy_density_g_cm3": 626693867272019.1,
+        "mass_msun": 2.073,
+        "radius_eq_km": 14.9076375918,
+        "spin_hz_reported": 346.552843429,
+        "requested_spin_hz": 346.536369,
+        "spin_residual_hz": 0.016474429000027158,
+        "allowed_spin_residual_hz": 0.1,
+        "solver_mode": "SETSPIN"
+      },
+      "target_support_conclusion": "root recorded"
+    },
+    {
+      "model": "WFF1",
+      "classification": "strict-causal Steffen cutoff candidate; separate from original source EOS",
+      "source_table_sha256": "7ed773ea0e0328b16ed71f66d27f7f71289bfe978fa8f7d04a8f449690d30776",
+      "candidate_table_sha256": "0eec25f6508bbf65c4424010096c3c7944be8159945011bb302f8f700e2da24e",
+      "sequence_sha256": "ff09ba4e430c6d9e9fb22bf79dc55a3474a8e7c618a67fde01151b8ad7445a99",
+      "successful_fixed_spin_grid_points": 11,
+      "failed_fixed_spin_grid_points": 5,
+      "sampled_mass_range_msun": [
+        0.606472558309,
+        1.94392994889
+      ],
+      "target_2p073_root": null,
+      "target_support_conclusion": "sampled max below target"
+    },
+    {
+      "model": "WFF2",
+      "classification": "strict-causal Steffen cutoff candidate; separate from original source EOS",
+      "source_table_sha256": "04698be6750edd326cab423a21956a276b1fcdec2851e35d1e298082f9b89667",
+      "candidate_table_sha256": "743f619a2eba6a1eda91049c6b9db38afdf1ff0e1ae90f7287f53d37793eb8e3",
+      "sequence_sha256": "752af353caebf298b2bf08a6eb6261141046ad14ae534686e81c094e1ebd2bdd",
+      "successful_fixed_spin_grid_points": 14,
+      "failed_fixed_spin_grid_points": 2,
+      "sampled_mass_range_msun": [
+        0.538617441188,
+        1.9934072551
+      ],
+      "target_2p073_root": null,
+      "target_support_conclusion": "sampled max below target"
+    }
+  ],
+  "sequence_audit_file": {
+    "path": "evidence/eos_small_sources/six_EOS_RNS_sequence_independent_audit.json",
+    "sha256": "57e14a575b8acf00122a0833fbf20dd18a9d5f70f96f4db18ea68ad4596231a5",
+    "bytes": 4429
+  },
+  "interpretation": [
+    "Numerical fixed-mass/spin RNS roots on original source tables do not make EOS with invalid continuous derivatives physically admissible.",
+    "Two-grid spatial screen is finite same-central-density sensitivity, not continuum or turning-point certification.",
+    "Strict causal cut candidates are new EOS models. ENG, WFF1, and WFF2 sampled maximum masses are below 2.073 Msun; they do not have a fixed-spin 2.073 Msun root in retained sequences.",
+    "MPA1, MS1 and MS1B candidate roots are finite-grid results; sequences are sparse and do not establish continuous stability or true maximum mass.",
+    "APR4_EPP retained raw native source is not local to this workstation evidence set; its original-source continuous PCHIP check is represented only by the run log/artifact, not independently recomputed locally."
+  ],
+  "EOS_Bayes": "NOT_RUN"
+}
+

@@ -1,5 +1,31 @@
 # PSR J0740+6620 — source-grounded conditional EOS calculation
 
+### New primary-source correction — 7 November 2026
+
+The **original Salmi 2024 Zenodo README** explicitly maps the headline mass-radius file `J0740_gamma_NxX_lp40k_se001_mrsamples_post_equal_weights.dat` to the `STU/STU_NICER_XMM_hr/STU_modules/main_lp40k_Xse001_Dfix.py` main script and `STU/STU_NICER_XMM_hr/STU_outputs/run1_lp40k_Xse001_Dfix/` nested-sampling directory. The `gamma` prefix indicates the new GAMMA NICER dataset, **not an incompatible hot-spot geometry**; the paper uses the ST-U two circular-hot-region model. Earlier speculation that these were necessarily separate sampling runs has been corrected. Source: https://zenodo.org/records/10519473/files/README.md?download=1, README MD5 `ed363c6d252a0a6ef177f8d45757e50e`.
+
+**What remains:** The mapping is documented by the original publication but original prior and runner *bytes* have not yet been checked directly against the local 12.9GB archive in this runtime; the exact inference X-PSI version must be read from the run's `out_` header (README reports versions ranging v0.7.10–v1.2.1). Until those checks and a native likelihood are complete, the historical F30 proxy is NOT a normalized EOS posterior.
+
+## Critical source-run identity protection (7 Nov 2026)
+
+The 100,000-row observational subset comes from `J0740_gamma_NxX_lp40k_se001_mrsamples_post_equal_weights.dat` (Salmi 2024). The archived `CustomPrior_GLS_compressed_scaling_Dfix_source.py` prior and main runner were recovered from `J0740_GAMMA_zenodo/STU/STU_NICER_XMM_hr/STU_modules/`. The original Zenodo README documents that they originate from the **same headline run directory**; exact local module SHA256 identities and native X-PSI prior/likelihood evaluation remain unverified.
+
+The former phase30 seven-EOS scores are historical KDE/posterior-to-prior **conditional proxies**, NOT verified NICER likelihood values, and MUST NOT be normalized into EOS model posterior probabilities. They also use an empirical rotation fit, not the now-validated RNS 7-EOS GR model. The original legacy JSON remains available unmodified for historical reproducibility.
+
+`source_lineage_gate.py` enforces a **fail-closed default**. To run the historical old analysis deliberately (clearly marked nonfinal), use:
+
+```bash
+python phase30_prior_corrected_eos.py --posterior /existing/path/100k.npz --historical-proxy-only
+```
+
+To run a source-run-matched sensitivity analysis, supply `--lineage-manifest /verified/path/matched_run.json`. **As of 15 November 2026, this uses the v2 publisher-headline gate** in `published_source_lineage.py`. The old **v1 manifest** config-literal requirement for `J0740_gamma_NxX_lp40k_se001` is an inaccurate proxy for the publisher headline mapping and is retained only for backward compatibility and historical regression tests. **New v2 manifests bypass that literal-name test** and instead require original fixed SHA-256 byte identities. The Zenodo README maps the gamma-labelled posterior to the ST-U headline directory. Do not make the ST-U config contain an artificial gamma filename.
+
+The v2 JSON manifest uses `schema: j0740-publisher-headline-v2`, `binding_proof: publisher_readme_headline_stu_directory_and_pinned_original_bytes`, pinned `published_readme_md5`, `posterior_member`, `posterior_subset_sha256`, `posterior_archive_md5`, `full_archive_md5`, a logged `xpsi_version`, paired `reported_evidence.stats/out.logz/error`, and **exactly five** `artifacts` entries (`runner`, `prior`, `config`, `out_log`, `stats`). Each artifact requires its actual local `local_path`, original tar member path, and SHA-256 matched against publisher-file pinned values. No synthetic hash overrides are permitted in production; tests return `SYNTHETIC_TEST_ONLY`. The full 12.9 GB archive is NOT automatically reopened. An archived MD5 in a manifest is identified as historical metadata, not a newly calculated digest.
+
+Run data-free security tests with `cd research/j0740 && python -m unittest -v test_published_source_lineage`. The source-run gate is **still not a photon likelihood, full EOS Bayes calculation, or evidence of historical execution based solely on names/files**. That manifest must bind the exact gamma NxX sampling run, the verified 12.9 GB source archive identity, and SHA256-verified matching prior, runner and configuration files from that same local archive. This gate establishes a **reproducible run mapping only**; it does not supply the native photon event likelihood or normalize EOS evidence. No large archive downloads occur.
+
+
+
 This directory makes the existing audited **F30** numerical science code available as version-controlled, inspectable Python rather than only in a ZIP and Notion narrative. It is **not** a complete neutron-star EOS inference, an exact NICER/XMM event-level photon likelihood, or a general-relativistic rotating-star solver.
 
 ## Reproduce with an already available Salmi 100,000-draw source file
@@ -9,10 +35,10 @@ Requirements: Python 3.11+, NumPy and SciPy. No automatic downloads, paid servic
 ```bash
 python -m pip install numpy scipy
 python -m unittest -v test_j0740_science
-J0740_POSTERIOR="/existing/path/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz" python phase30_prior_corrected_eos.py
+J0740_POSTERIOR="/existing/path/J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz" python phase30_prior_corrected_eos.py --historical-proxy-only
 ```
 
-On PowerShell, set `$env:J0740_POSTERIOR = 'C:\path\to\existing\J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz'` and then run `py -3 phase30_prior_corrected_eos.py`. The program **verifies the source NPZ SHA-256** before running.
+On PowerShell, set `$env:J0740_POSTERIOR = 'C:\path\to\existing\J07406620_amsterdam_gamma_NICERXMM_equal_weights_recent.npz'` and then run `py -3 phase30_prior_corrected_eos.py`. The program **verifies the source NPZ SHA-256** before running but also enforces source-run provenance; default inference without a matching manifest fails closed.
 
 The script writes `phase30_seven_eos_prior_corrected_proxy.json` in its directory. Existing reference JSON files are included to make old results inspectable; change only through a reproducible code/fixture update. For auditing code without 100k source file, run the tests; no data are silently downloaded.
 

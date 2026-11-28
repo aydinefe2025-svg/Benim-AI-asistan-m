@@ -1,0 +1,71 @@
+{
+  "scope": "SYNTHETIC ONLY -- NOT NATIVE PHOTON / EOS",
+  "target": "normalized 13D bounded transformed Gaussian, analytic evidence=1",
+  "proposal_identity_sha256": "f84e1939f51bad48af0939a5ae15c62a45d55d9a616027d65d9c4351f7c18302",
+  "training_sha256": "75695a1f2643421d7672eeabb283274f94c5f5ac8fdf5613788cd389715688fd",
+  "training_ESS": 1025.384479712699,
+  "phase_two_dimensions": "included in 13D source-normal latent; no torus-fit claim",
+  "fresh_real_photon_calls": 0,
+  "records": [
+    {
+      "seed": 2101,
+      "base": {
+        "ESS": 494.4111591365202,
+        "max_weight": 0.007619156328534223,
+        "logZ_error": -0.0014057396121751609,
+        "cdf_endpoints": 0
+      },
+      "candidate": {
+        "ESS": 660.6388267606252,
+        "max_weight": 0.0038503459308463148,
+        "logZ_error": 0.0014684096125083812,
+        "cdf_endpoints": 0
+      }
+    },
+    {
+      "seed": 2103,
+      "base": {
+        "ESS": 457.16605476611977,
+        "max_weight": 0.01095824607729037,
+        "logZ_error": 0.01583923895976369,
+        "cdf_endpoints": 0
+      },
+      "candidate": {
+        "ESS": 653.7456709405751,
+        "max_weight": 0.004498483921528981,
+        "logZ_error": 0.0029152199982798166,
+        "cdf_endpoints": 0
+      }
+    },
+    {
+      "seed": 2107,
+      "base": {
+        "ESS": 462.66870032128384,
+        "max_weight": 0.011849395352760271,
+        "logZ_error": 0.008473618854224263,
+        "cdf_endpoints": 0
+      },
+      "candidate": {
+        "ESS": 653.0400157247591,
+        "max_weight": 0.004240811070643134,
+        "logZ_error": 5.596189175172128e-05,
+        "cdf_endpoints": 0
+      }
+    },
+    {
+      "seed": 2111,
+      "base": {
+        "ESS": 482.39907105627395,
+        "max_weight": 0.010733075400231457,
+        "logZ_error": 0.00013521355306789218,
+        "cdf_endpoints": 0
+      },
+      "candidate": {
+        "ESS": 655.7497066288995,
+        "max_weight": 0.003906392071312221,
+        "logZ_error": -0.0033518339964313526,
+        "cdf_endpoints": 0
+      }
+    }
+  ]
+}

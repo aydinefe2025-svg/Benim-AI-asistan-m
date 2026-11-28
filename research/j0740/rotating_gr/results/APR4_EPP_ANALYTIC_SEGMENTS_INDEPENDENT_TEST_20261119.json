@@ -1,0 +1,29 @@
+{
+  "schema": "j0740_apr4_analytic_segments_independent_test_v1",
+  "runtime": {
+    "python": "3.15.2",
+    "numpy": "2.5.4"
+  },
+  "method": "Independent 1000-point log-density sweep per analytic segment plus direct one-sided join checks.",
+  "counts": {
+    "segments": 9,
+    "sampled_states": 9000,
+    "joins": 8
+  },
+  "maxima": {
+    "sampled_cs2": 0.9999949427212366,
+    "relative_pressure_join_jump": 1.7722814926734998e-07,
+    "relative_energy_join_jump": 1.0489626944831798e-09,
+    "absolute_enthalpy_join_jump": 6.512436562244872e-10
+  },
+  "acceptance": {
+    "positive_energy_density": "PASS",
+    "positive_subcausal_sound_speed": "PASS",
+    "monotonic_enthalpy_with_density": "PASS",
+    "rounded_source_join_tolerance_3e-7": "PASS",
+    "APR4_EPP_physical_source_model": "PASS_RECONSTRUCTED_ANALYTIC_MODEL",
+    "absolute_baryon_normalization": "NOT_ESTABLISHED",
+    "rotating_continuous_stability": "NOT_ESTABLISHED",
+    "EOS_Bayes": "NOT_RUN"
+  }
+}

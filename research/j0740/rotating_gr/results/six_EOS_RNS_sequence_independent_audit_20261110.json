@@ -1,0 +1,112 @@
+{
+  "status": "SIX_EOS_SEQUENCE_EVIDENCE_AUDITED_FINITE_GRID_ONLY",
+  "target_mass_msun": 2.073,
+  "models": [
+    {
+      "eos": "ENG",
+      "source_sha256": "e471644d8b7bda5a6a616d1764e4de6ad67b708c04182cd9bf0e92b1cab9629d",
+      "causal_table_sha256": "c621ab0a3ad751899c9b47cf37edcefc0382fac29fc0ba1fbb392ba236301f04",
+      "source_hashes_match": true,
+      "causal_support_max_cs2": 0.999999999999995,
+      "causal_support_pass": true,
+      "fixed_spin_grid_successes": 16,
+      "fixed_spin_grid_failures": 0,
+      "first_sampled_turnover_grid_index": null,
+      "target_2p073": null
+    },
+    {
+      "eos": "MPA1",
+      "source_sha256": "bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec",
+      "causal_table_sha256": "03be8d880a0a412e0338a3438b45eb34eb13004bc6b0f0e5c48eff7f5d7021b6",
+      "source_hashes_match": true,
+      "causal_support_max_cs2": 0.991032703631339,
+      "causal_support_pass": true,
+      "fixed_spin_grid_successes": 16,
+      "fixed_spin_grid_failures": 0,
+      "first_sampled_turnover_grid_index": 14,
+      "target_2p073": {
+        "mass_error_msun": 1.000000082740371e-11,
+        "adjacent_successful_grid_bracket": [
+          6,
+          7
+        ],
+        "below_first_sampled_turnover": true,
+        "radius_within_16_km_source_bound": true,
+        "spin_residual_within_declared_tolerance": true
+      }
+    },
+    {
+      "eos": "MS1",
+      "source_sha256": "8f65aeeccd11f974c41d9b4c7cb2042250804702da9ee247d5b8fe91bd547ecb",
+      "causal_table_sha256": "fa5241f92cb24d59cebb0d63ffe76b7383b151c08eaa4f015ca1c36b1782eb07",
+      "source_hashes_match": true,
+      "causal_support_max_cs2": 0.8907074328526691,
+      "causal_support_pass": true,
+      "fixed_spin_grid_successes": 10,
+      "fixed_spin_grid_failures": 6,
+      "first_sampled_turnover_grid_index": 7,
+      "target_2p073": {
+        "mass_error_msun": 0.0,
+        "adjacent_successful_grid_bracket": [
+          1,
+          2
+        ],
+        "below_first_sampled_turnover": true,
+        "radius_within_16_km_source_bound": true,
+        "spin_residual_within_declared_tolerance": true
+      }
+    },
+    {
+      "eos": "MS1B",
+      "source_sha256": "818b1bda1e64e35b792613dff1cf27134bbcd97ec0432f48d65e766d6e882aee",
+      "causal_table_sha256": "d70df8ed10a0e694a50550146460fafffc5734e3e8ce7f3cc10ead3391939b48",
+      "source_hashes_match": true,
+      "causal_support_max_cs2": 0.8962197045601181,
+      "causal_support_pass": true,
+      "fixed_spin_grid_successes": 10,
+      "fixed_spin_grid_failures": 6,
+      "first_sampled_turnover_grid_index": 7,
+      "target_2p073": {
+        "mass_error_msun": 0.0,
+        "adjacent_successful_grid_bracket": [
+          1,
+          2
+        ],
+        "below_first_sampled_turnover": true,
+        "radius_within_16_km_source_bound": true,
+        "spin_residual_within_declared_tolerance": true
+      }
+    },
+    {
+      "eos": "WFF1",
+      "source_sha256": "7ed773ea0e0328b16ed71f66d27f7f71289bfe978fa8f7d04a8f449690d30776",
+      "causal_table_sha256": "0eec25f6508bbf65c4424010096c3c7944be8159945011bb302f8f700e2da24e",
+      "source_hashes_match": true,
+      "causal_support_max_cs2": 1.0000000000000009,
+      "causal_support_pass": true,
+      "fixed_spin_grid_successes": 11,
+      "fixed_spin_grid_failures": 5,
+      "first_sampled_turnover_grid_index": null,
+      "target_2p073": null
+    },
+    {
+      "eos": "WFF2",
+      "source_sha256": "04698be6750edd326cab423a21956a276b1fcdec2851e35d1e298082f9b89667",
+      "causal_table_sha256": "743f619a2eba6a1eda91049c6b9db38afdf1ff0e1ae90f7287f53d37793eb8e3",
+      "source_hashes_match": true,
+      "causal_support_max_cs2": 1.0000000000000024,
+      "causal_support_pass": true,
+      "fixed_spin_grid_successes": 14,
+      "fixed_spin_grid_failures": 2,
+      "first_sampled_turnover_grid_index": null,
+      "target_2p073": null
+    }
+  ],
+  "limitations": [
+    "This audits saved RNS evidence; it launches no new solver calls.",
+    "A 16-point central-density scan and sampled turnover are not a continuous stability certificate.",
+    "The low-pressure crust is an explicit candidate continuation; no EOS prior or photon evidence is applied.",
+    "APR4_EPP has no retained raw source table in this workspace."
+  ],
+  "EOS_Bayes": "NOT_RUN"
+}

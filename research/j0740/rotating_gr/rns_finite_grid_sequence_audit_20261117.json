@@ -1,0 +1,218 @@
+{
+  "status": "READ_ONLY_INDEPENDENT_FINITE_GRID_SEQUENCE_AUDIT",
+  "method": "Re-read six saved causal-candidate RNS sequence JSON artifacts; no solver calls. For each requested-spin curve, count successful/failed grid rows, find sampled mass maximum and first non-increasing adjacent pair among successful rows. Diagnostic only; not a continuous rotating-star stability certificate.",
+  "models": [
+    {
+      "eos": "ENG",
+      "source_artifact": "ENG_consistent_Steffen_causal_RNS_sequence.json",
+      "source_bytes": 14419,
+      "source_sha256": "fd269c3a3579f32c7062148fa3675a5b1c8f10e49db5e8fffc84d20686126307",
+      "raw_eos_sha256": "e471644d8b7bda5a6a616d1764e4de6ad67b708c04182cd9bf0e92b1cab9629d",
+      "causal_table_sha256": "f5b088478c2ba831f0ea11d5d9c9d383579ea98399a2159da241c8112c0be282",
+      "curves": [
+        {
+          "spin_hz_requested": 0.0,
+          "grid_rows": 16,
+          "successful_rows": 16,
+          "failed_rows": 0,
+          "sampled_mass_max_msun": 1.97327028612,
+          "sampled_peak_index_in_successful_rows": 15,
+          "sampled_peak_central_density_g_cm3": 1378319856334125.0,
+          "first_nonincreasing_mass_pair_indices": null,
+          "mass_sequence_monotone_in_sampled_successes": true
+        },
+        {
+          "spin_hz_requested": 346.536369,
+          "grid_rows": 16,
+          "successful_rows": 16,
+          "failed_rows": 0,
+          "sampled_mass_max_msun": 1.99189234796,
+          "sampled_peak_index_in_successful_rows": 15,
+          "sampled_peak_central_density_g_cm3": 1378319856334125.0,
+          "first_nonincreasing_mass_pair_indices": null,
+          "mass_sequence_monotone_in_sampled_successes": true
+        }
+      ]
+    },
+    {
+      "eos": "MPA1",
+      "source_artifact": "MPA1_consistent_Steffen_causal_RNS_sequence.json",
+      "source_bytes": 16590,
+      "source_sha256": "aac661ef8f5b2978094e402e74350ed9b188ed31b7c216331800a9a6cc8c5222",
+      "raw_eos_sha256": "bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec",
+      "causal_table_sha256": "03be8d880a0a412e0338a3438b45eb34eb13004bc6b0f0e5c48eff7f5d7021b6",
+      "curves": [
+        {
+          "spin_hz_requested": 0.0,
+          "grid_rows": 16,
+          "successful_rows": 16,
+          "failed_rows": 0,
+          "sampled_mass_max_msun": 2.46158485961,
+          "sampled_peak_index_in_successful_rows": 14,
+          "sampled_peak_central_density_g_cm3": 2206251704567876.8,
+          "first_nonincreasing_mass_pair_indices": [
+            14,
+            15
+          ],
+          "mass_sequence_monotone_in_sampled_successes": false
+        },
+        {
+          "spin_hz_requested": 346.536369,
+          "grid_rows": 16,
+          "successful_rows": 16,
+          "failed_rows": 0,
+          "sampled_mass_max_msun": 2.47384998866,
+          "sampled_peak_index_in_successful_rows": 13,
+          "sampled_peak_central_density_g_cm3": 1984294487326740.8,
+          "first_nonincreasing_mass_pair_indices": [
+            13,
+            14
+          ],
+          "mass_sequence_monotone_in_sampled_successes": false
+        }
+      ]
+    },
+    {
+      "eos": "MS1B",
+      "source_artifact": "MS1B_consistent_Steffen_causal_RNS_sequence.json",
+      "source_bytes": 16064,
+      "source_sha256": "bd3bfd0f779b80da3b908ddffa7e5c45987d3425408fae6d8de7b56063244ca5",
+      "raw_eos_sha256": "818b1bda1e64e35b792613dff1cf27134bbcd97ec0432f48d65e766d6e882aee",
+      "causal_table_sha256": "d70df8ed10a0e694a50550146460fafffc5734e3e8ce7f3cc10ead3391939b48",
+      "curves": [
+        {
+          "spin_hz_requested": 0.0,
+          "grid_rows": 16,
+          "successful_rows": 16,
+          "failed_rows": 0,
+          "sampled_mass_max_msun": 2.77851282306,
+          "sampled_peak_index_in_successful_rows": 6,
+          "sampled_peak_central_density_g_cm3": 1595190202787005.2,
+          "first_nonincreasing_mass_pair_indices": [
+            6,
+            7
+          ],
+          "mass_sequence_monotone_in_sampled_successes": false
+        },
+        {
+          "spin_hz_requested": 346.536369,
+          "grid_rows": 16,
+          "successful_rows": 10,
+          "failed_rows": 6,
+          "sampled_mass_max_msun": 2.79832516929,
+          "sampled_peak_index_in_successful_rows": 6,
+          "sampled_peak_central_density_g_cm3": 1595190202787005.2,
+          "first_nonincreasing_mass_pair_indices": [
+            6,
+            7
+          ],
+          "mass_sequence_monotone_in_sampled_successes": false
+        }
+      ]
+    },
+    {
+      "eos": "MS1",
+      "source_artifact": "MS1_consistent_Steffen_causal_RNS_sequence.json",
+      "source_bytes": 16157,
+      "source_sha256": "336df1b944fd126b8e25e54b9b77ed403d1d7762f4908f2be672ccfbcc6f1e37",
+      "raw_eos_sha256": "8f65aeeccd11f974c41d9b4c7cb2042250804702da9ee247d5b8fe91bd547ecb",
+      "causal_table_sha256": "fa5241f92cb24d59cebb0d63ffe76b7383b151c08eaa4f015ca1c36b1782eb07",
+      "curves": [
+        {
+          "spin_hz_requested": 0.0,
+          "grid_rows": 16,
+          "successful_rows": 16,
+          "failed_rows": 0,
+          "sampled_mass_max_msun": 2.76991490988,
+          "sampled_peak_index_in_successful_rows": 6,
+          "sampled_peak_central_density_g_cm3": 1601523351873828.2,
+          "first_nonincreasing_mass_pair_indices": [
+            6,
+            7
+          ],
+          "mass_sequence_monotone_in_sampled_successes": false
+        },
+        {
+          "spin_hz_requested": 346.536369,
+          "grid_rows": 16,
+          "successful_rows": 10,
+          "failed_rows": 6,
+          "sampled_mass_max_msun": 2.78971411323,
+          "sampled_peak_index_in_successful_rows": 6,
+          "sampled_peak_central_density_g_cm3": 1601523351873828.2,
+          "first_nonincreasing_mass_pair_indices": [
+            6,
+            7
+          ],
+          "mass_sequence_monotone_in_sampled_successes": false
+        }
+      ]
+    },
+    {
+      "eos": "WFF1",
+      "source_artifact": "WFF1_consistent_Steffen_causal_RNS_sequence.json",
+      "source_bytes": 12654,
+      "source_sha256": "10d3315c25f7f4ea2b33fc500e970883d4cd7f6b442ef0d4d3934fc757540181",
+      "raw_eos_sha256": "7ed773ea0e0328b16ed71f66d27f7f71289bfe978fa8f7d04a8f449690d30776",
+      "causal_table_sha256": "5111f808e9d110badc6bc4ecc3f22c7ab3431fdc68ec1c0184492a0517af1da0",
+      "curves": [
+        {
+          "spin_hz_requested": 0.0,
+          "grid_rows": 16,
+          "successful_rows": 11,
+          "failed_rows": 5,
+          "sampled_mass_max_msun": 1.88272817148,
+          "sampled_peak_index_in_successful_rows": 10,
+          "sampled_peak_central_density_g_cm3": 1642858081930526.0,
+          "first_nonincreasing_mass_pair_indices": null,
+          "mass_sequence_monotone_in_sampled_successes": true
+        },
+        {
+          "spin_hz_requested": 346.536369,
+          "grid_rows": 16,
+          "successful_rows": 11,
+          "failed_rows": 5,
+          "sampled_mass_max_msun": 1.89285794523,
+          "sampled_peak_index_in_successful_rows": 10,
+          "sampled_peak_central_density_g_cm3": 1642858081930526.0,
+          "first_nonincreasing_mass_pair_indices": null,
+          "mass_sequence_monotone_in_sampled_successes": true
+        }
+      ]
+    },
+    {
+      "eos": "WFF2",
+      "source_artifact": "WFF2_consistent_Steffen_causal_RNS_sequence.json",
+      "source_bytes": 13653,
+      "source_sha256": "48102d1021db742a9f412d55d237701769b4df2c917e7c9b05236dd5dfb11d85",
+      "raw_eos_sha256": "04698be6750edd326cab423a21956a276b1fcdec2851e35d1e298082f9b89667",
+      "causal_table_sha256": "79c58973c8d7a3e5e6f83a43ce69175b70a58c577e51cb5df3561d8d50f54f73",
+      "curves": [
+        {
+          "spin_hz_requested": 0.0,
+          "grid_rows": 16,
+          "successful_rows": 14,
+          "failed_rows": 2,
+          "sampled_mass_max_msun": 1.93044802225,
+          "sampled_peak_index_in_successful_rows": 13,
+          "sampled_peak_central_density_g_cm3": 1523437173603687.8,
+          "first_nonincreasing_mass_pair_indices": null,
+          "mass_sequence_monotone_in_sampled_successes": true
+        },
+        {
+          "spin_hz_requested": 346.536369,
+          "grid_rows": 16,
+          "successful_rows": 14,
+          "failed_rows": 2,
+          "sampled_mass_max_msun": 1.94222886015,
+          "sampled_peak_index_in_successful_rows": 13,
+          "sampled_peak_central_density_g_cm3": 1523437173603687.8,
+          "first_nonincreasing_mass_pair_indices": null,
+          "mass_sequence_monotone_in_sampled_successes": true
+        }
+      ]
+    }
+  ],
+  "acceptance": "NOT_ESTABLISHED_CONTINUOUS_STABILITY",
+  "EOS_Bayes": "NOT_RUN"
+}

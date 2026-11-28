@@ -1,0 +1,29 @@
+{
+  "status": "SYNTHETIC_ONLY_NOT_NATIVE_EOS",
+  "seed_for_training_test": 303,
+  "train_rows": 15000,
+  "heldout_rows_base": 20000,
+  "heldout_rows_candidate": 20000,
+  "source_cdf_stress_rows": 200000,
+  "source_cdf_endpoint_rows_in_stress": 0,
+  "synthetic_13D_target": "N13(mean[0]=1.2,mean[1]=-0.8,I)",
+  "synthetic_base": {
+    "ess": 2346.716259350788,
+    "max_normalized_weight": 0.007857976872988075,
+    "logZ": 0.009054890772187463
+  },
+  "synthetic_candidate": {
+    "ess": 13906.630406040154,
+    "max_normalized_weight": 0.0002076493399519522,
+    "logZ": -0.0034362691740135176
+  },
+  "improvement_factor_ess": 5.925995676139979,
+  "native_xpsi": "NOT_RUN",
+  "eos_bayes": "NOT_RUN",
+  "full_mr_convergence": "NOT_ESTABLISHED",
+  "files_sha256": {
+    "defensive_latent_v3.py": "3329e73fb5e570e36984c995d87d0a2c780dafe8472119ed56aa18559ad9a50f",
+    "test_defensive_latent_v3.py": "6959d68dbec2e3817d3abe64e899b24c816f23f9d40531e144390f57cd411bab",
+    "README.md": "13a82fc0e4353d29238840c88e707c29e14ed683bcd0529d872a6f4439443726"
+  }
+}

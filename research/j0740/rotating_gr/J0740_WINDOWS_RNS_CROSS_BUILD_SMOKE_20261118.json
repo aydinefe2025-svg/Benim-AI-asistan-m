@@ -1,0 +1,61 @@
+{
+  "schema": "j0740-windows-rns-cross-build-smoke-v1",
+  "timestamp": "2026-11-18",
+  "status": "PASS_WINDOWS_REFERENCE_SMOKE; APR4_PHYSICS_NOT_ESTABLISHED; EOS_BAYES_NOT_RUN",
+  "scope": "Windows compiler/runtime check only; no EOS posterior or APR4 acceptance claim.",
+  "source": {
+    "repository": "rns-alberta/rns",
+    "commit": "97e85d325a33e37f702306414533f6cd77812477",
+    "compatibility_patch": "initialize legacy rns() local a_check to zero",
+    "findmodel_c_sha256": "e5801f5720f9ac08cbe7ead18c1912cb471a900e5b59c400846209bf777b42db",
+    "original_unpatched_findmodel_sha256": "5f282c3542fc5439970c3471f1a1c7f29da3b02522b7821d9a85fe6123e99691"
+  },
+  "build": {
+    "compiler": "MSVC 19.51.36260.0 / toolset 14.51.36260.0",
+    "architecture": "x86",
+    "grid": "151x301",
+    "fresh_binary_sha256": "80de7af5fafbe166fd4b6d26843958de468a9ea9fd8f8f085e27a0065bdbd67d",
+    "retained_binary_sha256": "f965b78563d177f729406c7022e448d0a10f85dd567bc9d747edce05bb018bb0"
+  },
+  "input": {
+    "table": "local RNS eosAPR sample",
+    "sha256": "417da895ebd9077206f85cb3a4519ba34a45879cdb0fbd0dba7f01708d823dd",
+    "bytes": 6973,
+    "limitation": "This is the RNS eosAPR reference table, not JESTER/LALSuite APR4_EPP."
+  },
+  "reference_run": {
+    "command": "rns.exe -f eosAPR -e 1e15 -s 300 -d .",
+    "requested_central_density_g_cm3": 1000000000000000,
+    "requested_spin_hz": 300,
+    "fresh_x86_exit_code": 0,
+    "fresh_x86_stdout_final_row": "1  1.453  11.48  300.0",
+    "retained_binary_exit_code": 0,
+    "retained_binary_stdout_final_row": "1  1.453  11.48  300.0",
+    "expected_rounded_reference": {
+      "mass_msun": 1.453,
+      "radius_eq_km": 11.48,
+      "spin_hz": 300
+    },
+    "comparison": "Both independently invoked binaries match the pinned RNS published rounded example."
+  },
+  "architecture_diagnostic": {
+    "x64_compile": "PASS",
+    "x64_run_exit_code": -1073741819,
+    "x64_run_status": "0xC0000005 access violation",
+    "compiler_warnings": "C4312 int-to-pointer width conversions in legacy nrutil.c",
+    "x86_run": "PASS",
+    "interpretation": "The same compatibility-patched source succeeds as x86 and fails as x64; legacy Numerical Recipes pointer storage is incompatible with 64-bit builds. Use the tested x86 RNS binary for this source unless nrutil is ported and independently validated."
+  },
+  "tests": {
+    "command": "python -m unittest -v test_rns_benchmark test_seven_eos_sequence",
+    "python": "3.15.2; numpy available; scipy and X-PSI not imported",
+    "result": "22 tests run; 21 passed; 1 skipped because its fake executable is POSIX shell-only on Windows.",
+    "failed_attempts": "Initial sandbox run could not create Python temporary files; rerun with authorized temp-write access passed."
+  },
+  "acceptance": {
+    "windows_rns_build_and_runtime": "PASS",
+    "physical_apr4_shell": "NOT_ESTABLISHED",
+    "fixed_J_turning_point_stability": "NOT_RUN",
+    "eos_bayes": "NOT_RUN"
+  }
+}

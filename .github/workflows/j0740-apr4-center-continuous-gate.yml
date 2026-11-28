@@ -1,0 +1,46 @@
+name: J0740 APR4 in-star continuous PCHIP and MPA1 rejection audit
+on:
+  pull_request:
+    paths:
+      - 'research/j0740/rotating_gr/apr4_center_continuous.py'
+      - 'research/j0740/rotating_gr/test_apr4_center_continuous.py'
+      - 'research/j0740/rotating_gr/run_apr4_center_gate.py'
+      - 'research/j0740/rotating_gr/fixtures/pinned_eos_center_fixture.json'
+      - '.github/workflows/j0740-apr4-center-continuous-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 immutable
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5 immutable
+        with:
+          python-version: '3.12'
+      - name: install-verified-science-tools
+        run: python3 -m pip install 'numpy>=2,<3' 'scipy>=1.13,<2'
+      - name: zero-ambiguity-source-tests
+        working-directory: research/j0740/rotating_gr
+        run: python3 -W error -m unittest -v test_apr4_center_continuous.py
+      - name: retrieve-only-two-small-pinned-source-eos
+        run: |
+          mkdir -p _j0740_eos_src
+          for name in APR4_EPP MPA1; do
+            curl --fail --location --retry 2 --max-time 60 -o "_j0740_eos_src/${name}.npz" \
+              "https://raw.githubusercontent.com/nuclear-multimessenger-astronomy/jester/e6768650ce992abfd1153a6833857572fe5cd230/jesterTOV/tabulated_eos/lalsuite/${name}.npz"
+          done
+      - name: run-centre-truncated-continuous-screen
+        working-directory: research/j0740/rotating_gr
+        run: |
+          python3 -W error run_apr4_center_gate.py \
+            --source-dir "${{ github.workspace }}/_j0740_eos_src" \
+            --fixture fixtures/pinned_eos_center_fixture.json \
+            --out-dir "${{ github.workspace }}/_j0740_gate_out"
+      - name: retain-precise-physics-qualified-evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4 immutable
+        with:
+          name: j0740-apr4-centre-continuous-pchip-gate
+          retention-days: 7
+          path: _j0740_gate_out/

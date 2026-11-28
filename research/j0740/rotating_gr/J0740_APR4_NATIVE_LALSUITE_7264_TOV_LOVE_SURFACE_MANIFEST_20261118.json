@@ -1,0 +1,44 @@
+{
+  "EOS_Bayes": "NOT_RUN",
+  "acceptance": {
+    "causal_central_cs2_all": true,
+    "corrected_h_join_residual_below_1percent": true,
+    "jester_native_replay_below_1e-9": true,
+    "lambda_positive": true,
+    "mass_root_all_below_1e-8": true,
+    "mesh_lambda_delta_below_1e-5": true,
+    "native_LAL_h_join_firstlaw_discontinuity_detected": true,
+    "surface_floor_tolerance_pass": true
+  },
+  "date": "2026-11-18",
+  "files": {
+    "reproduction_code": {
+      "bytes": 9635,
+      "path": "codex-psr-j0740-6620-ara-tirmasina\\records\\A01.01.51\\PSR_J0740+6620\\audit_apr4_lalsuite_7264_native_tov_love_surface_20261118.py",
+      "sha256": "91695addc67ae9331292693c9de15f525e556fbbb7127dd3df4c2f3d286bdd76"
+    },
+    "result_json": {
+      "bytes": 5301,
+      "path": "codex-psr-j0740-6620-ara-tirmasina\\records\\A01.01.51\\PSR_J0740+6620\\J0740_APR4_NATIVE_LALSUITE_7264_TOV_LOVE_SURFACE_20261118.json",
+      "sha256": "7992f4a8aec38992cf657042d53653610a757d7f3738ab3b8321769bb1d7b31e"
+    }
+  },
+  "inputs": {
+    "apr4_table_bytes": 72350,
+    "apr4_table_sha256": "2a63cd7f1e1c5a158bb3cc06ab4b51f4344a9a1e6bfaeec7f98937c3d5a5447f",
+    "jester_apr4_npz_bytes": 56300,
+    "jester_apr4_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+    "lalsuite_release_tag": "lalsuite-v7.26.4",
+    "lalsuite_tag_commit": "fc92814767cd01523d546a07d325b1dd6759a1a0",
+    "tabular_source_sha256": "1c84c672e663d853b1ef87f9bb23520e85ab007c2b4e66048d2abc82bc7825df"
+  },
+  "limits": [
+    "Conditional static TOV-Love only; not rotating RNS.",
+    "APR4 source table is verified against official v7.26.4 native table data and reproduces JESTER samples, but the generator runtime binary remains unproven.",
+    "The exact low-pressure extension is a first-law-matched candidate distinct from LALSuite native h extension.",
+    "Absolute baryonic rest-mass convention and original EOS global causality/stability are not certified.",
+    "EOS_Bayes remains NOT_RUN."
+  ],
+  "schema": "j0740-apr4-lalsuite-7264-native-tov-love-surface-manifest-v1",
+  "status": "PASS_CONDITIONAL_NATIVE_TABLE_TOV_LOVE; APR4_PHYSICAL_EOS_NOT_CERTIFIED; EOS_Bayes=NOT_RUN"
+}

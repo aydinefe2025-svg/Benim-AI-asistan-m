@@ -1,0 +1,210 @@
+{
+  "schema": "j0740-existing-fixed-mr-four-seed-independent-audit-v1",
+  "status": "PASS_FIXED_MR_NUMERICAL_GATES_ONLY",
+  "point_mass_msun_radius_km": [
+    2.2,
+    12.53
+  ],
+  "draws_per_run": 512,
+  "independent_seeds": [
+    111501,
+    111503,
+    111507,
+    111511
+  ],
+  "frozen_proposal_sha256": "fbf6d7969072d96aeed1f883cd0b5fae726754355fea6c5593c2e329a4fe1fbb",
+  "method": "Independent recomputation from saved logweights/z arrays; no likelihood calls, no weight clipping, same predeclared gate thresholds.",
+  "thresholds": {
+    "min_ESS_100": 100.0,
+    "max_weight_fraction_005": 0.05,
+    "min_each_phase_ESS_30": 30.0,
+    "max_independent_log_integral_spread_02": 0.2,
+    "max_256_to_512_prefix_drift_01": 0.1
+  },
+  "aggregate": {
+    "minimum_run_ESS": 317.2279075530594,
+    "maximum_single_weight_fraction": 0.013669991370271915,
+    "minimum_phase_ESS": 155.7982349614508,
+    "independent_log_integral_spread": 0.06086275327470503,
+    "maximum_256_to_512_prefix_drift": 0.03313169763714541
+  },
+  "gate_results": {
+    "min_ESS_100": true,
+    "max_weight_fraction_005": true,
+    "min_each_phase_ESS_30": true,
+    "max_independent_log_integral_spread_02": true,
+    "max_256_to_512_prefix_drift_01": true
+  },
+  "runs": [
+    {
+      "seed": 111501,
+      "independent_diagnostics": {
+        "log_conditional_integral": -21889.524910552955,
+        "ESS": 322.8077246240514,
+        "max_weight_fraction": 0.010775432149029141,
+        "phase_partitions": [
+          {
+            "phase_positive": false,
+            "draws": 258,
+            "posterior_weight_fraction": 0.5119945797944555,
+            "ESS": 160.0749567140904
+          },
+          {
+            "phase_positive": true,
+            "draws": 254,
+            "posterior_weight_fraction": 0.4880054202051851,
+            "ESS": 163.09124588012028
+          }
+        ]
+      },
+      "prefix_256_to_512_log_integral_drift": 0.006385210617736448,
+      "input_files": [
+        {
+          "name": "MR_anchor_4_seed_111501_512.json",
+          "bytes": 4904,
+          "sha256": "05a2afc9ea9a04d99f53d963ac6039ddb9e57e657990b95dda72b3de7b86f649"
+        },
+        {
+          "name": "MR_anchor_4_seed_111501_512_local.npz",
+          "bytes": 54454,
+          "sha256": "6652e7ad61750697eaff0a5eeb0dcda6f07674523c7fd0e039ebe1dd0eaa614c"
+        },
+        {
+          "name": "MR_anchor_4_seed_111501_evals_local.jsonl",
+          "bytes": 235256,
+          "sha256": "b0f139a12051c2ecb5602c1105a99c96a09cff4fe5af5c9ab40f0e8160f938a3"
+        }
+      ],
+      "per_draw_receipt_count": 512
+    },
+    {
+      "seed": 111503,
+      "independent_diagnostics": {
+        "log_conditional_integral": -21889.46404779968,
+        "ESS": 332.54994316609725,
+        "max_weight_fraction": 0.01144138551023169,
+        "phase_partitions": [
+          {
+            "phase_positive": false,
+            "draws": 258,
+            "posterior_weight_fraction": 0.49951538348583735,
+            "ESS": 178.3126128838651
+          },
+          {
+            "phase_positive": true,
+            "draws": 254,
+            "posterior_weight_fraction": 0.5004846165120016,
+            "ESS": 155.7982349614508
+          }
+        ]
+      },
+      "prefix_256_to_512_log_integral_drift": 0.004167290378973121,
+      "input_files": [
+        {
+          "name": "MR_anchor_4_seed_111503_512.json",
+          "bytes": 4899,
+          "sha256": "4326b9e3fa67c67d7a6ee22ab2e44dabcafa25ccacbc00eb52f05b48f92009f1"
+        },
+        {
+          "name": "MR_anchor_4_seed_111503_512_local.npz",
+          "bytes": 54511,
+          "sha256": "1be3b225baf1ebffff3f65b0f9c7a304c0389de76ee512c5fa6705f29f128c50"
+        },
+        {
+          "name": "MR_anchor_4_seed_111503_evals_local.jsonl",
+          "bytes": 235227,
+          "sha256": "fddf959293e6392262356252afc5a10c2441e7e9bfd04e021de9042346d02255"
+        }
+      ],
+      "per_draw_receipt_count": 512
+    },
+    {
+      "seed": 111507,
+      "independent_diagnostics": {
+        "log_conditional_integral": -21889.484547619628,
+        "ESS": 318.5357332113398,
+        "max_weight_fraction": 0.013669991370271915,
+        "phase_partitions": [
+          {
+            "phase_positive": false,
+            "draws": 258,
+            "posterior_weight_fraction": 0.47508155388726064,
+            "ESS": 159.31442131270475
+          },
+          {
+            "phase_positive": true,
+            "draws": 254,
+            "posterior_weight_fraction": 0.5249184461142256,
+            "ESS": 159.95047795042024
+          }
+        ]
+      },
+      "prefix_256_to_512_log_integral_drift": 0.003702744343172526,
+      "input_files": [
+        {
+          "name": "MR_anchor_4_seed_111507_512.json",
+          "bytes": 4912,
+          "sha256": "a34a71226fa639711c1c658e70b342fc623df7186ff2d980ca43020d836ec7b9"
+        },
+        {
+          "name": "MR_anchor_4_seed_111507_512_local.npz",
+          "bytes": 54466,
+          "sha256": "a74858cf29c941e48212213602071c076bc1427e34484b9bb0b46c719038a015"
+        },
+        {
+          "name": "MR_anchor_4_seed_111507_evals_local.jsonl",
+          "bytes": 235206,
+          "sha256": "4c9fc3ae1a84c0a4378ac10f35b0d5c28fe2968a635809cb90ea1b649debc21e"
+        }
+      ],
+      "per_draw_receipt_count": 512
+    },
+    {
+      "seed": 111511,
+      "independent_diagnostics": {
+        "log_conditional_integral": -21889.477412127813,
+        "ESS": 317.2279075530594,
+        "max_weight_fraction": 0.01229925901529558,
+        "phase_partitions": [
+          {
+            "phase_positive": false,
+            "draws": 260,
+            "posterior_weight_fraction": 0.518167160602836,
+            "ESS": 161.24104834930162
+          },
+          {
+            "phase_positive": true,
+            "draws": 252,
+            "posterior_weight_fraction": 0.48183283939993315,
+            "ESS": 156.11615073096797
+          }
+        ]
+      },
+      "prefix_256_to_512_log_integral_drift": 0.03313169763714541,
+      "input_files": [
+        {
+          "name": "MR_anchor_4_seed_111511_512.json",
+          "bytes": 4902,
+          "sha256": "c1295c9ed36f594c5a429611615392c0eff154d03071706929ecd227b6806049"
+        },
+        {
+          "name": "MR_anchor_4_seed_111511_512_local.npz",
+          "bytes": 54463,
+          "sha256": "d2b4dbad81bf9855a9b3bc9e20226d850705766053b478483deaaeb49d108977"
+        },
+        {
+          "name": "MR_anchor_4_seed_111511_evals_local.jsonl",
+          "bytes": 235155,
+          "sha256": "de7a6c86e607f950e410bd6635b48a52be6342de4e1eac7eeea3001dfab39a43"
+        }
+      ],
+      "per_draw_receipt_count": 512
+    }
+  ],
+  "scope_limitations": [
+    "This is one fixed (M,R) point and does not establish convergence over the full M,R support.",
+    "The conditional nuisance integral excludes the M,R prior factor by design.",
+    "It is not an EOS curve integral, EOS evidence, or EOS posterior."
+  ],
+  "EOS_Bayes": "NOT_RUN"
+}

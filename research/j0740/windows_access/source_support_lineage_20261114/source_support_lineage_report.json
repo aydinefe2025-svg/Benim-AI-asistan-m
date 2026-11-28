@@ -1,0 +1,77 @@
+{
+  "conclusions": {
+    "0p24947_is_different_fixed_MR_source_support_measure": true,
+    "14p6_is_global_15D_sampler_hypervolume_estimate": true,
+    "EOS_Bayes": "NOT_RUN",
+    "can_use_either_as_universal_eos_logZ_correction": false,
+    "full_MR_convergence": "NOT_ESTABLISHED",
+    "source_native_pi_eff_MR": "NOT_COMPUTED",
+    "support_14p6_not_equal_fixed_MR_0p24947354926879406": true,
+    "whether_prior_already_conditioned_in_evidence": "NOT_ESTABLISHED"
+  },
+  "date_utc": "2026-11-14T08:21:43.083784+00:00",
+  "limitations": [
+    "No full 12.9 GB archive rehash on this run; extracted bytes match the existing local model_text_manifest.json.",
+    "X-PSI Sample.nested implementation and posterior normalization not executed or fully traced.",
+    "A 14.6% sampled hypervolume used in tuning does not prove evidence correction convention.",
+    "The existing 0.24947 fixed-MR support estimate cannot substitute for the 15D source-run estimate.",
+    "No new photon calls, no changes to original files or prior."
+  ],
+  "prior_code": {
+    "density_method_warns_extreme_distance_fix_missing": true,
+    "hard_rejection_examples": [
+      "distance <=0.01 or >1.7",
+      "radius>16",
+      "polar-radius photon sphere",
+      "effective gravity",
+      "hot-region ordering and overlap"
+    ],
+    "hard_rejection_in_call": true,
+    "inverse_sample_present": true
+  },
+  "source_files": {
+    "config": {
+      "bytes": 1714,
+      "manifest_sha256_verified": true,
+      "path": "C:\\Users\\User\\Documents\\Codex\\2026-11-06\\n\\outputs\\original_model_text\\J0740_GAMMA_zenodo\\STU\\STU_NICER_XMM_hr\\STU_modules\\config.ini",
+      "sha256": "02592091e8c10d126b10070e0e33515a292d57d750c2a45d624065d056752ede"
+    },
+    "job": {
+      "bytes": 1985,
+      "manifest_sha256_verified": true,
+      "path": "C:\\Users\\User\\Documents\\Codex\\2026-11-06\\n\\outputs\\original_model_text\\J0740_GAMMA_zenodo\\STU\\STU_NICER_XMM_hr\\STU_modules\\job_xpsi_helios_lp40k_Xse001.sh",
+      "sha256": "7767728411ddfe71193e4d4bda086f5773ecee574c31f67ab57b4dc77d6d6439"
+    },
+    "prior": {
+      "bytes": 9787,
+      "manifest_sha256_verified": true,
+      "path": "C:\\Users\\User\\Documents\\Codex\\2026-11-06\\n\\outputs\\original_model_text\\J0740_GAMMA_zenodo\\STU\\STU_NICER_XMM_hr\\STU_modules\\CustomPrior_GLS_compressed_scaling_Dfix.py",
+      "sha256": "ecabb879c38d4e4e343e5e304e1be39d87a7b0a35d7077454e4677ea1458aa93"
+    },
+    "run_log": {
+      "bytes": 353104,
+      "manifest_sha256_verified": true,
+      "path": "C:\\Users\\User\\Documents\\Codex\\2026-11-06\\n\\outputs\\original_model_text\\J0740_GAMMA_zenodo\\STU\\STU_NICER_XMM_hr\\STU_outputs\\run1_lp40k_Xse001_Dfix\\out_",
+      "sha256": "f20ae7db9550a9fd608542c1b43fc9534a3e396df7ef5c2dad66493793caa2de"
+    },
+    "runner": {
+      "bytes": 23720,
+      "manifest_sha256_verified": true,
+      "path": "C:\\Users\\User\\Documents\\Codex\\2026-11-06\\n\\outputs\\original_model_text\\J0740_GAMMA_zenodo\\STU\\STU_NICER_XMM_hr\\STU_modules\\main_lp40k_Xse001_Dfix.py",
+      "sha256": "440451fd57c8d8c775f3c847861d6fce77a82ab975ca090fb660289191d8c1af"
+    }
+  },
+  "source_manifest_sha256": "6046f94ca335601bb1ecd34b1743544afc4deebf63aef6bf592a9f99f42ae079",
+  "source_run": {
+    "multinest_resuming": true,
+    "nested_sampling_dimensions": 15,
+    "sampling_efficiency_from_log": 0.0686,
+    "sampling_efficiency_log_line": 124,
+    "source_hypercube_support_estimate_percent_from_log": 14.6,
+    "source_prior": "CustomPrior_GLS_compressed_scaling_Dfix",
+    "support_log_line": 122,
+    "support_trials_statement": "requiring 1E+04 draws from prior support",
+    "xpsi_version": "1.2.0"
+  },
+  "status": "SOURCE_CODE_AND_LOG_SIGNATURES_VERIFIED_WITH_LOCAL_EXTRACTED_MANIFEST"
+}

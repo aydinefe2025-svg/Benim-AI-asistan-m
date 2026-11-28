@@ -1,0 +1,45 @@
+name: J0740 original Salmi 379669 M-R source audit
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/j0740-full-salmi-mr-source.yml'
+      - 'research/j0740/full_salmi_mr_source_audit.py'
+      - 'research/j0740/test_full_salmi_mr_source_audit.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  full-salmi-mr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Install scientific array library
+        run: python -m pip install 'numpy>=1.26,<3'
+      - name: Validate archive parsing, hash checks, row count and traversal isolation
+        working-directory: research/j0740
+        run: python -m unittest -v test_full_salmi_mr_source_audit
+      - name: Fetch ONLY original 40.6MB M-R tar (never the 12.9GB data archive)
+        run: |
+          mkdir -p source
+          curl --fail --location --retry 2 --retry-delay 3 --connect-timeout 20 --max-time 160 \
+            --output source/mr_samples_and_contours.tar.gz \
+            'https://zenodo.org/records/10519473/files/mr_samples_and_contours.tar.gz?download=1'
+          printf 'ca8e70eeca81feb71321f1a88a24f2f9  %s\n' source/mr_samples_and_contours.tar.gz | md5sum --check
+          du -h source/mr_samples_and_contours.tar.gz
+      - name: Read all 379669 actual M-R posterior pairs and preserve inspectable statistics
+        run: |
+          python research/j0740/full_salmi_mr_source_audit.py \
+            --mr-archive source/mr_samples_and_contours.tar.gz \
+            --out results/J0740_Salmi2024_full_379669_headline_MR_verified.json
+      - name: Preserve success evidence, no full sample redistribution
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: j0740-original-379669-headline-mr-evidence
+          path: results/J0740_Salmi2024_full_379669_headline_MR_verified.json
+          if-no-files-found: warn
+          retention-days: 30

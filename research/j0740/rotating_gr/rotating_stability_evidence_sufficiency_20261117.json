@@ -1,0 +1,213 @@
+{
+  "schema": "j0740-rotating-stability-evidence-sufficiency-v1",
+  "audit": "PASS_SAVED_RECORDS_AND_EXECUTABLE_IDENTITY; PHYSICAL_STABILITY_NOT_ESTABLISHED",
+  "method": "Read six retained RNS sequence JSONs and inspect the exact saved output parser, RNS output statement, and executable hash; no solver calls.",
+  "physical_criterion": {
+    "name": "Friedman-Ipser-Sorkin turning-point criterion",
+    "requires": "For a uniformly rotating barotrope, construct increasing-central-density sequences at fixed total angular momentum J (or a fixed-rest-mass sequence and inspect J extremum); a turning point is a sufficient secular-instability criterion.",
+    "primary_source": "https://adsabs.harvard.edu/pdf/1988ApJ...325..722F",
+    "available_sequence_control_parameter": "fixed spin frequency (0 and 346.536369 Hz), not fixed J"
+  },
+  "input_artifacts": [
+    {
+      "eos": "ENG",
+      "file": "ENG_consistent_Steffen_causal_RNS_sequence.json",
+      "bytes": 14419,
+      "sha256": "fd269c3a3579f32c7062148fa3675a5b1c8f10e49db5e8fffc84d20686126307",
+      "curves": [
+        {
+          "spin_hz": 0.0,
+          "grid_rows": 16,
+          "successful": 16,
+          "failed": 0,
+          "sampled_max_mass_msun": 1.97327028612
+        },
+        {
+          "spin_hz": 346.536369,
+          "grid_rows": 16,
+          "successful": 16,
+          "failed": 0,
+          "sampled_max_mass_msun": 1.99189234796
+        }
+      ],
+      "rns_binary_sha256_recorded": "4b7c387ba95df97ab202bde617ceb5adbd8c19bf0fcd22065633ae67f72083fc"
+    },
+    {
+      "eos": "MPA1",
+      "file": "MPA1_consistent_Steffen_causal_RNS_sequence.json",
+      "bytes": 16590,
+      "sha256": "aac661ef8f5b2978094e402e74350ed9b188ed31b7c216331800a9a6cc8c5222",
+      "curves": [
+        {
+          "spin_hz": 0.0,
+          "grid_rows": 16,
+          "successful": 16,
+          "failed": 0,
+          "sampled_max_mass_msun": 2.46158485961
+        },
+        {
+          "spin_hz": 346.536369,
+          "grid_rows": 16,
+          "successful": 16,
+          "failed": 0,
+          "sampled_max_mass_msun": 2.47384998866
+        }
+      ],
+      "rns_binary_sha256_recorded": "4b7c387ba95df97ab202bde617ceb5adbd8c19bf0fcd22065633ae67f72083fc"
+    },
+    {
+      "eos": "MS1B",
+      "file": "MS1B_consistent_Steffen_causal_RNS_sequence.json",
+      "bytes": 16064,
+      "sha256": "bd3bfd0f779b80da3b908ddffa7e5c45987d3425408fae6d8de7b56063244ca5",
+      "curves": [
+        {
+          "spin_hz": 0.0,
+          "grid_rows": 16,
+          "successful": 16,
+          "failed": 0,
+          "sampled_max_mass_msun": 2.77851282306
+        },
+        {
+          "spin_hz": 346.536369,
+          "grid_rows": 16,
+          "successful": 10,
+          "failed": 6,
+          "sampled_max_mass_msun": 2.79832516929
+        }
+      ],
+      "rns_binary_sha256_recorded": "4b7c387ba95df97ab202bde617ceb5adbd8c19bf0fcd22065633ae67f72083fc"
+    },
+    {
+      "eos": "MS1",
+      "file": "MS1_consistent_Steffen_causal_RNS_sequence.json",
+      "bytes": 16157,
+      "sha256": "336df1b944fd126b8e25e54b9b77ed403d1d7762f4908f2be672ccfbcc6f1e37",
+      "curves": [
+        {
+          "spin_hz": 0.0,
+          "grid_rows": 16,
+          "successful": 16,
+          "failed": 0,
+          "sampled_max_mass_msun": 2.76991490988
+        },
+        {
+          "spin_hz": 346.536369,
+          "grid_rows": 16,
+          "successful": 10,
+          "failed": 6,
+          "sampled_max_mass_msun": 2.78971411323
+        }
+      ],
+      "rns_binary_sha256_recorded": "4b7c387ba95df97ab202bde617ceb5adbd8c19bf0fcd22065633ae67f72083fc"
+    },
+    {
+      "eos": "WFF1",
+      "file": "WFF1_consistent_Steffen_causal_RNS_sequence.json",
+      "bytes": 12654,
+      "sha256": "10d3315c25f7f4ea2b33fc500e970883d4cd7f6b442ef0d4d3934fc757540181",
+      "curves": [
+        {
+          "spin_hz": 0.0,
+          "grid_rows": 16,
+          "successful": 11,
+          "failed": 5,
+          "sampled_max_mass_msun": 1.88272817148
+        },
+        {
+          "spin_hz": 346.536369,
+          "grid_rows": 16,
+          "successful": 11,
+          "failed": 5,
+          "sampled_max_mass_msun": 1.89285794523
+        }
+      ],
+      "rns_binary_sha256_recorded": "4b7c387ba95df97ab202bde617ceb5adbd8c19bf0fcd22065633ae67f72083fc"
+    },
+    {
+      "eos": "WFF2",
+      "file": "WFF2_consistent_Steffen_causal_RNS_sequence.json",
+      "bytes": 13653,
+      "sha256": "48102d1021db742a9f412d55d237701769b4df2c917e7c9b05236dd5dfb11d85",
+      "curves": [
+        {
+          "spin_hz": 0.0,
+          "grid_rows": 16,
+          "successful": 14,
+          "failed": 2,
+          "sampled_max_mass_msun": 1.93044802225
+        },
+        {
+          "spin_hz": 346.536369,
+          "grid_rows": 16,
+          "successful": 14,
+          "failed": 2,
+          "sampled_max_mass_msun": 1.94222886015
+        }
+      ],
+      "rns_binary_sha256_recorded": "4b7c387ba95df97ab202bde617ceb5adbd8c19bf0fcd22065633ae67f72083fc"
+    }
+  ],
+  "recorded_success_keys": [
+    "allowed_spin_residual_hz",
+    "axis_ratio",
+    "axis_ratio_trials",
+    "central_energy_density_g_cm3",
+    "mass_msun",
+    "radius_eq_km",
+    "requested_spin_hz",
+    "solver_mode",
+    "spin_hz_reported",
+    "spin_residual_hz"
+  ],
+  "missing_fields": [
+    "total angular momentum J",
+    "baryonic/rest mass M0"
+  ],
+  "output_parser": {
+    "path": "repo/research/j0740/rotating_gr/rns_benchmark.py",
+    "bytes": 7924,
+    "sha256": "14188c026d62a1e3e1098ca6e3d2398cce7a2cea4e38a846f3f54c4fdb4de6b2",
+    "parses": "one final 4-column numeric line: e_c/1e15, M/Msun, R_e/km, f/Hz",
+    "stores": "central density, gravitational mass, equatorial radius, requested/reported spin and residual; no J or M0"
+  },
+  "rns_source": {
+    "path": "native_prior/rns-pinned-source/rns.c",
+    "bytes": 5389,
+    "sha256": "3e909d0bd44b9ed8823aee54d95aff60b27624cbd7e57fb7c162a18b406e123b",
+    "printed_final_quantities": [
+      "central energy density",
+      "gravitational mass",
+      "equatorial radius",
+      "spin frequency"
+    ],
+    "source_rns_binary_path": "native_prior/rns-candidate-151/rns_candidate.exe",
+    "source_rns_binary_bytes": 59904,
+    "source_rns_binary_sha256": "4b7c387ba95df97ab202bde617ceb5adbd8c19bf0fcd22065633ae67f72083fc",
+    "matches_all_six_sequence_manifests": true
+  },
+  "existing_failed_grid_points": {
+    "MS1B@346.536369Hz:timeout": 2,
+    "MS1B@346.536369Hz:nonfinite_or_parse_reject": 1,
+    "MS1B@346.536369Hz:setspin_bracket_failure": 2,
+    "MS1B@346.536369Hz:eos_domain_failure": 1,
+    "MS1@346.536369Hz:timeout": 2,
+    "MS1@346.536369Hz:nonfinite_or_parse_reject": 1,
+    "MS1@346.536369Hz:setspin_bracket_failure": 3,
+    "WFF1@0.0Hz:physical_range_reject": 5,
+    "WFF1@346.536369Hz:physical_range_reject": 5,
+    "WFF2@0.0Hz:physical_range_reject": 2,
+    "WFF2@346.536369Hz:physical_range_reject": 2
+  },
+  "toolchain_check": {
+    "gcc": "not found",
+    "clang": "not found",
+    "MSVC cl": "not found",
+    "WSL distribution": "not installed"
+  },
+  "conclusion": "The saved fixed-frequency M(central_density) curves do not contain J and cannot certify the fixed-J turning point. Existing RNS executable/parser also emits/stores no J or M0. Do not infer continuous rotating stability from these curves. A separately instrumented RNS build with J output and fixed-J continuation is required; the local machine has no available compiler or WSL distro.",
+  "status": {
+    "continuous_rotating_stability": "NOT_ESTABLISHED",
+    "EOS_Bayes": "NOT_RUN"
+  }
+}

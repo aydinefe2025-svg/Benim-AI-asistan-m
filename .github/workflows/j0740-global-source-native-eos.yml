@@ -1,0 +1,42 @@
+name: J0740 pinned whole-source EOS seven-model first-law and causality screen
+on:
+  pull_request:
+    paths:
+      - 'research/j0740/rotating_gr/source_native_global_gate.py'
+      - 'research/j0740/rotating_gr/run_source_native_global_gate.py'
+      - 'research/j0740/rotating_gr/test_source_native_global_gate.py'
+      - 'research/j0740/rotating_gr/fixtures/pinned_eos_center_fixture.json'
+      - '.github/workflows/j0740-global-source-native-eos.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pinned-source-screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Install numeric dependency
+        run: python -m pip install 'numpy==2.3.5'
+      - name: Fail-closed unit tests for source-native causality and cold first law
+        working-directory: research/j0740/rotating_gr
+        run: python -W error -m unittest -v test_source_native_global_gate.py
+      - name: Audit 7 tiny SHA-pinned original JESTER LALSuite NPZ tables (not photon archive)
+        working-directory: research/j0740/rotating_gr
+        run: |
+          python -W error run_source_native_global_gate.py \
+            --fixture fixtures/pinned_eos_center_fixture.json \
+            --source-dir source_native_7eos_download_temp \
+            --out-dir output_global_source_gate \
+            --fetch-pinned
+      - name: Retain audited JSON + scientific qualifications
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: j0740-pinned-source-7eos-physics-gate
+          retention-days: 7
+          path: |
+            research/j0740/rotating_gr/output_global_source_gate/J0740_FULL_SOURCE_NATIVE_7EOS_GATE_20261116.json
+            research/j0740/rotating_gr/output_global_source_gate/J0740_FULL_SOURCE_NATIVE_7EOS_GATE_20261116.md

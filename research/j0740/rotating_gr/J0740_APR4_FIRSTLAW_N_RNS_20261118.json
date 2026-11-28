@@ -1,0 +1,126 @@
+{
+  "schema": "j0740-apr4-firstlaw-n-rns-crossgrid-v1",
+  "date": "2026-11-18",
+  "status": "CONDITIONAL_NUMERICAL_RESULT",
+  "EOS_Bayes": "NOT_RUN",
+  "provenance": {
+    "jester_commit": "e6768650ce992abfd1153a6833857572fe5cd230",
+    "source_npz": "APR4_EPP.npz",
+    "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+    "rns_upstream_commit": "97e85d325a33e37f702306414533f6cd77812477",
+    "compiler": "MSVC 19.51.36260.0",
+    "toolset": "14.51.36231",
+    "grid_source_rns_sha256": "7bb843c33f8b1f224c18c8b0a29750ed1545c864732377fc021c08f1ecaeff70",
+    "findmodel_sha256": "f16d30cc1911159daf32d5ddc5113b08d4cebf14cd95360409b014d56597a751",
+    "binary_201x401_sha256": "6985c0a6d05e9c92bfac50da06ac1956c916c25ea3b465482977e715d8ce9986",
+    "binary_151x301_sha256": "2795b2bd58c592183ae040fdab231b0df7e7fdaec8091efa4b9500296a22ae5e",
+    "source_table_sha256": "58493bbcfebe0546c9a5f76d07c32a133d10a8ec53600629442b294baba48bc7",
+    "firstlaw_n_table_sha256": "e979e1209477611ab2fa0c06d1f1ca563eee2b867454820e4fcbf3c7b7541ed7",
+    "table_bytes": 17252
+  },
+  "method": {
+    "first_law": "d ln n = d epsilon/(epsilon+P), 64-point Gauss-Legendre integration over piecewise log-linear epsilon(P), anchored at source n(Pmin)",
+    "enthalpy": "h integrated from zero pressure; source pseudoenthalpy compared by log(P) interpolation",
+    "RNS": "Pinned upstream RNS C solver rebuilt cleanly; only n column changed between matched tables; direct -r runs, reported unrounded MODEL output",
+    "surface_patch": "pinned source compatibility/surface initialization patch; details in source/native_prior manifest",
+    "limitations": [
+      "First-law n absolute normalization inherits the source n at positive Pmin; crust-to-zero-pressure baryon chemical-potential normalization is not independently established.",
+      "Two grids are finite mesh sensitivity, not continuum extrapolation.",
+      "This does not establish the APR4 causal/stable EOS range globally or validate EOS Bayes.",
+      "RNS table was generated locally; its hash differs from CI table b65245... and is not claimed byte-identical."
+    ]
+  },
+  "thermo": {
+    "central_density_g_cm3": 1749731258530239.8,
+    "geometric_epsilon_m2": 1.2993784753732266E-09,
+    "geometric_pressure_m2": 5.300554535751014E-10,
+    "source_table_bin_index": 799,
+    "n_firstlaw_over_n_source": 0.810749986487152,
+    "source_n_excess_relative_to_firstlaw": 0.23342586082898076,
+    "h_firstlaw": 0.5534488732464464,
+    "h_source_interpolated": 0.5535021414114976,
+    "h_relative_residual": 9.624767097034947E-05,
+    "quadrature_orders": [
+      16,
+      32,
+      64,
+      128
+    ],
+    "quadrature_reported_result_stable": true
+  },
+  "RNS_201x401": {
+    "axis_ratio": 0.98618515,
+    "mass_msun": 2.0731401147224346,
+    "radius_eq_km": 10.751150471135698,
+    "spin_hz": 346.53399234787406,
+    "J_cgs": 4.820427281232963E+48,
+    "M0_source_n_msun": 2.7012039067160116,
+    "M0_firstlaw_n_msun": 2.4547613260689287
+  },
+  "RNS_151x301": {
+    "axis_ratio": 0.98614722,
+    "mass_msun": 2.0735746404719615,
+    "radius_eq_km": 10.751447088938955,
+    "spin_hz": 346.53634145592736,
+    "J_cgs": 4.821691543554004E+48,
+    "M0_source_n_msun": 2.7018757924536922,
+    "M0_firstlaw_n_msun": 2.455355520333705
+  },
+  "same_ratio_201x401": {
+    "axis_ratio": 0.98618515,
+    "mass_msun": 2.0731401147224346,
+    "radius_eq_km": 10.751150471135698,
+    "spin_hz": 346.53399234787406,
+    "J_cgs": 4.820427281232963E+48,
+    "M0_source_n_msun": 2.7012039067160116,
+    "M0_firstlaw_n_msun": 2.4547613260689287
+  },
+  "same_ratio_151x301": {
+    "axis_ratio": 0.98614722,
+    "mass_msun": 2.0735746404719615,
+    "radius_eq_km": 10.751447088938955,
+    "spin_hz": 346.53634145592736,
+    "J_cgs": 4.821691543554004E+48,
+    "M0_source_n_msun": 2.7018757924536922,
+    "M0_firstlaw_n_msun": 2.455355520333705
+  },
+  "matched_grid_deltas": {
+    "delta_M_msun": 0.0004345257495269,
+    "delta_Req_km": 0.000296617803257,
+    "delta_spin_hz": 0.0023491080533,
+    "delta_J_relative": 0.0002622401,
+    "delta_M0_source_n_msun": 0.0006718852114728,
+    "delta_M0_firstlaw_n_msun": 0.0005941942647763
+  },
+  "same_grid_same_spin_column_ablation": {
+    "grid_201x401": {
+      "delta_M": 0,
+      "delta_Req": 0,
+      "delta_spin": 0,
+      "delta_J": 0,
+      "delta_M0_msun": -0.2464425806470829
+    },
+    "grid_151x301": {
+      "delta_M": 0,
+      "delta_Req": 0,
+      "delta_spin": 0,
+      "delta_J": 0,
+      "delta_M0_msun": -0.2465202721199872
+    },
+    "meaning": "Changing n column leaves computed gravitational structure/spin invariant in these runs and changes integrated baryon mass by about 9.12%; this is evidence of normalization dependence, not a physical choice between normalizations."
+  },
+  "acceptance": {
+    "numerical_RNS_runs": "PASS",
+    "matched_grid_sensitivity": "PASS_WITHIN_RECORDED_PRECISION",
+    "absolute_baryon_normalization": "NOT_ESTABLISHED",
+    "low_pressure_crust": "NOT_ESTABLISHED",
+    "global_causality_and_stability": "NOT_ESTABLISHED",
+    "EOS_Bayes": "NOT_RUN"
+  },
+  "raw_MODEL_lines": [
+    "201 source n: MODEL 2.0731401147224346 10.751150471135698 346.53399234787406 4.820427281232963e48 2.7012039067160116",
+    "201 first-law n: MODEL 2.0731401147224346 10.751150471135698 346.53399234787406 4.820427281232963e48 2.4547613260689287",
+    "151 source n: MODEL 2.0735746404719615 10.751447088938955 346.53634145592736 4.8216915435540042e48 2.7018757924536922",
+    "151 first-law n: MODEL 2.0735746404719615 10.751447088938955 346.53634145592736 4.8216915435540042e48 2.455355520333705"
+  ]
+}

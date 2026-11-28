@@ -1,0 +1,25 @@
+{
+  "record_id": "A01.01.51_J0740_MS1B_R14_9076_K4_extension_20261110",
+  "status": "PASS_FIXED_MR_NUISANCE_INTEGRATION_ONLY",
+  "fixed_mass_radius_msun_km": [2.073, 14.90763759],
+  "physical_interpretation": "MS1B strict-causal Steffen rotating sequence sampled target at 2.073 Msun; radius interpolated from adjacent successful grid points, not a full EOS posterior sample.",
+  "method": "Frozen q(z)=0.7 exact conditional transport base + 0.3 correlated toroidal K4; four independent scrambled Sobol sequences extended from 512 to 1024 draws, preserving the 512 prefixes within 1e-12 in z and 1e-10 in finite log weights.",
+  "xpsi_version": "1.2.0",
+  "seeds": [231501, 231503, 231507, 231511],
+  "new_photon_calls": 1874,
+  "runs": [
+    {"seed": 231501, "draws": 1024, "ess": 212.19466819245716, "max_weight": 0.042326189856983464, "phase_ess": [88.87081381759884, 142.9069877961549], "log_integral": -21891.008638401676, "drift_256_to_512": 0.04942499850949389, "drift_512_to_1024": -0.09702288751941524},
+    {"seed": 231503, "draws": 1024, "ess": 294.8728384959509, "max_weight": 0.016726895349488135, "phase_ess": [158.6005650022695, 136.88822682645352], "log_integral": -21891.1462377231, "drift_256_to_512": -0.041888685707817785, "drift_512_to_1024": -0.035905964232370025},
+    {"seed": 231507, "draws": 1024, "ess": 297.5010733938265, "max_weight": 0.017618212874547033, "phase_ess": [145.88778174045942, 153.0388178000488], "log_integral": -21891.056401480753, "drift_256_to_512": 0.056133662477805046, "drift_512_to_1024": -0.08489998140794341},
+    {"seed": 231511, "draws": 1024, "ess": 258.4361301440779, "max_weight": 0.034962642619149234, "phase_ess": [107.36418755858242, 171.3273250185262], "log_integral": -21891.088442353936, "drift_256_to_512": 0.04149723728187382, "drift_512_to_1024": 0.02184734044203651}
+  ],
+  "aggregate": {"between_run_log_integral_range": 0.1375993214242044, "minimum_ess": 212.19466819245716, "maximum_weight": 0.042326189856983464, "minimum_phase_ess": 88.87081381759884, "maximum_absolute_drift_256_to_512": 0.056133662477805046, "maximum_absolute_drift_512_to_1024": 0.09702288751941524},
+  "gates": {"ess_each_ge_100": true, "max_weight_each_le_0.05": true, "phase_ess_each_ge_30": true, "between_run_range_le_0.2": true, "drift_256_to_512_each_le_0.1": true, "drift_512_to_1024_each_le_0.1": true},
+  "support_normalization": 0.24947354926879406,
+  "source_prior_or_likelihood_changed": false,
+  "scientific_scope": {"fixed_MR_nuisance_integral": "PASS", "full_continuous_MR_domain": "NOT_ESTABLISHED", "full_EOS_sequence_and_prior_normalization": "INCOMPLETE", "historical_logZ_discrepancy": "UNRESOLVED", "EOS_Bayes": "NOT_RUN"},
+  "private_raw_evidence_path": "D:\\PSR_J0740+6620\\work\\MS1B_R14_9076_K4_extend1024\\",
+  "raw_photon_data_uploaded": false,
+  "large_archive_redownloaded_or_uploaded": false
+}
+

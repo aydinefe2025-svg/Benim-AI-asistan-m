@@ -1,0 +1,91 @@
+{
+  "schema": "j0740.fixed_j_rns_pilot.v1",
+  "date": "2026-11-18",
+  "status": "SOLVER_METHOD_PILOT_ONLY",
+  "question": "Can fixed-angular-momentum RNS sequences be solved with an explicit relative-J residual gate and nonzero failure exit?",
+  "model_scope": {
+    "eos_label": "local eosAPR tabular file",
+    "eos_bytes": 6973,
+    "eos_sha256": "417DA895EBD9077206F85CB3A4519BA34A45879CDB0FBD0DBBA7F01708D823DD",
+    "upstream_rns_commit": "97e85d325a33e37f702306414533f6cd77812477",
+    "apr4_epp_ancestry": "NOT_ESTABLISHED",
+    "physical_apr4_acceptance": "NOT_ESTABLISHED"
+  },
+  "method": {
+    "fixed_j_solver": "bracket r_ratio then bisection on RNS angular momentum",
+    "relative_j_tolerance": 1e-7,
+    "inner_rns_accuracy": 1e-7,
+    "density_units": "g cm^-3; CLI input in cgs",
+    "target_j_cgs": 2.6652225091598083e48,
+    "compiler": "MSVC 19.51.36260.0 x86",
+    "source_rns_sha256": "43605B833AF990BD9B53F650316DD65637DE805AA1E3AEAA160CE4F3E50A450B",
+    "source_findmodel_sha256": "0431DE12859119C23C37548544C706F785BAA1296D7EAA53064F911BBF2E21A3",
+    "binary_201x401_sha256": "666FC06AAA2EA0CC2A438E2EF6E20FBA417F7CDDF3FFD426D3B82DF0EB328B73",
+    "binary_151x301_sha256": "1455C639115953A5488F5E18D9C61DA6F2C808AAFBD00ECFA614CD9C509D4434"
+  },
+  "results": {
+    "201x401": {
+      "fixed_j_nodes": 12,
+      "fixed_j_residual_gate": "12/12 PASS",
+      "max_relative_j_residual": 9.136335716854921e-8,
+      "sampled_mass_peak_density_g_cm3": 2.61e15,
+      "next_sample_descends": true,
+      "sequence_values": [
+        {"ec_g_cm3":1.0e15,"mg_msun":1.4523359167462744,"req_km":11.479860052093358,"spin_hz":299.99975605486344,"rel_j":9.136335716854921e-8},
+        {"ec_g_cm3":1.4e15,"mg_msun":1.9258771175462204,"req_km":11.168632024879352,"spin_hz":204.15033957104427,"rel_j":8.956562041379824e-9},
+        {"ec_g_cm3":1.8e15,"mg_msun":2.1355830318963447,"req_km":10.780572053495728,"spin_hz":181.51230037449324,"rel_j":5.423712948614843e-9},
+        {"ec_g_cm3":2.0e15,"mg_msun":2.1840976735774627,"req_km":10.58807978541677,"spin_hz":179.07585808116053,"rel_j":5.1971379854130714e-8},
+        {"ec_g_cm3":2.3e15,"mg_msun":2.2186573091234916,"req_km":10.32154182835353,"spin_hz":180.31420052679198,"rel_j":6.101149935988357e-9},
+        {"ec_g_cm3":2.5e15,"mg_msun":2.2262906165150396,"req_km":10.162212187139962,"spin_hz":182.92275781807976,"rel_j":5.429122641340662e-9},
+        {"ec_g_cm3":2.6e15,"mg_msun":2.227182238811673,"req_km":10.088218006816467,"spin_hz":184.5416495764825,"rel_j":7.784754679017437e-8},
+        {"ec_g_cm3":2.61e15,"mg_msun":2.2271874410362082,"req_km":10.081024269497854,"spin_hz":184.71210274703537,"rel_j":3.288481112128792e-8},
+        {"ec_g_cm3":2.62e15,"mg_msun":2.2271787120988593,"req_km":10.073867456246367,"spin_hz":184.88397488871232,"rel_j":5.33808128368466e-8},
+        {"ec_g_cm3":2.63e15,"mg_msun":2.227156439749501,"req_km":10.066747599521044,"spin_hz":185.05721052668667,"rel_j":6.762798556945227e-8},
+        {"ec_g_cm3":2.64e15,"mg_msun":2.227120897599813,"req_km":10.059664553189945,"spin_hz":185.2317677396355,"rel_j":8.982416766066247e-9},
+        {"ec_g_cm3":2.65e15,"mg_msun":2.2270724416643852,"req_km":10.052618333189438,"spin_hz":185.40756508218752,"rel_j":3.218628425888563e-8}
+      ]
+    },
+    "151x301_common_target_near_peak": {
+      "fixed_j_nodes": 6,
+      "fixed_j_residual_gate": "6/6 PASS",
+      "max_relative_j_residual": 8.104023373709289e-8,
+      "sampled_mass_peak_density_g_cm3": 2.61e15,
+      "next_sample_descends": true,
+      "sequence_values": [
+        {"ec_g_cm3":2.60e15,"mg_msun":2.2281670041297965,"req_km":10.089842245063874,"spin_hz":184.33655771186963,"rel_j":8.104023373709289e-8},
+        {"ec_g_cm3":2.61e15,"mg_msun":2.228180501585279,"req_km":10.082646733532933,"spin_hz":184.5047632476358,"rel_j":1.5925435749563127e-9},
+        {"ec_g_cm3":2.62e15,"mg_msun":2.228180022555703,"req_km":10.075488441918262,"spin_hz":184.6742513402679,"rel_j":3.279133152383662e-8},
+        {"ec_g_cm3":2.63e15,"mg_msun":2.2281657227448006,"req_km":10.068367009068433,"spin_hz":184.8452185034825,"rel_j":5.51375123193551e-9},
+        {"ec_g_cm3":2.64e15,"mg_msun":2.2281380272766995,"req_km":10.06128255444698,"spin_hz":185.01754393108953,"rel_j":6.12870676145543e-8},
+        {"ec_g_cm3":2.65e15,"mg_msun":2.228097218827167,"req_km":10.054234967056232,"spin_hz":185.19116905341647,"rel_j":1.255362172358742e-8}
+      ]
+    },
+    "mesh_difference_151_vs_201_common_density_nodes": {
+      "max_abs_mass_difference_msun": 0.0010247771627818203,
+      "max_abs_equatorial_radius_difference_km": 0.001624238247407206,
+      "sampled_peak_density_both_grids": 2.61e15,
+      "interpretation": "mesh sensitivity quantified; not a continuous stability proof"
+    },
+    "failure_propagation": {
+      "valid_target_201_binary_exit": 0,
+      "valid_target_151_binary_exit": 0,
+      "negative_target_j_exit": 22,
+      "negative_target_j_message": "FIXED_J_SOLVE_FAILED code=2",
+      "interpretation": "solver failure is now explicit; negative-J case is a guard test, not a physical EOS result"
+    },
+    "prior_SetJ_diagnostic": {
+      "max_relative_j_residual_on_sampled_high_density_nodes": 0.01048033300361273,
+      "density_g_cm3": 2.0e15,
+      "interpretation": "legacy solver can return exit 0 despite about 1.048% J mismatch in this pilot; validate residual explicitly"
+    }
+  },
+  "acceptance": {
+    "fixed_j_residual_gate": "PASS at stated nodes and target for local eosAPR pilot",
+    "mesh_convergence_gate": "NOT_ESTABLISHED; differences reported without a preregistered physical tolerance",
+    "continuous_stability_and_turning_point": "NOT_ESTABLISHED; sampled peak bracket only [2.61e15,2.62e15] g cm^-3",
+    "APR4_physical_validation": "NOT_ESTABLISHED",
+    "EOS_Bayes": "NOT_RUN"
+  },
+  "reproduction_note": "The density CLI argument must be supplied in cgs units (for example -e 2.61e15); a trial with -e 2.61 was rejected before producing a model and is not included as science output."
+}
+

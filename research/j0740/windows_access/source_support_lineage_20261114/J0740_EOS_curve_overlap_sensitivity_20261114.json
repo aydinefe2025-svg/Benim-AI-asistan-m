@@ -1,0 +1,1294 @@
+{
+  "EOS_Bayes": "NOT_RUN",
+  "baseline": {
+    "bandwidth_mass_msun": 0.015,
+    "bandwidth_radius_km": 0.25,
+    "interpolation": "pchip",
+    "mass_window_msun": [
+      1.88,
+      2.26
+    ],
+    "overlap_index_per_km": {
+      "MPA1": 0.35986847667874705,
+      "MS1": 0.05247874604007534,
+      "MS1B": 0.06233553865357783
+    },
+    "partition": "full",
+    "relative_to_MPA1": {
+      "MPA1": 1.0,
+      "MS1": 0.14582757157394166,
+      "MS1B": 0.17321755778354678
+    },
+    "source_fraction_in_window": 0.9948033681970347
+  },
+  "changed_original_sources": false,
+  "curve_models": [
+    "MPA1",
+    "MS1",
+    "MS1B"
+  ],
+  "definition": "I_EOS = Integral_[Mmin,Mmax] published joint posterior p(M,R_EOS(M)) dM [km^-1]. Relative I/I_MPA1 only, not Bayes factors or EOS probabilities.",
+  "full_MR_nuisance_convergence": "NOT_ESTABLISHED",
+  "new_photon_calls": 0,
+  "physical_inputs_sha256": {
+    "causal_original": "6602e5695f89a25d6c43448e0787f66abb20e0c2b2e8183cf3f6bfa4c877332e",
+    "lineage": "9b4eab5d4b29fcab5b5ebf0143a65cfb6675ea577a462ff0d906132d975164f4",
+    "rns_strict": "fbe6e845adb889847cfa0266171199822249c4407d65dbab8211f5a074403297",
+    "v3_fail": "3c8d25ada8c148c961187ce18a78575c2c178f1160f3c69bb13614172a9baf53"
+  },
+  "physics": {
+    "ENG": {
+      "causal_candidate_table_sha256": "c621ab0a3ad751899c9b47cf37edcefc0382fac29fc0ba1fbb392ba236301f04",
+      "finite_grid_mass_peak_msun": 2.03755853479,
+      "original_EOS_source_sha256": "e471644d8b7bda5a6a616d1764e4de6ad67b708c04182cd9bf0e92b1cab9629d",
+      "physical_status": "STRICT_CAUSAL_STEFFEN_MODIFIED_EOS_FINITE_GRID_ONLY",
+      "target_root_recorded": false
+    },
+    "MPA1": {
+      "causal_candidate_table_sha256": "03be8d880a0a412e0338a3438b45eb34eb13004bc6b0f0e5c48eff7f5d7021b6",
+      "finite_grid_mass_peak_msun": 2.47495726384,
+      "original_EOS_source_sha256": "bd1b0c1a0506f37649275bfe401cf985f78b31e7d5dc3023665c49b9e2d0c3ec",
+      "physical_status": "STRICT_CAUSAL_STEFFEN_MODIFIED_EOS_FINITE_GRID_ONLY",
+      "target_root_recorded": true
+    },
+    "MS1": {
+      "causal_candidate_table_sha256": "fa5241f92cb24d59cebb0d63ffe76b7383b151c08eaa4f015ca1c36b1782eb07",
+      "finite_grid_mass_peak_msun": 2.78859838037,
+      "original_EOS_source_sha256": "8f65aeeccd11f974c41d9b4c7cb2042250804702da9ee247d5b8fe91bd547ecb",
+      "physical_status": "STRICT_CAUSAL_STEFFEN_MODIFIED_EOS_FINITE_GRID_ONLY",
+      "target_root_recorded": true
+    },
+    "MS1B": {
+      "causal_candidate_table_sha256": "d70df8ed10a0e694a50550146460fafffc5734e3e8ce7f3cc10ead3391939b48",
+      "finite_grid_mass_peak_msun": 2.79719591075,
+      "original_EOS_source_sha256": "818b1bda1e64e35b792613dff1cf27134bbcd97ec0432f48d65e766d6e882aee",
+      "physical_status": "STRICT_CAUSAL_STEFFEN_MODIFIED_EOS_FINITE_GRID_ONLY",
+      "target_root_recorded": true
+    },
+    "WFF1": {
+      "causal_candidate_table_sha256": "0eec25f6508bbf65c4424010096c3c7944be8159945011bb302f8f700e2da24e",
+      "finite_grid_mass_peak_msun": 1.94392994889,
+      "original_EOS_source_sha256": "7ed773ea0e0328b16ed71f66d27f7f71289bfe978fa8f7d04a8f449690d30776",
+      "physical_status": "STRICT_CAUSAL_STEFFEN_MODIFIED_EOS_FINITE_GRID_ONLY",
+      "target_root_recorded": false
+    },
+    "WFF2": {
+      "causal_candidate_table_sha256": "743f619a2eba6a1eda91049c6b9db38afdf1ff0e1ae90f7287f53d37793eb8e3",
+      "finite_grid_mass_peak_msun": 1.9934072551,
+      "original_EOS_source_sha256": "04698be6750edd326cab423a21956a276b1fcdec2851e35d1e298082f9b89667",
+      "physical_status": "STRICT_CAUSAL_STEFFEN_MODIFIED_EOS_FINITE_GRID_ONLY",
+      "target_root_recorded": false
+    }
+  },
+  "published_source_md5": "ca8e70eeca81feb71321f1a88a24f2f9",
+  "range_relative_to_MPA1": {
+    "MS1": {
+      "all_54_less_than_MPA1": true,
+      "median": 0.14595055277390567,
+      "range": [
+        0.13708789773678706,
+        0.1583310429412058
+      ]
+    },
+    "MS1B": {
+      "all_54_less_than_MPA1": true,
+      "median": 0.17381212290500925,
+      "range": [
+        0.16579371163747098,
+        0.18807004331404917
+      ]
+    }
+  },
+  "reproduction_script_sha256": "b38421a891a00c4d2504bb04a4b66c1fb98fa2f0b4092c4ed7ecd53a54534952",
+  "scenarios": [
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3652032955682618,
+        "MS1": 0.05137757451111531,
+        "MS1B": 0.06179433296749827
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.140682121806078,
+        "MS1B": 0.1692052993972723
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3658991710355589,
+        "MS1": 0.05213448610027567,
+        "MS1B": 0.06296494613994415
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14248320364521713,
+        "MS1B": 0.17208277887523574
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.365077233179137,
+        "MS1": 0.05068034262609415,
+        "MS1B": 0.06132708766813358
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.13882087958420075,
+        "MS1B": 0.1679838732590631
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.36578938068323874,
+        "MS1": 0.05145586175999732,
+        "MS1B": 0.06252250980037839
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14067073697953075,
+        "MS1B": 0.17092489039347147
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.36532935751500073,
+        "MS1": 0.05207480394936703,
+        "MS1B": 0.06226157662717675
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14254207300388883,
+        "MS1B": 0.1704258783106973
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.36600896100259617,
+        "MS1": 0.05281310805908333,
+        "MS1B": 0.06340738092688483
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14429457659838202,
+        "MS1B": 0.17323996864228433
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.35986847667874705,
+        "MS1": 0.05247874604007534,
+        "MS1B": 0.06233553865357783
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14582757157394166,
+        "MS1B": 0.17321755778354678
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.36051595019701227,
+        "MS1": 0.05321662244080286,
+        "MS1B": 0.06342138373357377
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14761239388082942,
+        "MS1B": 0.17591838502267568
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3594469222865539,
+        "MS1": 0.05192072526046724,
+        "MS1B": 0.06177476960719044
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14444615335745073,
+        "MS1B": 0.1718606163441931
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.360098977871397,
+        "MS1": 0.05266078950471034,
+        "MS1B": 0.06287403209148405
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14623976390046076,
+        "MS1B": 0.17460208430232868
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3602900209451427,
+        "MS1": 0.05303675341594352,
+        "MS1B": 0.06289629423021155
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14720572409086743,
+        "MS1B": 0.17457129138691316
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.36093291250689197,
+        "MS1": 0.05377244202570779,
+        "MS1B": 0.0639687222281978
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1489818195083027,
+        "MS1B": 0.17723161288865927
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3478776461387194,
+        "MS1": 0.054082160708347926,
+        "MS1B": 0.06407911433654512
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.15546316731941484,
+        "MS1B": 0.1842001492415324
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.34838350108557925,
+        "MS1": 0.054828755242229986,
+        "MS1B": 0.06516164843139911
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.15738045880870083,
+        "MS1B": 0.18703999537392665
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.34746530957223387,
+        "MS1": 0.05368871179192099,
+        "MS1B": 0.06363741425635897
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.15451531509150485,
+        "MS1B": 0.18314753301474404
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3479676037827574,
+        "MS1": 0.054431716847358355,
+        "MS1B": 0.06472455602204116
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1564275416896025,
+        "MS1B": 0.18600741942186635
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.34828995641911487,
+        "MS1": 0.05447558454275581,
+        "MS1B": 0.06452078625874334
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.15640871503398335,
+        "MS1B": 0.1852502062422444
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.88,
+        2.26
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.34879937187531734,
+        "MS1": 0.05522576832625649,
+        "MS1B": 0.06559871297650408
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1583310429412058,
+        "MS1B": 0.18807004331404917
+      },
+      "source_fraction_in_window": 0.9948033681970347
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3517052766068912,
+        "MS1": 0.04897476615986313,
+        "MS1B": 0.05884479520597446
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.13924944951736767,
+        "MS1B": 0.16731280171194757
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3524062162864908,
+        "MS1": 0.04967661039356469,
+        "MS1B": 0.05994865676518207
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14096405823096997,
+        "MS1B": 0.17011237031201074
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.35187144944441995,
+        "MS1": 0.04823731727793168,
+        "MS1B": 0.058338073622647105
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.13708789773678706,
+        "MS1B": 0.16579371163747098
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.35259016457965775,
+        "MS1": 0.0489546538022859,
+        "MS1B": 0.05946746630259421
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.13884293641783074,
+        "MS1B": 0.16865889147386928
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3515391043525067,
+        "MS1": 0.04971221245389315,
+        "MS1B": 0.05935151501108297
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14141303723651782,
+        "MS1B": 0.16883332259835337
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3522222686388469,
+        "MS1": 0.05039856445130858,
+        "MS1B": 0.06042984553914648
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1430873881031782,
+        "MS1B": 0.17156736220192983
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.34557292930092665,
+        "MS1": 0.04986338841251484,
+        "MS1B": 0.059160281594992564
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14429194009318233,
+        "MS1B": 0.17119477996922466
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.34622275814408215,
+        "MS1": 0.05054704911873489,
+        "MS1B": 0.06017564979405232
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1459957438664373,
+        "MS1B": 0.1738061648997954
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3454424203123913,
+        "MS1": 0.0492867782340419,
+        "MS1B": 0.05857757314293195
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14267726062557912,
+        "MS1B": 0.1695726109432621
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.346099089326011,
+        "MS1": 0.04997068203628997,
+        "MS1B": 0.05960494429597979
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1443825874653477,
+        "MS1B": 0.17221930404975552
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3457034351546171,
+        "MS1": 0.05043998474072784,
+        "MS1B": 0.0597429760503118
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14590536168137402,
+        "MS1B": 0.17281568528120508
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.34634642399161036,
+        "MS1": 0.05112340235675905,
+        "MS1B": 0.06074634158369617
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14760770955151373,
+        "MS1B": 0.1753918544433063
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.33280904845526194,
+        "MS1": 0.05113446905338362,
+        "MS1B": 0.06054596341300456
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.15364506851819384,
+        "MS1B": 0.18192403029313517
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3333128522028087,
+        "MS1": 0.05182310905524544,
+        "MS1B": 0.06155708078361376
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.155478880315461,
+        "MS1B": 0.18468258987552788
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3326091420830795,
+        "MS1": 0.0507308549866116,
+        "MS1B": 0.06009246000313573
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1525239344561972,
+        "MS1B": 0.1806698986888513
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3331112516404843,
+        "MS1": 0.05141548591089409,
+        "MS1B": 0.061107859314972195
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.15434929218898044,
+        "MS1B": 0.18344579780488424
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.33300894208359055,
+        "MS1": 0.05153805739011726,
+        "MS1B": 0.06099943791243369
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1547647851966101,
+        "MS1B": 0.1831765763729007
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.94,
+        2.21
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3335144399132762,
+        "MS1": 0.05223070621398328,
+        "MS1B": 0.0620062736147856
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1566070309506384,
+        "MS1B": 0.18591780802926886
+      },
+      "source_fraction_in_window": 0.9510626361383205
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3629197400084676,
+        "MS1": 0.05086079559719445,
+        "MS1B": 0.06117195719433539
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1401433705314783,
+        "MS1B": 0.16855505625819123
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.36361655346259014,
+        "MS1": 0.05160359437542761,
+        "MS1B": 0.06233311938779506
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14191761591716623,
+        "MS1B": 0.17142541722652366
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.36282278991381545,
+        "MS1": 0.050133108926375375,
+        "MS1B": 0.060676051840735566
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.13817519273881318,
+        "MS1B": 0.1672332982587684
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3635346621380419,
+        "MS1": 0.050894068928362055,
+        "MS1B": 0.06186415119403266
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.13999784402686885,
+        "MS1B": 0.17017400990099127
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3630166897628966,
+        "MS1": 0.05158847971437025,
+        "MS1B": 0.061667860807673364
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14211049014871777,
+        "MS1B": 0.169876103624744
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.01,
+      "bandwidth_radius_km": 0.15,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3636984444997604,
+        "MS1": 0.05231311733258239,
+        "MS1B": 0.06280208593582517
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1438365165529787,
+        "MS1B": 0.1726762566229962
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.35738765487517643,
+        "MS1": 0.05192073349530031,
+        "MS1B": 0.06166452086930427
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14527847503136193,
+        "MS1B": 0.1725423920723888
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.35803511592524806,
+        "MS1": 0.05264635784843575,
+        "MS1B": 0.06273534630213037
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14704244222633028,
+        "MS1B": 0.17522121018774175
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.35701576117961953,
+        "MS1": 0.051345704370415385,
+        "MS1B": 0.061084901261497446
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14381915297174416,
+        "MS1B": 0.17109861217237632
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3576678602207247,
+        "MS1": 0.052072914078763355,
+        "MS1B": 0.06216914106683229
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14559014065906847,
+        "MS1B": 0.17381808091022308
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.35775953963779294,
+        "MS1": 0.05249574880790242,
+        "MS1B": 0.0622441265545642
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1467347281949512,
+        "MS1B": 0.17398313576091393
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.015,
+      "bandwidth_radius_km": 0.25,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.35840236280823623,
+        "MS1": 0.05321978784390579,
+        "MS1B": 0.06330153793709672
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.14849173266299343,
+        "MS1B": 0.1766214302860674
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.34517317039672735,
+        "MS1": 0.05344175745959784,
+        "MS1B": 0.06331572757682839
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.15482593099044795,
+        "MS1B": 0.18343177572015806
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3456775054664284,
+        "MS1": 0.05417509077272693,
+        "MS1B": 0.06438188972420278
+      },
+      "partition": "full",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.15672148148496845,
+        "MS1B": 0.18624842145088738
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3448071643486412,
+        "MS1": 0.05303798993544291,
+        "MS1B": 0.062864231466102
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.15381928051186072,
+        "MS1B": 0.18231706868636507
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3453081817221942,
+        "MS1": 0.05376765847617823,
+        "MS1B": 0.06393501020402326
+      },
+      "partition": "even",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.15570919347470066,
+        "MS1B": 0.185153476193796
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "pchip",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3455391531122527,
+        "MS1": 0.053845499243931616,
+        "MS1B": 0.06376719490507864
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.1558303849475467,
+        "MS1B": 0.18454405045197025
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    },
+    {
+      "bandwidth_mass_msun": 0.02,
+      "bandwidth_radius_km": 0.4,
+      "interpolation": "linear",
+      "mass_window_msun": [
+        1.9,
+        2.24
+      ],
+      "overlap_index_per_km": {
+        "MPA1": 0.3460468056666018,
+        "MS1": 0.05458249709582851,
+        "MS1B": 0.06482874075620969
+      },
+      "partition": "odd",
+      "relative_to_MPA1": {
+        "MPA1": 1.0,
+        "MS1": 0.15773154440967713,
+        "MS1B": 0.1873409599355436
+      },
+      "source_fraction_in_window": 0.9872889279872731
+    }
+  ],
+  "schema": "j0740_source_reproducible_conditional_curve_overlap_20261114_v1",
+  "scientific_classification": "EXPLORATORY_DESCRIPTIVE_OBSERVATIONAL_CURVE_OVERLAP_NOT_BAYES_FACTOR",
+  "scientific_limitations": [
+    "No exact native 15D EOS evidence, likelihood or population/selection integration was computed.",
+    "The density overlap is on the observational posterior, not posterior divided by authenticated original run prior; do NOT call Bayes factor.",
+    "The original posterior already contains radio timing mass information; do not multiply it again.",
+    "Even and odd posterior subsamples can be correlated; comparisons are numerical sensitivity, not independent confidence bounds.",
+    "Finite RNS curves use causal-modified Steffen EOS candidates, NOT original unchanged EOS tables.",
+    "No continuously proven rotating stability at fixed angular momentum, continuum convergence or complete source domain.",
+    "APR4_EPP original source causal-screened file absent; WFF1/WFF2/ENG finite grid does not reach target 2.073 M_sun.",
+    "Original runner output basename yesMM vs publication noMM differs despite strong log-evidence numeric cross-match.",
+    "v3 real source-nuisance heldout failed max-weight gate, cannot be promoted by any overlap score."
+  ],
+  "sensitivity_settings": {
+    "curve_interpolators": [
+      "pchip",
+      "linear"
+    ],
+    "mass_radius_smoothing_km_and_msun": [
+      [
+        0.01,
+        0.15
+      ],
+      [
+        0.015,
+        0.25
+      ],
+      [
+        0.02,
+        0.4
+      ]
+    ],
+    "mass_windows": [
+      [
+        1.88,
+        2.26
+      ],
+      [
+        1.94,
+        2.21
+      ],
+      [
+        1.9,
+        2.24
+      ]
+    ],
+    "sample_partitions": [
+      "full",
+      "even",
+      "odd"
+    ]
+  },
+  "smoothing": "2D histogram 350x410 then Gaussian filter, density renormalized; 301-point PCHIP or linear integral over stable sampled rising branch.",
+  "source_sample_count": 379669,
+  "target_spin_hz": 346.536369
+}

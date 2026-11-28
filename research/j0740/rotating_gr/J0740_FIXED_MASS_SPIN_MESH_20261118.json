@@ -1,0 +1,270 @@
+{
+  "EOS_Bayes": "NOT_RUN",
+  "failures": [],
+  "grids": {
+    "base": "151x301",
+    "fine": "201x401"
+  },
+  "limitations": [
+    "Two finite grids are a mesh-sensitivity check, not a continuum extrapolation.",
+    "Passing numerical roots do not repair original EOS causality or monotonicity violations.",
+    "Sparse central-density tracks do not establish continuous turning points or maximum mass.",
+    "No NICER/XMM likelihood or EOS Bayes evidence is evaluated."
+  ],
+  "models": {
+    "APR4_EPP": {
+      "base": {
+        "mass_msun": 2.072,
+        "rotating_central_energy_density_g_cm3": 1749731258530240.0,
+        "rotating_radius_eq_km": 10.76,
+        "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+        "spin_hz_reported": 346.7,
+        "spin_residual_hz": 0.1636310000000094,
+        "static_central_energy_density_g_cm3": 1790727998911569.0,
+        "static_mass_msun": 2.073,
+        "static_radius_eq_km": 10.67
+      },
+      "delta_mass_msun": 0.0,
+      "delta_rotating_radius_eq_km": -0.009999999999999787,
+      "delta_spin_hz": 0.0,
+      "delta_static_radius_km": 0.0,
+      "fine": {
+        "mass_msun": 2.072,
+        "rotating_central_energy_density_g_cm3": 1751575402561234.0,
+        "rotating_radius_eq_km": 10.75,
+        "source_npz_sha256": "639c5381d49e13383c553771725f935b292e8ef7ff23367bd399a2bb9a3b7b88",
+        "spin_hz_reported": 346.7,
+        "spin_residual_hz": 0.1636310000000094,
+        "static_central_energy_density_g_cm3": 1790727998911569.0,
+        "static_mass_msun": 2.073,
+        "static_radius_eq_km": 10.67
+      },
+      "gates": {
+        "mass_root_delta_pass": true,
+        "rotating_radius_delta_pass": true,
+        "spin_delta_pass": true,
+        "static_radius_delta_pass": true
+      },
+      "pass": true
+    },
+    "ENG": {
+      "base": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 1483021236227356.5,
+        "rotating_radius_eq_km": 11.59,
+        "source_npz_sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953",
+        "spin_hz_reported": 346.6,
+        "spin_residual_hz": 0.06363100000004351,
+        "static_central_energy_density_g_cm3": 1522610324364378.0,
+        "static_mass_msun": 2.073,
+        "static_radius_eq_km": 11.42
+      },
+      "delta_mass_msun": 0.0,
+      "delta_rotating_radius_eq_km": 0.0,
+      "delta_spin_hz": 0.0,
+      "delta_static_radius_km": 0.009999999999999787,
+      "fine": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 1483301748220439.0,
+        "rotating_radius_eq_km": 11.59,
+        "source_npz_sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953",
+        "spin_hz_reported": 346.6,
+        "spin_residual_hz": 0.06363100000004351,
+        "static_central_energy_density_g_cm3": 1522408434644966.2,
+        "static_mass_msun": 2.073,
+        "static_radius_eq_km": 11.43
+      },
+      "gates": {
+        "mass_root_delta_pass": true,
+        "rotating_radius_delta_pass": true,
+        "spin_delta_pass": true,
+        "static_radius_delta_pass": true
+      },
+      "pass": true
+    },
+    "MPA1": {
+      "base": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 1015311728048624.9,
+        "rotating_radius_eq_km": 12.53,
+        "source_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+        "spin_hz_reported": 346.6,
+        "spin_residual_hz": 0.06363100000004351,
+        "static_central_energy_density_g_cm3": 1031781241467713.9,
+        "static_mass_msun": 2.074,
+        "static_radius_eq_km": 12.4
+      },
+      "delta_mass_msun": 0.0,
+      "delta_rotating_radius_eq_km": 0.0,
+      "delta_spin_hz": 0.0,
+      "delta_static_radius_km": 0.0,
+      "fine": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 1015478996968258.6,
+        "rotating_radius_eq_km": 12.53,
+        "source_npz_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+        "spin_hz_reported": 346.6,
+        "spin_residual_hz": 0.06363100000004351,
+        "static_central_energy_density_g_cm3": 1030912994634202.2,
+        "static_mass_msun": 2.073,
+        "static_radius_eq_km": 12.4
+      },
+      "gates": {
+        "mass_root_delta_pass": true,
+        "rotating_radius_delta_pass": true,
+        "spin_delta_pass": true,
+        "static_radius_delta_pass": true
+      },
+      "pass": true
+    },
+    "MS1": {
+      "base": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 614380385405121.4,
+        "rotating_radius_eq_km": 15.26,
+        "source_npz_sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad",
+        "spin_hz_reported": 346.5,
+        "spin_residual_hz": -0.036368999999979224,
+        "static_central_energy_density_g_cm3": 627561740006582.0,
+        "static_mass_msun": 2.073,
+        "static_radius_eq_km": 14.95
+      },
+      "delta_mass_msun": 0.0,
+      "delta_rotating_radius_eq_km": 0.0,
+      "delta_spin_hz": 0.0,
+      "delta_static_radius_km": 0.0,
+      "fine": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 614380385405121.4,
+        "rotating_radius_eq_km": 15.26,
+        "source_npz_sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad",
+        "spin_hz_reported": 346.5,
+        "spin_residual_hz": -0.036368999999979224,
+        "static_central_energy_density_g_cm3": 627561740006582.0,
+        "static_mass_msun": 2.073,
+        "static_radius_eq_km": 14.95
+      },
+      "gates": {
+        "mass_root_delta_pass": true,
+        "rotating_radius_delta_pass": true,
+        "spin_delta_pass": true,
+        "static_radius_delta_pass": true
+      },
+      "pass": true
+    },
+    "MS1B": {
+      "base": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 616339393801634.8,
+        "rotating_radius_eq_km": 14.99,
+        "source_npz_sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c",
+        "spin_hz_reported": 346.5,
+        "spin_residual_hz": -0.036368999999979224,
+        "static_central_energy_density_g_cm3": 628742147326986.0,
+        "static_mass_msun": 2.073,
+        "static_radius_eq_km": 14.71
+      },
+      "delta_mass_msun": 0.0,
+      "delta_rotating_radius_eq_km": 0.0,
+      "delta_spin_hz": 0.0,
+      "delta_static_radius_km": 0.0,
+      "fine": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 616339393801634.8,
+        "rotating_radius_eq_km": 14.99,
+        "source_npz_sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c",
+        "spin_hz_reported": 346.5,
+        "spin_residual_hz": -0.036368999999979224,
+        "static_central_energy_density_g_cm3": 628742147326986.0,
+        "static_mass_msun": 2.073,
+        "static_radius_eq_km": 14.71
+      },
+      "gates": {
+        "mass_root_delta_pass": true,
+        "rotating_radius_delta_pass": true,
+        "spin_delta_pass": true,
+        "static_radius_delta_pass": true
+      },
+      "pass": true
+    },
+    "WFF1": {
+      "base": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 2085048899941732.0,
+        "rotating_radius_eq_km": 9.98,
+        "source_npz_sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3",
+        "spin_hz_reported": 346.5,
+        "spin_residual_hz": -0.036368999999979224,
+        "static_central_energy_density_g_cm3": 2128908856721541.8,
+        "static_mass_msun": 2.073,
+        "static_radius_eq_km": 9.91
+      },
+      "delta_mass_msun": 0.0,
+      "delta_rotating_radius_eq_km": -0.009999999999999787,
+      "delta_spin_hz": 0.0,
+      "delta_static_radius_km": 0.0,
+      "fine": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 2089326746334084.8,
+        "rotating_radius_eq_km": 9.97,
+        "source_npz_sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3",
+        "spin_hz_reported": 346.5,
+        "spin_residual_hz": -0.036368999999979224,
+        "static_central_energy_density_g_cm3": 2128908856721541.8,
+        "static_mass_msun": 2.073,
+        "static_radius_eq_km": 9.91
+      },
+      "gates": {
+        "mass_root_delta_pass": true,
+        "rotating_radius_delta_pass": true,
+        "spin_delta_pass": true,
+        "static_radius_delta_pass": true
+      },
+      "pass": true
+    },
+    "WFF2": {
+      "base": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 1760243611310092.5,
+        "rotating_radius_eq_km": 10.62,
+        "source_npz_sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae",
+        "spin_hz_reported": 346.6,
+        "spin_residual_hz": 0.06363100000004351,
+        "static_central_energy_density_g_cm3": 1790727998911569.0,
+        "static_mass_msun": 2.074,
+        "static_radius_eq_km": 10.55
+      },
+      "delta_mass_msun": 0.0,
+      "delta_rotating_radius_eq_km": 0.010000000000001563,
+      "delta_spin_hz": -0.10000000000002274,
+      "delta_static_radius_km": 0.0,
+      "fine": {
+        "mass_msun": 2.073,
+        "rotating_central_energy_density_g_cm3": 1760243611310092.5,
+        "rotating_radius_eq_km": 10.63,
+        "source_npz_sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae",
+        "spin_hz_reported": 346.5,
+        "spin_residual_hz": -0.036368999999979224,
+        "static_central_energy_density_g_cm3": 1790727998911569.0,
+        "static_mass_msun": 2.074,
+        "static_radius_eq_km": 10.55
+      },
+      "gates": {
+        "mass_root_delta_pass": true,
+        "rotating_radius_delta_pass": true,
+        "spin_delta_pass": true,
+        "static_radius_delta_pass": true
+      },
+      "pass": true
+    }
+  },
+  "schema": "j0740-fixed-mass-spin-two-grid-root-convergence-v1",
+  "status": "PASS",
+  "target_mass_msun": 2.073,
+  "target_spin_hz": 346.536369,
+  "tolerances": {
+    "mass_delta_msun": 0.0015,
+    "radius_delta_km": 0.15,
+    "spin_delta_hz": 0.25
+  }
+}

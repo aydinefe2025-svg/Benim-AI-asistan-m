@@ -31,7 +31,8 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def parse_rns_output(stdout: str, *, central_density: float, requested_spin_hz: float) -> dict:
+def parse_rns_output(stdout: str, *, central_density: float, requested_spin_hz: float,
+                     spin_tolerance_hz: float = 0.10) -> dict:
     """Parse only the RNS final four-column physical row, reject invalid output."""
     rows = []
     for line in stdout.splitlines():
@@ -52,14 +53,21 @@ def parse_rns_output(stdout: str, *, central_density: float, requested_spin_hz: 
     if not (math.isclose(e15, central_density / 1.0e15, abs_tol=5e-4, rel_tol=5e-4)):
         raise ValueError("Wrong central energy density in RNS output")
     # The upstream RNS executable prints the spin rounded to 0.1 Hz.
-    if abs(freq - requested_spin_hz) > 0.10:
-        raise ValueError("Rotating GR spin mismatch")
+    if not (math.isfinite(spin_tolerance_hz) and 0 < spin_tolerance_hz <= 0.25):
+        raise ValueError("spin tolerance exceeds safe numerical limit 0.25 Hz")
+    if abs(freq - requested_spin_hz) > spin_tolerance_hz:
+        raise ValueError(f"Rotating GR spin mismatch: requested={requested_spin_hz:.9f} Hz, "
+                         f"reported={freq:.3f} Hz, tolerance={spin_tolerance_hz:.3f} Hz, "
+                         f"central_density={central_density:.9g} g/cm3")
     return {"central_energy_density_g_cm3": central_density, "mass_msun": mass,
             "radius_eq_km": radius, "spin_hz_reported": freq,
-            "requested_spin_hz": requested_spin_hz}
+            "requested_spin_hz": requested_spin_hz,
+            "spin_residual_hz": freq-requested_spin_hz,
+            "allowed_spin_residual_hz": spin_tolerance_hz}
 
 
-def run_rns(binary: Path, eos_file: Path, *, central_density: float, spin_hz: float, timeout: int = 180) -> dict:
+def run_rns(binary: Path, eos_file: Path, *, central_density: float, spin_hz: float,
+            timeout: int = 180, spin_tolerance_hz: float = 0.10) -> dict:
     if not (math.isfinite(central_density) and central_density > 0):
         raise ValueError("central energy density must be positive")
     if not (math.isfinite(spin_hz) and 0 <= spin_hz < 1000):
@@ -77,7 +85,8 @@ def run_rns(binary: Path, eos_file: Path, *, central_density: float, spin_hz: fl
                             text=True, capture_output=True, timeout=timeout, check=False)
     if result.returncode != 0:
         raise RuntimeError(f"RNS process exit {result.returncode}: {result.stderr[-1500:]}")
-    parsed = parse_rns_output(result.stdout, central_density=central_density,requested_spin_hz=spin_hz)
+    parsed = parse_rns_output(result.stdout, central_density=central_density,
+                              requested_spin_hz=spin_hz, spin_tolerance_hz=spin_tolerance_hz)
     parsed["raw_stdout_tail"] = result.stdout[-1100:]
     return parsed
 

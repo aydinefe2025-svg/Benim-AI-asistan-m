@@ -1,0 +1,719 @@
+{
+  "JESTER_source_sha256": "c1e2e776d1c0032756e7aac8dda1022d698721748133610d798ada0a353c8412",
+  "baryon_density_constraint": "d ln n = d epsilon / (epsilon+P)",
+  "condition": "0<dP/de<=0.95 in each of four piecewise-linear source-neighborhood pressure intervals",
+  "fixture_sha256": "1f148b0a13f37ebf0cdb6e8f089646cd2193adb5c5f6e6cb982dd4445af0e6bd",
+  "full_EOS_thermodynamic_validation": "NOT_ESTABLISHED",
+  "model_bayesian_evidence": "NOT_RUN",
+  "native_generator_baryon_proxy": "n = epsilon / m_avg (rest-mass approximation), not exact cold-matter first law for positive pressure",
+  "new_TOV_RNS_GR": "NOT_RUN",
+  "per_EOS": {
+    "ENG": {
+      "baseline_source_sha256": "702da3ddf7c10b0091af5d8c0d576a9e9a85a85726849a2860bdd8ef3643f953",
+      "candidate_h_252_to_256": 0.00021214168883782955,
+      "candidate_vs_source_relative_h_increment_difference": 0.05731277279562286,
+      "max_relative_energy_change_for_sampled_projection": 0.0001614281232319678,
+      "piecewise_first_law_reconstruction": {
+        "candidate_pseudoenthalpy_h": [
+          0.009287427194259918,
+          0.009338514014882204,
+          0.009390880894052446,
+          0.009444582601897419,
+          0.009499568883097748
+        ],
+        "local_linear_segments_only": true,
+        "local_scope_source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "max_abs_h_difference_from_source": 1.1499367761059337e-05,
+        "max_analytic_vs_simpson_relative_error": 1.1645981805416894e-15,
+        "max_first_law_identity_abs_error": 2.710505431213761e-20,
+        "native_lalsuite_cs2_changed": false,
+        "physical_EOS_overall_validated": false,
+        "piecewise_cs2_over_c2": [
+          0.04848900117531412,
+          0.9499999999982445,
+          0.2614447906925999,
+          0.01765310311556162
+        ],
+        "relative_baryon_density": [
+          1.0,
+          1.001054130642966,
+          1.001109313301451,
+          1.0013149659039768,
+          1.0044387466853912
+        ],
+        "relative_difference_approx_n_vs_thermodynamic_n_at_256": 9.447714760524306e-06,
+        "rns_tov_computed": false,
+        "source_native_pseudoenthalpy_h": [
+          0.009287427194259918,
+          0.009337379114169295,
+          0.009387477344438892,
+          0.009437711136590624,
+          0.009488069515336688
+        ],
+        "source_proxy_n_over_n252": [
+          1.0,
+          1.001056260188767,
+          1.0011115571868228,
+          1.001317646835319,
+          1.0044482363361644
+        ],
+        "status": "LOCAL_PIECEWISE_LINEAR_IDENTITY_PASS"
+      },
+      "projection": {
+        "absolute_energy_shift_each_geom": 3.985062449452313e-17,
+        "candidate_e_geom": [
+          2.466286697839736e-13,
+          2.46889173829275e-13,
+          2.4690281165434853e-13,
+          2.469536392702134e-13,
+          2.477257323944466e-13
+        ],
+        "candidate_secant_cs2_over_c2": [
+          0.04848900117531412,
+          0.9499999999982445,
+          0.2614447906925999,
+          0.01765310311556162
+        ],
+        "cs2_cap_requested": 0.95,
+        "full_eos_physics_validated": false,
+        "maximum_relative_energy_adjustment": 0.0001614281232319678,
+        "modified_source_indices": [
+          253,
+          254
+        ],
+        "original_native_negative_derivative_removed": false,
+        "original_secant_cs2_over_c2": [
+          0.04205555041769616,
+          -0.19611356862779614,
+          0.14654690407011822,
+          0.01765310311556162
+        ],
+        "reason": "Constrained two-node least-squares bound only; source analytic dp/de, continuous EOS, n(P), h(P), and RNS/TOV must be recomputed on an explicitly NEW source model",
+        "scope": "diagnostic_local_secants_only_not_physical_eos",
+        "source_analytic_cs2_at_knot": -0.17517582680939559,
+        "source_e_geom": [
+          2.466286697839736e-13,
+          2.469290244537695e-13,
+          2.46862961029854e-13,
+          2.469536392702134e-13,
+          2.477257323944466e-13
+        ],
+        "source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "source_p_geom": [
+          4.919236321850677e-16,
+          5.045552131438598e-16,
+          5.175111469637044e-16,
+          5.307997623549041e-16,
+          5.444296018918085e-16
+        ],
+        "total_required_e254_minus_e253_increase_geom": 7.970124898904625e-17
+      },
+      "source_native_h_252_to_256": 0.00020064232107677021,
+      "source_negative_cs2_knot_value": -0.17517582680939559
+    },
+    "MPA1": {
+      "baseline_source_sha256": "0fab458cf5d5a63d0fafdfc3532d0a0e319fc436f732debd73d61a24c9775c22",
+      "candidate_h_252_to_256": 0.00021214169016811266,
+      "candidate_vs_source_relative_h_increment_difference": 0.05731278472733625,
+      "max_relative_energy_change_for_sampled_projection": 0.0001614292925807108,
+      "piecewise_first_law_reconstruction": {
+        "candidate_pseudoenthalpy_h": [
+          0.009287427194064824,
+          0.00933851401486193,
+          0.009390880894299498,
+          0.009444582602510342,
+          0.009499568884232937
+        ],
+        "local_linear_segments_only": true,
+        "local_scope_source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "max_abs_h_difference_from_source": 1.1499370097405731e-05,
+        "max_analytic_vs_simpson_relative_error": 6.161776506566322e-16,
+        "max_first_law_identity_abs_error": 4.336808689942018e-19,
+        "native_lalsuite_cs2_changed": false,
+        "physical_EOS_overall_validated": false,
+        "piecewise_cs2_over_c2": [
+          0.048489156303029426,
+          0.9500000000017613,
+          0.2614491419228226,
+          0.017653114352426825
+        ],
+        "relative_baryon_density": [
+          1.0,
+          1.0010541272723972,
+          1.001109309930978,
+          1.0013149591112382,
+          1.0044387379096764
+        ],
+        "relative_difference_approx_n_vs_thermodynamic_n_at_256": 9.447696539544026e-06,
+        "rns_tov_computed": false,
+        "source_native_pseudoenthalpy_h": [
+          0.009287427194064824,
+          0.009337379113724842,
+          0.00938747734372739,
+          0.009437711135618629,
+          0.009488069514135531
+        ],
+        "source_proxy_n_over_n252": [
+          1.0,
+          1.0010562568113928,
+          1.0011115538095448,
+          1.0013176400285035,
+          1.0044482275420648
+        ],
+        "status": "LOCAL_PIECEWISE_LINEAR_IDENTITY_PASS"
+      },
+      "projection": {
+        "absolute_energy_shift_each_geom": 3.985091291300053e-17,
+        "candidate_e_geom": [
+          2.4662866935440555e-13,
+          2.468891725662959e-13,
+          2.469028103913694e-13,
+          2.4695363716132346e-13,
+          2.477257297940906e-13
+        ],
+        "candidate_secant_cs2_over_c2": [
+          0.048489156303029426,
+          0.9500000000017613,
+          0.2614491419228226,
+          0.017653114352426825
+        ],
+        "cs2_cap_requested": 0.95,
+        "full_eos_physics_validated": false,
+        "maximum_relative_energy_adjustment": 0.0001614292925807108,
+        "modified_source_indices": [
+          253,
+          254
+        ],
+        "original_native_negative_derivative_removed": false,
+        "original_secant_cs2_over_c2": [
+          0.042055626727494036,
+          -0.19611185626474764,
+          0.14654780505014015,
+          0.017653114352426825
+        ],
+        "reason": "Constrained two-node least-squares bound only; source analytic dp/de, continuous EOS, n(P), h(P), and RNS/TOV must be recomputed on an explicitly NEW source model",
+        "scope": "diagnostic_local_secants_only_not_physical_eos",
+        "source_analytic_cs2_at_knot": -0.17517448133854174,
+        "source_e_geom": [
+          2.4662866935440555e-13,
+          2.469290234792089e-13,
+          2.468629594784564e-13,
+          2.4695363716132346e-13,
+          2.477257297940906e-13
+        ],
+        "source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "source_p_geom": [
+          4.919236321850677e-16,
+          5.045552131438598e-16,
+          5.175111469637044e-16,
+          5.307997623549041e-16,
+          5.444296018918085e-16
+        ],
+        "total_required_e254_minus_e253_increase_geom": 7.970182582600107e-17
+      },
+      "source_native_h_252_to_256": 0.00020064232007070693,
+      "source_negative_cs2_knot_value": -0.17517448133854174
+    },
+    "MS1": {
+      "baseline_source_sha256": "531530be6253984622f667f454f825ccd13fa4e8960a1411aefe5dd7ea5ff3ad",
+      "candidate_h_252_to_256": 0.00021214168883782955,
+      "candidate_vs_source_relative_h_increment_difference": 0.05731277279562286,
+      "max_relative_energy_change_for_sampled_projection": 0.0001614281232319678,
+      "piecewise_first_law_reconstruction": {
+        "candidate_pseudoenthalpy_h": [
+          0.009287427194259918,
+          0.009338514014882204,
+          0.009390880894052446,
+          0.009444582601897419,
+          0.009499568883097748
+        ],
+        "local_linear_segments_only": true,
+        "local_scope_source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "max_abs_h_difference_from_source": 1.1499367761059337e-05,
+        "max_analytic_vs_simpson_relative_error": 1.1645981805416894e-15,
+        "max_first_law_identity_abs_error": 2.710505431213761e-20,
+        "native_lalsuite_cs2_changed": false,
+        "physical_EOS_overall_validated": false,
+        "piecewise_cs2_over_c2": [
+          0.04848900117531412,
+          0.9499999999982445,
+          0.2614447906925999,
+          0.01765310311556162
+        ],
+        "relative_baryon_density": [
+          1.0,
+          1.001054130642966,
+          1.001109313301451,
+          1.0013149659039768,
+          1.0044387466853912
+        ],
+        "relative_difference_approx_n_vs_thermodynamic_n_at_256": 9.447714760524306e-06,
+        "rns_tov_computed": false,
+        "source_native_pseudoenthalpy_h": [
+          0.009287427194259918,
+          0.009337379114169295,
+          0.009387477344438892,
+          0.009437711136590624,
+          0.009488069515336688
+        ],
+        "source_proxy_n_over_n252": [
+          1.0,
+          1.001056260188767,
+          1.0011115571868228,
+          1.001317646835319,
+          1.0044482363361644
+        ],
+        "status": "LOCAL_PIECEWISE_LINEAR_IDENTITY_PASS"
+      },
+      "projection": {
+        "absolute_energy_shift_each_geom": 3.985062449452313e-17,
+        "candidate_e_geom": [
+          2.466286697839736e-13,
+          2.46889173829275e-13,
+          2.4690281165434853e-13,
+          2.469536392702134e-13,
+          2.477257323944466e-13
+        ],
+        "candidate_secant_cs2_over_c2": [
+          0.04848900117531412,
+          0.9499999999982445,
+          0.2614447906925999,
+          0.01765310311556162
+        ],
+        "cs2_cap_requested": 0.95,
+        "full_eos_physics_validated": false,
+        "maximum_relative_energy_adjustment": 0.0001614281232319678,
+        "modified_source_indices": [
+          253,
+          254
+        ],
+        "original_native_negative_derivative_removed": false,
+        "original_secant_cs2_over_c2": [
+          0.04205555041769616,
+          -0.19611356862779614,
+          0.14654690407011822,
+          0.01765310311556162
+        ],
+        "reason": "Constrained two-node least-squares bound only; source analytic dp/de, continuous EOS, n(P), h(P), and RNS/TOV must be recomputed on an explicitly NEW source model",
+        "scope": "diagnostic_local_secants_only_not_physical_eos",
+        "source_analytic_cs2_at_knot": -0.17517582680939398,
+        "source_e_geom": [
+          2.466286697839736e-13,
+          2.469290244537695e-13,
+          2.46862961029854e-13,
+          2.469536392702134e-13,
+          2.477257323944466e-13
+        ],
+        "source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "source_p_geom": [
+          4.919236321850677e-16,
+          5.045552131438598e-16,
+          5.175111469637044e-16,
+          5.307997623549041e-16,
+          5.444296018918085e-16
+        ],
+        "total_required_e254_minus_e253_increase_geom": 7.970124898904625e-17
+      },
+      "source_native_h_252_to_256": 0.00020064232107677021,
+      "source_negative_cs2_knot_value": -0.17517582680939398
+    },
+    "MS1B": {
+      "baseline_source_sha256": "7a3302e8f2541469fc9ba26dbe52f97b1c8696b71864a208ca43ca7f5cde984c",
+      "candidate_h_252_to_256": 0.00021214169016811266,
+      "candidate_vs_source_relative_h_increment_difference": 0.05731278472733625,
+      "max_relative_energy_change_for_sampled_projection": 0.0001614292925807108,
+      "piecewise_first_law_reconstruction": {
+        "candidate_pseudoenthalpy_h": [
+          0.009287427194064824,
+          0.00933851401486193,
+          0.009390880894299498,
+          0.009444582602510342,
+          0.009499568884232937
+        ],
+        "local_linear_segments_only": true,
+        "local_scope_source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "max_abs_h_difference_from_source": 1.1499370097405731e-05,
+        "max_analytic_vs_simpson_relative_error": 6.161776506566322e-16,
+        "max_first_law_identity_abs_error": 4.336808689942018e-19,
+        "native_lalsuite_cs2_changed": false,
+        "physical_EOS_overall_validated": false,
+        "piecewise_cs2_over_c2": [
+          0.048489156303029426,
+          0.9500000000017613,
+          0.2614491419228226,
+          0.017653114352426825
+        ],
+        "relative_baryon_density": [
+          1.0,
+          1.0010541272723972,
+          1.001109309930978,
+          1.0013149591112382,
+          1.0044387379096764
+        ],
+        "relative_difference_approx_n_vs_thermodynamic_n_at_256": 9.447696539544026e-06,
+        "rns_tov_computed": false,
+        "source_native_pseudoenthalpy_h": [
+          0.009287427194064824,
+          0.009337379113724842,
+          0.00938747734372739,
+          0.009437711135618629,
+          0.009488069514135531
+        ],
+        "source_proxy_n_over_n252": [
+          1.0,
+          1.0010562568113928,
+          1.0011115538095448,
+          1.0013176400285035,
+          1.0044482275420648
+        ],
+        "status": "LOCAL_PIECEWISE_LINEAR_IDENTITY_PASS"
+      },
+      "projection": {
+        "absolute_energy_shift_each_geom": 3.985091291300053e-17,
+        "candidate_e_geom": [
+          2.4662866935440555e-13,
+          2.468891725662959e-13,
+          2.469028103913694e-13,
+          2.4695363716132346e-13,
+          2.477257297940906e-13
+        ],
+        "candidate_secant_cs2_over_c2": [
+          0.048489156303029426,
+          0.9500000000017613,
+          0.2614491419228226,
+          0.017653114352426825
+        ],
+        "cs2_cap_requested": 0.95,
+        "full_eos_physics_validated": false,
+        "maximum_relative_energy_adjustment": 0.0001614292925807108,
+        "modified_source_indices": [
+          253,
+          254
+        ],
+        "original_native_negative_derivative_removed": false,
+        "original_secant_cs2_over_c2": [
+          0.042055626727494036,
+          -0.19611185626474764,
+          0.14654780505014015,
+          0.017653114352426825
+        ],
+        "reason": "Constrained two-node least-squares bound only; source analytic dp/de, continuous EOS, n(P), h(P), and RNS/TOV must be recomputed on an explicitly NEW source model",
+        "scope": "diagnostic_local_secants_only_not_physical_eos",
+        "source_analytic_cs2_at_knot": -0.17517448133854174,
+        "source_e_geom": [
+          2.4662866935440555e-13,
+          2.469290234792089e-13,
+          2.468629594784564e-13,
+          2.4695363716132346e-13,
+          2.477257297940906e-13
+        ],
+        "source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "source_p_geom": [
+          4.919236321850677e-16,
+          5.045552131438598e-16,
+          5.175111469637044e-16,
+          5.307997623549041e-16,
+          5.444296018918085e-16
+        ],
+        "total_required_e254_minus_e253_increase_geom": 7.970182582600107e-17
+      },
+      "source_native_h_252_to_256": 0.00020064232007070693,
+      "source_negative_cs2_knot_value": -0.17517448133854174
+    },
+    "WFF1": {
+      "baseline_source_sha256": "119b8a25435faeddf00f5d3638f3ff2ff00283ce60caacc24cc37c6e2e030ed3",
+      "candidate_h_252_to_256": 0.00021214169016811266,
+      "candidate_vs_source_relative_h_increment_difference": 0.05731278472733625,
+      "max_relative_energy_change_for_sampled_projection": 0.0001614292925807108,
+      "piecewise_first_law_reconstruction": {
+        "candidate_pseudoenthalpy_h": [
+          0.009287427194064824,
+          0.00933851401486193,
+          0.009390880894299498,
+          0.009444582602510342,
+          0.009499568884232937
+        ],
+        "local_linear_segments_only": true,
+        "local_scope_source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "max_abs_h_difference_from_source": 1.1499370097405731e-05,
+        "max_analytic_vs_simpson_relative_error": 6.161776506566322e-16,
+        "max_first_law_identity_abs_error": 4.336808689942018e-19,
+        "native_lalsuite_cs2_changed": false,
+        "physical_EOS_overall_validated": false,
+        "piecewise_cs2_over_c2": [
+          0.048489156303029426,
+          0.9500000000017613,
+          0.2614491419228226,
+          0.017653114352426825
+        ],
+        "relative_baryon_density": [
+          1.0,
+          1.0010541272723972,
+          1.001109309930978,
+          1.0013149591112382,
+          1.0044387379096764
+        ],
+        "relative_difference_approx_n_vs_thermodynamic_n_at_256": 9.447696539544026e-06,
+        "rns_tov_computed": false,
+        "source_native_pseudoenthalpy_h": [
+          0.009287427194064824,
+          0.009337379113724842,
+          0.00938747734372739,
+          0.009437711135618629,
+          0.009488069514135531
+        ],
+        "source_proxy_n_over_n252": [
+          1.0,
+          1.0010562568113928,
+          1.0011115538095448,
+          1.0013176400285035,
+          1.0044482275420648
+        ],
+        "status": "LOCAL_PIECEWISE_LINEAR_IDENTITY_PASS"
+      },
+      "projection": {
+        "absolute_energy_shift_each_geom": 3.985091291300053e-17,
+        "candidate_e_geom": [
+          2.4662866935440555e-13,
+          2.468891725662959e-13,
+          2.469028103913694e-13,
+          2.4695363716132346e-13,
+          2.477257297940906e-13
+        ],
+        "candidate_secant_cs2_over_c2": [
+          0.048489156303029426,
+          0.9500000000017613,
+          0.2614491419228226,
+          0.017653114352426825
+        ],
+        "cs2_cap_requested": 0.95,
+        "full_eos_physics_validated": false,
+        "maximum_relative_energy_adjustment": 0.0001614292925807108,
+        "modified_source_indices": [
+          253,
+          254
+        ],
+        "original_native_negative_derivative_removed": false,
+        "original_secant_cs2_over_c2": [
+          0.042055626727494036,
+          -0.19611185626474764,
+          0.14654780505014015,
+          0.017653114352426825
+        ],
+        "reason": "Constrained two-node least-squares bound only; source analytic dp/de, continuous EOS, n(P), h(P), and RNS/TOV must be recomputed on an explicitly NEW source model",
+        "scope": "diagnostic_local_secants_only_not_physical_eos",
+        "source_analytic_cs2_at_knot": -0.17517448133854174,
+        "source_e_geom": [
+          2.4662866935440555e-13,
+          2.469290234792089e-13,
+          2.468629594784564e-13,
+          2.4695363716132346e-13,
+          2.477257297940906e-13
+        ],
+        "source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "source_p_geom": [
+          4.919236321850677e-16,
+          5.045552131438598e-16,
+          5.175111469637044e-16,
+          5.307997623549041e-16,
+          5.444296018918085e-16
+        ],
+        "total_required_e254_minus_e253_increase_geom": 7.970182582600107e-17
+      },
+      "source_native_h_252_to_256": 0.00020064232007070693,
+      "source_negative_cs2_knot_value": -0.17517448133854174
+    },
+    "WFF2": {
+      "baseline_source_sha256": "eb08edc3723fc32d428b3dc3b21aa612dad8a3bdb5da6246faedbb7ed65683ae",
+      "candidate_h_252_to_256": 0.00021214169016811266,
+      "candidate_vs_source_relative_h_increment_difference": 0.05731278472733625,
+      "max_relative_energy_change_for_sampled_projection": 0.0001614292925807108,
+      "piecewise_first_law_reconstruction": {
+        "candidate_pseudoenthalpy_h": [
+          0.009287427194064824,
+          0.00933851401486193,
+          0.009390880894299498,
+          0.009444582602510342,
+          0.009499568884232937
+        ],
+        "local_linear_segments_only": true,
+        "local_scope_source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "max_abs_h_difference_from_source": 1.1499370097405731e-05,
+        "max_analytic_vs_simpson_relative_error": 6.161776506566322e-16,
+        "max_first_law_identity_abs_error": 4.336808689942018e-19,
+        "native_lalsuite_cs2_changed": false,
+        "physical_EOS_overall_validated": false,
+        "piecewise_cs2_over_c2": [
+          0.048489156303029426,
+          0.9500000000017613,
+          0.2614491419228226,
+          0.017653114352426825
+        ],
+        "relative_baryon_density": [
+          1.0,
+          1.0010541272723972,
+          1.001109309930978,
+          1.0013149591112382,
+          1.0044387379096764
+        ],
+        "relative_difference_approx_n_vs_thermodynamic_n_at_256": 9.447696539544026e-06,
+        "rns_tov_computed": false,
+        "source_native_pseudoenthalpy_h": [
+          0.009287427194064824,
+          0.009337379113724842,
+          0.00938747734372739,
+          0.009437711135618629,
+          0.009488069514135531
+        ],
+        "source_proxy_n_over_n252": [
+          1.0,
+          1.0010562568113928,
+          1.0011115538095448,
+          1.0013176400285035,
+          1.0044482275420648
+        ],
+        "status": "LOCAL_PIECEWISE_LINEAR_IDENTITY_PASS"
+      },
+      "projection": {
+        "absolute_energy_shift_each_geom": 3.985091291300053e-17,
+        "candidate_e_geom": [
+          2.4662866935440555e-13,
+          2.468891725662959e-13,
+          2.469028103913694e-13,
+          2.4695363716132346e-13,
+          2.477257297940906e-13
+        ],
+        "candidate_secant_cs2_over_c2": [
+          0.048489156303029426,
+          0.9500000000017613,
+          0.2614491419228226,
+          0.017653114352426825
+        ],
+        "cs2_cap_requested": 0.95,
+        "full_eos_physics_validated": false,
+        "maximum_relative_energy_adjustment": 0.0001614292925807108,
+        "modified_source_indices": [
+          253,
+          254
+        ],
+        "original_native_negative_derivative_removed": false,
+        "original_secant_cs2_over_c2": [
+          0.042055626727494036,
+          -0.19611185626474764,
+          0.14654780505014015,
+          0.017653114352426825
+        ],
+        "reason": "Constrained two-node least-squares bound only; source analytic dp/de, continuous EOS, n(P), h(P), and RNS/TOV must be recomputed on an explicitly NEW source model",
+        "scope": "diagnostic_local_secants_only_not_physical_eos",
+        "source_analytic_cs2_at_knot": -0.17517448133854174,
+        "source_e_geom": [
+          2.4662866935440555e-13,
+          2.469290234792089e-13,
+          2.468629594784564e-13,
+          2.4695363716132346e-13,
+          2.477257297940906e-13
+        ],
+        "source_indices": [
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "source_p_geom": [
+          4.919236321850677e-16,
+          5.045552131438598e-16,
+          5.175111469637044e-16,
+          5.307997623549041e-16,
+          5.444296018918085e-16
+        ],
+        "total_required_e254_minus_e253_increase_geom": 7.970182582600107e-17
+      },
+      "source_native_h_252_to_256": 0.00020064232007070693,
+      "source_negative_cs2_knot_value": -0.17517448133854174
+    }
+  },
+  "point_indices": [
+    252,
+    253,
+    254,
+    255,
+    256
+  ],
+  "pseudoenthalpy_constraint": "dh = dP / (epsilon+P), H dimensionless, anchored at source h[252] only",
+  "schema": "j0740-local-eos-first-law-20261116-v1",
+  "scientific_status": "LOCAL_FIRST_LAW_CONSTRUCTION_PASS_NO_STELLAR_VALIDATION",
+  "source_generator": "https://github.com/nuclear-multimessenger-astronomy/jester/blob/e6768650ce992abfd1153a6833857572fe5cd230/jesterTOV/tabulated_eos/generate_lalsuite_eos.py",
+  "verification": {
+    "original_source_not_modified": true,
+    "six_models_causal_sampled_edges": "PASS",
+    "six_models_first_law": "PASS",
+    "six_models_numeric_simpson_crosscheck": "PASS"
+  }
+}

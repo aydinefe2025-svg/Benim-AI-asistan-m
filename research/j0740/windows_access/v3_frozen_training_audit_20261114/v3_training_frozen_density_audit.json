@@ -1,0 +1,100 @@
+{
+  "EOS_Bayes": "NOT_RUN",
+  "acceptance_result": "NOT_DECIDED_VALIDATION_RUNNING",
+  "fixed_M_R": [
+    2.0,
+    13.625
+  ],
+  "frozen_before_validation": true,
+  "frozen_numerical_sampling_preflight": {
+    "analytic_defensive_support_guarantee": "q_v3(z)>=0.5*q_base(z)>=0.025*Normal13(z;0,I) so Normal13/q_v3<=40",
+    "cdf_endpoint_count": 0,
+    "component_frequencies": [
+      0.501953125,
+      0.250244140625,
+      0.247802734375
+    ],
+    "draws": 4096,
+    "importance_ESS": 109.01274275403254,
+    "max_source_prior_over_q_weight": 40.0,
+    "mean_standard_error": 0.10060251286457866,
+    "seed": 24681,
+    "source_prior_over_q_mean": 1.0645155045392953,
+    "source_prior_over_q_target": 1.0,
+    "status": "PASS_STATISTICALLY_COMPATIBLE_WITH_NORMALIZED_BASE_MEASURE_NOT_NATIVE_VALIDATION"
+  },
+  "frozen_proposal_sha256": "2bc0bc1b1178f49422c72edbf89866404eb6133296bb92155485213fa55d85a8",
+  "full_MR_convergence": "NOT_ESTABLISHED",
+  "global_training_ESS": 829.5930208587542,
+  "limitations": [
+    "The 24.3 million q gain at rare seed197807 event 279 is IN-SAMPLE only.",
+    "An expected prior/q sample mean compatible with 1 is a numerical smoke test, not an integral proof or astrophysical likelihood convergence.",
+    "The frozen v3 heldout validation is an independent ongoing process; this script did not read its data.",
+    "No source/prior/likelihood/run seeds changed. No new photon calls.",
+    "All historical failure results remain unchanged."
+  ],
+  "runner_sha256": "e5c2dedcc873b35547d1c55a673b424a3daf42f311fd38edbbccf64bbad19ac3",
+  "schema": "j0740-v3-training-frozen-q-audit-20261114-v1",
+  "scope": "EXCLUSIVELY_COMPLETED_TRAINING_AND_SYNTHETIC_Q_DRAW_PREFLIGHT_NOT_HELDOUT",
+  "source_likelihood_calls_by_audit": 0,
+  "source_model_sha256": "049a1ac945b09af595d282d958842cd95475e509d6b7e79b45c72d11096de227",
+  "training": [
+    {
+      "ESS": 525.345578766751,
+      "log_density_gain_at_top": -0.6879958135972268,
+      "logq_base_at_top": 6.857600811927488,
+      "logq_v3_at_top": 6.169604998330261,
+      "max_weight_fraction": 0.011223992831794464,
+      "seed": 197801,
+      "source_jsonl_sha256": "78a30d566497006b49b784edc7a8d56d568dcd2da5982dd5ecadbd05515966f3",
+      "source_npz_sha256": "a3e1851d7da276d699b27f84ff7c582ac9c08ce0fe2d7aa94345b3506b00a0e2",
+      "top_density_gain_factor": 0.5025823290330803,
+      "top_index": 618,
+      "top_phase_probit_z2": 0.5018320371524174,
+      "top_second_phase_probit_z6": 0.6866736113658118
+    },
+    {
+      "ESS": 467.4775103909524,
+      "log_density_gain_at_top": -0.570762462914421,
+      "logq_base_at_top": 0.2962831817931678,
+      "logq_v3_at_top": -0.27447928112125325,
+      "max_weight_fraction": 0.01541368091637285,
+      "seed": 197803,
+      "source_jsonl_sha256": "304eaccc889a7e910346d361de29cf92a01530dfc3241dbc67790dfbef776b8d",
+      "source_npz_sha256": "24821cdc521254bd4fd2278d9c40b7bddfbfc789cdc8328492b260f2dc4c4b20",
+      "top_density_gain_factor": 0.565094410867617,
+      "top_index": 771,
+      "top_phase_probit_z2": 0.4883909113727101,
+      "top_second_phase_probit_z6": 0.69873520474864
+    },
+    {
+      "ESS": 93.60240373896009,
+      "log_density_gain_at_top": 17.006301613322652,
+      "logq_base_at_top": -2.5743274517036743,
+      "logq_v3_at_top": 14.431974161618976,
+      "max_weight_fraction": 0.09387637262586045,
+      "seed": 197807,
+      "source_jsonl_sha256": "2b910799cac86f7d25983cb8f7c22775260515b6fd4f77e55bc469e44ca57f33",
+      "source_npz_sha256": "b745e0f64ca3c1f4c717228600a9890c9bf64c918e22b759d921c7baf2a08314",
+      "top_density_gain_factor": 24307648.535241626,
+      "top_index": 279,
+      "top_phase_probit_z2": -0.6192528071349706,
+      "top_second_phase_probit_z6": -0.8967048957807326
+    },
+    {
+      "ESS": 305.0295367348887,
+      "log_density_gain_at_top": 2.0261768550929977,
+      "logq_base_at_top": 0.9872391479837721,
+      "logq_v3_at_top": 3.01341600307677,
+      "max_weight_fraction": 0.03928504948779007,
+      "seed": 197811,
+      "source_jsonl_sha256": "8c77e0b3fa1ddf573ab8976d0ceaaa3d5d4d5e0b99a74184e8965069ecb08d93",
+      "source_npz_sha256": "dd7833923c821f63dacf089f36c85c22968dd2a374e06e9a1584bd6cc2859d32",
+      "top_density_gain_factor": 7.585032177856883,
+      "top_index": 346,
+      "top_phase_probit_z2": 0.47108852950362057,
+      "top_second_phase_probit_z6": 0.716022298229103
+    }
+  ],
+  "v3_protocol_id": "J0740-TAIL-IND-2026-11-14-v3"
+}

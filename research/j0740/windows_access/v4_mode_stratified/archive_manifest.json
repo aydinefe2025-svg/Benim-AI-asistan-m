@@ -1,0 +1,15 @@
+{
+  "artifacts": {
+    "README_RESULT.md": "3e6ac60e9db0f4b77b77d03df5dd1e4a9422c90f2acd75ea52e915adbec8e19d",
+    "compare_v3_synthetic.py": "c233825a5a842e1b3c88de38c27b841e4b41167aa73e84e6f3e7b919604c3b76",
+    "independent_synthetic_predeclared.json": "9040136ccc32182436e1a042cdd81a28097294b61730966d33ceb85c1f56d03c",
+    "independent_synthetic_results.json": "43c481c7d3294b14763ecde6310e82e7bf742fd2183f611ad4ab60e5f35e53f3",
+    "latent/defensive_latent_v3.py": "3329e73fb5e570e36984c995d87d0a2c780dafe8472119ed56aa18559ad9a50f",
+    "mode_v4/mode_stratified_v4.py": "03ec2daa1ae00e643c589e5adda5c6b8f95e8317fd87db6705857fda38e66174",
+    "mode_v4/test_mode_stratified_v4.py": "1bb7d996531b4a07de4d2ccd5edb8a27100603a6808281a1cd460057f7d3e51e",
+    "run_independent_synthetic.py": "7592ef3469b4ce14e50cfd01392b25152f93245953e20ed786efd3a78ecdefa9",
+    "support/support_aware_mixture.py": "36a48124478e2399ee075a11672ba16424e58f8b1b92451a616a25be9f1b8ac5",
+    "v4_unittest_pass.log": "963a575477c65127a094485340f7aa68c8741085735798b00ed52d3777935d11"
+  },
+  "scheme": "sha256"
+}
